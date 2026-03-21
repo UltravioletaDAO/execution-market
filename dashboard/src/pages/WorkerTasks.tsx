@@ -11,21 +11,9 @@ import { SubmissionForm } from '../components/SubmissionForm'
 import { PaymentStatus } from '../components/PaymentStatus'
 import type { VerificationResponse } from '../services/submissions'
 import type { Task, TaskCategory } from '../types/database'
+import { getCheckLabel } from '../constants/checkLabels'
 
 type TasksView = 'list' | 'detail' | 'submit' | 'submitted'
-
-const CHECK_LABELS: Record<string, string> = {
-  schema: 'Campos requeridos',
-  gps: 'Ubicacion GPS',
-  timestamp: 'Tiempo de entrega',
-  evidence_hash: 'Integridad',
-  metadata: 'Metadatos',
-  ai_semantic: 'IA: Coincidencia',
-  tampering: 'Manipulacion',
-  genai_detection: 'Deteccion IA',
-  photo_source: 'Origen de foto',
-  duplicate: 'Duplicados',
-}
 
 function SubmissionConfirmation({
   task,
@@ -49,7 +37,7 @@ function SubmissionConfirmation({
           </svg>
         </div>
         <h2 className="text-xl font-bold text-gray-900 mb-1">
-          {t('tasks.evidenceSubmitted', 'Evidencia enviada')}
+          {t('tasks.evidenceSubmitted', 'Evidence submitted')}
         </h2>
         <p className="text-gray-500 text-sm">
           {task.title}
@@ -61,7 +49,7 @@ function SubmissionConfirmation({
         <div className={`bg-white rounded-lg border p-4 ${verification.passed ? 'border-green-200' : 'border-orange-200'}`}>
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-medium text-gray-700">
-              {t('autoCheck.title', 'Verificacion automatica')}
+              {t('autoCheck.title', 'Automatic verification')}
             </span>
             <span className={`text-xs font-mono px-2 py-0.5 rounded-full ${
               verification.passed ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
@@ -79,7 +67,7 @@ function SubmissionConfirmation({
                   {check.passed ? '\u2713' : '\u2717'}
                 </span>
                 <span className="text-gray-600 w-28">
-                  {t(`autoCheck.checks.${check.name}`, CHECK_LABELS[check.name] || check.name)}
+                  {getCheckLabel(check.name, t)}
                 </span>
                 <div className="flex-1 bg-gray-200 rounded-full h-1.5">
                   <div
@@ -97,7 +85,7 @@ function SubmissionConfirmation({
           </div>
           {verification.phase_b_status === 'pending' && (
             <p className="text-xs text-blue-600 mt-2">
-              {t('autoCheck.phaseBPending', 'Verificacion por IA en progreso. Los resultados se actualizaran automaticamente.')}
+              {t('autoCheck.phaseBPending', 'AI verification in progress. Results will update automatically.')}
             </p>
           )}
         </div>
@@ -109,7 +97,7 @@ function SubmissionConfirmation({
           <div className="flex items-center gap-3">
             <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
             <span className="text-sm text-gray-600">
-              {t('payment.processing', 'Procesando pago...')}
+              {t('payment.processing', 'Processing payment...')}
             </span>
           </div>
         </div>
@@ -120,7 +108,7 @@ function SubmissionConfirmation({
           <div className="flex items-center gap-3">
             <div className="w-5 h-5 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
             <span className="text-sm text-gray-600">
-              {t('payment.awaitingRecord', 'Esperando confirmacion de pago...')}
+              {t('payment.awaitingRecord', 'Awaiting payment confirmation...')}
             </span>
           </div>
         </div>
@@ -131,7 +119,7 @@ function SubmissionConfirmation({
         onClick={onBack}
         className="w-full py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
       >
-        {t('tasks.backToMyTasks', 'Volver a mis tareas')}
+        {t('tasks.backToMyTasks', 'Back to my tasks')}
       </button>
     </div>
   )

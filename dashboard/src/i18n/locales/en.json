@@ -53,7 +53,8 @@
     "showLess": "Show less",
     "showMore": "Show more ({{count}})",
     "tryAgain": "Try again",
-    "uploading": "Uploading..."
+    "uploading": "Uploading...",
+    "now": "now"
   },
   "nav": {
     "home": "Home",
@@ -395,7 +396,11 @@
     "loadMore": "Load more",
     "unavailable": "Task unavailable",
     "backToMyTasks": "Back to my tasks",
-    "evidenceSubmitted": "Evidence submitted"
+    "evidenceSubmitted": "Evidence submitted",
+    "submissions": "Evidence Submitted",
+    "ratings": "Ratings",
+    "postedBy": "Posted by",
+    "acceptedBy": "Accepted by"
   },
   "categories": {
     "all": "All",
@@ -459,7 +464,14 @@
     "waitingReview": "Waiting for review. Checking status automatically...",
     "polling": "Auto-refreshing every 5s",
     "statusUpdated": "Status Updated",
-    "newStatus": "Task status: {{status}}"
+    "newStatus": "Task status: {{status}}",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "pending": "Pending review",
+    "filename": "File",
+    "fileSize": "Size",
+    "file": "File",
+    "agentNotes": "Agent notes"
   },
   "geofence": {
     "checking": "Checking your location...",
@@ -840,7 +852,43 @@
     "maxReached": "Maximum reached",
     "addCustom": "Add custom skill",
     "customPlaceholder": "Type your skill...",
-    "verificationInfo": "Verified skills increase your visibility and trust. You can verify skills by completing related tasks."
+    "verificationInfo": "Verified skills increase your visibility and trust. You can verify skills by completing related tasks.",
+    "photo_verification": "Photo verification",
+    "location_verification": "Location verification",
+    "document_verification": "Document verification",
+    "price_verification": "Price verification",
+    "inventory_check": "Inventory check",
+    "survey_completion": "Survey completion",
+    "data_entry": "Data entry",
+    "form_filling": "Form filling",
+    "research": "Research",
+    "lead_generation": "Lead generation",
+    "photography": "Photography",
+    "video_recording": "Video recording",
+    "audio_recording": "Audio recording",
+    "writing": "Writing",
+    "social_media": "Social media",
+    "spanish_native": "Native Spanish",
+    "english_fluent": "Fluent English",
+    "portuguese": "Portuguese",
+    "french": "French",
+    "translation": "Translation",
+    "transcription": "Transcription",
+    "delivery": "Deliveries",
+    "driving": "Driving",
+    "walking": "Walking",
+    "lifting": "Heavy lifting",
+    "assembly": "Assembly",
+    "smartphone_proficient": "Smartphone proficient",
+    "computer_proficient": "Computer proficient",
+    "app_testing": "App testing",
+    "web_testing": "Web testing",
+    "ai_training": "AI training",
+    "mystery_shopping": "Mystery shopping",
+    "quality_control": "Quality control",
+    "customer_service": "Customer service",
+    "sales": "Sales",
+    "teaching": "Teaching"
   },
   "skillCategories": {
     "verification": "Verification",
@@ -1797,6 +1845,8 @@
   },
   "autoCheck": {
     "title": "Automatic verification",
+    "passed": "Automatic verification: Approved",
+    "needsReview": "Automatic verification: Needs review",
     "phaseBPending": "AI verification in progress. Results will update automatically.",
     "phaseComplete": "Verification complete",
     "phasePartial": "Partial verification — AI pending",
@@ -1816,6 +1866,22 @@
       "photo_source": "Photo source",
       "duplicate": "Duplicates"
     }
+  },
+  "kkSwarm": {
+    "subtitle": "Autonomous agents of Ultravioleta DAO",
+    "active": "active",
+    "agents": "Agents",
+    "of": "of",
+    "tasksToday": "Tasks Today",
+    "totalTransacted": "total transacted",
+    "status": "Status",
+    "activeStatus": "Active",
+    "swarmStatus": "swarm status",
+    "topAgents": "Top Agents",
+    "noRecentActivity": "No recent activity",
+    "tasks": "tasks",
+    "recentTasks": "Recent Tasks",
+    "noRecentTasks": "No recent KK tasks"
   },
   "ratingsHistory": {
     "title": "Ratings History",
@@ -1882,7 +1948,10 @@
     "reject": "Reject",
     "requestInfo": "Request Info",
     "alreadyDecided": "This submission was already",
-    "markedForInfo": "marked for more info"
+    "markedForInfo": "marked for more info",
+    "task": "Task",
+    "sourceCamera": "Camera",
+    "sourceGallery": "Gallery"
   },
   "taskDetail": {
     "backToList": "Back to list",
@@ -1896,7 +1965,9 @@
     "requirementsNotMet": "You do not meet the requirements for this task",
     "accepting": "Accepting...",
     "submissions": "Submissions",
-    "noSubmissions": "No submissions yet"
+    "noSubmissions": "No submissions yet",
+    "yours": "yours",
+    "radius": "radius"
   },
   "taskLifecycle": {
     "title": "Task Lifecycle",

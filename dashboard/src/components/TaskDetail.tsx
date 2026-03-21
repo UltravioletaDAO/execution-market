@@ -70,17 +70,17 @@ const STATUS_I18N_KEY: Record<string, string> = {
   cancelled: 'agentDashboard.status.cancelled',
 }
 
-/** Spanish fallback labels for task statuses */
+/** English fallback labels for task statuses */
 const STATUS_FALLBACK: Record<string, string> = {
-  published: 'Publicada',
-  accepted: 'Aceptada',
-  in_progress: 'En Progreso',
-  submitted: 'Enviada',
-  verifying: 'Verificando',
-  completed: 'Completada',
-  disputed: 'Disputada',
-  expired: 'Expirada',
-  cancelled: 'Cancelada',
+  published: 'Published',
+  accepted: 'Accepted',
+  in_progress: 'In Progress',
+  submitted: 'Submitted',
+  verifying: 'Verifying',
+  completed: 'Completed',
+  disputed: 'Disputed',
+  expired: 'Expired',
+  cancelled: 'Cancelled',
 }
 
 function formatDeadline(deadline: string, lang = 'en'): string {
@@ -346,7 +346,7 @@ export function TaskDetail({
               <span>{task.location_hint}</span>
               {task.location_radius_km && (
                 <span className="text-sm text-gray-500">
-                  (radio: {task.location_radius_km} km)
+                  ({t('taskDetail.radius', 'radius')}: {task.location_radius_km} km)
                 </span>
               )}
             </div>
@@ -392,7 +392,7 @@ export function TaskDetail({
                           : 'text-red-600'
                       }`}
                     >
-                      (tu: {currentExecutor.reputation_score})
+                      ({t('taskDetail.yours', 'yours')}: {currentExecutor.reputation_score})
                     </span>
                   )}
                 </li>
@@ -445,7 +445,7 @@ export function TaskDetail({
         {submissions.length > 0 && (
           <section>
             <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
-              {t('tasks.submissions', 'Evidencia Enviada')}
+              {t('tasks.submissions', 'Evidence Submitted')}
             </h2>
             <div className="space-y-3">
               {submissions.map((sub) => (
@@ -463,10 +463,10 @@ export function TaskDetail({
                         : 'bg-yellow-100 text-yellow-700'
                     }`}>
                       {sub.agent_verdict === 'approved'
-                        ? t('submission.approved', 'Aprobada')
+                        ? t('submission.approved', 'Approved')
                         : sub.agent_verdict === 'rejected'
-                        ? t('submission.rejected', 'Rechazada')
-                        : t('submission.pending', 'Pendiente de revision')}
+                        ? t('submission.rejected', 'Rejected')
+                        : t('submission.pending', 'Pending review')}
                     </span>
                   </div>
 
@@ -512,7 +512,7 @@ export function TaskDetail({
                                   <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                                     {filename && (
                                       <>
-                                        <span className="text-gray-400">{t('submission.filename', 'Archivo')}</span>
+                                        <span className="text-gray-400">{t('submission.filename', 'File')}</span>
                                         <span className="text-gray-600 truncate">{filename}</span>
                                       </>
                                     )}
@@ -524,7 +524,7 @@ export function TaskDetail({
                                       return (
                                         <span key={mk} className="contents">
                                           <span className="text-gray-400">
-                                            {mk === 'size' ? t('submission.fileSize', 'Peso')
+                                            {mk === 'size' ? t('submission.fileSize', 'Size')
                                               : mk === 'checksum' ? 'Hash'
                                               : mk.replace(/_/g, ' ')}
                                           </span>
@@ -606,7 +606,7 @@ export function TaskDetail({
                                             <span key={nk} className="contents">
                                               <span className="text-gray-400">{nk.replace(/_/g, ' ')}</span>
                                               <span className="text-gray-600 truncate">
-                                                {typeof nv === 'boolean' ? (nv ? 'Si' : 'No')
+                                                {typeof nv === 'boolean' ? (nv ? t('common.yes', 'Yes') : t('common.no', 'No'))
                                                   : typeof nv === 'number' ? (nk.includes('score') ? `${Math.round(nv * 100)}%` : String(nv))
                                                   : typeof nv === 'string' && nv.length > 32 ? `${nv.slice(0, 32)}...`
                                                   : typeof nv === 'object' && nv !== null ? JSON.stringify(nv)
@@ -676,7 +676,7 @@ export function TaskDetail({
                             </button>
                           ) : (
                             <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm">
-                              {t('submission.file', 'Archivo')} {i + 1}
+                              {t('submission.file', 'File')} {i + 1}
                             </a>
                           )
                         ))}
@@ -694,7 +694,7 @@ export function TaskDetail({
                   {/* Agent notes — italic quote block */}
                   {sub.agent_notes && (
                     <div className="mt-3 border-l-4 border-blue-300 bg-blue-50 rounded-r-lg px-4 py-3">
-                      <span className="text-xs font-medium text-blue-600 block mb-1">{t('submission.agentNotes', 'Notas del agente')}</span>
+                      <span className="text-xs font-medium text-blue-600 block mb-1">{t('submission.agentNotes', 'Agent notes')}</span>
                       <p className="text-sm text-blue-800 italic">{sub.agent_notes}</p>
                     </div>
                   )}
@@ -708,7 +708,7 @@ export function TaskDetail({
         {task.status === 'completed' && (
           <section>
             <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
-              {t('tasks.ratings', 'Calificaciones')}
+              {t('tasks.ratings', 'Ratings')}
             </h2>
             <TaskRatings
               taskId={task.id}
@@ -723,11 +723,11 @@ export function TaskDetail({
         {submissionsLoading && ['accepted', 'in_progress', 'submitted', 'verifying', 'completed'].includes(task.status) && (
           <section>
             <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
-              {t('tasks.submissions', 'Evidencia Enviada')}
+              {t('tasks.submissions', 'Evidence Submitted')}
             </h2>
             <div className="flex items-center gap-2 text-sm text-gray-400 py-2">
               <div className="w-4 h-4 border-2 border-gray-300 border-t-transparent rounded-full animate-spin" />
-              {t('common.loading', 'Cargando...')}
+              {t('common.loading', 'Loading...')}
             </div>
           </section>
         )}

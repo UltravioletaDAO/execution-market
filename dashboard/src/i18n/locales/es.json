@@ -53,7 +53,8 @@
     "showLess": "Ver menos",
     "showMore": "Ver mas ({{count}})",
     "tryAgain": "Intentar de nuevo",
-    "uploading": "Subiendo..."
+    "uploading": "Subiendo...",
+    "now": "ahora"
   },
   "nav": {
     "home": "Inicio",
@@ -388,6 +389,10 @@
     "unavailable": "Tarea no disponible",
     "backToMyTasks": "Volver a mis tareas",
     "evidenceSubmitted": "Evidencia enviada",
+    "submissions": "Evidencia Enviada",
+    "ratings": "Calificaciones",
+    "postedBy": "Publicado por",
+    "acceptedBy": "Aceptado por",
     "categories": {
       "all": "Todas",
       "physical_presence": "Presencia Fisica",
@@ -483,7 +488,14 @@
     "waitingReview": "Esperando revision. Verificando estado automaticamente...",
     "polling": "Actualizando cada 5s",
     "statusUpdated": "Estado Actualizado",
-    "newStatus": "Estado de la tarea: {{status}}"
+    "newStatus": "Estado de la tarea: {{status}}",
+    "approved": "Aprobada",
+    "rejected": "Rechazada",
+    "pending": "Pendiente de revision",
+    "filename": "Archivo",
+    "fileSize": "Peso",
+    "file": "Archivo",
+    "agentNotes": "Notas del agente"
   },
   "geofence": {
     "checking": "Verificando tu ubicacion...",
@@ -950,7 +962,43 @@
     "maxReached": "Maximo alcanzado",
     "addCustom": "Agregar habilidad personalizada",
     "customPlaceholder": "Escribe tu habilidad...",
-    "verificationInfo": "Las habilidades verificadas aumentan tu visibilidad y confianza. Puedes verificar habilidades completando tareas relacionadas."
+    "verificationInfo": "Las habilidades verificadas aumentan tu visibilidad y confianza. Puedes verificar habilidades completando tareas relacionadas.",
+    "photo_verification": "Verificacion fotografica",
+    "location_verification": "Verificacion de ubicacion",
+    "document_verification": "Verificacion de documentos",
+    "price_verification": "Verificacion de precios",
+    "inventory_check": "Control de inventario",
+    "survey_completion": "Completar encuestas",
+    "data_entry": "Ingreso de datos",
+    "form_filling": "Llenado de formularios",
+    "research": "Investigacion",
+    "lead_generation": "Generacion de leads",
+    "photography": "Fotografia",
+    "video_recording": "Grabacion de video",
+    "audio_recording": "Grabacion de audio",
+    "writing": "Redaccion",
+    "social_media": "Redes sociales",
+    "spanish_native": "Espanol nativo",
+    "english_fluent": "Ingles fluido",
+    "portuguese": "Portugues",
+    "french": "Frances",
+    "translation": "Traduccion",
+    "transcription": "Transcripcion",
+    "delivery": "Entregas",
+    "driving": "Conduccion",
+    "walking": "Caminatas",
+    "lifting": "Carga fisica",
+    "assembly": "Ensamblaje",
+    "smartphone_proficient": "Manejo de smartphone",
+    "computer_proficient": "Manejo de computador",
+    "app_testing": "Prueba de apps",
+    "web_testing": "Prueba de sitios web",
+    "ai_training": "Entrenamiento de IA",
+    "mystery_shopping": "Mystery shopping",
+    "quality_control": "Control de calidad",
+    "customer_service": "Servicio al cliente",
+    "sales": "Ventas",
+    "teaching": "Ensenanza"
   },
   "skillCategories": {
     "verification": "Verificacion",
@@ -1797,6 +1845,8 @@
   },
   "autoCheck": {
     "title": "Verificacion automatica",
+    "passed": "Verificacion automatica: Aprobada",
+    "needsReview": "Verificacion automatica: Requiere revision",
     "phaseBPending": "Verificacion por IA en progreso. Los resultados se actualizaran automaticamente.",
     "phaseComplete": "Verificacion completa",
     "phasePartial": "Verificacion parcial — IA pendiente",
@@ -1816,6 +1866,22 @@
       "photo_source": "Origen de foto",
       "duplicate": "Duplicados"
     }
+  },
+  "kkSwarm": {
+    "subtitle": "Agentes autonomos de Ultravioleta DAO",
+    "active": "activos",
+    "agents": "Agentes",
+    "of": "de",
+    "tasksToday": "Tareas Hoy",
+    "totalTransacted": "total transaccionado",
+    "status": "Estado",
+    "activeStatus": "Activo",
+    "swarmStatus": "estado del swarm",
+    "topAgents": "Top Agentes",
+    "noRecentActivity": "Sin actividad reciente",
+    "tasks": "tareas",
+    "recentTasks": "Tareas Recientes",
+    "noRecentTasks": "Sin tareas KK recientes"
   },
   "ratingsHistory": {
     "title": "Historial de Calificaciones",
@@ -1882,7 +1948,10 @@
     "reject": "Rechazar",
     "requestInfo": "Pedir Info",
     "alreadyDecided": "Esta entrega ya fue",
-    "markedForInfo": "marcada para mas info"
+    "markedForInfo": "marcada para mas info",
+    "task": "Tarea",
+    "sourceCamera": "Camara",
+    "sourceGallery": "Galeria"
   },
   "taskDetail": {
     "backToList": "Volver a lista",
@@ -1896,7 +1965,9 @@
     "requirementsNotMet": "No cumples con los requisitos para esta tarea",
     "accepting": "Aceptando...",
     "submissions": "Entregas",
-    "noSubmissions": "No hay entregas aun"
+    "noSubmissions": "No hay entregas aun",
+    "yours": "tuyo",
+    "radius": "radio"
   },
   "taskLifecycle": {
     "title": "Ciclo de Vida",

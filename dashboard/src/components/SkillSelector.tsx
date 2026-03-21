@@ -32,80 +32,80 @@ interface SkillSelectorProps {
 const SKILL_CATEGORIES: { id: string; name: string; skills: Omit<Skill, 'category'>[] }[] = [
   {
     id: 'verification',
-    name: 'Verificacion',
+    name: 'Verification',
     skills: [
-      { id: 'photo_verification', name: 'Verificacion fotografica' },
-      { id: 'location_verification', name: 'Verificacion de ubicacion' },
-      { id: 'document_verification', name: 'Verificacion de documentos' },
-      { id: 'price_verification', name: 'Verificacion de precios' },
-      { id: 'inventory_check', name: 'Control de inventario' },
+      { id: 'photo_verification', name: 'Photo verification' },
+      { id: 'location_verification', name: 'Location verification' },
+      { id: 'document_verification', name: 'Document verification' },
+      { id: 'price_verification', name: 'Price verification' },
+      { id: 'inventory_check', name: 'Inventory check' },
     ],
   },
   {
     id: 'data_collection',
-    name: 'Recoleccion de Datos',
+    name: 'Data Collection',
     skills: [
-      { id: 'survey_completion', name: 'Completar encuestas' },
-      { id: 'data_entry', name: 'Ingreso de datos' },
-      { id: 'form_filling', name: 'Llenado de formularios' },
-      { id: 'research', name: 'Investigacion' },
-      { id: 'lead_generation', name: 'Generacion de leads' },
+      { id: 'survey_completion', name: 'Survey completion' },
+      { id: 'data_entry', name: 'Data entry' },
+      { id: 'form_filling', name: 'Form filling' },
+      { id: 'research', name: 'Research' },
+      { id: 'lead_generation', name: 'Lead generation' },
     ],
   },
   {
     id: 'content',
-    name: 'Contenido',
+    name: 'Content',
     skills: [
-      { id: 'photography', name: 'Fotografia' },
-      { id: 'video_recording', name: 'Grabacion de video' },
-      { id: 'audio_recording', name: 'Grabacion de audio' },
-      { id: 'writing', name: 'Redaccion' },
-      { id: 'social_media', name: 'Redes sociales' },
+      { id: 'photography', name: 'Photography' },
+      { id: 'video_recording', name: 'Video recording' },
+      { id: 'audio_recording', name: 'Audio recording' },
+      { id: 'writing', name: 'Writing' },
+      { id: 'social_media', name: 'Social media' },
     ],
   },
   {
     id: 'language',
-    name: 'Idiomas',
+    name: 'Languages',
     skills: [
-      { id: 'spanish_native', name: 'Espanol nativo' },
-      { id: 'english_fluent', name: 'Ingles fluido' },
-      { id: 'portuguese', name: 'Portugues' },
-      { id: 'french', name: 'Frances' },
-      { id: 'translation', name: 'Traduccion' },
-      { id: 'transcription', name: 'Transcripcion' },
+      { id: 'spanish_native', name: 'Native Spanish' },
+      { id: 'english_fluent', name: 'Fluent English' },
+      { id: 'portuguese', name: 'Portuguese' },
+      { id: 'french', name: 'French' },
+      { id: 'translation', name: 'Translation' },
+      { id: 'transcription', name: 'Transcription' },
     ],
   },
   {
     id: 'physical',
-    name: 'Tareas Fisicas',
+    name: 'Physical Tasks',
     skills: [
-      { id: 'delivery', name: 'Entregas' },
-      { id: 'driving', name: 'Conduccion' },
-      { id: 'walking', name: 'Caminatas' },
-      { id: 'lifting', name: 'Carga fisica' },
-      { id: 'assembly', name: 'Ensamblaje' },
+      { id: 'delivery', name: 'Deliveries' },
+      { id: 'driving', name: 'Driving' },
+      { id: 'walking', name: 'Walking' },
+      { id: 'lifting', name: 'Heavy lifting' },
+      { id: 'assembly', name: 'Assembly' },
     ],
   },
   {
     id: 'digital',
     name: 'Digital',
     skills: [
-      { id: 'smartphone_proficient', name: 'Manejo de smartphone' },
-      { id: 'computer_proficient', name: 'Manejo de computador' },
-      { id: 'app_testing', name: 'Prueba de apps' },
-      { id: 'web_testing', name: 'Prueba de sitios web' },
-      { id: 'ai_training', name: 'Entrenamiento de IA' },
+      { id: 'smartphone_proficient', name: 'Smartphone proficient' },
+      { id: 'computer_proficient', name: 'Computer proficient' },
+      { id: 'app_testing', name: 'App testing' },
+      { id: 'web_testing', name: 'Web testing' },
+      { id: 'ai_training', name: 'AI training' },
     ],
   },
   {
     id: 'specialized',
-    name: 'Especializadas',
+    name: 'Specialized',
     skills: [
       { id: 'mystery_shopping', name: 'Mystery shopping' },
-      { id: 'quality_control', name: 'Control de calidad' },
-      { id: 'customer_service', name: 'Servicio al cliente' },
-      { id: 'sales', name: 'Ventas' },
-      { id: 'teaching', name: 'Ensenanza' },
+      { id: 'quality_control', name: 'Quality control' },
+      { id: 'customer_service', name: 'Customer service' },
+      { id: 'sales', name: 'Sales' },
+      { id: 'teaching', name: 'Teaching' },
     ],
   },
 ]
@@ -218,11 +218,11 @@ export function SkillSelector({
       {/* Counter */}
       <div className="flex items-center justify-between">
         <span className="text-sm text-gray-500">
-          {selectedSkills.length} / {maxSkills} {t('skills.selected', 'habilidades seleccionadas')}
+          {selectedSkills.length} / {maxSkills} {t('skills.selected', 'skills selected')}
         </span>
         {selectedSkills.length >= maxSkills && (
           <span className="text-sm text-yellow-600">
-            {t('skills.maxReached', 'Maximo alcanzado')}
+            {t('skills.maxReached', 'Maximum reached')}
           </span>
         )}
       </div>
@@ -233,7 +233,7 @@ export function SkillSelector({
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder={t('skills.search', 'Buscar habilidades...')}
+          placeholder={t('skills.search', 'Search skills...')}
           className="w-full pl-10 pr-4 py-2.5 bg-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
         />
         <svg
@@ -338,7 +338,7 @@ export function SkillSelector({
               value={customSkill}
               onChange={(e) => setCustomSkill(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && addCustomSkill()}
-              placeholder={t('skills.customPlaceholder', 'Escribe tu habilidad...')}
+              placeholder={t('skills.customPlaceholder', 'Type your skill...')}
               className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               autoFocus
             />
@@ -347,13 +347,13 @@ export function SkillSelector({
               disabled={!customSkill.trim()}
               className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {t('common.add', 'Agregar')}
+              {t('common.add', 'Add')}
             </button>
             <button
               onClick={() => setShowCustomInput(false)}
               className="px-4 py-2 text-gray-600 text-sm hover:text-gray-800"
             >
-              {t('common.cancel', 'Cancelar')}
+              {t('common.cancel', 'Cancel')}
             </button>
           </div>
         ) : (
@@ -365,7 +365,7 @@ export function SkillSelector({
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            {t('skills.addCustom', 'Agregar habilidad personalizada')}
+            {t('skills.addCustom', 'Add custom skill')}
           </button>
         )}
       </div>
@@ -376,7 +376,7 @@ export function SkillSelector({
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         <p className="text-sm text-gray-600">
-          {t('skills.verificationInfo', 'Las habilidades verificadas aumentan tu visibilidad y confianza. Puedes verificar habilidades completando tareas relacionadas.')}
+          {t('skills.verificationInfo', 'Verified skills increase your visibility and trust. You can verify skills by completing related tasks.')}
         </p>
       </div>
     </div>
