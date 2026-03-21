@@ -1,6 +1,7 @@
 // Execution Market: Evidence Verification Panel
 // Reusable component to display auto-check verification results for submissions
 import { useTranslation } from 'react-i18next'
+import { getCheckLabel } from '../constants/checkLabels'
 
 /** Shape of auto_check_details from the backend verification pipeline */
 export interface AutoCheckDetails {
@@ -16,19 +17,6 @@ export interface AutoCheckDetails {
   }>
   warnings?: string[]
   phase_b_status?: 'pending' | 'complete'
-}
-
-const CHECK_LABELS: Record<string, string> = {
-  schema: 'Campos requeridos',
-  gps: 'Ubicacion GPS',
-  timestamp: 'Tiempo de entrega',
-  evidence_hash: 'Integridad',
-  metadata: 'Metadatos',
-  ai_semantic: 'IA: Coincidencia',
-  tampering: 'Manipulacion',
-  genai_detection: 'Deteccion IA',
-  photo_source: 'Origen de foto',
-  duplicate: 'Duplicados',
 }
 
 interface EvidenceVerificationPanelProps {
@@ -64,7 +52,7 @@ export function EvidenceVerificationPanel({ details }: EvidenceVerificationPanel
       {/* Header: title + overall score */}
       <div className="flex items-center justify-between mb-3">
         <span className="text-sm font-medium text-gray-700">
-          {t('autoCheck.title', 'Verificacion automatica')}
+          {t('autoCheck.title', 'Automatic verification')}
         </span>
         <span className={`text-xs font-mono px-2 py-0.5 rounded-full ${scoreColorClass}`}>
           {scorePercent}%
@@ -86,7 +74,7 @@ export function EvidenceVerificationPanel({ details }: EvidenceVerificationPanel
                   {check.passed ? '\u2713' : '\u2717'}
                 </span>
                 <span className="text-gray-600 w-28">
-                  {t(`autoCheck.checks.${check.name}`, CHECK_LABELS[check.name] || check.name)}
+                  {getCheckLabel(check.name, t)}
                 </span>
                 <div className="flex-1 bg-gray-200 rounded-full h-1.5">
                   <div
@@ -128,7 +116,7 @@ export function EvidenceVerificationPanel({ details }: EvidenceVerificationPanel
         <p className="text-xs text-blue-600 mt-2">
           {t(
             'autoCheck.phaseBPending',
-            'Verificacion por IA en progreso. Los resultados se actualizaran automaticamente.',
+            'AI verification in progress. Results will update automatically.',
           )}
         </p>
       )}

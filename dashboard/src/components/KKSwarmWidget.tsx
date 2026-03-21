@@ -10,6 +10,7 @@
  */
 
 import { memo, useCallback, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://api.execution.market'
 const REFRESH_INTERVAL = 60_000 // 1 minute
@@ -115,11 +116,11 @@ function formatUSDC(amount: number): string {
   return `$${amount.toFixed(2)}`
 }
 
-function timeAgo(dateStr: string): string {
+function timeAgo(dateStr: string, nowLabel = 'now'): string {
   if (!dateStr) return ''
   const diff = Date.now() - new Date(dateStr).getTime()
   const minutes = Math.floor(diff / 60000)
-  if (minutes < 1) return 'ahora'
+  if (minutes < 1) return nowLabel
   if (minutes < 60) return `${minutes}m`
   const hours = Math.floor(minutes / 60)
   if (hours < 24) return `${hours}h`
@@ -135,6 +136,7 @@ const STATUS_DOT: Record<string, string> = {
 }
 
 export const KKSwarmWidget = memo(function KKSwarmWidget() {
+  const { t } = useTranslation()
   const [metrics, setMetrics] = useState<SwarmMetrics>(DEFAULT_METRICS)
   const [loading, setLoading] = useState(true)
 
@@ -159,7 +161,7 @@ export const KKSwarmWidget = memo(function KKSwarmWidget() {
             Karma Kadabra Swarm
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Agentes autonomos de Ultravioleta DAO
+            {t('kkSwarm.subtitle', 'Autonomous agents of Ultravioleta DAO')}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -169,17 +171,17 @@ export const KKSwarmWidget = memo(function KKSwarmWidget() {
             }`}
           />
           <span className="text-xs text-gray-500 dark:text-gray-400">
-            {metrics.activeAgents}/{metrics.totalAgents} activos
+            {metrics.activeAgents}/{metrics.totalAgents} {t('kkSwarm.active', 'active')}
           </span>
         </div>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <StatCard label="Agentes" value={`${metrics.activeAgents}`} sub={`de ${metrics.totalAgents}`} />
-        <StatCard label="Tareas Hoy" value={`${metrics.tasksToday}`} sub={`${metrics.tasksTotal} total`} />
-        <StatCard label="USDC" value={formatUSDC(metrics.usdcTransacted)} sub="total transaccionado" />
-        <StatCard label="Estado" value={loading ? '...' : 'Activo'} sub="swarm status" />
+        <StatCard label={t('kkSwarm.agents', 'Agents')} value={`${metrics.activeAgents}`} sub={`${t('kkSwarm.of', 'of')} ${metrics.totalAgents}`} />
+        <StatCard label={t('kkSwarm.tasksToday', 'Tasks Today')} value={`${metrics.tasksToday}`} sub={`${metrics.tasksTotal} total`} />
+        <StatCard label="USDC" value={formatUSDC(metrics.usdcTransacted)} sub={t('kkSwarm.totalTransacted', 'total transacted')} />
+        <StatCard label={t('kkSwarm.status', 'Status')} value={loading ? '...' : t('kkSwarm.activeStatus', 'Active')} sub={t('kkSwarm.swarmStatus', 'swarm status')} />
       </div>
 
       {/* Two columns: Leaderboard + Recent */}
@@ -187,10 +189,10 @@ export const KKSwarmWidget = memo(function KKSwarmWidget() {
         {/* Top Agents */}
         <div>
           <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Top Agentes
+            {t('kkSwarm.topAgents', 'Top Agents')}
           </h4>
           {metrics.topAgents.length === 0 ? (
-            <p className="text-xs text-gray-400">Sin actividad reciente</p>
+            <p className="text-xs text-gray-400">{t('kkSwarm.noRecentActivity', 'No recent activity')}</p>
           ) : (
             <div className="space-y-1">
               {metrics.topAgents.map((agent, i) => (
@@ -202,7 +204,7 @@ export const KKSwarmWidget = memo(function KKSwarmWidget() {
                     {agent.name}
                   </span>
                   <span className="text-gray-900 dark:text-white">
-                    {agent.tasks} tareas / {formatUSDC(agent.earned)}
+                    {agent.tasks} {t('kkSwarm.tasks', 'tasks')} / {formatUSDC(agent.earned)}
                   </span>
                 </div>
               ))}
@@ -213,10 +215,10 @@ export const KKSwarmWidget = memo(function KKSwarmWidget() {
         {/* Recent Tasks */}
         <div>
           <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Tareas Recientes
+            {t('kkSwarm.recentTasks', 'Recent Tasks')}
           </h4>
           {metrics.recentTasks.length === 0 ? (
-            <p className="text-xs text-gray-400">Sin tareas KK recientes</p>
+            <p className="text-xs text-gray-400">{t('kkSwarm.noRecentTasks', 'No recent KK tasks')}</p>
           ) : (
             <div className="space-y-1">
               {metrics.recentTasks.map((task) => (
@@ -239,7 +241,7 @@ export const KKSwarmWidget = memo(function KKSwarmWidget() {
                       {formatUSDC(task.bounty)}
                     </span>
                     <span className="text-gray-400 text-xs">
-                      {timeAgo(task.created)}
+                      {timeAgo(task.created, t('common.now', 'now'))}
                     </span>
                   </div>
                 </div>

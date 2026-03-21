@@ -10,6 +10,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
+import { getCheckLabel } from '../constants/checkLabels'
 import { getSubmission, approveSubmission, rejectSubmission, requestMoreInfo } from '../services/submissions'
 import type { SubmissionWithDetails } from '../services/types'
 
@@ -178,7 +179,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
               <div className="bg-gray-50 rounded-lg p-4">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Tarea</p>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">{t('submissionReview.task', 'Task')}</p>
                     <p className="font-medium text-gray-900">{submission.task?.title || 'Unknown Task'}</p>
                     {submission.task?.bounty_usd && (
                       <p className="text-sm text-emerald-600 mt-1">
@@ -283,7 +284,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                             )}
                             {ev.metadata.source && (
                               <span className="text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">
-                                {ev.metadata.source === 'camera' ? 'Camara' : ev.metadata.source === 'gallery' ? 'Galeria' : ev.metadata.source}
+                                {ev.metadata.source === 'camera' ? t('submissionReview.sourceCamera', 'Camera') : ev.metadata.source === 'gallery' ? t('submissionReview.sourceGallery', 'Gallery') : ev.metadata.source}
                               </span>
                             )}
                             {ev.metadata.deviceInfo?.model && (
@@ -358,18 +359,6 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                 const details = submission.auto_check_details as AutoCheckDetails | null
                 const score = details?.score ?? 0
                 const phase = details?.phase
-                const CHECK_LABELS: Record<string, string> = {
-                  schema: 'Campos requeridos',
-                  gps: 'Ubicacion GPS',
-                  timestamp: 'Tiempo de entrega',
-                  evidence_hash: 'Integridad',
-                  metadata: 'Metadatos',
-                  ai_semantic: 'IA: Coincidencia',
-                  tampering: 'Manipulacion',
-                  genai_detection: 'Deteccion IA',
-                  photo_source: 'Origen de foto',
-                  duplicate: 'Duplicados',
-                }
                 return (
                 <div className={`rounded-lg border ${
                   submission.auto_check_passed ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200'
@@ -379,8 +368,8 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                       submission.auto_check_passed ? 'text-green-700' : 'text-orange-700'
                     }`}>
                       {submission.auto_check_passed
-                        ? 'Verificacion automatica: Aprobada'
-                        : 'Verificacion automatica: Requiere revision'}
+                        ? t('autoCheck.passed', 'Automatic verification: Approved')
+                        : t('autoCheck.needsReview', 'Automatic verification: Needs review')}
                     </span>
                     <div className="flex items-center gap-2">
                       {phase && (
@@ -390,8 +379,8 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                             : 'bg-yellow-100 text-yellow-700'
                         }`}>
                           {phase === 'AB'
-                            ? 'Verificacion completa'
-                            : 'Verificacion parcial — IA pendiente'}
+                            ? t('autoCheck.phaseComplete', 'Verification complete')
+                            : t('autoCheck.phasePartial', 'Partial verification — AI pending')}
                         </span>
                       )}
                       {score !== undefined && (
@@ -412,7 +401,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                             <span className={check.passed ? 'text-green-600' : 'text-red-500'}>
                               {check.passed ? '\u2713' : '\u2717'}
                             </span>
-                            <span className="text-gray-600 w-28">{CHECK_LABELS[check.name] || check.name}</span>
+                            <span className="text-gray-600 w-28">{getCheckLabel(check.name, t)}</span>
                             <div className="flex-1 bg-gray-200 rounded-full h-1.5">
                               <div
                                 className={`h-1.5 rounded-full ${
@@ -443,10 +432,10 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                   )}
                   {/* Score guidance */}
                   <div className="px-3 pb-3 text-xs text-gray-500">
-                    {score >= 0.95 ? 'Todos los checks pasaron. Puedes aprobar con confianza.' :
-                     score >= 0.70 ? 'La mayoria de checks pasaron. Revisa las advertencias antes de aprobar.' :
-                     score >= 0.40 ? 'Varios checks fallaron. Revisa la evidencia cuidadosamente.' :
-                     'Score bajo. Revisa cada check antes de tomar una decision.'}
+                    {score >= 0.95 ? t('autoCheck.guidanceHigh', 'All checks passed. Safe to approve.') :
+                     score >= 0.70 ? t('autoCheck.guidanceMedium', 'Most checks passed. Review warnings before approving.') :
+                     score >= 0.40 ? t('autoCheck.guidanceLow', 'Several checks failed. Review evidence carefully.') :
+                     t('autoCheck.guidanceVeryLow', 'Low score. Review each check before deciding.')}
                   </div>
                 </div>
                 )
