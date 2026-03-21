@@ -157,17 +157,11 @@ class TestX402Discovery:
         monkeypatch.setenv("TESTING", "true")
         monkeypatch.setenv("EM_TREASURY_ADDRESS", "0x" + "a" * 40)
         monkeypatch.setenv("X402_NETWORK", "polygon")
-        import integrations.x402.sdk_client as sdk_mod
+        monkeypatch.setattr("integrations.x402.sdk_client.DEFAULT_NETWORK", "polygon")
+        from api.routers.x402_discovery import _build_discovery_payload
 
-        original = sdk_mod.DEFAULT_NETWORK
-        sdk_mod.DEFAULT_NETWORK = "polygon"
-        try:
-            from api.routers.x402_discovery import _build_discovery_payload
-
-            payload = _build_discovery_payload()
-            assert payload["x402"]["defaultNetwork"] == "polygon"
-        finally:
-            sdk_mod.DEFAULT_NETWORK = original
+        payload = _build_discovery_payload()
+        assert payload["x402"]["defaultNetwork"] == "polygon"
 
     def test_solana_excluded_from_discovery(self, monkeypatch):
         """Solana must NOT appear in discovery (incomplete: no escrow/refund)."""
