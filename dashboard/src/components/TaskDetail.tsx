@@ -4,11 +4,9 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useTaskPayment } from '../hooks/useTaskPayment'
-import { PaymentStatus } from './PaymentStatus'
 import type { Task, TaskCategory, Executor, Submission } from '../types/database'
 import { CATEGORY_ICONS } from '../constants/categories'
 import { getNetworkDisplayName } from '../utils/blockchain'
-import { TxHashLink } from './TxLink'
 import { NetworkBadge } from './ui/NetworkBadge'
 import { useAgentReputation, getReputationTier, getTierColor } from '../hooks/useAgentReputation'
 import { AgentStandardCard } from './agents/AgentStandardCard'
@@ -16,6 +14,7 @@ import { EvidenceVerificationPanel } from './EvidenceVerificationPanel'
 import { TaskLifecycleTimeline } from './TaskLifecycleTimeline'
 import { TaskRatings } from './TaskRatings'
 import { EvidenceModal } from './EvidenceModal'
+import { RateAgentModal } from './RateAgentModal'
 import { getStatusBadgeClass } from '../styles/theme'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
@@ -126,6 +125,7 @@ export function TaskDetail({
   const [accepting, setAccepting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [zoomImage, setZoomImage] = useState<{ url: string; alt: string } | null>(null)
+  const [showRateAgentModal, setShowRateAgentModal] = useState(false)
 
   const hasEscrowContext = Boolean(task.escrow_tx || task.escrow_id)
   const showPayment =
@@ -431,83 +431,14 @@ export function TaskDetail({
           </section>
         )}
 
-        {/* Task Lifecycle Timeline — show when task has progressed past published */}
+        {/* Task Lifecycle Timeline — unified section with inline payment info */}
         {(task.executor_id || task.escrow_tx || ['accepted', 'in_progress', 'submitted', 'verifying', 'completed', 'expired', 'cancelled', 'disputed'].includes(task.status)) && (
-          <TaskLifecycleTimeline task={task} submissions={submissions} />
-        )}
-
-        {/* Transaction Details */}
-        {(task.escrow_tx || task.refund_tx || task.payment_network) && (
-          <section>
-            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
-              {t('tasks.transactionDetails', 'Transaction Details')}
-            </h2>
-            <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-              {task.payment_network && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500">{t('tasks.network', 'Network')}</span>
-                  <NetworkBadge
-                    network={task.payment_network}
-                    size="sm"
-                  />
-                </div>
-              )}
-              {task.payment_token && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500">{t('tasks.token', 'Token')}</span>
-                  <span className="text-sm font-medium text-gray-900">
-                    {task.payment_token}
-                  </span>
-                </div>
-              )}
-              {task.escrow_tx && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500">{t('tasks.escrowTx', 'Escrow')}</span>
-                  <TxHashLink txHash={task.escrow_tx} network={task.payment_network || 'base'} />
-                </div>
-              )}
-              {task.refund_tx && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500">{t('tasks.refundTx', 'Refund')}</span>
-                  <TxHashLink txHash={task.refund_tx} network={task.payment_network || 'base'} />
-                </div>
-              )}
-            </div>
-          </section>
-        )}
-
-        {/* Payment / Refund status */}
-        {showPayment && (
-          <section>
-            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
-              {task.status === 'expired' || task.status === 'cancelled'
-                ? t('taskDetail.refund', 'Refund')
-                : hasEscrowContext
-                ? t('taskDetail.escrowAndPayment', 'Escrow & Payment')
-                : t('tasks.payment')}
-            </h2>
-            {paymentLoading ? (
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                <span className="text-sm text-gray-600">{t('taskDetail.loadingPayment', 'Loading payment status...')}</span>
-              </div>
-            ) : payment ? (
-              <PaymentStatus payment={payment} compact={false} showTimeline={true} bountyAmount={task.bounty_usd} />
-            ) : task.status === 'submitted' ? (
-              <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg">
-                <div className="w-4 h-4 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
-                <span className="text-sm text-yellow-700">{t('payment.processing')}</span>
-              </div>
-            ) : hasEscrowContext ? (
-              <p className="text-sm text-blue-700 p-3 bg-blue-50 rounded-lg">
-                {t('payment.syncingData')}
-              </p>
-            ) : (
-              <p className="text-sm text-gray-500 p-3 bg-gray-50 rounded-lg">
-                {t('payment.noData')}
-              </p>
-            )}
-          </section>
+          <TaskLifecycleTimeline
+            task={task}
+            submissions={submissions}
+            payment={payment}
+            paymentLoading={paymentLoading}
+          />
         )}
 
         {/* Submissions / Evidence — after escrow timeline */}
@@ -608,10 +539,65 @@ export function TaskDetail({
                                       )
                                     })}
                                   </div>
-                                  {/* Nested objects: forensic, ai_verification, etc. */}
+                                  {/* Nested objects: forensic, etc. (ai_verification hidden — shown via EvidenceVerificationPanel) */}
                                   {Object.entries(metadata).map(([mk, mv]) => {
                                     if (typeof mv !== 'object' || mv === null) return null
+                                    if (mk === 'ai_verification') return null
                                     const obj = mv as Record<string, unknown>
+
+                                    if (mk === 'forensic') {
+                                      const device = obj.device as Record<string, string> | string | undefined
+                                      const parsedDevice = typeof device === 'string'
+                                        ? (() => { try { return JSON.parse(device) as Record<string, string> } catch { return null } })()
+                                        : device && typeof device === 'object' ? device : null
+                                      const platform = parsedDevice?.platform || ''
+                                      const rawSource = String(obj.source ?? 'unknown')
+                                      const derivedSource = rawSource !== 'unknown' ? rawSource
+                                        : /iphone|ipad/i.test(platform) ? 'iOS'
+                                        : /android/i.test(platform) ? 'Android'
+                                        : /win/i.test(platform) ? 'Windows'
+                                        : /mac/i.test(platform) ? 'macOS'
+                                        : /linux/i.test(platform) ? 'Linux'
+                                        : 'unknown'
+
+                                      return (
+                                        <div key={mk} className="bg-white rounded p-2 border border-gray-100">
+                                          <span className="text-xs font-medium text-gray-500 uppercase">{mk}</span>
+                                          <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 mt-1 text-xs">
+                                            {parsedDevice && Object.entries(parsedDevice).map(([dk, dv]) => (
+                                              <span key={dk} className="contents">
+                                                <span className="text-gray-400">{dk === 'userAgent' ? 'User Agent' : dk.replace(/_/g, ' ')}</span>
+                                                <span className="text-gray-600 break-all">{String(dv)}</span>
+                                              </span>
+                                            ))}
+                                            <span className="contents">
+                                              <span className="text-gray-400">source</span>
+                                              <span className="text-gray-600">{derivedSource}</span>
+                                            </span>
+                                            {Object.entries(obj).map(([nk, nv]) => {
+                                              if (nk === 'device' || nk === 'source') return null
+                                              if (typeof nv === 'object' && nv !== null) {
+                                                return Object.entries(nv as Record<string, unknown>).map(([gk, gv]) => (
+                                                  <span key={`${nk}.${gk}`} className="contents">
+                                                    <span className="text-gray-400">{gk.replace(/_/g, ' ')}</span>
+                                                    <span className="text-gray-600 truncate">
+                                                      {typeof gv === 'number' ? (gk === 'timestamp' ? new Date(gv).toLocaleString() : String(Math.round(gv * 1000) / 1000)) : String(gv ?? '')}
+                                                    </span>
+                                                  </span>
+                                                ))
+                                              }
+                                              return (
+                                                <span key={nk} className="contents">
+                                                  <span className="text-gray-400">{nk.replace(/_/g, ' ')}</span>
+                                                  <span className="text-gray-600 truncate">{String(nv ?? '')}</span>
+                                                </span>
+                                              )
+                                            })}
+                                          </div>
+                                        </div>
+                                      )
+                                    }
+
                                     return (
                                       <div key={mk} className="bg-white rounded p-2 border border-gray-100">
                                         <span className="text-xs font-medium text-gray-500 uppercase">{mk.replace(/_/g, ' ')}</span>
@@ -727,6 +713,7 @@ export function TaskDetail({
             <TaskRatings
               taskId={task.id}
               executorId={currentExecutor?.id === task.executor_id ? currentExecutor.id : undefined}
+              onRateAgent={() => setShowRateAgentModal(true)}
             />
           </section>
         )}
@@ -751,6 +738,18 @@ export function TaskDetail({
           imageUrl={zoomImage.url}
           alt={zoomImage.alt}
           onClose={() => setZoomImage(null)}
+        />
+      )}
+
+      {/* Rate Agent Modal */}
+      {showRateAgentModal && (
+        <RateAgentModal
+          taskId={task.id}
+          taskTitle={task.title}
+          agentId={task.erc8004_agent_id ? Number(task.erc8004_agent_id) : 2106}
+          agentName={task.agent_name ?? undefined}
+          onClose={() => setShowRateAgentModal(false)}
+          onSuccess={() => setShowRateAgentModal(false)}
         />
       )}
 
