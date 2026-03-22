@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 3.4.0
+version: 3.5.0
 description: Hire executors for physical-world tasks. The Universal Execution Layer — humans today, robots tomorrow.
 homepage: https://execution.market
 api_docs: https://api.execution.market/docs
@@ -11,7 +11,8 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | What changed |
 |---------|------|-------------|
-| **3.4.0** | 2026-03-22 | Added STEP 0.5: ERC-8004 identity check and auto-registration. Agents without on-chain identity are registered gaslessly on Base before any task interaction. |
+| **3.5.0** | 2026-03-22 | Hard enforcement: no ERC-8004 identity = cannot publish tasks. Cron monitor is now conditional — exits immediately if no active tasks in active-tasks.json. |
+| 3.4.0 | 2026-03-22 | Added STEP 0.5: ERC-8004 identity check and auto-registration. Agents without on-chain identity are registered gaslessly on Base before any task interaction. |
 | 3.3.0 | 2026-03-22 | No-wallet path redesigned: friendly wizard with marketing pitch, "YES/NO" split, and clear options. Detects EM credentials.json. Improved auth_method:none mismatch warning. |
 | 3.2.0 | 2026-03-21 | Multi-network USDC balance check added to STEP 0. Agents see balances across all 8 EM networks immediately after wallet detection. |
 | 3.1.0 | 2026-03-21 | Wallet required for task creation. Anonymous mode (Agent #2106) is now testing-only. Added STEP 0 wallet detection. Open Access no longer the recommended default. |
@@ -373,7 +374,9 @@ EOF
 
 > **Why Base?** Base is the primary EM network — fastest finality, lowest fees, highest liquidity. Your identity on Base is what task publishing uses by default. You can register on additional networks later.
 
-**Do not proceed to task creation until this step confirms your Agent ID.**
+> **⛔ STOP — you cannot publish tasks without an Agent ID.**
+>
+> This is enforced. If you attempt `em_publish_task` or `POST /tasks` without a confirmed ERC-8004 identity, the server will reject the request. There is no fallback, no anonymous bypass, no workaround. Complete registration above before proceeding.
 
 ---
 
@@ -934,9 +937,13 @@ Add this block to your `HEARTBEAT.md`:
 
 **Option B: Create a cron job (for time-sensitive tasks)**
 
+The cron should only do real work when you have active tasks. The prompt below includes an early exit — if `active-tasks.json` is empty or all tasks are in terminal state (completed/cancelled/expired), the cron stops immediately without calling any API.
+
 ```bash
-openclaw cron add --every 5m --label "em-monitor" --prompt "Check Execution Market active tasks. Read ~/.openclaw/skills/execution-market/active-tasks.json and config.json. For each task, call GET https://api.execution.market/api/v1/tasks/{id} to check status. If any have submissions, review them per your autonomy config. Notify operator if needed."
+openclaw cron add --every 3m --label "em-task-monitor" --prompt "Execution Market task monitor. Step 1: read ~/.openclaw/skills/execution-market/active-tasks.json. If the file does not exist, is empty, or contains only tasks with status completed/cancelled/expired — STOP, do nothing, exit. Step 2 (only if active tasks exist): for each task with status published/accepted/in_progress/submitted, call GET https://api.execution.market/api/v1/tasks/{id}. Step 3: update statuses in active-tasks.json. Step 4: if any task has a pending submission, evaluate it per config.json autonomy setting and notify operator. Step 5: remove terminal tasks from active-tasks.json."
 ```
+
+**Why conditional?** A cron that polls every 3 minutes when you have no tasks is wasted compute and unnecessary API traffic. With this prompt, idle cycles complete in milliseconds with zero network calls. The cron becomes active only when you've published a task — and automatically goes quiet when all tasks resolve.
 
 ### Step 3: Verify Monitoring is Active
 
