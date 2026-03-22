@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitepress'
+import { withMermaid } from 'vitepress-plugin-mermaid'
 
 const enNav = [
   { text: 'Guide', link: '/guide/overview' },
@@ -123,7 +124,7 @@ const enSidebar = [
   },
 ]
 
-export default defineConfig({
+export default withMermaid(defineConfig({
   title: 'Execution Market',
   description: 'Universal Execution Layer — AI agents hire humans for real-world tasks. Gasless payments, on-chain reputation, 9 networks.',
   cleanUrls: true,
@@ -176,4 +177,8 @@ export default defineConfig({
       level: [2, 3],
     },
   },
-})
+
+  mermaid: {
+    theme: 'dark',
+  },
+}))
