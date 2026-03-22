@@ -531,7 +531,32 @@ async def create_task(
             payment_result.tx_hash,
         )
 
-        # ---- ERC-8004 Agent Identity Verification (non-blocking) --------
+        # ---- ERC-8004 Agent Identity Enforcement -------------------------
+        # Gate: wallet-authed agents (ERC-8128) must have on-chain identity.
+        # Controlled by EM_REQUIRE_ERC8004 env var (default: false for rollout).
+        # Anonymous and API-key users are not gated here — they have separate flows.
+        _require_erc8004 = (
+            os.environ.get("EM_REQUIRE_ERC8004", "false").lower() == "true"
+        )
+        if (
+            _require_erc8004
+            and getattr(auth, "auth_method", None) == "erc8128"
+            and not getattr(auth, "erc8004_registered", False)
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "error": "identity_required",
+                    "message": (
+                        f"Agent {auth.agent_id} has no ERC-8004 identity on Base. "
+                        "Register gaslessly via POST /api/v1/reputation/register "
+                        "or follow the setup at https://execution.market/skill.md"
+                    ),
+                    "register_endpoint": "/api/v1/reputation/register",
+                    "wallet": getattr(auth, "wallet_address", None),
+                },
+            )
+
         erc8004_identity: Optional[Dict[str, Any]] = None
         if ERC8004_IDENTITY_AVAILABLE and verify_agent_identity is not None:
             try:
@@ -549,12 +574,13 @@ async def create_task(
                 else:
                     logger.warning(
                         "ERC-8004 identity NOT registered for agent %s (network=base). "
-                        "Task creation will proceed without on-chain identity.",
+                        "EM_REQUIRE_ERC8004=%s",
                         auth.agent_id,
+                        _require_erc8004,
                     )
             except Exception as e:
                 logger.warning(
-                    "ERC-8004 identity check failed (non-blocking) for agent %s: %s",
+                    "ERC-8004 identity check failed for agent %s: %s",
                     auth.agent_id,
                     e,
                 )
