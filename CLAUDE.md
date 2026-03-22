@@ -8,6 +8,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 > **[OPEN] Anonymous mode (Agent #2106) is testing-only** — The API accepts unauthenticated requests and falls back to Agent #2106 identity. This is intentionally left open for the platform owner's internal testing (e.g., "run a quick E2E test"). It must NEVER be the default for external agents or skills. The `em-*` skills now block at Step 0 if no wallet is found. Reminder: once Ultra Wallet (`ultra-wallet` package) ships, audit all `em-*` skills to verify none of them allow silent fallback to Agent #2106 without an explicit `--test` flag from the user.
 
+> **[OPEN] ERC-8004 identity enforcement is non-blocking** — The API currently only logs a warning when an agent publishes a task without an ERC-8004 identity (see `mcp_server/api/routers/tasks.py:534-560`). The plan (`docs/planning/MASTER_PLAN_ERC8004_ENFORCEMENT.md`) calls for adding `EM_REQUIRE_ERC8004` feature flag to make it blocking (HTTP 403). skill.md v3.4.0 now handles client-side auto-registration via STEP 0.5. **Canonical rule: no wallet + no ERC-8004 identity = cannot publish or apply for tasks.**
+
 ## Skill Versioning (IMPORTANT)
 
 **`dashboard/public/skill.md` is the canonical skill file that external agents install.** It has a `version` field in its YAML frontmatter. Every time you modify this file, you MUST:
