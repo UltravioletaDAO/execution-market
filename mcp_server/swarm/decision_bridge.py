@@ -330,6 +330,7 @@ class DecisionBridge:
         pricing_adapter=None,
         outcome_adapter=None,
         decomposition_adapter=None,
+        retention_adapter=None,
         mode: BridgeMode = BridgeMode.PRIMARY,
         decomposition_enabled: bool = True,
         feedback_enabled: bool = True,
@@ -347,6 +348,7 @@ class DecisionBridge:
         self.pricing_adapter = pricing_adapter
         self.outcome_adapter = outcome_adapter
         self.decomposition_adapter = decomposition_adapter
+        self.retention_adapter = retention_adapter
         self.mode = mode
         self.decomposition_enabled = decomposition_enabled
         self.feedback_enabled = feedback_enabled
@@ -525,6 +527,21 @@ class DecisionBridge:
                 registered.append("decomposition")
             except ImportError:
                 logger.debug("DecompositionAdapter available but scorer import failed")
+
+        # Retention analysis from AutoJob
+        if self.retention_adapter:
+            try:
+                from .retention_adapter import make_retention_scorer
+
+                self.synthesizer.register_signal(
+                    SignalType.RETENTION,
+                    make_retention_scorer(self.retention_adapter),
+                    confidence=0.55,
+                    description="AutoJob WorkerRetentionAnalyzer (churn prediction)",
+                )
+                registered.append("retention")
+            except ImportError:
+                logger.debug("RetentionAdapter available but scorer import failed")
 
         logger.info(
             "DecisionBridge registered %d signals: %s",
