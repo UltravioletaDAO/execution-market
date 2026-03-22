@@ -74,6 +74,7 @@ class SignalType(str, Enum):
     SPECIALIZATION = "specialization"  # Category-specific expertise
     PERFORMANCE = "performance"  # Deep behavioral analysis (AutoJob)
     PRICING = "pricing"  # Bounty competitiveness (AutoJob)
+    OUTCOME = "outcome"  # Task success probability (AutoJob)
 
 
 class DecisionOutcome(str, Enum):
