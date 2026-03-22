@@ -34,7 +34,7 @@ Usage:
     synthesizer = DecisionSynthesizer()
     synthesizer.register_signal("reputation", reputation_bridge.score)
     synthesizer.register_signal("availability", availability_bridge.predict)
-    
+
     decision = synthesizer.synthesize(
         task={"id": "t1", "category": "physical_verification"},
         candidates=[agent_1, agent_2, agent_3],
@@ -43,15 +43,13 @@ Usage:
     print(decision.explanation)
 """
 
-import json
 import logging
-import math
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Optional, Callable, Any
+from typing import Optional, Callable
 
 logger = logging.getLogger("em.swarm.decision_synthesizer")
 
@@ -63,47 +61,51 @@ logger = logging.getLogger("em.swarm.decision_synthesizer")
 
 class SignalType(str, Enum):
     """Categories of decision signals."""
-    REPUTATION = "reputation"         # On-chain + internal reputation
-    SKILL_MATCH = "skill_match"       # How well skills match task
-    AVAILABILITY = "availability"     # Worker likely online/responsive
-    CAPACITY = "capacity"             # Worker not overloaded
-    SOURCE_QUALITY = "source_quality" # Quality tier of task source
-    SPEED = "speed"                   # Historical response time
-    COST = "cost"                     # Budget efficiency
-    RECENCY = "recency"              # How recently worker was active
-    RELIABILITY = "reliability"       # Completion rate / on-time rate
-    SPECIALIZATION = "specialization" # Category-specific expertise
-    PERFORMANCE = "performance"       # Deep behavioral analysis (AutoJob)
-    PRICING = "pricing"               # Bounty competitiveness (AutoJob)
+
+    REPUTATION = "reputation"  # On-chain + internal reputation
+    SKILL_MATCH = "skill_match"  # How well skills match task
+    AVAILABILITY = "availability"  # Worker likely online/responsive
+    CAPACITY = "capacity"  # Worker not overloaded
+    SOURCE_QUALITY = "source_quality"  # Quality tier of task source
+    SPEED = "speed"  # Historical response time
+    COST = "cost"  # Budget efficiency
+    RECENCY = "recency"  # How recently worker was active
+    RELIABILITY = "reliability"  # Completion rate / on-time rate
+    SPECIALIZATION = "specialization"  # Category-specific expertise
+    PERFORMANCE = "performance"  # Deep behavioral analysis (AutoJob)
+    PRICING = "pricing"  # Bounty competitiveness (AutoJob)
 
 
 class DecisionOutcome(str, Enum):
     """Possible decision outcomes."""
-    ROUTED = "routed"           # Successfully assigned to best candidate
-    HELD = "held"               # No suitable candidate, hold for later
-    ESCALATED = "escalated"     # Needs human intervention
-    SPLIT = "split"             # Task should be decomposed
-    REJECTED = "rejected"       # Task doesn't meet minimum thresholds
+
+    ROUTED = "routed"  # Successfully assigned to best candidate
+    HELD = "held"  # No suitable candidate, hold for later
+    ESCALATED = "escalated"  # Needs human intervention
+    SPLIT = "split"  # Task should be decomposed
+    REJECTED = "rejected"  # Task doesn't meet minimum thresholds
 
 
 class ConfidenceLevel(str, Enum):
     """Confidence in the routing decision."""
-    HIGH = "high"       # 0.8+ — strong signal consensus
-    MEDIUM = "medium"   # 0.5-0.8 — reasonable but some uncertainty
-    LOW = "low"         # 0.3-0.5 — limited data, best guess
-    GUESS = "guess"     # < 0.3 — very few signals, essentially random
+
+    HIGH = "high"  # 0.8+ — strong signal consensus
+    MEDIUM = "medium"  # 0.5-0.8 — reasonable but some uncertainty
+    LOW = "low"  # 0.3-0.5 — limited data, best guess
+    GUESS = "guess"  # < 0.3 — very few signals, essentially random
 
 
 @dataclass
 class SignalValue:
     """A single signal measurement for a candidate."""
+
     signal_type: SignalType
-    raw_value: float          # Original value from the source module
+    raw_value: float  # Original value from the source module
     normalized: float = 0.0  # 0.0-1.0 normalized
-    weight: float = 1.0      # Importance weight for this signal
+    weight: float = 1.0  # Importance weight for this signal
     confidence: float = 1.0  # How reliable is this particular measurement
-    source: str = ""          # Which module produced this
-    detail: str = ""          # Human-readable explanation
+    source: str = ""  # Which module produced this
+    detail: str = ""  # Human-readable explanation
 
     @property
     def weighted_score(self) -> float:
@@ -114,6 +116,7 @@ class SignalValue:
 @dataclass
 class SignalVector:
     """Complete set of signals for one candidate."""
+
     candidate_id: str  # Agent/worker ID
     wallet: str = ""
     signals: list[SignalValue] = field(default_factory=list)
@@ -163,6 +166,7 @@ class SignalVector:
 @dataclass
 class RankedDecision:
     """The synthesized routing decision."""
+
     task_id: str
     outcome: DecisionOutcome
     best_candidate: Optional[str] = None
@@ -191,9 +195,7 @@ class RankedDecision:
                 "level": self.confidence_level.value,
                 "score": round(self.confidence_score, 3),
             },
-            "top_candidates": [
-                r.to_dict() for r in self.rankings[:5]
-            ],
+            "top_candidates": [r.to_dict() for r in self.rankings[:5]],
             "explanation": self.explanation,
             "decision_time_ms": round(self.decision_time_ms, 2),
             "signal_types_used": self.signal_types_used,
@@ -204,6 +206,7 @@ class RankedDecision:
 @dataclass
 class SignalProvider:
     """Registered signal source."""
+
     signal_type: SignalType
     scorer: Callable  # (task, candidate) -> float (0-100)
     weight: float = 1.0
@@ -218,16 +221,16 @@ class SignalProvider:
 # ──────────────────────────────────────────────────────────────
 
 DEFAULT_WEIGHTS = {
-    SignalType.SKILL_MATCH: 0.30,       # Most important: can they do it?
-    SignalType.REPUTATION: 0.20,         # Have they done well before?
-    SignalType.RELIABILITY: 0.15,        # Do they finish on time?
-    SignalType.AVAILABILITY: 0.10,       # Are they online now?
-    SignalType.SPEED: 0.08,              # How fast do they respond?
-    SignalType.SPECIALIZATION: 0.07,     # Category expertise
-    SignalType.RECENCY: 0.05,            # Recent activity
-    SignalType.CAPACITY: 0.03,           # Not overloaded
-    SignalType.COST: 0.02,               # Budget efficiency
-    SignalType.SOURCE_QUALITY: 0.00,     # Task source (not about candidate)
+    SignalType.SKILL_MATCH: 0.30,  # Most important: can they do it?
+    SignalType.REPUTATION: 0.20,  # Have they done well before?
+    SignalType.RELIABILITY: 0.15,  # Do they finish on time?
+    SignalType.AVAILABILITY: 0.10,  # Are they online now?
+    SignalType.SPEED: 0.08,  # How fast do they respond?
+    SignalType.SPECIALIZATION: 0.07,  # Category expertise
+    SignalType.RECENCY: 0.05,  # Recent activity
+    SignalType.CAPACITY: 0.03,  # Not overloaded
+    SignalType.COST: 0.02,  # Budget efficiency
+    SignalType.SOURCE_QUALITY: 0.00,  # Task source (not about candidate)
 }
 
 # Minimum composite score to route (below this = HELD)
@@ -248,7 +251,7 @@ CLEAR_WINNER_GAP = 0.15
 class DecisionSynthesizer:
     """
     Unified multi-signal routing decision engine.
-    
+
     Aggregates signals from all swarm intelligence modules into
     a single scored, ranked, and explained routing decision.
     """
@@ -284,9 +287,7 @@ class DecisionSynthesizer:
             confidence: Default confidence level for measurements.
             description: Human-readable description.
         """
-        w = weight if weight is not None else self._weights.get(
-            signal_type, 0.1
-        )
+        w = weight if weight is not None else self._weights.get(signal_type, 0.1)
         self._providers[signal_type] = SignalProvider(
             signal_type=signal_type,
             scorer=scorer,
@@ -296,7 +297,9 @@ class DecisionSynthesizer:
         )
         logger.info(
             "Registered signal: %s (weight=%.2f, confidence=%.2f)",
-            signal_type.value, w, confidence,
+            signal_type.value,
+            w,
+            confidence,
         )
 
     def unregister_signal(self, signal_type: SignalType):
@@ -344,9 +347,7 @@ class DecisionSynthesizer:
         signals_used = set()
 
         for candidate in candidates:
-            cid = str(
-                candidate.get("id", candidate.get("agent_id", ""))
-            )
+            cid = str(candidate.get("id", candidate.get("agent_id", "")))
             wallet = candidate.get("wallet", "")
             signals = []
 
@@ -367,32 +368,38 @@ class DecisionSynthesizer:
 
                     w = weights.get(stype, provider.weight)
 
-                    signals.append(SignalValue(
-                        signal_type=stype,
-                        raw_value=float(raw),
-                        normalized=normalized,
-                        weight=w,
-                        confidence=provider.default_confidence,
-                        source=provider.description or stype.value,
-                    ))
+                    signals.append(
+                        SignalValue(
+                            signal_type=stype,
+                            raw_value=float(raw),
+                            normalized=normalized,
+                            weight=w,
+                            confidence=provider.default_confidence,
+                            source=provider.description or stype.value,
+                        )
+                    )
                     signals_used.add(stype.value)
 
                 except Exception as e:
                     logger.warning(
                         "Signal %s failed for candidate %s: %s",
-                        stype.value, cid, e,
+                        stype.value,
+                        cid,
+                        e,
                     )
                     # Degradation-tolerant: skip this signal, continue
 
             # Compute composite score
             composite = self._compute_composite(signals)
 
-            vectors.append(SignalVector(
-                candidate_id=cid,
-                wallet=wallet,
-                signals=signals,
-                composite_score=composite,
-            ))
+            vectors.append(
+                SignalVector(
+                    candidate_id=cid,
+                    wallet=wallet,
+                    signals=signals,
+                    composite_score=composite,
+                )
+            )
 
         # Rank by composite score (highest first)
         vectors.sort(key=lambda v: v.composite_score, reverse=True)
@@ -405,9 +412,7 @@ class DecisionSynthesizer:
         )
 
         # Build explanation
-        explanation = self._build_explanation(
-            task, vectors, outcome, signals_used
-        )
+        explanation = self._build_explanation(task, vectors, outcome, signals_used)
 
         elapsed = (time.monotonic() - start) * 1000
 
@@ -437,7 +442,7 @@ class DecisionSynthesizer:
     ) -> Optional[str]:
         """
         Quick synthesis: returns best candidate ID or None.
-        
+
         Lightweight wrapper for simple routing decisions.
         """
         decision = self.synthesize(task, candidates)
@@ -506,10 +511,9 @@ class DecisionSynthesizer:
         else:
             confidence_level = ConfidenceLevel.GUESS
 
-        confidence_score = min(1.0, (
-            (signal_count / HIGH_CONFIDENCE_SIGNALS) * 0.5
-            + avg_confidence * 0.5
-        ))
+        confidence_score = min(
+            1.0, ((signal_count / HIGH_CONFIDENCE_SIGNALS) * 0.5 + avg_confidence * 0.5)
+        )
 
         # Determine outcome
         if best_score < self._min_threshold:
@@ -545,8 +549,7 @@ class DecisionSynthesizer:
         if outcome == DecisionOutcome.ROUTED and vectors:
             best = vectors[0]
             parts.append(
-                f"Best: #{best.candidate_id} "
-                f"(score={best.composite_score:.3f})."
+                f"Best: #{best.candidate_id} (score={best.composite_score:.3f})."
             )
 
             # Explain top signals
@@ -555,25 +558,18 @@ class DecisionSynthesizer:
             )[:3]
             signal_parts = []
             for s in top_signals:
-                signal_parts.append(
-                    f"{s.signal_type.value}={s.normalized:.2f}"
-                )
+                signal_parts.append(f"{s.signal_type.value}={s.normalized:.2f}")
             if signal_parts:
-                parts.append(
-                    f"Top signals: {', '.join(signal_parts)}."
-                )
+                parts.append(f"Top signals: {', '.join(signal_parts)}.")
 
             # Gap analysis
             if len(vectors) >= 2:
                 gap = best.composite_score - vectors[1].composite_score
                 if gap > CLEAR_WINNER_GAP:
-                    parts.append(
-                        f"Clear winner (gap={gap:.3f} over #2)."
-                    )
+                    parts.append(f"Clear winner (gap={gap:.3f} over #2).")
                 elif gap < 0.02:
                     parts.append(
-                        f"Very close race (gap={gap:.3f}). "
-                        f"Consider both candidates."
+                        f"Very close race (gap={gap:.3f}). Consider both candidates."
                     )
 
         return " ".join(parts)
@@ -595,7 +591,7 @@ class DecisionSynthesizer:
         }
         self._decision_log.append(entry)
         if len(self._decision_log) > self._max_log_size:
-            self._decision_log = self._decision_log[-self._max_log_size:]
+            self._decision_log = self._decision_log[-self._max_log_size :]
 
     @property
     def decision_history(self) -> list[dict]:
@@ -630,9 +626,7 @@ class DecisionSynthesizer:
             "confidence_distribution": dict(confidence_dist),
             "avg_decision_time_ms": round(total_time / n, 2),
             "avg_signals_per_decision": round(total_signals / n, 1),
-            "route_rate": round(
-                outcomes.get("routed", 0) / n, 3
-            ) if n > 0 else 0,
+            "route_rate": round(outcomes.get("routed", 0) / n, 3) if n > 0 else 0,
         }
 
     # ── Weight Management ────────────────────────────────────
@@ -645,9 +639,10 @@ class DecisionSynthesizer:
             self._weights[stype] = weight
             if stype in self._providers:
                 self._providers[stype].weight = weight
-        logger.info("Updated weights: %s", {
-            k.value: round(v, 3) for k, v in self._weights.items()
-        })
+        logger.info(
+            "Updated weights: %s",
+            {k.value: round(v, 3) for k, v in self._weights.items()},
+        )
 
     def get_weights(self) -> dict[str, float]:
         """Get current signal weights."""
@@ -696,8 +691,10 @@ class DecisionSynthesizer:
                 "a": round(a_val, 3),
                 "b": round(b_val, 3),
                 "advantage": (
-                    a.candidate_id if a_val > b_val
-                    else b.candidate_id if b_val > a_val
+                    a.candidate_id
+                    if a_val > b_val
+                    else b.candidate_id
+                    if b_val > a_val
                     else "tie"
                 ),
             }
@@ -720,9 +717,7 @@ class DecisionSynthesizer:
         current = self.synthesize(task, candidates)
 
         # Run with modified weights
-        modified = self.synthesize(
-            task, candidates, override_weights=modified_weights
-        )
+        modified = self.synthesize(task, candidates, override_weights=modified_weights)
 
         return {
             "current_best": current.best_candidate,

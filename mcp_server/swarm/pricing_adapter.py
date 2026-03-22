@@ -36,9 +36,8 @@ import ssl
 import time
 import urllib.error
 import urllib.request
-from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
-from typing import Optional, Any
+from dataclasses import dataclass
+from typing import Optional
 
 logger = logging.getLogger("em.swarm.pricing_adapter")
 
@@ -51,6 +50,7 @@ logger = logging.getLogger("em.swarm.pricing_adapter")
 @dataclass
 class PricingSnapshot:
     """Cached pricing recommendation for a category."""
+
     category: str
     recommended_usd: float = 3.0
     range_low_usd: float = 1.50
@@ -80,6 +80,7 @@ class PricingSnapshot:
 @dataclass
 class MarketDemandSnapshot:
     """Cached market demand for a category."""
+
     category: str
     demand_score: float = 0.5  # 0-1: higher = more demand
     completion_rate: float = 0.5
@@ -190,8 +191,12 @@ class PricingAdapter:
                     range_low_usd=pricing.get("range", [1.5, 5.0])[0],
                     range_high_usd=pricing.get("range", [1.5, 5.0])[1],
                     confidence=pricing.get("confidence", 0.5),
-                    urgency_multiplier=pricing.get("multipliers", {}).get("urgency", 1.0),
-                    complexity_multiplier=pricing.get("multipliers", {}).get("complexity", 1.0),
+                    urgency_multiplier=pricing.get("multipliers", {}).get(
+                        "urgency", 1.0
+                    ),
+                    complexity_multiplier=pricing.get("multipliers", {}).get(
+                        "complexity", 1.0
+                    ),
                     fetched_at=time.time(),
                     source="api",
                 )
@@ -289,7 +294,10 @@ class PricingAdapter:
 
     def _get_market_report(self) -> Optional[dict]:
         """Cached market report fetch."""
-        if self._market_report_cache and (time.time() - self._market_report_ts) < self._cache_ttl:
+        if (
+            self._market_report_cache
+            and (time.time() - self._market_report_ts) < self._cache_ttl
+        ):
             return self._market_report_cache
 
         data = self._api_get("/api/market/report")
@@ -309,9 +317,16 @@ class PricingAdapter:
         req.add_header("Accept", "application/json")
 
         try:
-            with urllib.request.urlopen(req, timeout=self._timeout, context=ctx) as resp:
+            with urllib.request.urlopen(
+                req, timeout=self._timeout, context=ctx
+            ) as resp:
                 return json.loads(resp.read().decode("utf-8"))
-        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError) as e:
+        except (
+            urllib.error.URLError,
+            urllib.error.HTTPError,
+            TimeoutError,
+            json.JSONDecodeError,
+        ):
             self._stats["api_errors"] += 1
             raise
 
@@ -359,7 +374,9 @@ def make_pricing_scorer(adapter: PricingAdapter):
 
         if bounty >= pricing.recommended_usd:
             # Well-priced or generous — high score
-            generosity = min(0.2, (bounty - pricing.recommended_usd) / pricing.recommended_usd * 0.2)
+            generosity = min(
+                0.2, (bounty - pricing.recommended_usd) / pricing.recommended_usd * 0.2
+            )
             return min(1.0, 0.8 + generosity)
         elif bounty >= pricing.range_low_usd:
             # Within acceptable range — proportional score
