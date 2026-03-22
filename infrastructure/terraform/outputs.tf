@@ -50,10 +50,7 @@ output "mcp_server_service_name" {
   value       = aws_ecs_service.mcp_server.name
 }
 
-output "dashboard_service_name" {
-  description = "Dashboard ECS service name"
-  value       = aws_ecs_service.dashboard.name
-}
+# output "dashboard_service_name" removed — dashboard ECS service migrated to S3+CloudFront
 
 output "evidence_enabled" {
   description = "Whether the managed evidence pipeline is enabled"

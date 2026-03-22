@@ -1,0 +1,78 @@
+name: Deploy Docs Site
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs-site/**'
+
+env:
+  AWS_REGION: us-east-2
+  S3_BUCKET: em-production-docs
+  DOCS_URL: https://docs.execution.market
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy Docs
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: docs-site
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: docs-site/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build VitePress
+        run: npm run build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy to S3
+        run: |
+          # Assets with content hashes — cache forever
+          aws s3 sync docs/.vitepress/dist/ s3://${{ env.S3_BUCKET }}/ \
+            --delete \
+            --cache-control "public, max-age=31536000, immutable" \
+            --exclude "*.html"
+
+          # HTML files — short cache so deploys propagate fast
+          aws s3 sync docs/.vitepress/dist/ s3://${{ env.S3_BUCKET }}/ \
+            --cache-control "public, no-cache" \
+            --include "*.html" \
+            --exclude "*" \
+            --content-type "text/html"
+
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.DOCS_CLOUDFRONT_ID }} \
+            --paths "/*"
+
+      - name: Health check
+        run: |
+          echo "Waiting for CloudFront propagation..."
+          sleep 15
+
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" ${{ env.DOCS_URL }} || echo "000")
+          if [ "$HTTP_STATUS" != "200" ]; then
+            echo "Health check failed with status: $HTTP_STATUS"
+            exit 1
+          fi
+          echo "Docs site deployed successfully ($HTTP_STATUS)"
