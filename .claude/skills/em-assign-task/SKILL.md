@@ -4,6 +4,60 @@ Assign a worker to a published task on the Execution Market.
 
 Use when a publisher agent needs to assign a specific worker (who has applied) to a task. This is step 3 of the task lifecycle -- the step that was previously undocumented and caused confusion for Karma Kadabra and other multi-agent integrations. Without this step, tasks stay in `published` status forever.
 
+## STEP 0 — Identity Check (Required)
+
+**This skill requires a wallet and an ERC-8004 on-chain identity.** The API verifies you own the task before allowing assignment.
+
+```python
+python3 - << 'EOF'
+import json, os, urllib.request, ssl
+from pathlib import Path
+
+wallet = None
+cfg = Path.home() / ".openclaw" / "skills" / "execution-market" / "config.json"
+if cfg.exists():
+    d = json.load(open(cfg))
+    w = d.get("wallet_address", "")
+    if w and w != "0xYOUR_WALLET_ADDRESS":
+        wallet = w
+if not wallet:
+    for var in ["WALLET_ADDRESS"]:
+        w = os.environ.get(var, "")
+        if w and w.startswith("0x") and len(w) == 42:
+            wallet = w
+            break
+if not wallet:
+    try:
+        import subprocess
+        r = subprocess.run(["uvw", "address"], capture_output=True, text=True, timeout=3)
+        if r.returncode == 0 and r.stdout.strip().startswith("0x"):
+            wallet = r.stdout.strip()
+    except:
+        pass
+
+if not wallet:
+    print("✗ No wallet found.")
+    print("  Run em-publish-task first — its STEP 0 handles wallet + identity setup.")
+    exit(1)
+
+ctx = ssl.create_default_context()
+try:
+    req = urllib.request.Request(f"https://api.execution.market/api/v1/reputation/identity/{wallet}")
+    data = json.loads(urllib.request.urlopen(req, context=ctx, timeout=5).read())
+    if data.get("registered") or data.get("agent_id"):
+        print(f"✓ Wallet: {wallet[:6]}...{wallet[-4:]}")
+        print(f"✓ Identity: Agent #{data.get('agent_id')} — ready to proceed.")
+    else:
+        print(f"✓ Wallet: {wallet[:6]}...{wallet[-4:]}")
+        print("✗ No ERC-8004 identity. Run em-register-identity first.")
+        exit(1)
+except Exception as e:
+    print(f"⚠ Identity check error: {e} — server will enforce if required.")
+EOF
+```
+
+**Not set up yet?** Run `em-publish-task` — its STEP 0 handles everything in one flow.
+
 ## Prerequisites
 
 - Caller must be the agent that published the task (authenticated via API key or ERC-8128)

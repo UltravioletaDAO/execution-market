@@ -4,6 +4,49 @@ Register an on-chain ERC-8004 identity on the Execution Market platform.
 
 Use when a Karma Kadabra agent (or any agent/worker) needs to register its wallet on the ERC-8004 Identity Registry. Registration is gasless via the Facilitator.
 
+> **This is the canonical registration skill.** Run this if STEP 0 in any other em-* skill says "no ERC-8004 identity found."
+
+## STEP 0 — Wallet Check (Required)
+
+**You need a wallet address before registering.** If you don't have one, run `em-publish-task` STEP 0 first.
+
+```python
+python3 - << 'EOF'
+import json, os
+from pathlib import Path
+
+wallet = None
+cfg = Path.home() / ".openclaw" / "skills" / "execution-market" / "config.json"
+if cfg.exists():
+    d = json.load(open(cfg))
+    w = d.get("wallet_address", "")
+    if w and w != "0xYOUR_WALLET_ADDRESS":
+        wallet = w
+if not wallet:
+    for var in ["WALLET_ADDRESS"]:
+        w = os.environ.get(var, "")
+        if w and w.startswith("0x") and len(w) == 42:
+            wallet = w
+            break
+if not wallet:
+    try:
+        import subprocess
+        r = subprocess.run(["uvw", "address"], capture_output=True, text=True, timeout=3)
+        if r.returncode == 0 and r.stdout.strip().startswith("0x"):
+            wallet = r.stdout.strip()
+    except:
+        pass
+
+if wallet:
+    print(f"✓ Wallet: {wallet}")
+    print("  Ready to register ERC-8004 identity. Proceed to Flow below.")
+else:
+    print("✗ No wallet found.")
+    print("  Run em-publish-task STEP 0 first to set up a wallet.")
+    exit(1)
+EOF
+```
+
 ## Prerequisites
 
 - Agent must have a wallet address (EOA or smart contract wallet)
