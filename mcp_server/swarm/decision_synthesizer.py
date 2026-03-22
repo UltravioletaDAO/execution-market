@@ -77,6 +77,7 @@ class SignalType(str, Enum):
     OUTCOME = "outcome"  # Task success probability (AutoJob)
     DECOMPOSITION = "decomposition"  # Compound task skill coverage (AutoJob)
     RETENTION = "retention"  # Worker churn/stability prediction (AutoJob)
+    MARKET_INTELLIGENCE = "market_intelligence"  # Category supply/demand/timing (AutoJob)
 
 
 class DecisionOutcome(str, Enum):
