@@ -329,6 +329,7 @@ class DecisionBridge:
         performance_adapter=None,
         pricing_adapter=None,
         outcome_adapter=None,
+        decomposition_adapter=None,
         mode: BridgeMode = BridgeMode.PRIMARY,
         decomposition_enabled: bool = True,
         feedback_enabled: bool = True,
@@ -345,6 +346,7 @@ class DecisionBridge:
         self.performance_adapter = performance_adapter
         self.pricing_adapter = pricing_adapter
         self.outcome_adapter = outcome_adapter
+        self.decomposition_adapter = decomposition_adapter
         self.mode = mode
         self.decomposition_enabled = decomposition_enabled
         self.feedback_enabled = feedback_enabled
@@ -508,6 +510,21 @@ class DecisionBridge:
                 registered.append("outcome")
             except ImportError:
                 logger.debug("OutcomeAdapter available but scorer import failed")
+
+        # Decomposition analysis from AutoJob
+        if self.decomposition_adapter:
+            try:
+                from .decomposition_adapter import make_decomposition_scorer
+
+                self.synthesizer.register_signal(
+                    SignalType.DECOMPOSITION,
+                    make_decomposition_scorer(self.decomposition_adapter),
+                    confidence=0.60,
+                    description="AutoJob TaskDecomposer (compound task coverage)",
+                )
+                registered.append("decomposition")
+            except ImportError:
+                logger.debug("DecompositionAdapter available but scorer import failed")
 
         logger.info(
             "DecisionBridge registered %d signals: %s",
