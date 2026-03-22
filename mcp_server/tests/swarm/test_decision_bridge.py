@@ -816,3 +816,121 @@ class TestE2E:
         assert result_b.task_id == "t-b"
         assert result_a.decision.task_id == "t-a"
         assert result_b.decision.task_id == "t-b"
+
+
+class TestDecisionBridgeWith12Signals:
+    """Test DecisionBridge with all 12 signals including MarketIntelligenceAdapter."""
+
+    def test_market_intelligence_signal_registration(self):
+        """MarketIntelligenceAdapter should register MARKET_INTELLIGENCE signal."""
+        from mcp_server.swarm.market_intelligence_adapter import (
+            MarketIntelligenceAdapter,
+            MarketSnapshot,
+        )
+
+        synthesizer = DecisionSynthesizer()
+        rep_bridge = ReputationBridge()
+        lifecycle = LifecycleManager()
+        orchestrator = SwarmOrchestrator(rep_bridge, lifecycle)
+
+        adapter = MarketIntelligenceAdapter(autojob_base_url="http://localhost:8899")
+
+        bridge = DecisionBridge(
+            synthesizer=synthesizer,
+            orchestrator=orchestrator,
+            lifecycle_manager=lifecycle,
+            reputation_bridge=rep_bridge,
+            market_intelligence_adapter=adapter,
+            mode=BridgeMode.PRIMARY,
+        )
+
+        signals = bridge.synthesizer.registered_signals
+        assert "market_intelligence" in signals
+
+    def test_market_intelligence_scorer_returns_valid_score(self):
+        """Market scorer should return health score for task category."""
+        from mcp_server.swarm.market_intelligence_adapter import (
+            MarketIntelligenceAdapter,
+            MarketSnapshot,
+            make_market_scorer,
+        )
+
+        adapter = MarketIntelligenceAdapter()
+        # Pre-populate cache
+        adapter._market_cache["delivery"] = MarketSnapshot(
+            category="delivery",
+            completion_rate=0.8,
+            expiry_rate=0.2,
+            demand_score=0.5,
+            trend="growing",
+            fetched_at=time.time(),
+        )
+
+        scorer = make_market_scorer(adapter)
+        score = scorer(
+            task={"category": "delivery"},
+            candidate={"wallet": "0xAAA"},
+        )
+
+        assert 0 <= score <= 100
+        assert score > 60  # Healthy market should score well
+
+    def test_bridge_without_market_intelligence_still_works(self):
+        """Bridge should work fine when market_intelligence_adapter is None."""
+        synthesizer = DecisionSynthesizer()
+        rep_bridge = ReputationBridge()
+        lifecycle = LifecycleManager()
+        orchestrator = SwarmOrchestrator(rep_bridge, lifecycle)
+
+        bridge = DecisionBridge(
+            synthesizer=synthesizer,
+            orchestrator=orchestrator,
+            lifecycle_manager=lifecycle,
+            reputation_bridge=rep_bridge,
+            market_intelligence_adapter=None,
+            mode=BridgeMode.PRIMARY,
+        )
+
+        signals = bridge.synthesizer.registered_signals
+        assert "market_intelligence" not in signals
+        # Should still have reputation at least
+        assert "reputation" in signals
+
+    def test_all_12_signal_types_exist(self):
+        """Verify all 12 SignalType enum values exist."""
+        expected = [
+            "reputation", "skill_match", "availability", "capacity",
+            "speed", "cost", "recency", "reliability", "specialization",
+            "performance", "pricing", "outcome", "decomposition",
+            "retention", "market_intelligence",
+        ]
+        for name in expected:
+            assert hasattr(SignalType, name.upper()), f"Missing SignalType: {name}"
+
+    def test_market_intelligence_task_level_consistency(self):
+        """Same task category should produce identical scores for different candidates."""
+        from mcp_server.swarm.market_intelligence_adapter import (
+            MarketIntelligenceAdapter,
+            MarketSnapshot,
+            make_market_scorer,
+        )
+
+        adapter = MarketIntelligenceAdapter()
+        adapter._market_cache["physical_verification"] = MarketSnapshot(
+            category="physical_verification",
+            completion_rate=0.7,
+            demand_score=0.5,
+            trend="stable",
+            fetched_at=time.time(),
+        )
+
+        scorer = make_market_scorer(adapter)
+        task = {"category": "physical_verification"}
+
+        scores = [
+            scorer(task, {"wallet": f"0x{i:040x}"})
+            for i in range(5)
+        ]
+
+        # All scores should be identical (task-level signal)
+        assert len(set(scores)) == 1, f"Scores should be identical: {scores}"
