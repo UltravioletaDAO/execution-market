@@ -73,6 +73,7 @@ class SignalType(str, Enum):
     RECENCY = "recency"              # How recently worker was active
     RELIABILITY = "reliability"       # Completion rate / on-time rate
     SPECIALIZATION = "specialization" # Category-specific expertise
+    PERFORMANCE = "performance"       # Deep behavioral analysis (AutoJob)
 
 
 class DecisionOutcome(str, Enum):
