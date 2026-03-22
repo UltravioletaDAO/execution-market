@@ -1,0 +1,14 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": ["TEAM_ID.market.execution.app"],
+        "paths": ["/task/*", "/legal/*", "/privacy", "/terms", "/support", "/delete-account"]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["TEAM_ID.market.execution.app"]
+  }
+}

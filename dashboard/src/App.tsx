@@ -36,6 +36,12 @@ const RatingsHistory = lazy(() => import('./pages/RatingsHistory').then(m => ({ 
 const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })))
 const Messages = lazy(() => import('./pages/Messages').then(m => ({ default: m.Messages })))
 
+// Legal pages (public, required for App Store / Google Play)
+const PrivacyPolicy = lazy(() => import('./pages/legal/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })))
+const TermsOfService = lazy(() => import('./pages/legal/TermsOfService').then(m => ({ default: m.TermsOfService })))
+const SupportPage = lazy(() => import('./pages/legal/Support').then(m => ({ default: m.Support })))
+const DeleteAccount = lazy(() => import('./pages/legal/DeleteAccount').then(m => ({ default: m.DeleteAccount })))
+
 // Extracted page wrappers (previously inline in this file)
 const ProfilePageWrapper = lazy(() => import('./pages/ProfilePageWrapper'))
 const EarningsPage = lazy(() => import('./pages/EarningsPage'))
@@ -162,6 +168,10 @@ function AppRoutes() {
         <Route path="/agents" element={<AgentOnboarding />} />
         <Route path="/agent/login" element={<AgentLogin />} />
         <Route path="/developers" element={<Developers />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsOfService />} />
+        <Route path="/support" element={<SupportPage />} />
+        <Route path="/delete-account" element={<DeleteAccount />} />
         <Route
           path="/activity"
           element={
