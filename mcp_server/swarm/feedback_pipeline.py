@@ -241,6 +241,8 @@ class FeedbackPipeline:
         on_feedback: Optional[Callable[[CompletionFeedback], None]] = None,
         request_timeout: float = 10.0,
         max_tasks_per_run: int = 100,
+        autojob_base_url: Optional[str] = None,
+        autojob_notify: bool = True,
     ):
         self.em_api_url = em_api_url.rstrip("/")
         self.api_key = api_key
@@ -252,6 +254,10 @@ class FeedbackPipeline:
         self.on_feedback = on_feedback
         self.request_timeout = request_timeout
         self.max_tasks_per_run = max_tasks_per_run
+        self.autojob_base_url = autojob_base_url
+        self.autojob_notify = autojob_notify and autojob_base_url is not None
+        self._autojob_notify_count = 0
+        self._autojob_notify_errors = 0
 
         # Internal state
         self._state = PipelineState()
@@ -498,6 +504,9 @@ class FeedbackPipeline:
                 f"rep_delta={reputation_delta:+.3f}"
             )
 
+            # Notify AutoJob to update worker Skill DNA
+            self._notify_autojob(worker_id, task, feedback)
+
             return feedback
 
         except Exception as e:
@@ -655,6 +664,53 @@ class FeedbackPipeline:
         if isinstance(result, list):
             return result
         return result.get("tasks", result.get("data", []))
+
+    def _notify_autojob(self, worker_id: str, task: dict, feedback: CompletionFeedback) -> None:
+        """Push completion evidence to AutoJob for worker Skill DNA update.
+
+        Calls AutoJob's POST /api/evidence/execution-market endpoint to trigger
+        the evidence flywheel: task completion → Skill DNA update → better matching.
+
+        This is the critical feedback wire that closes the cross-system loop:
+            EM task completes → FeedbackPipeline processes locally
+            → AutoJob receives evidence → worker DNA updates
+            → Next routing query to AutoJob returns improved match scores
+        """
+        if not self.autojob_notify or not self.autojob_base_url:
+            return
+
+        try:
+            url = f"{self.autojob_base_url.rstrip('/')}/api/evidence/execution-market"
+
+            payload = json.dumps({
+                "wallet_address": worker_id,
+                "tasks": [task],
+                "persist": True,
+            }).encode("utf-8")
+
+            req = Request(url, data=payload, method="POST")
+            req.add_header("Content-Type", "application/json")
+
+            with urlopen(req, timeout=self.request_timeout) as resp:
+                result = json.loads(resp.read().decode("utf-8"))
+
+            if result.get("success"):
+                self._autojob_notify_count += 1
+                logger.info(
+                    "AutoJob notified for worker %s (task %s) — DNA updated",
+                    worker_id[:10],
+                    task.get("id", "?")[:12],
+                )
+            else:
+                self._autojob_notify_errors += 1
+                logger.warning("AutoJob notification returned failure for %s", worker_id[:10])
+
+        except (URLError, HTTPError, TimeoutError, OSError) as e:
+            self._autojob_notify_errors += 1
+            logger.debug("AutoJob notification failed (non-critical): %s", e)
+        except Exception as e:
+            self._autojob_notify_errors += 1
+            logger.debug("AutoJob notification unexpected error: %s", e)
 
     def _fetch_task(self, task_id: str) -> Optional[dict]:
         """Fetch a single task by ID."""
@@ -927,6 +983,12 @@ class FeedbackPipeline:
                     if self._internal_reputations
                     else 0
                 ),
+            },
+            "autojob_feedback": {
+                "enabled": self.autojob_notify,
+                "base_url": self.autojob_base_url or "",
+                "notifications_sent": self._autojob_notify_count,
+                "notification_errors": self._autojob_notify_errors,
             },
         }
 
