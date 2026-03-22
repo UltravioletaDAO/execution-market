@@ -1,122 +1,83 @@
-# x402 Facilitator
+# Facilitator
 
-The **x402 Facilitator** is the payment routing infrastructure that enables gasless, cross-chain cryptocurrency payments for Execution Market.
+The **Ultravioleta Facilitator** is a self-hosted Rust server that acts as the gas abstraction layer for all on-chain payment and identity operations.
 
-## What is the Facilitator?
+## Role in the System
 
-The facilitator is a server operated by Ultravioleta DAO that:
+```
+Agent signs EIP-3009 auth → x402 SDK → Facilitator → On-chain TX (Facilitator pays gas)
+```
 
-1. **Receives payment authorizations** from AI agents
-2. **Routes payments** to the correct blockchain network
-3. **Handles gas fees** so users don't need native tokens
-4. **Verifies settlements** and confirms payment completion
-5. **Supports EIP-3009** for gasless USDC transfers
+The Facilitator:
+1. Receives signed EIP-3009 authorizations from the EM backend
+2. Validates them (amount, nonce, expiry, recipient addresses)
+3. Submits the transaction on-chain using its own EOA wallet
+4. Returns the transaction hash
+
+**Neither agents nor workers ever pay gas.**
+
+## URL
+
+```
+https://facilitator.ultravioletadao.xyz
+```
+
+Current version: **v1.32.1+**
 
 ## Endpoints
 
-| Environment | URL |
-|-------------|-----|
-| Production | `https://facilitator.ultravioletadao.xyz` |
-| SDK Default | `https://x402.ultravioleta.xyz` |
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `POST /verify` | POST | Verify a signed EIP-3009 authorization |
+| `POST /settle` | POST | Submit a settlement transaction |
+| `POST /register` | POST | Register an ERC-8004 agent identity |
+| `POST /feedback` | POST | Submit ERC-8004 reputation feedback |
+| `GET /reputation` | GET | Query on-chain reputation score |
 
-## How Payments Flow Through the Facilitator
+## Facilitator EOA
 
 ```
-AI Agent                    Facilitator                   Blockchain
-   │                            │                            │
-   │  1. POST /authorize        │                            │
-   │  {amount, token, network}  │                            │
-   │ ─────────────────────────► │                            │
-   │                            │  2. Create EIP-3009 sig    │
-   │                            │ ──────────────────────────►│
-   │                            │                            │
-   │                            │  3. Submit transaction      │
-   │                            │ ──────────────────────────►│
-   │                            │                            │
-   │                            │  4. Confirm settlement      │
-   │  5. 200 OK {tx_hash}      │ ◄──────────────────────────│
-   │ ◄───────────────────────── │                            │
+0x103040545AC5031A11E8C03dd11324C7333a13C7
 ```
 
-## Integration with Execution Market
+This wallet pays gas for all Execution Market transactions on all supported networks.
 
-Execution Market uses the facilitator at two levels:
+## Supported Networks
 
-### SDK Client (Recommended)
+22 mainnets total (17 EVM + 5 non-EVM). Execution Market uses:
+- Base, Ethereum, Polygon, Arbitrum, Avalanche, Optimism, Celo, Monad (8 EVM with escrow)
+- Solana (direct SPL transfers, no escrow)
+- 6 additional testnets for development
+
+## Nonce Rules
+
+EIP-3009 nonces must be unique per settlement:
 
 ```python
-from uvd_x402_sdk import X402Client
-
-client = X402Client(
-    facilitator_url="https://facilitator.ultravioletadao.xyz",
-    private_key=os.environ["X402_PRIVATE_KEY"],
-)
-
-# Authorize payment
-result = await client.authorize(
-    amount=10.00,
-    token="USDC",
-    network="base",
-    recipient="0xWorkerAddress...",
-)
+import hashlib
+nonce = hashlib.keccak_256(f"{task_id}:{type}:{timestamp}".encode()).hexdigest()
 ```
 
-### Raw HTTP Client
+- Never reuse a nonce, even on failure
+- If a settlement fails, generate a fresh nonce before retrying
 
-```python
-from execution_market.integrations.x402 import X402Client
+## Error Reference
 
-client = X402Client(
-    rpc_url="https://mainnet.base.org",
-    private_key="0x...",
-    facilitator_url="https://facilitator.ultravioletadao.xyz",
-)
+| Error | Meaning | Action |
+|-------|---------|--------|
+| `insufficient_balance` | Agent USDC balance too low | Fund the wallet |
+| `invalid_signature` | EIP-3009 sig invalid | Check signing code |
+| `expired_authorization` | Auth deadline passed | Re-sign with new deadline |
+| `nonce_already_used` | Nonce already consumed | Generate new nonce |
+| `operator_not_registered` | PaymentOperator not allowlisted | Contact Ultravioleta DAO |
 
-# Create escrow deposit
-tx = await client.create_deposit(
-    amount=10_000_000,  # 10 USDC (6 decimals)
-    token="USDC",
-    recipient="0xWorker...",
-)
-```
+## Security Model
 
-## Gasless Payments (EIP-3009)
+The Facilitator **cannot steal funds**:
+- It can only submit exactly what was authorized by the EIP-3009 signature
+- The signature is cryptographically bound to: amount, recipient, deadline, nonce, chain ID
+- Even with access to the Facilitator EOA key, an attacker cannot move more than authorized
 
-The facilitator implements EIP-3009 (`transferWithAuthorization`) which allows USDC transfers without the sender needing ETH for gas:
+## PaymentOperator Registration
 
-1. Agent signs an off-chain authorization message
-2. Facilitator submits the transaction on-chain
-3. Facilitator pays the gas fee
-4. USDC transfers directly from agent to escrow
-
-This means:
-- **Agents don't need ETH/native tokens**
-- **Workers don't need gas to receive payments**
-- **Sub-cent transaction costs** on L2s like Base
-
-## Merchant Registration
-
-Execution Market registers as a merchant on the x402 MerchantRouter to receive payments:
-
-```typescript
-// From scripts/register_x402r_merchant.ts
-const merchantRouter = "0xa48E8AdcA504D2f48e5AF6be49039354e922913F"
-const depositFactory = "0x41Cc4D337FEC5E91ddcf4C363700FC6dB5f3A814"
-
-// Deploy deterministic proxy for USDC
-const proxy = await factory.deployProxy(USDC_ADDRESS)
-
-// Register on merchant router
-await router.registerMerchant(emAddress, [proxy])
-```
-
-## Supported by the Facilitator
-
-| Feature | Status |
-|---------|--------|
-| Multi-network routing | 17+ mainnets |
-| Gasless EIP-3009 | USDC, EURC |
-| Payment verification | Real-time |
-| Settlement confirmation | < 30 seconds on L2 |
-| Multi-token | USDC, EURC, DAI, USDT |
-| Escrow integration | x402r contracts |
+Execution Market's PaymentOperators are registered in the Facilitator's allowlist on all 8 EVM chains. This enables gasless release calls from the escrow contracts.

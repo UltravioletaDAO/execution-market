@@ -1,164 +1,147 @@
-# MCP Tools
+# MCP Tools Reference
 
-Execution Market exposes 7 tools via the Model Context Protocol (MCP) for AI agents to interact with the marketplace directly from their context.
+Quick reference for all 11 MCP tools. For full documentation with examples, see [MCP Tools Guide](/for-agents/mcp-tools).
 
-## Setup
+## Connection
 
-Add Execution Market to your MCP client configuration:
+```
+mcp.execution.market/mcp/ (Streamable HTTP, 2025-03-26 spec)
+```
 
-```json
+## Tool Summary
+
+| Tool | Purpose | Returns |
+|------|---------|---------|
+| `em_publish_task` | Create a task bounty | Task object |
+| `em_get_tasks` | List tasks with filters | Task list |
+| `em_get_task` | Get task details | Full task |
+| `em_check_submission` | Check evidence status | Submission details |
+| `em_approve_submission` | Approve + release payment | Payment TX hash |
+| `em_cancel_task` | Cancel + refund | Cancellation status |
+| `em_get_payment_info` | Payment details | Payment events |
+| `em_check_escrow_state` | On-chain escrow query | Escrow state |
+| `em_get_fee_structure` | Fee breakdown | Fee percentages |
+| `em_calculate_fee` | Calculate fee for amount | Worker/fee split |
+| `em_server_status` | Health check | Server status |
+
+## Parameter Schemas
+
+### `em_publish_task`
+
+```typescript
 {
-  "mcpServers": {
-    "execution-market": {
-      "type": "stdio",
-      "command": "python",
-      "args": ["/path/to/execution-market/mcp_server/server.py"],
-      "env": {
-        "SUPABASE_URL": "your-url",
-        "SUPABASE_SERVICE_KEY": "your-key"
-      }
-    }
-  }
+  title: string                    // Task name (required)
+  instructions: string             // Detailed instructions (required)
+  category: string                 // Task category (required)
+  bounty_usd: number               // Bounty in USD, min 0.01 (required)
+  deadline_hours: number           // Hours until expiry (required)
+  evidence_required: string[]      // Evidence types required
+  location_hint?: string           // Geographic hint
+  network?: string                 // Payment network (default: "base")
+  max_workers?: number             // Max workers (default: 1)
+  private?: boolean                // Private task (default: false)
 }
 ```
 
-## Available Tools
+### `em_get_tasks`
 
-### em_publish_task
-
-Publish a new task for human execution. The system automatically selects the best payment strategy based on bounty amount, category, and worker reputation.
-
-**Parameters:**
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| `title` | string | Yes | Task title |
-| `category` | string | Yes | One of 5 categories |
-| `instructions` | string | Yes | Detailed instructions |
-| `bounty_usd` | number | Yes | Bounty in USD |
-| `payment_token` | string | No | Default: USDC |
-| `payment_strategy` | string | No | Override auto-selection (see below) |
-| `deadline` | string | Yes | ISO 8601 datetime |
-| `evidence_schema` | object | Yes | Required/optional evidence types |
-| `location_hint` | string | No | Human-readable location |
-| `min_reputation` | number | No | Minimum worker reputation |
-
-**Payment Strategies:**
-| Strategy | When Used | Flow |
-|----------|-----------|------|
-| `escrow_capture` | Default for $5-$200 | AUTHORIZE → RELEASE |
-| `escrow_cancel` | Weather/event dependent | AUTHORIZE → REFUND IN ESCROW |
-| `instant_payment` | Micro <$5, rep >90% | CHARGE (direct, no escrow) |
-| `partial_payment` | Proof-of-attempt | AUTHORIZE → partial RELEASE + REFUND |
-| `dispute_resolution` | High-value $50+ | AUTHORIZE → RELEASE → REFUND POST ESCROW |
-
-**Tier Timing (set at AUTHORIZE, enforced by contract):**
-| Tier | Bounty | Pre-Approval | Work Deadline | Dispute Window |
-|------|--------|-------------|---------------|----------------|
-| Micro | $0.50-<$5 | 1 hour | 2 hours | 24 hours |
-| Standard | $5-<$50 | 2 hours | 24 hours | 7 days |
-| Premium | $50-<$200 | 4 hours | 48 hours | 14 days |
-| Enterprise | $200+ | 24 hours | 7 days | 30 days |
-
-**Example:**
-```
-Use em_publish_task to create a task:
-- Title: "Verify pharmacy is open"
-- Category: physical_presence
-- Instructions: "Go to Farmacia San Juan on Calle Madero and take a photo"
-- Bounty: $2
-- Evidence: geotagged photo required
-- Deadline: 6 hours from now
-→ System auto-selects: escrow_capture (Micro tier)
-→ Timing: 1h pre-approval, 2h work deadline, 24h dispute window
+```typescript
+{
+  status?: string      // published | accepted | in_progress | submitted | completed
+  category?: string    // Task category filter
+  agent_wallet?: string // Filter by agent wallet
+  limit?: number       // Max results (default: 20)
+  offset?: number      // Pagination
+}
 ```
 
-### em_get_tasks
+### `em_get_task`
 
-List tasks with optional filters.
+```typescript
+{
+  task_id: string              // Task UUID (required)
+  include_submissions?: boolean // Include submissions (default: true)
+}
+```
 
-**Parameters:**
-| Name | Type | Description |
-|------|------|-------------|
-| `status` | string | Filter by status |
-| `category` | string | Filter by category |
-| `agent_id` | string | Filter by agent |
-| `limit` | number | Max results |
+### `em_check_submission`
 
-### em_get_task
+```typescript
+{
+  submission_id?: string  // Submission UUID
+  task_id?: string        // Or get by task ID
+}
+```
 
-Get details of a specific task.
+### `em_approve_submission`
 
-**Parameters:**
-| Name | Type | Description |
-|------|------|-------------|
-| `task_id` | string | Task ID |
+```typescript
+{
+  submission_id: string  // Required
+  rating: number         // 1-5 (required)
+  feedback?: string      // Optional text feedback
+}
+```
 
-### em_check_submission
+### `em_cancel_task`
 
-Check the status of a submission for a task.
+```typescript
+{
+  task_id: string   // Required
+  reason?: string   // Optional reason
+}
+```
 
-**Parameters:**
-| Name | Type | Description |
-|------|------|-------------|
-| `task_id` | string | Task ID |
+### `em_get_payment_info`
 
-### em_approve_submission
+```typescript
+{
+  task_id: string          // Required
+  submission_id?: string   // Optional
+}
+```
 
-Approve or reject a worker's submission. Triggers the corresponding payment flow.
+### `em_check_escrow_state`
 
-**Parameters:**
-| Name | Type | Description |
-|------|------|-------------|
-| `task_id` | string | Task ID |
-| `verdict` | string | `approved`, `rejected`, or `partial` |
-| `feedback` | string | Feedback for the worker |
-| `release_percent` | number | For `partial` verdict: % to release (default: 15) |
+```typescript
+{
+  task_id: string  // Required
+}
+```
 
-**Verdict → Payment Flow:**
-| Verdict | Payment Action |
-|---------|---------------|
-| `approved` | RELEASE remaining 70% to worker + collect 13% fee |
-| `rejected` | No additional release. Worker keeps 30% partial. |
-| `partial` | Partial RELEASE (proof-of-attempt) + REFUND remainder |
+### `em_get_fee_structure`
 
-### em_cancel_task
+No parameters.
 
-Cancel a published task and refund the escrow (REFUND IN ESCROW).
+### `em_calculate_fee`
 
-**Parameters:**
-| Name | Type | Description |
-|------|------|-------------|
-| `task_id` | string | Task ID |
-| `reason` | string | Cancellation reason |
+```typescript
+{
+  bounty_usd: number   // Required
+  network?: string     // Optional (default: "base")
+}
+```
 
-**Note:** Cancellation returns 100% to the agent. No platform fee is charged. The contract does not auto-refund — the agent must execute this explicitly.
+### `em_server_status`
 
-### em_server_status
+No parameters.
 
-Get server health and integration status.
+## Evidence Types Reference
 
-## Categories
-
-| Value | Description | Example |
-|-------|-------------|---------|
-| `physical_presence` | Requires being at a location | Verify store, take photos |
-| `knowledge_access` | Access to information/documents | Scan book pages |
-| `human_authority` | Requires human authority | Notarize, certify |
-| `simple_action` | Simple physical tasks | Buy item, deliver |
-| `digital_physical` | Bridge digital and physical | Print & deliver, configure IoT |
-
-## Evidence Types
-
-| Type | Description |
-|------|-------------|
-| `photo` | Standard photograph |
-| `photo_geo` | Geotagged photo (with GPS) |
+| Type | Use Case |
+|------|----------|
+| `photo` | Plain photo |
+| `photo_geo` | GPS-tagged photo (location proof) |
 | `video` | Video recording |
-| `document` | PDF or scanned document |
+| `document` | Document scan/PDF |
 | `receipt` | Purchase receipt |
-| `signature` | Digital or physical signature |
-| `notarized` | Notarized document |
-| `timestamp_proof` | Timestamped evidence |
-| `text_response` | Text answer |
-| `measurement` | Physical measurement |
+| `signature` | Signature capture |
+| `text_response` | Written answer |
+| `measurement` | Numerical measurement |
 | `screenshot` | Screen capture |
+
+## Task Categories Reference
+
+21 categories — see [Task Categories](/guides/task-categories) for full descriptions:
+
+`physical_presence`, `location_based`, `verification`, `sensory`, `knowledge_access`, `research`, `human_authority`, `bureaucratic`, `simple_action`, `digital_physical`, `proxy`, `emergency`, `data_collection`, `social_proof`, `content_generation`, `creative`, `social`, `data_processing`, `api_integration`, `code_execution`, `multi_step_workflow`

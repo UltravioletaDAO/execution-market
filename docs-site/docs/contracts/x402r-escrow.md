@@ -1,119 +1,106 @@
-# x402r Escrow
+# x402r Escrow System
 
-The x402r escrow system is the production payment infrastructure used by Execution Market on Base. It's part of the broader x402 protocol ecosystem maintained by Ultravioleta DAO.
+The x402r escrow system is the on-chain payment infrastructure that enables trustless task payments. It consists of three layers.
 
 ## Architecture
 
-```
-Agent (payer)
-    │
-    ▼
-MerchantRouter ──► DepositRelayFactory ──► Escrow Contract
-    │                    │                      │
-    │                    ▼                      │
-    │              Relay Proxy                  │
-    │              (per token)                  │
-    │                    │                      │
-    └────────────────────┴──────────────────────┘
-                         │
-                         ▼
-                    USDC Token
-                    (ERC-20)
+```mermaid
+graph TD
+    F[Facilitator\noff-chain server] --> O[PaymentOperator\nper-config contract]
+    O --> E[AuthCaptureEscrow\nshared singleton per chain]
+    E --> TS[TokenStore\nEIP-1167 clone per task]
+    TS --> W[Worker Wallet 87%]
+    TS --> OP[PaymentOperator 13%]
+    OP --> TR[Treasury]
 ```
 
-## How It Works
+### Layer 1: AuthCaptureEscrow
 
-### 1. Merchant Registration
+A **shared singleton** per chain. Holds funds in TokenStore clones (EIP-1167 proxy pattern).
 
-Execution Market registers as a merchant on the MerchantRouter:
+- Deployed once per chain (same address on 5 chains via CREATE2)
+- Each task gets its own minimal-proxy TokenStore
+- Holds funds until release or refund
 
-```typescript
-const merchantRouter = new Contract("0xa48E8...", abi, signer)
-const factory = new Contract("0x41Cc4...", abi, signer)
+### Layer 2: PaymentOperator
 
-// Deploy deterministic relay proxy for USDC
-const proxy = await factory.deployProxy(USDC_ADDRESS)
+A **per-configuration contract** that:
+- Enforces fee splits via pluggable `FeeCalculator` contracts
+- Controls access via `Condition` contracts (StaticAddressCondition: Facilitator only)
+- Accumulates 13% fees, sweepable to treasury
 
-// Register as merchant
-await merchantRouter.registerMerchant(emAddress, [proxy])
-```
+### Layer 3: Facilitator
 
-### 2. Payment Authorization
-
-When an agent publishes a task, USDC is authorized and locked:
-
-```python
-from integrations.x402 import X402rEscrow
-
-escrow = X402rEscrow(
-    network="base",
-    private_key=os.environ["X402R_PRIVATE_KEY"],
-)
-
-# Create escrow deposit
-result = await escrow.create_deposit(
-    task_id="task_abc123",
-    amount=10_000_000,  # 10 USDC
-    beneficiary="0xWorkerAddress",
-    timeout_duration=86400,  # 24 hours
-)
-```
-
-### 3. Payment Release
-
-On task approval, funds are released to the worker:
-
-```python
-# Release to beneficiary
-await escrow.release(
-    task_id="task_abc123",
-    amount=8_700_000,  # 8.70 USDC (net after 13% fee)
-)
-```
-
-### 4. Refund
-
-If task is cancelled (after 24h lock period):
-
-```python
-await escrow.refund(task_id="task_abc123")
-```
-
-## Deposit States
-
-```python
-class DepositState(IntEnum):
-    NON_EXISTENT = 0  # Not created
-    IN_ESCROW = 1     # Funds locked
-    RELEASED = 2      # Paid to worker
-    REFUNDED = 3      # Returned to agent
-```
+An **off-chain Rust server** that:
+- Validates all payment requests before submitting on-chain
+- Pays gas for every transaction
+- Routes to the correct chain and operator
 
 ## Contract Addresses
 
-### Base Mainnet
+See [Contract Addresses](/contracts/addresses) for the full list by network.
 
-| Contract | Address |
-|----------|---------|
-| Escrow | `0xC409e6da89E54253fbA86C1CE3E553d24E03f6bC` |
-| Factory | `0x41Cc4D337FEC5E91ddcf4C363700FC6dB5f3A814` |
-| MerchantRouter | `0xa48E8AdcA504D2f48e5AF6be49039354e922913F` |
+## Escrow Lifecycle
 
-### Base Sepolia
-
-| Contract | Address |
-|----------|---------|
-| Escrow | `0xF7F2Bc463d79Bd3E5Cb693944B422c39114De058` |
-| Factory | `0xf981D813842eE78d18ef8ac825eef8e2C8A8BaC2` |
-
-## Configuration
-
-```bash
-# Network selection
-X402R_NETWORK=base          # or base-sepolia for testing
-
-# Credentials
-X402R_PRIVATE_KEY=0x...
-X402R_MERCHANT_ADDRESS=0x...
-X402R_PROXY_ADDRESS=0x...
+```mermaid
+stateDiagram-v2
+    [*] --> Authorized : authorize() — worker assigned
+    Authorized --> Released : release() — agent approves
+    Authorized --> Refunded : refund() — agent cancels
+    Authorized --> Expired : EIP-3009 deadline passed
 ```
+
+### authorize()
+
+Called when a worker is assigned:
+
+```solidity
+function authorize(
+    address token,     // USDC address
+    uint256 amount,    // Bounty amount
+    address receiver,  // Worker (Fase 5) or platform (Fase 2)
+    uint256 deadline,  // EIP-3009 expiry
+    bytes32 nonce,     // Unique nonce
+    bytes memory sig   // EIP-3009 signature from agent
+) external returns (bytes32 escrowId)
+```
+
+### release()
+
+Called by Facilitator when agent approves. Calls FeeCalculator to split funds atomically:
+
+```
+release(escrowId)
+  → FeeCalculator.calculate(amount) → (87% worker, 13% operator)
+  → transfers workerAmount to receiver
+  → transfers operatorAmount to PaymentOperator
+```
+
+### refund()
+
+Returns the full amount to the agent (no fee deducted):
+
+```
+refund(escrowId) → transfers full amount back to agent wallet
+```
+
+## TokenStore Clones
+
+Each task gets an EIP-1167 minimal proxy clone of TokenStore:
+- 45 bytes per clone (vs thousands for a full deployment)
+- Separate balance and state per task
+- Implementation deployed once, shared by all clones
+
+## StaticFeeCalculator
+
+```solidity
+// 1300 BPS = 13% platform fee
+function calculate(uint256 amount) pure returns (uint256 worker, uint256 operator) {
+    operator = (amount * 1300) / 10000;
+    worker = amount - operator;
+}
+```
+
+## Source
+
+x402r contracts maintained by BackTrack: [github.com/BackTrackCo/x402r-contracts](https://github.com/BackTrackCo/x402r-contracts)

@@ -1,138 +1,98 @@
 # Fee Structure
 
-## Platform Fees
+Execution Market charges a **13% platform fee** on every completed task. The fee is deducted on-chain automatically by the `StaticFeeCalculator` contract — no manual collection, no platform wallet intermediary.
 
-Execution Market charges a percentage-based platform fee on each completed task. The fee is calculated on the gross bounty and deducted before worker payout.
+## How Fees Work
 
-| Bounty Tier | Range | Platform Fee | Agent Bond | Partial Payout |
-|-------------|-------|-------------|------------|----------------|
-| **Micro** | $0.50 to < $5 | Flat $0.25 | 20% | 30% on submit |
-| **Standard** | $5 to < $50 | 13% | 15% | 30% on submit |
-| **Premium** | $50 to < $200 | 6% | 12% | 30% on submit |
-| **Enterprise** | >= $200 | 4% | 10% | 30% on submit |
+```
+Agent bounty: $1.00
+               ↓
+    StaticFeeCalculator (1300 BPS)
+        /            \
+Worker: $0.87      Platform: $0.13
+(87%)              (13%)
+```
 
-## Timing by Tier
+### Credit Card Convention
 
-Timings are enforced by the smart contract at AUTHORIZE time. They cannot be changed after deposit.
+Execution Market uses the **credit card model**: fees are a percentage of the gross amount, not added on top.
 
-| Tier | Pre-Approval | Work Deadline | Dispute Window |
-|------|-------------|---------------|----------------|
-| **Micro** | 1 hour | 2 hours | 24 hours |
-| **Standard** | 2 hours | 24 hours | 7 days |
-| **Premium** | 4 hours | 48 hours | 14 days |
-| **Enterprise** | 24 hours | 7 days | 30 days |
+| Bounty | Worker Gets | Platform Fee |
+|--------|-------------|--------------|
+| $0.10 | $0.087 | $0.013 |
+| $1.00 | $0.870 | $0.130 |
+| $5.00 | $4.350 | $0.650 |
+| $25.00 | $21.750 | $3.250 |
 
-### What Each Time Means
+### Minimum Fee
 
-- **Pre-Approval** (`preApprovalExpiry`): Time for the system to process the deposit. If this expires, the ERC-3009 signature expires and funds never leave the agent's wallet.
-- **Work Deadline** (`authorizationExpiry`): Deadline for the worker to complete and the agent to RELEASE. If not met, agent can REFUND IN ESCROW.
-- **Dispute Window** (`refundExpiry`): After RELEASE, this is the window to open a dispute. After it closes, no more claims.
+The minimum fee is **$0.01** — applied when 13% of the bounty rounds to less than $0.01.
 
-## Fee Configuration
+```
+Bounty $0.05 → Fee = max(13% of 0.05, 0.01) = $0.01
+Worker receives: $0.04
+```
+
+### USDC Precision
+
+Fees are calculated with **6 decimal places** (USDC native precision) to avoid rounding errors.
+
+## On-Chain Implementation
+
+The fee split happens in a **single atomic transaction** — no separate fee collection step.
+
+```
+AuthCaptureEscrow.release(taskId)
+  → StaticFeeCalculator.calculate(amount)
+  → returns (workerAmount: 87%, operatorAmount: 13%)
+  → transfers workerAmount to worker wallet
+  → transfers operatorAmount to PaymentOperator
+  → PaymentOperator.distributeFees(USDC) → treasury
+```
+
+### StaticFeeCalculator Contract
+
+```
+Base: 0xd643DB63028Cd1852AAFe62A0E3d2A5238d7465A
+Rate: 1300 BPS (basis points) = 13%
+```
+
+## x402r Protocol Fee (Automatic)
+
+BackTrack (the x402r team) can charge a separate protocol fee via `ProtocolFeeConfig`:
+- Hard cap: 5%
+- Timelock: 7 days
+- Our code reads this dynamically — no manual updates needed
+
+When enabled, the split automatically becomes:
+- Agent pays: $1.00
+- x402r deducts: their % (e.g., 1%)
+- Worker gets: 100% of bounty
+- Treasury gets: 13% − x402r%
+
+## Fee Distribution
+
+PaymentOperator accumulates fees from each task. Distribution to treasury happens:
+
+1. **Automatically** — best-effort after each task release
+2. **Manually** — via `POST /api/v1/admin/fees/sweep`
+
+## Fee Transparency
+
+Workers and agents can always verify:
 
 ```bash
-# Default: 1300 BPS = 13% (12% EM + 1% x402r on-chain)
-EM_PLATFORM_FEE_BPS=1300
-
-# Alternative decimal format
-EM_PLATFORM_FEE=0.13
-
-# Treasury wallet for fee collection
-EM_TREASURY_ADDRESS=0x...
+curl https://api.execution.market/api/v1/payments/fees
+curl "https://api.execution.market/api/v1/payments/fees/calculate?amount=5.00"
 ```
 
-## Fee Examples by Scenario
+Or via MCP: `Use em_get_fee_structure` or `Use em_calculate_fee for $5.00`
 
-### Scenario 1: Full Payment ($5 task)
+## Comparing to Competitors
 
-```
-Agent deposits:          $5.00 USDC
-Platform fee (13%):      $0.65
-Worker receives:         $4.35
-  - 30% on submission:   $1.31
-  - 70% on approval:     $3.22
-```
-
-### Scenario 2: Cancellation ($20 task)
-
-```
-Agent deposits:          $20.00 USDC
-REFUND IN ESCROW:        $20.00 returned
-Fee collected:           $0.00 (no fee on cancellation)
-```
-
-### Scenario 3: Instant Payment ($3 task)
-
-```
-Agent pays:              $3.00 USDC (CHARGE)
-Worker receives:         $3.00 direct
-Fee:                     Included in CHARGE
-```
-
-### Scenario 4: Partial Payment ($30 task)
-
-```
-Agent deposits:          $30.00 USDC
-Worker attempt (15%):    $4.50
-Agent refund (85%):      $25.50
-Fee collected:           $0.00 (fee only on full completion)
-```
-
-### Scenario 5: Dispute ($25 task)
-
-```
-Agent deposits:          $25.00 USDC
-Worker initially receives: $23.00 (after RELEASE)
-Dispute resolution:      Worker returns $10.00
-Worker keeps:            $13.00
-Agent recovers:          $10.00
-```
-
-## Minimum Payout
-
-The minimum gross bounty is **$0.01 USD**. This means the minimum net payout varies by tier:
-
-| Tier | Min Bounty | Fee (13%) | Net to Worker |
-|------|-----------|-----------|---------------|
-| Micro | $0.01 | $0.01 | $0.00 |
-| Standard | $0.10 | $0.01 | $0.09 |
-
-## Network Gas Fees
-
-x402 payments are gasless for users. Gas costs are covered by the facilitator infrastructure:
-
-| Network | Typical Gas Cost | Paid By |
-|---------|-----------------|---------|
-| Base | ~$0.01 | Facilitator |
-| Polygon | ~$0.01 | Facilitator |
-| Optimism | ~$0.01 | Facilitator |
-| Arbitrum | ~$0.01 | Facilitator |
-| Ethereum | ~$2-5 | Not recommended for micro |
-
-## Worker Protection: Agent Bond
-
-Agents deposit a bond (10-20% of bounty) that is slashed if they unfairly reject worker submissions. This prevents exploitation:
-
-| Scenario | Bond Outcome |
-|----------|-------------|
-| Agent approves | Bond returned to agent |
-| Agent rejects fairly | Bond returned to agent |
-| Agent rejects unfairly (arbitrated) | Bond given to worker |
-| Agent ghosts (no review in 48h) | Auto-approve, bond returned |
-
-## Proof-of-Attempt Fee
-
-If a worker makes a genuine attempt but can't complete due to circumstances beyond control:
-
-| Situation | Worker Compensation |
-|-----------|-------------------|
-| Location permanently closed | 10-20% of bounty |
-| Weather prevents completion | 15% of bounty |
-| Partial completion | 30-50% of bounty |
-
-## Important Notes
-
-- **No fee on cancellation.** If the agent cancels (REFUND IN ESCROW), no platform fee is charged.
-- **No auto-refund.** The contract does not automatically refund expired escrows. The agent must execute the refund transaction.
-- **Dispute refunds require arbitration.** REFUND POST ESCROW is not automatic — the RefundRequest contract must approve it.
-- **All transactions trackable.** Every payment, release, and refund is visible on [BaseScan](https://basescan.org).
+| Platform | Fee | Model |
+|----------|-----|-------|
+| Execution Market | 13% | On-chain, trustless, automatic |
+| Upwork | 20–30% | Off-chain, manual |
+| Fiverr | 20%+ | Off-chain, manual |
+| TaskRabbit | 15–30% | Off-chain, manual |
