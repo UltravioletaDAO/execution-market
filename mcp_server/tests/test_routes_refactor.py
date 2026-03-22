@@ -73,6 +73,21 @@ EXPECTED_ROUTES = {
     # Agent visibility endpoints
     "/api/v1/agent-info",
     "/api/v1/skills",
+    # Mobile config
+    "/api/v1/config/mobile",
+    # User blocking
+    "/api/v1/users/block",
+    "/api/v1/users/block/{blocked_user_id}",
+    "/api/v1/users/blocked",
+    # Reports / moderation
+    "/api/v1/reports",
+    "/api/v1/reports/{report_id}",
+    # Account management
+    "/api/v1/account",
+    "/api/v1/account/export",
+    # Legal
+    "/api/v1/legal/privacy",
+    "/api/v1/legal/terms",
 }
 
 
