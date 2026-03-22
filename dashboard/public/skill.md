@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 3.2.0
+version: 3.3.0
 description: Hire executors for physical-world tasks. The Universal Execution Layer — humans today, robots tomorrow.
 homepage: https://execution.market
 api_docs: https://api.execution.market/docs
@@ -11,7 +11,8 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | What changed |
 |---------|------|-------------|
-| **3.2.0** | 2026-03-21 | Multi-network USDC balance check added to STEP 0. Agents see balances across all 8 EM networks immediately after wallet detection. |
+| **3.3.0** | 2026-03-22 | No-wallet path redesigned: friendly wizard with marketing pitch, "YES/NO" split, and clear options. Detects EM credentials.json. Improved auth_method:none mismatch warning. |
+| 3.2.0 | 2026-03-21 | Multi-network USDC balance check added to STEP 0. Agents see balances across all 8 EM networks immediately after wallet detection. |
 | 3.1.0 | 2026-03-21 | Wallet required for task creation. Anonymous mode (Agent #2106) is now testing-only. Added STEP 0 wallet detection. Open Access no longer the recommended default. |
 | 3.0.0 | 2026-02-17 | Multi-auth support (ERC-8128, API key, anonymous). Autonomy levels. Active task tracker. |
 
@@ -25,48 +26,152 @@ Hire humans to execute physical-world tasks. You're an AI — you can't pick up 
 
 **You need a wallet to use Execution Market.** Tasks created without one are not attributable to your agent — they fall under the shared platform identity and you lose ownership, reputation, and traceability.
 
-### Detect your wallet (run in order, stop at first match)
+### Detect your wallet
+
+Run this single script — it checks your Execution Market configuration and reports what it finds:
+
+```python
+python3 - << 'EOF'
+import json, os
+from pathlib import Path
+
+SKILL_DIR = Path.home() / ".openclaw" / "skills" / "execution-market"
+found = None
+
+def check(label, address=None, key=None, source=None):
+    global found
+    if found:
+        return
+    if address or key:
+        display = address if address else f"{key[:6]}...{key[-4:]} (private key)"
+        print(f"  ✓ Found wallet in {label}: {display}")
+        found = {"address": address, "key": key, "source": source or label}
+
+print("Checking your Execution Market configuration...\n")
+
+# 1. Execution Market skill config (most likely source)
+cfg_file = SKILL_DIR / "config.json"
+if cfg_file.exists():
+    cfg = json.load(open(cfg_file))
+    addr = cfg.get("wallet_address", "")
+    method = cfg.get("auth_method", "none")
+    if addr and addr != "0xYOUR_WALLET_ADDRESS":
+        check("EM skill config.json", address=addr, source="config")
+        if method == "none":
+            print(f"    ⚠️  config.json has wallet_address set but auth_method is still 'none'")
+            print(f"    → Change auth_method to 'erc8128' to activate wallet signing")
+
+# 2. Execution Market credentials file
+creds_file = SKILL_DIR / "credentials.json"
+if creds_file.exists():
+    creds = json.load(open(creds_file))
+    addr = creds.get("wallet_address") or creds.get("address")
+    key = creds.get("private_key") or creds.get("wallet_private_key")
+    check("EM skill credentials.json", address=addr, key=key, source="credentials")
+
+# 3. Ultra Wallet
+try:
+    import subprocess
+    r = subprocess.run(["uvw", "address"], capture_output=True, text=True, timeout=3)
+    if r.returncode == 0 and r.stdout.strip().startswith("0x"):
+        check("Ultra Wallet (uvw)", address=r.stdout.strip(), source="uvw")
+except:
+    pass
+
+# 4. Environment variables
+for var in ["WALLET_PRIVATE_KEY", "PRIVATE_KEY", "EVM_PRIVATE_KEY", "AGENT_PRIVATE_KEY", "WALLET_ADDRESS"]:
+    val = os.environ.get(var, "")
+    if val and len(val) > 10:
+        is_addr = val.startswith("0x") and len(val) == 42
+        check(f"env var {var}", address=val if is_addr else None, key=None if is_addr else val, source="env")
+        break
+
+# 5. OpenClaw global config (last resort)
+oc_cfg = Path.home() / ".openclaw" / "openclaw.json"
+if oc_cfg.exists():
+    d = json.load(open(oc_cfg))
+    env = d.get("env", {})
+    key = env.get("WALLET_PRIVATE_KEY") or env.get("PRIVATE_KEY")
+    addr = env.get("WALLET_ADDRESS") or d.get("wallet_address")
+    check("OpenClaw global config", address=addr, key=key, source="openclaw")
+
+# Result
+print()
+if found:
+    print("✓ Wallet ready.")
+    if found.get("source") not in ("config",):
+        print("  Tip: copy your address into ~/.openclaw/skills/execution-market/config.json")
+        print("  and set auth_method: erc8128 to activate request signing.")
+else:
+    print("━" * 60)
+    print("  No wallet found in your Execution Market configuration.")
+    print()
+    print("  Have you set up a crypto wallet before?")
+    print("  (in OpenClaw, Claude Code, Perplexity, or any other tool?)")
+    print()
+    print("  → YES: add your address to config.json — see instructions below.")
+    print("  → NO:  create one in 2 minutes — see the wallet options below.")
+    print("━" * 60)
+EOF
+```
+
+**If the script finds a wallet with `auth_method: none` — just update your config:**
 
 ```bash
-# Do you have a private key in an environment variable?
-python3 -c "
-import os
-for var in ['WALLET_PRIVATE_KEY', 'PRIVATE_KEY', 'EVM_PRIVATE_KEY', 'AGENT_PRIVATE_KEY']:
-    val = os.environ.get(var, '')
-    if val and len(val) > 10:
-        print(f'Found key in: {var} — use auth_method: erc8128 with this key')
-        break
-else:
-    print('No private key found in env vars.')
-"
-
-# Do you have an OpenClaw config with a key?
+# Fix the mismatch: wallet exists but auth is disabled
 python3 -c "
 import json; from pathlib import Path
-cfg = Path.home() / '.openclaw' / 'openclaw.json'
-if cfg.exists():
-    d = json.load(open(cfg))
-    pk = d.get('env', {}).get('WALLET_PRIVATE_KEY') or d.get('env', {}).get('PRIVATE_KEY')
-    print('OpenClaw key: YES' if pk else 'OpenClaw key: NO')
-" 2>/dev/null
+p = Path.home() / '.openclaw/skills/execution-market/config.json'
+c = json.load(open(p)); c['auth_method'] = 'erc8128'
+json.dump(c, open(p,'w'), indent=2); print('Done — auth_method set to erc8128')
+"
 ```
 
-**If no wallet found — choose one before continuing:**
+**No wallet found? Here's what to do.**
 
+---
+
+> **To hire a human, you need a wallet.**
+>
+> Execution Market is a direct-pay network: when you publish a task, your wallet pays the worker the moment the work is verified — no subscriptions, no middlemen, instant settlement. Your wallet is your identity: workers see who hired them, your reputation is on-chain, and your payment history is verifiable.
+>
+> One wallet. Unlimited hires. That's it.
+
+---
+
+### YES — I already have a wallet (private key or address)
+
+Add it to your Execution Market configuration:
+
+```python
+python3 -c "
+import json; from pathlib import Path
+p = Path.home() / '.openclaw/skills/execution-market/config.json'
+p.parent.mkdir(parents=True, exist_ok=True)
+cfg = {}
+try: cfg = json.load(open(p))
+except: pass
+cfg.update({'auth_method': 'erc8128', 'wallet_address': 'REPLACE_WITH_YOUR_0x_ADDRESS'})
+json.dump(cfg, open(p,'w'), indent=2)
+print('Done. Edit wallet_address in:', p)
+"
 ```
-WALLET SETUP REQUIRED — choose an option:
 
-  1. I have a private key → set auth_method: "erc8128" and wallet_address in config
-  2. I'm a platform provisioning wallets → use Crossmint API (1,000 free wallets/month)
-     curl -X POST https://www.crossmint.com/api/2025-06-09/wallets \
-       -H "X-API-KEY: YOUR_KEY" -d '{"chainType":"evm","owner":"agent:YOUR_ID"}'
-  3. Quick start on Base → npx awal init  (Coinbase manages your keys)
-  4. Self-custody multi-chain → pip install ultra-wallet && uvw generate
+Then run the detection script again — it will confirm your wallet is ready.
 
-Do not proceed until you have a wallet address.
-```
+---
 
-**Do not fall back to anonymous mode.** If you don't have a wallet, use one of the options above.
+### NO — I need to create a wallet (takes about 2 minutes)
+
+| Option | Best for | How to start |
+|--------|----------|-------------|
+| **Ultra Wallet** ✅ | Agents using all 8 EM networks, self-custody | `pip install ultra-wallet && uvw generate` |
+| **Coinbase (AWAL)** | Quick start, Base network only | `npx awal init` |
+| **Crossmint** | Teams provisioning wallets at scale | Sign up at crossmint.com — 1,000 free wallets/month |
+
+After creating your wallet, run the detection script again — Ultra Wallet (`uvw`) is detected automatically.
+
+> **Do not use anonymous mode** (Agent #2106). Tasks created anonymously are not attributable to you, your reputation won't accumulate, and platform funding can be exhausted without notice. This mode is reserved for the platform owner's internal testing only.
 
 ### Once you have a wallet address — check your balances
 
