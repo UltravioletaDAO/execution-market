@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 3.8.0
+version: 3.9.0
 description: Hire executors for physical-world tasks. The Universal Execution Layer — humans today, robots tomorrow.
 homepage: https://execution.market
 api_docs: https://api.execution.market/docs
@@ -11,7 +11,8 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | What changed |
 |---------|------|-------------|
-| **3.8.0** | 2026-03-22 | Fixed ERC-8128 signing examples: corrected keyid format to `erc8128:{chain_id}:{address}` and signature label from `sig1` to `eth`. Both match server's `/auth/erc8128/info` specification. |
+| **3.9.0** | 2026-03-22 | Post-approval auto-rating: agents MUST rate workers after approving submissions. Added mandatory STEP 6 with reputation endpoint and scoring guide. |
+| 3.8.0 | 2026-03-22 | Fixed ERC-8128 signing examples: corrected keyid format to `erc8128:{chain_id}:{address}` and signature label from `sig1` to `eth`. Both match server's `/auth/erc8128/info` specification. |
 | 3.7.0 | 2026-03-22 | Fixed RPCs: replaced blocked endpoints with verified working ones (Tenderly, avax official, celocolombia). All 8 networks now have tested, reliable RPCs. |
 | 3.6.0 | 2026-03-22 | Balance check now covers ALL EM-supported stablecoins (USDC, EURC, USDT, AUSD, PYUSD) per network. Fixed Monad RPC to mainnet. Per-token breakdown shown. |
 | 3.5.0 | 2026-03-22 | Hard enforcement: no ERC-8004 identity = cannot publish tasks. Cron monitor is now conditional — exits immediately if no active tasks in active-tasks.json. |
@@ -1314,6 +1315,48 @@ curl -X POST "https://api.execution.market/api/v1/submissions/{id}/approve" \
 }
 ```
 
+### 🔄 MANDATORY: Rate the Worker After Approval
+
+**Every approval MUST be followed by a worker rating.** This is not optional — reputation is what makes the marketplace work. Without ratings, good workers can't be distinguished from bad ones, and auto-assignment can't function.
+
+```bash
+curl -X POST "https://api.execution.market/api/v1/reputation/workers/rate" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "task_id": "task-uuid",
+    "worker_address": "0xWorkerWallet...",
+    "score": 95,
+    "comment": "Fast delivery, clear evidence, met all requirements.",
+    "proof_tx": "0xPaymentTxHash..."
+  }'
+```
+
+**Scoring guide:**
+| Score | When to use |
+|-------|------------|
+| 90-100 | Excellent — fast, clear evidence, exceeded expectations |
+| 70-89 | Good — met requirements, minor issues |
+| 50-69 | Acceptable — completed but with notable issues |
+| 30-49 | Poor — barely met requirements, significant problems |
+| 0-29 | Unacceptable — wrong evidence, likely fraud |
+
+**Fields:**
+- `task_id` (required) — The task UUID
+- `worker_address` (required) — Worker's wallet address (from the assignment response `worker_wallet` field)
+- `score` (required) — 0-100 integer
+- `comment` (required) — Brief explanation of the score
+- `proof_tx` (optional) — The payment transaction hash from the approval response
+
+**The rating is recorded on-chain** via ERC-8004 reputation on Base. It's permanent and publicly verifiable.
+
+> **Automation tip:** If your `autonomy` is set to `auto`, your agent should rate automatically after every approval:
+> - `pre_check_score >= 0.9` → rate 95 ("Excellent automated verification")
+> - `pre_check_score >= 0.7` → rate 80 ("Good submission, met requirements")  
+> - `pre_check_score >= 0.5` → rate 65 ("Acceptable, some verification concerns")
+> - Manual approval → rate based on your operator's judgment
+
+---
+
 ### POST /api/v1/submissions/{id}/reject
 
 Reject submission (task returns to available pool). **No API key required.**
@@ -1338,7 +1381,8 @@ Submission found → Read config.json autonomy level
 IF autonomy == "auto":
   IF pre_check_score >= auto_approve_threshold:
     → POST /submissions/{id}/approve (auto-approve)
-    → Notify operator: "✅ Auto-approved task '{title}' (score: {score})"
+    → POST /reputation/workers/rate (auto-rate based on pre_check_score — see scoring guide above)
+    → Notify operator: "✅ Auto-approved task '{title}' (score: {score}) — worker rated"
   ELIF pre_check_score < 0.3:
     → POST /submissions/{id}/reject with reason
     → Notify operator: "❌ Auto-rejected task '{title}' (score: {score})"
