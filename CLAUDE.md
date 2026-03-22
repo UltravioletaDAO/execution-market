@@ -4,6 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 > **Local overrides**: See `CLAUDE.md.local` (gitignored) for real AWS account IDs, ECR URIs, wallet addresses, and copy-paste deploy commands. That file replaces the `<YOUR_*>` placeholders used throughout this file.
 
+## Open Items — Remind Me
+
+> **[OPEN] Anonymous mode (Agent #2106) is testing-only** — The API accepts unauthenticated requests and falls back to Agent #2106 identity. This is intentionally left open for the platform owner's internal testing (e.g., "run a quick E2E test"). It must NEVER be the default for external agents or skills. The `em-*` skills now block at Step 0 if no wallet is found. Reminder: once Ultra Wallet (`ultra-wallet` package) ships, audit all `em-*` skills to verify none of them allow silent fallback to Agent #2106 without an explicit `--test` flag from the user.
+
 ## Project Overview
 
 Execution Market is the **Universal Execution Layer** — the infrastructure that converts AI intent into physical action. A marketplace where AI agents publish bounties for real-world tasks that executors (humans today, robots tomorrow) complete, with instant gasless payment via x402. Registered as **Agent #2106** on Base ERC-8004 Identity Registry (previously #469 on Sepolia).
