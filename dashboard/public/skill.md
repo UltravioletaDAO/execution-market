@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 3.1.0
+version: 3.2.0
 description: Hire executors for physical-world tasks. The Universal Execution Layer — humans today, robots tomorrow.
 homepage: https://execution.market
 api_docs: https://api.execution.market/docs
@@ -11,7 +11,8 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | What changed |
 |---------|------|-------------|
-| **3.1.0** | 2026-03-21 | Wallet required for task creation. Anonymous mode (Agent #2106) is now testing-only. Added STEP 0 wallet detection. Open Access no longer the recommended default. |
+| **3.2.0** | 2026-03-21 | Multi-network USDC balance check added to STEP 0. Agents see balances across all 8 EM networks immediately after wallet detection. |
+| 3.1.0 | 2026-03-21 | Wallet required for task creation. Anonymous mode (Agent #2106) is now testing-only. Added STEP 0 wallet detection. Open Access no longer the recommended default. |
 | 3.0.0 | 2026-02-17 | Multi-auth support (ERC-8128, API key, anonymous). Autonomy levels. Active task tracker. |
 
 # Execution Market
@@ -66,6 +67,105 @@ Do not proceed until you have a wallet address.
 ```
 
 **Do not fall back to anonymous mode.** If you don't have a wallet, use one of the options above.
+
+### Once you have a wallet address — check your balances
+
+Run this immediately after detecting your wallet. It shows your USDC balance across all Execution Market supported networks so you know where you can transact.
+
+```python
+python3 - << 'EOF'
+import json, urllib.request, ssl, sys, os
+
+NETWORKS = {
+    "base":      {"rpc": "https://mainnet.base.org",               "usdc": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"},
+    "ethereum":  {"rpc": "https://eth.llamarpc.com",               "usdc": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"},
+    "polygon":   {"rpc": "https://polygon-rpc.com",                "usdc": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359"},
+    "arbitrum":  {"rpc": "https://arb1.arbitrum.io/rpc",           "usdc": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831"},
+    "avalanche": {"rpc": "https://api.avax.network/ext/bc/C/rpc",  "usdc": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E"},
+    "optimism":  {"rpc": "https://mainnet.optimism.io",            "usdc": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85"},
+    "celo":      {"rpc": "https://forno.celo.org",                 "usdc": "0xcebA9300f2b948710d2653dD7B07f33A8B32118C"},
+    "monad":     {"rpc": "https://testnet-rpc.monad.xyz",          "usdc": None},
+}
+
+def rpc_call(url, method, params):
+    try:
+        payload = json.dumps({"jsonrpc":"2.0","method":method,"params":params,"id":1}).encode()
+        req = urllib.request.Request(url, data=payload, headers={"Content-Type":"application/json"})
+        res = urllib.request.urlopen(req, context=ssl.create_default_context(), timeout=5)
+        return json.loads(res.read()).get("result")
+    except:
+        return None
+
+def usdc_balance(rpc_url, address, contract):
+    if not contract:
+        return None
+    padded = address.lower().replace("0x", "").zfill(64)
+    result = rpc_call(rpc_url, "eth_call", [{"to": contract, "data": "0x70a08231" + padded}, "latest"])
+    if result and result != "0x":
+        return int(result, 16) / 1e6
+    return 0.0
+
+# Get address: from arg, env var, or OpenClaw config
+address = None
+if len(sys.argv) > 1:
+    address = sys.argv[1]
+if not address:
+    for var in ["WALLET_ADDRESS", "WALLET_PRIVATE_KEY"]:
+        address = os.environ.get(var, "")
+        if address and address.startswith("0x") and len(address) == 42:
+            break
+        address = None
+if not address:
+    try:
+        import json as j
+        from pathlib import Path
+        cfg = Path.home() / ".openclaw" / "openclaw.json"
+        if cfg.exists():
+            d = j.load(open(cfg))
+            address = d.get("env", {}).get("WALLET_ADDRESS") or d.get("wallet_address")
+    except:
+        pass
+
+if not address:
+    print("Pass your wallet address as an argument: python3 - 0xYOUR_ADDRESS")
+    sys.exit(1)
+
+print(f"\nUSDC Balances — {address[:6]}...{address[-4:]}")
+print("━" * 50)
+
+total = 0.0
+can_transact = []
+
+for name, net in NETWORKS.items():
+    bal = usdc_balance(net["rpc"], address, net["usdc"])
+    if bal is None:
+        print(f"  {name:12s}  —          (testnet, no USDC)")
+    elif bal > 0:
+        ready = "  ✓ ready" if bal >= 0.05 else "  (low balance)"
+        print(f"  {name:12s}  {bal:>10.4f} USDC{ready}")
+        total += bal
+        if bal >= 0.05:
+            can_transact.append(name)
+    else:
+        print(f"  {name:12s}       0.00 USDC")
+
+print("━" * 50)
+print(f"  Total:        {total:>10.4f} USDC")
+if can_transact:
+    print(f"  Can transact: {', '.join(can_transact)}")
+else:
+    print("  No funded networks. Fund with USDC on Base to start.")
+    print("  Minimum to create a task: ~$0.06 USDC (bounty + 13% fee)")
+print()
+EOF
+```
+
+Replace `0xYOUR_ADDRESS` with your address, or the script auto-detects from env vars and OpenClaw config.
+
+**What the output means:**
+- `✓ ready` — enough USDC to create at least one task (≥ $0.05)
+- `(low balance)` — has some USDC but below minimum bounty
+- `0.00 USDC` — unfunded on this network; fund here or use another network
 
 ---
 
