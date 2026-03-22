@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 3.5.0
+version: 3.6.0
 description: Hire executors for physical-world tasks. The Universal Execution Layer — humans today, robots tomorrow.
 homepage: https://execution.market
 api_docs: https://api.execution.market/docs
@@ -11,7 +11,8 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | What changed |
 |---------|------|-------------|
-| **3.5.0** | 2026-03-22 | Hard enforcement: no ERC-8004 identity = cannot publish tasks. Cron monitor is now conditional — exits immediately if no active tasks in active-tasks.json. |
+| **3.6.0** | 2026-03-22 | Balance check now covers ALL EM-supported stablecoins (USDC, EURC, USDT, AUSD, PYUSD) per network. Fixed Monad RPC to mainnet. Per-token breakdown shown. |
+| 3.5.0 | 2026-03-22 | Hard enforcement: no ERC-8004 identity = cannot publish tasks. Cron monitor is now conditional — exits immediately if no active tasks in active-tasks.json. |
 | 3.4.0 | 2026-03-22 | Added STEP 0.5: ERC-8004 identity check and auto-registration. Agents without on-chain identity are registered gaslessly on Base before any task interaction. |
 | 3.3.0 | 2026-03-22 | No-wallet path redesigned: friendly wizard with marketing pitch, "YES/NO" split, and clear options. Detects EM credentials.json. Improved auth_method:none mismatch warning. |
 | 3.2.0 | 2026-03-21 | Multi-network USDC balance check added to STEP 0. Agents see balances across all 8 EM networks immediately after wallet detection. |
@@ -177,21 +178,22 @@ After creating your wallet, run the detection script again — Ultra Wallet (`uv
 
 ### Once you have a wallet address — check your balances
 
-Run this immediately after detecting your wallet. It shows your USDC balance across all Execution Market supported networks so you know where you can transact.
+Run this immediately after detecting your wallet. It shows your stablecoin balances across all Execution Market supported networks so you know where you can transact. Checks **all EM-supported stablecoins**: USDC, EURC, USDT, AUSD, PYUSD.
 
 ```python
 python3 - << 'EOF'
 import json, urllib.request, ssl, sys, os
 
+# All EM-supported networks and their stablecoins (from sdk_client.py NETWORK_CONFIG)
 NETWORKS = {
-    "base":      {"rpc": "https://mainnet.base.org",               "usdc": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"},
-    "ethereum":  {"rpc": "https://eth.llamarpc.com",               "usdc": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"},
-    "polygon":   {"rpc": "https://polygon-rpc.com",                "usdc": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359"},
-    "arbitrum":  {"rpc": "https://arb1.arbitrum.io/rpc",           "usdc": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831"},
-    "avalanche": {"rpc": "https://api.avax.network/ext/bc/C/rpc",  "usdc": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E"},
-    "optimism":  {"rpc": "https://mainnet.optimism.io",            "usdc": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85"},
-    "celo":      {"rpc": "https://forno.celo.org",                 "usdc": "0xcebA9300f2b948710d2653dD7B07f33A8B32118C"},
-    "monad":     {"rpc": "https://testnet-rpc.monad.xyz",          "usdc": None},
+    "base":      {"rpc": "https://mainnet.base.org",              "tokens": {"USDC":"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913","EURC":"0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42"}},
+    "ethereum":  {"rpc": "https://eth.llamarpc.com",              "tokens": {"USDC":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48","EURC":"0x1aBaEA1f7C830bD89Acc67eC4af516284b1bC33c","PYUSD":"0x6c3ea9036406852006290770BEdFcAbA0e23A0e8","AUSD":"0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a"}},
+    "polygon":   {"rpc": "https://polygon-rpc.com",               "tokens": {"USDC":"0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359","AUSD":"0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a"}},
+    "arbitrum":  {"rpc": "https://arb1.arbitrum.io/rpc",          "tokens": {"USDC":"0xaf88d065e77c8cC2239327C5EDb3A432268e5831","USDT":"0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9","AUSD":"0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a"}},
+    "avalanche": {"rpc": "https://api.avax.network/ext/bc/C/rpc", "tokens": {"USDC":"0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E","EURC":"0xC891EB4cbdEFf6e073e859e987815Ed1505c2ACD","AUSD":"0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a"}},
+    "optimism":  {"rpc": "https://mainnet.optimism.io",           "tokens": {"USDC":"0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85","USDT":"0x01bff41798a0bcf287b996046ca68b395dbc1071"}},
+    "celo":      {"rpc": "https://forno.celo.org",                "tokens": {"USDC":"0xcebA9300f2b948710d2653dD7B07f33A8B32118C","USDT":"0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e"}},
+    "monad":     {"rpc": "https://rpc.monad.xyz",                 "tokens": {"USDC":"0x754704Bc059F8C67012fEd69BC8A327a5aafb603","AUSD":"0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a"}},
 }
 
 def rpc_call(url, method, params):
@@ -203,9 +205,7 @@ def rpc_call(url, method, params):
     except:
         return None
 
-def usdc_balance(rpc_url, address, contract):
-    if not contract:
-        return None
+def token_balance(rpc_url, address, contract):
     padded = address.lower().replace("0x", "").zfill(64)
     result = rpc_call(rpc_url, "eth_call", [{"to": contract, "data": "0x70a08231" + padded}, "latest"])
     if result and result != "0x":
@@ -218,17 +218,16 @@ if len(sys.argv) > 1:
     address = sys.argv[1]
 if not address:
     for var in ["WALLET_ADDRESS", "WALLET_PRIVATE_KEY"]:
-        address = os.environ.get(var, "")
-        if address and address.startswith("0x") and len(address) == 42:
+        v = os.environ.get(var, "")
+        if v and v.startswith("0x") and len(v) == 42:
+            address = v
             break
-        address = None
 if not address:
     try:
-        import json as j
         from pathlib import Path
         cfg = Path.home() / ".openclaw" / "openclaw.json"
         if cfg.exists():
-            d = j.load(open(cfg))
+            d = json.load(open(cfg))
             address = d.get("env", {}).get("WALLET_ADDRESS") or d.get("wallet_address")
     except:
         pass
@@ -237,42 +236,47 @@ if not address:
     print("Pass your wallet address as an argument: python3 - 0xYOUR_ADDRESS")
     sys.exit(1)
 
-print(f"\nUSDC Balances — {address[:6]}...{address[-4:]}")
-print("━" * 50)
+print(f"\nStablecoin Balances — {address[:6]}...{address[-4:]}")
+print("━" * 56)
 
-total = 0.0
+grand_total = 0.0
 can_transact = []
 
-for name, net in NETWORKS.items():
-    bal = usdc_balance(net["rpc"], address, net["usdc"])
-    if bal is None:
-        print(f"  {name:12s}  —          (testnet, no USDC)")
-    elif bal > 0:
-        ready = "  ✓ ready" if bal >= 0.05 else "  (low balance)"
-        print(f"  {name:12s}  {bal:>10.4f} USDC{ready}")
-        total += bal
-        if bal >= 0.05:
-            can_transact.append(name)
+for net_name, net in NETWORKS.items():
+    net_total = 0.0
+    token_lines = []
+    for symbol, contract in net["tokens"].items():
+        bal = token_balance(net["rpc"], address, contract)
+        if bal > 0:
+            net_total += bal
+            token_lines.append(f"{symbol}={bal:.4f}")
+    if net_total > 0:
+        ready = "  ✓ ready" if net_total >= 0.05 else "  (low)"
+        detail = "  [" + ", ".join(token_lines) + "]"
+        print(f"  {net_name:12s}  {net_total:>8.4f}{ready}{detail}")
+        grand_total += net_total
+        if net_total >= 0.05:
+            can_transact.append(net_name)
     else:
-        print(f"  {name:12s}       0.00 USDC")
+        print(f"  {net_name:12s}       0.00")
 
-print("━" * 50)
-print(f"  Total:        {total:>10.4f} USDC")
+print("━" * 56)
+print(f"  Total:        {grand_total:>8.4f} USD")
 if can_transact:
     print(f"  Can transact: {', '.join(can_transact)}")
 else:
     print("  No funded networks. Fund with USDC on Base to start.")
-    print("  Minimum to create a task: ~$0.06 USDC (bounty + 13% fee)")
+    print("  Minimum to create a task: ~$0.06 (bounty $0.05 + 13% fee)")
 print()
 EOF
 ```
 
-Replace `0xYOUR_ADDRESS` with your address, or the script auto-detects from env vars and OpenClaw config.
+The script auto-detects your wallet from env vars and OpenClaw config, or pass the address as an argument.
 
 **What the output means:**
-- `✓ ready` — enough USDC to create at least one task (≥ $0.05)
-- `(low balance)` — has some USDC but below minimum bounty
-- `0.00 USDC` — unfunded on this network; fund here or use another network
+- `✓ ready` — enough stablecoins to create at least one task (≥ $0.05 total on that network)
+- `(low)` — has some balance but below minimum bounty
+- `0.00` — unfunded on this network; fund here or use another network
 
 ---
 
