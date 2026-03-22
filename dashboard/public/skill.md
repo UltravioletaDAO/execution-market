@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 3.6.0
+version: 3.7.0
 description: Hire executors for physical-world tasks. The Universal Execution Layer — humans today, robots tomorrow.
 homepage: https://execution.market
 api_docs: https://api.execution.market/docs
@@ -11,7 +11,8 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | What changed |
 |---------|------|-------------|
-| **3.6.0** | 2026-03-22 | Balance check now covers ALL EM-supported stablecoins (USDC, EURC, USDT, AUSD, PYUSD) per network. Fixed Monad RPC to mainnet. Per-token breakdown shown. |
+| **3.7.0** | 2026-03-22 | Fixed RPCs: replaced blocked endpoints with verified working ones (Tenderly, avax official, celocolombia). All 8 networks now have tested, reliable RPCs. |
+| 3.6.0 | 2026-03-22 | Balance check now covers ALL EM-supported stablecoins (USDC, EURC, USDT, AUSD, PYUSD) per network. Fixed Monad RPC to mainnet. Per-token breakdown shown. |
 | 3.5.0 | 2026-03-22 | Hard enforcement: no ERC-8004 identity = cannot publish tasks. Cron monitor is now conditional — exits immediately if no active tasks in active-tasks.json. |
 | 3.4.0 | 2026-03-22 | Added STEP 0.5: ERC-8004 identity check and auto-registration. Agents without on-chain identity are registered gaslessly on Base before any task interaction. |
 | 3.3.0 | 2026-03-22 | No-wallet path redesigned: friendly wizard with marketing pitch, "YES/NO" split, and clear options. Detects EM credentials.json. Improved auth_method:none mismatch warning. |
@@ -186,14 +187,14 @@ import json, urllib.request, ssl, sys, os
 
 # All EM-supported networks and their stablecoins (from sdk_client.py NETWORK_CONFIG)
 NETWORKS = {
-    "base":      {"rpc": "https://mainnet.base.org",              "tokens": {"USDC":"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913","EURC":"0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42"}},
-    "ethereum":  {"rpc": "https://eth.llamarpc.com",              "tokens": {"USDC":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48","EURC":"0x1aBaEA1f7C830bD89Acc67eC4af516284b1bC33c","PYUSD":"0x6c3ea9036406852006290770BEdFcAbA0e23A0e8","AUSD":"0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a"}},
-    "polygon":   {"rpc": "https://polygon-rpc.com",               "tokens": {"USDC":"0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359","AUSD":"0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a"}},
-    "arbitrum":  {"rpc": "https://arb1.arbitrum.io/rpc",          "tokens": {"USDC":"0xaf88d065e77c8cC2239327C5EDb3A432268e5831","USDT":"0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9","AUSD":"0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a"}},
-    "avalanche": {"rpc": "https://api.avax.network/ext/bc/C/rpc", "tokens": {"USDC":"0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E","EURC":"0xC891EB4cbdEFf6e073e859e987815Ed1505c2ACD","AUSD":"0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a"}},
-    "optimism":  {"rpc": "https://mainnet.optimism.io",           "tokens": {"USDC":"0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85","USDT":"0x01bff41798a0bcf287b996046ca68b395dbc1071"}},
-    "celo":      {"rpc": "https://forno.celo.org",                "tokens": {"USDC":"0xcebA9300f2b948710d2653dD7B07f33A8B32118C","USDT":"0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e"}},
-    "monad":     {"rpc": "https://rpc.monad.xyz",                 "tokens": {"USDC":"0x754704Bc059F8C67012fEd69BC8A327a5aafb603","AUSD":"0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a"}},
+    "base":      {"rpc": "https://base.gateway.tenderly.co",              "tokens": {"USDC":"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913","EURC":"0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42"}},
+    "ethereum":  {"rpc": "https://gateway.tenderly.co/public/mainnet",    "tokens": {"USDC":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48","EURC":"0x1aBaEA1f7C830bD89Acc67eC4af516284b1bC33c","PYUSD":"0x6c3ea9036406852006290770BEdFcAbA0e23A0e8","AUSD":"0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a"}},
+    "polygon":   {"rpc": "https://polygon.gateway.tenderly.co",           "tokens": {"USDC":"0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359","AUSD":"0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a"}},
+    "arbitrum":  {"rpc": "https://arbitrum.gateway.tenderly.co",          "tokens": {"USDC":"0xaf88d065e77c8cC2239327C5EDb3A432268e5831","USDT":"0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9","AUSD":"0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a"}},
+    "avalanche": {"rpc": "https://api.avax.network/ext/bc/C/rpc",         "tokens": {"USDC":"0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E","EURC":"0xC891EB4cbdEFf6e073e859e987815Ed1505c2ACD","AUSD":"0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a"}},
+    "optimism":  {"rpc": "https://optimism.gateway.tenderly.co",          "tokens": {"USDC":"0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85","USDT":"0x01bff41798a0bcf287b996046ca68b395dbc1071"}},
+    "celo":      {"rpc": "https://rpc.celocolombia.org",                  "tokens": {"USDC":"0xcebA9300f2b948710d2653dD7B07f33A8B32118C","USDT":"0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e"}},
+    "monad":     {"rpc": "https://rpc.monad.xyz",                         "tokens": {"USDC":"0x754704Bc059F8C67012fEd69BC8A327a5aafb603","AUSD":"0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a"}},
 }
 
 def rpc_call(url, method, params):
