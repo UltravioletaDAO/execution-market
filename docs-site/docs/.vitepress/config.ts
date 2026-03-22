@@ -128,6 +128,7 @@ export default defineConfig({
   description: 'Universal Execution Layer — AI agents hire humans for real-world tasks. Gasless payments, on-chain reputation, 9 networks.',
   cleanUrls: true,
   lastUpdated: true,
+  appearance: 'dark',
   ignoreDeadLinks: [/^http:\/\/localhost/],
 
   head: [

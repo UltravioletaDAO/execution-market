@@ -24,7 +24,8 @@ from typing import Any, Dict, Optional
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.responses import JSONResponse, PlainTextResponse, HTMLResponse, Response
 from pydantic import BaseModel, field_validator
 from pathlib import Path
 
@@ -272,10 +273,204 @@ Supports 19 mainnets including Ethereum, Base, Polygon, Optimism, Arbitrum, Aval
         "url": "https://opensource.org/licenses/MIT",
     },
     openapi_tags=tags_metadata,
-    docs_url="/docs",
+    docs_url=None,  # Custom dark-themed Swagger served at /docs
     redoc_url="/redoc",
     openapi_url="/openapi.json",
 )
+
+
+# ── Custom dark-themed Swagger UI ────────────────────────────────────────────
+
+_SWAGGER_DARK_CSS = """
+/* Execution Market — Dark Swagger Theme */
+body { background: #09090b; margin: 0; }
+
+.swagger-ui .topbar {
+  background-color: #18181b;
+  border-bottom: 1px solid #3f3f46;
+  padding: 8px 0;
+}
+.swagger-ui .topbar .download-url-wrapper { display: none; }
+.swagger-ui .topbar-wrapper img { content: none; }
+.swagger-ui .topbar-wrapper::before {
+  content: 'Execution Market API';
+  font-family: 'Roboto Mono', monospace;
+  font-size: 16px;
+  font-weight: 700;
+  color: #0ea5e9;
+  letter-spacing: -0.04em;
+}
+
+.swagger-ui { font-family: 'Roboto Mono', monospace; color: #fafafa; }
+.swagger-ui .info { margin: 32px 0; }
+.swagger-ui .info hgroup.main { margin: 0 0 20px; }
+.swagger-ui .info .title { color: #fafafa; font-family: 'Roboto Mono', monospace; font-size: 28px; }
+.swagger-ui .info .title small { background: #0ea5e9; color: #fff; border-radius: 3px; font-size: 11px; padding: 2px 8px; }
+.swagger-ui .info p, .swagger-ui .info li, .swagger-ui .info table { color: #a1a1aa; }
+.swagger-ui .info a { color: #0ea5e9; }
+
+/* Main wrapper */
+.swagger-ui .wrapper { background: #09090b; }
+#swagger-ui { background: #09090b; }
+
+/* Tags */
+.swagger-ui .opblock-tag {
+  border-bottom: 1px solid #3f3f46;
+  color: #fafafa;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 14px;
+}
+.swagger-ui .opblock-tag:hover { background: #18181b; }
+.swagger-ui .opblock-tag small { color: #71717a; }
+
+/* Operation blocks */
+.swagger-ui .opblock {
+  background: #18181b;
+  border: 1px solid #3f3f46;
+  border-radius: 6px;
+  margin: 4px 0;
+  box-shadow: none;
+}
+.swagger-ui .opblock .opblock-summary {
+  border-bottom: 1px solid #3f3f46;
+}
+.swagger-ui .opblock .opblock-summary-path {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 13px;
+  color: #fafafa;
+}
+.swagger-ui .opblock .opblock-summary-operation-id,
+.swagger-ui .opblock .opblock-summary-description {
+  color: #a1a1aa;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 12px;
+}
+.swagger-ui .opblock .opblock-section-header {
+  background: #27272a;
+}
+.swagger-ui .opblock .opblock-section-header h4 {
+  color: #a1a1aa;
+  font-family: 'Roboto Mono', monospace;
+}
+
+/* GET, POST, etc. color coding */
+.swagger-ui .opblock.opblock-get    { border-color: #0ea5e9; }
+.swagger-ui .opblock.opblock-post   { border-color: #22c55e; }
+.swagger-ui .opblock.opblock-put    { border-color: #f59e0b; }
+.swagger-ui .opblock.opblock-patch  { border-color: #f97316; }
+.swagger-ui .opblock.opblock-delete { border-color: #ef4444; }
+
+.swagger-ui .opblock.opblock-get    .opblock-summary { background: rgba(14,165,233,0.07); }
+.swagger-ui .opblock.opblock-post   .opblock-summary { background: rgba(34,197,94,0.07); }
+.swagger-ui .opblock.opblock-put    .opblock-summary { background: rgba(245,158,11,0.07); }
+.swagger-ui .opblock.opblock-patch  .opblock-summary { background: rgba(249,115,22,0.07); }
+.swagger-ui .opblock.opblock-delete .opblock-summary { background: rgba(239,68,68,0.07); }
+
+/* HTTP method badges */
+.swagger-ui .opblock-summary-method {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 3px;
+  min-width: 60px;
+}
+
+/* Body/description text */
+.swagger-ui .opblock-body { background: #09090b; }
+.swagger-ui textarea { background: #27272a; color: #fafafa; border-color: #3f3f46; font-family: 'Roboto Mono', monospace; font-size: 12px; }
+.swagger-ui input[type=text], .swagger-ui input[type=password], .swagger-ui input[type=search], .swagger-ui input[type=email] {
+  background: #27272a; color: #fafafa; border-color: #3f3f46; font-family: 'Roboto Mono', monospace;
+}
+.swagger-ui select {
+  background: #27272a; color: #fafafa; border-color: #3f3f46; font-family: 'Roboto Mono', monospace;
+}
+.swagger-ui label { color: #a1a1aa; font-family: 'Roboto Mono', monospace; font-size: 12px; }
+
+/* Parameters table */
+.swagger-ui table { color: #fafafa; }
+.swagger-ui table tbody tr td { border-color: #3f3f46; background: transparent; }
+.swagger-ui table thead tr th { color: #71717a; border-color: #3f3f46; font-family: 'Roboto Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+.swagger-ui .parameters-col_description p { color: #a1a1aa; }
+.swagger-ui .parameter__name { color: #0ea5e9; font-family: 'Roboto Mono', monospace; }
+.swagger-ui .parameter__type { color: #71717a; font-family: 'Roboto Mono', monospace; font-size: 12px; }
+.swagger-ui .parameter__in { color: #52525b; font-family: 'Roboto Mono', monospace; font-size: 11px; }
+
+/* Code / schema blocks */
+.swagger-ui .highlight-code, .swagger-ui pre { background: #18181b !important; border: 1px solid #3f3f46; border-radius: 4px; }
+.swagger-ui code { color: #38bdf8; font-family: 'Roboto Mono', monospace; font-size: 12px; }
+
+/* Response blocks */
+.swagger-ui .responses-wrapper { background: #09090b; }
+.swagger-ui .response-col_status { color: #a1a1aa; font-family: 'Roboto Mono', monospace; }
+.swagger-ui .response-col_description { color: #a1a1aa; }
+.swagger-ui table.responses-table tbody tr { background: transparent; }
+
+/* Authorization modal */
+.swagger-ui .dialog-ux .modal-ux { background: #18181b; border: 1px solid #3f3f46; }
+.swagger-ui .dialog-ux .modal-ux-header { background: #27272a; border-bottom: 1px solid #3f3f46; }
+.swagger-ui .dialog-ux .modal-ux-header h3 { color: #fafafa; font-family: 'Roboto Mono', monospace; }
+
+/* Buttons */
+.swagger-ui .btn {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 12px;
+  border-radius: 4px;
+}
+.swagger-ui .btn.authorize { background: #0ea5e9; border-color: #0ea5e9; color: #fff; }
+.swagger-ui .btn.authorize svg { fill: #fff; }
+.swagger-ui .btn.execute { background: #0ea5e9; border-color: #0ea5e9; }
+.swagger-ui .btn.cancel { background: transparent; border-color: #3f3f46; color: #a1a1aa; }
+
+/* Models section */
+.swagger-ui section.models { background: #18181b; border: 1px solid #3f3f46; border-radius: 6px; }
+.swagger-ui section.models h4 { color: #fafafa; font-family: 'Roboto Mono', monospace; }
+.swagger-ui section.models .model-container { background: #09090b; }
+.swagger-ui .model { color: #a1a1aa; }
+.swagger-ui .model-title { color: #fafafa; font-family: 'Roboto Mono', monospace; }
+.swagger-ui .prop-name { color: #0ea5e9; }
+.swagger-ui .prop-type { color: #22c55e; }
+.swagger-ui .prop-format { color: #71717a; }
+
+/* Scheme selector */
+.swagger-ui .scheme-container { background: #18181b; box-shadow: none; border-bottom: 1px solid #3f3f46; }
+.swagger-ui .schemes > label { color: #71717a; font-family: 'Roboto Mono', monospace; font-size: 12px; }
+
+/* Filter */
+.swagger-ui .filter .operation-filter-input {
+  background: #27272a; border-color: #3f3f46; color: #fafafa; font-family: 'Roboto Mono', monospace;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #18181b; }
+::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
+"""
+
+
+@app.get("/docs", include_in_schema=False)
+async def custom_swagger_ui_html() -> HTMLResponse:
+    return get_swagger_ui_html(
+        openapi_url="/openapi.json",
+        title="Execution Market API",
+        swagger_css_url="/docs/swagger-dark.css",
+        swagger_favicon_url="https://execution.market/favicon.ico",
+        swagger_ui_parameters={
+            "deepLinking": True,
+            "persistAuthorization": True,
+            "displayRequestDuration": True,
+            "defaultModelsExpandDepth": 1,
+            "syntaxHighlight.theme": "monokai",
+        },
+    )
+
+
+@app.get("/docs/swagger-dark.css", include_in_schema=False)
+async def swagger_dark_css() -> Response:
+    return Response(
+        content=_SWAGGER_DARK_CSS,
+        media_type="text/css",
+        headers={"Cache-Control": "public, max-age=3600"},
+    )
 
 
 # Custom 422 handler: return field-level validation errors instead of generic message
