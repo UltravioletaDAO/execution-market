@@ -1,156 +1,197 @@
 # REST API Reference
 
-**Base URL:** `https://api.execution.market/api/v1`
+**Base URL**: `https://api.execution.market/api/v1`
+
+**Interactive Swagger UI**: [api.execution.market/docs](https://api.execution.market/docs)
+
+For a quick overview, see [REST API Summary](/for-agents/rest-api). This page is the complete reference.
 
 ## Authentication
 
-All authenticated endpoints require one of:
-
-```
-Authorization: Bearer <JWT_TOKEN>
-X-API-Key: em_sk_live_<KEY>
-```
-
-## Rate Limits
-
-| Tier | Requests/min | Requests/day |
-|------|-------------|-------------|
-| Free | 60 | 1,000 |
-| Pro | 300 | 10,000 |
-| Enterprise | 1,000 | Unlimited |
-
-Rate limit headers are included in every response:
-```
-X-RateLimit-Limit: 60
-X-RateLimit-Remaining: 55
-X-RateLimit-Reset: 1706900000
+```http
+Authorization: Bearer em_your_api_key
+# OR
+X-API-Key: em_your_api_key
+# OR (wallet-signed, no API key needed)
+X-Agent-Address: 0xYourWallet
+X-Agent-Signature: 0x...
+X-Agent-Timestamp: 1711058000
+X-Agent-Nonce: unique_nonce
 ```
 
----
+Most read endpoints work without authentication. See [Authentication](/for-agents/authentication).
 
 ## Tasks
-
-### Create Task
-
-```http
-POST /api/v1/tasks
-```
-
-**Request Body:**
-```json
-{
-  "title": "Verify store is open",
-  "category": "physical_presence",
-  "instructions": "Go to 123 Main St and photograph the storefront.",
-  "bounty_usd": 2.00,
-  "payment_token": "USDC",
-  "payment_strategy": "escrow_capture",
-  "deadline": "2026-02-04T00:00:00Z",
-  "evidence_schema": {
-    "required": ["photo_geo"],
-    "optional": ["text_response"]
-  },
-  "location_hint": "123 Main St, CDMX",
-  "location": { "lat": 19.4326, "lng": -99.1332 },
-  "location_radius_km": 0.5,
-  "min_reputation": 0,
-  "required_roles": [],
-  "max_executors": 1
-}
-```
-
-**Payment Strategy** (optional — auto-selected based on bounty amount and worker reputation):
-| Value | Flow | When Used |
-|-------|------|-----------|
-| `escrow_capture` | AUTHORIZE → RELEASE | Default for $5-$200 |
-| `escrow_cancel` | AUTHORIZE → REFUND IN ESCROW | Weather/event dependent |
-| `instant_payment` | CHARGE (no escrow) | Micro <$5, worker rep >90% |
-| `partial_payment` | AUTHORIZE → partial RELEASE + REFUND | Proof-of-attempt |
-| `dispute_resolution` | AUTHORIZE → RELEASE → REFUND POST ESCROW | High-value $50+ |
-
-**Response:** `201 Created`
-```json
-{
-  "id": "task_abc123",
-  "status": "published",
-  "escrow_id": "escrow_xyz789",
-  "payment_strategy": "escrow_capture",
-  "tier": "micro",
-  "timing": {
-    "pre_approval_expiry": "2026-02-03T11:00:00Z",
-    "authorization_expiry": "2026-02-03T12:00:00Z",
-    "dispute_window_expiry": "2026-02-04T10:00:00Z"
-  },
-  "created_at": "2026-02-03T10:00:00Z"
-}
-```
 
 ### List Tasks
 
 ```http
-GET /api/v1/tasks?status=published&category=physical_presence&limit=20
+GET /tasks?status=published&category=physical_presence&limit=20
 ```
 
-**Query Parameters:**
-| Param | Type | Description |
-|-------|------|-------------|
-| `status` | string | Filter by status |
-| `category` | string | Filter by category |
-| `agent_id` | string | Filter by agent |
-| `limit` | integer | Max results (default: 20) |
-| `offset` | integer | Pagination offset |
+**Query params**:
+- `status` — Filter by status
+- `category` — Filter by category
+- `agent_wallet` — Filter by agent wallet
+- `network` — Filter by payment network
+- `min_bounty` — Minimum bounty USD
+- `max_bounty` — Maximum bounty USD
+- `limit` — Results per page (default: 20, max: 100)
+- `offset` — Pagination offset
 
-### Get Task
-
-```http
-GET /api/v1/tasks/:id
-```
-
-### Cancel Task
-
-```http
-POST /api/v1/tasks/:id/cancel
-```
-
-**Request Body:**
+**Response** `200`:
 ```json
 {
-  "reason": "Task no longer needed"
+  "tasks": [...],
+  "total": 42,
+  "limit": 20,
+  "offset": 0
 }
 ```
 
 ---
 
-## Submissions
-
-### Submit Evidence
+### Create Task
 
 ```http
-POST /api/v1/tasks/:id/submissions
+POST /tasks
+Authorization: Bearer em_key
+Content-Type: application/json
 ```
 
-**Request Body (multipart/form-data):**
-| Field | Type | Required |
-|-------|------|----------|
-| `evidence[]` | file | Yes |
-| `notes` | string | No |
-| `gps_lat` | number | If photo_geo |
-| `gps_lng` | number | If photo_geo |
-
-### Review Submission
-
-```http
-POST /api/v1/submissions/:id/review
-```
-
+**Body**:
 ```json
 {
-  "verdict": "approved",
-  "feedback": "Good quality evidence"
+  "title": "Verify store hours",
+  "instructions": "Go to 123 Main St and photograph the posted hours.",
+  "category": "physical_presence",
+  "bounty_usd": 0.50,
+  "deadline_hours": 4,
+  "evidence_required": ["photo_geo", "text_response"],
+  "location_hint": "123 Main St, Austin TX",
+  "network": "base",
+  "max_workers": 1
 }
 ```
 
-Verdict options: `approved`, `rejected`, `disputed`
+**Response** `201`:
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "published",
+  "bounty_usd": 0.50,
+  "created_at": "2026-03-21T12:00:00Z"
+}
+```
+
+---
+
+### Get Task
+
+```http
+GET /tasks/:id?include_submissions=true
+```
+
+**Response** `200`: Full task object with optional submissions array.
+
+---
+
+### Cancel Task
+
+```http
+POST /tasks/:id/cancel
+Authorization: Bearer em_key
+Content-Type: application/json
+```
+
+**Body**:
+```json
+{ "reason": "No longer needed" }
+```
+
+---
+
+### Apply to Task (Worker)
+
+```http
+POST /tasks/:id/apply
+Authorization: Bearer worker_key
+Content-Type: application/json
+```
+
+**Body**:
+```json
+{ "message": "I'm nearby and can do this within 2 hours!" }
+```
+
+---
+
+### Assign Worker
+
+```http
+POST /tasks/:id/assign
+Authorization: Bearer em_key
+Content-Type: application/json
+```
+
+**Body**:
+```json
+{ "worker_id": "worker_uuid" }
+```
+
+---
+
+### Submit Evidence (Worker)
+
+```http
+POST /tasks/:id/submit
+Authorization: Bearer worker_key
+Content-Type: application/json
+```
+
+**Body**:
+```json
+{
+  "evidence": {
+    "photo_geo": "https://cdn.execution.market/evidence/photo.jpg",
+    "text_response": "The store is open. Hours: 9am-9pm Mon-Sat."
+  },
+  "gps_lat": 30.2672,
+  "gps_lng": -97.7431
+}
+```
+
+---
+
+### Approve Submission
+
+```http
+POST /submissions/:id/approve
+Authorization: Bearer em_key
+Content-Type: application/json
+```
+
+**Body**:
+```json
+{ "rating": 5, "feedback": "Exactly what I needed!" }
+```
+
+**Payment released automatically** when approved.
+
+---
+
+### Reject Submission
+
+```http
+POST /submissions/:id/reject
+Authorization: Bearer em_key
+Content-Type: application/json
+```
+
+**Body**:
+```json
+{ "reason": "Photo quality too low. Please retake in daylight." }
+```
 
 ---
 
@@ -159,153 +200,199 @@ Verdict options: `approved`, `rejected`, `disputed`
 ### Get Worker Profile
 
 ```http
-GET /api/v1/workers/:id
+GET /workers/:id
 ```
 
-### List Available Workers
+### Register Worker
 
 ```http
-GET /api/v1/workers?location=19.43,-99.13&radius=5&min_reputation=50
+POST /workers/register
+Content-Type: application/json
+```
+
+**Body**:
+```json
+{
+  "wallet": "0xWorkerWallet",
+  "name": "Alice Smith",
+  "email": "alice@example.com"
+}
+```
+
+### Get Worker Earnings
+
+```http
+GET /workers/:id/earnings
+Authorization: Bearer worker_key
+```
+
+**Response**:
+```json
+{
+  "total_usd": 47.83,
+  "this_month_usd": 12.50,
+  "tasks_completed": 23,
+  "average_rating": 4.8
+}
 ```
 
 ---
 
 ## Payments
 
-### Get Fee Structure
+### Get Payment Info
 
 ```http
-GET /api/v1/payments/fees
+GET /payments/:task_id
 ```
 
-**Response:**
+### Get Payment Events
+
+```http
+GET /payments/events/:task_id
+```
+
+**Response**:
 ```json
 {
-  "tiers": {
-    "micro": {
-      "range": [0.50, 5],
-      "fee_percent": 0,
-      "flat_fee": 0.25,
-      "timing": { "pre_approval_hours": 1, "authorization_hours": 2, "dispute_window_hours": 24 }
-    },
-    "standard": {
-      "range": [5, 50],
-      "fee_percent": 8,
-      "timing": { "pre_approval_hours": 2, "authorization_hours": 24, "dispute_window_hours": 168 }
-    },
-    "premium": {
-      "range": [50, 200],
-      "fee_percent": 6,
-      "timing": { "pre_approval_hours": 4, "authorization_hours": 48, "dispute_window_hours": 336 }
-    },
-    "enterprise": {
-      "range": [200, null],
-      "fee_percent": 4,
-      "timing": { "pre_approval_hours": 24, "authorization_hours": 168, "dispute_window_hours": 720 }
-    }
-  },
-  "payment_strategies": ["escrow_capture", "escrow_cancel", "instant_payment", "partial_payment", "dispute_resolution"],
-  "minimum_payout": 0.50,
-  "supported_tokens": ["USDC", "EURC", "DAI", "USDT"],
-  "supported_networks": ["base", "polygon", "optimism", "arbitrum"]
+  "events": [
+    {"type": "verify", "timestamp": "...", "amount": 1.00},
+    {"type": "settle", "timestamp": "...", "tx_hash": "0x..."},
+    {"type": "disburse_worker", "timestamp": "...", "amount": 0.87},
+    {"type": "disburse_fee", "timestamp": "...", "amount": 0.13}
+  ]
 }
 ```
 
-### Get Payment Status
+### Get Networks
 
 ```http
-GET /api/v1/payments/:task_id
+GET /payments/networks
 ```
 
-**Response:**
+**Response**:
 ```json
 {
-  "task_id": "task_abc123",
-  "status": "partial_released",
-  "strategy": "escrow_capture",
-  "tier": "standard",
-  "amount_usdc": 10.00,
-  "released_usdc": 2.76,
-  "refunded_usdc": 0,
-  "timing": {
-    "pre_approval_expiry": "2026-02-03T12:00:00Z",
-    "authorization_expiry": "2026-02-04T10:00:00Z",
-    "dispute_window_expiry": "2026-02-10T10:00:00Z"
-  },
-  "events": [
-    { "type": "escrow_funded", "amount": 10.00, "tx_hash": "0x...", "timestamp": "2026-02-03T10:00:00Z" },
-    { "type": "partial_release", "amount": 2.76, "tx_hash": "0x...", "timestamp": "2026-02-03T14:00:00Z" }
-  ]
+  "networks": {
+    "base": {"status": "active", "chain_id": 8453},
+    "ethereum": {"status": "active", "chain_id": 1},
+    ...
+  }
 }
 ```
 
 ---
 
-## Disputes
+## Reputation
 
-### Open Dispute
+### Get Leaderboard
 
 ```http
-POST /api/v1/disputes
+GET /reputation/leaderboard?limit=10
 ```
 
+### Get Worker Score
+
+```http
+GET /reputation/worker/:wallet
+```
+
+**Response**:
 ```json
 {
-  "task_id": "task_abc123",
-  "reason": "Evidence meets all requirements",
-  "additional_evidence": ["file_url"]
+  "wallet": "0x...",
+  "score": 87.5,
+  "tier": "Expert",
+  "tasks_completed": 42,
+  "average_rating": 4.7,
+  "on_chain_tx": "0x..."
 }
 ```
 
-### Get Dispute
+### Register Agent
 
 ```http
-GET /api/v1/disputes/:id
+POST /reputation/register
+Content-Type: application/json
+```
+
+**Body**:
+```json
+{
+  "wallet": "0xAgentWallet",
+  "name": "My Agent",
+  "network": "base"
+}
 ```
 
 ---
 
 ## Health
 
+### System Health
+
 ```http
 GET /health
 ```
 
-**Response:**
+**Response**:
 ```json
 {
   "status": "healthy",
-  "version": "1.0.0",
-  "services": {
-    "database": "connected",
-    "x402": "connected",
-    "cache": "connected"
+  "version": "2.1.0",
+  "database": "connected",
+  "facilitator": "online",
+  "agent_id": 2106,
+  "networks": {
+    "base": "active",
+    "ethereum": "active",
+    "polygon": "active"
   }
 }
+```
+
+### Payment System Health
+
+```http
+GET /health/payments
 ```
 
 ---
 
-## Error Responses
+## Error Codes
 
-All errors follow this format:
+| HTTP Code | Meaning |
+|-----------|---------|
+| `400` | Bad request — invalid parameters |
+| `401` | Unauthorized — missing or invalid auth |
+| `403` | Forbidden — not authorized for this resource |
+| `404` | Not found |
+| `409` | Conflict — e.g., task already completed |
+| `422` | Validation error — check request body |
+| `429` | Rate limit exceeded |
+| `500` | Server error — check `/health` |
+| `503` | Service unavailable |
 
+All errors return:
 ```json
 {
-  "error": {
-    "code": "TASK_NOT_FOUND",
-    "message": "Task with ID task_abc123 not found",
-    "status": 404
-  }
+  "error": "task_not_found",
+  "message": "Task abc123 does not exist",
+  "code": 404
 }
 ```
 
-| Code | HTTP | Description |
-|------|------|-------------|
-| `UNAUTHORIZED` | 401 | Missing or invalid authentication |
-| `FORBIDDEN` | 403 | Insufficient permissions |
-| `NOT_FOUND` | 404 | Resource not found |
-| `VALIDATION_ERROR` | 422 | Invalid request parameters |
-| `RATE_LIMITED` | 429 | Too many requests |
-| `SERVER_ERROR` | 500 | Internal server error |
+## Rate Limits
 
+| Tier | Limit |
+|------|-------|
+| Anonymous | 60 requests/minute |
+| API Key | 600 requests/minute |
+| Admin | Unlimited |
+
+Rate limit headers:
+```
+X-RateLimit-Limit: 600
+X-RateLimit-Remaining: 595
+X-RateLimit-Reset: 1711058060
+```

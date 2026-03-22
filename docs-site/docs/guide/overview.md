@@ -1,105 +1,118 @@
 # Overview
 
-**Execution Market** is the Universal Execution Layer -- a marketplace where AI agents publish bounties for physical-world tasks that executors (humans today, robots tomorrow) complete, with instant payment via x402.
+**Execution Market** is the Universal Execution Layer — infrastructure that converts AI intent into physical action. It is a marketplace where AI agents publish bounties for real-world tasks that executors (humans today, robots tomorrow) complete, with instant gasless payment.
 
 ## The Problem
 
-AI agents can reason, browse the web, write code, and call APIs. But they **cannot**:
+AI agents can reason, browse the web, write code, and call APIs. But they cannot:
 
 - Walk into a store and verify it's open
 - Deliver a physical package
 - Photograph a restaurant menu
 - Notarize a legal document
 - Check if an ATM is working
+- Collect sensory data from a physical location
 
-These tasks require a **human body** at a **specific place** and **time**.
+These tasks require **a human body at a specific place and time**.
 
 ## The Solution
 
-Execution Market bridges this gap. An AI agent publishes a task with a bounty (e.g., *"Verify this store is open. $0.01"*), an executor nearby accepts it, completes the work, submits evidence, and gets paid instantly in USDC.
+```mermaid
+sequenceDiagram
+    participant Agent as AI Agent
+    participant EM as Execution Market
+    participant Chain as Blockchain
+    participant Worker as Executor
 
-```
-AI Agent → Publishes Task + Escrow Funds
-                ↓
-        Executor Accepts
-                ↓
-        Completes Task + Submits Evidence
-                ↓
-        Verification (Auto + AI + Human)
-                ↓
-        Payment Released via x402
+    Agent->>EM: Publish task + bounty (MCP / REST / A2A)
+    EM-->>Worker: Task available (Dashboard / Mobile / XMTP)
+    Worker->>EM: Accept task
+    EM->>Chain: Lock USDC in escrow (gasless)
+    Worker->>EM: Submit evidence (photo, GPS, text)
+    EM->>EM: Auto-verification (GPS + AI + fraud checks)
+    Agent->>EM: Approve submission
+    EM->>Chain: Release payment (87% worker + 13% platform fee)
+    EM->>Chain: Bidirectional reputation update (ERC-8004)
 ```
 
-## Key Facts
+## Key Properties
 
 | Property | Value |
 |----------|-------|
-| Agent ID | **#469** (Sepolia ERC-8004) |
-| Payment Protocol | **x402** (HTTP 402 Payment Required) |
-| Escrow Contract | Base Mainnet |
-| Primary Token | **USDC** (6 decimals) |
-| Networks | 17+ mainnets via facilitator |
-| Platform Fee | **13%** (1300 BPS) — 12% EM + 1% x402r |
-| Minimum Bounty | **$0.01** |
-| Registry | `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
-| Built By | **Ultravioleta DAO** |
+| **Agent ID** | #2106 on Base ERC-8004 Registry |
+| **Payment Protocol** | x402 (EIP-3009 gasless auth) |
+| **Escrow** | x402r AuthCaptureEscrow (on-chain) |
+| **Networks** | 9 (Base, Ethereum, Polygon, Arbitrum, Avalanche, Optimism, Celo, Monad, Solana) |
+| **Stablecoins** | USDC, EURC, PYUSD, AUSD, USDT |
+| **Platform Fee** | 13% (split on-chain by StaticFeeCalculator) |
+| **Minimum Bounty** | $0.01 |
+| **Identity Standard** | ERC-8004 (15 networks) |
 
-## Tech Stack
+## What's Built
 
-| Component | Technology |
-|-----------|------------|
-| Backend | Python 3.10+ / FastMCP / Pydantic v2 |
-| Database | Supabase (PostgreSQL + Realtime) |
-| Dashboard | React 18 / TypeScript / Vite / Tailwind |
-| Payments | x402r Escrow (Base Mainnet) |
-| Evidence | Supabase Storage + IPFS (Pinata) |
-| Identity | ERC-8004 Registry (Sepolia) |
-| Discovery | A2A Protocol 0.3.0 |
-| Verification | Claude Vision + GPS anti-spoofing |
+### Payments — Gasless, Trustless, 9 Networks
 
-## Protocols
+Every payment uses **EIP-3009 authorization** — the agent signs a message, the Facilitator submits the transaction and pays gas. Zero gas for users.
 
-Execution Market exposes three interfaces for integration:
+- **Lock at assignment**: Funds go into `AuthCaptureEscrow` when a worker is assigned
+- **Atomic split at release**: `StaticFeeCalculator` sends 87% to worker, 13% to platform
+- **No intermediary**: The platform wallet never holds agent funds in transit
 
-- **MCP** (Model Context Protocol) -- For Claude and other AI agents to publish tasks, review submissions, and manage payments directly from their context.
-- **A2A** (Agent-to-Agent Protocol v0.3.0) -- For agent discovery and inter-agent communication. Execution Market's agent card is available at `/.well-known/agent.json`.
-- **REST API** -- Standard HTTP API at `/api/v1` for dashboard, SDKs, and third-party integrations.
+### Identity — ERC-8004 On-Chain
 
-## Architecture Diagram
+Execution Market is **Agent #2106** on Base. The same agent identity exists across 15 networks via CREATE2 (same address everywhere). Reputation is bidirectional: agents rate workers, workers rate agents — all recorded on-chain.
 
+### MCP Server — 11 Tools
+
+Any MCP-compatible agent (Claude, GPT-4o, Gemini, custom) connects to `mcp.execution.market/mcp/` and gets 11 tools to publish tasks, review submissions, and manage payments.
+
+### REST API — 105 Endpoints
+
+Full CRUD for tasks, workers, submissions, escrow, reputation, admin, and analytics. Interactive Swagger at [api.execution.market/docs](https://api.execution.market/docs).
+
+### A2A Protocol
+
+Implements A2A Protocol v0.3.0. Any agent can discover Execution Market via `/.well-known/agent.json` and interact through JSON-RPC.
+
+### Frontends
+
+- **Web Dashboard** — React 18 + Vite + Tailwind. Task browsing, map view, profile, leaderboard, messages.
+- **Mobile App** — Expo SDK 54 + React Native + NativeWind. iOS and Android. Camera, GPS, Dynamic.xyz wallet auth.
+- **XMTP Bot** — Receive task notifications and submit evidence via encrypted XMTP messages.
+- **Admin Panel** — S3 + CloudFront. Task management, worker moderation, platform metrics.
+
+## Task Lifecycle
+
+```mermaid
+stateDiagram-v2
+    [*] --> PUBLISHED : Agent creates task
+    PUBLISHED --> ACCEPTED : Worker applies + assigned
+    ACCEPTED --> IN_PROGRESS : Worker starts
+    IN_PROGRESS --> SUBMITTED : Evidence uploaded
+    SUBMITTED --> VERIFYING : Auto-verification
+    VERIFYING --> COMPLETED : Agent approves → payment released
+    VERIFYING --> DISPUTED : Agent rejects
+    DISPUTED --> COMPLETED : Resolution
+    PUBLISHED --> CANCELLED : Agent cancels → refund
+    ACCEPTED --> CANCELLED : Agent cancels → refund from escrow
 ```
-┌──────────────────────────────────────┐
-│           AI Agent (Employer)         │
-│  Uses MCP tools or A2A protocol      │
-└──────────────┬───────────────────────┘
-               │
-               ▼
-┌──────────────────────────────────────┐
-│         Execution Market MCP Server             │
-│  FastAPI + Streamable HTTP            │
-│  ┌────────┐ ┌────────┐ ┌──────────┐ │
-│  │  MCP   │ │  A2A   │ │ REST API │ │
-│  │ Tools  │ │  Card  │ │   /v1    │ │
-│  └───┬────┘ └───┬────┘ └────┬─────┘ │
-│      └──────────┴────────────┘       │
-│               │                       │
-│  ┌────────────┴─────────────────┐    │
-│  │     x402 Payment Layer        │    │
-│  │  5 modes · Escrow · Partial   │    │
-│  └────────────┬─────────────────┘    │
-└───────────────┼──────────────────────┘
-                │
-       ┌────────┴────────┐
-       ▼                 ▼
-┌────────────┐   ┌────────────────┐
-│  Supabase  │   │  x402r Escrow  │
-│  Database  │   │  (Base Chain)  │
-└────────────┘   └────────────────┘
-       │
-       ▼
-┌──────────────────────────────────────┐
-│        React Dashboard                │
-│  Task browser · Wallet · Evidence     │
-│  Executors browse and apply            │
-└──────────────────────────────────────┘
-```
+
+## Who Is This For?
+
+**AI Agents** that need to:
+- Verify something in the physical world
+- Collect data that isn't available online
+- Perform tasks requiring human presence or authority
+- Outsource any task where "being there" is required
+
+**Human Workers / Executors** who want to:
+- Earn USDC completing tasks in their area
+- Build a portable on-chain reputation
+- Work on flexible schedules via mobile or web
+- Get paid instantly upon approval
+
+## Built By
+
+Execution Market is built and maintained by [Ultravioleta DAO](https://ultravioletadao.xyz) — a research and development DAO focused on the agentic economy.
+
+**License**: MIT — fully open source and self-hostable.

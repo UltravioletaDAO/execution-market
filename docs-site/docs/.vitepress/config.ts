@@ -2,28 +2,15 @@ import { defineConfig } from 'vitepress'
 
 const enNav = [
   { text: 'Guide', link: '/guide/overview' },
+  { text: 'For Agents', link: '/for-agents/mcp-tools' },
+  { text: 'For Workers', link: '/for-workers/dashboard' },
+  { text: 'Payments', link: '/payments/overview' },
   { text: 'API', link: '/api/reference' },
-  { text: 'Payments', link: '/payments/x402-overview' },
-  { text: 'Contracts', link: '/contracts/addresses' },
   {
     text: 'Links',
     items: [
-      { text: 'App', link: 'https://execution.market' },
-      { text: 'GitHub', link: 'https://github.com/UltravioletaDAO/execution-market' },
-      { text: 'Ultravioleta DAO', link: 'https://ultravioletadao.xyz' },
-    ],
-  },
-]
-
-const esNav = [
-  { text: 'Guía', link: '/es/guide/overview' },
-  { text: 'API', link: '/es/api/reference' },
-  { text: 'Pagos', link: '/es/payments/x402-overview' },
-  { text: 'Contratos', link: '/es/contracts/addresses' },
-  {
-    text: 'Enlaces',
-    items: [
-      { text: 'App', link: 'https://execution.market' },
+      { text: 'Dashboard', link: 'https://execution.market' },
+      { text: 'API Swagger', link: 'https://api.execution.market/docs' },
       { text: 'GitHub', link: 'https://github.com/UltravioletaDAO/execution-market' },
       { text: 'Ultravioleta DAO', link: 'https://ultravioletadao.xyz' },
     ],
@@ -35,184 +22,157 @@ const enSidebar = [
     text: 'Getting Started',
     items: [
       { text: 'Overview', link: '/guide/overview' },
-      { text: 'Architecture', link: '/architecture/system' },
+      { text: 'Architecture', link: '/guide/architecture' },
       { text: 'Quick Start', link: '/guide/quickstart' },
+      { text: 'Task Lifecycle', link: '/guide/task-lifecycle' },
+    ],
+  },
+  {
+    text: 'For AI Agents',
+    items: [
+      { text: 'MCP Tools (11)', link: '/for-agents/mcp-tools' },
+      { text: 'REST API', link: '/for-agents/rest-api' },
+      { text: 'A2A Protocol', link: '/for-agents/a2a' },
+      { text: 'Authentication (ERC-8128)', link: '/for-agents/authentication' },
+      { text: 'Integration Cookbook', link: '/for-agents/cookbook' },
+      { text: 'Webhooks', link: '/for-agents/webhooks' },
+      { text: 'WebSocket Events', link: '/for-agents/websocket' },
+    ],
+  },
+  {
+    text: 'For Workers / Executors',
+    items: [
+      { text: 'Web Dashboard', link: '/for-workers/dashboard' },
+      { text: 'Mobile App', link: '/for-workers/mobile' },
+      { text: 'XMTP Messaging', link: '/for-workers/xmtp' },
+      { text: 'Evidence Types', link: '/for-workers/evidence' },
+      { text: 'Reputation System', link: '/for-workers/reputation' },
+      { text: 'Dispute Resolution', link: '/for-workers/disputes' },
     ],
   },
   {
     text: 'Payments (x402)',
     items: [
-      { text: 'x402 Overview', link: '/payments/x402-overview' },
-      { text: 'Payment Modes', link: '/payments/payment-modes' },
-      { text: 'Escrow Lifecycle', link: '/payments/escrow-lifecycle' },
-      { text: 'Fee Structure', link: '/payments/fees' },
+      { text: 'Overview', link: '/payments/overview' },
       { text: 'Supported Networks', link: '/payments/networks' },
+      { text: 'Stablecoins', link: '/payments/stablecoins' },
+      { text: 'Fee Structure', link: '/payments/fees' },
+      { text: 'Escrow Lifecycle', link: '/payments/escrow' },
+      { text: 'Payment Modes', link: '/payments/payment-modes' },
       { text: 'Facilitator', link: '/payments/facilitator' },
-      { text: 'Testing Scenarios', link: '/payments/testing-scenarios' },
+    ],
+  },
+  {
+    text: 'Identity & Reputation',
+    items: [
+      { text: 'ERC-8004 Standard', link: '/identity/erc-8004' },
+      { text: 'On-Chain Reputation', link: '/identity/reputation' },
+      { text: 'ERC-8128 Auth', link: '/identity/erc-8128' },
+      { text: 'Agent Card (A2A)', link: '/identity/agent-card' },
     ],
   },
   {
     text: 'Smart Contracts',
     items: [
       { text: 'Contract Addresses', link: '/contracts/addresses' },
-      { text: 'Legacy Escrow (Deprecated)', link: '/contracts/chamba-escrow' },
       { text: 'x402r Escrow', link: '/contracts/x402r-escrow' },
-      { text: 'Audit Summary', link: '/contracts/audits' },
+      { text: 'PaymentOperator', link: '/contracts/payment-operator' },
+      { text: 'Fee Calculator', link: '/contracts/fee-calculator' },
     ],
   },
   {
-    text: 'Agent Identity',
+    text: 'SDKs & Integrations',
     items: [
-      { text: 'ERC-8004 Registration', link: '/architecture/erc8004' },
-      { text: 'A2A Protocol', link: '/architecture/a2a-protocol' },
-      { text: 'Agent Card', link: '/architecture/agent-card' },
+      { text: 'Python SDK', link: '/sdk/python' },
+      { text: 'Plugin SDK (em-plugin-sdk)', link: '/sdk/plugin' },
+      { text: 'TypeScript', link: '/sdk/typescript' },
     ],
   },
   {
     text: 'API Reference',
     items: [
-      { text: 'REST API', link: '/api/reference' },
-      { text: 'MCP Tools', link: '/api/mcp-tools' },
-      { text: 'Authentication', link: '/api/authentication' },
-      { text: 'Webhooks', link: '/api/webhooks' },
+      { text: 'REST API (105 endpoints)', link: '/api/reference' },
+      { text: 'MCP Tools Reference', link: '/api/mcp-reference' },
     ],
   },
   {
     text: 'Guides',
     items: [
-      { text: 'For AI Agents', link: '/guides/for-agents' },
-      { text: 'For Workers', link: '/guides/for-workers' },
-      { text: 'Task Categories', link: '/guides/task-categories' },
-      { text: 'Dispute Resolution', link: '/guides/disputes' },
-    ],
-  },
-]
-
-const esSidebar = [
-  {
-    text: 'Primeros Pasos',
-    items: [
-      { text: 'Descripción General', link: '/es/guide/overview' },
-      { text: 'Arquitectura', link: '/es/architecture/system' },
-      { text: 'Inicio Rápido', link: '/es/guide/quickstart' },
+      { text: 'Task Categories (21)', link: '/guides/task-categories' },
+      { text: 'Local Development', link: '/guides/local-dev' },
+      { text: 'Testing', link: '/guides/testing' },
+      { text: 'Self-Hosting', link: '/guides/self-hosting' },
     ],
   },
   {
-    text: 'Pagos (x402)',
+    text: 'Infrastructure',
     items: [
-      { text: 'Descripción de x402', link: '/es/payments/x402-overview' },
-      { text: 'Modos de Pago', link: '/es/payments/payment-modes' },
-      { text: 'Ciclo de Vida del Escrow', link: '/es/payments/escrow-lifecycle' },
-      { text: 'Estructura de Comisiones', link: '/es/payments/fees' },
-      { text: 'Redes Soportadas', link: '/es/payments/networks' },
-      { text: 'Facilitador', link: '/es/payments/facilitator' },
-      { text: 'Escenarios de Prueba', link: '/es/payments/testing-scenarios' },
+      { text: 'Tech Stack', link: '/infrastructure/tech-stack' },
+      { text: 'Database Schema', link: '/infrastructure/database' },
+      { text: 'CI/CD', link: '/infrastructure/cicd' },
     ],
   },
   {
-    text: 'Contratos Inteligentes',
+    text: 'Project',
     items: [
-      { text: 'Direcciones de Contratos', link: '/es/contracts/addresses' },
-      { text: 'Escrow Legacy (Deprecado)', link: '/es/contracts/chamba-escrow' },
-      { text: 'x402r Escrow', link: '/es/contracts/x402r-escrow' },
-      { text: 'Resumen de Auditoría', link: '/es/contracts/audits' },
-    ],
-  },
-  {
-    text: 'Identidad del Agente',
-    items: [
-      { text: 'Registro ERC-8004', link: '/es/architecture/erc8004' },
-      { text: 'Protocolo A2A', link: '/es/architecture/a2a-protocol' },
-      { text: 'Tarjeta de Agente', link: '/es/architecture/agent-card' },
-    ],
-  },
-  {
-    text: 'Referencia API',
-    items: [
-      { text: 'API REST', link: '/es/api/reference' },
-      { text: 'Herramientas MCP', link: '/es/api/mcp-tools' },
-      { text: 'Autenticación', link: '/es/api/authentication' },
-      { text: 'Webhooks', link: '/es/api/webhooks' },
-    ],
-  },
-  {
-    text: 'Guías',
-    items: [
-      { text: 'Para Agentes IA', link: '/es/guides/for-agents' },
-      { text: 'Para Trabajadores', link: '/es/guides/for-workers' },
-      { text: 'Categorías de Tareas', link: '/es/guides/task-categories' },
-      { text: 'Resolución de Disputas', link: '/es/guides/disputes' },
+      { text: 'Roadmap', link: '/project/roadmap' },
+      { text: 'Manifesto', link: '/project/manifesto' },
+      { text: 'Contributing', link: '/project/contributing' },
+      { text: 'Security', link: '/project/security' },
     ],
   },
 ]
 
 export default defineConfig({
   title: 'Execution Market',
-  description: 'Universal Execution Layer - Documentation',
+  description: 'Universal Execution Layer — AI agents hire humans for real-world tasks. Gasless payments, on-chain reputation, 9 networks.',
   cleanUrls: true,
+  lastUpdated: true,
+  ignoreDeadLinks: [/^http:\/\/localhost/],
 
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }],
     ['meta', { name: 'theme-color', content: '#0ea5e9' }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:title', content: 'Execution Market Docs' }],
-    ['meta', { property: 'og:description', content: 'Universal Execution Layer' }],
+    ['meta', { property: 'og:description', content: 'Universal Execution Layer — AI agents hire humans for real-world tasks' }],
     ['meta', { property: 'og:url', content: 'https://docs.execution.market' }],
+    ['meta', { property: 'og:image', content: 'https://execution.market/og-image.png' }],
+    ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
   ],
-
-  locales: {
-    root: {
-      label: 'English',
-      lang: 'en-US',
-      themeConfig: {
-        nav: enNav,
-        sidebar: enSidebar,
-        editLink: {
-          pattern: 'https://github.com/UltravioletaDAO/execution-market/edit/main/docs-site/docs/:path',
-          text: 'Edit this page on GitHub',
-        },
-        footer: {
-          message: 'Built by Ultravioleta DAO',
-          copyright: 'Agent #469 on ERC-8004 Sepolia Registry',
-        },
-      },
-    },
-    es: {
-      label: 'Español',
-      lang: 'es-MX',
-      link: '/es/',
-      themeConfig: {
-        nav: esNav,
-        sidebar: esSidebar,
-        outlineTitle: 'En esta página',
-        lastUpdatedText: 'Última actualización',
-        docFooter: {
-          prev: 'Anterior',
-          next: 'Siguiente',
-        },
-        editLink: {
-          pattern: 'https://github.com/UltravioletaDAO/execution-market/edit/main/docs-site/docs/:path',
-          text: 'Editar esta página en GitHub',
-        },
-        footer: {
-          message: 'Construido por Ultravioleta DAO',
-          copyright: 'Agente #469 en el Registro ERC-8004 de Sepolia',
-        },
-      },
-    },
-  },
 
   themeConfig: {
     logo: '/logo.svg',
-    siteTitle: 'Execution Market Docs',
+    siteTitle: 'Execution Market',
+
+    nav: enNav,
+    sidebar: enSidebar,
 
     socialLinks: [
       { icon: 'github', link: 'https://github.com/UltravioletaDAO/execution-market' },
-      { icon: 'twitter', link: 'https://twitter.com/ultravioletadao' },
+      { icon: 'twitter', link: 'https://twitter.com/ExecutionMarket' },
     ],
 
     search: {
       provider: 'local',
+    },
+
+    editLink: {
+      pattern: 'https://github.com/UltravioletaDAO/execution-market/edit/main/docs-site/docs/:path',
+      text: 'Edit this page on GitHub',
+    },
+
+    footer: {
+      message: 'Built by <a href="https://ultravioletadao.xyz">Ultravioleta DAO</a> · Agent <a href="https://basescan.org/address/0x8004A169FB4a3325136EB29fA0ceB6D2e539a432">#2106</a> on Base ERC-8004',
+      copyright: 'MIT License · <a href="https://execution.market">execution.market</a>',
+    },
+
+    lastUpdated: {
+      text: 'Updated at',
+    },
+
+    outline: {
+      level: [2, 3],
     },
   },
 })

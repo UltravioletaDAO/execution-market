@@ -1,48 +1,74 @@
 # Contract Addresses
 
-## x402r Escrow System (Production)
+All smart contracts deployed for Execution Market. Many use CREATE2 for deterministic addresses across networks.
 
-### Base Mainnet (Chain ID: 8453)
+## ERC-8004 Identity Contracts
 
-| Contract | Address | Purpose |
+| Contract | Network | Address |
 |----------|---------|---------|
-| **Escrow** | [`0xC409e6da89E54253fbA86C1CE3E553d24E03f6bC`](https://basescan.org/address/0xC409e6da89E54253fbA86C1CE3E553d24E03f6bC) | Main escrow for task payments |
-| **DepositRelayFactory** | [`0x41Cc4D337FEC5E91ddcf4C363700FC6dB5f3A814`](https://basescan.org/address/0x41Cc4D337FEC5E91ddcf4C363700FC6dB5f3A814) | Deterministic proxy deployment |
-| **RefundRequest** | [`0x55e0Fb85833f77A0d699346E827afa06bcf58e4e`](https://basescan.org/address/0x55e0Fb85833f77A0d699346E827afa06bcf58e4e) | Refund processing |
-| **MerchantRouter** | [`0xa48E8AdcA504D2f48e5AF6be49039354e922913F`](https://basescan.org/address/0xa48E8AdcA504D2f48e5AF6be49039354e922913F) | Merchant registration & routing |
-| **USDC** | [`0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`](https://basescan.org/address/0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913) | Circle USDC token |
+| Identity Registry | All Mainnets (CREATE2) | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` |
+| Identity Registry | All Testnets (CREATE2) | `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
+| Reputation Registry | All Mainnets (CREATE2) | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` |
 
-### Base Sepolia Testnet (Chain ID: 84532)
+Same address on: Base, Ethereum, Polygon, Arbitrum, Avalanche, Optimism, Celo, Monad (and more) via CREATE2.
 
-| Contract | Address |
-|----------|---------|
-| **Escrow** | `0xF7F2Bc463d79Bd3E5Cb693944B422c39114De058` |
-| **Factory** | `0xf981D813842eE78d18ef8ac825eef8e2C8A8BaC2` |
-| **USDC** | `0x036CbD53842c5426634e7929541eC2318f3dCF7e` |
+## AuthCaptureEscrow Contracts
 
-## Legacy Escrow — DEPRECATED
+| Network | Address |
+|---------|---------|
+| Base | `0xb9488351E48b23D798f24e8174514F28B741Eb4f` |
+| Ethereum | `0x9D4146EF898c8E60B3e865AE254ef438E7cEd2A0` |
+| Polygon | `0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6` |
+| Arbitrum | `0x320a3c35F131E5D2Fb36af56345726B298936037` |
+| Avalanche | `0x320a3c35F131E5D2Fb36af56345726B298936037` |
+| Celo | `0x320a3c35F131E5D2Fb36af56345726B298936037` |
+| Monad | `0x320a3c35F131E5D2Fb36af56345726B298936037` |
+| Optimism | `0x320a3c35F131E5D2Fb36af56345726B298936037` |
 
-> The legacy escrow has been deprecated and archived. See [Legacy Escrow](/contracts/chamba-escrow) for details. All payments use x402 Facilitator.
+The same address on Arbitrum, Avalanche, Celo, Monad, and Optimism is due to CREATE2 deterministic deployment.
 
-## ERC-8004 Identity Registry
+## PaymentOperator Contracts (Fase 5 — Trustless Fee Split)
+
+| Network | Address |
+|---------|---------|
+| **Base** | `0x271f9fa7f8907aCf178CCFB470076D9129D8F0Eb` |
+| Ethereum | `0x69B67962ffb7c5C7078ff348a87DF604dfA8001b` |
+| Polygon | `0xB87F1ECC85f074e50df3DD16A1F40e4e1EC4102e` |
+| Arbitrum | `0xC2377a9Db1de2520BD6b2756eD012f4E82F7938e` |
+| Avalanche | `0xC2377a9Db1de2520BD6b2756eD012f4E82F7938e` |
+| Celo | `0xC2377a9Db1de2520BD6b2756eD012f4E82F7938e` |
+| Monad | `0x9620Dbe2BB549E1d080Dc8e7982623A9e1Df8cC3` |
+| Optimism | `0xC2377a9Db1de2520BD6b2756eD012f4E82F7938e` |
+
+## Fee Calculator
+
+| Contract | Network | Address |
+|----------|---------|---------|
+| StaticFeeCalculator (1300 BPS = 13%) | Base | `0xd643DB63028Cd1852AAFe62A0E3d2A5238d7465A` |
+
+## Facilitator EOA
+
+| Role | Address |
+|------|---------|
+| Facilitator EOA (pays gas for all TXs) | `0x103040545AC5031A11E8C03dd11324C7333a13C7` |
+
+## Agent Identity
 
 | Property | Value |
 |----------|-------|
-| **Network** | Sepolia (testnet) |
-| **Registry** | [`0x8004A818BFB912233c491871b3d84c89A494BD9e`](https://sepolia.etherscan.io/address/0x8004A818BFB912233c491871b3d84c89A494BD9e) |
-| **Agent ID** | **469** |
-| **Registration TX** | [`0xf04d7c3c86adf948acc8358180fea05c89645058150891cde21fa946cc748608`](https://sepolia.etherscan.io/tx/0xf04d7c3c86adf948acc8358180fea05c89645058150891cde21fa946cc748608) |
-| **IPFS Metadata** | [`QmZJaHCf4u9Wy9hPusKF9bpV69Jr3E6ZAVXHZCinfMrjbL`](https://gateway.pinata.cloud/ipfs/QmZJaHCf4u9Wy9hPusKF9bpV69Jr3E6ZAVXHZCinfMrjbL) |
+| Execution Market Agent ID | **2106** (Base Mainnet) |
+| Legacy Agent ID | 469 (Sepolia — deprecated) |
 
-## Token Addresses by Network
+## Verify on Block Explorers
 
-### USDC
+- **Base**: [basescan.org — Identity Registry](https://basescan.org/address/0x8004A169FB4a3325136EB29fA0ceB6D2e539a432)
+- **Base**: [basescan.org — Agent #2106](https://basescan.org/token/0x8004A169FB4a3325136EB29fA0ceB6D2e539a432?a=2106)
+- **Ethereum**: [etherscan.io — Identity Registry](https://etherscan.io/address/0x8004A169FB4a3325136EB29fA0ceB6D2e539a432)
+- **Polygon**: [polygonscan.com — Identity Registry](https://polygonscan.com/address/0x8004A169FB4a3325136EB29fA0ceB6D2e539a432)
 
-| Network | Chain ID | Address |
-|---------|----------|---------|
-| Base | 8453 | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
-| Polygon | 137 | `0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359` |
-| Optimism | 10 | `0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85` |
-| Arbitrum | 42161 | `0xaf88d065e77c8cC2239327C5EDb3A432268e5831` |
-| Ethereum | 1 | `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48` |
-| Base Sepolia | 84532 | `0x036CbD53842c5426634e7929541eC2318f3dCF7e` |
+## Source Code
+
+All contract source code is in `contracts/` in the repository.
+
+x402r contracts maintained by BackTrack:
+- [github.com/BackTrackCo/x402r-contracts](https://github.com/BackTrackCo/x402r-contracts)

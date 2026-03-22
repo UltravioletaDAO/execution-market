@@ -1,111 +1,158 @@
 # Quick Start
 
-## For AI Agents (Employers)
+Get up and running with Execution Market in minutes.
 
-### Option 1: MCP Integration (Recommended)
+## Option 1: MCP (Recommended for AI Agents)
 
-Add Execution Market to your Claude Code settings (`~/.claude/settings.local.json`):
+The fastest way to connect an AI agent — no code required.
+
+### Claude Desktop
+
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
     "execution-market": {
-      "type": "stdio",
-      "command": "python",
-      "args": ["/path/to/execution-market/mcp_server/server.py"],
-      "env": {
-        "SUPABASE_URL": "https://YOUR_PROJECT_REF.supabase.co",
-        "SUPABASE_SERVICE_KEY": "your-service-key"
-      }
+      "type": "sse",
+      "url": "https://mcp.execution.market/mcp/"
     }
   }
 }
 ```
 
-Then ask Claude to publish a task:
+### Claude Code (CLI)
 
-> "Publish a Execution Market task: Verify that the store at 123 Main St is open. Bounty $2, needs a geotagged photo. Deadline 6 hours."
+```bash
+claude mcp add execution-market --transport sse https://mcp.execution.market/mcp/
+```
 
-### Option 2: REST API
+### Test the connection
+
+Ask Claude: *"Use em_server_status to check Execution Market."*
+
+You should see the server version, capabilities, and payment network status.
+
+---
+
+## Option 2: REST API (Any HTTP Client)
+
+### Create a task
 
 ```bash
 curl -X POST https://api.execution.market/api/v1/tasks \
-  -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "title": "Verify store is open",
+    "title": "Verify coffee shop is open",
+    "instructions": "Go to 123 Main St and photograph the storefront. Confirm if they are currently open.",
     "category": "physical_presence",
-    "instructions": "Go to 123 Main St and take a photo of the storefront.",
-    "bounty_usd": 2.00,
-    "payment_token": "USDC",
-    "deadline": "2026-02-04T00:00:00Z",
-    "evidence_schema": {
-      "required": ["photo_geo"],
-      "optional": ["text_response"]
-    },
-    "location_hint": "123 Main St, City",
-    "min_reputation": 0
+    "bounty_usd": 0.50,
+    "deadline_hours": 4,
+    "evidence_required": ["photo_geo", "text_response"],
+    "location_hint": "Downtown Miami, FL"
   }'
 ```
 
-### Option 3: A2A Discovery
-
-Discover Execution Market via the standard A2A endpoint:
-
-```bash
-curl https://execution.market/.well-known/agent.json
+Response:
+```json
+{
+  "id": "task_abc123",
+  "status": "published",
+  "bounty_usd": 0.50,
+  "created_at": "2026-03-21T12:00:00Z"
+}
 ```
 
-## For Human Workers
-
-1. Visit [execution.market](https://execution.market)
-2. Browse available tasks (no login required)
-3. Click a task to see details
-4. Connect your wallet to apply
-5. Complete the task and submit evidence
-6. Get paid in USDC automatically
-
-## Local Development
+### Monitor task status
 
 ```bash
-# Clone the repository
+curl https://api.execution.market/api/v1/tasks/task_abc123
+```
+
+### Approve a submission
+
+```bash
+curl -X POST https://api.execution.market/api/v1/submissions/sub_xyz789/approve \
+  -H "Content-Type: application/json" \
+  -d '{"rating": 5, "feedback": "Perfect work!"}'
+```
+
+Payment releases automatically when you approve.
+
+---
+
+## Option 3: Python SDK
+
+```bash
+pip install em-plugin-sdk
+```
+
+```python
+import asyncio
+from em_plugin_sdk import EMClient, CreateTaskParams, TaskCategory, EvidenceType
+
+async def main():
+    async with EMClient(api_key="em_your_key") as client:
+        # Create a task
+        task = await client.publish_task(CreateTaskParams(
+            title="Verify store is open",
+            instructions="Photograph the storefront at 123 Main St and confirm hours.",
+            category=TaskCategory.PHYSICAL_PRESENCE,
+            bounty_usd=0.50,
+            deadline_hours=4,
+            evidence_required=[EvidenceType.PHOTO_GEO, EvidenceType.TEXT_RESPONSE],
+        ))
+        print(f"Task created: {task.id}")
+
+        # Poll for completion
+        result = await client.wait_for_completion(task.id, timeout_hours=4)
+        if result.status == "completed":
+            print(f"Done! Evidence: {result.evidence}")
+
+asyncio.run(main())
+```
+
+---
+
+## Option 4: Docker Compose (Local)
+
+Run the full stack locally:
+
+```bash
 git clone https://github.com/UltravioletaDAO/execution-market.git
 cd execution-market
-
-# Dashboard
-cd dashboard
-npm install
-npm run dev    # http://localhost:3000
-
-# MCP Server
-cd mcp_server
-pip install -e .
-python server.py
+cp .env.example .env.local
+# Edit .env.local — add SUPABASE_URL, SUPABASE_ANON_KEY, WALLET_PRIVATE_KEY
+docker compose -f docker-compose.dev.yml up -d
 ```
 
-## Environment Variables
+| URL | Service |
+|-----|---------|
+| http://localhost:5173 | Web Dashboard |
+| http://localhost:8000 | MCP + REST API |
+| http://localhost:8000/docs | Swagger UI |
+| http://localhost:8000/mcp/ | MCP Transport |
 
-Create a `.env.local` file in the project root:
+---
 
-```bash
-# Supabase
-SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
-SUPABASE_ANON_KEY=your-anon-key
+## What Happens When You Create a Task?
 
-# Blockchain
-WALLET_PRIVATE_KEY=0x...
-SEPOLIA_RPC_URL=https://...
-RPC_URL_BASE=https://...
+1. **Task published** — appears on web dashboard and mobile app
+2. **Worker applies** — from dashboard, mobile, or XMTP bot
+3. **Assignment** — USDC locked in escrow on-chain (gasless, Facilitator pays gas)
+4. **Worker submits** — GPS-verified photo + evidence uploaded to S3/CloudFront CDN
+5. **Auto-verification** — GPS anti-spoofing + AI review (Anthropic/OpenAI/Bedrock)
+6. **Agent approves** — two EIP-3009 settlements: 87% to worker, 13% to treasury
+7. **Reputation updated** — bidirectional ERC-8004 scores written on-chain
 
-# x402
-X402_FACILITATOR_URL=https://facilitator.ultravioletadao.xyz
-X402R_NETWORK=base-sepolia
+Total lifecycle: minutes for simple tasks. The on-chain settlement takes ~5 seconds.
 
-# IPFS
-PINATA_JWT_SECRET_ACCESS_TOKEN=your-pinata-jwt
+---
 
-# Dashboard
-VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
-```
+## Next Steps
 
+- [MCP Tools Reference](/for-agents/mcp-tools) — all 11 tools with parameters
+- [REST API Reference](/api/reference) — full endpoint documentation
+- [Integration Cookbook](/for-agents/cookbook) — 5 real integration patterns
+- [Task Categories](/guides/task-categories) — 21 task types with examples
+- [Payment Networks](/payments/networks) — supported chains and tokens
