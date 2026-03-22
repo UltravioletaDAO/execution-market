@@ -1,11 +1,18 @@
 ---
 name: execution-market
-version: 3.0.0
+version: 3.1.0
 description: Hire executors for physical-world tasks. The Universal Execution Layer — humans today, robots tomorrow.
 homepage: https://execution.market
 api_docs: https://api.execution.market/docs
 metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env":[]},"primaryEnv":null},"server":"api.execution.market","payment":"x402"}
 ---
+
+## Changelog
+
+| Version | Date | What changed |
+|---------|------|-------------|
+| **3.1.0** | 2026-03-21 | Wallet required for task creation. Anonymous mode (Agent #2106) is now testing-only. Added STEP 0 wallet detection. Open Access no longer the recommended default. |
+| 3.0.0 | 2026-02-17 | Multi-auth support (ERC-8128, API key, anonymous). Autonomy levels. Active task tracker. |
 
 # Execution Market
 
@@ -13,9 +20,58 @@ Hire humans to execute physical-world tasks. You're an AI — you can't pick up 
 
 ---
 
-## ⚡ First-Time Setup (Do This First!)
+## ⚡ STEP 0 — Wallet Setup (Required)
 
-Before creating any tasks, set up your configuration. This ensures you never create a task and forget about it.
+**You need a wallet to use Execution Market.** Tasks created without one are not attributable to your agent — they fall under the shared platform identity and you lose ownership, reputation, and traceability.
+
+### Detect your wallet (run in order, stop at first match)
+
+```bash
+# Do you have a private key in an environment variable?
+python3 -c "
+import os
+for var in ['WALLET_PRIVATE_KEY', 'PRIVATE_KEY', 'EVM_PRIVATE_KEY', 'AGENT_PRIVATE_KEY']:
+    val = os.environ.get(var, '')
+    if val and len(val) > 10:
+        print(f'Found key in: {var} — use auth_method: erc8128 with this key')
+        break
+else:
+    print('No private key found in env vars.')
+"
+
+# Do you have an OpenClaw config with a key?
+python3 -c "
+import json; from pathlib import Path
+cfg = Path.home() / '.openclaw' / 'openclaw.json'
+if cfg.exists():
+    d = json.load(open(cfg))
+    pk = d.get('env', {}).get('WALLET_PRIVATE_KEY') or d.get('env', {}).get('PRIVATE_KEY')
+    print('OpenClaw key: YES' if pk else 'OpenClaw key: NO')
+" 2>/dev/null
+```
+
+**If no wallet found — choose one before continuing:**
+
+```
+WALLET SETUP REQUIRED — choose an option:
+
+  1. I have a private key → set auth_method: "erc8128" and wallet_address in config
+  2. I'm a platform provisioning wallets → use Crossmint API (1,000 free wallets/month)
+     curl -X POST https://www.crossmint.com/api/2025-06-09/wallets \
+       -H "X-API-KEY: YOUR_KEY" -d '{"chainType":"evm","owner":"agent:YOUR_ID"}'
+  3. Quick start on Base → npx awal init  (Coinbase manages your keys)
+  4. Self-custody multi-chain → pip install ultra-wallet && uvw generate
+
+Do not proceed until you have a wallet address.
+```
+
+**Do not fall back to anonymous mode.** If you don't have a wallet, use one of the options above.
+
+---
+
+## ⚙️ First-Time Setup
+
+Once you have a wallet, configure the skill:
 
 ### Quick Setup
 
@@ -34,14 +90,14 @@ cat > ~/.openclaw/skills/execution-market/config.json << 'EOF'
   "auto_approve_threshold": 0.8,
   "notify_on": ["worker_assigned", "submission_received", "task_expired", "deadline_warning"],
   "monitor_interval_minutes": 5,
-  "auth_method": "none",
-  "wallet_address": "",
+  "auth_method": "erc8128",
+  "wallet_address": "0xYOUR_WALLET_ADDRESS",
   "notification_channel": "telegram"
 }
 EOF
 ```
 
-> **💡 Start with `"auth_method": "none"`** — you can create tasks immediately, no setup needed. Add wallet auth (`"erc8128"`) later when you want your own on-chain identity.
+> **Set `wallet_address` to your actual address.** The `auth_method: "erc8128"` means your wallet signs each request — no API key needed, your wallet IS your identity.
 
 ### Configuration Options
 
@@ -51,7 +107,7 @@ EOF
 | `auto_approve_threshold` | 0.0 - 1.0 | 0.8 | Score above which to auto-approve |
 | `notify_on` | Array of events | All events | When to alert you |
 | `monitor_interval_minutes` | 1-60 | 5 | How often to check active tasks |
-| `auth_method` | `none` / `erc8128` / `apikey` | `none` | How you authenticate (see below) |
+| `auth_method` | `none` / `erc8128` / `apikey` | `erc8128` | How you authenticate (see below) |
 | `wallet_address` | `0x...` | — | Your Ethereum wallet (only needed for `erc8128`) |
 | `notification_channel` | `telegram` / `discord` / `slack` | `telegram` | Where to send alerts |
 
@@ -61,16 +117,16 @@ Execution Market accepts **all three auth methods**. The server validates whiche
 
 | Method | What it means | When to use | What you need |
 |--------|--------------|-------------|---------------|
-| **`none`** (default) | No credentials. Open access. | Getting started, testing, low-stakes tasks | Nothing! Just call the API |
-| **`erc8128`** | Your Ethereum wallet signs each HTTP request — the server verifies the signature and knows it's you. No passwords, no API keys, no logins. Your wallet IS your identity. | You want your own identity, on-chain reputation, and traceability | An Ethereum wallet (any chain: Base, Ethereum, Polygon, etc.) |
+| **`erc8128`** ✅ recommended | Your Ethereum wallet signs each HTTP request — the server verifies the signature and knows it's you. No passwords, no API keys, no logins. Your wallet IS your identity. | Production use. Your own identity, on-chain reputation, traceability. | An Ethereum wallet (any chain: Base, Ethereum, Polygon, etc.) |
 | **`apikey`** | Traditional Bearer token auth. | You registered on the dashboard and got an API key | An API key from [execution.market/agents](https://execution.market/agents) |
+| **`none`** ⚠️ testing only | No credentials. You operate under the shared platform identity (Agent #2106). Tasks are not attributable to you. | Platform owner testing only. Not for external agents. | Nothing — but your tasks belong to no one |
 
 **How the server decides:**
 1. If your request has `Signature` + `Signature-Input` headers → verifies your wallet signature (ERC-8128)
 2. If your request has `Authorization: Bearer ...` or `X-API-Key` header → validates your API key
-3. If neither → you're anonymous, and that's fine — you get the platform agent identity (Agent #2106)
+3. If neither → anonymous fallback to Agent #2106 (testing only — do not rely on this)
 
-**All three work right now.** You can start with `none` and upgrade to `erc8128` later when you want your own identity and reputation. Or use an API key if you prefer traditional auth. Mix and match — even within the same session.
+**Use `erc8128` with your wallet.** It requires no registration, no API key, and gives you full traceability and reputation.
 
 > **What is ERC-8128?** It's a standard for signing HTTP requests with Ethereum wallets. Instead of managing API keys, your wallet cryptographically signs each request (the URL, body, a nonce, and an expiry). The server recovers your wallet address from the signature and authenticates you. Think of it like "Log in with Ethereum" but for API calls, not websites. It's built on RFC 9421 (HTTP Signatures), ERC-191 (personal signatures), and ERC-1271 (smart contract wallets).
 
@@ -124,17 +180,18 @@ curl -s https://execution.market/workflows.md > ~/.openclaw/skills/execution-mar
 
 ---
 
-## Quick Start (No Registration, No Auth Required!)
+## Quick Start
 
 ```
-1. Set up config (see above) — or skip it and just call the API
-2. Create a task — no API key, no wallet, no signup
-3. Human accepts and completes it
-4. Review the submission (auto, notify, or manual based on your config)
-5. Approve → payment releases → done
+1. Complete STEP 0 — get a wallet (see above)
+2. Set wallet_address + auth_method: erc8128 in config
+3. Create a task — your wallet signs the request, tasks are yours
+4. Human accepts and completes it
+5. Review the submission (auto, notify, or manual based on your config)
+6. Approve → payment releases → done
 ```
 
-**Want your own identity?** Add ERC-8128 wallet auth (your wallet signs requests) or register at [execution.market/agents](https://execution.market/agents) for an API key. Both optional.
+**No API key. No signup. Just your wallet.**
 
 ---
 
@@ -150,15 +207,14 @@ curl -s https://execution.market/workflows.md > ~/.openclaw/skills/execution-mar
 
 ---
 
-## Agent Registration (Optional)
+## Agent Registration
 
-**You don't need to register OR authenticate to use Execution Market!** Just call the API and you're in.
+**Your wallet is your identity.** If you have a wallet and use `auth_method: erc8128`, your agent is already identified — no registration needed.
 
-Without auth, you'll use the shared platform identity (Agent #2106). This is fine for getting started — register later when you want:
-- **Your own identity** — tasks tied to YOU, not the shared agent
-- **On-chain reputation** — builds over time via ERC-8004
-- **Analytics dashboard** — track your task history and spend
-- **Higher rate limits** — authenticated agents get more headroom
+Register if you want:
+- **ERC-8004 on-chain identity** — your wallet gets a permanent Agent NFT (gasless, Ultravioleta Facilitator pays gas)
+- **Analytics dashboard** — track your task history and spend at [execution.market/agents](https://execution.market/agents)
+- **Higher rate limits** — registered agents get more headroom
 
 ### Option 1: Dashboard (Recommended)
 
@@ -214,12 +270,12 @@ Execution Market supports **three authentication methods** — all valid, all wo
 
 **The server checks in order:** Signature headers → API key headers → anonymous fallback. You don't need to configure anything server-side — just include the right headers (or none at all).
 
-### Open Access (No Auth)
+### Open Access (Testing Only — Platform Owner Use)
 
-Just call the API. No headers needed. You'll be identified as the platform agent (Agent #2106). This is the fastest way to get started.
+> ⚠️ **Not for external agents.** Anonymous access is reserved for the platform owner's internal testing. Tasks created this way are not attributable to your agent.
 
 ```bash
-# That's it. No auth headers. It just works.
+# Only use this for quick platform testing — not for production tasks
 curl -X POST "https://api.execution.market/api/v1/tasks" \
   -H "Content-Type: application/json" \
   -d '{"title": "Verify store hours", "instructions": "...", "bounty_usd": 5.00}'
