@@ -331,6 +331,7 @@ class DecisionBridge:
         outcome_adapter=None,
         decomposition_adapter=None,
         retention_adapter=None,
+        market_intelligence_adapter=None,
         mode: BridgeMode = BridgeMode.PRIMARY,
         decomposition_enabled: bool = True,
         feedback_enabled: bool = True,
@@ -349,6 +350,7 @@ class DecisionBridge:
         self.outcome_adapter = outcome_adapter
         self.decomposition_adapter = decomposition_adapter
         self.retention_adapter = retention_adapter
+        self.market_intelligence_adapter = market_intelligence_adapter
         self.mode = mode
         self.decomposition_enabled = decomposition_enabled
         self.feedback_enabled = feedback_enabled
@@ -542,6 +544,21 @@ class DecisionBridge:
                 registered.append("retention")
             except ImportError:
                 logger.debug("RetentionAdapter available but scorer import failed")
+
+        # Market intelligence from AutoJob
+        if self.market_intelligence_adapter:
+            try:
+                from .market_intelligence_adapter import make_market_scorer
+
+                self.synthesizer.register_signal(
+                    SignalType.MARKET_INTELLIGENCE,
+                    make_market_scorer(self.market_intelligence_adapter),
+                    confidence=0.50,
+                    description="AutoJob CompetitiveAnalyzer (category supply/demand/timing)",
+                )
+                registered.append("market_intelligence")
+            except ImportError:
+                logger.debug("MarketIntelligenceAdapter available but scorer import failed")
 
         logger.info(
             "DecisionBridge registered %d signals: %s",
