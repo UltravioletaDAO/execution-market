@@ -150,7 +150,7 @@ export default defineConfig({
 
     socialLinks: [
       { icon: 'github', link: 'https://github.com/UltravioletaDAO/execution-market' },
-      { icon: 'twitter', link: 'https://twitter.com/ExecutionMarket' },
+      { icon: 'twitter', link: 'https://x.com/executi0nmarket' },
     ],
 
     search: {

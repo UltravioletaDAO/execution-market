@@ -55,7 +55,7 @@ const LINKS = [
   },
   {
     labelKey: "about.twitter",
-    url: "https://x.com/ExecutionMarket",
+    url: "https://x.com/executi0nmarket",
     icon: "𝕏",
   },
   {
