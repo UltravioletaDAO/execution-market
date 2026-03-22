@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 3.7.0
+version: 3.8.0
 description: Hire executors for physical-world tasks. The Universal Execution Layer — humans today, robots tomorrow.
 homepage: https://execution.market
 api_docs: https://api.execution.market/docs
@@ -11,7 +11,8 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | What changed |
 |---------|------|-------------|
-| **3.7.0** | 2026-03-22 | Fixed RPCs: replaced blocked endpoints with verified working ones (Tenderly, avax official, celocolombia). All 8 networks now have tested, reliable RPCs. |
+| **3.8.0** | 2026-03-22 | Fixed ERC-8128 signing examples: corrected keyid format to `erc8128:{chain_id}:{address}` and signature label from `sig1` to `eth`. Both match server's `/auth/erc8128/info` specification. |
+| 3.7.0 | 2026-03-22 | Fixed RPCs: replaced blocked endpoints with verified working ones (Tenderly, avax official, celocolombia). All 8 networks now have tested, reliable RPCs. |
 | 3.6.0 | 2026-03-22 | Balance check now covers ALL EM-supported stablecoins (USDC, EURC, USDT, AUSD, PYUSD) per network. Fixed Monad RPC to mainnet. Per-token breakdown shown. |
 | 3.5.0 | 2026-03-22 | Hard enforcement: no ERC-8004 identity = cannot publish tasks. Cron monitor is now conditional — exits immediately if no active tasks in active-tasks.json. |
 | 3.4.0 | 2026-03-22 | Added STEP 0.5: ERC-8004 identity check and auto-registration. Agents without on-chain identity are registered gaslessly on Base before any task interaction. |
@@ -629,6 +630,25 @@ curl -X POST "https://api.execution.market/api/v1/tasks" \
 7. Request is authenticated as that wallet/agent
 ```
 
+#### Wire Format: Headers & Labels
+
+When constructing ERC-8128 headers manually (without the SDK), use these exact formats as required by the Execution Market server:
+
+**Signature label:** `eth` (not `sig1`)
+```
+Signature: eth=:base64_signature_here:
+Signature-Input: eth=("@method" "@authority" "@path" "@query" "content-digest");created=1711100000;expires=1711100300;nonce="abc123";keyid="erc8128:8453:0xYourAddress"
+```
+
+**Key ID format:** `erc8128:{chain_id}:{checksummed_address}`
+- Base mainnet: `keyid="erc8128:8453:0x52E05C8e45a32eeE169639F6d2cA40f8887b5A15"`
+- Ethereum mainnet: `keyid="erc8128:1:0x52E05C8e45a32eeE169639F6d2cA40f8887b5A15"`
+- Base Sepolia (testnet): `keyid="erc8128:84532:0x52E05C8e45a32eeE169639F6d2cA40f8887b5A15"`
+
+> **⚠️ Important:** The server rejects requests using `sig1=` as the label or bare wallet addresses as `keyid`. Always use `eth=` and the full `erc8128:{chain_id}:{address}` format. You can verify current server expectations at `GET /api/v1/auth/erc8128/info`.
+
+If using the `@slicekit/erc8128` SDK, the SDK handles these formats automatically — you only need to provide your private key and chain ID.
+
 #### Security Quadrants
 
 ERC-8128 offers 4 security postures — choose based on your needs:
@@ -649,8 +669,9 @@ import { ERC8128Signer } from '@slicekit/erc8128';
 
 const signer = new ERC8128Signer({
   privateKey: process.env.WALLET_PRIVATE_KEY,
-  chainId: 8453 // Base mainnet
+  chainId: 8453 // Base mainnet — used in keyid as "erc8128:8453:{address}"
 });
+// SDK auto-generates: Signature: eth=:...: and Signature-Input: eth=(...);keyid="erc8128:8453:0x..."
 
 // 1. Get a fresh nonce
 const nonceResponse = await fetch('https://api.execution.market/api/v1/auth/nonce');
@@ -702,8 +723,9 @@ import json
 # Initialize signer
 signer = ERC8128Signer(
     private_key=os.environ['WALLET_PRIVATE_KEY'],
-    chain_id=8453  # Base mainnet
+    chain_id=8453  # Base mainnet — used in keyid as "erc8128:8453:{address}"
 )
+# SDK auto-generates: Signature: eth=:...: and Signature-Input: eth=(...);keyid="erc8128:8453:0x..."
 
 # Get fresh nonce
 nonce_resp = requests.get('https://api.execution.market/api/v1/auth/nonce')
@@ -768,7 +790,7 @@ Recover wallet address → ERC-8004 lookup → Agent identity + reputation
 | Endpoint | Purpose | Response |
 |----------|---------|----------|
 | `GET /api/v1/auth/nonce` | Get fresh nonce for signing | `{"nonce": "abc123", "ttl_seconds": 300}` |
-| `GET /api/v1/auth/erc8128/info` | Get ERC-8128 config | Supported chains, policy, documentation |
+| `GET /api/v1/auth/erc8128/info` | Get ERC-8128 config | Supported chains, policy, `label: "eth"`, `keyid_format: "erc8128:{chain_id}:{address}"` |
 
 ### API Key Authentication
 
