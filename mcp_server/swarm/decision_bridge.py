@@ -311,6 +311,7 @@ class DecisionBridge:
         availability_bridge=None,
         workforce_analytics=None,
         routing_optimizer=None,
+        performance_adapter=None,
         mode: BridgeMode = BridgeMode.PRIMARY,
         decomposition_enabled: bool = True,
         feedback_enabled: bool = True,
@@ -324,6 +325,7 @@ class DecisionBridge:
         self.availability_bridge = availability_bridge
         self.workforce_analytics = workforce_analytics
         self.routing_optimizer = routing_optimizer
+        self.performance_adapter = performance_adapter
         self.mode = mode
         self.decomposition_enabled = decomposition_enabled
         self.feedback_enabled = feedback_enabled
@@ -442,6 +444,20 @@ class DecisionBridge:
                 description="WorkforceAnalytics health score",
             )
             registered.append("specialization")
+
+        # Performance analysis from AutoJob
+        if self.performance_adapter:
+            try:
+                from .performance_adapter import make_performance_scorer
+                self.synthesizer.register_signal(
+                    SignalType.PERFORMANCE,
+                    make_performance_scorer(self.performance_adapter),
+                    confidence=0.75,
+                    description="AutoJob WorkerPerformanceAnalyzer",
+                )
+                registered.append("performance")
+            except ImportError:
+                logger.debug("PerformanceAdapter available but scorer import failed")
 
         logger.info(
             "DecisionBridge registered %d signals: %s",
