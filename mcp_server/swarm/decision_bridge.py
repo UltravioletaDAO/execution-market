@@ -328,6 +328,7 @@ class DecisionBridge:
         routing_optimizer=None,
         performance_adapter=None,
         pricing_adapter=None,
+        outcome_adapter=None,
         mode: BridgeMode = BridgeMode.PRIMARY,
         decomposition_enabled: bool = True,
         feedback_enabled: bool = True,
@@ -343,6 +344,7 @@ class DecisionBridge:
         self.routing_optimizer = routing_optimizer
         self.performance_adapter = performance_adapter
         self.pricing_adapter = pricing_adapter
+        self.outcome_adapter = outcome_adapter
         self.mode = mode
         self.decomposition_enabled = decomposition_enabled
         self.feedback_enabled = feedback_enabled
@@ -491,6 +493,21 @@ class DecisionBridge:
                 registered.append("pricing")
             except ImportError:
                 logger.debug("PricingAdapter available but scorer import failed")
+
+        # Outcome prediction from AutoJob
+        if self.outcome_adapter:
+            try:
+                from .outcome_adapter import make_outcome_scorer
+
+                self.synthesizer.register_signal(
+                    SignalType.OUTCOME,
+                    make_outcome_scorer(self.outcome_adapter),
+                    confidence=0.65,
+                    description="AutoJob TaskOutcomePredictor",
+                )
+                registered.append("outcome")
+            except ImportError:
+                logger.debug("OutcomeAdapter available but scorer import failed")
 
         logger.info(
             "DecisionBridge registered %d signals: %s",
