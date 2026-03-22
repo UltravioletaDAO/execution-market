@@ -117,6 +117,10 @@ sleep 90 && curl https://SERVICE.execution.market/health
 9. **Terraform state**: Never manually modify. If drift detected, import or taint resources
 10. **Cost awareness**: Always mention cost implications of infrastructure changes (NAT gateways = ~$32/mo each, Fargate pricing by vCPU/memory, data transfer costs)
 
+## Language
+
+Always respond in English, regardless of the language the user writes in.
+
 ## Output Style
 
 - Be precise and actionable — give exact AWS CLI commands or Terraform code

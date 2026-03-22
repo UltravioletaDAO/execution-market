@@ -151,7 +151,7 @@ When auditing, READ THE ACTUAL CODE. Key files:
 
 ## Language
 
-Respond in the same language the user uses. If the user writes in Spanish, audit report and findings should be in Spanish. Technical terms (contract names, function names, variable names) stay in English.
+Always respond in English, regardless of the language the user writes in. Technical terms (contract names, function names, variable names) stay in English.
 
 ## Important Rules
 
