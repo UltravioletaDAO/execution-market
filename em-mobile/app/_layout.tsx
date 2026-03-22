@@ -21,8 +21,9 @@ import { dynamicClient } from "../lib/dynamic";
 import { WalletProvider } from "../providers/WalletProvider";
 import { AuthProvider, useAuth } from "../providers/AuthProvider";
 import { XMTPProvider } from "../providers/XMTPProvider";
-import { I18nProvider } from "../providers/I18nProvider";
+import { I18nProvider, applySafeOverrides } from "../providers/I18nProvider";
 import { FeatureFlagProvider } from "../providers/FeatureFlagProvider";
+import { useFeatureFlags } from "../hooks/useFeatureFlags";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { OfflineBanner } from "../components/OfflineBanner";
 
@@ -95,6 +96,15 @@ function XMTPBridge({ children }: { children: ReactNode }) {
       {children}
     </XMTPProvider>
   );
+}
+
+/** Merges safe i18n overrides when feature flag mode is "conservative". */
+function SafeI18nBridge({ children }: { children: ReactNode }) {
+  const { mode } = useFeatureFlags();
+  useEffect(() => {
+    applySafeOverrides(mode);
+  }, [mode]);
+  return <>{children}</>;
 }
 
 function RootNavigator() {
@@ -195,6 +205,7 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <I18nProvider>
           <FeatureFlagProvider>
+            <SafeI18nBridge>
             <WalletProvider>
               <AuthProvider>
                 <XMTPBridge>
@@ -204,6 +215,7 @@ export default function RootLayout() {
                 </XMTPBridge>
               </AuthProvider>
             </WalletProvider>
+          </SafeI18nBridge>
           </FeatureFlagProvider>
         </I18nProvider>
       </SafeAreaProvider>
