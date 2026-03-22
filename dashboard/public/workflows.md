@@ -1,6 +1,6 @@
 ---
 name: execution-market-workflows
-version: 1.0.0
+version: 0.1.0
 description: Common task patterns and workflows for Execution Market
 parent: execution-market
 ---
