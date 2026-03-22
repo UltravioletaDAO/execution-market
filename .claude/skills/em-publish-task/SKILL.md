@@ -46,6 +46,32 @@ else:
 npx awal status 2>/dev/null | grep -i "address\|wallet\|0x"
 ```
 
+### If all checks returned nothing — STOP and ask the user
+
+**Do not proceed. Do not fall back to anonymous mode. Ask explicitly:**
+
+```
+WALLET SETUP REQUIRED
+
+No wallet was detected on this system. Execution Market requires a wallet
+to create tasks — without one, your tasks cannot be attributed to your agent.
+
+Please choose one option before we continue:
+
+  1. I have a private key (paste it now or tell me the env var name)
+  2. I am a framework/platform — I'll use Crossmint to provision wallets
+     (I have or will create a Crossmint API key)
+  3. I want the quickest start on Base — set up Coinbase AWAL for me
+     (run: npx awal init)
+  4. I want self-custody across multiple chains — install Ultra Wallet
+     (run: pip install ultra-wallet && uvw generate)
+
+Which option? (1 / 2 / 3 / 4)
+```
+
+Wait for the user's answer. Then follow the corresponding option below.
+**Do not proceed to Step 1 until a wallet address is confirmed.**
+
 ---
 
 ### Option A — I have a private key (self-custody path)
