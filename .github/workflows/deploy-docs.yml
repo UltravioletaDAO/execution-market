@@ -56,8 +56,8 @@ jobs:
           # HTML files — short cache so deploys propagate fast
           aws s3 sync docs/.vitepress/dist/ s3://${{ env.S3_BUCKET }}/ \
             --cache-control "public, no-cache" \
-            --include "*.html" \
             --exclude "*" \
+            --include "*.html" \
             --content-type "text/html"
 
       - name: Invalidate CloudFront cache
