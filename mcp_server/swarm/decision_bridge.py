@@ -61,12 +61,10 @@ from .decision_synthesizer import (
     DecisionSynthesizer,
     SignalType,
     DecisionOutcome,
-    ConfidenceLevel,
     RankedDecision,
 )
 from .orchestrator import (
     SwarmOrchestrator,
-    TaskRequest,
     Assignment,
     RoutingFailure,
     RoutingStrategy,
@@ -82,15 +80,17 @@ logger = logging.getLogger("em.swarm.decision_bridge")
 
 class BridgeMode(str, Enum):
     """Operational modes for the bridge."""
-    SHADOW = "shadow"       # Run synthesis but don't override routing (logging only)
-    ADVISORY = "advisory"   # Synthesize and log; coordinator can choose to use it
-    PRIMARY = "primary"     # DecisionSynthesizer is the primary routing engine
-    DISABLED = "disabled"   # Bridge inactive, coordinator uses legacy routing
+
+    SHADOW = "shadow"  # Run synthesis but don't override routing (logging only)
+    ADVISORY = "advisory"  # Synthesize and log; coordinator can choose to use it
+    PRIMARY = "primary"  # DecisionSynthesizer is the primary routing engine
+    DISABLED = "disabled"  # Bridge inactive, coordinator uses legacy routing
 
 
 @dataclass
 class DecomposedTask:
     """A compound task broken into sub-tasks by AutoJob TaskDecomposer."""
+
     original_task_id: str
     sub_tasks: list[dict] = field(default_factory=list)
     team_strategy: str = "solo"  # solo, specialist, parallel, hybrid
@@ -105,6 +105,7 @@ class DecomposedTask:
 @dataclass
 class BridgeResult:
     """Result of processing a task through the decision bridge."""
+
     task_id: str
     decision: Optional[RankedDecision] = None
     assignment: Optional[Assignment] = None
@@ -145,9 +146,10 @@ class BridgeResult:
 @dataclass
 class FeedbackRecord:
     """Records a decision outcome for the feedback loop."""
+
     task_id: str
     decision_outcome: str  # routed, held, etc.
-    actual_outcome: str    # completed, expired, failed
+    actual_outcome: str  # completed, expired, failed
     agent_id: Optional[str] = None
     decision_score: float = 0.0
     signals_used: list[str] = field(default_factory=list)
@@ -171,6 +173,7 @@ def _make_reputation_scorer(source) -> Callable:
     The orchestrator stores on-chain + internal reputation data and
     uses ReputationBridge to compute composite scores on the fly.
     """
+
     def scorer(task: dict, candidate: dict) -> float:
         agent_id = candidate.get("agent_id") or candidate.get("id")
         if agent_id is None:
@@ -178,27 +181,30 @@ def _make_reputation_scorer(source) -> Callable:
         try:
             agent_id = int(agent_id)
             # Try orchestrator path: compute via stored on-chain + internal
-            if hasattr(source, '_on_chain') and hasattr(source, '_internal'):
+            if hasattr(source, "_on_chain") and hasattr(source, "_internal"):
                 on_chain = source._on_chain.get(agent_id)
                 internal = source._internal.get(agent_id)
-                if on_chain and internal and hasattr(source, 'bridge'):
+                if on_chain and internal and hasattr(source, "bridge"):
                     composite = source.bridge.compute_composite(on_chain, internal)
                     return composite.total  # 0-100
                 elif on_chain is None and internal is None:
                     return 0.0
             # Try direct method
-            if hasattr(source, 'get_composite_score'):
+            if hasattr(source, "get_composite_score"):
                 composite = source.get_composite_score(agent_id)
-                return getattr(composite, 'total',
-                              getattr(composite, 'overall_score', 0.0))
+                return getattr(
+                    composite, "total", getattr(composite, "overall_score", 0.0)
+                )
             return 0.0
         except Exception:
             return 0.0
+
     return scorer
 
 
 def _make_availability_scorer(avail_bridge) -> Callable:
     """Create a scorer function from AvailabilityBridge."""
+
     def scorer(task: dict, candidate: dict) -> float:
         wallet = candidate.get("wallet", "")
         if not wallet:
@@ -209,11 +215,13 @@ def _make_availability_scorer(avail_bridge) -> Callable:
             return prediction.probability * 100
         except Exception:
             return 50.0  # Neutral on error
+
     return scorer
 
 
 def _make_skill_match_scorer(autojob_client) -> Callable:
     """Create a scorer from AutoJob's skill matching."""
+
     def scorer(task: dict, candidate: dict) -> float:
         wallet = candidate.get("wallet", "")
         if not wallet:
@@ -226,6 +234,7 @@ def _make_skill_match_scorer(autojob_client) -> Callable:
             return 0.0
         except Exception:
             return 0.0
+
     return scorer
 
 
@@ -235,23 +244,26 @@ def _make_reliability_scorer(source) -> Callable:
     Accepts a SwarmOrchestrator (with _internal dict) or any object
     that stores internal reputation data keyed by agent_id.
     """
+
     def scorer(task: dict, candidate: dict) -> float:
         agent_id = candidate.get("agent_id") or candidate.get("id")
         if agent_id is None:
             return 0.0
         try:
-            internal_dict = getattr(source, '_internal', {})
+            internal_dict = getattr(source, "_internal", {})
             internal = internal_dict.get(int(agent_id))
             if internal and internal.total_tasks > 0:
                 return (internal.successful_tasks / internal.total_tasks) * 100
             return 50.0  # Neutral for new agents
         except Exception:
             return 50.0
+
     return scorer
 
 
 def _make_capacity_scorer(lifecycle) -> Callable:
     """Create a capacity scorer from LifecycleManager."""
+
     def scorer(task: dict, candidate: dict) -> float:
         agent_id = candidate.get("agent_id") or candidate.get("id")
         if agent_id is None:
@@ -269,11 +281,13 @@ def _make_capacity_scorer(lifecycle) -> Callable:
             return max(0, min(100, daily_remaining))
         except Exception:
             return 50.0
+
     return scorer
 
 
 def _make_workforce_scorer(analytics) -> Callable:
     """Create a scorer from WorkforceAnalytics health scores."""
+
     def scorer(task: dict, candidate: dict) -> float:
         agent_id = str(candidate.get("agent_id") or candidate.get("id", ""))
         if not agent_id:
@@ -285,6 +299,7 @@ def _make_workforce_scorer(analytics) -> Callable:
             return 50.0
         except Exception:
             return 50.0
+
     return scorer
 
 
@@ -451,6 +466,7 @@ class DecisionBridge:
         if self.performance_adapter:
             try:
                 from .performance_adapter import make_performance_scorer
+
                 self.synthesizer.register_signal(
                     SignalType.PERFORMANCE,
                     make_performance_scorer(self.performance_adapter),
@@ -465,6 +481,7 @@ class DecisionBridge:
         if self.pricing_adapter:
             try:
                 from .pricing_adapter import make_pricing_scorer
+
                 self.synthesizer.register_signal(
                     SignalType.PRICING,
                     make_pricing_scorer(self.pricing_adapter),
@@ -477,7 +494,8 @@ class DecisionBridge:
 
         logger.info(
             "DecisionBridge registered %d signals: %s",
-            len(registered), ", ".join(registered),
+            len(registered),
+            ", ".join(registered),
         )
 
     # ── Core Processing ──────────────────────────────────────
@@ -505,7 +523,8 @@ class DecisionBridge:
 
         # Get pending tasks (same sorting as coordinator)
         pending = [
-            t for t in task_queue.values()
+            t
+            for t in task_queue.values()
             if t.status == "pending" and t.attempts < t.max_attempts
         ]
         pending.sort(
@@ -548,7 +567,8 @@ class DecisionBridge:
                 failure=RoutingFailure(
                     task_id=task_id,
                     reason="No available candidates",
-                    attempted_agents=0, excluded_agents=0,
+                    attempted_agents=0,
+                    excluded_agents=0,
                 ),
                 mode=self.mode,
                 decomposition=decomposition,
@@ -559,7 +579,9 @@ class DecisionBridge:
             "id": task_id,
             "task_id": task_id,
             "title": queued_task.title,
-            "category": queued_task.categories[0] if queued_task.categories else "general",
+            "category": queued_task.categories[0]
+            if queued_task.categories
+            else "general",
             "categories": queued_task.categories,
             "bounty_usd": queued_task.bounty_usd,
             "priority": queued_task.priority.value,
@@ -630,15 +652,17 @@ class DecisionBridge:
         candidates = []
 
         for agent in available:
-            candidates.append({
-                "id": agent.agent_id,
-                "agent_id": agent.agent_id,
-                "name": agent.name,
-                "wallet": agent.wallet_address,
-                "personality": agent.personality,
-                "tags": agent.tags if hasattr(agent, "tags") else [],
-                "current_task": agent.current_task_id,
-            })
+            candidates.append(
+                {
+                    "id": agent.agent_id,
+                    "agent_id": agent.agent_id,
+                    "name": agent.name,
+                    "wallet": agent.wallet_address,
+                    "personality": agent.personality,
+                    "tags": agent.tags if hasattr(agent, "tags") else [],
+                    "current_task": agent.current_task_id,
+                }
+            )
 
         return candidates
 
@@ -657,7 +681,8 @@ class DecisionBridge:
             return None, RoutingFailure(
                 task_id=queued_task.task_id,
                 reason=f"Decision outcome: {decision.outcome.value}",
-                attempted_agents=len(decision.rankings), excluded_agents=0,
+                attempted_agents=len(decision.rankings),
+                excluded_agents=0,
             )
 
         # Find the best candidate's agent_id
@@ -668,7 +693,8 @@ class DecisionBridge:
             return None, RoutingFailure(
                 task_id=queued_task.task_id,
                 reason=f"Invalid candidate ID: {best_id}",
-                attempted_agents=len(decision.rankings), excluded_agents=0,
+                attempted_agents=len(decision.rankings),
+                excluded_agents=0,
             )
 
         # Use orchestrator to claim the task (handles lifecycle transitions)
@@ -687,20 +713,24 @@ class DecisionBridge:
                     logger.info(
                         "Synthesis recommended agent %d but orchestrator assigned %d "
                         "(synthesis score=%.3f, confidence=%s)",
-                        agent_id, result.agent_id,
-                        decision.best_score, decision.confidence_level.value,
+                        agent_id,
+                        result.agent_id,
+                        decision.best_score,
+                        decision.confidence_level.value,
                     )
                 return result, None
             else:
                 return None, result
 
         except Exception as e:
-            logger.error("Failed to apply decision for task %s: %s",
-                         queued_task.task_id, e)
+            logger.error(
+                "Failed to apply decision for task %s: %s", queued_task.task_id, e
+            )
             return None, RoutingFailure(
                 task_id=queued_task.task_id,
                 reason=f"Application error: {e}",
-                attempted_agents=len(decision.rankings), excluded_agents=0,
+                attempted_agents=len(decision.rankings),
+                excluded_agents=0,
             )
 
     def _legacy_route(self, queued_task, strategy=None):
@@ -708,7 +738,7 @@ class DecisionBridge:
         task_request = queued_task.to_task_request()
         strategy = strategy or RoutingStrategy.BEST_FIT
 
-        if hasattr(self, '_enriched') and self._enriched:
+        if hasattr(self, "_enriched") and self._enriched:
             return self._enriched.route_task(task_request, strategy=strategy)
         return self.orchestrator.route_task(task_request, strategy=strategy)
 
@@ -735,7 +765,9 @@ class DecisionBridge:
         try:
             task_dict = {
                 "title": queued_task.title,
-                "category": queued_task.categories[0] if queued_task.categories else "general",
+                "category": queued_task.categories[0]
+                if queued_task.categories
+                else "general",
                 "bounty_usd": queued_task.bounty_usd,
                 "description": queued_task.raw_data.get("description", ""),
             }
@@ -779,9 +811,7 @@ class DecisionBridge:
             return
 
         # Find the decision that led to this outcome
-        matching_results = [
-            r for r in self._results if r.task_id == task_id
-        ]
+        matching_results = [r for r in self._results if r.task_id == task_id]
 
         record = FeedbackRecord(
             task_id=task_id,
@@ -870,15 +900,15 @@ class DecisionBridge:
                 # Map optimizer weights to synthesizer signal types
                 new_weights = {}
                 weight_config = recommendation.weights
-                if hasattr(weight_config, 'skill_match'):
+                if hasattr(weight_config, "skill_match"):
                     new_weights[SignalType.SKILL_MATCH] = weight_config.skill_match
-                if hasattr(weight_config, 'reputation'):
+                if hasattr(weight_config, "reputation"):
                     new_weights[SignalType.REPUTATION] = weight_config.reputation
-                if hasattr(weight_config, 'capacity'):
+                if hasattr(weight_config, "capacity"):
                     new_weights[SignalType.CAPACITY] = weight_config.capacity
-                if hasattr(weight_config, 'speed'):
+                if hasattr(weight_config, "speed"):
                     new_weights[SignalType.SPEED] = weight_config.speed
-                if hasattr(weight_config, 'cost'):
+                if hasattr(weight_config, "cost"):
                     new_weights[SignalType.COST] = weight_config.cost
 
                 if new_weights:
@@ -903,13 +933,11 @@ class DecisionBridge:
 
         # Feedback accuracy
         correct = sum(
-            1 for f in self._feedback
+            1
+            for f in self._feedback
             if f.decision_outcome == "routed" and f.actual_outcome == "completed"
         )
-        total_routed = sum(
-            1 for f in self._feedback
-            if f.decision_outcome == "routed"
-        )
+        total_routed = sum(1 for f in self._feedback if f.decision_outcome == "routed")
 
         return {
             "mode": self.mode.value,

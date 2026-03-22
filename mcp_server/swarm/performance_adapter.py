@@ -33,12 +33,11 @@ Thread-safety: read-only cache is safe; API calls are per-invocation.
 import json
 import logging
 import ssl
-import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
 from datetime import datetime, timezone, timedelta
-from typing import Optional, Any
+from typing import Optional
 
 logger = logging.getLogger("em.swarm.performance_adapter")
 
@@ -47,9 +46,11 @@ logger = logging.getLogger("em.swarm.performance_adapter")
 # Data Types
 # ──────────────────────────────────────────────────────────────
 
+
 @dataclass
 class PerformanceSnapshot:
     """Snapshot of a worker's performance profile."""
+
     worker_id: str
     overall_score: float = 0.5  # 0-1
     reliability: float = 0.5
@@ -102,6 +103,7 @@ class PerformanceSnapshot:
 # ──────────────────────────────────────────────────────────────
 # Adapter
 # ──────────────────────────────────────────────────────────────
+
 
 class PerformanceAdapter:
     """
@@ -213,7 +215,9 @@ class PerformanceAdapter:
                 risk_level=profile_data.get("risk", {}).get("overall_risk", "unknown"),
                 growth_trend=profile_data.get("growth", {}).get("trend", "unknown"),
                 optimal_categories=profile_data.get("optimal_categories", []),
-                recommended_complexity=profile_data.get("recommended_complexity", "simple"),
+                recommended_complexity=profile_data.get(
+                    "recommended_complexity", "simple"
+                ),
                 fetched_at=datetime.now(timezone.utc).isoformat(),
                 source="api",
             )
@@ -234,6 +238,7 @@ class PerformanceAdapter:
 # Scorer Factory — for DecisionSynthesizer
 # ──────────────────────────────────────────────────────────────
 
+
 def make_performance_scorer(adapter: PerformanceAdapter):
     """
     Create a scorer function compatible with DecisionSynthesizer.
@@ -244,6 +249,7 @@ def make_performance_scorer(adapter: PerformanceAdapter):
     - Growth trend bonus (15% weight)
     - Risk penalty (15% weight)
     """
+
     def scorer(task: dict, candidate: dict) -> float:
         worker_id = candidate.get("wallet", candidate.get("worker_id", ""))
         if not worker_id:
@@ -265,12 +271,7 @@ def make_performance_scorer(adapter: PerformanceAdapter):
         risk = perf.risk_penalty * 100
 
         # Weighted composite
-        score = (
-            0.50 * base
-            + 0.20 * affinity
-            + 0.15 * growth
-            - 0.15 * risk
-        )
+        score = 0.50 * base + 0.20 * affinity + 0.15 * growth - 0.15 * risk
 
         return max(0.0, min(100.0, score))
 
