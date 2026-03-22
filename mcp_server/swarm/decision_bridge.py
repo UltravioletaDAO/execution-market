@@ -312,6 +312,7 @@ class DecisionBridge:
         workforce_analytics=None,
         routing_optimizer=None,
         performance_adapter=None,
+        pricing_adapter=None,
         mode: BridgeMode = BridgeMode.PRIMARY,
         decomposition_enabled: bool = True,
         feedback_enabled: bool = True,
@@ -326,6 +327,7 @@ class DecisionBridge:
         self.workforce_analytics = workforce_analytics
         self.routing_optimizer = routing_optimizer
         self.performance_adapter = performance_adapter
+        self.pricing_adapter = pricing_adapter
         self.mode = mode
         self.decomposition_enabled = decomposition_enabled
         self.feedback_enabled = feedback_enabled
@@ -458,6 +460,20 @@ class DecisionBridge:
                 registered.append("performance")
             except ImportError:
                 logger.debug("PerformanceAdapter available but scorer import failed")
+
+        # Pricing intelligence from AutoJob
+        if self.pricing_adapter:
+            try:
+                from .pricing_adapter import make_pricing_scorer
+                self.synthesizer.register_signal(
+                    SignalType.PRICING,
+                    make_pricing_scorer(self.pricing_adapter),
+                    confidence=0.70,
+                    description="AutoJob TaskPricingEngine",
+                )
+                registered.append("pricing")
+            except ImportError:
+                logger.debug("PricingAdapter available but scorer import failed")
 
         logger.info(
             "DecisionBridge registered %d signals: %s",
