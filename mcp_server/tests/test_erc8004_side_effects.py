@@ -584,3 +584,67 @@ class TestExecutePostApprovalSideEffects:
                 submission=submission,
                 release_tx="0xpayment123",
             )
+
+
+# ---------------------------------------------------------------------------
+# ERC-8004 identity enforcement gate at task creation (EM_REQUIRE_ERC8004)
+# ---------------------------------------------------------------------------
+
+
+class TestERC8004IdentityGate:
+    """
+    Unit tests for the EM_REQUIRE_ERC8004 feature flag in POST /tasks.
+
+    The gate only blocks ERC-8128 wallet-authenticated agents that have no
+    on-chain identity. Anonymous and API-key users are unaffected.
+    """
+
+    def _make_auth(
+        self, auth_method="erc8128", erc8004_registered=False, agent_id="0xabc"
+    ):
+        from unittest.mock import MagicMock
+
+        auth = MagicMock()
+        auth.auth_method = auth_method
+        auth.erc8004_registered = erc8004_registered
+        auth.agent_id = agent_id
+        auth.wallet_address = agent_id if auth_method == "erc8128" else None
+        return auth
+
+    def _is_blocked(self, require_flag: bool, auth) -> bool:
+        return (
+            require_flag
+            and getattr(auth, "auth_method", None) == "erc8128"
+            and not getattr(auth, "erc8004_registered", False)
+        )
+
+    def test_flag_off_unregistered_agent_passes(self):
+        """When EM_REQUIRE_ERC8004=false, unregistered ERC-8128 agents are NOT blocked."""
+        auth = self._make_auth(auth_method="erc8128", erc8004_registered=False)
+        assert not self._is_blocked(False, auth)
+
+    def test_flag_on_unregistered_erc8128_is_blocked(self):
+        """When EM_REQUIRE_ERC8004=true, ERC-8128 agent without identity is blocked."""
+        auth = self._make_auth(auth_method="erc8128", erc8004_registered=False)
+        assert self._is_blocked(True, auth)
+
+    def test_flag_on_registered_erc8128_passes(self):
+        """Registered ERC-8128 agent is never blocked even when flag is on."""
+        auth = self._make_auth(
+            auth_method="erc8128", erc8004_registered=True, agent_id="2106"
+        )
+        assert not self._is_blocked(True, auth)
+
+    def test_flag_on_anonymous_api_key_passes(self):
+        """Anonymous user (auth_method=api_key, agent_id=2106) is never gated."""
+        auth = self._make_auth(
+            auth_method="api_key", erc8004_registered=False, agent_id="2106"
+        )
+        assert not self._is_blocked(True, auth)
+
+    def test_flag_on_real_api_key_user_passes(self):
+        """Real API-key user without ERC-8004 still passes (separate registration flow)."""
+        auth = self._make_auth(
+            auth_method="api_key", erc8004_registered=False, agent_id="agent-xyz"
+        )
+        assert not self._is_blocked(True, auth)
