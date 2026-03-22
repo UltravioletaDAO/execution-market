@@ -1196,3 +1196,190 @@ class TestEMProductionFormat:
         assert 0 <= score.reputation_score <= 100
         assert 0 <= score.reliability_score <= 100
         assert 0 <= score.recency_score <= 100
+
+
+from unittest.mock import patch, MagicMock
+
+
+class TestAutoJobNotification:
+    """Test the FeedbackPipeline → AutoJob notification wire."""
+
+    @pytest.fixture
+    def pipeline_with_autojob(self, tmp_path):
+        """Create pipeline with AutoJob notification enabled."""
+        return FeedbackPipeline(
+            em_api_url="https://api.execution.market",
+            state_dir=str(tmp_path / "state"),
+            autojob_base_url="http://localhost:8899",
+            autojob_notify=True,
+        )
+
+    @pytest.fixture
+    def pipeline_without_autojob(self, tmp_path):
+        """Create pipeline with AutoJob notification disabled."""
+        return FeedbackPipeline(
+            em_api_url="https://api.execution.market",
+            state_dir=str(tmp_path / "state"),
+            autojob_base_url=None,
+            autojob_notify=False,
+        )
+
+    def test_autojob_enabled_in_stats(self, pipeline_with_autojob):
+        """Stats should reflect AutoJob notification state."""
+        stats = pipeline_with_autojob.get_stats()
+        assert stats["autojob_feedback"]["enabled"] is True
+        assert stats["autojob_feedback"]["base_url"] == "http://localhost:8899"
+        assert stats["autojob_feedback"]["notifications_sent"] == 0
+
+    def test_autojob_disabled_in_stats(self, pipeline_without_autojob):
+        """Stats should show disabled when no AutoJob URL."""
+        stats = pipeline_without_autojob.get_stats()
+        assert stats["autojob_feedback"]["enabled"] is False
+
+    def test_notify_autojob_success(self, pipeline_with_autojob):
+        """Successful notification should increment counter."""
+        from mcp_server.swarm.feedback_pipeline import CompletionFeedback
+        from mcp_server.swarm.evidence_parser import EvidenceQuality
+
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = json.dumps({"success": True}).encode()
+        mock_resp.__enter__ = lambda s: s
+        mock_resp.__exit__ = MagicMock(return_value=False)
+
+        feedback = CompletionFeedback(
+            task_id="test-123",
+            worker_id="0xABC",
+            quality=EvidenceQuality.GOOD,
+            quality_score=0.8,
+            evidence_count=3,
+            evidence_types=["photo"],
+            skill_signals_count=2,
+            top_skills_updated=["photography"],
+            worker_task_count=5,
+            worker_avg_quality=0.75,
+            reputation_delta=0.05,
+            processing_time_ms=100.0,
+        )
+
+        with patch("swarm.feedback_pipeline.urlopen", return_value=mock_resp) as mock_ul:
+            pipeline_with_autojob._notify_autojob(
+                "0xABC",
+                {"id": "test-123", "category": "delivery"},
+                feedback,
+            )
+
+            assert pipeline_with_autojob._autojob_notify_count == 1
+            assert pipeline_with_autojob._autojob_notify_errors == 0
+
+            # Verify correct URL and payload
+            assert mock_ul.called
+            call_args = mock_ul.call_args
+            req = call_args[0][0]
+            assert "/api/evidence/execution-market" in req.full_url
+
+    def test_notify_autojob_failure_graceful(self, pipeline_with_autojob):
+        """API failure should log error but not raise."""
+        from mcp_server.swarm.feedback_pipeline import CompletionFeedback
+        from mcp_server.swarm.evidence_parser import EvidenceQuality
+
+        feedback = CompletionFeedback(
+            task_id="test-456",
+            worker_id="0xDEF",
+            quality=EvidenceQuality.ADEQUATE,
+            quality_score=0.5,
+            evidence_count=1,
+            evidence_types=["text"],
+            skill_signals_count=1,
+            top_skills_updated=[],
+            worker_task_count=1,
+            worker_avg_quality=0.5,
+            reputation_delta=0.0,
+            processing_time_ms=50.0,
+        )
+
+        with patch("swarm.feedback_pipeline.urlopen", side_effect=TimeoutError("timeout")):
+            # Should not raise
+            pipeline_with_autojob._notify_autojob(
+                "0xDEF",
+                {"id": "test-456"},
+                feedback,
+            )
+
+        assert pipeline_with_autojob._autojob_notify_errors == 1
+        assert pipeline_with_autojob._autojob_notify_count == 0
+
+    def test_notify_skipped_when_disabled(self, pipeline_without_autojob):
+        """Notification should be skipped entirely when disabled."""
+        from mcp_server.swarm.feedback_pipeline import CompletionFeedback
+        from mcp_server.swarm.evidence_parser import EvidenceQuality
+
+        feedback = CompletionFeedback(
+            task_id="test-789",
+            worker_id="0xGHI",
+            quality=EvidenceQuality.GOOD,
+            quality_score=0.8,
+            evidence_count=2,
+            evidence_types=["photo"],
+            skill_signals_count=1,
+            top_skills_updated=[],
+            worker_task_count=3,
+            worker_avg_quality=0.7,
+            reputation_delta=0.02,
+            processing_time_ms=75.0,
+        )
+
+        pipeline_without_autojob._notify_autojob(
+            "0xGHI",
+            {"id": "test-789"},
+            feedback,
+        )
+
+        # No counters should change
+        assert pipeline_without_autojob._autojob_notify_count == 0
+        assert pipeline_without_autojob._autojob_notify_errors == 0
+
+    def test_notify_sends_wallet_and_task(self, pipeline_with_autojob):
+        """Notification payload should include wallet and task data."""
+        from mcp_server.swarm.feedback_pipeline import CompletionFeedback
+        from mcp_server.swarm.evidence_parser import EvidenceQuality
+
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = json.dumps({"success": True}).encode()
+        mock_resp.__enter__ = lambda s: s
+        mock_resp.__exit__ = MagicMock(return_value=False)
+
+        task = {
+            "id": "task-abc",
+            "category": "physical_verification",
+            "bounty_usd": 5.0,
+            "worker_address": "0xWORKER",
+        }
+
+        feedback = CompletionFeedback(
+            task_id="task-abc",
+            worker_id="0xWORKER",
+            quality=EvidenceQuality.EXCELLENT,
+            quality_score=0.95,
+            evidence_count=5,
+            evidence_types=["photo_geo", "video"],
+            skill_signals_count=4,
+            top_skills_updated=["photography", "geo_verification"],
+            worker_task_count=10,
+            worker_avg_quality=0.85,
+            reputation_delta=0.1,
+            processing_time_ms=200.0,
+        )
+
+        with patch("swarm.feedback_pipeline.urlopen", return_value=mock_resp) as mock_ul:
+            pipeline_with_autojob._notify_autojob("0xWORKER", task, feedback)
+
+            # Parse the sent payload
+            assert mock_ul.called
+            call_args = mock_ul.call_args
+            req = call_args[0][0]
+            sent_data = json.loads(req.data.decode("utf-8"))
+
+            assert sent_data["wallet_address"] == "0xWORKER"
+            assert len(sent_data["tasks"]) == 1
+            assert sent_data["tasks"][0]["id"] == "task-abc"
+            assert sent_data["persist"] is True
