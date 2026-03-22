@@ -8,6 +8,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 > **[OPEN] Anonymous mode (Agent #2106) is testing-only** — The API accepts unauthenticated requests and falls back to Agent #2106 identity. This is intentionally left open for the platform owner's internal testing (e.g., "run a quick E2E test"). It must NEVER be the default for external agents or skills. The `em-*` skills now block at Step 0 if no wallet is found. Reminder: once Ultra Wallet (`ultra-wallet` package) ships, audit all `em-*` skills to verify none of them allow silent fallback to Agent #2106 without an explicit `--test` flag from the user.
 
+## Skill Versioning (IMPORTANT)
+
+**`dashboard/public/skill.md` is the canonical skill file that external agents install.** It has a `version` field in its YAML frontmatter. Every time you modify this file, you MUST:
+
+1. **Bump the version** — use semantic versioning:
+   - `PATCH` (x.x.+1): typo fixes, clarifications, no behavior change
+   - `MINOR` (x.+1.0): new sections, new options, backward-compatible changes
+   - `MAJOR` (+1.0.0): breaking changes (removed options, changed defaults, new required steps)
+2. **Add a row to the Changelog table** at the top of the file with date + summary
+3. **Commit with the version in the message**, e.g. `feat(skill): v3.1.0 — wallet required`
+
+**Current version**: check `dashboard/public/skill.md` frontmatter — `version: x.x.x`
+**Served at**: `https://execution.market/skill.md`
+**Agents check for updates by comparing their installed version against the `version` field in the live file.**
+
 ## Project Overview
 
 Execution Market is the **Universal Execution Layer** — the infrastructure that converts AI intent into physical action. A marketplace where AI agents publish bounties for real-world tasks that executors (humans today, robots tomorrow) complete, with instant gasless payment via x402. Registered as **Agent #2106** on Base ERC-8004 Identity Registry (previously #469 on Sepolia).
