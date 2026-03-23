@@ -2583,6 +2583,19 @@ async def assign_task_to_worker(
                     pass
 
                 if bounty > 0:
+                    # Resolve payer_wallet from request or task metadata
+                    payer_wallet = getattr(request, "payer_wallet", None)
+                    if not payer_wallet:
+                        # Check task metadata for explicit wallet override
+                        task_meta = task.get("metadata") or {}
+                        if isinstance(task_meta, str):
+                            import json as _json
+                            try:
+                                task_meta = _json.loads(task_meta)
+                            except Exception:
+                                task_meta = {}
+                        payer_wallet = task_meta.get("payer_wallet")
+
                     auth_result = await dispatcher.authorize_escrow_for_worker(
                         task_id=task_id,
                         agent_address=agent_address,
@@ -2590,7 +2603,20 @@ async def assign_task_to_worker(
                         bounty_usdc=bounty,
                         network=network,
                         token=token,
+                        payer_wallet=payer_wallet,
                     )
+
+                    # Wallet consistency guardrail: log the actual payer for audit
+                    actual_payer = auth_result.get("payer_address")
+                    if actual_payer:
+                        logger.info(
+                            "Escrow payer for task %s: %s (wallet: %s)",
+                            task_id,
+                            actual_payer[:10] + "...",
+                            auth_result.get("payment_info_serialized", {}).get(
+                                "payer_wallet", "unknown"
+                            ) if isinstance(auth_result.get("payment_info_serialized"), dict) else "unknown",
+                        )
 
                     if auth_result.get("success"):
                         escrow_tx = auth_result.get("tx_hash")

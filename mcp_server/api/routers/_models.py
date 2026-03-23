@@ -303,6 +303,16 @@ class WorkerAssignRequest(BaseModel):
         description="Optional assignment notes for the worker",
         max_length=500,
     )
+    payer_wallet: Optional[str] = Field(
+        default=None,
+        description=(
+            "Which wallet to use for escrow payment. "
+            "'agent' (default) uses the agent wallet, "
+            "'platform' uses the platform wallet (testing only). "
+            "Omit or pass null for the default agent wallet."
+        ),
+        pattern=r"^(agent|platform)$",
+    )
 
 
 # =============================================================================

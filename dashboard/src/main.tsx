@@ -56,8 +56,8 @@ if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      refetchOnWindowFocus: false,
+      staleTime: 1000 * 30, // 30 seconds — financial data must stay fresh
+      refetchOnWindowFocus: true,
     },
   },
 })
