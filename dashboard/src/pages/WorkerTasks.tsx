@@ -187,8 +187,14 @@ export function WorkerTasks() {
 
   const handleSubmissionComplete = useCallback((v?: VerificationResponse | null) => {
     setVerification(v ?? null)
+    // Update local task status so "Submit Evidence" button hides on back-navigation
+    if (selectedTask) {
+      setSelectedTask({ ...selectedTask, status: 'submitted' })
+    }
     setView('submitted')
-  }, [])
+    // Refresh task list to reflect new status
+    refetchMyTasks()
+  }, [selectedTask, refetchMyTasks])
 
   const renderContent = () => {
     if (view === 'detail' && selectedTask) {
