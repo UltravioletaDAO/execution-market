@@ -32,7 +32,7 @@ import json
 import logging
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import timezone
 from typing import Optional, Callable
 from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
@@ -50,6 +50,7 @@ UTC = timezone.utc
 @dataclass
 class AffinityScore:
     """Single worker's affinity score for a task."""
+
     worker_id: str
     category: str
     score: float  # 0-100 (normalized for DecisionSynthesizer)
@@ -62,6 +63,7 @@ class AffinityScore:
 @dataclass
 class AffinityBatchResult:
     """Batch affinity scores for routing decisions."""
+
     scores: dict = field(default_factory=dict)  # worker_id -> AffinityScore
     category: str = ""
     cached: bool = False
@@ -77,6 +79,7 @@ class AffinityBatchResult:
 @dataclass
 class CacheEntry:
     """Cached affinity profile data."""
+
     data: dict
     fetched_at: float
     ttl_seconds: float = 3600.0  # 1 hour default
@@ -347,11 +350,15 @@ def make_affinity_scorer(adapter: AffinityAdapter) -> Callable:
         synthesizer.register_signal("affinity", make_affinity_scorer(adapter))
     """
 
-    def score(task: dict, candidate: dict) -> tuple:
-        """Returns (score_0_100, confidence_0_1)."""
-        worker_id = candidate.get("wallet") or candidate.get("agent_id") or candidate.get("id", "")
+    def score(task: dict, candidate: dict) -> float:
+        """Returns score 0-100, compatible with DecisionSynthesizer."""
+        worker_id = (
+            candidate.get("wallet")
+            or candidate.get("agent_id")
+            or candidate.get("id", "")
+        )
         category = task.get("category", "unknown")
         result = adapter.score_worker(worker_id, category)
-        return (result.score, result.confidence)
+        return result.score
 
     return score

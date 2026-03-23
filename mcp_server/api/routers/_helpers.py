@@ -722,12 +722,14 @@ async def _execute_post_approval_side_effects(
 
     # ---- WS-2b: Agent rates worker (on-chain reputation) -----------------
     try:
-        ws2b_enabled = await PlatformConfig.is_feature_enabled(
-            "erc8004_agent_rates_worker"
+        # is_feature_enabled returns False (not None) for missing keys,
+        # so we check explicitly: disabled only if the DB row exists AND is False.
+        ws2b_disabled = await PlatformConfig.get(
+            "feature.erc8004_agent_rates_worker_enabled", None
         )
-        # Default to True if feature flag doesn't exist (backward compat)
-        if ws2b_enabled is None:
-            ws2b_enabled = ERC8004_AVAILABLE
+        ws2b_enabled = (
+            ERC8004_AVAILABLE if ws2b_disabled is None else bool(ws2b_disabled)
+        )
         if ws2b_enabled and worker_address and release_tx:
             await _send_reputation_feedback(
                 task=task,
@@ -1470,14 +1472,9 @@ async def _settle_submission_payment(
                     release_tx,
                 )
 
-                await _send_reputation_feedback(
-                    task=task,
-                    worker_address=worker_address,
-                    release_tx=release_tx,
-                    submission=submission,
-                    executor=executor,
-                    override_score=override_score,
-                )
+                # NOTE: Reputation feedback moved to WS-2b side effect
+                # (_execute_post_approval_side_effects) to avoid duplication
+                # and ensure it fires for all payment modes (fase1 + fase2).
         else:
             release_error = result.get("error", "SDK settlement failed")
             logger.error(

@@ -14,11 +14,7 @@ Covers:
     10. Integration with profiles
 """
 
-import json
 import time
-import pytest
-from unittest.mock import patch, MagicMock
-from datetime import datetime, timezone
 
 from mcp_server.swarm.affinity_adapter import (
     AffinityAdapter,
@@ -110,7 +106,9 @@ class TestDataTypes:
         assert not entry.is_stale
 
     def test_cache_entry_stale_after_ttl(self):
-        entry = CacheEntry(data={"test": 1}, fetched_at=time.time() - 7200, ttl_seconds=3600)
+        entry = CacheEntry(
+            data={"test": 1}, fetched_at=time.time() - 7200, ttl_seconds=3600
+        )
         assert entry.is_stale
 
 
@@ -377,16 +375,15 @@ class TestScorerFactory:
         scorer = make_affinity_scorer(adapter)
         task = {"category": "photography"}
         candidate = {"wallet": "w1"}
-        score, confidence = scorer(task, candidate)
+        score = scorer(task, candidate)
         assert score > 80
-        assert confidence > 0.9
 
     def test_scorer_with_agent_id(self):
         adapter = AffinityAdapter(fallback_profiles={"agent_42": SAMPLE_PROFILE})
         scorer = make_affinity_scorer(adapter)
         task = {"category": "photography"}
         candidate = {"agent_id": "agent_42"}
-        score, confidence = scorer(task, candidate)
+        score = scorer(task, candidate)
         assert score > 80
 
     def test_scorer_with_id_field(self):
@@ -394,7 +391,7 @@ class TestScorerFactory:
         scorer = make_affinity_scorer(adapter)
         task = {"category": "photography"}
         candidate = {"id": "x1"}
-        score, confidence = scorer(task, candidate)
+        score = scorer(task, candidate)
         assert score > 80
 
     def test_scorer_unknown_candidate(self):
@@ -404,16 +401,14 @@ class TestScorerFactory:
         adapter._last_api_check = time.time()
         task = {"category": "photography"}
         candidate = {"wallet": "unknown"}
-        score, confidence = scorer(task, candidate)
+        score = scorer(task, candidate)
         assert score == 50.0
-        assert confidence == 0.0
 
-    def test_scorer_returns_tuple(self):
+    def test_scorer_returns_float(self):
         adapter = AffinityAdapter(fallback_profiles={"w1": SAMPLE_PROFILE})
         scorer = make_affinity_scorer(adapter)
         result = scorer({"category": "photography"}, {"wallet": "w1"})
-        assert isinstance(result, tuple)
-        assert len(result) == 2
+        assert isinstance(result, (int, float))
 
 
 # ═══════════════════════════════════════════════════════════════
