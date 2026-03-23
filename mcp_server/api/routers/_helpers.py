@@ -598,7 +598,7 @@ async def _send_reputation_feedback(
                 executor=executor or {},
                 override_score=override_score,
             )
-            reputation_score = scoring_result["score"]
+            reputation_score = min(100, max(0, scoring_result["score"]))
             scoring_source = scoring_result["source"]
             logger.info(
                 "Dynamic scoring: task=%s, score=%d, source=%s",

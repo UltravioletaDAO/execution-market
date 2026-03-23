@@ -33,7 +33,9 @@ export function ReputationCard({ reputation, loading }: ReputationCardProps) {
 
   const totalTasks = reputation?.total_tasks || 0
   // Show 0 for new profiles with no tasks (Bayesian prior of 50 only meaningful after tasks)
-  const score = totalTasks === 0 ? 0 : (reputation?.current_score ?? 0)
+  // Clamp to 0-100 range — scores above 100 are a backend bug, never display them
+  const rawScore = totalTasks === 0 ? 0 : (reputation?.current_score ?? 0)
+  const score = Math.min(Math.max(rawScore, 0), 100)
   const tier = getReputationTier(score)
   const approvalRate = reputation?.approval_rate || 0
 
