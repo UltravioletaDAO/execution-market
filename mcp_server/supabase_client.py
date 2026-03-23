@@ -350,7 +350,7 @@ async def get_submissions_for_task(task_id: str) -> List[Dict[str, Any]]:
     result = (
         client.table("submissions")
         .select(
-            "*, executor:executors(id, display_name, wallet_address, reputation_score)"
+            "*, executor:executors(id, display_name, wallet_address, reputation_score, erc8004_agent_id)"
         )
         .eq("task_id", task_id)
         .order("submitted_at", desc=True)
@@ -367,7 +367,7 @@ async def get_submission(submission_id: str) -> Optional[Dict[str, Any]]:
     result = (
         client.table("submissions")
         .select(
-            "*, task:tasks(*), executor:executors(id, display_name, wallet_address, reputation_score)"
+            "*, task:tasks(*), executor:executors(id, display_name, wallet_address, reputation_score, erc8004_agent_id)"
         )
         .eq("id", submission_id)
         .single()

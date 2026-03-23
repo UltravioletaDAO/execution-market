@@ -428,6 +428,8 @@ async def check_worker_identity(wallet_address: str) -> WorkerIdentityResult:
             return result
 
         # 2. Retrieve token ID via tokenOfOwnerByIndex(address, 0)
+        #    NOTE: The ERC-8004 contract may NOT implement ERC-721 Enumerable,
+        #    so this call can revert.  Fall back to DB lookup if it fails.
         agent_id: Optional[int] = None
         try:
             tok_data = (
@@ -437,7 +439,32 @@ async def check_worker_identity(wallet_address: str) -> WorkerIdentityResult:
             if tok_raw and tok_raw != "0x":
                 agent_id = int(tok_raw, 16)
         except Exception as e:
-            logger.debug("tokenOfOwnerByIndex unavailable: %s", e)
+            logger.debug("tokenOfOwnerByIndex unavailable (non-enumerable): %s", e)
+
+        # 2b. Fallback: look up agent_id from executors table if on-chain
+        #     enumeration is not available (contract doesn't support ERC-721 Enumerable)
+        if agent_id is None:
+            try:
+                import supabase_client as _db
+
+                addr_lower = wallet_address.lower()
+                db_result = (
+                    _db.get_client()
+                    .table("executors")
+                    .select("erc8004_agent_id")
+                    .ilike("wallet_address", addr_lower)
+                    .limit(1)
+                    .execute()
+                )
+                if db_result.data and db_result.data[0].get("erc8004_agent_id"):
+                    agent_id = int(db_result.data[0]["erc8004_agent_id"])
+                    logger.debug(
+                        "Resolved agent_id=%d from DB for wallet %s (on-chain enumeration unavailable)",
+                        agent_id,
+                        wallet_address[:10],
+                    )
+            except Exception as db_err:
+                logger.debug("DB fallback for agent_id failed: %s", db_err)
 
         result = WorkerIdentityResult(
             status=WorkerIdentityStatus.REGISTERED,
