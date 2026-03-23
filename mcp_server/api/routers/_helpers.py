@@ -840,15 +840,20 @@ async def _ws1_auto_register_worker(
         )
 
         onchain_result = await check_worker_identity(worker_address)
-        if onchain_result.status.value == "registered" and onchain_result.agent_id:
+        if onchain_result.status.value == "registered":
+            # Worker already has an ERC-8004 NFT on-chain (balanceOf > 0).
+            # The agent_id may be None if the contract doesn't support ERC-721
+            # Enumerable, but check_worker_identity now falls back to DB lookup.
+            resolved_agent_id = onchain_result.agent_id
+
             logger.info(
                 "WS-1 skip: wallet %s already holds ERC-8004 NFT agent_id=%s (on-chain)",
                 worker_address[:10],
-                onchain_result.agent_id,
+                resolved_agent_id,
             )
-            # Sync DB with on-chain truth
-            if executor_id:
-                await update_executor_identity(executor_id, onchain_result.agent_id)
+            # Sync DB with on-chain truth if we have an agent_id
+            if executor_id and resolved_agent_id:
+                await update_executor_identity(executor_id, resolved_agent_id)
 
             effect = await enqueue_side_effect(
                 supabase=db.get_client(),
@@ -857,7 +862,7 @@ async def _ws1_auto_register_worker(
                 payload={
                     "task_id": task_id,
                     "skip_reason": "already_registered",
-                    "agent_id": onchain_result.agent_id,
+                    "agent_id": resolved_agent_id,
                     "source": "on_chain",
                 },
             )
