@@ -323,7 +323,18 @@ def _compute_treasury_remainder(
 
 
 _cached_platform_address: Optional[str] = None
-_cached_agent_address: Optional[str] = None
+
+
+def _is_server_signing_enabled() -> bool:
+    """Check if server-side signing is enabled (testing only).
+
+    EM_SERVER_SIGNING=true enables the server to sign payment transactions
+    using WALLET_PRIVATE_KEY. This is for internal testing ONLY.
+
+    In production, this must be false (or unset). External agents sign their
+    own payments — the server never touches funds.
+    """
+    return os.environ.get("EM_SERVER_SIGNING", "").lower() == "true"
 
 
 def _get_platform_address() -> str:
@@ -343,75 +354,22 @@ def _get_platform_address() -> str:
     return _cached_platform_address
 
 
-def _get_agent_address() -> Optional[str]:
-    """Get the agent wallet address from AGENT_WALLET_PRIVATE_KEY env var (cached).
-
-    Returns None if AGENT_WALLET_PRIVATE_KEY is not set (falls back to platform wallet).
-    """
-    global _cached_agent_address
-    if _cached_agent_address is not None:
-        return _cached_agent_address
-
-    pk = os.environ.get("AGENT_WALLET_PRIVATE_KEY")
-    if not pk:
-        return None
-    from eth_account import Account
-
-    _cached_agent_address = Account.from_key(pk).address
-    return _cached_agent_address
-
-
-def _resolve_payer_wallet(
-    payer_wallet: Optional[str] = None,
-) -> tuple:
-    """Resolve which private key and address to use for signing.
-
-    Multi-wallet priority:
-    1. If payer_wallet == "platform" → use WALLET_PRIVATE_KEY (platform wallet)
-    2. If AGENT_WALLET_PRIVATE_KEY is set → use it (agent wallet, default)
-    3. Fallback → WALLET_PRIVATE_KEY (backward compatible)
-
-    Args:
-        payer_wallet: Explicit wallet selector. "platform" forces platform wallet.
-                      "agent" or None uses the agent wallet (default).
-
-    Returns:
-        (private_key, wallet_address, wallet_label) tuple.
+def _get_server_signing_key() -> str:
+    """Get the platform private key for server-side signing (testing only).
 
     Raises:
-        RuntimeError: If no private key is available.
+        RuntimeError: If server signing is disabled or key is not set.
     """
-    # Explicit platform wallet request (testing, platform operations)
-    if payer_wallet == "platform":
-        pk = os.environ.get("WALLET_PRIVATE_KEY")
-        if not pk:
-            raise RuntimeError(
-                "WALLET_PRIVATE_KEY not set — cannot use platform wallet"
-            )
-        addr = _get_platform_address()
-        return pk, addr, "platform"
-
-    # Default: try agent wallet first, then fall back to platform wallet
-    agent_pk = os.environ.get("AGENT_WALLET_PRIVATE_KEY")
-    if agent_pk:
-        addr = _get_agent_address()
-        return agent_pk, addr, "agent"
-
-    # Fallback: WALLET_PRIVATE_KEY (backward compatible for single-wallet setups)
+    if not _is_server_signing_enabled():
+        raise RuntimeError(
+            "Server-side signing is disabled (EM_SERVER_SIGNING != true). "
+            "External agents must sign their own payments via X-Payment-Auth header. "
+            "Set EM_SERVER_SIGNING=true for testing only."
+        )
     pk = os.environ.get("WALLET_PRIVATE_KEY")
     if not pk:
-        raise RuntimeError(
-            "Neither AGENT_WALLET_PRIVATE_KEY nor WALLET_PRIVATE_KEY is set — "
-            "cannot initialize escrow client"
-        )
-    addr = _get_platform_address()
-    logger.warning(
-        "No AGENT_WALLET_PRIVATE_KEY set — falling back to WALLET_PRIVATE_KEY. "
-        "This uses the platform wallet (%s) for escrow operations. "
-        "Set AGENT_WALLET_PRIVATE_KEY to use the agent wallet instead.",
-        addr[:10] + "...",
-    )
-    return pk, addr, "platform_fallback"
+        raise RuntimeError("WALLET_PRIVATE_KEY not set — cannot sign payments")
+    return pk
 
 
 # =============================================================================
@@ -513,30 +471,31 @@ class PaymentDispatcher:
     def _get_fase2_client(
         self,
         network: str = "base",
-        payer_wallet: Optional[str] = None,
     ) -> "AdvancedEscrowClient":
-        """Lazy-init an AdvancedEscrowClient for the given network and wallet.
+        """Lazy-init an AdvancedEscrowClient for the given network.
+
+        Uses WALLET_PRIVATE_KEY for signing. Only works when
+        EM_SERVER_SIGNING=true (testing mode). In production, agents sign
+        their own payments — this path is not used.
 
         Args:
             network: Target blockchain network (e.g., "base", "ethereum").
-            payer_wallet: Which wallet to use for signing.
-                - None or "agent": Use AGENT_WALLET_PRIVATE_KEY (default).
-                - "platform": Use WALLET_PRIVATE_KEY (platform wallet).
-                Falls back to WALLET_PRIVATE_KEY if AGENT_WALLET_PRIVATE_KEY
-                is not set (backward compatible).
 
         Returns:
-            AdvancedEscrowClient configured with the resolved wallet key.
+            AdvancedEscrowClient configured with the platform wallet key.
+
+        Raises:
+            RuntimeError: If server signing is disabled.
         """
         config = NETWORK_CONFIG.get(network, {})
         chain_id = config.get("chain_id", 8453)
-
-        pk, wallet_addr, wallet_label = _resolve_payer_wallet(payer_wallet)
-        cache_key = (chain_id, wallet_label)
+        cache_key = chain_id
 
         if cache_key not in self._fase2_clients:
+            pk = _get_server_signing_key()  # raises if EM_SERVER_SIGNING != true
             rpc_url = config.get("rpc_url", "https://mainnet.base.org")
             operator = _get_operator_for_network(network)
+            addr = _get_platform_address()
 
             self._fase2_clients[cache_key] = AdvancedEscrowClient(
                 private_key=pk,
@@ -546,11 +505,10 @@ class PaymentDispatcher:
                 operator_address=operator,
             )
             logger.info(
-                "Fase2 AdvancedEscrowClient initialized: chain=%d, wallet=%s (%s), "
-                "operator=%s",
+                "Fase2 AdvancedEscrowClient initialized (SERVER_SIGNING mode): "
+                "chain=%d, wallet=%s, operator=%s",
                 chain_id,
-                wallet_label,
-                wallet_addr[:10] + "...",
+                addr[:10] + "...",
                 operator[:10] if operator else "None",
             )
 
@@ -571,7 +529,6 @@ class PaymentDispatcher:
         network: Optional[str] = None,
         token: str = "USDC",
         balance_check_only: bool = False,
-        payer_wallet: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Authorize (lock or verify) a payment for a task.
@@ -579,6 +536,10 @@ class PaymentDispatcher:
         x402r mode: Settles agent auth + locks funds on-chain via escrow contract.
         preauth mode: Verifies EIP-3009 signature via verify_x402_payment().
         fase1 mode: Checks agent's on-chain balance (no funds move).
+        fase2 mode: Locks escrow via server signing (requires EM_SERVER_SIGNING=true).
+
+        Note: In production, agents sign their own payments. Server-side signing
+        (fase2 via this method) is only for testing with EM_SERVER_SIGNING=true.
 
         Args:
             task_id: Unique task identifier
@@ -591,9 +552,6 @@ class PaymentDispatcher:
             token: Payment token (for fase1)
             balance_check_only: Force balance-check mode regardless of dispatcher mode.
                 Used for direct_release at task creation (escrow lock deferred to assignment).
-            payer_wallet: Which wallet to use for escrow signing.
-                - None or "agent": Agent wallet (default).
-                - "platform": Platform wallet (testing only).
 
         Returns:
             Uniform dict with success, tx_hash, mode, escrow_status, payment_info, error.
@@ -608,9 +566,7 @@ class PaymentDispatcher:
                     task_id, receiver, amount_usdc, strategy, x_payment_header
                 )
             elif self.mode == "fase2":
-                return await self._authorize_fase2(
-                    task_id, amount_usdc, network, token, payer_wallet=payer_wallet
-                )
+                return await self._authorize_fase2(task_id, amount_usdc, network, token)
             elif self.mode == "fase1":
                 return await self._authorize_fase1(
                     task_id, amount_usdc, agent_address, network, token
@@ -900,23 +856,21 @@ class PaymentDispatcher:
         amount_usdc: Decimal,
         network: Optional[str] = None,
         token: str = "USDC",
-        payer_wallet: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Authorize via fase2 — lock funds on-chain in escrow via facilitator.
 
         Uses AdvancedEscrowClient.authorize() which signs an EIP-3009 auth
         and sends it to the facilitator, which locks funds in the
-        AuthCaptureEscrow contract. Fully gasless for the agent.
+        AuthCaptureEscrow contract. Fully gasless.
+
+        Requires EM_SERVER_SIGNING=true (testing only). In production, agents
+        sign their own escrow operations via X-Payment-Auth header.
 
         Receiver = platform wallet. On release, we disburse to worker + fee.
-
-        Args:
-            payer_wallet: Which wallet signs. Default (None/"agent") uses agent wallet.
-                          "platform" uses platform wallet (testing only).
         """
         network = network or "base"
-        client = self._get_fase2_client(network, payer_wallet=payer_wallet)
+        client = self._get_fase2_client(network)
         platform_address = _get_platform_address()
 
         # Total to lock = bounty + platform fee
@@ -991,9 +945,6 @@ class PaymentDispatcher:
 
         tx_hash = auth_result.transaction_hash
 
-        # Resolve wallet label for metadata persistence
-        _, _, wallet_label = _resolve_payer_wallet(payer_wallet)
-
         # Serialize full PaymentInfo for DB persistence (state reconstruction)
         payment_info_serialized = {
             "mode": "fase2",
@@ -1010,7 +961,6 @@ class PaymentDispatcher:
             "salt": pi.salt,
             "chain_id": client.chain_id,
             "network": network,
-            "payer_wallet": wallet_label,
             "payer_address": client.payer,
         }
 
@@ -1116,7 +1066,6 @@ class PaymentDispatcher:
         bounty_usdc: Decimal,
         network: Optional[str] = None,
         token: str = "USDC",
-        payer_wallet: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Lock bounty in escrow with worker as direct receiver (trustless).
@@ -1126,6 +1075,9 @@ class PaymentDispatcher:
         - "credit_card": bounty = lock amount. Worker gets 87%. Agent pays bounty only.
         - "agent_absorbs": lock = bounty/0.87. Worker gets ~100%. Agent pays bounty + fee.
 
+        Requires EM_SERVER_SIGNING=true (testing only). In production, agents sign
+        their own escrow operations.
+
         Args:
             task_id: Task identifier.
             agent_address: Agent's wallet address (for metadata/logging).
@@ -1133,24 +1085,18 @@ class PaymentDispatcher:
             bounty_usdc: The bounty amount (interpretation depends on EM_FEE_MODEL).
             network: Payment network (default: base).
             token: Payment token (default: USDC).
-            payer_wallet: Which wallet signs the escrow transaction.
-                - None or "agent": Use AGENT_WALLET_PRIVATE_KEY (default).
-                - "platform": Use WALLET_PRIVATE_KEY (for testing only).
 
         Returns:
             Dict with success, tx_hash, escrow_status, etc.
         """
         network = network or "base"
-        client = self._get_fase2_client(network, payer_wallet=payer_wallet)
+        client = self._get_fase2_client(network)
 
-        # Log which wallet is paying for audit trail
         actual_payer = client.payer
-        _, _, wallet_label = _resolve_payer_wallet(payer_wallet)
         logger.info(
-            "authorize_escrow_for_worker: task=%s, payer=%s (%s), worker=%s",
+            "authorize_escrow_for_worker (SERVER_SIGNING): task=%s, payer=%s, worker=%s",
             task_id,
             actual_payer[:10] + "...",
-            wallet_label,
             worker_address[:10] + "...",
         )
 
@@ -1335,7 +1281,6 @@ class PaymentDispatcher:
             "bounty_usdc": str(bounty_usdc),
             "lock_amount_usdc": str(lock_amount),
             "fee_model": fee_model,
-            "payer_wallet": wallet_label,
             "payer_address": client.payer,
         }
 
@@ -1425,10 +1370,7 @@ class PaymentDispatcher:
             }
 
         stored_network = pi_meta.get("network", network)
-        stored_payer_wallet = pi_meta.get("payer_wallet")
-        client = self._get_fase2_client(
-            stored_network, payer_wallet=stored_payer_wallet
-        )
+        client = self._get_fase2_client(stored_network)
 
         # Single TX: release from escrow directly to worker via facilitator
         logger.info(
@@ -1668,10 +1610,7 @@ class PaymentDispatcher:
             }
 
         stored_network = pi_meta.get("network", "base")
-        stored_payer_wallet = pi_meta.get("payer_wallet")
-        client = self._get_fase2_client(
-            stored_network, payer_wallet=stored_payer_wallet
-        )
+        client = self._get_fase2_client(stored_network)
 
         # Step 1: Refund escrow via facilitator — bounty returns to agent
         logger.info(
@@ -2234,10 +2173,7 @@ class PaymentDispatcher:
             }
 
         stored_network = pi_meta.get("network", network)
-        stored_payer_wallet = pi_meta.get("payer_wallet")
-        client = self._get_fase2_client(
-            stored_network, payer_wallet=stored_payer_wallet
-        )
+        client = self._get_fase2_client(stored_network)
 
         # Step 2: Release from escrow via facilitator (gasless)
         config_chain = NETWORK_CONFIG.get(stored_network, {})
@@ -2674,10 +2610,7 @@ class PaymentDispatcher:
             }
 
         stored_network = pi_meta.get("network", "base")
-        stored_payer_wallet = pi_meta.get("payer_wallet")
-        client = self._get_fase2_client(
-            stored_network, payer_wallet=stored_payer_wallet
-        )
+        client = self._get_fase2_client(stored_network)
 
         logger.info("fase2: Refunding escrow for task %s via facilitator...", task_id)
         refund_result = await asyncio.to_thread(client.refund_via_facilitator, pi)

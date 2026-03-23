@@ -1056,7 +1056,9 @@ class TestFase2Flow:
                 f"{DISPATCHER_MODULE}._get_platform_address",
                 return_value="0xPlatformAddr",
             ),
-            patch.dict(os.environ, {"WALLET_PRIVATE_KEY": TEST_PK}),
+            patch.dict(
+                os.environ, {"WALLET_PRIVATE_KEY": TEST_PK, "EM_SERVER_SIGNING": "true"}
+            ),
         ):
             from integrations.x402.payment_dispatcher import PaymentDispatcher
 
