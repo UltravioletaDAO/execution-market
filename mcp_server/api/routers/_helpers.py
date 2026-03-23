@@ -720,6 +720,34 @@ async def _execute_post_approval_side_effects(
             e,
         )
 
+    # ---- WS-2b: Agent rates worker (on-chain reputation) -----------------
+    try:
+        ws2b_enabled = await PlatformConfig.is_feature_enabled(
+            "erc8004_agent_rates_worker"
+        )
+        # Default to True if feature flag doesn't exist (backward compat)
+        if ws2b_enabled is None:
+            ws2b_enabled = ERC8004_AVAILABLE
+        if ws2b_enabled and worker_address and release_tx:
+            await _send_reputation_feedback(
+                task=task,
+                worker_address=worker_address,
+                release_tx=release_tx,
+                submission=submission,
+                executor=executor,
+            )
+            logger.info(
+                "WS-2b agent-rates-worker: submission=%s, worker=%s",
+                submission_id,
+                worker_address[:10] + "..." if worker_address else "unknown",
+            )
+    except Exception as e:
+        logger.error(
+            "WS-2b agent-rates-worker error (non-blocking): submission=%s, error=%s",
+            submission_id,
+            e,
+        )
+
     # ---- WS-3: Gas dust for worker on-chain reputation -------------------
     try:
         ws3_enabled = await PlatformConfig.is_feature_enabled("gas_dust_auto_fund")
