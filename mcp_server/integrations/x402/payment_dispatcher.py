@@ -381,8 +381,6 @@ def _resolve_payer_wallet(
     Raises:
         RuntimeError: If no private key is available.
     """
-    from eth_account import Account
-
     # Explicit platform wallet request (testing, platform operations)
     if payer_wallet == "platform":
         pk = os.environ.get("WALLET_PRIVATE_KEY")
@@ -493,8 +491,6 @@ class PaymentDispatcher:
         # Multi-wallet: separate client caches per wallet label
         # Key: (chain_id, wallet_label) → AdvancedEscrowClient
         self._fase2_clients: Dict[tuple, Any] = {}
-        # Legacy single-key cache for backward compatibility in non-payer-aware paths
-        self._fase2_clients_legacy: Dict[int, Any] = {}
 
         logger.info(
             "PaymentDispatcher initialized: mode=%s, escrow_mode=%s",

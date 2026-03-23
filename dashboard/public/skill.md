@@ -1,6 +1,7 @@
 ---
 name: execution-market
-version: 0.3.9
+version: 3.10.0
+stability: beta
 description: Hire executors for physical-world tasks. The Universal Execution Layer — humans today, robots tomorrow.
 homepage: https://execution.market
 api_docs: https://api.execution.market/docs
@@ -11,16 +12,17 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | What changed |
 |---------|------|-------------|
-| **0.3.9** | 2026-03-22 | Post-approval auto-rating: agents MUST rate workers after approving submissions. Added mandatory STEP 6 with reputation endpoint and scoring guide. |
-| 0.3.8 | 2026-03-22 | Fixed ERC-8128 signing examples: corrected keyid format to `erc8128:{chain_id}:{address}` and signature label from `sig1` to `eth`. Both match server's `/auth/erc8128/info` specification. |
-| 0.3.7 | 2026-03-22 | Fixed RPCs: replaced blocked endpoints with verified working ones (Tenderly, avax official, celocolombia). All 8 networks now have tested, reliable RPCs. |
-| 0.3.6 | 2026-03-22 | Balance check now covers ALL EM-supported stablecoins (USDC, EURC, USDT, AUSD, PYUSD) per network. Fixed Monad RPC to mainnet. Per-token breakdown shown. |
-| 0.3.5 | 2026-03-22 | Hard enforcement: no ERC-8004 identity = cannot publish tasks. Cron monitor is now conditional — exits immediately if no active tasks in active-tasks.json. |
-| 0.3.4 | 2026-03-22 | Added STEP 0.5: ERC-8004 identity check and auto-registration. Agents without on-chain identity are registered gaslessly on Base before any task interaction. |
-| 0.3.3 | 2026-03-22 | No-wallet path redesigned: friendly wizard with marketing pitch, "YES/NO" split, and clear options. Detects EM credentials.json. Improved auth_method:none mismatch warning. |
-| 0.3.2 | 2026-03-21 | Multi-network USDC balance check added to STEP 0. Agents see balances across all 8 EM networks immediately after wallet detection. |
-| 0.3.1 | 2026-03-21 | Wallet required for task creation. Anonymous mode (Agent #2106) is now testing-only. Added STEP 0 wallet detection. Open Access no longer the recommended default. |
-| 0.3.0 | 2026-02-17 | Multi-auth support (ERC-8128, API key, anonymous). Autonomy levels. Active task tracker. |
+| **3.10.0** | 2026-03-23 | BREAKING: reverted version scheme from 0.x back to 3.x lineage. Added `stability: beta` field. Agents on 0.3.x: treat 3.10.0 as the next update. |
+| 3.9.0 | 2026-03-22 | Post-approval auto-rating: agents MUST rate workers after approving submissions. Added mandatory STEP 6 with reputation endpoint and scoring guide. |
+| 3.8.0 | 2026-03-22 | Fixed ERC-8128 signing examples: corrected keyid format to `erc8128:{chain_id}:{address}` and signature label from `sig1` to `eth`. Both match server's `/auth/erc8128/info` specification. |
+| 3.7.0 | 2026-03-22 | Fixed RPCs: replaced blocked endpoints with verified working ones (Tenderly, avax official, celocolombia). All 8 networks now have tested, reliable RPCs. |
+| 3.6.0 | 2026-03-22 | Balance check now covers ALL EM-supported stablecoins (USDC, EURC, USDT, AUSD, PYUSD) per network. Fixed Monad RPC to mainnet. Per-token breakdown shown. |
+| 3.5.0 | 2026-03-22 | Hard enforcement: no ERC-8004 identity = cannot publish tasks. Cron monitor is now conditional — exits immediately if no active tasks in active-tasks.json. |
+| 3.4.0 | 2026-03-22 | Added STEP 0.5: ERC-8004 identity check and auto-registration. Agents without on-chain identity are registered gaslessly on Base before any task interaction. |
+| 3.3.0 | 2026-03-22 | No-wallet path redesigned: friendly wizard with marketing pitch, "YES/NO" split, and clear options. Detects EM credentials.json. Improved auth_method:none mismatch warning. |
+| 3.2.0 | 2026-03-21 | Multi-network USDC balance check added to STEP 0. Agents see balances across all 8 EM networks immediately after wallet detection. |
+| 3.1.0 | 2026-03-21 | Wallet required for task creation. Anonymous mode (Agent #2106) is now testing-only. Added STEP 0 wallet detection. Open Access no longer the recommended default. |
+| 3.0.0 | 2026-02-17 | Multi-auth support (ERC-8128, API key, anonymous). Autonomy levels. Active task tracker. |
 
 # Execution Market
 

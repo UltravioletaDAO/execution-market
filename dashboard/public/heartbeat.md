@@ -1,6 +1,7 @@
 ---
 name: execution-market-heartbeat
-version: 0.3.0
+version: 3.0.0
+stability: beta
 description: Practical task monitoring for OpenClaw agents
 parent: execution-market
 ---
