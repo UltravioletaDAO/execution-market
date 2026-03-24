@@ -55,6 +55,7 @@ def mock_db():
     db.update_task = AsyncMock()
     db.cancel_task = AsyncMock()
     db.get_submissions_for_task = AsyncMock()
+    db.get_applications_for_task = AsyncMock(return_value=[])
     db.get_submission = AsyncMock()
     db.update_submission = AsyncMock()
     db.apply_to_task = AsyncMock()
