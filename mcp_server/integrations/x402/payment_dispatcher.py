@@ -2,11 +2,13 @@
 Payment Dispatcher for Execution Market.
 
 Routes payment operations based on EM_PAYMENT_MODE:
-  - fase1: Balance check at creation, 2 direct EIP-3009 settlements at approval (default)
-  - fase2: On-chain escrow via AdvancedEscrowClient + gasless facilitator release/refund
-  - preauth: EIP-3009 pre-authorization, funds stay in agent wallet until settlement
-  - x402r: Legacy on-chain escrow via EMAdvancedEscrow (requires gas + operator key)
+  - fase2: On-chain escrow via agent-signed pre-auth + gasless facilitator (DEFAULT, production)
+  - fase1: Balance check at creation, 2 direct EIP-3009 settlements at approval (DEPRECATED)
+  - preauth: EIP-3009 pre-authorization (DEPRECATED)
+  - x402r: Legacy on-chain escrow via EMAdvancedEscrow (DEPRECATED)
 
+ADR-001: In production, agents sign their own payments via X-Payment-Auth header.
+The server never signs payment transactions unless EM_SERVER_SIGNING=true (testing only).
 All backends go through the Ultravioleta Facilitator and are GASLESS for agents and workers.
 """
 
@@ -26,8 +28,8 @@ logger = logging.getLogger(__name__)
 
 # Configuration
 EM_PAYMENT_MODE = os.environ.get(
-    "EM_PAYMENT_MODE", "fase1"
-)  # "fase1" (default), "preauth", or "x402r"
+    "EM_PAYMENT_MODE", "fase2"
+)  # "fase2" (default). "fase1", "preauth", "x402r" are DEPRECATED.
 
 # Escrow release mode: controls whether escrow releases to platform wallet (legacy)
 # or directly to worker (trustless).
@@ -395,10 +397,17 @@ class PaymentDispatcher:
 
         if self.mode not in ("x402r", "preauth", "fase1", "fase2"):
             logger.warning(
-                "Unknown EM_PAYMENT_MODE '%s', falling back to 'fase1'",
+                "Unknown EM_PAYMENT_MODE '%s', falling back to 'fase2'",
                 self.mode,
             )
-            self.mode = "fase1"
+            self.mode = "fase2"
+
+        if self.mode in ("fase1", "preauth", "x402r"):
+            logger.warning(
+                "EM_PAYMENT_MODE='%s' is DEPRECATED (ADR-001). "
+                "Production uses fase2 with agent-signed X-Payment-Auth headers.",
+                self.mode,
+            )
 
         # Validate availability and fall back if needed
         if self.mode == "fase2" and not FASE2_SDK_AVAILABLE:

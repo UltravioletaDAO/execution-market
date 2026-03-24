@@ -618,16 +618,17 @@ class TestModeSelection:
             d = PaymentDispatcher(mode="x402r")
             assert d.mode == "fase1"
 
-    def test_unknown_mode_falls_back_to_fase1(self):
-        """Unknown mode should fall back to fase1 with warning."""
+    def test_unknown_mode_falls_back_to_fase2(self):
+        """Unknown mode should fall back to fase2 with warning."""
         with (
             patch(f"{DISPATCHER_MODULE}.ADVANCED_ESCROW_AVAILABLE", True),
             patch(f"{DISPATCHER_MODULE}.SDK_AVAILABLE", True),
+            patch(f"{DISPATCHER_MODULE}.FASE2_SDK_AVAILABLE", True),
         ):
             from integrations.x402.payment_dispatcher import PaymentDispatcher
 
             d = PaymentDispatcher(mode="invalid_mode")
-            assert d.mode == "fase1"
+            assert d.mode == "fase2"
 
     def test_fase1_mode_accepted(self):
         """fase1 mode should be accepted directly."""
