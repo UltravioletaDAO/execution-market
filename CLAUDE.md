@@ -492,30 +492,35 @@ Wrong Flow (DO NOT USE):
 - **Test worker wallet** (`<YOUR_TEST_WORKER_WALLET>`): Used by Golden Flow for worker-side operations. Key in AWS Secrets Manager (see `.env.example`). Set as `EM_WORKER_PRIVATE_KEY` for worker→agent reputation in multichain Golden Flow tests.
 - **Testing budget**: Always use amounts **< $0.30** for test tasks. ~$5 per chain must last through all testing cycles.
 
-**Payment Mode** (`EM_PAYMENT_MODE`, default: `fase1`):
-- **`fase1`** (default, production): No auth at task creation — advisory `balanceOf()` check only. At approval, server signs 2 direct EIP-3009 settlements: agent→worker (bounty) + agent→treasury (fee). No intermediary wallet. E2E tested 2026-02-11 ([evidence](docs/planning/FASE1_E2E_EVIDENCE_2026-02-11.md)).
-- **`fase2`** (on-chain escrow, gasless): Locks funds on-chain via AdvancedEscrowClient. Release/refund via facilitator. Requires `EM_PAYMENT_OPERATOR` env var. See Fase 5 flow below.
-- **`preauth`** (legacy): Auth at creation, settled at approval through platform wallet.
-- **`x402r`** (deprecated): Do not use — caused fund loss bug.
+**Payment Mode** (`EM_PAYMENT_MODE`, default: `fase2`):
+- **`fase2`** (default, production): Agent-signed on-chain escrow. See ADR-001 flow below.
+- **`fase1`** (DEPRECATED): Server-signed EIP-3009 settlements. Only works with `EM_SERVER_SIGNING=true`.
+- **`preauth`** (DEPRECATED): Auth at creation, settled at approval through platform wallet.
+- **`x402r`** (DEPRECATED): Do not use — caused fund loss bug.
 
-**Payment Flow for Tasks** (Fase 1, as of 2026-02-11):
+**>>> CRITICAL: EM NEVER SIGNS PAYMENTS IN PRODUCTION (ADR-001) <<<**
+The server is a marketplace — it never touches funds. External agents sign their own
+escrow operations via `X-Payment-Auth` header. `EM_SERVER_SIGNING=true` enables server-side
+signing for internal testing ONLY. Not set in production ECS.
+
+**Payment Flow for Tasks** (ADR-001 — Agent-Signed Escrow, PRODUCTION):
+1. **Agent signs pre-auth** (task creation): Agent sends `X-Payment-Auth` header with EIP-3009 `ReceiveWithAuthorization` signature. Funds stay in agent's wallet.
+2. **Escrow timing** (configurable via `X-Escrow-Timing` header or `EM_ESCROW_TIMING`):
+   - `lock_on_assignment` (DEFAULT): Pre-auth stored in DB. Escrow locks when worker is assigned. Cancel before assignment = free (no-op).
+   - `lock_on_creation`: Escrow locks immediately at task creation. Cancel always requires on-chain refund.
+3. **Escrow lock** (at assignment or creation): Server relays agent's signed auth to Facilitator `/settle`. Facilitator executes on-chain lock. Worker set as receiver. If lock fails: assignment rolled back, task stays published.
+4. **Release** (task approval): **1 TX only** — gasless release via facilitator. StaticFeeCalculator(1300 BPS) splits atomically: worker gets 87% (net), operator holds 13% (fee). `distributeFees()` flushes fee to treasury.
+5. **Cancel**: Published + lock_on_assignment → no-op (pre-auth unused). Accepted → refund full bounty from escrow to agent.
+6. **Pre-auth expiry**: `validBefore = task.deadline + 1 hour`. If no worker assigned by then, pre-auth expires silently. Zero cost.
+- **Architecture doc**: `docs/planning/ADR-001-payment-architecture-v2.md`
+- **Fee model**: Credit card convention — fee is 13% of gross (bounty), deducted on-chain. Agent pays $0.10, worker gets $0.087, treasury gets $0.013.
+- **Trust model**: Fully trustless — EM never touches funds. Agent signs, escrow holds, worker receives directly.
+
+**Payment Flow for Tasks** (Fase 1, DEPRECATED — testing only with `EM_SERVER_SIGNING=true`):
 1. **Balance check** (task creation): `balanceOf(agent)` via RPC — advisory only, task creates regardless. No auth signed, no funds move.
 2. **Direct settlement** (task approval): Server signs 2 fresh EIP-3009 auths → Facilitator settles both: agent→worker (bounty) + agent→treasury (13% fee). No platform wallet intermediary.
 3. **Cancel** (task cancellation): No-op — no auth was ever signed, nothing to refund.
 4. **Platform fee**: Configurable via `EM_PLATFORM_FEE` env var (default 13%). Uses 6-decimal USDC precision with $0.01 minimum fee. Treasury absorbs any x402r protocol fee automatically via `_compute_treasury_remainder()`.
-
-**Payment Flow for Tasks** (Fase 2 — platform_release mode, legacy):
-Lock bounty+fee in escrow at creation (receiver = platform wallet). Release via facilitator → disburse to worker via EIP-3009. Fee stays in platform wallet, swept via `POST /admin/fees/sweep`. Refund returns directly to agent. `em_check_escrow_state` tool for on-chain state.
-
-**Payment Flow for Tasks** (Fase 5 — credit card model, TRUSTLESS):
-1. **Balance check** (task creation): Advisory `balanceOf()` check only. Escrow deferred to assignment (worker address unknown at creation). Escrow status = `pending_assignment`.
-2. **Escrow lock** (task assignment): Lock bounty in escrow with **worker as direct receiver**. Bounty = lock amount (credit card model). No separate fee collection — fee calculator handles split at release.
-3. **Release** (task approval): **1 TX only** — gasless release via facilitator. Fee calculator splits atomically: worker gets 87% (net), operator holds 13% (fee). `distributeFees()` flushes fee to treasury.
-4. **Cancel** (published or accepted): Published → no-op (no escrow locked). Accepted → refund full bounty from escrow to agent. No separate fee refund needed.
-5. **Fee distribution**: `distributeFees()` called best-effort after each release, or via admin endpoint `POST /admin/fees/sweep`.
-- **Env var**: `EM_ESCROW_MODE=direct_release` (default: `platform_release` for backward compat)
-- **Fee model**: Credit card convention — fee is 13% of gross (bounty), deducted on-chain. Agent pays $0.10, worker gets $0.087, treasury gets $0.013.
-- **Trust model**: Fully trustless — platform never touches funds. Escrow pays worker, operator holds fee for treasury.
 
 **Audit Trail**: All payment events are logged to `payment_events` table (migration 027). Tracks verify, store_auth, settle, disburse_worker, disburse_fee, refund, cancel, error events with tx hashes and amounts.
 
