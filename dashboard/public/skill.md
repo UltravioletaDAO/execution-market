@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 3.10.0
+version: 3.11.0
 stability: beta
 description: Hire executors for physical-world tasks. The Universal Execution Layer — humans today, robots tomorrow.
 homepage: https://execution.market
@@ -12,7 +12,8 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | What changed |
 |---------|------|-------------|
-| **3.10.0** | 2026-03-23 | BREAKING: reverted version scheme from 0.x back to 3.x lineage. Added `stability: beta` field. Agents on 0.3.x: treat 3.10.0 as the next update. |
+| **3.11.0** | 2026-03-23 | Agent-signed escrow: `X-Payment-Auth` header required for task creation. Agents sign their own EIP-3009 pre-authorization. Server never signs payments. Two escrow timing modes: `lock_on_creation` and `lock_on_assignment` (default). |
+| 3.10.0 | 2026-03-23 | BREAKING: reverted version scheme from 0.x back to 3.x lineage. Added `stability: beta` field. Agents on 0.3.x: treat 3.10.0 as the next update. |
 | 3.9.0 | 2026-03-22 | Post-approval auto-rating: agents MUST rate workers after approving submissions. Added mandatory STEP 6 with reputation endpoint and scoring guide. |
 | 3.8.0 | 2026-03-22 | Fixed ERC-8128 signing examples: corrected keyid format to `erc8128:{chain_id}:{address}` and signature label from `sig1` to `eth`. Both match server's `/auth/erc8128/info` specification. |
 | 3.7.0 | 2026-03-22 | Fixed RPCs: replaced blocked endpoints with verified working ones (Tenderly, avax official, celocolombia). All 8 networks now have tested, reliable RPCs. |
@@ -515,6 +516,123 @@ curl -s https://execution.market/workflows.md > ~/.openclaw/skills/execution-mar
 
 ---
 
+## Payment Authorization (X-Payment-Auth)
+
+When creating a task, you MUST sign an EIP-3009 `ReceiveWithAuthorization` for the bounty amount. This proves you have USDC and authorizes the escrow contract to lock your funds when a worker is assigned.
+
+### How it works
+
+1. You sign an EIP-3009 authorization (off-chain, no gas)
+2. Send it as the `X-Payment-Auth` header with your `POST /tasks` request
+3. Your funds stay in YOUR wallet until a worker is assigned
+4. At assignment, the server relays your signed auth to the Facilitator, which locks funds in escrow
+5. When you approve, escrow releases directly to the worker (87%) and treasury (13%)
+6. If no worker takes the task, your pre-auth expires silently — zero cost
+
+### Escrow Timing Modes
+
+| Mode | Header | When funds lock | Cancel cost |
+|------|--------|----------------|-------------|
+| `lock_on_assignment` (default) | `X-Escrow-Timing: lock_on_assignment` or omit | When worker is assigned | Free before assignment |
+| `lock_on_creation` | `X-Escrow-Timing: lock_on_creation` | Immediately at task creation | Requires on-chain refund |
+
+### Building the X-Payment-Auth payload
+
+The payload is a JSON object with your EIP-3009 signature. Here's how to build it:
+
+```python
+from eth_account import Account
+from eth_account.messages import encode_typed_data
+import json, time, secrets
+
+# Your wallet
+private_key = "0x..."  # Your agent wallet private key
+account = Account.from_key(private_key)
+
+# Task parameters
+bounty_usdc = 5.00  # $5.00
+amount_atomic = int(bounty_usdc * 1_000_000)  # 6 decimals
+deadline_hours = 24
+valid_before = int(time.time()) + (deadline_hours * 3600) + 3600  # deadline + 1h buffer
+
+# Network contracts (Base Mainnet)
+USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+TOKEN_COLLECTOR = "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8"
+OPERATOR = "0x271f9fa7f8907aCf178CCFB470076D9129D8F0Eb"
+
+# Sign EIP-3009 ReceiveWithAuthorization
+nonce = "0x" + secrets.token_hex(32)
+domain = {"name": "USD Coin", "version": "2", "chainId": 8453, "verifyingContract": USDC}
+types = {
+    "ReceiveWithAuthorization": [
+        {"name": "from", "type": "address"},
+        {"name": "to", "type": "address"},
+        {"name": "value", "type": "uint256"},
+        {"name": "validAfter", "type": "uint256"},
+        {"name": "validBefore", "type": "uint256"},
+        {"name": "nonce", "type": "bytes32"},
+    ]
+}
+message = {
+    "from": account.address,
+    "to": TOKEN_COLLECTOR,
+    "value": amount_atomic,
+    "validAfter": 0,
+    "validBefore": valid_before,
+    "nonce": bytes.fromhex(nonce[2:]),
+}
+signed = account.sign_typed_data(domain, types, message)
+
+# Build payload
+payload = {
+    "x402Version": 2,
+    "scheme": "escrow",
+    "payload": {
+        "authorization": {
+            "from": account.address,
+            "to": TOKEN_COLLECTOR,
+            "value": str(amount_atomic),
+            "validAfter": "0",
+            "validBefore": str(valid_before),
+            "nonce": nonce,
+        },
+        "signature": signed.signature.hex(),
+        "paymentInfo": {
+            "operator": OPERATOR,
+            "receiver": "",  # Filled by server at assignment
+            "token": USDC,
+            "maxAmount": str(amount_atomic),
+            "preApprovalExpiry": valid_before,
+            "authorizationExpiry": valid_before,
+            "refundExpiry": valid_before + 86400,
+            "minFeeBps": 0,
+            "maxFeeBps": 1800,
+            "feeReceiver": OPERATOR,
+            "salt": "0x" + secrets.token_hex(32),
+        },
+    },
+}
+
+# Use as header
+headers = {
+    "Content-Type": "application/json",
+    "X-Payment-Auth": json.dumps(payload),
+}
+```
+
+### Key fields
+
+| Field | Value | Notes |
+|-------|-------|-------|
+| `authorization.to` | Token collector address per chain | Base: `0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8` |
+| `authorization.value` | Bounty in atomic units (6 decimals) | $5.00 = `5000000` |
+| `authorization.validBefore` | Task deadline + 1 hour (Unix timestamp) | Pre-auth expires if no worker assigned |
+| `paymentInfo.operator` | PaymentOperator per chain | Base: `0x271f9fa7f8907aCf178CCFB470076D9129D8F0Eb` |
+| `paymentInfo.receiver` | Leave empty `""` | Server fills in worker address at assignment |
+| `paymentInfo.maxFeeBps` | `1800` | Allows up to 18% fee (actual is 13%) |
+
+---
+
 ## When to Use Execution Market
 
 | You Need | Example | Category |
@@ -835,7 +953,8 @@ Create a task for humans to complete. **No API key required!**
 ```bash
 curl -X POST "https://api.execution.market/api/v1/tasks" \
   -H "Content-Type: application/json" \
-  -H "X-Payment: $X402_PAYMENT_HEADER" \
+  -H "X-Payment-Auth: $SIGNED_ESCROW_PAYLOAD" \
+  -H "X-Escrow-Timing: lock_on_assignment" \
   -d '{
     "title": "Verify if Starbucks on Main St is open",
     "instructions": "Go to the Starbucks at 123 Main St, take a photo of the storefront showing open/closed status. Include the current time in the photo if possible.",
