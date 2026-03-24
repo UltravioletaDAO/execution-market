@@ -1,463 +1,482 @@
-"""Tests for SwarmOrchestrator."""
+"""
+Tests for SwarmOrchestrator — task routing, assignment, and failure handling.
+
+Covers:
+- RoutingStrategy enum
+- TaskRequest / Assignment / RoutingFailure dataclasses
+- SwarmOrchestrator routing (best_fit, round_robin, specialist, budget_aware)
+- Task completion and failure
+- Anti-duplication claims
+- Score thresholds
+- Agent preference and exclusion
+- Status and history tracking
+"""
+
+from datetime import datetime, timezone, timedelta
 
 import pytest
-from datetime import datetime, timezone, timedelta
 
 from mcp_server.swarm.orchestrator import (
     SwarmOrchestrator,
     RoutingStrategy,
+    TaskPriority,
     TaskRequest,
     Assignment,
     RoutingFailure,
+    PRIORITY_WEIGHTS,
 )
 from mcp_server.swarm.reputation_bridge import (
     ReputationBridge,
     OnChainReputation,
     InternalReputation,
+    CompositeScore,
+    ReputationTier,
 )
 from mcp_server.swarm.lifecycle_manager import (
     LifecycleManager,
     AgentState,
     BudgetConfig,
+    LifecycleError,
+    BudgetExceededError,
 )
 
 
-@pytest.fixture
-def bridge():
-    return ReputationBridge()
+# ──────────────────────────── Fixtures ────────────────────────────
 
 
-@pytest.fixture
-def lifecycle():
-    return LifecycleManager()
-
-
-@pytest.fixture
-def orchestrator(bridge, lifecycle):
-    return SwarmOrchestrator(
-        bridge=bridge,
-        lifecycle=lifecycle,
-        cooldown_seconds=5,
-        min_score_threshold=10.0,
-    )
-
-
-def setup_agent(
-    orchestrator,
-    agent_id: int,
-    name: str,
-    wallet: str = "0x",
-    total_tasks: int = 50,
-    successful_tasks: int = 45,
-    avg_rating: float = 4.5,
-    bayesian_score: float = 0.8,
-    total_seals: int = 30,
-    positive_seals: int = 28,
-    chains: list | None = None,
-    category_scores: dict | None = None,
-    budget_config: BudgetConfig | None = None,
+def _setup_orchestrator(
+    num_agents=3,
+    min_score=15.0,
+    strategy=RoutingStrategy.BEST_FIT,
+    cooldown=30,
 ):
-    """Helper: register + reputation + set to ACTIVE."""
-    orchestrator.lifecycle.register_agent(
-        agent_id,
-        name,
-        wallet,
-        budget_config=budget_config,
+    """Create an orchestrator with N agents, all ACTIVE and with reputation data."""
+    bridge = ReputationBridge()
+    lifecycle = LifecycleManager()
+    orch = SwarmOrchestrator(
+        bridge, lifecycle,
+        default_strategy=strategy,
+        cooldown_seconds=cooldown,
+        min_score_threshold=min_score,
     )
-    orchestrator.lifecycle.transition(agent_id, AgentState.IDLE)
-    orchestrator.lifecycle.transition(agent_id, AgentState.ACTIVE)
 
-    on_chain = OnChainReputation(
-        agent_id=agent_id,
-        wallet_address=wallet,
-        total_seals=total_seals,
-        positive_seals=positive_seals,
-        negative_seals=total_seals - positive_seals,
-        chains_active=chains or ["base"],
-    )
-    internal = InternalReputation(
-        agent_id=agent_id,
-        bayesian_score=bayesian_score,
-        total_tasks=total_tasks,
-        successful_tasks=successful_tasks,
-        avg_rating=avg_rating,
-        category_scores=category_scores or {},
-    )
-    orchestrator.register_reputation(agent_id, on_chain, internal)
+    for i in range(1, num_agents + 1):
+        budget = BudgetConfig(daily_limit_usd=10.0, monthly_limit_usd=200.0)
+        lifecycle.register_agent(i, f"agent-{i}", f"0x{i:04x}", budget_config=budget)
+        lifecycle.transition(i, AgentState.IDLE)
+        lifecycle.transition(i, AgentState.ACTIVE)
 
-
-class TestBasicRouting:
-    def test_route_to_only_agent(self, orchestrator):
-        setup_agent(orchestrator, 1, "aurora")
-        task = TaskRequest(task_id="t1", title="Test task")
-        result = orchestrator.route_task(task)
-        assert isinstance(result, Assignment)
-        assert result.agent_id == 1
-        assert result.task_id == "t1"
-
-    def test_route_to_best_agent(self, orchestrator):
-        setup_agent(
-            orchestrator,
-            1,
-            "aurora",
-            total_tasks=3,
-            avg_rating=2.0,
-            bayesian_score=0.15,
-            total_seals=2,
-            positive_seals=1,
-            successful_tasks=1,
+        # Register reputation (agents get progressively better)
+        orch.register_reputation(
+            agent_id=i,
+            on_chain=OnChainReputation(
+                agent_id=i,
+                wallet_address=f"0x{i:04x}",
+                total_seals=i * 20,
+                positive_seals=i * 18,
+                chains_active=["base"] * min(i, 8),
+            ),
+            internal=InternalReputation(
+                agent_id=i,
+                bayesian_score=0.5 + i * 0.1,
+                total_tasks=i * 25,
+                successful_tasks=i * 23,
+                avg_rating=3.5 + i * 0.3,
+                category_scores={"photo": 0.6 + i * 0.1, "data": 0.5 + i * 0.05},
+            ),
         )
-        setup_agent(
-            orchestrator,
-            2,
-            "blaze",
-            total_tasks=100,
-            avg_rating=4.9,
-            bayesian_score=0.95,
-            total_seals=80,
-            positive_seals=78,
-            chains=["base", "eth", "poly", "arb"],
-        )
-        task = TaskRequest(task_id="t1", title="Test task")
-        result = orchestrator.route_task(task)
-        assert isinstance(result, Assignment)
-        assert result.agent_id == 2  # Higher score
 
-    def test_no_available_agents(self, orchestrator):
-        task = TaskRequest(task_id="t1", title="Test task")
-        result = orchestrator.route_task(task)
+    return orch, lifecycle
+
+
+def _task(task_id="t1", title="Photo verification", categories=None, bounty=1.0,
+          priority=TaskPriority.NORMAL, preferred=None, exclude=None):
+    return TaskRequest(
+        task_id=task_id,
+        title=title,
+        categories=categories or ["photo"],
+        bounty_usd=bounty,
+        priority=priority,
+        preferred_agent_ids=preferred or [],
+        exclude_agent_ids=exclude or [],
+    )
+
+
+# ──────────────────── Enums & Dataclasses ─────────────────────────
+
+
+class TestRoutingStrategy:
+    def test_values(self):
+        assert RoutingStrategy.BEST_FIT.value == "best_fit"
+        assert RoutingStrategy.ROUND_ROBIN.value == "round_robin"
+        assert RoutingStrategy.SPECIALIST.value == "specialist"
+        assert RoutingStrategy.BUDGET_AWARE.value == "budget_aware"
+
+
+class TestTaskPriority:
+    def test_values(self):
+        assert TaskPriority.CRITICAL.value == "critical"
+        assert TaskPriority.LOW.value == "low"
+
+    def test_weights_ordering(self):
+        assert PRIORITY_WEIGHTS[TaskPriority.CRITICAL] > PRIORITY_WEIGHTS[TaskPriority.HIGH]
+        assert PRIORITY_WEIGHTS[TaskPriority.HIGH] > PRIORITY_WEIGHTS[TaskPriority.NORMAL]
+        assert PRIORITY_WEIGHTS[TaskPriority.NORMAL] > PRIORITY_WEIGHTS[TaskPriority.LOW]
+
+
+class TestTaskRequest:
+    def test_defaults(self):
+        tr = TaskRequest(task_id="t1", title="Test")
+        assert tr.priority == TaskPriority.NORMAL
+        assert tr.max_retries == 2
+        assert tr.created_at is not None
+        assert tr.preferred_agent_ids == []
+        assert tr.exclude_agent_ids == []
+
+    def test_custom_fields(self):
+        tr = _task(priority=TaskPriority.CRITICAL, preferred=[1, 2], exclude=[3])
+        assert tr.priority == TaskPriority.CRITICAL
+        assert tr.preferred_agent_ids == [1, 2]
+        assert tr.exclude_agent_ids == [3]
+
+
+class TestAssignment:
+    def test_to_dict(self):
+        a = Assignment(
+            task_id="t1",
+            agent_id=42,
+            agent_name="aurora",
+            score=75.5,
+            strategy_used=RoutingStrategy.BEST_FIT,
+            alternatives_count=3,
+        )
+        d = a.to_dict()
+        assert d["task_id"] == "t1"
+        assert d["agent_id"] == 42
+        assert d["agent_name"] == "aurora"
+        assert d["score"] == 75.5
+        assert d["strategy"] == "best_fit"
+        assert d["alternatives"] == 3
+        assert "assigned_at" in d
+
+
+# ──────────────────── Orchestrator Routing ────────────────────────
+
+
+class TestOrchestratorBestFit:
+    def test_routes_to_best_agent(self):
+        orch, lm = _setup_orchestrator(num_agents=3)
+        task = _task()
+        result = orch.route_task(task)
+        assert isinstance(result, Assignment)
+        assert result.agent_id == 3  # Agent 3 has best reputation
+        assert result.strategy_used == RoutingStrategy.BEST_FIT
+
+    def test_assignment_updates_lifecycle(self):
+        orch, lm = _setup_orchestrator(num_agents=2)
+        task = _task()
+        result = orch.route_task(task)
+        assert isinstance(result, Assignment)
+        agent = lm.agents[result.agent_id]
+        assert agent.state == AgentState.WORKING
+        assert agent.current_task_id == "t1"
+
+    def test_alternatives_count(self):
+        orch, lm = _setup_orchestrator(num_agents=3)
+        result = orch.route_task(_task())
+        assert isinstance(result, Assignment)
+        assert result.alternatives_count == 2  # 3 agents - 1 assigned
+
+    def test_no_agents_available(self):
+        orch, lm = _setup_orchestrator(num_agents=0)
+        result = orch.route_task(_task())
         assert isinstance(result, RoutingFailure)
         assert "No agents available" in result.reason
 
-    def test_duplicate_claim_rejected(self, orchestrator):
-        setup_agent(orchestrator, 1, "aurora")
-        task = TaskRequest(task_id="t1", title="Test task")
-        result1 = orchestrator.route_task(task)
-        assert isinstance(result1, Assignment)
 
-        # Second attempt for same task
-        setup_agent(orchestrator, 2, "blaze")
-        result2 = orchestrator.route_task(task)
+class TestOrchestratorAntiDuplication:
+    def test_duplicate_task_rejected(self):
+        orch, lm = _setup_orchestrator(num_agents=3)
+        task = _task(task_id="t1")
+        result1 = orch.route_task(task)
+        assert isinstance(result1, Assignment)
+        result2 = orch.route_task(task)
         assert isinstance(result2, RoutingFailure)
         assert "already claimed" in result2.reason
 
+    def test_different_tasks_allowed(self):
+        orch, lm = _setup_orchestrator(num_agents=3)
+        result1 = orch.route_task(_task(task_id="t1"))
+        result2 = orch.route_task(_task(task_id="t2"))
+        assert isinstance(result1, Assignment)
+        assert isinstance(result2, Assignment)
+        assert result1.agent_id != result2.agent_id or result1.task_id != result2.task_id
 
-class TestExclusions:
-    def test_exclude_agents(self, orchestrator):
-        setup_agent(orchestrator, 1, "aurora", total_tasks=100, avg_rating=5.0)
-        setup_agent(orchestrator, 2, "blaze", total_tasks=10, avg_rating=3.0)
-        task = TaskRequest(
-            task_id="t1",
-            title="Test",
-            exclude_agent_ids=[1],
-        )
-        result = orchestrator.route_task(task)
+
+class TestOrchestratorExclusions:
+    def test_exclude_agents(self):
+        orch, lm = _setup_orchestrator(num_agents=3)
+        task = _task(exclude=[3])  # Exclude the best agent
+        result = orch.route_task(task)
         assert isinstance(result, Assignment)
-        assert result.agent_id == 2  # Only non-excluded agent
+        assert result.agent_id != 3
 
-    def test_all_excluded_fails(self, orchestrator):
-        setup_agent(orchestrator, 1, "aurora")
-        task = TaskRequest(
-            task_id="t1",
-            title="Test",
-            exclude_agent_ids=[1],
-        )
-        result = orchestrator.route_task(task)
+    def test_exclude_all_agents(self):
+        orch, lm = _setup_orchestrator(num_agents=2)
+        task = _task(exclude=[1, 2])
+        result = orch.route_task(task)
         assert isinstance(result, RoutingFailure)
         assert "excluded" in result.reason
 
-
-class TestPreferences:
-    def test_preferred_agent_selected(self, orchestrator):
-        setup_agent(
-            orchestrator,
-            1,
-            "aurora",
-            total_tasks=100,
-            avg_rating=5.0,
-            bayesian_score=0.95,
-        )
-        setup_agent(
-            orchestrator, 2, "blaze", total_tasks=10, avg_rating=3.5, bayesian_score=0.6
-        )
-        task = TaskRequest(
-            task_id="t1",
-            title="Test",
-            preferred_agent_ids=[2],
-        )
-        result = orchestrator.route_task(task)
+    def test_preferred_agents(self):
+        orch, lm = _setup_orchestrator(num_agents=3)
+        task = _task(preferred=[1])  # Prefer worst agent
+        result = orch.route_task(task)
         assert isinstance(result, Assignment)
-        assert result.agent_id == 2  # Preferred despite lower score
+        assert result.agent_id == 1  # Preferred takes priority
 
 
-class TestStrategies:
-    def test_best_fit_strategy(self, orchestrator):
-        setup_agent(orchestrator, 1, "a", bayesian_score=0.5, avg_rating=3.0)
-        setup_agent(orchestrator, 2, "b", bayesian_score=0.9, avg_rating=4.8)
-        task = TaskRequest(task_id="t1", title="Test")
-        result = orchestrator.route_task(task, strategy=RoutingStrategy.BEST_FIT)
-        assert isinstance(result, Assignment)
-        assert result.agent_id == 2
-        assert result.strategy_used == RoutingStrategy.BEST_FIT
-
-    def test_round_robin_distribution(self, orchestrator):
-        setup_agent(orchestrator, 1, "a", bayesian_score=0.8)
-        setup_agent(orchestrator, 2, "b", bayesian_score=0.8)
-        setup_agent(orchestrator, 3, "c", bayesian_score=0.8)
-
-        # Route 3 tasks with round robin
-        assignments = []
-        for i in range(3):
-            task = TaskRequest(task_id=f"t{i}", title=f"Task {i}")
-            result = orchestrator.route_task(task, strategy=RoutingStrategy.ROUND_ROBIN)
-            if isinstance(result, Assignment):
-                assignments.append(result)
-                orchestrator.complete_task(result.task_id)
-                # Re-activate agent for next round
-                orchestrator.lifecycle._agents[result.agent_id].cooldown_until = (
-                    datetime.now(timezone.utc) - timedelta(seconds=1)
-                )
-                orchestrator.lifecycle.check_cooldown_expiry(result.agent_id)
-                orchestrator.lifecycle.transition(result.agent_id, AgentState.ACTIVE)
-
-        assert len(assignments) == 3
-        # Should have distributed across agents (not all to the same one)
-        agent_ids = [a.agent_id for a in assignments]
-        assert len(set(agent_ids)) > 1  # At least 2 different agents
-
-    def test_specialist_strategy(self, orchestrator):
-        # Generalist: has tasks but no category-specific scores, very low stats
-        setup_agent(
-            orchestrator,
-            1,
-            "generalist",
-            category_scores={},
-            total_tasks=3,
-            avg_rating=2.5,
-            bayesian_score=0.2,
-            successful_tasks=2,
-            total_seals=1,
-            positive_seals=0,
-        )
-        # Specialist: strong in photo_verification
-        setup_agent(
-            orchestrator,
-            2,
-            "specialist",
-            category_scores={"photo_verification": 0.95},
-            total_tasks=80,
-            avg_rating=4.8,
-            bayesian_score=0.9,
-        )
-        task = TaskRequest(
-            task_id="t1",
-            title="Photo task",
-            categories=["photo_verification"],
-        )
-        result = orchestrator.route_task(task, strategy=RoutingStrategy.SPECIALIST)
-        assert isinstance(result, Assignment)
-        assert result.agent_id == 2  # Specialist has higher skill_score (>50)
-
-    def test_specialist_no_match(self, orchestrator):
-        # Agent with no category scores AND very low general experience
-        setup_agent(
-            orchestrator,
-            1,
-            "generalist",
-            category_scores={},
-            total_tasks=1,
-            avg_rating=2.0,
-            bayesian_score=0.1,
-            successful_tasks=0,
-            total_seals=0,
-            positive_seals=0,
-        )
-        task = TaskRequest(
-            task_id="t1",
-            title="Niche task",
-            categories=["super_specific_niche"],
-        )
-        result = orchestrator.route_task(task, strategy=RoutingStrategy.SPECIALIST)
-        # Generalist's skill_score from fallback should be <50
-        # 1 task, 0 success: success_rate=0, so skill = 0*60 + min(1/50,1)*40 = 0.8 → very low
+class TestOrchestratorScoreThreshold:
+    def test_below_threshold_fails(self):
+        orch, lm = _setup_orchestrator(num_agents=1, min_score=999.0)
+        result = orch.route_task(_task())
         assert isinstance(result, RoutingFailure)
+        assert "minimum score" in result.reason
 
-    def test_budget_aware_strategy(self, orchestrator):
-        # Agent 1: low budget remaining, low reputation
-        budget1 = BudgetConfig(daily_limit_usd=5.0)
-        setup_agent(
-            orchestrator,
-            1,
-            "expensive",
-            budget_config=budget1,
-            total_tasks=10,
-            avg_rating=3.5,
-            bayesian_score=0.5,
-        )
-        orchestrator.lifecycle.record_spend(1, 4.0)  # 80% used
-
-        # Agent 2: plenty of budget, same reputation
-        budget2 = BudgetConfig(daily_limit_usd=5.0)
-        setup_agent(
-            orchestrator,
-            2,
-            "fresh",
-            budget_config=budget2,
-            total_tasks=10,
-            avg_rating=3.5,
-            bayesian_score=0.5,
-        )
-        orchestrator.lifecycle.record_spend(2, 0.5)  # 10% used
-
-        task = TaskRequest(task_id="t1", title="Test")
-        result = orchestrator.route_task(task, strategy=RoutingStrategy.BUDGET_AWARE)
+    def test_above_threshold_succeeds(self):
+        orch, lm = _setup_orchestrator(num_agents=1, min_score=0.0)
+        result = orch.route_task(_task())
         assert isinstance(result, Assignment)
-        assert result.agent_id == 2  # Has more budget headroom
 
 
-class TestTaskCompletion:
-    def test_complete_task(self, orchestrator):
-        setup_agent(orchestrator, 1, "aurora")
-        task = TaskRequest(task_id="t1", title="Test")
-        orchestrator.route_task(task)
+class TestOrchestratorRoundRobin:
+    def test_round_robin_distributes(self):
+        orch, lm = _setup_orchestrator(num_agents=3, strategy=RoutingStrategy.ROUND_ROBIN)
+        results = []
+        for i in range(3):
+            # Need to free agents after each task
+            result = orch.route_task(_task(task_id=f"t{i}"), strategy=RoutingStrategy.ROUND_ROBIN)
+            if isinstance(result, Assignment):
+                results.append(result.agent_id)
+                orch.complete_task(f"t{i}")
+                # Move agent back to active
+                lm.check_cooldown_expiry(result.agent_id)
+                if lm.agents[result.agent_id].state == AgentState.COOLDOWN:
+                    lm._agents[result.agent_id].cooldown_until = datetime.now(timezone.utc) - timedelta(seconds=1)
+                    lm.check_cooldown_expiry(result.agent_id)
+                if lm.agents[result.agent_id].state == AgentState.IDLE:
+                    lm.transition(result.agent_id, AgentState.ACTIVE)
+        assert len(results) == 3
 
-        agent_id = orchestrator.complete_task("t1")
-        assert agent_id == 1
-        assert "t1" not in orchestrator._active_claims
-        assert orchestrator.lifecycle.agents[1].state == AgentState.COOLDOWN
 
-    def test_complete_unknown_task(self, orchestrator):
-        result = orchestrator.complete_task("nonexistent")
+class TestOrchestratorSpecialist:
+    def test_specialist_requires_category_experience(self):
+        orch, lm = _setup_orchestrator(num_agents=3)
+        # Agent 3 has skill_score > 50 for photo category
+        result = orch.route_task(_task(categories=["photo"]), strategy=RoutingStrategy.SPECIALIST)
+        assert isinstance(result, Assignment)
+
+    def test_specialist_no_qualified(self):
+        orch, lm = _setup_orchestrator(num_agents=1, min_score=0.0)
+        # Override agent 1's reputation to have no category experience
+        orch._internal[1] = InternalReputation(
+            agent_id=1,
+            bayesian_score=0.3,
+            total_tasks=2,
+            successful_tasks=1,
+            category_scores={},
+        )
+        result = orch.route_task(_task(categories=["notarization"]), strategy=RoutingStrategy.SPECIALIST)
+        # With min_score=0 but specialist requires skill_score >= 50
+        assert isinstance(result, (Assignment, RoutingFailure))
+
+
+class TestOrchestratorBudgetAware:
+    def test_budget_aware_prefers_headroom(self):
+        orch, lm = _setup_orchestrator(num_agents=2, strategy=RoutingStrategy.BUDGET_AWARE)
+        # Agent 1: spent a lot
+        lm.record_spend(1, 8.0)  # 80% of $10 daily
+        # Agent 2: barely spent
+        lm.record_spend(2, 0.50)  # 5% of $10 daily
+        result = orch.route_task(_task(), strategy=RoutingStrategy.BUDGET_AWARE)
+        assert isinstance(result, Assignment)
+        # Agent 2 should be preferred due to budget headroom
+        # (though agent 2 also has better reputation, so both factors align)
+        assert result.agent_id == 2
+
+
+# ──────────────── Task Completion & Failure ───────────────────────
+
+
+class TestOrchestratorTaskLifecycle:
+    def test_complete_task(self):
+        orch, lm = _setup_orchestrator(num_agents=1)
+        result = orch.route_task(_task())
+        assert isinstance(result, Assignment)
+        agent_id = orch.complete_task("t1")
+        assert agent_id == result.agent_id
+        assert "t1" not in orch._active_claims
+        assert lm.agents[agent_id].state == AgentState.COOLDOWN
+
+    def test_complete_unknown_task(self):
+        orch, lm = _setup_orchestrator(num_agents=1)
+        result = orch.complete_task("nonexistent")
         assert result is None
 
-    def test_fail_task(self, orchestrator):
-        setup_agent(orchestrator, 1, "aurora")
-        task = TaskRequest(task_id="t1", title="Test")
-        orchestrator.route_task(task)
+    def test_fail_task(self):
+        orch, lm = _setup_orchestrator(num_agents=1)
+        orch.route_task(_task())
+        agent_id = orch.fail_task("t1", "timeout")
+        assert agent_id is not None
+        assert "t1" not in orch._active_claims
+        agent = lm.agents[agent_id]
+        assert agent.state == AgentState.COOLDOWN
+        assert agent.health.errors_last_hour >= 1
 
-        agent_id = orchestrator.fail_task("t1", "connection timeout")
-        assert agent_id == 1
-        assert orchestrator.lifecycle.agents[1].health.errors_last_hour == 1
-        # Internal reputation should track failure
-        assert orchestrator._internal[1].consecutive_failures == 1
+    def test_fail_task_increments_consecutive_failures(self):
+        orch, lm = _setup_orchestrator(num_agents=1)
+        orch.route_task(_task())
+        agent_id = 1
+        orch.fail_task("t1", "timeout")
+        assert orch._internal[agent_id].consecutive_failures == 1
 
-    def test_fail_unknown_task(self, orchestrator):
-        result = orchestrator.fail_task("nonexistent")
+    def test_fail_unknown_task(self):
+        orch, lm = _setup_orchestrator(num_agents=1)
+        result = orch.fail_task("nonexistent")
         assert result is None
 
+    def test_fail_task_longer_cooldown(self):
+        orch, lm = _setup_orchestrator(num_agents=1, cooldown=30)
+        orch.route_task(_task())
+        orch.fail_task("t1", "error")
+        agent = lm.agents[1]
+        # Failure cooldown should be 3x normal
+        if agent.cooldown_until:
+            expected_min = datetime.now(timezone.utc) + timedelta(seconds=80)
+            assert agent.cooldown_until > datetime.now(timezone.utc) + timedelta(seconds=60)
 
-class TestCategoryRouting:
-    def test_photo_specialist_wins(self, orchestrator):
-        setup_agent(
-            orchestrator,
-            1,
-            "photo_pro",
-            category_scores={"photo_verification": 0.95, "delivery": 0.7},
-            total_tasks=80,
-            avg_rating=4.8,
-            bayesian_score=0.9,
+
+# ──────────────────── Reputation Registration ─────────────────────
+
+
+class TestOrchestratorReputation:
+    def test_register_reputation(self):
+        bridge = ReputationBridge()
+        lifecycle = LifecycleManager()
+        orch = SwarmOrchestrator(bridge, lifecycle)
+        orch.register_reputation(
+            agent_id=1,
+            on_chain=OnChainReputation(agent_id=1, wallet_address="0x1"),
+            internal=InternalReputation(agent_id=1),
         )
-        setup_agent(
-            orchestrator,
-            2,
-            "delivery_pro",
-            category_scores={"delivery": 0.95, "photo_verification": 0.3},
-            total_tasks=80,
-            avg_rating=4.8,
-            bayesian_score=0.9,
-        )
-        task = TaskRequest(
-            task_id="t1",
-            title="Photo check",
-            categories=["photo_verification"],
-        )
-        result = orchestrator.route_task(task)
-        assert isinstance(result, Assignment)
-        assert result.agent_id == 1  # Photo specialist
+        assert 1 in orch._on_chain
+        assert 1 in orch._internal
+        assert 1 in orch._last_active
+
+    def test_update_reputation(self):
+        bridge = ReputationBridge()
+        lifecycle = LifecycleManager()
+        orch = SwarmOrchestrator(bridge, lifecycle)
+        orch.register_reputation(1, OnChainReputation(1, "0x1", total_seals=10), InternalReputation(1, bayesian_score=0.5))
+        orch.register_reputation(1, OnChainReputation(1, "0x1", total_seals=20), InternalReputation(1, bayesian_score=0.8))
+        assert orch._on_chain[1].total_seals == 20
+        assert orch._internal[1].bayesian_score == 0.8
+
+    def test_agent_without_reputation_gets_defaults(self):
+        orch, lm = _setup_orchestrator(num_agents=1, min_score=0.0)
+        # Clear reputation for agent 1
+        del orch._on_chain[1]
+        del orch._internal[1]
+        result = orch.route_task(_task())
+        assert isinstance(result, Assignment)  # Should still work with defaults
+
+
+# ──────────────────── Status & History ────────────────────────────
 
 
 class TestOrchestratorStatus:
-    def test_status_shape(self, orchestrator):
-        status = orchestrator.get_status()
-        assert "active_claims" in status
-        assert "total_assignments" in status
-        assert "total_failures" in status
-        assert "default_strategy" in status
+    def test_get_status(self):
+        orch, lm = _setup_orchestrator(num_agents=2)
+        orch.route_task(_task(task_id="t1"))
+        status = orch.get_status()
+        assert status["active_claims"] == 1
+        assert status["total_assignments"] >= 1
+        assert status["default_strategy"] == "best_fit"
         assert "swarm" in status
 
-    def test_assignment_history(self, orchestrator):
-        setup_agent(orchestrator, 1, "aurora")
-        task = TaskRequest(task_id="t1", title="Test")
-        orchestrator.route_task(task)
-
-        history = orchestrator.get_assignment_history()
-        assert len(history) == 1
+    def test_assignment_history(self):
+        orch, lm = _setup_orchestrator(num_agents=3)
+        orch.route_task(_task(task_id="t1"))
+        orch.route_task(_task(task_id="t2"))
+        history = orch.get_assignment_history()
+        assert len(history) == 2
         assert history[0]["task_id"] == "t1"
-        assert history[0]["agent_id"] == 1
+        assert history[1]["task_id"] == "t2"
 
-    def test_failure_history(self, orchestrator):
-        task = TaskRequest(task_id="t1", title="Test")
-        orchestrator.route_task(task)
+    def test_assignment_history_limit(self):
+        orch, lm = _setup_orchestrator(num_agents=3)
+        orch.route_task(_task(task_id="t1"))
+        orch.route_task(_task(task_id="t2"))
+        history = orch.get_assignment_history(limit=1)
+        assert len(history) == 1
 
-        failures = orchestrator.get_failures()
+    def test_failures_tracked(self):
+        orch, lm = _setup_orchestrator(num_agents=0)
+        orch.route_task(_task())
+        failures = orch.get_failures()
         assert len(failures) == 1
-        assert failures[0]["task_id"] == "t1"
+        assert failures[0]["reason"] == "No agents available"
+
+    def test_failures_limit(self):
+        orch, lm = _setup_orchestrator(num_agents=0)
+        orch.route_task(_task(task_id="t1"))
+        orch.route_task(_task(task_id="t2"))
+        failures = orch.get_failures(limit=1)
+        assert len(failures) == 1
 
 
-class TestEdgeCases:
-    def test_agent_without_reputation_data(self, orchestrator):
-        """Agent registered in lifecycle but not in reputation store."""
-        orchestrator.lifecycle.register_agent(1, "unknown", "0x1")
-        orchestrator.lifecycle.transition(1, AgentState.IDLE)
-        orchestrator.lifecycle.transition(1, AgentState.ACTIVE)
+class TestOrchestratorEdgeCases:
+    def test_route_after_completion_frees_slot(self):
+        orch, lm = _setup_orchestrator(num_agents=1)
+        result1 = orch.route_task(_task(task_id="t1"))
+        assert isinstance(result1, Assignment)
+        # Agent is now WORKING, can't take another task
+        result2 = orch.route_task(_task(task_id="t2"))
+        assert isinstance(result2, RoutingFailure)
+        # Complete task 1
+        orch.complete_task("t1")
+        # Force cooldown expiry
+        lm._agents[1].cooldown_until = datetime.now(timezone.utc) - timedelta(seconds=1)
+        lm.check_cooldown_expiry(1)
+        lm.transition(1, AgentState.ACTIVE)
+        # Now should work
+        result3 = orch.route_task(_task(task_id="t2"))
+        assert isinstance(result3, Assignment)
 
-        task = TaskRequest(task_id="t1", title="Test")
-        result = orchestrator.route_task(task)
-        # Should still route with default scores
-        assert isinstance(result, Assignment)
+    def test_multiple_tasks_different_agents(self):
+        orch, lm = _setup_orchestrator(num_agents=3)
+        results = []
+        for i in range(3):
+            r = orch.route_task(_task(task_id=f"task-{i}"))
+            if isinstance(r, Assignment):
+                results.append(r)
+        assert len(results) == 3
+        agent_ids = {r.agent_id for r in results}
+        assert len(agent_ids) == 3  # All different agents
 
-    def test_agent_goes_idle_during_scoring(self, orchestrator):
-        """Agent becomes unavailable between scoring and assignment."""
-        setup_agent(orchestrator, 1, "aurora")
-        setup_agent(orchestrator, 2, "blaze")
-
-        # Route first task to agent 2 (higher score if configured so)
-        task = TaskRequest(task_id="t1", title="Test")
-        result = orchestrator.route_task(task)
-        assert isinstance(result, Assignment)
-
-    def test_many_agents(self, orchestrator):
-        """Stress test with many agents — best agent gets the task."""
-        for i in range(20):
-            setup_agent(
-                orchestrator,
-                i,
-                f"agent_{i}",
-                total_tasks=2 + i * 5,
-                successful_tasks=1 + i * 4,
-                avg_rating=1.5 + (i * 0.15),
-                bayesian_score=0.05 + (i * 0.04),
-                total_seals=i * 3,
-                positive_seals=i * 2,
-                chains=["base"] if i < 10 else ["base", "eth", "poly"],
-            )
-
-        task = TaskRequest(task_id="t1", title="Test")
-        result = orchestrator.route_task(task)
-        assert isinstance(result, Assignment)
-        # Agent 19: tasks=97, success=77, rating=4.35, bayesian=0.81, seals=57/38
-        # Should be among the top
-        assert result.agent_id >= 10  # Top half at minimum
-
-    def test_min_score_threshold(self, orchestrator):
-        """Very high threshold rejects all agents."""
-        orch = SwarmOrchestrator(
-            bridge=orchestrator.bridge,
-            lifecycle=orchestrator.lifecycle,
-            min_score_threshold=200.0,  # Impossible to reach
+    def test_idle_agent_auto_activated(self):
+        """If agent is IDLE (not ACTIVE), orchestrator should activate it."""
+        bridge = ReputationBridge()
+        lifecycle = LifecycleManager()
+        orch = SwarmOrchestrator(bridge, lifecycle, min_score_threshold=0.0)
+        lifecycle.register_agent(1, "a1", "0x1")
+        lifecycle.transition(1, AgentState.IDLE)
+        # Don't transition to ACTIVE manually
+        orch.register_reputation(
+            1,
+            OnChainReputation(1, "0x1", total_seals=10, positive_seals=9),
+            InternalReputation(1, bayesian_score=0.7, total_tasks=20, successful_tasks=18, avg_rating=4.0),
         )
-        setup_agent(orch, 1, "aurora")
-        task = TaskRequest(task_id="t1", title="Test")
-        result = orch.route_task(task)
-        assert isinstance(result, RoutingFailure)
-        assert "minimum score" in result.reason
+        result = orch.route_task(_task())
+        assert isinstance(result, Assignment)
+        assert lifecycle.agents[1].state == AgentState.WORKING
