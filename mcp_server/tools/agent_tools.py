@@ -583,6 +583,109 @@ def register_agent_tools(mcp, db):
 
             task_data = result["task"]
             executor = result["executor"]
+            worker_wallet = executor.get("wallet_address")
+
+            # ── Escrow lock at assignment (ADR-001) ──────────────
+            # Mirror the REST endpoint logic: if a stored pre-auth exists
+            # (Mode B / lock_on_assignment), execute it now via Facilitator.
+            escrow_section = ""
+            try:
+                from api.routers._helpers import get_payment_dispatcher
+
+                dispatcher = get_payment_dispatcher()
+            except ImportError:
+                dispatcher = None
+
+            if worker_wallet and dispatcher:
+                try:
+                    esc_row = (
+                        client.table("escrows")
+                        .select("metadata")
+                        .eq("task_id", params.task_id)
+                        .eq("status", "pending_assignment")
+                        .limit(1)
+                        .execute()
+                    )
+                    if esc_row.data:
+                        esc_meta = esc_row.data[0].get("metadata") or {}
+                        stored_preauth = esc_meta.get("preauth_signature")
+                        if stored_preauth:
+                            network = task_data.get("payment_network") or esc_meta.get(
+                                "network", "base"
+                            )
+                            lock_result = (
+                                await dispatcher.relay_agent_auth_to_facilitator(
+                                    json.loads(stored_preauth),
+                                    worker_address=worker_wallet,
+                                    network=network,
+                                )
+                            )
+                            if lock_result.get("success"):
+                                escrow_tx = lock_result.get("tx_hash", "")
+                                # Update escrow record
+                                client.table("escrows").update(
+                                    {
+                                        "status": "deposited",
+                                        "funding_tx": escrow_tx,
+                                        "metadata": {
+                                            **esc_meta,
+                                            "escrow_timing": "lock_on_assignment",
+                                            "worker_address": worker_wallet,
+                                            "lock_tx": escrow_tx,
+                                        },
+                                    }
+                                ).eq("task_id", params.task_id).execute()
+                                await db.update_task(
+                                    params.task_id, {"escrow_tx": escrow_tx}
+                                )
+                                escrow_section = f"""
+## Escrow
+- **Status**: DEPOSITED (locked on-chain)
+- **TX**: `{escrow_tx}`
+- **Network**: {network}
+- **Agent-Signed**: Yes"""
+                                logger.info(
+                                    "Agent-signed pre-auth executed at assignment: "
+                                    "task=%s, worker=%s, tx=%s",
+                                    params.task_id,
+                                    worker_wallet[:10] + "...",
+                                    escrow_tx,
+                                )
+                            else:
+                                # Lock failed — rollback assignment
+                                escrow_error = lock_result.get("error", "Lock failed")
+                                logger.error(
+                                    "Agent-signed pre-auth lock failed: "
+                                    "task=%s, error=%s",
+                                    params.task_id,
+                                    escrow_error,
+                                )
+                                try:
+                                    await db.update_task(
+                                        params.task_id,
+                                        {
+                                            "status": "published",
+                                            "executor_id": None,
+                                            "assigned_at": None,
+                                        },
+                                    )
+                                except Exception:
+                                    pass
+                                return f"""# Escrow Lock Failed
+
+**Task**: {task_data["title"]}
+**Task ID**: `{params.task_id}`
+**Error**: {escrow_error}
+
+The assignment has been rolled back. Task remains **PUBLISHED**.
+
+Check your wallet balance and pre-authorization, then try again."""
+                except Exception as e:
+                    logger.debug(
+                        "No agent pre-auth to execute for task %s: %s",
+                        params.task_id,
+                        e,
+                    )
 
             # Format response
             response = f"""# Task Assigned Successfully
@@ -601,6 +704,7 @@ def register_agent_tools(mcp, db):
 - **Assigned At**: {format_datetime(datetime.now(timezone.utc).isoformat())}
 {f"- **Notes**: {params.notes}" if params.notes else ""}
 {"- **Worker Notified**: Yes" if params.notify_worker else "- **Worker Notified**: No"}
+{escrow_section}
 
 Use `em_check_submission` to monitor for submitted work."""
 
