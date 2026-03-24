@@ -279,10 +279,10 @@ async def test_submit_work_allows_funded_escrow(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_assign_task_rejects_without_escrow(monkeypatch):
+async def test_assign_task_warns_without_escrow(monkeypatch):
     """
-    In fase2 mode, assign_task() must reject if no escrow record is found
-    for the task.
+    In fase2 mode, assign_task() allows assignment when no escrow record
+    exists (warns, doesn't block). The caller handles escrow lock after.
     """
     monkeypatch.setenv("EM_PAYMENT_MODE", "fase2")
 
@@ -323,18 +323,42 @@ async def test_assign_task_rejects_without_escrow(monkeypatch):
         {"executors": executor_chain, "escrows": escrow_chain},
     )
 
+    # Mock update_task for the actual assignment
+    update_result = MagicMock()
+    update_result.data = [{**task, "status": "accepted", "executor_id": executor_id}]
+    update_chain = MagicMock()
+    update_chain.update.return_value = update_chain
+    update_chain.eq.return_value = update_chain
+    update_chain.execute.return_value = update_result
+
+    # Add tasks table to router for update_task
+    _mock_table_router(
+        mock_client,
+        {
+            "executors": executor_chain,
+            "escrows": escrow_chain,
+            "tasks": update_chain,
+        },
+    )
+
     with (
         patch("supabase_client.get_client", return_value=mock_client),
         patch("supabase_client.get_task", new_callable=AsyncMock, return_value=task),
+        patch(
+            "supabase_client.update_task",
+            new_callable=AsyncMock,
+            return_value={**task, "status": "accepted", "executor_id": executor_id},
+        ),
     ):
         from supabase_client import assign_task
 
-        with pytest.raises(Exception, match="no escrow record found"):
-            await assign_task(
-                task_id=task_id,
-                agent_id=agent_id,
-                executor_id=executor_id,
-            )
+        # Should succeed (no longer raises) — caller handles escrow lock
+        result = await assign_task(
+            task_id=task_id,
+            agent_id=agent_id,
+            executor_id=executor_id,
+        )
+        assert result["task"]["status"] == "accepted"
 
 
 # =============================================================================
