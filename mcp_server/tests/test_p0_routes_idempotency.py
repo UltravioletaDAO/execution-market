@@ -31,6 +31,7 @@ class _FakeEscrowsTable:
         self.status = status
         self.escrow_id = escrow_id
         self.last_update = None
+        self._use_list = False
 
     def select(self, *_args, **_kwargs):
         return self
@@ -39,6 +40,11 @@ class _FakeEscrowsTable:
         return self
 
     def single(self):
+        self._use_list = False
+        return self
+
+    def limit(self, *_args, **_kwargs):
+        self._use_list = True
         return self
 
     def update(self, payload):
@@ -46,9 +52,11 @@ class _FakeEscrowsTable:
         return self
 
     def execute(self):
-        return SimpleNamespace(
-            data={"status": self.status, "escrow_id": self.escrow_id}
-        )
+        row = {"status": self.status, "escrow_id": self.escrow_id}
+        if self._use_list:
+            self._use_list = False
+            return SimpleNamespace(data=[row])
+        return SimpleNamespace(data=row)
 
 
 class _FakePaymentsTable:
@@ -276,6 +284,9 @@ async def test_approve_submission_requires_tx_before_marking_accepted(monkeypatc
         "get_submission",
         AsyncMock(return_value=submission_payload),
     )
+    # Mock escrow lookup so guard passes (escrow in releasable state)
+    fake_client = _FakeClient(escrow_status="deposited")
+    monkeypatch.setattr(routes.db, "get_client", lambda: fake_client)
     monkeypatch.setattr(
         routes,
         "_settle_submission_payment",
@@ -1128,6 +1139,9 @@ async def test_side_effect_failure_never_flips_approval_success(monkeypatch):
             }
         ),
     )
+    # Mock escrow lookup so guard passes (escrow in releasable state)
+    fake_client = _FakeClient(escrow_status="locked")
+    monkeypatch.setattr(routes.db, "get_client", lambda: fake_client)
     monkeypatch.setattr(
         routes,
         "_settle_submission_payment",
@@ -1236,6 +1250,9 @@ async def test_feature_flags_disable_side_effects(monkeypatch):
             }
         ),
     )
+    # Mock escrow lookup so guard passes (escrow in releasable state)
+    fake_client = _FakeClient(escrow_status="funded")
+    monkeypatch.setattr(routes.db, "get_client", lambda: fake_client)
     monkeypatch.setattr(
         routes,
         "_settle_submission_payment",
