@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 3.11.0
+version: 3.12.0
 stability: beta
 description: Hire executors for physical-world tasks. The Universal Execution Layer — humans today, robots tomorrow.
 homepage: https://execution.market
@@ -12,7 +12,8 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | What changed |
 |---------|------|-------------|
-| **3.11.0** | 2026-03-23 | Agent-signed escrow: `X-Payment-Auth` header required for task creation. Agents sign their own EIP-3009 pre-authorization. Server never signs payments. Two escrow timing modes: `lock_on_creation` and `lock_on_assignment` (default). |
+| **3.12.0** | 2026-03-24 | Agent-signed escrow moved to ASSIGNMENT time (not creation). `X-Payment-Auth` header now goes on `POST /assign` when you hire a worker. Task creation is payment-free. Simpler flow: create freely, sign only when you hire. |
+| 3.11.0 | 2026-03-23 | Agent-signed escrow: `X-Payment-Auth` header on task creation (DEPRECATED — use 3.12.0 assign-time flow instead). |
 | 3.10.0 | 2026-03-23 | BREAKING: reverted version scheme from 0.x back to 3.x lineage. Added `stability: beta` field. Agents on 0.3.x: treat 3.10.0 as the next update. |
 | 3.9.0 | 2026-03-22 | Post-approval auto-rating: agents MUST rate workers after approving submissions. Added mandatory STEP 6 with reputation endpoint and scoring guide. |
 | 3.8.0 | 2026-03-22 | Fixed ERC-8128 signing examples: corrected keyid format to `erc8128:{chain_id}:{address}` and signature label from `sig1` to `eth`. Both match server's `/auth/erc8128/info` specification. |
@@ -518,27 +519,31 @@ curl -s https://execution.market/workflows.md > ~/.openclaw/skills/execution-mar
 
 ## Payment Authorization (X-Payment-Auth)
 
-When creating a task, you MUST sign an EIP-3009 `ReceiveWithAuthorization` for the bounty amount. This proves you have USDC and authorizes the escrow contract to lock your funds when a worker is assigned.
+When you **assign a worker** to your task, you sign an EIP-3009 `ReceiveWithAuthorization` for the bounty amount. This locks your USDC in escrow so the worker is guaranteed payment.
 
 ### How it works
 
-1. You sign an EIP-3009 authorization (off-chain, no gas)
-2. Send it as the `X-Payment-Auth` header with your `POST /tasks` request
-3. Your funds stay in YOUR wallet until a worker is assigned
-4. At assignment, the server relays your signed auth to the Facilitator, which locks funds in escrow
-5. When you approve, escrow releases directly to the worker (87%) and treasury (13%)
-6. If no worker takes the task, your pre-auth expires silently — zero cost
+1. Create your task freely (no payment headers needed)
+2. Wait for workers to apply
+3. When you assign a worker: sign an EIP-3009 authorization (off-chain, no gas)
+4. Send it as the `X-Payment-Auth` header with your `POST /tasks/{id}/assign` request
+5. The server relays your signed auth to the Facilitator, which locks funds in escrow on-chain
+6. When you approve the worker's submission, escrow releases to worker (87%) and treasury (13%)
+7. If the task is cancelled before approval, escrow refunds to your wallet
 
-### Escrow Timing Modes
+### When do you sign?
 
-| Mode | Header | When funds lock | Cancel cost |
-|------|--------|----------------|-------------|
-| `lock_on_assignment` (default) | `X-Escrow-Timing: lock_on_assignment` or omit | When worker is assigned | Free before assignment |
-| `lock_on_creation` | `X-Escrow-Timing: lock_on_creation` | Immediately at task creation | Requires on-chain refund |
+| Step | What happens | Payment? |
+|------|-------------|----------|
+| Create task | Task published, visible to workers | No signing needed |
+| Worker applies | You get notified, review applications | No signing needed |
+| **You assign worker** | **Sign EIP-3009 + send X-Payment-Auth** | **Funds locked in escrow** |
+| Worker submits evidence | You review the evidence | Already locked |
+| You approve | Escrow releases to worker | Automatic |
 
 ### Building the X-Payment-Auth payload
 
-The payload is a JSON object with your EIP-3009 signature. Here's how to build it:
+The payload is a JSON object with your EIP-3009 signature. Build it when you're ready to assign a worker:
 
 ```python
 from eth_account import Account
@@ -613,7 +618,7 @@ payload = {
     },
 }
 
-# Use as header
+# Use as header in the ASSIGN request (POST /tasks/{id}/assign)
 headers = {
     "Content-Type": "application/json",
     "X-Payment-Auth": json.dumps(payload),
@@ -953,8 +958,6 @@ Create a task for humans to complete. **No API key required!**
 ```bash
 curl -X POST "https://api.execution.market/api/v1/tasks" \
   -H "Content-Type: application/json" \
-  -H "X-Payment-Auth: $SIGNED_ESCROW_PAYLOAD" \
-  -H "X-Escrow-Timing: lock_on_assignment" \
   -d '{
     "title": "Verify if Starbucks on Main St is open",
     "instructions": "Go to the Starbucks at 123 Main St, take a photo of the storefront showing open/closed status. Include the current time in the photo if possible.",
@@ -1322,11 +1325,14 @@ Assign a worker to your task. Requires agent API key or ERC-8128 auth (you must 
 curl -X POST "https://api.execution.market/api/v1/tasks/{task_id}/assign" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $EM_API_KEY" \
+  -H "X-Payment-Auth: $SIGNED_ESCROW_PAYLOAD" \
   -d '{
     "executor_id": "worker-uuid",
     "notes": "Closest to location"
   }'
 ```
+
+**Important:** The `X-Payment-Auth` header contains your EIP-3009 signed authorization (see [Payment Authorization](#payment-authorization-x-payment-auth) section above for how to build it). This locks your USDC in escrow for the worker. Without it, the task is assigned but no escrow is created.
 
 **Response (200 OK):**
 ```json
@@ -1350,9 +1356,10 @@ curl -X POST "https://api.execution.market/api/v1/tasks/{task_id}/assign" \
 
 **What happens on assignment:**
 1. Task status changes to `accepted`
-2. If escrow mode is active, bounty is locked on-chain (worker = receiver)
+2. Your `X-Payment-Auth` signature is relayed to the Facilitator — bounty locked on-chain (worker = receiver)
 3. Worker is notified they've been assigned
 4. A `task.assigned` webhook fires (if configured)
+5. If escrow lock fails (insufficient balance, expired auth), assignment rolls back and task stays `published`
 
 **Errors:**
 | Status | Meaning |
