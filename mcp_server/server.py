@@ -905,14 +905,54 @@ async def em_check_submission(params: CheckSubmissionInput) -> str:
             return "Error: Not authorized to view submissions for this task"
 
         submissions = await db.get_submissions_for_task(params.task_id)
+        applications = await db.get_applications_for_task(params.task_id)
 
-        if not submissions:
+        if not submissions and not applications:
             return f"""# No Submissions Yet
 
 **Task**: {task["title"]}
 **Status**: {task["status"].upper()}
 
-No human has submitted evidence yet. The task is {"still available" if task["status"] == "published" else "being worked on" if task["status"] in ["accepted", "in_progress"] else "in status: " + task["status"]}."""
+No human has submitted evidence yet and no one has applied. The task is {"still available" if task["status"] == "published" else "being worked on" if task["status"] in ["accepted", "in_progress"] else "in status: " + task["status"]}."""
+
+        if not submissions and applications:
+            # Workers have applied but not yet submitted evidence
+            if params.response_format == ResponseFormat.JSON:
+                return json.dumps(
+                    {
+                        "task_id": params.task_id,
+                        "task_title": task["title"],
+                        "task_status": task["status"],
+                        "submission_count": 0,
+                        "submissions": [],
+                        "application_count": len(applications),
+                        "applications": applications,
+                    },
+                    indent=2,
+                    default=str,
+                )
+
+            lines = [
+                f"# Applications for: {task['title']}",
+                f"**Task Status**: {task['status'].upper()}",
+                f"**Applications**: {len(applications)} worker(s) applied",
+                "",
+                "No evidence submitted yet, but workers have applied:",
+                "",
+            ]
+            for app in applications:
+                status = app.get("status", "pending")
+                msg = app.get("message", "")
+                lines.append(
+                    f"- **Worker** {app.get('executor_id', 'unknown')} — status: {status}"
+                )
+                if msg:
+                    lines.append(f"  Message: {msg}")
+            lines.append("")
+            lines.append(
+                "Use the dashboard or API to assign a worker, then they can submit evidence."
+            )
+            return "\n".join(lines)
 
         if params.response_format == ResponseFormat.JSON:
             return json.dumps(
@@ -922,6 +962,8 @@ No human has submitted evidence yet. The task is {"still available" if task["sta
                     "task_status": task["status"],
                     "submission_count": len(submissions),
                     "submissions": submissions,
+                    "application_count": len(applications),
+                    "applications": applications,
                 },
                 indent=2,
                 default=str,
@@ -932,8 +974,10 @@ No human has submitted evidence yet. The task is {"still available" if task["sta
             f"# Submissions for: {task['title']}",
             f"**Task Status**: {task['status'].upper()}",
             f"**Total Submissions**: {len(submissions)}",
-            "",
         ]
+        if applications:
+            lines.append(f"**Applications**: {len(applications)}")
+        lines.append("")
 
         for sub in submissions:
             lines.append(format_submission_markdown(sub))

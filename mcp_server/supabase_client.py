@@ -340,6 +340,25 @@ async def cancel_task(task_id: str, agent_id: str) -> Dict[str, Any]:
     return await update_task(task_id, {"status": "cancelled"})
 
 
+# ============== APPLICATION OPERATIONS ==============
+
+
+async def get_applications_for_task(task_id: str) -> List[Dict[str, Any]]:
+    """Get all applications for a task from the task_applications table."""
+    client = get_client()
+    table = _resolve_applications_table(client)
+
+    result = (
+        client.table(table)
+        .select("id, task_id, executor_id, message, status, created_at")
+        .eq("task_id", task_id)
+        .order("created_at", desc=False)
+        .execute()
+    )
+
+    return result.data or []
+
+
 # ============== SUBMISSION OPERATIONS ==============
 
 
