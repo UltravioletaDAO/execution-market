@@ -250,8 +250,9 @@ AI Agent → MCP Server → Supabase → Dashboard → Human Worker
 
 - `em_publish_task` - Publish a new task for human execution
 - `em_get_tasks` - Get tasks with filters (agent, status, category)
-- `em_get_task` - Get details of a specific task
-- `em_check_submission` - Check submission status
+- `em_get_task` - Get details of a specific task (includes escrow status + application count)
+- `em_check_submission` - Check applications and submissions for a task
+- `em_assign_task` - Assign a task to a specific worker (triggers escrow lock)
 - `em_approve_submission` - Approve or reject a submission
 - `em_cancel_task` - Cancel a published task
 
