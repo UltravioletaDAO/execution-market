@@ -1460,11 +1460,42 @@ class PaymentDispatcher:
         payload.setdefault("x402Version", 2)
         payload.setdefault("scheme", "escrow")
 
+        # Log the outbound payload structure (without signature)
+        debug_payload = {
+            "x402Version": payload.get("x402Version"),
+            "scheme": payload.get("scheme"),
+            "payload.authorization.from": inner.get("authorization", {}).get("from"),
+            "payload.authorization.to": inner.get("authorization", {}).get("to"),
+            "payload.authorization.value": inner.get("authorization", {}).get("value"),
+            "payload.paymentInfo.operator": pi.get("operator"),
+            "payload.paymentInfo.receiver": pi.get("receiver"),
+            "payload.paymentInfo.token": pi.get("token"),
+            "payload.paymentInfo.maxAmount": pi.get("maxAmount"),
+            "paymentRequirements.scheme": pr.get("scheme"),
+            "paymentRequirements.network": pr.get("network"),
+            "paymentRequirements.payTo": pr.get("payTo"),
+            "paymentRequirements.extra.escrowAddress": pr.get("extra", {}).get(
+                "escrowAddress"
+            ),
+            "paymentRequirements.extra.operatorAddress": pr.get("extra", {}).get(
+                "operatorAddress"
+            ),
+            "paymentRequirements.extra.tokenCollector": pr.get("extra", {}).get(
+                "tokenCollector"
+            ),
+        }
+        logger.info("Relaying agent auth to facilitator: %s", debug_payload)
+
         try:
             async with httpx.AsyncClient(timeout=120) as client:
                 response = await client.post(
                     f"{FACILITATOR_URL}/settle",
                     json=payload,
+                )
+                logger.info(
+                    "Facilitator /settle response: status=%d, body=%s",
+                    response.status_code,
+                    response.text[:500],
                 )
                 result = response.json()
 
@@ -1486,12 +1517,15 @@ class PaymentDispatcher:
                 }
             else:
                 error = result.get(
-                    "error", result.get("message", "Facilitator rejected")
+                    "error",
+                    result.get("message", result.get("detail", "Facilitator rejected")),
                 )
                 logger.warning(
-                    "Agent-signed escrow lock failed: network=%s, error=%s",
+                    "Agent-signed escrow lock failed: network=%s, status=%d, error=%s, full_response=%s",
                     network,
+                    response.status_code,
                     error,
+                    response.text[:500],
                 )
                 return {
                     "success": False,
