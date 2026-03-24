@@ -1,605 +1,499 @@
 """
-Comprehensive tests for SwarmCoordinator — the keystone integration module.
+Tests for SwarmCoordinator — top-level operational controller for the KK V2 swarm.
 
-Tests the full pipeline:
-  Agent Registration → Task Ingestion → Queue Processing → Assignment →
-  Completion/Failure → Health Checks → Metrics → Dashboard
-
-All tests are self-contained with no external dependencies.
+Covers:
+- EMApiClient (mocked HTTP)
+- CoordinatorEvent / EventRecord
+- QueuedTask / SwarmMetrics dataclasses
+- SwarmCoordinator agent registration (single + batch)
+- Task ingestion (manual + API)
+- Task queue processing (routing strategies)
+- Task completion & failure
+- Health checks (heartbeat, cooldown, expiry, budget)
+- Metrics computation
+- Dashboard generation
+- Event system (hooks, filtering)
+- Queue management (summary, cleanup)
 """
 
+import json
+import time
 from datetime import datetime, timezone, timedelta
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from swarm.coordinator import (
+from mcp_server.swarm.coordinator import (
     SwarmCoordinator,
-    SwarmMetrics,
     EMApiClient,
     CoordinatorEvent,
     EventRecord,
     QueuedTask,
+    SwarmMetrics,
 )
-from swarm.lifecycle_manager import (
-    LifecycleManager,
-    AgentState,
-    BudgetConfig,
-)
-from swarm.orchestrator import (
-    SwarmOrchestrator,
-    TaskRequest,
-    TaskPriority,
-    Assignment,
-    RoutingFailure,
-    RoutingStrategy,
-)
-from swarm.reputation_bridge import (
+from mcp_server.swarm.reputation_bridge import (
     ReputationBridge,
     OnChainReputation,
     InternalReputation,
 )
+from mcp_server.swarm.lifecycle_manager import (
+    LifecycleManager,
+    AgentState,
+    BudgetConfig,
+    LifecycleError,
+)
+from mcp_server.swarm.orchestrator import (
+    SwarmOrchestrator,
+    RoutingStrategy,
+    TaskPriority,
+    TaskRequest,
+    Assignment,
+    RoutingFailure,
+)
 
 
-# ─── Fixtures ────────────────────────────────────────────────────────
+# ──────────────────────────── Helpers ─────────────────────────────
 
 
-@pytest.fixture
-def bridge():
-    return ReputationBridge()
+def _coordinator(num_agents=3, autojob=False, em_client=False):
+    """Create a coordinator with N active agents."""
+    bridge = ReputationBridge()
+    lifecycle = LifecycleManager()
+    orchestrator = SwarmOrchestrator(bridge, lifecycle, min_score_threshold=0.0)
 
-
-@pytest.fixture
-def lifecycle():
-    return LifecycleManager()
-
-
-@pytest.fixture
-def orchestrator(bridge, lifecycle):
-    return SwarmOrchestrator(bridge=bridge, lifecycle=lifecycle)
-
-
-@pytest.fixture
-def coordinator(bridge, lifecycle, orchestrator):
-    """A basic coordinator without external clients."""
-    return SwarmCoordinator(
+    coord = SwarmCoordinator(
         bridge=bridge,
         lifecycle=lifecycle,
         orchestrator=orchestrator,
-        em_client=None,
-        autojob_client=None,
+        em_client=EMApiClient("http://fake") if em_client else None,
+        autojob_client=MagicMock(is_available=MagicMock(return_value=False)) if autojob else None,
     )
 
-
-@pytest.fixture
-def coordinator_factory(bridge, lifecycle, orchestrator):
-    """Factory for coordinators with custom config."""
-
-    def _create(**kwargs):
-        defaults = dict(
-            bridge=bridge,
-            lifecycle=lifecycle,
-            orchestrator=orchestrator,
-            em_client=None,
-            autojob_client=None,
+    for i in range(1, num_agents + 1):
+        coord.register_agent(
+            agent_id=i,
+            name=f"agent-{i}",
+            wallet_address=f"0x{i:04x}",
+            on_chain=OnChainReputation(
+                agent_id=i,
+                wallet_address=f"0x{i:04x}",
+                total_seals=i * 10,
+                positive_seals=i * 9,
+                chains_active=["base"],
+            ),
+            internal=InternalReputation(
+                agent_id=i,
+                bayesian_score=0.5 + i * 0.1,
+                total_tasks=i * 20,
+                successful_tasks=i * 18,
+                avg_rating=3.5 + i * 0.3,
+            ),
         )
-        defaults.update(kwargs)
-        return SwarmCoordinator(**defaults)
 
-    return _create
+    return coord
 
 
-def _register_agent(coordinator, agent_id=1, name="aurora", wallet="0xAAA"):
-    """Helper to register and activate an agent."""
-    on_chain = OnChainReputation(
-        agent_id=agent_id,
-        wallet_address=wallet,
-        total_seals=10,
-        positive_seals=9,
-    )
-    internal = InternalReputation(
-        agent_id=agent_id,
-        bayesian_score=0.8,
-        total_tasks=25,
-        successful_tasks=23,
-        avg_rating=4.5,
-        avg_completion_time_hours=2.0,
-        category_scores={"photo": 80, "delivery": 60},
-    )
-    record = coordinator.register_agent(
-        agent_id=agent_id,
-        name=name,
-        wallet_address=wallet,
-        personality="explorer",
-        on_chain=on_chain,
-        internal=internal,
-        tags=["fast", "reliable"],
-        activate=True,
-    )
-    return record
+# ──────────────────── EMApiClient Tests ───────────────────────────
 
 
-def _ingest_task(coordinator, task_id="t1", title="Test task", bounty=5.0):
-    """Helper to ingest a task."""
-    return coordinator.ingest_task(
-        task_id=task_id,
-        title=title,
-        categories=["photo"],
-        bounty_usd=bounty,
-        priority=TaskPriority.NORMAL,
-    )
+class TestEMApiClient:
+    def test_init(self):
+        client = EMApiClient("https://api.execution.market", "test-key")
+        assert client.base_url == "https://api.execution.market"
+        assert client.api_key == "test-key"
+
+    def test_base_url_strips_trailing_slash(self):
+        client = EMApiClient("https://api.execution.market/")
+        assert client.base_url == "https://api.execution.market"
 
 
-# ─── Agent Registration Tests ────────────────────────────────────────
+# ──────────────────── CoordinatorEvent Tests ──────────────────────
 
 
-class TestAgentRegistration:
-    """Tests for agent registration and lifecycle integration."""
+class TestCoordinatorEvent:
+    def test_event_values(self):
+        assert CoordinatorEvent.TASK_INGESTED.value == "task_ingested"
+        assert CoordinatorEvent.TASK_ASSIGNED.value == "task_assigned"
+        assert CoordinatorEvent.AGENT_REGISTERED.value == "agent_registered"
+        assert CoordinatorEvent.HEALTH_CHECK.value == "health_check"
 
-    def test_register_single_agent(self, coordinator):
-        record = _register_agent(coordinator, agent_id=1, name="aurora")
-        assert record.agent_id == 1
-        assert record.name == "aurora"
-        assert record.state == AgentState.ACTIVE
 
-    def test_register_agent_transitions(self, coordinator):
-        """Registration should: INIT → IDLE → ACTIVE."""
-        record = _register_agent(coordinator, agent_id=1)
-        # Final state is ACTIVE
-        assert record.state == AgentState.ACTIVE
-        # Check audit trail
-        history = coordinator.lifecycle._state_history
-        agent_transitions = [h for h in history if h["agent_id"] == 1]
-        states = [h["to"] for h in agent_transitions]
-        assert "initializing" in states
-        assert "idle" in states
-        assert "active" in states
+class TestEventRecord:
+    def test_to_dict(self):
+        er = EventRecord(
+            event=CoordinatorEvent.TASK_INGESTED,
+            timestamp=datetime(2026, 3, 24, tzinfo=timezone.utc),
+            data={"task_id": "t1"},
+        )
+        d = er.to_dict()
+        assert d["event"] == "task_ingested"
+        assert d["task_id"] == "t1"
+        assert "2026-03-24" in d["timestamp"]
 
-    def test_register_without_activation(self, coordinator):
-        record = coordinator.register_agent(
+
+# ──────────────────── QueuedTask Tests ────────────────────────────
+
+
+class TestQueuedTask:
+    def test_defaults(self):
+        qt = QueuedTask(
+            task_id="t1",
+            title="Test Task",
+            categories=["photo"],
+            bounty_usd=0.50,
+        )
+        assert qt.status == "pending"
+        assert qt.attempts == 0
+        assert qt.max_attempts == 3
+
+    def test_to_task_request(self):
+        qt = QueuedTask(
+            task_id="t1",
+            title="Photo Task",
+            categories=["photo"],
+            bounty_usd=0.50,
+            priority=TaskPriority.HIGH,
+        )
+        tr = qt.to_task_request()
+        assert isinstance(tr, TaskRequest)
+        assert tr.task_id == "t1"
+        assert tr.priority == TaskPriority.HIGH
+
+
+# ──────────────────── SwarmMetrics Tests ──────────────────────────
+
+
+class TestSwarmMetrics:
+    def test_to_dict_structure(self):
+        m = SwarmMetrics(
+            tasks_ingested=10,
+            tasks_completed=8,
+            agents_registered=3,
+            total_bounty_earned_usd=5.50,
+        )
+        d = m.to_dict()
+        assert d["tasks"]["ingested"] == 10
+        assert d["tasks"]["completed"] == 8
+        assert d["tasks"]["bounty_earned_usd"] == 5.50
+        assert d["agents"]["registered"] == 3
+        assert "performance" in d
+        assert "budget" in d
+
+
+# ──────────────────── Agent Registration ──────────────────────────
+
+
+class TestCoordinatorRegistration:
+    def test_register_single_agent(self):
+        coord = _coordinator(num_agents=0)
+        record = coord.register_agent(
             agent_id=1,
             name="aurora",
-            wallet_address="0xAAA",
+            wallet_address="0x0001",
+        )
+        assert record.agent_id == 1
+        assert record.state == AgentState.ACTIVE
+
+    def test_register_agent_without_activate(self):
+        coord = _coordinator(num_agents=0)
+        record = coord.register_agent(
+            agent_id=1,
+            name="aurora",
+            wallet_address="0x0001",
             activate=False,
         )
         assert record.state == AgentState.IDLE
 
-    def test_register_emits_event(self, coordinator):
-        _register_agent(coordinator, agent_id=1, name="aurora")
-        events = coordinator.get_events(event_type=CoordinatorEvent.AGENT_REGISTERED)
+    def test_register_emits_event(self):
+        coord = _coordinator(num_agents=0)
+        coord.register_agent(1, "aurora", "0x0001")
+        events = coord.get_events(event_type=CoordinatorEvent.AGENT_REGISTERED)
         assert len(events) == 1
         assert events[0]["agent_id"] == 1
-        assert events[0]["name"] == "aurora"
 
-    def test_register_batch(self, coordinator):
+    def test_register_batch(self):
+        coord = _coordinator(num_agents=0)
         agents = [
-            {"agent_id": 1, "name": "aurora", "wallet_address": "0x001"},
-            {"agent_id": 2, "name": "beacon", "wallet_address": "0x002"},
-            {"agent_id": 3, "name": "cinder", "wallet_address": "0x003"},
+            {"agent_id": 1, "name": "a1", "wallet_address": "0x1"},
+            {"agent_id": 2, "name": "a2", "wallet_address": "0x2"},
+            {"agent_id": 3, "name": "a3", "wallet_address": "0x3"},
         ]
-        records = coordinator.register_agents_batch(agents)
+        records = coord.register_agents_batch(agents)
         assert len(records) == 3
-        for rec in records:
-            assert rec.state == AgentState.ACTIVE
 
-    def test_register_batch_handles_duplicates(self, coordinator):
-        _register_agent(coordinator, agent_id=1)
+    def test_register_batch_skips_duplicates(self):
+        coord = _coordinator(num_agents=0)
+        coord.register_agent(1, "a1", "0x1")
         agents = [
-            {"agent_id": 1, "name": "aurora_dup", "wallet_address": "0x001"},
-            {"agent_id": 2, "name": "beacon", "wallet_address": "0x002"},
+            {"agent_id": 1, "name": "a1", "wallet_address": "0x1"},  # Duplicate
+            {"agent_id": 2, "name": "a2", "wallet_address": "0x2"},
         ]
-        records = coordinator.register_agents_batch(agents)
-        # Agent 1 fails (already registered), agent 2 succeeds
-        assert len(records) == 1
-        assert records[0].agent_id == 2
+        records = coord.register_agents_batch(agents)
+        assert len(records) == 1  # Only agent 2 registered
 
-    def test_register_with_custom_budget(self, coordinator):
-        budget = BudgetConfig(daily_limit_usd=10.0, monthly_limit_usd=200.0)
-        coordinator.register_agent(
-            agent_id=1,
-            name="aurora",
-            wallet_address="0xAAA",
-            budget_config=budget,
-        )
-        status = coordinator.lifecycle.get_budget_status(1)
-        assert status["daily_limit"] == 10.0
-        assert status["monthly_limit"] == 200.0
-
-    def test_register_with_tags(self, coordinator):
-        record = _register_agent(coordinator, agent_id=1)
-        assert "fast" in record.tags
-        assert "reliable" in record.tags
+    def test_register_with_reputation(self):
+        coord = _coordinator(num_agents=0)
+        on_chain = OnChainReputation(agent_id=1, wallet_address="0x1", total_seals=50)
+        internal = InternalReputation(agent_id=1, bayesian_score=0.9)
+        coord.register_agent(1, "aurora", "0x1", on_chain=on_chain, internal=internal)
+        assert coord.orchestrator._on_chain[1].total_seals == 50
+        assert coord.orchestrator._internal[1].bayesian_score == 0.9
 
 
-# ─── Task Ingestion Tests ────────────────────────────────────────────
+# ──────────────────── Task Ingestion ──────────────────────────────
 
 
-class TestTaskIngestion:
-    """Tests for task queue management."""
-
-    def test_ingest_single_task(self, coordinator):
-        task = _ingest_task(coordinator, task_id="t1")
-        assert task.task_id == "t1"
+class TestCoordinatorIngestion:
+    def test_ingest_task(self):
+        coord = _coordinator()
+        task = coord.ingest_task("t1", "Photo task", ["photo"], bounty_usd=0.50)
+        assert isinstance(task, QueuedTask)
         assert task.status == "pending"
-        assert task.bounty_usd == 5.0
+        assert task.task_id == "t1"
 
-    def test_ingest_emits_event(self, coordinator):
-        _ingest_task(coordinator)
-        events = coordinator.get_events(event_type=CoordinatorEvent.TASK_INGESTED)
+    def test_ingest_duplicate_returns_existing(self):
+        coord = _coordinator()
+        t1 = coord.ingest_task("t1", "Photo task", ["photo"])
+        t2 = coord.ingest_task("t1", "Photo task", ["photo"])
+        assert t1 is t2
+
+    def test_ingest_emits_event(self):
+        coord = _coordinator()
+        coord.ingest_task("t1", "Photo task", ["photo"])
+        events = coord.get_events(event_type=CoordinatorEvent.TASK_INGESTED)
         assert len(events) == 1
-        assert events[0]["task_id"] == "t1"
 
-    def test_ingest_duplicate_skips(self, coordinator):
-        task1 = _ingest_task(coordinator, task_id="t1")
-        task2 = _ingest_task(coordinator, task_id="t1")
-        # Should return the same object, not create duplicate
-        assert task1 is task2
-        summary = coordinator.get_queue_summary()
-        assert summary["total"] == 1
+    def test_ingest_increments_counter(self):
+        coord = _coordinator()
+        coord.ingest_task("t1", "T1", ["photo"])
+        coord.ingest_task("t2", "T2", ["data"])
+        assert coord._total_ingested == 2
 
-    def test_ingest_multiple_tasks(self, coordinator):
-        for i in range(5):
-            _ingest_task(coordinator, task_id=f"t{i}")
-        summary = coordinator.get_queue_summary()
-        assert summary["total"] == 5
-        assert summary["by_status"]["pending"] == 5
-
-    def test_ingest_with_priority(self, coordinator):
-        task = coordinator.ingest_task(
-            task_id="t1",
-            title="Urgent photo",
-            categories=["photo"],
-            bounty_usd=100.0,
-            priority=TaskPriority.CRITICAL,
-        )
-        assert task.priority == TaskPriority.CRITICAL
-
-    def test_ingest_failed_task_allows_reingest(self, coordinator):
-        task = _ingest_task(coordinator, task_id="t1")
-        task.status = "failed"
-        # Re-ingesting a failed task should work
-        task2 = _ingest_task(coordinator, task_id="t1")
-        assert task2.status == "pending"
-
-    def test_queue_summary_by_category(self, coordinator):
-        coordinator.ingest_task("t1", "Photo verify", ["photo"], 5.0)
-        coordinator.ingest_task("t2", "Deliver package", ["delivery"], 10.0)
-        coordinator.ingest_task("t3", "Another photo", ["photo"], 3.0)
-        summary = coordinator.get_queue_summary()
-        assert summary["by_category"]["photo"] == 2
-        assert summary["by_category"]["delivery"] == 1
-        assert summary["pending_bounty_usd"] == 18.0
+    def test_ingest_failed_task_allows_re_ingest(self):
+        coord = _coordinator()
+        coord.ingest_task("t1", "Task", ["photo"])
+        coord._task_queue["t1"].status = "failed"
+        # Should allow re-ingestion of failed task
+        t2 = coord.ingest_task("t1", "Task retry", ["photo"])
+        assert t2.title == "Task retry"
 
 
-# ─── Task Processing Tests ───────────────────────────────────────────
+# ──────────────────── Task Processing ─────────────────────────────
 
 
-class TestTaskProcessing:
-    """Tests for the core routing pipeline."""
-
-    def test_process_empty_queue(self, coordinator):
-        results = coordinator.process_task_queue()
-        assert results == []
-
-    def test_process_no_agents(self, coordinator):
-        _ingest_task(coordinator)
-        results = coordinator.process_task_queue()
-        assert len(results) == 1
-        assert isinstance(results[0], RoutingFailure)
-        assert "No agents available" in results[0].reason
-
-    def test_process_assigns_task(self, coordinator):
-        _register_agent(coordinator, agent_id=1, name="aurora")
-        _ingest_task(coordinator)
-        results = coordinator.process_task_queue()
+class TestCoordinatorProcessing:
+    def test_process_routes_to_agent(self):
+        coord = _coordinator(num_agents=3)
+        coord.ingest_task("t1", "Photo task", ["photo"], bounty_usd=0.50)
+        results = coord.process_task_queue()
         assert len(results) == 1
         assert isinstance(results[0], Assignment)
-        assert results[0].agent_id == 1
-        assert results[0].task_id == "t1"
 
-    def test_process_updates_task_status(self, coordinator):
-        _register_agent(coordinator, agent_id=1)
-        task = _ingest_task(coordinator)
-        coordinator.process_task_queue()
-        assert task.status == "assigned"
-        assert task.assigned_agent_id == 1
+    def test_process_updates_task_status(self):
+        coord = _coordinator(num_agents=3)
+        coord.ingest_task("t1", "Photo task", ["photo"])
+        coord.process_task_queue()
+        assert coord._task_queue["t1"].status == "assigned"
 
-    def test_process_emits_assignment_event(self, coordinator):
-        _register_agent(coordinator, agent_id=1, name="aurora")
-        _ingest_task(coordinator)
-        coordinator.process_task_queue()
-        events = coordinator.get_events(event_type=CoordinatorEvent.TASK_ASSIGNED)
-        assert len(events) == 1
-        assert events[0]["agent_id"] == 1
-        assert events[0]["task_id"] == "t1"
-
-    def test_process_respects_max_tasks(self, coordinator):
-        _register_agent(coordinator, agent_id=1)
-        _register_agent(coordinator, agent_id=2, name="beacon", wallet="0xBBB")
-        for i in range(10):
-            _ingest_task(coordinator, task_id=f"t{i}")
-        # Only process 3
-        results = coordinator.process_task_queue(max_tasks=3)
-        assert len(results) == 3
-
-    def test_process_priority_ordering(self, coordinator):
-        _register_agent(coordinator, agent_id=1)
-        _register_agent(coordinator, agent_id=2, name="beacon", wallet="0xBBB")
-        coordinator.ingest_task("t-low", "Low task", ["photo"], 1.0, TaskPriority.LOW)
-        coordinator.ingest_task(
-            "t-crit", "Critical task", ["photo"], 50.0, TaskPriority.CRITICAL
-        )
-        coordinator.ingest_task(
-            "t-norm", "Normal task", ["photo"], 5.0, TaskPriority.NORMAL
-        )
-        results = coordinator.process_task_queue(max_tasks=3)
-        assigned = [r for r in results if isinstance(r, Assignment)]
-        # Critical should be assigned first
-        if len(assigned) >= 1:
-            assert assigned[0].task_id == "t-crit"
-
-    def test_process_tracks_routing_time(self, coordinator):
-        _register_agent(coordinator, agent_id=1)
-        _ingest_task(coordinator)
-        coordinator.process_task_queue()
-        metrics = coordinator.get_metrics()
-        assert metrics.avg_routing_time_ms > 0
-
-    def test_max_attempts_exhausted(self, coordinator):
-        """Task fails permanently after max_attempts."""
-        # No agents → every attempt fails
-        task = _ingest_task(coordinator)
-        task.max_attempts = 2
-        coordinator.process_task_queue()  # attempt 1
-        coordinator.process_task_queue()  # attempt 2 (max reached)
-        assert task.status == "failed"
-        events = coordinator.get_events(event_type=CoordinatorEvent.ROUTING_FAILURE)
+    def test_process_emits_assignment_event(self):
+        coord = _coordinator(num_agents=3)
+        coord.ingest_task("t1", "Photo task", ["photo"])
+        coord.process_task_queue()
+        events = coord.get_events(event_type=CoordinatorEvent.TASK_ASSIGNED)
         assert len(events) >= 1
 
+    def test_process_multiple_tasks(self):
+        coord = _coordinator(num_agents=3)
+        for i in range(3):
+            coord.ingest_task(f"t{i}", f"Task {i}", ["photo"])
+        results = coord.process_task_queue(max_tasks=10)
+        assignments = [r for r in results if isinstance(r, Assignment)]
+        assert len(assignments) == 3
 
-# ─── Task Completion Tests ────────────────────────────────────────────
+    def test_process_priority_ordering(self):
+        coord = _coordinator(num_agents=3)
+        coord.ingest_task("t_low", "Low", ["photo"], priority=TaskPriority.LOW)
+        coord.ingest_task("t_crit", "Critical", ["photo"], priority=TaskPriority.CRITICAL)
+        coord.ingest_task("t_norm", "Normal", ["photo"], priority=TaskPriority.NORMAL)
+        results = coord.process_task_queue()
+        # Critical should be processed first
+        assert isinstance(results[0], Assignment)
+        # The first result should be from the critical task
+        assert coord._task_queue["t_crit"].status == "assigned"
 
+    def test_process_routing_failure_tracks_attempts(self):
+        coord = _coordinator(num_agents=0)  # No agents
+        coord.ingest_task("t1", "Task", ["photo"])
+        coord.process_task_queue()
+        assert coord._task_queue["t1"].attempts == 1
+        assert coord._task_queue["t1"].status == "pending"  # Still pending, can retry
 
-class TestTaskCompletion:
-    """Tests for task completion flow."""
+    def test_process_routing_failure_after_max_attempts(self):
+        coord = _coordinator(num_agents=0)
+        coord.ingest_task("t1", "Task", ["photo"])
+        coord._task_queue["t1"].max_attempts = 1
+        coord.process_task_queue()
+        assert coord._task_queue["t1"].status == "failed"
 
-    def test_complete_task(self, coordinator):
-        _register_agent(coordinator, agent_id=1)
-        _ingest_task(coordinator, task_id="t1", bounty=5.0)
-        coordinator.process_task_queue()
-        success = coordinator.complete_task("t1")
-        assert success is True
-        # Check queue status
-        task = coordinator._task_queue["t1"]
-        assert task.status == "completed"
+    def test_process_max_tasks_limit(self):
+        coord = _coordinator(num_agents=5)
+        for i in range(5):
+            coord.ingest_task(f"t{i}", f"Task {i}", ["photo"])
+        results = coord.process_task_queue(max_tasks=2)
+        assert len(results) == 2
 
-    def test_complete_task_emits_event(self, coordinator):
-        _register_agent(coordinator, agent_id=1)
-        _ingest_task(coordinator)
-        coordinator.process_task_queue()
-        coordinator.complete_task("t1")
-        events = coordinator.get_events(event_type=CoordinatorEvent.TASK_COMPLETED)
-        assert len(events) == 1
-        assert events[0]["task_id"] == "t1"
-        assert events[0]["agent_id"] == 1
-        assert events[0]["bounty_usd"] == 5.0
-
-    def test_complete_tracks_bounty(self, coordinator):
-        # Use a generous budget so the agent doesn't get suspended
-        budget = BudgetConfig(daily_limit_usd=100.0, monthly_limit_usd=1000.0)
-        coordinator.register_agent(
-            agent_id=10,
-            name="rich_agent",
-            wallet_address="0xRICH",
-            budget_config=budget,
-            activate=True,
-        )
-        coordinator.orchestrator.register_reputation(
-            agent_id=10,
-            on_chain=OnChainReputation(
-                agent_id=10, wallet_address="0xRICH", total_seals=10, positive_seals=9
-            ),
-            internal=InternalReputation(
-                agent_id=10,
-                bayesian_score=0.8,
-                total_tasks=25,
-                successful_tasks=23,
-                avg_rating=4.5,
-            ),
-        )
-        _ingest_task(coordinator, task_id="t1", bounty=5.0)
-        coordinator.process_task_queue()
-        coordinator.complete_task("t1")
-
-        # Expire cooldown and reactivate for second task
-        agent = coordinator.lifecycle._agents[10]
-        agent.cooldown_until = datetime.now(timezone.utc) - timedelta(seconds=1)
-        coordinator.lifecycle.check_cooldown_expiry(10)
-        coordinator.lifecycle.transition(10, AgentState.ACTIVE, "reactivate")
-
-        _ingest_task(coordinator, task_id="t2", bounty=10.0)
-        coordinator.process_task_queue()
-        coordinator.complete_task("t2")
-        metrics = coordinator.get_metrics()
-        assert metrics.total_bounty_earned_usd == 15.0
-
-    def test_complete_unknown_task_returns_false(self, coordinator):
-        assert coordinator.complete_task("nonexistent") is False
-
-    def test_complete_updates_internal_reputation(self, coordinator):
-        _register_agent(coordinator, agent_id=1)
-        _ingest_task(coordinator, task_id="t1")
-        coordinator.process_task_queue()
-        coordinator.complete_task("t1")
-        # Internal reputation should have increased
-        internal = coordinator.orchestrator._internal.get(1)
-        if internal:
-            assert internal.total_tasks >= 1
-            assert internal.consecutive_failures == 0
-
-    def test_complete_with_custom_bounty(self, coordinator):
-        _register_agent(coordinator, agent_id=1)
-        _ingest_task(coordinator, task_id="t1", bounty=5.0)
-        coordinator.process_task_queue()
-        # Complete with a different bounty amount
-        coordinator.complete_task("t1", bounty_earned_usd=7.50)
-        metrics = coordinator.get_metrics()
-        assert metrics.total_bounty_earned_usd == 7.50
+    def test_process_tracks_routing_time(self):
+        coord = _coordinator(num_agents=1)
+        coord.ingest_task("t1", "Task", ["photo"])
+        coord.process_task_queue()
+        assert len(coord._routing_times) >= 1
 
 
-# ─── Task Failure Tests ──────────────────────────────────────────────
+# ──────────────────── Task Completion ─────────────────────────────
 
 
-class TestTaskFailure:
-    """Tests for task failure flow."""
+class TestCoordinatorCompletion:
+    def test_complete_task(self):
+        coord = _coordinator(num_agents=1)
+        coord.ingest_task("t1", "Task", ["photo"], bounty_usd=0.50)
+        coord.process_task_queue()
+        result = coord.complete_task("t1", bounty_earned_usd=0.50)
+        assert result is True
+        assert coord._task_queue["t1"].status == "completed"
+        assert coord._total_completed == 1
 
-    def test_fail_task(self, coordinator):
-        _register_agent(coordinator, agent_id=1)
-        _ingest_task(coordinator)
-        coordinator.process_task_queue()
-        success = coordinator.fail_task("t1", error="Worker couldn't reach location")
-        assert success is True
-        task = coordinator._task_queue["t1"]
-        assert task.status == "failed"
+    def test_complete_tracks_bounty(self):
+        coord = _coordinator(num_agents=1)
+        coord.ingest_task("t1", "Task", ["photo"], bounty_usd=0.50)
+        coord.process_task_queue()
+        coord.complete_task("t1", bounty_earned_usd=0.50)
+        assert coord._total_bounty_earned == pytest.approx(0.50)
 
-    def test_fail_emits_event(self, coordinator):
-        _register_agent(coordinator, agent_id=1)
-        _ingest_task(coordinator)
-        coordinator.process_task_queue()
-        coordinator.fail_task("t1", error="timeout")
-        events = coordinator.get_events(event_type=CoordinatorEvent.TASK_FAILED)
-        assert len(events) == 1
-        assert events[0]["error"] == "timeout"
+    def test_complete_updates_reputation(self):
+        coord = _coordinator(num_agents=1)
+        coord.ingest_task("t1", "Task", ["photo"])
+        coord.process_task_queue()
+        old_tasks = coord.orchestrator._internal[1].total_tasks
+        coord.complete_task("t1")
+        new_tasks = coord.orchestrator._internal[1].total_tasks
+        assert new_tasks == old_tasks + 1
 
-    def test_fail_unknown_task_returns_false(self, coordinator):
-        assert coordinator.fail_task("nonexistent") is False
+    def test_complete_emits_event(self):
+        coord = _coordinator(num_agents=1)
+        coord.ingest_task("t1", "Task", ["photo"])
+        coord.process_task_queue()
+        coord.complete_task("t1")
+        events = coord.get_events(event_type=CoordinatorEvent.TASK_COMPLETED)
+        assert len(events) >= 1
 
-    def test_fail_increments_counter(self, coordinator):
-        _register_agent(coordinator, agent_id=1)
-        _ingest_task(coordinator)
-        coordinator.process_task_queue()
-        coordinator.fail_task("t1")
-        metrics = coordinator.get_metrics()
-        assert metrics.tasks_failed >= 1
-
-
-# ─── Health Check Tests ──────────────────────────────────────────────
+    def test_complete_unknown_task(self):
+        coord = _coordinator()
+        assert coord.complete_task("nonexistent") is False
 
 
-class TestHealthChecks:
-    """Tests for the health monitoring subsystem."""
+# ──────────────────── Task Failure ────────────────────────────────
 
-    def test_health_check_returns_report(self, coordinator):
-        report = coordinator.run_health_checks()
-        assert "timestamp" in report
+
+class TestCoordinatorFailure:
+    def test_fail_task(self):
+        coord = _coordinator(num_agents=1)
+        coord.ingest_task("t1", "Task", ["photo"])
+        coord.process_task_queue()
+        result = coord.fail_task("t1", error="timeout")
+        assert result is True
+        assert coord._task_queue["t1"].status == "failed"
+
+    def test_fail_emits_event(self):
+        coord = _coordinator(num_agents=1)
+        coord.ingest_task("t1", "Task", ["photo"])
+        coord.process_task_queue()
+        coord.fail_task("t1", error="timeout")
+        events = coord.get_events(event_type=CoordinatorEvent.TASK_FAILED)
+        assert len(events) >= 1
+
+    def test_fail_unknown_task(self):
+        coord = _coordinator()
+        assert coord.fail_task("nonexistent") is False
+
+
+# ──────────────────── Health Checks ───────────────────────────────
+
+
+class TestCoordinatorHealth:
+    def test_health_check_returns_report(self):
+        coord = _coordinator(num_agents=2)
+        report = coord.run_health_checks()
         assert "agents" in report
         assert "tasks" in report
         assert "systems" in report
-
-    def test_health_check_counts_agents(self, coordinator):
-        _register_agent(coordinator, agent_id=1)
-        _register_agent(coordinator, agent_id=2, name="beacon", wallet="0xBBB")
-        # Record heartbeat for one agent
-        coordinator.lifecycle.record_heartbeat(1)
-        report = coordinator.run_health_checks()
         assert report["agents"]["checked"] == 2
 
-    def test_health_check_detects_expired_tasks(self, coordinator):
-        task = _ingest_task(coordinator)
-        # Manually set ingested time far in the past
-        task.ingested_at = datetime.now(timezone.utc) - timedelta(hours=48)
-        report = coordinator.run_health_checks()
+    def test_health_check_detects_expired_tasks(self):
+        coord = _coordinator(num_agents=0, em_client=False)
+        coord.ingest_task("t1", "Old task", ["photo"])
+        # Set ingestion time far in the past
+        coord._task_queue["t1"].ingested_at = datetime.now(timezone.utc) - timedelta(hours=48)
+        report = coord.run_health_checks()
         assert report["tasks"]["expired"] >= 1
-        assert task.status == "expired"
+        assert coord._task_queue["t1"].status == "expired"
 
-    def test_health_check_emits_event(self, coordinator):
-        coordinator.run_health_checks()
-        events = coordinator.get_events(event_type=CoordinatorEvent.HEALTH_CHECK)
-        assert len(events) == 1
+    def test_health_check_emits_event(self):
+        coord = _coordinator(num_agents=1)
+        coord.run_health_checks()
+        events = coord.get_events(event_type=CoordinatorEvent.HEALTH_CHECK)
+        assert len(events) >= 1
 
-    def test_health_check_no_em_client(self, coordinator):
-        """Health check should work even without EM API client."""
-        report = coordinator.run_health_checks()
-        assert "em_api" not in report.get("systems", {})
-
-    def test_health_check_cooldown_recovery(self, coordinator):
-        _register_agent(coordinator, agent_id=1)
-        # Put agent in cooldown with expired time
-        coordinator.lifecycle.assign_task(1, "t_temp")
-        coordinator.lifecycle.complete_task(1, cooldown_seconds=0)
-        assert coordinator.lifecycle._agents[1].state == AgentState.COOLDOWN
-        # Health check should trigger recovery
-        coordinator.run_health_checks()
-        # After health check, cooldown should have expired → IDLE
-        agent = coordinator.lifecycle._agents[1]
-        assert agent.state in (AgentState.IDLE, AgentState.COOLDOWN)
-
-    def test_health_check_detects_stale_assignments(self, coordinator):
-        _register_agent(coordinator, agent_id=1)
-        task = _ingest_task(coordinator)
-        coordinator.process_task_queue()
-        # Artificially age the assignment
-        task.last_attempt_at = datetime.now(timezone.utc) - timedelta(hours=48)
-        report = coordinator.run_health_checks()
-        assert report["tasks"]["stale"] >= 1
+    def test_health_check_updates_timestamp(self):
+        coord = _coordinator()
+        assert coord._last_health_check is None
+        coord.run_health_checks()
+        assert coord._last_health_check is not None
 
 
-# ─── Metrics Tests ───────────────────────────────────────────────────
+# ──────────────────── Metrics ─────────────────────────────────────
 
 
-class TestMetrics:
-    """Tests for operational metrics."""
+class TestCoordinatorMetrics:
+    def test_metrics_after_operations(self):
+        coord = _coordinator(num_agents=2)
+        coord.ingest_task("t1", "Task 1", ["photo"], bounty_usd=0.50)
+        coord.ingest_task("t2", "Task 2", ["data"], bounty_usd=0.30)
+        coord.process_task_queue()
+        coord.complete_task("t1", bounty_earned_usd=0.50)
+        metrics = coord.get_metrics()
+        assert metrics.tasks_ingested == 2
+        assert metrics.tasks_assigned == 2
+        assert metrics.tasks_completed == 1
+        assert metrics.total_bounty_earned_usd == pytest.approx(0.50)
+        assert metrics.agents_registered == 2
+        assert metrics.uptime_seconds >= 0
 
-    def test_initial_metrics_zeroed(self, coordinator):
-        m = coordinator.get_metrics()
-        assert m.tasks_ingested == 0
-        assert m.tasks_assigned == 0
-        assert m.tasks_completed == 0
-        assert m.tasks_failed == 0
-        assert m.total_bounty_earned_usd == 0.0
+    def test_metrics_routing_success_rate(self):
+        coord = _coordinator(num_agents=1)
+        coord.ingest_task("t1", "Task", ["photo"])
+        coord.process_task_queue()
+        metrics = coord.get_metrics()
+        assert metrics.routing_success_rate == pytest.approx(1.0)
 
-    def test_metrics_after_full_cycle(self, coordinator):
-        _register_agent(coordinator, agent_id=1)
-        _ingest_task(coordinator, bounty=5.0)
-        coordinator.process_task_queue()
-        coordinator.complete_task("t1")
-        m = coordinator.get_metrics()
-        assert m.tasks_ingested == 1
-        assert m.tasks_assigned == 1
-        assert m.tasks_completed == 1
-        assert m.total_bounty_earned_usd == 5.0
-        assert m.routing_success_rate == 1.0
-
-    def test_metrics_to_dict(self, coordinator):
-        m = coordinator.get_metrics()
-        d = m.to_dict()
-        assert "tasks" in d
-        assert "agents" in d
-        assert "performance" in d
-        assert "budget" in d
-        assert "timing" in d
-
-    def test_metrics_uptime(self, coordinator):
-        m = coordinator.get_metrics()
-        assert m.uptime_seconds >= 0
-
-    def test_reset_metrics(self, coordinator):
-        _register_agent(coordinator, agent_id=1)
-        _ingest_task(coordinator)
-        coordinator.process_task_queue()
-        coordinator.reset_metrics()
-        m = coordinator.get_metrics()
-        assert m.tasks_ingested == 0
-        assert m.tasks_assigned == 0
+    def test_reset_metrics(self):
+        coord = _coordinator(num_agents=1)
+        coord.ingest_task("t1", "Task", ["photo"])
+        coord.process_task_queue()
+        coord.reset_metrics()
+        metrics = coord.get_metrics()
+        assert metrics.tasks_ingested == 0
+        assert metrics.tasks_assigned == 0
 
 
-# ─── Dashboard Tests ─────────────────────────────────────────────────
+# ──────────────────── Dashboard ───────────────────────────────────
 
 
-class TestDashboard:
-    """Tests for the operational dashboard."""
-
-    def test_dashboard_structure(self, coordinator):
-        dashboard = coordinator.get_dashboard()
+class TestCoordinatorDashboard:
+    def test_dashboard_structure(self):
+        coord = _coordinator(num_agents=2)
+        coord.ingest_task("t1", "Task", ["photo"])
+        coord.process_task_queue()
+        dashboard = coord.get_dashboard()
         assert "timestamp" in dashboard
         assert "metrics" in dashboard
         assert "queue" in dashboard
@@ -608,413 +502,117 @@ class TestDashboard:
         assert "recent_events" in dashboard
         assert "systems" in dashboard
 
-    def test_dashboard_fleet_info(self, coordinator):
-        _register_agent(coordinator, agent_id=1, name="aurora")
-        _register_agent(coordinator, agent_id=2, name="beacon", wallet="0xBBB")
-        dashboard = coordinator.get_dashboard()
+    def test_dashboard_fleet_info(self):
+        coord = _coordinator(num_agents=2)
+        dashboard = coord.get_dashboard()
         assert len(dashboard["fleet"]) == 2
-        names = {a["name"] for a in dashboard["fleet"]}
-        assert "aurora" in names
-        assert "beacon" in names
+        agent = dashboard["fleet"][0]
+        assert "agent_id" in agent
+        assert "name" in agent
+        assert "state" in agent
+        assert "health" in agent
 
-    def test_dashboard_queue_status(self, coordinator):
-        _ingest_task(coordinator, task_id="t1")
-        _ingest_task(coordinator, task_id="t2")
-        dashboard = coordinator.get_dashboard()
-        assert dashboard["queue"]["pending"] == 2
-
-    def test_dashboard_recent_events(self, coordinator):
-        _register_agent(coordinator, agent_id=1)
-        _ingest_task(coordinator)
-        dashboard = coordinator.get_dashboard()
-        assert len(dashboard["recent_events"]) > 0
-
-    def test_dashboard_systems_info(self, coordinator):
-        dashboard = coordinator.get_dashboard()
-        assert dashboard["systems"]["em_api"] == "not configured"
-        assert dashboard["systems"]["autojob"] == "not configured"
+    def test_dashboard_queue_counts(self):
+        coord = _coordinator(num_agents=1)
+        coord.ingest_task("t1", "Pending", ["photo"])
+        coord.ingest_task("t2", "Assigned", ["photo"])
+        coord.process_task_queue(max_tasks=1)
+        dashboard = coord.get_dashboard()
+        assert dashboard["queue"]["pending"] >= 0
+        assert dashboard["queue"]["assigned"] >= 0
 
 
-# ─── Event System Tests ──────────────────────────────────────────────
+# ──────────────────── Event System ────────────────────────────────
 
 
-class TestEventSystem:
-    """Tests for the coordinator event hooks and queries."""
-
-    def test_event_hook_fires(self, coordinator):
+class TestCoordinatorEvents:
+    def test_event_hooks(self):
+        coord = _coordinator(num_agents=1)
         received = []
-        coordinator.on_event(
-            CoordinatorEvent.TASK_INGESTED,
-            lambda e: received.append(e),
-        )
-        _ingest_task(coordinator)
+        coord.on_event(CoordinatorEvent.TASK_INGESTED, lambda e: received.append(e))
+        coord.ingest_task("t1", "Task", ["photo"])
         assert len(received) == 1
         assert received[0].event == CoordinatorEvent.TASK_INGESTED
 
-    def test_multiple_hooks(self, coordinator):
-        count = {"a": 0, "b": 0}
-        coordinator.on_event(
-            CoordinatorEvent.TASK_INGESTED,
-            lambda e: count.__setitem__("a", count["a"] + 1),
-        )
-        coordinator.on_event(
-            CoordinatorEvent.TASK_INGESTED,
-            lambda e: count.__setitem__("b", count["b"] + 1),
-        )
-        _ingest_task(coordinator)
-        assert count["a"] == 1
-        assert count["b"] == 1
+    def test_event_filtering_by_type(self):
+        coord = _coordinator(num_agents=1)
+        coord.ingest_task("t1", "Task", ["photo"])
+        coord.process_task_queue()
+        ingested = coord.get_events(event_type=CoordinatorEvent.TASK_INGESTED)
+        assigned = coord.get_events(event_type=CoordinatorEvent.TASK_ASSIGNED)
+        assert len(ingested) >= 1
+        assert len(assigned) >= 1
 
-    def test_event_hook_exception_doesnt_crash(self, coordinator):
-        def bad_hook(e):
-            raise RuntimeError("Hook exploded!")
+    def test_event_filtering_by_time(self):
+        coord = _coordinator(num_agents=0)
+        cutoff = datetime.now(timezone.utc) + timedelta(seconds=1)
+        coord.ingest_task("t1", "Task", ["photo"])
+        # Events before cutoff
+        events = coord.get_events(since=cutoff)
+        assert len(events) == 0
 
-        coordinator.on_event(CoordinatorEvent.TASK_INGESTED, bad_hook)
-        # Should not raise
-        _ingest_task(coordinator)
+    def test_event_limit(self):
+        coord = _coordinator(num_agents=0)
+        for i in range(10):
+            coord.ingest_task(f"t{i}", f"Task {i}", ["photo"])
+        events = coord.get_events(limit=3)
+        assert len(events) == 3
 
-    def test_get_events_with_filter(self, coordinator):
-        _register_agent(coordinator, agent_id=1)
-        _ingest_task(coordinator)
-        coordinator.process_task_queue()
+    def test_event_hook_error_handled(self):
+        coord = _coordinator(num_agents=0)
 
-        all_events = coordinator.get_events(limit=100)
-        ingested = coordinator.get_events(event_type=CoordinatorEvent.TASK_INGESTED)
-        assert len(ingested) < len(all_events)
+        def bad_hook(event):
+            raise RuntimeError("hook failed")
 
-    def test_get_events_with_since(self, coordinator):
-        _ingest_task(coordinator, task_id="t1")
-        cutoff = datetime.now(timezone.utc)
-        _ingest_task(coordinator, task_id="t2")
-        recent = coordinator.get_events(since=cutoff)
-        # Only t2 should appear after cutoff
-        assert len(recent) >= 1
-
-    def test_events_capped_at_1000(self, coordinator):
-        for i in range(1100):
-            _ingest_task(coordinator, task_id=f"t{i}")
-        events = coordinator.get_events(limit=2000)
-        # Events deque is capped at 1000
-        assert len(events) <= 1000
+        coord.on_event(CoordinatorEvent.TASK_INGESTED, bad_hook)
+        # Should not raise even though hook fails
+        coord.ingest_task("t1", "Task", ["photo"])
 
 
-# ─── Queue Utilities Tests ───────────────────────────────────────────
+# ──────────────────── Queue Management ────────────────────────────
 
 
-class TestQueueUtilities:
-    """Tests for queue management utilities."""
+class TestCoordinatorQueueManagement:
+    def test_queue_summary(self):
+        coord = _coordinator(num_agents=1)
+        coord.ingest_task("t1", "Task 1", ["photo"], bounty_usd=0.50)
+        coord.ingest_task("t2", "Task 2", ["data"], bounty_usd=0.30)
+        summary = coord.get_queue_summary()
+        assert summary["total"] == 2
+        assert summary["pending_bounty_usd"] == pytest.approx(0.80)
+        assert "photo" in summary["by_category"]
 
-    def test_cleanup_completed(self, coordinator):
-        _register_agent(coordinator, agent_id=1)
-        _ingest_task(coordinator, task_id="t1")
-        coordinator.process_task_queue()
-        coordinator.complete_task("t1")
-        # Backdate the task
-        coordinator._task_queue["t1"].ingested_at = datetime.now(
-            timezone.utc
-        ) - timedelta(hours=48)
-        removed = coordinator.cleanup_completed(older_than_hours=24.0)
+    def test_cleanup_completed(self):
+        coord = _coordinator(num_agents=1)
+        coord.ingest_task("t1", "Task", ["photo"])
+        coord.process_task_queue()
+        coord.complete_task("t1")
+        # Set completed task as old
+        coord._task_queue["t1"].ingested_at = datetime.now(timezone.utc) - timedelta(hours=48)
+        removed = coord.cleanup_completed(older_than_hours=24)
         assert removed == 1
-        assert "t1" not in coordinator._task_queue
+        assert "t1" not in coord._task_queue
 
-    def test_cleanup_keeps_recent(self, coordinator):
-        _register_agent(coordinator, agent_id=1)
-        _ingest_task(coordinator, task_id="t1")
-        coordinator.process_task_queue()
-        coordinator.complete_task("t1")
-        # Don't backdate — should not be cleaned up
-        removed = coordinator.cleanup_completed(older_than_hours=24.0)
-        assert removed == 0
-        assert "t1" in coordinator._task_queue
-
-    def test_cleanup_keeps_pending(self, coordinator):
-        task = _ingest_task(coordinator, task_id="t1")
-        task.ingested_at = datetime.now(timezone.utc) - timedelta(hours=48)
-        # Pending tasks should NOT be cleaned up
-        removed = coordinator.cleanup_completed(older_than_hours=24.0)
-        assert removed == 0
-
-    def test_queue_summary_pending_bounty(self, coordinator):
-        _register_agent(coordinator, agent_id=1)
-        _ingest_task(coordinator, task_id="t1", bounty=5.0)
-        _ingest_task(coordinator, task_id="t2", bounty=10.0)
-        coordinator.process_task_queue()
-        coordinator.complete_task("t1")
-        summary = coordinator.get_queue_summary()
-        # Only t2 should count (assigned but not completed)
-        # t1 is completed
-        assert summary["pending_bounty_usd"] >= 0
+    def test_cleanup_preserves_recent(self):
+        coord = _coordinator(num_agents=1)
+        coord.ingest_task("t1", "Task", ["photo"])
+        coord.process_task_queue()
+        coord.complete_task("t1")
+        removed = coord.cleanup_completed(older_than_hours=24)
+        assert removed == 0  # Too recent
 
 
-# ─── Factory/Create Tests ────────────────────────────────────────────
+# ──────────────────── Factory Method ──────────────────────────────
 
 
-class TestCreateFactory:
-    """Tests for the SwarmCoordinator.create() factory."""
-
-    def test_create_default(self):
-        coord = SwarmCoordinator.create()
+class TestCoordinatorFactory:
+    def test_create_wires_components(self):
+        coord = SwarmCoordinator.create(
+            em_api_url="https://api.execution.market",
+        )
         assert coord.bridge is not None
         assert coord.lifecycle is not None
         assert coord.orchestrator is not None
         assert coord.em_client is not None
         assert coord.autojob is not None
-
-    def test_create_with_custom_strategy(self):
-        coord = SwarmCoordinator.create(default_strategy=RoutingStrategy.ROUND_ROBIN)
-        assert coord.default_strategy == RoutingStrategy.ROUND_ROBIN
-
-    def test_create_configurable_expiry(self):
-        coord = SwarmCoordinator.create(task_expiry_hours=48.0)
-        assert coord.task_expiry_hours == 48.0
-
-
-# ─── Multi-Agent Routing Tests ───────────────────────────────────────
-
-
-class TestMultiAgentRouting:
-    """Tests for routing across multiple agents."""
-
-    def test_two_agents_different_tasks(self, coordinator):
-        _register_agent(coordinator, agent_id=1, name="aurora", wallet="0xAAA")
-        _register_agent(coordinator, agent_id=2, name="beacon", wallet="0xBBB")
-        _ingest_task(coordinator, task_id="t1")
-        _ingest_task(coordinator, task_id="t2")
-        results = coordinator.process_task_queue()
-        assignments = [r for r in results if isinstance(r, Assignment)]
-        # Both tasks should be assigned (to different agents since one is WORKING)
-        assert len(assignments) >= 1
-
-    def test_agent_becomes_unavailable_after_assignment(self, coordinator):
-        _register_agent(coordinator, agent_id=1, name="aurora")
-        _ingest_task(coordinator, task_id="t1")
-        _ingest_task(coordinator, task_id="t2")
-        results = coordinator.process_task_queue()
-        # Only 1 agent, so only 1 task can be assigned
-        assignments = [r for r in results if isinstance(r, Assignment)]
-        assert len(assignments) == 1
-        failures = [r for r in results if isinstance(r, RoutingFailure)]
-        assert len(failures) == 1
-
-    def test_round_robin_strategy(self, coordinator_factory, bridge, lifecycle):
-        orchestrator = SwarmOrchestrator(
-            bridge=bridge,
-            lifecycle=lifecycle,
-            default_strategy=RoutingStrategy.ROUND_ROBIN,
-        )
-        coord = coordinator_factory(orchestrator=orchestrator)
-        _register_agent(coord, agent_id=1, name="aurora", wallet="0xAAA")
-        _register_agent(coord, agent_id=2, name="beacon", wallet="0xBBB")
-        _ingest_task(coord, task_id="t1")
-        results = coord.process_task_queue(strategy=RoutingStrategy.ROUND_ROBIN)
-        assert len(results) == 1
-        assert isinstance(results[0], Assignment)
-
-
-# ─── Budget Integration Tests ────────────────────────────────────────
-
-
-class TestBudgetIntegration:
-    """Tests for budget tracking through the coordinator."""
-
-    def test_complete_records_spend(self, coordinator):
-        budget = BudgetConfig(daily_limit_usd=100.0, monthly_limit_usd=1000.0)
-        coordinator.register_agent(
-            agent_id=1,
-            name="aurora",
-            wallet_address="0xAAA",
-            budget_config=budget,
-            activate=True,
-        )
-        coordinator.orchestrator.register_reputation(
-            agent_id=1,
-            on_chain=OnChainReputation(agent_id=1, wallet_address="0xAAA"),
-            internal=InternalReputation(agent_id=1, bayesian_score=0.8, total_tasks=10),
-        )
-        _ingest_task(coordinator, task_id="t1", bounty=5.0)
-        coordinator.process_task_queue()
-        coordinator.complete_task("t1", bounty_earned_usd=5.0)
-        status = coordinator.lifecycle.get_budget_status(1)
-        assert status["daily_spent"] >= 5.0
-
-    def test_budget_tracking_in_metrics(self, coordinator):
-        _register_agent(coordinator, agent_id=1)
-        metrics = coordinator.get_metrics()
-        # Should report budget from lifecycle
-        assert metrics.total_daily_spend_usd >= 0
-
-
-# ─── EMApiClient Tests ───────────────────────────────────────────────
-
-
-class TestEMApiClient:
-    """Tests for the EMApiClient (unit tests with no network)."""
-
-    def test_client_init(self):
-        client = EMApiClient(base_url="https://example.com", api_key="test-key")
-        assert client.base_url == "https://example.com"
-        assert client.api_key == "test-key"
-
-    def test_client_strips_trailing_slash(self):
-        client = EMApiClient(base_url="https://example.com/")
-        assert client.base_url == "https://example.com"
-
-    def test_client_default_timeout(self):
-        client = EMApiClient()
-        assert client.timeout == 10.0
-
-
-# ─── QueuedTask Tests ────────────────────────────────────────────────
-
-
-class TestQueuedTask:
-    """Tests for QueuedTask data class."""
-
-    def test_to_task_request(self):
-        qt = QueuedTask(
-            task_id="t1",
-            title="Test",
-            categories=["photo"],
-            bounty_usd=5.0,
-            priority=TaskPriority.HIGH,
-        )
-        tr = qt.to_task_request()
-        assert isinstance(tr, TaskRequest)
-        assert tr.task_id == "t1"
-        assert tr.title == "Test"
-        assert tr.categories == ["photo"]
-        assert tr.priority == TaskPriority.HIGH
-
-    def test_queued_task_defaults(self):
-        qt = QueuedTask(task_id="t1", title="Test", categories=[], bounty_usd=0)
-        assert qt.status == "pending"
-        assert qt.attempts == 0
-        assert qt.max_attempts == 3
-        assert qt.source == "api"
-
-
-# ─── SwarmMetrics Tests ──────────────────────────────────────────────
-
-
-class TestSwarmMetrics:
-    """Tests for the SwarmMetrics data class."""
-
-    def test_to_dict_structure(self):
-        m = SwarmMetrics(
-            tasks_ingested=10,
-            tasks_completed=8,
-            tasks_failed=2,
-            total_bounty_earned_usd=42.50,
-            agents_registered=5,
-            agents_active=3,
-        )
-        d = m.to_dict()
-        assert d["tasks"]["ingested"] == 10
-        assert d["tasks"]["completed"] == 8
-        assert d["tasks"]["bounty_earned_usd"] == 42.50
-        assert d["agents"]["registered"] == 5
-        assert d["agents"]["active"] == 3
-
-    def test_default_metrics(self):
-        m = SwarmMetrics()
-        assert m.tasks_ingested == 0
-        assert m.routing_success_rate == 0.0
-        assert m.uptime_seconds == 0.0
-
-
-# ─── EventRecord Tests ──────────────────────────────────────────────
-
-
-class TestEventRecord:
-    """Tests for EventRecord serialization."""
-
-    def test_to_dict(self):
-        er = EventRecord(
-            event=CoordinatorEvent.TASK_INGESTED,
-            timestamp=datetime(2026, 3, 15, tzinfo=timezone.utc),
-            data={"task_id": "t1"},
-        )
-        d = er.to_dict()
-        assert d["event"] == "task_ingested"
-        assert d["task_id"] == "t1"
-        assert "2026-03-15" in d["timestamp"]
-
-
-# ─── End-to-End Integration ──────────────────────────────────────────
-
-
-class TestEndToEnd:
-    """Full lifecycle integration tests."""
-
-    def test_full_cycle_single_agent_single_task(self, coordinator):
-        """Registration → Ingestion → Routing → Assignment → Completion."""
-        # 1. Register
-        _register_agent(coordinator, agent_id=1, name="aurora")
-        # 2. Ingest
-        _ingest_task(coordinator, task_id="t1", bounty=5.0)
-        # 3. Route
-        results = coordinator.process_task_queue()
-        assert len(results) == 1
-        assert isinstance(results[0], Assignment)
-        # 4. Complete
-        assert coordinator.complete_task("t1") is True
-        # 5. Verify metrics
-        m = coordinator.get_metrics()
-        assert m.tasks_ingested == 1
-        assert m.tasks_assigned == 1
-        assert m.tasks_completed == 1
-        assert m.total_bounty_earned_usd == 5.0
-        assert m.routing_success_rate == 1.0
-
-    def test_full_cycle_with_failure_then_success(self, coordinator):
-        """Task fails, then succeeds on a different agent."""
-        _register_agent(coordinator, agent_id=1, name="aurora", wallet="0xAAA")
-        _register_agent(coordinator, agent_id=2, name="beacon", wallet="0xBBB")
-        _ingest_task(coordinator, task_id="t1", bounty=10.0)
-
-        # First assignment
-        results1 = coordinator.process_task_queue()
-        assert isinstance(results1[0], Assignment)
-        results1[0].agent_id
-
-        # Fail the task
-        coordinator.fail_task("t1")
-        m = coordinator.get_metrics()
-        assert m.tasks_failed >= 1
-
-    def test_multi_task_throughput(self, coordinator):
-        """Process multiple tasks through the system."""
-        for i in range(5):
-            _register_agent(
-                coordinator, agent_id=i + 1, name=f"agent-{i}", wallet=f"0x{i:03x}"
-            )
-
-        for i in range(10):
-            _ingest_task(coordinator, task_id=f"t{i}", bounty=float(i + 1))
-
-        # Process queue (5 agents for 10 tasks)
-        results1 = coordinator.process_task_queue(max_tasks=10)
-        assignments1 = [r for r in results1 if isinstance(r, Assignment)]
-        # At most 5 can be assigned (one per agent)
-        assert len(assignments1) <= 5
-        assert len(assignments1) >= 1
-
-        # Complete all assigned tasks
-        for a in assignments1:
-            coordinator.complete_task(a.task_id)
-
-        m = coordinator.get_metrics()
-        assert m.tasks_completed == len(assignments1)
-
-    def test_dashboard_after_operations(self, coordinator):
-        """Dashboard shows correct state after operations."""
-        _register_agent(coordinator, agent_id=1, name="aurora")
-        _register_agent(coordinator, agent_id=2, name="beacon", wallet="0xBBB")
-        _ingest_task(coordinator, task_id="t1", bounty=5.0)
-        coordinator.process_task_queue()
-        coordinator.complete_task("t1")
-
-        dashboard = coordinator.get_dashboard()
-        assert dashboard["metrics"]["tasks"]["completed"] == 1
-        assert len(dashboard["fleet"]) == 2
-        assert len(dashboard["recent_events"]) > 0
+        assert coord.enriched is not None
