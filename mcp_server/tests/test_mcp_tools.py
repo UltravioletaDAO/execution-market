@@ -29,6 +29,7 @@ from models import (
     PublishTaskInput,
     GetTasksInput,
     GetTaskInput,
+    CheckSubmissionInput,
     ApproveSubmissionInput,
     ApplyToTaskInput,
     SubmitWorkInput,
@@ -1055,3 +1056,197 @@ class TestInputValidation:
                 evidence_required=[EvidenceType.PHOTO],
             )
             assert params.category == category
+
+
+# ==================== ADR-001: CHECK_SUBMISSION + APPLICATIONS ====================
+
+
+class TestCheckSubmissionApplications:
+    """Tests for em_check_submission showing applications (ADR-001)."""
+
+    @pytest.fixture
+    def sample_applications(self, sample_task_id, sample_executor_id):
+        """Sample applications from task_applications table."""
+        return [
+            {
+                "id": str(uuid4()),
+                "task_id": sample_task_id,
+                "executor_id": sample_executor_id,
+                "message": "I can do this task",
+                "status": "pending",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }
+        ]
+
+    @pytest.mark.asyncio
+    async def test_shows_applications_when_no_submissions(
+        self, mock_db, sample_task, sample_agent_id, sample_applications
+    ):
+        """When workers applied but no evidence submitted, show applications."""
+        mock_db.get_task.return_value = sample_task
+        mock_db.get_submissions_for_task.return_value = []
+        mock_db.get_applications_for_task.return_value = sample_applications
+
+        from server import em_check_submission
+
+        params = CheckSubmissionInput(
+            task_id=sample_task["id"],
+            agent_id=sample_agent_id,
+        )
+
+        with patch("server.db", mock_db):
+            result = await em_check_submission(params)
+
+        assert "1 worker(s) applied" in result
+        assert "No evidence submitted yet" in result
+
+    @pytest.mark.asyncio
+    async def test_no_applications_no_submissions(
+        self, mock_db, sample_task, sample_agent_id
+    ):
+        """When no one applied and no submissions, show empty state."""
+        mock_db.get_task.return_value = sample_task
+        mock_db.get_submissions_for_task.return_value = []
+        mock_db.get_applications_for_task.return_value = []
+
+        from server import em_check_submission
+
+        params = CheckSubmissionInput(
+            task_id=sample_task["id"],
+            agent_id=sample_agent_id,
+        )
+
+        with patch("server.db", mock_db):
+            result = await em_check_submission(params)
+
+        assert "No Submissions Yet" in result
+        assert "no one has applied" in result
+
+    @pytest.mark.asyncio
+    async def test_json_format_includes_application_count(
+        self, mock_db, sample_task, sample_agent_id, sample_applications
+    ):
+        """JSON response should include application_count field."""
+        mock_db.get_task.return_value = sample_task
+        mock_db.get_submissions_for_task.return_value = []
+        mock_db.get_applications_for_task.return_value = sample_applications
+
+        from server import em_check_submission
+
+        params = CheckSubmissionInput(
+            task_id=sample_task["id"],
+            agent_id=sample_agent_id,
+            response_format=ResponseFormat.JSON,
+        )
+
+        with patch("server.db", mock_db):
+            result = await em_check_submission(params)
+
+        parsed = json.loads(result)
+        assert parsed["application_count"] == 1
+        assert parsed["submission_count"] == 0
+        assert len(parsed["applications"]) == 1
+
+
+# ==================== ADR-001: GET_TASK WITH ESCROW + APPLICATIONS ====================
+
+
+class TestGetTaskEnriched:
+    """Tests for em_get_task with escrow status and application count (ADR-001)."""
+
+    @pytest.fixture
+    def mock_escrow_client(self):
+        """Mock Supabase client with escrow table."""
+        client = MagicMock()
+        return client
+
+    @pytest.mark.asyncio
+    async def test_get_task_includes_application_count(
+        self, mock_db, sample_task, sample_agent_id
+    ):
+        """em_get_task JSON should include application_count."""
+        mock_db.get_task.return_value = sample_task
+        mock_db.get_applications_for_task.return_value = [
+            {"id": "app1", "executor_id": "exec1", "status": "pending"},
+            {"id": "app2", "executor_id": "exec2", "status": "pending"},
+        ]
+        # Mock get_client for escrow query
+        mock_client = MagicMock()
+        mock_client.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value.data = []
+        mock_db.get_client.return_value = mock_client
+
+        from server import em_get_task
+
+        params = GetTaskInput(
+            task_id=sample_task["id"],
+            response_format=ResponseFormat.JSON,
+        )
+
+        with patch("server.db", mock_db):
+            result = await em_get_task(params)
+
+        parsed = json.loads(result)
+        assert parsed["application_count"] == 2
+
+    @pytest.mark.asyncio
+    async def test_get_task_shows_deposited_escrow(self, mock_db, sample_task):
+        """em_get_task should show real escrow status from escrows table."""
+        mock_db.get_task.return_value = sample_task
+        mock_db.get_applications_for_task.return_value = []
+
+        mock_client = MagicMock()
+        mock_client.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value.data = [
+            {
+                "status": "deposited",
+                "funding_tx": "0xabc123",
+                "total_amount_usdc": 5.0,
+                "metadata": {"network": "base"},
+            }
+        ]
+        mock_db.get_client.return_value = mock_client
+
+        from server import em_get_task
+
+        params = GetTaskInput(
+            task_id=sample_task["id"],
+            response_format=ResponseFormat.JSON,
+        )
+
+        with patch("server.db", mock_db):
+            result = await em_get_task(params)
+
+        parsed = json.loads(result)
+        assert parsed["escrow"]["status"] == "deposited"
+        assert parsed["escrow"]["tx_ref"] == "0xabc123"
+
+    @pytest.mark.asyncio
+    async def test_get_task_markdown_shows_escrow_and_applications(
+        self, mock_db, sample_task
+    ):
+        """em_get_task markdown should include escrow section and application count."""
+        mock_db.get_task.return_value = sample_task
+        mock_db.get_applications_for_task.return_value = [
+            {"id": "app1", "executor_id": "exec1", "status": "pending"},
+        ]
+
+        mock_client = MagicMock()
+        mock_client.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value.data = [
+            {
+                "status": "pending_assignment",
+                "funding_tx": None,
+                "total_amount_usdc": 5.0,
+                "metadata": {"network": "base"},
+            }
+        ]
+        mock_db.get_client.return_value = mock_client
+
+        from server import em_get_task
+
+        params = GetTaskInput(task_id=sample_task["id"])
+
+        with patch("server.db", mock_db):
+            result = await em_get_task(params)
+
+        assert "PENDING_ASSIGNMENT" in result
+        assert "1 pending" in result
+        assert "$5.0 USDC" in result
