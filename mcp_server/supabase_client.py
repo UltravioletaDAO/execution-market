@@ -1177,48 +1177,38 @@ async def assign_task(
             esc = None
 
         if not esc:
-            try:
-                from integrations.x402.payment_events import log_payment_event
-
-                await log_payment_event(
-                    task_id=task_id,
-                    event_type="escrow_validation_failed",
-                    status="blocked",
-                    metadata={
-                        "action": "assign_task",
-                        "escrow_status": "none",
-                        "executor_id": executor_id,
-                        "reason": "No escrow record found",
-                    },
-                )
-            except Exception:
-                pass  # Don't let logging failure block the validation
-            raise Exception(
-                "Cannot assign: no escrow record found for this task. "
-                "Agent must create task with payment first."
+            # No escrow record — allow assignment but warn.
+            # The caller (REST endpoint or MCP tool) handles escrow lock
+            # after assignment. Tasks created before ADR-001 or without
+            # X-Payment-Auth won't have escrow records at this point.
+            logger.warning(
+                "No escrow record for task %s at assignment. "
+                "Caller must handle escrow lock post-assignment.",
+                task_id,
             )
-        esc_status = (esc.get("status") or "").lower().strip()
-        if esc_status not in _VALID_ASSIGN_STATUSES:
-            try:
-                from integrations.x402.payment_events import log_payment_event
+        else:
+            esc_status = (esc.get("status") or "").lower().strip()
+            if esc_status not in _VALID_ASSIGN_STATUSES:
+                try:
+                    from integrations.x402.payment_events import log_payment_event
 
-                await log_payment_event(
-                    task_id=task_id,
-                    event_type="escrow_validation_failed",
-                    status="blocked",
-                    metadata={
-                        "action": "assign_task",
-                        "escrow_status": esc_status,
-                        "executor_id": executor_id,
-                        "reason": f"Escrow status '{esc_status}' not valid for assignment",
-                    },
+                    await log_payment_event(
+                        task_id=task_id,
+                        event_type="escrow_validation_failed",
+                        status="blocked",
+                        metadata={
+                            "action": "assign_task",
+                            "escrow_status": esc_status,
+                            "executor_id": executor_id,
+                            "reason": f"Escrow status '{esc_status}' not valid for assignment",
+                        },
+                    )
+                except Exception:
+                    pass  # Don't let logging failure block the validation
+                raise Exception(
+                    f"Cannot assign: escrow status is '{esc_status}'. "
+                    f"Expected one of: {', '.join(sorted(_VALID_ASSIGN_STATUSES))}"
                 )
-            except Exception:
-                pass  # Don't let logging failure block the validation
-            raise Exception(
-                f"Cannot assign: escrow status is '{esc_status}'. "
-                f"Expected one of: {', '.join(sorted(_VALID_ASSIGN_STATUSES))}"
-            )
 
     # Update task
     updates = {
