@@ -1449,8 +1449,9 @@ class PaymentDispatcher:
         pr["asset"] = config.get("tokens", {}).get("USDC", {}).get("address", "")
 
         # Fill extra with contract addresses
-        escrow_address = config.get("escrow_address", "")
-        token_collector = config.get("token_collector", "")
+        escrow_address = config.get("escrow", config.get("escrow_address", ""))
+        x402r = config.get("x402r_infra", {})
+        token_collector = x402r.get("tokenCollector", config.get("token_collector", ""))
         pr.setdefault("extra", {})
         pr["extra"]["escrowAddress"] = escrow_address
         pr["extra"]["operatorAddress"] = operator
