@@ -6,6 +6,7 @@ Extracted from api/routes.py.
 
 import json
 import os
+import time
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from typing import Optional, List, Dict, Any
@@ -476,10 +477,16 @@ async def create_task(
                 detail="x402 payment service unavailable; task creation is facilitator-only",
             )
 
-        # Get the original X-Payment header before verification
+        # Get payment headers
         x_payment_header = http_request.headers.get(
             "X-Payment"
         ) or http_request.headers.get("x-payment")
+        x_payment_auth = http_request.headers.get(
+            "X-Payment-Auth"
+        ) or http_request.headers.get("x-payment-auth")
+        x_escrow_timing = http_request.headers.get(
+            "X-Escrow-Timing"
+        ) or http_request.headers.get("x-escrow-timing")
 
         # Fase 1/2: X-Payment header is optional (balance check or escrow lock).
         dispatcher = get_payment_dispatcher()
@@ -695,7 +702,116 @@ async def create_task(
             == "direct_release"
         )
 
-        if is_direct_release and payment_result and payment_result.success:
+        # ── Agent-signed escrow (ADR-001 Phase 2) ──────────────────
+        # If the agent provided X-Payment-Auth, use the agent-signed path.
+        # The server validates structure and either:
+        #   Mode A (lock_on_creation): forwards to Facilitator immediately
+        #   Mode B (lock_on_assignment): stores pre-auth for deferred lock
+        if x_payment_auth and dispatcher:
+            from integrations.x402.payment_dispatcher import EM_ESCROW_TIMING
+
+            escrow_timing = x_escrow_timing or EM_ESCROW_TIMING
+            try:
+                parsed_auth = dispatcher.validate_agent_preauth(x_payment_auth)
+            except ValueError as ve:
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": f"Invalid X-Payment-Auth: {ve}"},
+                )
+
+            network = request.payment_network or "base"
+            agent_address = (
+                parsed_auth.get("payload", {})
+                .get("authorization", {})
+                .get("from", auth.agent_id)
+            )
+
+            try:
+                import uuid
+
+                escrow_ref = f"escrow_{task['id'][:8]}_{uuid.uuid4().hex[:8]}"
+
+                if escrow_timing == "lock_on_creation":
+                    # Mode A: lock immediately (no worker yet)
+                    lock_result = await dispatcher.relay_agent_auth_to_facilitator(
+                        parsed_auth,
+                        worker_address="0x0000000000000000000000000000000000000000",
+                        network=network,
+                    )
+                    if not lock_result.get("success"):
+                        return JSONResponse(
+                            status_code=402,
+                            content={
+                                "error": "Escrow lock failed",
+                                "detail": lock_result.get(
+                                    "error", "Facilitator rejected"
+                                ),
+                            },
+                        )
+                    escrow_status = "locked"
+                    funding_tx = lock_result.get("tx_hash")
+                else:
+                    # Mode B (default): store pre-auth, defer lock to assignment
+                    deadline_ts = int(
+                        task.get("deadline", datetime.now(timezone.utc)).timestamp()
+                        if isinstance(task.get("deadline"), datetime)
+                        else time.time() + 86400  # 24h fallback
+                    )
+                    valid_before = deadline_ts + 3600  # +1h buffer
+                    store_result = dispatcher.store_preauth(
+                        task["id"], x_payment_auth, valid_before, network
+                    )
+                    if not store_result.get("success"):
+                        logger.error(
+                            "Failed to store pre-auth for task %s: %s",
+                            task["id"],
+                            store_result.get("error"),
+                        )
+                    escrow_status = "pending_assignment"
+                    funding_tx = None
+
+                # Update task with escrow info
+                escrow_updates = {
+                    "escrow_id": escrow_ref,
+                    "escrow_tx": funding_tx,
+                    "escrow_amount_usdc": float(total_required),
+                    "escrow_created_at": datetime.now(timezone.utc).isoformat(),
+                }
+                await db.update_task(task["id"], escrow_updates)
+                task.update(escrow_updates)
+
+                # Insert escrow record (if not already created by store_preauth)
+                if escrow_timing == "lock_on_creation":
+                    _insert_escrow_record(
+                        {
+                            "task_id": task["id"],
+                            "agent_id": agent_address,
+                            "escrow_id": escrow_ref,
+                            "funding_tx": funding_tx,
+                            "status": escrow_status,
+                            "total_amount_usdc": float(total_required),
+                            "platform_fee_usdc": float(total_required - bounty),
+                            "beneficiary_address": agent_address,
+                            "network": network,
+                            "metadata": {
+                                "payment_mode": "fase2",
+                                "escrow_timing": "lock_on_creation",
+                                "agent_signed": True,
+                            },
+                            "created_at": datetime.now(timezone.utc).isoformat(),
+                        }
+                    )
+
+                logger.info(
+                    "Agent-signed escrow: task=%s, timing=%s, status=%s",
+                    task["id"],
+                    escrow_timing,
+                    escrow_status,
+                )
+            except Exception as e:
+                logger.error("Agent-signed escrow error for task %s: %s", task["id"], e)
+
+        elif is_direct_release and payment_result and payment_result.success:
             # Trustless mode: balance check only at creation time.
             try:
                 import uuid
