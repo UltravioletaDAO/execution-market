@@ -2651,6 +2651,7 @@ async def assign_task_to_worker(
     task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
     request: WorkerAssignRequest = ...,
     auth: AgentAuth = Depends(verify_agent_auth),
+    http_request: Request = None,
 ) -> SuccessResponse:
     """Assign a published task to a specific worker executor."""
     try:
@@ -2675,11 +2676,125 @@ async def assign_task_to_worker(
             == "direct_release"
         )
 
-        # ── Agent-signed pre-auth execution (Mode B) ──────────────
+        # ── Agent-signed auth at assignment time (Mode A) ─────────
+        # If the agent sends X-Payment-Auth with the assign request,
+        # use it directly — the agent signs when they decide to hire.
+        agent_preauth_executed = False
+        x_payment_auth = None
+        if http_request:
+            x_payment_auth = http_request.headers.get(
+                "X-Payment-Auth"
+            ) or http_request.headers.get("x-payment-auth")
+
+        if x_payment_auth and worker_wallet and dispatcher:
+            try:
+                parsed_auth = dispatcher.validate_agent_preauth(x_payment_auth)
+                network = task.get("payment_network") or "base"
+                bounty = Decimal(str(task.get("bounty_usd", 0)))
+
+                lock_result = await dispatcher.relay_agent_auth_to_facilitator(
+                    parsed_auth,
+                    worker_address=worker_wallet,
+                    network=network,
+                )
+                if lock_result.get("success"):
+                    escrow_tx = lock_result.get("tx_hash")
+                    escrow_metadata = {
+                        "payment_mode": "fase2",
+                        "escrow_timing": "lock_on_assignment",
+                        "agent_signed": True,
+                        "agent_signed_at": "assignment",
+                        "worker_address": worker_wallet,
+                        "lock_tx": escrow_tx,
+                        "network": network,
+                    }
+                    # Upsert escrow record
+                    client = db.get_client()
+                    upd = (
+                        client.table("escrows")
+                        .update(
+                            {
+                                "status": "deposited",
+                                "funding_tx": escrow_tx,
+                                "metadata": escrow_metadata,
+                            }
+                        )
+                        .eq("task_id", task_id)
+                        .execute()
+                    )
+                    if not upd.data:
+                        _insert_escrow_record(
+                            {
+                                "task_id": task_id,
+                                "agent_id": auth.agent_id,
+                                "escrow_id": f"escrow_{task_id[:8]}",
+                                "funding_tx": escrow_tx,
+                                "status": "deposited",
+                                "total_amount_usdc": float(bounty),
+                                "platform_fee_usdc": float(bounty * Decimal("0.13")),
+                                "beneficiary_address": auth.agent_id,
+                                "network": network,
+                                "metadata": escrow_metadata,
+                                "created_at": datetime.now(timezone.utc).isoformat(),
+                            }
+                        )
+
+                    await db.update_task(task_id, {"escrow_tx": escrow_tx})
+
+                    escrow_data = {
+                        "escrow_tx": escrow_tx,
+                        "escrow_status": "deposited",
+                        "escrow_mode": "direct_release",
+                        "agent_signed": True,
+                        "agent_signed_at": "assignment",
+                    }
+                    agent_preauth_executed = True
+                    logger.info(
+                        "Agent-signed auth at assignment: task=%s, worker=%s, tx=%s",
+                        task_id,
+                        worker_wallet[:10] + "...",
+                        escrow_tx,
+                    )
+                else:
+                    escrow_error = lock_result.get("error", "Lock failed")
+                    logger.error(
+                        "Agent-signed auth at assignment failed: task=%s, error=%s",
+                        task_id,
+                        escrow_error,
+                    )
+                    try:
+                        await db.update_task(
+                            task_id,
+                            {
+                                "status": "published",
+                                "executor_id": None,
+                                "assigned_at": None,
+                            },
+                        )
+                    except Exception:
+                        pass
+                    raise HTTPException(
+                        status_code=402,
+                        detail=f"Escrow lock failed: {escrow_error}. Task remains published.",
+                    )
+            except HTTPException:
+                raise
+            except ValueError as ve:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid X-Payment-Auth: {ve}",
+                )
+            except Exception as e:
+                logger.error(
+                    "Agent-signed auth at assignment error: task=%s, error=%s",
+                    task_id,
+                    e,
+                )
+
+        # ── Stored pre-auth execution (Mode B) ──────────────
         # If this task has a stored pre-auth from creation, execute it now
         # with the worker address filled in.
-        agent_preauth_executed = False
-        if worker_wallet and dispatcher:
+        if not agent_preauth_executed and worker_wallet and dispatcher:
             try:
                 client = db.get_client()
                 esc_row = (
