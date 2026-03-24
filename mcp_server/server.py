@@ -314,7 +314,11 @@ CHARACTER_LIMIT = 25000
 from utils.formatting import format_bounty, format_datetime  # noqa: E402
 
 
-def format_task_markdown(task: Dict[str, Any]) -> str:
+def format_task_markdown(
+    task: Dict[str, Any],
+    escrow_info: Optional[Dict[str, Any]] = None,
+    application_count: int = 0,
+) -> str:
     """Format a task as markdown."""
     lines = [
         f"## {task['title']}",
@@ -352,6 +356,25 @@ def format_task_markdown(task: Dict[str, Any]) -> str:
                 f"- **Reputation**: {executor.get('reputation_score', 0)}",
             ]
         )
+
+    if escrow_info:
+        status = escrow_info.get("status", "unknown").upper()
+        lines.extend(
+            [
+                "",
+                "### Escrow",
+                f"- **Status**: {status}",
+            ]
+        )
+        if escrow_info.get("amount_usdc"):
+            lines.append(f"- **Amount**: ${escrow_info['amount_usdc']} USDC")
+        if escrow_info.get("tx_ref"):
+            lines.append(f"- **TX**: `{escrow_info['tx_ref']}`")
+        if escrow_info.get("network"):
+            lines.append(f"- **Network**: {escrow_info['network']}")
+
+    if application_count > 0:
+        lines.append(f"\n**Applications**: {application_count} pending")
 
     lines.extend(
         [
@@ -854,17 +877,43 @@ async def em_get_task(params: GetTaskInput) -> str:
         if not task:
             return f"Error: Task {params.task_id} not found"
 
-        if params.response_format == ResponseFormat.JSON:
-            # Include escrow info from task record (SDK-based flow stores in DB)
-            if task.get("escrow_tx") or task.get("escrow_amount_usdc"):
-                task["escrow"] = {
-                    "status": "authorized" if task.get("escrow_tx") else "pending",
-                    "amount_usdc": task.get("escrow_amount_usdc"),
-                    "tx_ref": task.get("escrow_tx", ""),
+        # Fetch real escrow status from escrows table
+        escrow_info = None
+        try:
+            client = db.get_client()
+            esc_row = (
+                client.table("escrows")
+                .select("status, funding_tx, total_amount_usdc, metadata")
+                .eq("task_id", params.task_id)
+                .limit(1)
+                .execute()
+            )
+            if esc_row.data:
+                esc = esc_row.data[0]
+                escrow_info = {
+                    "status": esc.get("status", "unknown"),
+                    "amount_usdc": esc.get("total_amount_usdc"),
+                    "tx_ref": esc.get("funding_tx", ""),
+                    "network": (esc.get("metadata") or {}).get("network", ""),
                 }
+        except Exception:
+            pass
+
+        # Fetch application count
+        applications = await db.get_applications_for_task(params.task_id)
+        application_count = len(applications)
+
+        if params.response_format == ResponseFormat.JSON:
+            if escrow_info:
+                task["escrow"] = escrow_info
+            task["application_count"] = application_count
             return json.dumps(task, indent=2, default=str)
 
-        return format_task_markdown(task)
+        return format_task_markdown(
+            task,
+            escrow_info=escrow_info,
+            application_count=application_count,
+        )
 
     except Exception as e:
         return f"Error: Failed to get task - {str(e)}"
