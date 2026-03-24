@@ -114,6 +114,11 @@ FASE5_FEE_BPS = 1300
 # "agent_absorbs": lock amount = bounty / 0.87. Agent pays extra so worker gets ~100% of bounty.
 EM_FEE_MODEL = os.environ.get("EM_FEE_MODEL", "credit_card")
 
+# Escrow timing: when are funds locked?
+# "lock_on_assignment" (default): agent pre-signs at creation, lock executes at assignment
+# "lock_on_creation": agent signs and escrow locks immediately at task creation
+EM_ESCROW_TIMING = os.environ.get("EM_ESCROW_TIMING", "lock_on_assignment")
+
 # USDC contract on Base Mainnet (for distributeFees calls)
 USDC_BASE_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
 
@@ -1327,6 +1332,245 @@ class PaymentDispatcher:
             "worker_address": worker_address,
             "bounty_usdc": str(bounty_usdc),
             "lock_amount_usdc": str(lock_amount),
+            "error": None,
+        }
+
+    # =========================================================================
+    # Agent-Signed Escrow (ADR-001 Phase 2)
+    # =========================================================================
+
+    @staticmethod
+    def validate_agent_preauth(payload_json: str) -> dict:
+        """Validate an agent's pre-signed X-Payment-Auth payload.
+
+        The payload is the JSON that the agent would normally send to the
+        Facilitator /settle endpoint. The server validates structure only —
+        it does NOT verify the cryptographic signature (the Facilitator does that).
+
+        Args:
+            payload_json: Raw JSON string from the X-Payment-Auth header.
+
+        Returns:
+            Parsed dict with the payload structure.
+
+        Raises:
+            ValueError: If the payload is malformed or missing required fields.
+        """
+        try:
+            data = json.loads(payload_json)
+        except (json.JSONDecodeError, TypeError) as e:
+            raise ValueError(f"X-Payment-Auth is not valid JSON: {e}")
+
+        # Validate top-level structure
+        if not isinstance(data, dict):
+            raise ValueError("X-Payment-Auth must be a JSON object")
+
+        payload = data.get("payload")
+        if not payload or not isinstance(payload, dict):
+            raise ValueError("X-Payment-Auth missing 'payload' object")
+
+        # Validate authorization fields
+        auth = payload.get("authorization")
+        if not auth or not isinstance(auth, dict):
+            raise ValueError("X-Payment-Auth missing 'payload.authorization'")
+        required_auth_fields = [
+            "from",
+            "to",
+            "value",
+            "validAfter",
+            "validBefore",
+            "nonce",
+        ]
+        missing = [f for f in required_auth_fields if f not in auth]
+        if missing:
+            raise ValueError(f"X-Payment-Auth authorization missing fields: {missing}")
+
+        # Validate signature
+        if not payload.get("signature"):
+            raise ValueError("X-Payment-Auth missing 'payload.signature'")
+
+        # Validate paymentInfo (may be partially filled — receiver added at assignment)
+        pi = payload.get("paymentInfo")
+        if not pi or not isinstance(pi, dict):
+            raise ValueError("X-Payment-Auth missing 'payload.paymentInfo'")
+        required_pi_fields = ["operator", "token", "maxAmount"]
+        missing_pi = [f for f in required_pi_fields if f not in pi]
+        if missing_pi:
+            raise ValueError(f"X-Payment-Auth paymentInfo missing fields: {missing_pi}")
+
+        return data
+
+    async def relay_agent_auth_to_facilitator(
+        self,
+        payload: dict,
+        worker_address: str,
+        network: str = "base",
+    ) -> Dict[str, Any]:
+        """Relay an agent's pre-signed escrow auth to the Facilitator.
+
+        The server fills in the receiver (worker address) and network-specific
+        contract addresses, then forwards the agent's signed payload directly
+        to the Facilitator /settle endpoint. The server does NOT sign anything.
+
+        Args:
+            payload: Parsed X-Payment-Auth payload (from validate_agent_preauth).
+            worker_address: Worker's wallet address (escrow receiver).
+            network: Payment network.
+
+        Returns:
+            Dict with success, tx_hash, error.
+        """
+        import httpx
+
+        config = NETWORK_CONFIG.get(network, {})
+        operator = _get_operator_for_network(network) or EM_OPERATOR
+        chain_id = config.get("chain_id", 8453)
+
+        # Fill in receiver and network-specific fields
+        inner = payload.get("payload", {})
+        pi = inner.get("paymentInfo", {})
+        pi["receiver"] = worker_address
+
+        # Ensure paymentRequirements exists and is populated
+        pr = payload.get("paymentRequirements", {})
+        pr["scheme"] = "escrow"
+        pr["network"] = f"eip155:{chain_id}"
+        pr["payTo"] = worker_address
+        pr["maxAmountRequired"] = str(pi.get("maxAmount", "0"))
+        pr["asset"] = config.get("tokens", {}).get("USDC", {}).get("address", "")
+
+        # Fill extra with contract addresses
+        escrow_address = config.get("escrow_address", "")
+        token_collector = config.get("token_collector", "")
+        pr.setdefault("extra", {})
+        pr["extra"]["escrowAddress"] = escrow_address
+        pr["extra"]["operatorAddress"] = operator
+        pr["extra"]["tokenCollector"] = token_collector
+
+        payload["paymentRequirements"] = pr
+        payload.setdefault("x402Version", 2)
+        payload.setdefault("scheme", "escrow")
+
+        try:
+            async with httpx.AsyncClient(timeout=120) as client:
+                response = await client.post(
+                    f"{FACILITATOR_URL}/settle",
+                    json=payload,
+                )
+                result = response.json()
+
+            if result.get("success"):
+                tx_hash = result.get("transaction", {}).get("hash") or result.get(
+                    "txHash", ""
+                )
+                logger.info(
+                    "Agent-signed escrow locked: network=%s, worker=%s, tx=%s",
+                    network,
+                    worker_address[:10] + "...",
+                    tx_hash[:16] + "..." if tx_hash else "none",
+                )
+                return {
+                    "success": True,
+                    "tx_hash": tx_hash,
+                    "escrow_status": "locked",
+                    "error": None,
+                }
+            else:
+                error = result.get(
+                    "error", result.get("message", "Facilitator rejected")
+                )
+                logger.warning(
+                    "Agent-signed escrow lock failed: network=%s, error=%s",
+                    network,
+                    error,
+                )
+                return {
+                    "success": False,
+                    "tx_hash": None,
+                    "escrow_status": "lock_failed",
+                    "error": str(error),
+                }
+        except Exception as e:
+            logger.error("Failed to relay agent auth to facilitator: %s", e)
+            return {
+                "success": False,
+                "tx_hash": None,
+                "escrow_status": "lock_failed",
+                "error": str(e),
+            }
+
+    def store_preauth(
+        self,
+        task_id: str,
+        payload_json: str,
+        valid_before: int,
+        network: str = "base",
+    ) -> Dict[str, Any]:
+        """Store an agent's pre-signed auth for deferred escrow lock (Mode B).
+
+        The pre-auth is stored in the escrows table metadata and executed
+        later when a worker is assigned to the task.
+
+        Args:
+            task_id: Task identifier.
+            payload_json: Raw X-Payment-Auth JSON string.
+            valid_before: Unix timestamp when the pre-auth expires.
+            network: Payment network.
+
+        Returns:
+            Dict with success, escrow_status.
+        """
+        parsed = json.loads(payload_json)
+        agent_address = (
+            parsed.get("payload", {}).get("authorization", {}).get("from", "")
+        )
+        amount_atomic = (
+            parsed.get("payload", {}).get("paymentInfo", {}).get("maxAmount", "0")
+        )
+        amount_usdc = str(Decimal(str(amount_atomic)) / Decimal(10**6))
+
+        metadata = {
+            "payment_mode": "fase2",
+            "escrow_timing": "lock_on_assignment",
+            "preauth_signature": payload_json,
+            "preauth_valid_before": valid_before,
+            "network": network,
+            "agent_address": agent_address,
+        }
+
+        # Store via DB — uses _insert_escrow_record from _helpers or direct insert.
+        # The escrow record is created with status=pending_assignment.
+        try:
+            import db
+
+            client = db.get_client()
+            client.table("escrows").insert(
+                {
+                    "task_id": task_id,
+                    "status": "pending_assignment",
+                    "total_amount_usdc": amount_usdc,
+                    "metadata": metadata,
+                }
+            ).execute()
+        except Exception as e:
+            logger.error("Failed to store pre-auth for task %s: %s", task_id, e)
+            return {
+                "success": False,
+                "escrow_status": "store_failed",
+                "error": str(e),
+            }
+
+        logger.info(
+            "Stored pre-auth for task %s: agent=%s, validBefore=%d, network=%s",
+            task_id,
+            agent_address[:10] + "..." if agent_address else "unknown",
+            valid_before,
+            network,
+        )
+
+        return {
+            "success": True,
+            "escrow_status": "pending_assignment",
             "error": None,
         }
 
