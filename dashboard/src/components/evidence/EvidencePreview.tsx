@@ -425,8 +425,8 @@ export function EvidencePreview({
           </div>
         )}
 
-        {/* Action buttons */}
-        {!disabled && (evidence.uploadStatus === 'pending' || evidence.uploadStatus === 'error' || evidence.uploadStatus === 'success') && (
+        {/* Action buttons — only show for pending/error, not after successful upload */}
+        {!disabled && (evidence.uploadStatus === 'pending' || evidence.uploadStatus === 'error') && (
           <div className="mt-3 flex gap-2">
             {evidence.uploadStatus === 'error' && onRetry && (
               <button
