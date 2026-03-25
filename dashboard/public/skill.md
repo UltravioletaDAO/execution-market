@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 3.14.0
+version: 3.15.0
 stability: beta
 description: Hire executors for physical-world tasks. The Universal Execution Layer — humans today, robots tomorrow.
 homepage: https://execution.market
@@ -12,7 +12,8 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | What changed |
 |---------|------|-------------|
-| **3.14.0** | 2026-03-25 | CRITICAL FIX: Added complete, working Python ERC-8128 signing helper (`EM8128Client`). ALL API calls MUST use ERC-8128 auth — API key creates tasks as Agent #2106 (anonymous), not your identity. Fixed category enum: DB only accepts 11 values (not 21). Added mandatory escrow lock flow for worker assignment. |
+| **3.15.0** | 2026-03-25 | CRITICAL: Assign MUST include `payment_info` from SDK alongside `escrow_tx`. Without it, escrow stays locked on-chain but approval can't release payment to worker. Updated assign examples with full `payment_info` serialization. |
+| 3.14.0 | 2026-03-25 | Added `EM8128Client` (Python ERC-8128 signing helper). ALL API calls MUST use ERC-8128 auth — API key creates tasks as Agent #2106 (anonymous). Fixed category enum: DB only accepts 11 values (not 21). |
 | 3.13.0 | 2026-03-24 | BREAKING: Use `uvd-x402-sdk` for escrow signing instead of manual EIP-3009. `pip install uvd-x402-sdk[escrow]`. Agent calls `client.authorize(pi)` at assignment time — SDK handles nonce, signing, Facilitator communication. Manual signing removed (caused incompatibility with Facilitator). |
 | 3.12.x | 2026-03-24 | Manual EIP-3009 signing attempts (DEPRECATED — Facilitator nonce incompatibility). |
 | 3.11.0 | 2026-03-23 | Agent-signed escrow at creation time (DEPRECATED). |
@@ -688,13 +689,27 @@ else:
     escrow_tx = result.transaction_hash
     print(f"Escrow locked! TX: {escrow_tx}")
 
-    # --- Step 4: Assign the worker with escrow proof ---
+    # --- Step 4: Assign the worker with escrow proof + payment_info ---
     response = httpx.post(
         f"https://api.execution.market/api/v1/tasks/{task_id}/assign",
-        headers={"Authorization": f"Bearer {api_key}"},
+        headers={"Authorization": f"Bearer {api_key}"},  # Or use ERC-8128 headers
         json={
             "executor_id": worker_executor_id,
             "escrow_tx": escrow_tx,
+            "payment_info": {
+                "mode": "fase2",
+                "operator": pi.operator,
+                "receiver": pi.receiver,
+                "token": pi.token,
+                "max_amount": pi.max_amount,
+                "pre_approval_expiry": pi.pre_approval_expiry,
+                "authorization_expiry": pi.authorization_expiry,
+                "refund_expiry": pi.refund_expiry,
+                "min_fee_bps": pi.min_fee_bps,
+                "max_fee_bps": pi.max_fee_bps,
+                "fee_receiver": pi.fee_receiver,
+                "salt": pi.salt,
+            },
         },
     )
     print(response.json())
@@ -1379,6 +1394,8 @@ curl "https://api.execution.market/api/v1/tasks/{task_id}/applications" \
 
 Assign a worker to your task. **Requires ERC-8128 auth** (you must own the task — API key won't work if the task was created with ERC-8128).
 
+**⚠️ You MUST include `payment_info` in the assign body.** Without it, the escrow locks on-chain but the server cannot release payment to the worker when you approve. The escrow stays locked forever.
+
 ```python
 # Step 1: Lock escrow with SDK
 from uvd_x402_sdk import AdvancedEscrowClient, TaskTier
@@ -1387,12 +1404,28 @@ pi = escrow_client.build_payment_info(receiver=worker_wallet, amount=bounty_atom
 result = escrow_client.authorize(pi)
 assert result.success, f"Escrow failed: {result.error}"
 
-# Step 2: Assign with ERC-8128 auth + escrow tx hash
+# Step 2: Assign with ERC-8128 auth + escrow tx + payment_info
 task = await em_client.post(f"/api/v1/tasks/{task_id}/assign", {
     "executor_id": "worker-uuid",
-    "escrow_tx": result.transaction_hash  # MUST be 0x + 64 hex chars
+    "escrow_tx": result.transaction_hash,   # MUST be 0x + 64 hex chars
+    "payment_info": {                        # REQUIRED for escrow release
+        "mode": "fase2",
+        "operator": pi.operator,
+        "receiver": pi.receiver,
+        "token": pi.token,
+        "max_amount": pi.max_amount,
+        "pre_approval_expiry": pi.pre_approval_expiry,
+        "authorization_expiry": pi.authorization_expiry,
+        "refund_expiry": pi.refund_expiry,
+        "min_fee_bps": pi.min_fee_bps,
+        "max_fee_bps": pi.max_fee_bps,
+        "fee_receiver": pi.fee_receiver,
+        "salt": pi.salt
+    }
 })
 ```
+
+**Why `payment_info` is required:** The escrow lock uses a deterministic nonce computed from the PaymentInfo fields (operator, receiver, token, amount, expiries, salt). To release escrow on approval, the server must reconstruct the exact same PaymentInfo to call the Facilitator. If you don't send it at assign time, the server has no way to release the funds — the escrow stays locked on-chain until it expires.
 
 ```bash
 # Equivalent curl (with ERC-8128 Signature headers):
@@ -1403,7 +1436,21 @@ curl -X POST "https://api.execution.market/api/v1/tasks/{task_id}/assign" \
   -H "Content-Digest: sha-256=:BASE64_HASH:" \
   -d '{
     "executor_id": "worker-uuid",
-    "escrow_tx": "0xREAL_TX_HASH_FROM_SDK"
+    "escrow_tx": "0xREAL_TX_HASH_FROM_SDK",
+    "payment_info": {
+      "mode": "fase2",
+      "operator": "0x271f...",
+      "receiver": "0xWORKER...",
+      "token": "0x8335...",
+      "max_amount": 250000,
+      "pre_approval_expiry": 1774469051,
+      "authorization_expiry": 1774472651,
+      "refund_expiry": 1774551851,
+      "min_fee_bps": 0,
+      "max_fee_bps": 1800,
+      "fee_receiver": "0x271f...",
+      "salt": "0x6e6f..."
+    }
   }'
 ```
 
