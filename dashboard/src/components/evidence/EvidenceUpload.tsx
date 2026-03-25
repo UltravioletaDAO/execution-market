@@ -679,15 +679,13 @@ export function EvidenceUpload({
     />
   )
 
-  // Render preview mode
+  // Render preview mode — show ALL items (including uploaded ones)
   const renderPreviewMode = () => {
-    const pendingItems = evidenceItems.filter(item => item.uploadStatus !== 'success')
-
     return (
       <div className="space-y-4">
         {/* Preview list */}
         <div className="space-y-3">
-          {pendingItems.map((item) => (
+          {evidenceItems.map((item) => (
             <EvidencePreview
               key={item.id}
               evidence={item}
@@ -701,21 +699,21 @@ export function EvidenceUpload({
         </div>
 
         {/* Verification preview */}
-        {pendingItems[0]?.gps && (
+        {evidenceItems[0]?.gps && (
           <EvidenceVerification
             verification={{
               gps: {
                 verified: true,
-                position: pendingItems[0].gps,
+                position: evidenceItems[0].gps,
                 matchesTaskLocation: taskLocation
-                  ? calculateDistance(pendingItems[0].gps)! / 1000 <= (taskLocation.radiusKm || 1)
+                  ? calculateDistance(evidenceItems[0].gps)! / 1000 <= (taskLocation.radiusKm || 1)
                   : undefined,
-                distance: calculateDistance(pendingItems[0].gps),
+                distance: calculateDistance(evidenceItems[0].gps),
                 maxDistance: taskLocation?.radiusKm ? taskLocation.radiusKm * 1000 : undefined,
               },
               timestamp: {
                 verified: true,
-                capturedAt: pendingItems[0].timestamp,
+                capturedAt: evidenceItems[0].timestamp,
                 withinDeadline: true,
               },
             }}
@@ -734,7 +732,7 @@ export function EvidenceUpload({
           </button>
           <button
             onClick={uploadAllEvidence}
-            disabled={isUploading || pendingItems.length === 0}
+            disabled={isUploading || evidenceItems.filter(i => i.uploadStatus === 'pending').length === 0}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors disabled:opacity-50"
           >
             {isUploading ? (
