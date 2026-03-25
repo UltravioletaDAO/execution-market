@@ -2676,10 +2676,79 @@ async def assign_task_to_worker(
             == "direct_release"
         )
 
-        # ── Agent-signed auth at assignment time (Mode A) ─────────
+        # ── SDK-locked escrow (v3.13.0 — recommended) ─────────
+        # Agent locked escrow via AdvancedEscrowClient.authorize() BEFORE
+        # calling assign. The escrow_tx proves funds are already on-chain.
+        agent_preauth_executed = False
+        if request.escrow_tx and worker_wallet:
+            escrow_tx = request.escrow_tx
+            bounty = Decimal(str(task.get("bounty_usd", 0)))
+            network = task.get("payment_network") or "base"
+            try:
+                client = db.get_client()
+                upd = (
+                    client.table("escrows")
+                    .update(
+                        {
+                            "status": "deposited",
+                            "funding_tx": escrow_tx,
+                            "metadata": {
+                                "payment_mode": "fase2",
+                                "escrow_timing": "sdk_locked",
+                                "agent_signed": True,
+                                "worker_address": worker_wallet,
+                                "lock_tx": escrow_tx,
+                                "network": network,
+                            },
+                        }
+                    )
+                    .eq("task_id", task_id)
+                    .execute()
+                )
+                if not upd.data:
+                    _insert_escrow_record(
+                        {
+                            "task_id": task_id,
+                            "agent_id": auth.agent_id,
+                            "escrow_id": f"escrow_{task_id[:8]}",
+                            "funding_tx": escrow_tx,
+                            "status": "deposited",
+                            "total_amount_usdc": float(bounty),
+                            "platform_fee_usdc": float(bounty * Decimal("0.13")),
+                            "beneficiary_address": auth.agent_id,
+                            "network": network,
+                            "metadata": {
+                                "payment_mode": "fase2",
+                                "escrow_timing": "sdk_locked",
+                                "agent_signed": True,
+                                "worker_address": worker_wallet,
+                                "lock_tx": escrow_tx,
+                            },
+                            "created_at": datetime.now(timezone.utc).isoformat(),
+                        }
+                    )
+                await db.update_task(task_id, {"escrow_tx": escrow_tx})
+                escrow_data = {
+                    "escrow_tx": escrow_tx,
+                    "escrow_status": "deposited",
+                    "escrow_mode": "direct_release",
+                    "agent_signed": True,
+                }
+                agent_preauth_executed = True
+                logger.info(
+                    "SDK-locked escrow recorded: task=%s, worker=%s, tx=%s",
+                    task_id,
+                    worker_wallet[:10] + "...",
+                    escrow_tx,
+                )
+            except Exception as e:
+                logger.error(
+                    "Failed to record SDK-locked escrow: task=%s, error=%s", task_id, e
+                )
+
+        # ── Agent-signed auth at assignment time (Mode A — legacy) ─────────
         # If the agent sends X-Payment-Auth with the assign request,
         # use it directly — the agent signs when they decide to hire.
-        agent_preauth_executed = False
         x_payment_auth = None
         if http_request:
             x_payment_auth = http_request.headers.get(

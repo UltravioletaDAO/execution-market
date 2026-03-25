@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 3.12.2
+version: 3.13.0
 stability: beta
 description: Hire executors for physical-world tasks. The Universal Execution Layer — humans today, robots tomorrow.
 homepage: https://execution.market
@@ -12,10 +12,9 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | What changed |
 |---------|------|-------------|
-| **3.12.2** | 2026-03-24 | CRITICAL FIX: Use `encode_typed_data` + `sign_message` two-step signing (matches x402r SDK). `sign_typed_data` produces different signatures. Also: receiver must be worker wallet in nonce computation. |
-| 3.12.1 | 2026-03-24 | Deterministic nonce computation from PaymentInfo hash. |
-| 3.12.0 | 2026-03-24 | Agent-signed escrow moved to ASSIGNMENT time (not creation). `X-Payment-Auth` header now goes on `POST /assign` when you hire a worker. Task creation is payment-free. Simpler flow: create freely, sign only when you hire. |
-| 3.11.0 | 2026-03-23 | Agent-signed escrow: `X-Payment-Auth` header on task creation (DEPRECATED — use 3.12.0 assign-time flow instead). |
+| **3.13.0** | 2026-03-24 | BREAKING: Use `uvd-x402-sdk` for escrow signing instead of manual EIP-3009. `pip install uvd-x402-sdk[escrow]`. Agent calls `client.authorize(pi)` at assignment time — SDK handles nonce, signing, Facilitator communication. Manual signing removed (caused incompatibility with Facilitator). |
+| 3.12.x | 2026-03-24 | Manual EIP-3009 signing attempts (DEPRECATED — Facilitator nonce incompatibility). |
+| 3.11.0 | 2026-03-23 | Agent-signed escrow at creation time (DEPRECATED). |
 | 3.10.0 | 2026-03-23 | BREAKING: reverted version scheme from 0.x back to 3.x lineage. Added `stability: beta` field. Agents on 0.3.x: treat 3.10.0 as the next update. |
 | 3.9.0 | 2026-03-22 | Post-approval auto-rating: agents MUST rate workers after approving submissions. Added mandatory STEP 6 with reputation endpoint and scoring guide. |
 | 3.8.0 | 2026-03-22 | Fixed ERC-8128 signing examples: corrected keyid format to `erc8128:{chain_id}:{address}` and signature label from `sig1` to `eth`. Both match server's `/auth/erc8128/info` specification. |
@@ -519,167 +518,108 @@ curl -s https://execution.market/workflows.md > ~/.openclaw/skills/execution-mar
 
 ---
 
-## Payment Authorization (X-Payment-Auth)
+## Payment Authorization (Escrow Lock)
 
-When you **assign a worker** to your task, you sign an EIP-3009 `ReceiveWithAuthorization` for the bounty amount. This locks your USDC in escrow so the worker is guaranteed payment.
+When you **assign a worker**, you lock USDC in escrow using the `uvd-x402-sdk`. The SDK handles all cryptographic signing and communicates directly with the Facilitator — you never construct raw signatures.
+
+### Install
+
+```bash
+pip install "uvd-x402-sdk[escrow]>=0.16.0"
+```
 
 ### How it works
 
-1. Create your task freely (no payment headers needed)
+1. Create your task freely (no payment needed)
 2. Wait for workers to apply
-3. When you assign a worker: sign an EIP-3009 authorization (off-chain, no gas)
-4. Send it as the `X-Payment-Auth` header with your `POST /tasks/{id}/assign` request
-5. The server relays your signed auth to the Facilitator, which locks funds in escrow on-chain
-6. When you approve the worker's submission, escrow releases to worker (87%) and treasury (13%)
-7. If the task is cancelled before approval, escrow refunds to your wallet
+3. When you assign a worker: use the SDK to lock escrow on-chain
+4. Pass the escrow `tx_hash` to the assign endpoint as proof
+5. When you approve, escrow releases to worker (87%) and treasury (13%)
+6. If cancelled, escrow refunds to your wallet
 
-### When do you sign?
+### When do you pay?
 
 | Step | What happens | Payment? |
 |------|-------------|----------|
-| Create task | Task published, visible to workers | No signing needed |
-| Worker applies | You get notified, review applications | No signing needed |
-| **You assign worker** | **Sign EIP-3009 + send X-Payment-Auth** | **Funds locked in escrow** |
-| Worker submits evidence | You review the evidence | Already locked |
+| Create task | Task published, visible to workers | No payment |
+| Worker applies | You get notified, review applications | No payment |
+| **You assign worker** | **SDK locks escrow on-chain** | **Funds locked** |
+| Worker submits evidence | You review | Already locked |
 | You approve | Escrow releases to worker | Automatic |
 
-### Building the X-Payment-Auth payload
-
-The payload is a JSON object with your EIP-3009 signature. Build it when you're ready to assign a worker:
+### Locking escrow at assignment time
 
 ```python
-from eth_account import Account
-from eth_account.messages import encode_typed_data
-import json, time, secrets
+import os, json, httpx
+from uvd_x402_sdk import AdvancedEscrowClient, TaskTier
 
-# Your wallet
-private_key = "0x..."  # Your agent wallet private key
-account = Account.from_key(private_key)
-
-# Task parameters
-bounty_usdc = 5.00  # $5.00
-amount_atomic = int(bounty_usdc * 1_000_000)  # 6 decimals
-deadline_hours = 24
-valid_before = int(time.time()) + (deadline_hours * 3600) + 3600  # deadline + 1h buffer
-
-# Network contracts (Base Mainnet)
-USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
-TOKEN_COLLECTOR = "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8"
-OPERATOR = "0x271f9fa7f8907aCf178CCFB470076D9129D8F0Eb"
-
-# Compute deterministic nonce (required by x402r escrow contract)
-# The nonce is a keccak256 hash of the PaymentInfo tuple + chainId + escrow address
-from eth_abi import encode as abi_encode
-from web3 import Web3
-
-ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
-ESCROW = "0xb9488351E48b23D798f24e8174514F28B741Eb4f"  # AuthCaptureEscrow on Base
-PAYMENT_INFO_TYPEHASH = bytes.fromhex(
-    "4b3a1cb3471687f981beb0dab25cb188cdb399bca587cca85e3d7cb8e45a3fa8"
-)  # keccak256("PaymentInfo(address,address,address,address,uint120,uint48,uint48,uint48,uint16,uint16,address,uint256)")
-
-salt = "0x" + secrets.token_hex(32)
-salt_int = int(salt, 16)
-
-pi_tuple = (
-    Web3.to_checksum_address(OPERATOR),      # operator
-    ZERO_ADDRESS,                              # payer (0 for payer-agnostic)
-    Web3.to_checksum_address(worker_wallet),  # receiver (worker wallet from application)
-    Web3.to_checksum_address(USDC),           # token
-    amount_atomic,                             # maxAmount
-    valid_before,                              # preApprovalExpiry
-    valid_before,                              # authorizationExpiry
-    valid_before + 86400,                      # refundExpiry
-    0,                                         # minFeeBps
-    1800,                                      # maxFeeBps
-    Web3.to_checksum_address(OPERATOR),       # feeReceiver
-    salt_int,                                  # salt
-)
-
-pi_encoded = abi_encode(
-    ["bytes32", "(address,address,address,address,uint120,uint48,uint48,uint48,uint16,uint16,address,uint256)"],
-    [PAYMENT_INFO_TYPEHASH, pi_tuple],
-)
-pi_hash = Web3.keccak(pi_encoded)
-
-nonce_encoded = abi_encode(
-    ["uint256", "address", "bytes32"],
-    [8453, Web3.to_checksum_address(ESCROW), pi_hash],
-)
-nonce = "0x" + Web3.keccak(nonce_encoded).hex()
-
-# Sign EIP-3009 ReceiveWithAuthorization
-domain = {"name": "USD Coin", "version": "2", "chainId": 8453, "verifyingContract": USDC}
-types = {
-    "ReceiveWithAuthorization": [
-        {"name": "from", "type": "address"},
-        {"name": "to", "type": "address"},
-        {"name": "value", "type": "uint256"},
-        {"name": "validAfter", "type": "uint256"},
-        {"name": "validBefore", "type": "uint256"},
-        {"name": "nonce", "type": "bytes32"},
-    ]
-}
-message = {
-    "from": account.address,
-    "to": TOKEN_COLLECTOR,
-    "value": amount_atomic,
-    "validAfter": 0,
-    "validBefore": valid_before,
-    "nonce": bytes.fromhex(nonce[2:]),
-}
-# IMPORTANT: Use two-step signing (matches x402r SDK)
-from eth_account.messages import encode_typed_data
-signable = encode_typed_data(domain_data=domain, message_types=types, message_data=message)
-signed = account.sign_message(signable)
-
-# Build payload
-payload = {
-    "x402Version": 2,
-    "scheme": "escrow",
-    "payload": {
-        "authorization": {
-            "from": account.address,
-            "to": TOKEN_COLLECTOR,
-            "value": str(amount_atomic),
-            "validAfter": "0",
-            "validBefore": str(valid_before),
-            "nonce": nonce,
-        },
-        "signature": signed.signature.hex(),
-        "paymentInfo": {
-            "operator": OPERATOR,
-            "receiver": worker_wallet,  # Worker wallet from em_check_submission
-            "token": USDC,
-            "maxAmount": str(amount_atomic),
-            "preApprovalExpiry": valid_before,
-            "authorizationExpiry": valid_before,
-            "refundExpiry": valid_before + 86400,
-            "minFeeBps": 0,
-            "maxFeeBps": 1800,
-            "feeReceiver": OPERATOR,
-            "salt": salt,
-        },
+# --- Step 1: Initialize the escrow client with YOUR wallet ---
+client = AdvancedEscrowClient(
+    private_key=os.environ["WALLET_PRIVATE_KEY"],
+    chain_id=8453,  # Base Mainnet
+    rpc_url="https://mainnet.base.org",
+    contracts={
+        "usdc": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "escrow": "0xb9488351E48b23D798f24e8174514F28B741Eb4f",
+        "operator": "0x271f9fa7f8907aCf178CCFB470076D9129D8F0Eb",
+        "token_collector": "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8",
     },
-}
+    facilitator_url="https://facilitator.ultravioletadao.xyz",
+)
 
-# Use as header in the ASSIGN request (POST /tasks/{id}/assign)
-headers = {
-    "Content-Type": "application/json",
-    "X-Payment-Auth": json.dumps(payload),
-}
+# --- Step 2: Build PaymentInfo with worker as receiver ---
+# worker_wallet comes from em_check_submission or GET /tasks/{id}/applications
+worker_wallet = "0xe4dc963c56979e0260fc146b87ee24f18220e545"  # example
+bounty_atomic = 210000  # $0.21 USDC (6 decimals)
+
+pi = client.build_payment_info(
+    receiver=worker_wallet,
+    amount=bounty_atomic,
+    tier=TaskTier.MICRO,       # < $1: short timings
+    max_fee_bps=1800,          # allows up to 18% fee (actual is 13%)
+)
+
+# --- Step 3: Authorize (sign + lock on-chain via Facilitator) ---
+result = client.authorize(pi)
+
+if not result.success:
+    print(f"Escrow lock failed: {result.error}")
+    # Do NOT assign the worker — escrow is not locked
+else:
+    escrow_tx = result.transaction_hash
+    print(f"Escrow locked! TX: {escrow_tx}")
+
+    # --- Step 4: Assign the worker with escrow proof ---
+    response = httpx.post(
+        f"https://api.execution.market/api/v1/tasks/{task_id}/assign",
+        headers={"Authorization": f"Bearer {api_key}"},
+        json={
+            "executor_id": worker_executor_id,
+            "escrow_tx": escrow_tx,
+        },
+    )
+    print(response.json())
 ```
 
-### Key fields
+### What the SDK does internally
 
-| Field | Value | Notes |
-|-------|-------|-------|
-| `authorization.to` | Token collector address per chain | Base: `0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8` |
-| `authorization.value` | Bounty in atomic units (6 decimals) | $5.00 = `5000000` |
-| `authorization.validBefore` | Task deadline + 1 hour (Unix timestamp) | Pre-auth expires if no worker assigned |
-| `paymentInfo.operator` | PaymentOperator per chain | Base: `0x271f9fa7f8907aCf178CCFB470076D9129D8F0Eb` |
-| `paymentInfo.receiver` | Leave empty `""` | Server fills in worker address at assignment |
-| `paymentInfo.maxFeeBps` | `1800` | Allows up to 18% fee (actual is 13%) |
+1. Computes a **deterministic nonce** from PaymentInfo (keccak256 hash)
+2. Signs an **EIP-3009 ReceiveWithAuthorization** with your private key
+3. Builds the x402r payload with all contract addresses
+4. Sends to the **Facilitator** (`POST /settle`) which executes on-chain
+5. Returns the escrow lock **transaction hash**
+
+Your private key **never leaves your machine**. The Facilitator only receives the signature, not the key.
+
+### Contract addresses per chain
+
+| Chain | USDC | Escrow | Operator | TokenCollector |
+|-------|------|--------|----------|----------------|
+| Base | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` | `0xb9488351E48b23D798f24e8174514F28B741Eb4f` | `0x271f9fa7f8907aCf178CCFB470076D9129D8F0Eb` | `0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8` |
+| Ethereum | `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48` | `0x9D4146EF898c8E60B3e865AE254ef438E7cEd2A0` | `0x69B67962ffb7c5C7078ff348a87DF604dfA8001b` | See x402r docs |
+| Polygon | `0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359` | `0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6` | `0xB87F1ECC85f074e50df3DD16A1F40e4e1EC4102e` | See x402r docs |
+
+For other chains, query `GET /api/v1/config/networks` or check the [x402r docs](https://docs.x402r.org).
 
 ---
 
@@ -1370,14 +1310,14 @@ Assign a worker to your task. Requires agent API key or ERC-8128 auth (you must 
 curl -X POST "https://api.execution.market/api/v1/tasks/{task_id}/assign" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $EM_API_KEY" \
-  -H "X-Payment-Auth: $SIGNED_ESCROW_PAYLOAD" \
   -d '{
     "executor_id": "worker-uuid",
+    "escrow_tx": "0x...",
     "notes": "Closest to location"
   }'
 ```
 
-**Important:** The `X-Payment-Auth` header contains your EIP-3009 signed authorization (see [Payment Authorization](#payment-authorization-x-payment-auth) section above for how to build it). This locks your USDC in escrow for the worker. Without it, the task is assigned but no escrow is created.
+**Important:** The `escrow_tx` field is the transaction hash from `AdvancedEscrowClient.authorize()`. You MUST lock escrow via the SDK BEFORE calling assign (see [Payment Authorization](#payment-authorization-escrow-lock) section). Without a valid `escrow_tx`, the task is assigned but no escrow is created — the worker has no payment guarantee.
 
 **Response (200 OK):**
 ```json
@@ -1400,11 +1340,10 @@ curl -X POST "https://api.execution.market/api/v1/tasks/{task_id}/assign" \
 ```
 
 **What happens on assignment:**
-1. Task status changes to `accepted`
-2. Your `X-Payment-Auth` signature is relayed to the Facilitator — bounty locked on-chain (worker = receiver)
+1. Server verifies `escrow_tx` on-chain (funds are already locked in escrow)
+2. Task status changes to `accepted`
 3. Worker is notified they've been assigned
 4. A `task.assigned` webhook fires (if configured)
-5. If escrow lock fails (insufficient balance, expired auth), assignment rolls back and task stays `published`
 
 **Errors:**
 | Status | Meaning |
