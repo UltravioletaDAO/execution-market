@@ -229,12 +229,14 @@ export function GPSCapture({
     }
   }, [watchMode, isSupported, handleSuccess, handleError, highAccuracy, timeout, maxAge])
 
-  // Get position on mount if not in watch mode
+  // Get position on mount if permission is already granted.
+  // On iOS Safari, GPS requires a user gesture for the first prompt,
+  // so we only auto-request if we know permission is already granted.
   useEffect(() => {
-    if (!watchMode) {
+    if (!watchMode && permissionStatus === 'granted') {
       getCurrentPosition()
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [permissionStatus]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Generate static map URL (using OpenStreetMap static image proxy)
   const getMapUrl = useCallback((lat: number, lng: number, zoom = 15): string => {
@@ -361,6 +363,25 @@ export function GPSCapture({
                 </svg>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Prompt state — user must tap to activate GPS (iOS requires gesture) */}
+        {!isLoading && !position && !error && (permissionStatus === 'unknown' || permissionStatus === 'prompt') && (
+          <div className="p-6 text-center">
+            <button
+              type="button"
+              onClick={getCurrentPosition}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              </svg>
+              {t('gps.activate', 'Activar GPS')}
+            </button>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+              {t('gps.tapToActivate', 'Toca para permitir el acceso a tu ubicacion')}
+            </p>
           </div>
         )}
 

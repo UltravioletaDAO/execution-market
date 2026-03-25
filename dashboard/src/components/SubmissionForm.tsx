@@ -570,7 +570,6 @@ export function SubmissionForm({
             <input
               type="file"
               accept={config?.accept}
-              {...(config?.accept?.startsWith('image/') ? { capture: 'environment' as const } : {})}
               onChange={(e) => {
                 const file = e.target.files?.[0]
                 if (file) handleFileSelect(type, file)
