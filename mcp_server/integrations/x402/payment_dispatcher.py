@@ -1696,28 +1696,41 @@ class PaymentDispatcher:
             "salt": pi.salt,
         }
 
-        # Determine payer (agent wallet) from escrow metadata or task
-        # The agent_id might be a numeric ERC-8004 ID (e.g., "35627") — we need
-        # the actual wallet address. Check multiple sources.
-        payer = pi_meta.get("agent_address", "")
-        if not payer or len(payer) < 42:
-            payer = pi_meta.get("beneficiary_address", "")
-        if not payer or len(payer) < 42:
-            # Look up from task via DB
+        # Determine payer (agent wallet) — required by Facilitator for release.
+        # Sources (in priority order):
+        # 1. pi_meta["payer"] — set by _reconstruct_fase2_state from payment_info
+        # 2. pi_meta["agent_address"] — set at assign time from auth.wallet_address
+        # 3. Look up task.agent_id if it's a wallet address
+        payer = pi_meta.get("payer", "")
+        if not payer or not payer.startswith("0x") or len(payer) != 42:
+            payer = pi_meta.get("agent_address", "")
+        if not payer or not payer.startswith("0x") or len(payer) != 42:
             try:
                 import supabase_client as db_mod
 
                 task_data = await db_mod.get_task(task_id)
                 if task_data:
-                    agent_id = task_data.get("agent_id", "")
-                    if agent_id and agent_id.startswith("0x") and len(agent_id) == 42:
-                        payer = agent_id
+                    aid = task_data.get("agent_id", "")
+                    if aid.startswith("0x") and len(aid) == 42:
+                        payer = aid
             except Exception as e:
                 logger.warning("Could not resolve payer for task %s: %s", task_id, e)
-        if not payer or len(payer) < 42:
-            # Last resort: use zero address (payer-agnostic)
-            payer = "0x0000000000000000000000000000000000000000"
-            logger.warning("Using ZERO_ADDRESS as payer for task %s release", task_id)
+        if not payer or not payer.startswith("0x") or len(payer) != 42:
+            logger.error(
+                "CRITICAL: Cannot determine payer wallet for task %s release. "
+                "The agent must include 'payer' in payment_info when assigning.",
+                task_id,
+            )
+            return {
+                "success": False,
+                "tx_hash": None,
+                "mode": "fase2",
+                "escrow_mode": "direct_release",
+                "error": (
+                    "Cannot release: payer wallet unknown. "
+                    "Agent must include 'payer' (wallet address) in payment_info."
+                ),
+            }
 
         release_payload = {
             "x402Version": 2,
@@ -3163,11 +3176,23 @@ class PaymentDispatcher:
             )
 
             # Merge metadata-level fields into pi_data for callers that read
-            # worker_address, network, bounty_usdc, etc. from the second return value.
+            # worker_address, network, bounty_usdc, payer, etc.
             merged = dict(pi_data)
-            for k in ("worker_address", "network", "bounty_usdc", "lock_tx"):
+            for k in (
+                "worker_address",
+                "network",
+                "bounty_usdc",
+                "lock_tx",
+                "agent_address",
+                "payer",
+            ):
                 if k not in merged and k in metadata:
                     merged[k] = metadata[k]
+            # Ensure payer is available — the release needs it
+            if "payer" not in merged:
+                merged["payer"] = metadata.get(
+                    "agent_address", pi_data.get("payer", "")
+                )
 
             logger.info("fase2: Reconstructed PaymentInfo for task %s from DB", task_id)
             return pi, merged

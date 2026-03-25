@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 3.15.0
+version: 3.16.0
 stability: beta
 description: Hire executors for physical-world tasks. The Universal Execution Layer — humans today, robots tomorrow.
 homepage: https://execution.market
@@ -12,7 +12,8 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | What changed |
 |---------|------|-------------|
-| **3.15.0** | 2026-03-25 | CRITICAL: Assign MUST include `payment_info` from SDK alongside `escrow_tx`. Without it, escrow stays locked on-chain but approval can't release payment to worker. Updated assign examples with full `payment_info` serialization. |
+| **3.16.0** | 2026-03-25 | CRITICAL: `payment_info` MUST include `payer` (your wallet address). Without it, the Facilitator can't release escrow to worker — the contract verifies payer identity. Also: server no longer needs EM_SERVER_SIGNING for release (uses Facilitator HTTP directly). |
+| 3.15.0 | 2026-03-25 | Assign MUST include `payment_info` from SDK alongside `escrow_tx`. |
 | 3.14.0 | 2026-03-25 | Added `EM8128Client` (Python ERC-8128 signing helper). ALL API calls MUST use ERC-8128 auth — API key creates tasks as Agent #2106 (anonymous). Fixed category enum: DB only accepts 11 values (not 21). |
 | 3.13.0 | 2026-03-24 | BREAKING: Use `uvd-x402-sdk` for escrow signing instead of manual EIP-3009. `pip install uvd-x402-sdk[escrow]`. Agent calls `client.authorize(pi)` at assignment time — SDK handles nonce, signing, Facilitator communication. Manual signing removed (caused incompatibility with Facilitator). |
 | 3.12.x | 2026-03-24 | Manual EIP-3009 signing attempts (DEPRECATED — Facilitator nonce incompatibility). |
@@ -698,6 +699,7 @@ else:
             "escrow_tx": escrow_tx,
             "payment_info": {
                 "mode": "fase2",
+                "payer": address,  # YOUR wallet address (the one that signed the escrow)
                 "operator": pi.operator,
                 "receiver": pi.receiver,
                 "token": pi.token,
@@ -1410,6 +1412,7 @@ task = await em_client.post(f"/api/v1/tasks/{task_id}/assign", {
     "escrow_tx": result.transaction_hash,   # MUST be 0x + 64 hex chars
     "payment_info": {                        # REQUIRED for escrow release
         "mode": "fase2",
+        "payer": your_wallet_address,        # REQUIRED: your wallet (escrow signer)
         "operator": pi.operator,
         "receiver": pi.receiver,
         "token": pi.token,
@@ -1439,6 +1442,7 @@ curl -X POST "https://api.execution.market/api/v1/tasks/{task_id}/assign" \
     "escrow_tx": "0xREAL_TX_HASH_FROM_SDK",
     "payment_info": {
       "mode": "fase2",
+      "payer": "0xYOUR_WALLET...",
       "operator": "0x271f...",
       "receiver": "0xWORKER...",
       "token": "0x8335...",
