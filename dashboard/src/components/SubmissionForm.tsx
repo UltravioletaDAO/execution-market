@@ -697,8 +697,8 @@ export function SubmissionForm({
       </div>
 
       <div className="p-4 space-y-4">
-        {/* Geofence alert — warn if user is outside task location radius */}
-        {geofenceLocation && (
+        {/* Geofence alert — only show if NOT using EvidenceUpload (which has its own GPS) */}
+        {geofenceLocation && !hasCameraTypes && (
           <GeofenceAlert
             taskLocation={geofenceLocation}
             radiusKm={geofenceRadius}

@@ -293,10 +293,10 @@ export function EvidenceUpload({
     }
   }, [evidenceItems.length])
 
-  // Handle retake
+  // Handle retake — use native file input (not getUserMedia camera)
   const handleRetake = useCallback((id: string) => {
     setEvidenceItems(prev => prev.filter(item => item.id !== id))
-    setViewMode('camera')
+    setViewMode('capture')
   }, [])
 
   // Upload single evidence item
