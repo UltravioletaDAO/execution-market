@@ -229,11 +229,12 @@ export function GPSCapture({
     }
   }, [watchMode, isSupported, handleSuccess, handleError, highAccuracy, timeout, maxAge])
 
-  // Get position on mount if permission is already granted.
-  // On iOS Safari, GPS requires a user gesture for the first prompt,
-  // so we only auto-request if we know permission is already granted.
+  // Get position on mount. On iOS Safari, permissions.query('geolocation')
+  // is not supported — permissionStatus stays 'unknown'. We auto-request
+  // for 'granted' and 'unknown' (iOS where the site-level setting is "Allow").
+  // Only skip auto-request for 'prompt' (desktop where we know it needs gesture).
   useEffect(() => {
-    if (!watchMode && permissionStatus === 'granted') {
+    if (!watchMode && (permissionStatus === 'granted' || permissionStatus === 'unknown')) {
       getCurrentPosition()
     }
   }, [permissionStatus]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -366,8 +367,8 @@ export function GPSCapture({
           </div>
         )}
 
-        {/* Prompt state — user must tap to activate GPS (iOS requires gesture) */}
-        {!isLoading && !position && !error && (permissionStatus === 'unknown' || permissionStatus === 'prompt') && (
+        {/* Prompt state — user must tap to activate GPS (desktop browsers) */}
+        {!isLoading && !position && !error && permissionStatus === 'prompt' && (
           <div className="p-6 text-center">
             <button
               type="button"
