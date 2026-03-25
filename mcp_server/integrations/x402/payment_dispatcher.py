@@ -3005,9 +3005,40 @@ class PaymentDispatcher:
 
             pi_data = metadata.get("payment_info")
             if not pi_data or pi_data.get("mode") != "fase2":
+                # Provide specific diagnostics for SDK-locked escrows
+                escrow_timing = metadata.get("escrow_timing", "unknown")
+                payment_mode = metadata.get("payment_mode", "unknown")
                 logger.warning(
-                    "fase2: No fase2 payment_info in escrow metadata for task %s",
+                    "fase2: No fase2 payment_info in escrow metadata for task %s "
+                    "(escrow_timing=%s, payment_mode=%s). "
+                    "SDK-locked escrows require the agent to send payment_info "
+                    "in the assign request body.",
                     task_id,
+                    escrow_timing,
+                    payment_mode,
+                )
+                return None, {}
+
+            # Validate required PaymentInfo fields before reconstruction
+            required_pi_fields = [
+                "operator",
+                "receiver",
+                "token",
+                "max_amount",
+                "pre_approval_expiry",
+                "authorization_expiry",
+                "refund_expiry",
+                "min_fee_bps",
+                "max_fee_bps",
+                "fee_receiver",
+                "salt",
+            ]
+            missing = [f for f in required_pi_fields if f not in pi_data]
+            if missing:
+                logger.warning(
+                    "fase2: payment_info for task %s is missing fields: %s",
+                    task_id,
+                    missing,
                 )
                 return None, {}
 
@@ -3026,8 +3057,15 @@ class PaymentDispatcher:
                 salt=pi_data["salt"],
             )
 
+            # Merge metadata-level fields into pi_data for callers that read
+            # worker_address, network, bounty_usdc, etc. from the second return value.
+            merged = dict(pi_data)
+            for k in ("worker_address", "network", "bounty_usdc", "lock_tx"):
+                if k not in merged and k in metadata:
+                    merged[k] = metadata[k]
+
             logger.info("fase2: Reconstructed PaymentInfo for task %s from DB", task_id)
-            return pi, pi_data
+            return pi, merged
 
         except Exception as e:
             logger.error(

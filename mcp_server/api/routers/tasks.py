@@ -2679,11 +2679,44 @@ async def assign_task_to_worker(
         # ── SDK-locked escrow (v3.13.0 — recommended) ─────────
         # Agent locked escrow via AdvancedEscrowClient.authorize() BEFORE
         # calling assign. The escrow_tx proves funds are already on-chain.
+        # The agent MUST also send payment_info (serialized PaymentInfo) so
+        # the server can reconstruct the escrow state for release/refund.
         agent_preauth_executed = False
         if request.escrow_tx and worker_wallet:
             escrow_tx = request.escrow_tx
             bounty = Decimal(str(task.get("bounty_usd", 0)))
             network = task.get("payment_network") or "base"
+
+            # Build escrow metadata — include payment_info if agent sent it
+            sdk_escrow_metadata = {
+                "payment_mode": "fase2",
+                "escrow_timing": "sdk_locked",
+                "escrow_mode": "direct_release",
+                "agent_signed": True,
+                "worker_address": worker_wallet,
+                "lock_tx": escrow_tx,
+                "network": network,
+            }
+            if request.payment_info:
+                # Ensure mode=fase2 is set for _reconstruct_fase2_state()
+                pi = dict(request.payment_info)
+                pi.setdefault("mode", "fase2")
+                pi.setdefault("escrow_mode", "direct_release")
+                sdk_escrow_metadata["payment_info"] = pi
+                logger.info(
+                    "SDK-locked escrow includes payment_info: task=%s, "
+                    "operator=%s, salt=%s",
+                    task_id,
+                    pi.get("operator", "?")[:10],
+                    pi.get("salt", "?")[:10],
+                )
+            else:
+                logger.warning(
+                    "SDK-locked escrow WITHOUT payment_info: task=%s. "
+                    "Release will fail unless payment_info is provided.",
+                    task_id,
+                )
+
             try:
                 client = db.get_client()
                 upd = (
@@ -2692,14 +2725,7 @@ async def assign_task_to_worker(
                         {
                             "status": "deposited",
                             "funding_tx": escrow_tx,
-                            "metadata": {
-                                "payment_mode": "fase2",
-                                "escrow_timing": "sdk_locked",
-                                "agent_signed": True,
-                                "worker_address": worker_wallet,
-                                "lock_tx": escrow_tx,
-                                "network": network,
-                            },
+                            "metadata": sdk_escrow_metadata,
                         }
                     )
                     .eq("task_id", task_id)
@@ -2717,13 +2743,7 @@ async def assign_task_to_worker(
                             "platform_fee_usdc": float(bounty * Decimal("0.13")),
                             "beneficiary_address": auth.agent_id,
                             "network": network,
-                            "metadata": {
-                                "payment_mode": "fase2",
-                                "escrow_timing": "sdk_locked",
-                                "agent_signed": True,
-                                "worker_address": worker_wallet,
-                                "lock_tx": escrow_tx,
-                            },
+                            "metadata": sdk_escrow_metadata,
                             "created_at": datetime.now(timezone.utc).isoformat(),
                         }
                     )
@@ -2736,10 +2756,12 @@ async def assign_task_to_worker(
                 }
                 agent_preauth_executed = True
                 logger.info(
-                    "SDK-locked escrow recorded: task=%s, worker=%s, tx=%s",
+                    "SDK-locked escrow recorded: task=%s, worker=%s, tx=%s, "
+                    "has_payment_info=%s",
                     task_id,
                     worker_wallet[:10] + "...",
                     escrow_tx,
+                    bool(request.payment_info),
                 )
             except Exception as e:
                 logger.error(

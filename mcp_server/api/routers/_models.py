@@ -305,6 +305,16 @@ class WorkerAssignRequest(BaseModel):
             "Proves funds are locked on-chain before assignment."
         ),
     )
+    payment_info: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description=(
+            "Serialized PaymentInfo from AdvancedEscrowClient.authorize(). "
+            "Required when escrow_tx is provided so the server can release "
+            "escrow at approval time. Must include: operator, receiver, token, "
+            "max_amount, pre_approval_expiry, authorization_expiry, refund_expiry, "
+            "min_fee_bps, max_fee_bps, fee_receiver, salt."
+        ),
+    )
     notes: Optional[str] = Field(
         default=None,
         description="Optional assignment notes for the worker",
