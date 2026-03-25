@@ -1665,31 +1665,104 @@ class PaymentDispatcher:
             }
 
         stored_network = pi_meta.get("network", network)
-        client = self._get_fase2_client(stored_network)
 
-        # Single TX: release from escrow directly to worker via facilitator
+        # Single TX: release from escrow directly to worker via facilitator HTTP
+        # No private key needed — the Facilitator pays gas and executes on-chain.
         logger.info(
-            "trustless: Releasing escrow for task %s directly to worker via facilitator...",
+            "trustless: Releasing escrow for task %s directly to worker via facilitator HTTP...",
             task_id,
         )
         config_chain = NETWORK_CONFIG.get(stored_network, {})
-        chain_id_check = config_chain.get("chain_id", 8453)
-        # Use extended timeout for ALL chains — SDK default 120s is too low.
-        # Ethereum L1 gets 600s; other chains get 300s (any chain can be slow).
-        release_timeout = 900 if chain_id_check == 1 else 300
+        chain_id = config_chain.get("chain_id", 8453)
+        operator = _get_operator_for_network(stored_network) or EM_OPERATOR
+        escrow_address = config_chain.get(
+            "escrow", config_chain.get("escrow_address", "")
+        )
+        x402r_infra = config_chain.get("x402r_infra", {})
+        token_collector = x402r_infra.get("tokenCollector", "")
+
+        # Build PaymentInfo dict for the Facilitator
+        pi_dict = {
+            "operator": pi.operator,
+            "receiver": pi.receiver,
+            "token": pi.token,
+            "maxAmount": str(pi.max_amount),
+            "preApprovalExpiry": pi.pre_approval_expiry,
+            "authorizationExpiry": pi.authorization_expiry,
+            "refundExpiry": pi.refund_expiry,
+            "minFeeBps": pi.min_fee_bps,
+            "maxFeeBps": pi.max_fee_bps,
+            "feeReceiver": pi.fee_receiver,
+            "salt": pi.salt,
+        }
+
+        # Determine payer from escrow metadata or task
+        payer = pi_meta.get("agent_address", pi_meta.get("beneficiary_address", ""))
+
+        release_payload = {
+            "x402Version": 2,
+            "scheme": "escrow",
+            "action": "release",
+            "payload": {
+                "paymentInfo": pi_dict,
+                "payer": payer,
+                "amount": str(pi.max_amount),
+            },
+            "paymentRequirements": {
+                "scheme": "escrow",
+                "network": f"eip155:{chain_id}",
+                "extra": {
+                    "escrowAddress": escrow_address,
+                    "operatorAddress": operator,
+                    "tokenCollector": token_collector,
+                },
+            },
+        }
+
         logger.info(
-            "trustless: Release for task %s on %s (chain_id=%s) with timeout=%ds",
+            "trustless: Release payload for task %s: payer=%s, receiver=%s, amount=%s, network=%s",
             task_id,
+            payer[:10] + "..." if payer else "unknown",
+            pi.receiver[:10] + "..." if pi.receiver else "unknown",
+            pi.max_amount,
             stored_network,
-            chain_id_check,
-            release_timeout,
         )
-        release_result = await asyncio.to_thread(
-            self._call_with_extended_timeout,
-            client.release_via_facilitator,
-            pi,
-            release_timeout,
-        )
+
+        import httpx
+
+        try:
+            async with httpx.AsyncClient(timeout=300) as http_client:
+                response = await http_client.post(
+                    f"{FACILITATOR_URL}/settle",
+                    json=release_payload,
+                )
+                logger.info(
+                    "Facilitator /settle release response: status=%d, body=%s",
+                    response.status_code,
+                    response.text[:500],
+                )
+                release_data = response.json()
+        except Exception as e:
+            logger.error("Facilitator release HTTP failed for task %s: %s", task_id, e)
+            release_data = {"success": False, "errorReason": str(e)}
+
+        # Convert to SDK-compatible result for the rest of the flow
+        class _ReleaseResult:
+            def __init__(self, data: dict):
+                self.success = data.get("success", False)
+                self.transaction_hash = (
+                    data.get("transaction", {}).get("hash")
+                    if isinstance(data.get("transaction"), dict)
+                    else data.get("transaction", data.get("txHash", ""))
+                )
+                self.error = (
+                    data.get("errorReason", data.get("error"))
+                    if not self.success
+                    else None
+                )
+                self.gas_used = 0
+
+        release_result = _ReleaseResult(release_data)
 
         if not release_result.success:
             # ------------------------------------------------------------------
@@ -1707,7 +1780,19 @@ class PaymentDispatcher:
                 )
                 try:
                     await asyncio.sleep(15)  # give the TX time to mine
-                    state = await asyncio.to_thread(client.query_escrow_state, pi)
+                    # Try to query on-chain state via SDK client (if available)
+                    try:
+                        _client = self._get_fase2_client(stored_network)
+                    except RuntimeError:
+                        _client = None
+                    if not _client:
+                        logger.warning(
+                            "trustless: Cannot check on-chain state (no signing key). "
+                            "Manual verification needed for task %s",
+                            task_id,
+                        )
+                        raise Exception("No client for on-chain query")
+                    state = await asyncio.to_thread(_client.query_escrow_state, pi)
                     capturable = int(state.get("capturableAmount", "1"))
                     logger.info(
                         "trustless: Escrow state after timeout: capturableAmount=%d, full=%s",
