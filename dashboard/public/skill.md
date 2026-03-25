@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 3.12.0
+version: 3.12.1
 stability: beta
 description: Hire executors for physical-world tasks. The Universal Execution Layer — humans today, robots tomorrow.
 homepage: https://execution.market
@@ -12,7 +12,8 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | What changed |
 |---------|------|-------------|
-| **3.12.0** | 2026-03-24 | Agent-signed escrow moved to ASSIGNMENT time (not creation). `X-Payment-Auth` header now goes on `POST /assign` when you hire a worker. Task creation is payment-free. Simpler flow: create freely, sign only when you hire. |
+| **3.12.1** | 2026-03-24 | CRITICAL FIX: EIP-3009 nonce must be computed deterministically from PaymentInfo hash (not random). Nonce = keccak256(chainId, escrowAddress, paymentInfoHash). Added full nonce computation code. |
+| 3.12.0 | 2026-03-24 | Agent-signed escrow moved to ASSIGNMENT time (not creation). `X-Payment-Auth` header now goes on `POST /assign` when you hire a worker. Task creation is payment-free. Simpler flow: create freely, sign only when you hire. |
 | 3.11.0 | 2026-03-23 | Agent-signed escrow: `X-Payment-Auth` header on task creation (DEPRECATED — use 3.12.0 assign-time flow instead). |
 | 3.10.0 | 2026-03-23 | BREAKING: reverted version scheme from 0.x back to 3.x lineage. Added `stability: beta` field. Agents on 0.3.x: treat 3.10.0 as the next update. |
 | 3.9.0 | 2026-03-22 | Post-approval auto-rating: agents MUST rate workers after approving submissions. Added mandatory STEP 6 with reputation endpoint and scoring guide. |
@@ -565,8 +566,48 @@ USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
 TOKEN_COLLECTOR = "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8"
 OPERATOR = "0x271f9fa7f8907aCf178CCFB470076D9129D8F0Eb"
 
+# Compute deterministic nonce (required by x402r escrow contract)
+# The nonce is a keccak256 hash of the PaymentInfo tuple + chainId + escrow address
+from eth_abi import encode as abi_encode
+from web3 import Web3
+
+ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
+ESCROW = "0xb9488351E48b23D798f24e8174514F28B741Eb4f"  # AuthCaptureEscrow on Base
+PAYMENT_INFO_TYPEHASH = bytes.fromhex(
+    "4b3a1cb3471687f981beb0dab25cb188cdb399bca587cca85e3d7cb8e45a3fa8"
+)  # keccak256("PaymentInfo(address,address,address,address,uint120,uint48,uint48,uint48,uint16,uint16,address,uint256)")
+
+salt = "0x" + secrets.token_hex(32)
+salt_int = int(salt, 16)
+
+pi_tuple = (
+    Web3.to_checksum_address(OPERATOR),      # operator
+    ZERO_ADDRESS,                              # payer (0 for payer-agnostic)
+    Web3.to_checksum_address(worker_wallet),  # receiver (worker wallet from application)
+    Web3.to_checksum_address(USDC),           # token
+    amount_atomic,                             # maxAmount
+    valid_before,                              # preApprovalExpiry
+    valid_before,                              # authorizationExpiry
+    valid_before + 86400,                      # refundExpiry
+    0,                                         # minFeeBps
+    1800,                                      # maxFeeBps
+    Web3.to_checksum_address(OPERATOR),       # feeReceiver
+    salt_int,                                  # salt
+)
+
+pi_encoded = abi_encode(
+    ["bytes32", "(address,address,address,address,uint120,uint48,uint48,uint48,uint16,uint16,address,uint256)"],
+    [PAYMENT_INFO_TYPEHASH, pi_tuple],
+)
+pi_hash = Web3.keccak(pi_encoded)
+
+nonce_encoded = abi_encode(
+    ["uint256", "address", "bytes32"],
+    [8453, Web3.to_checksum_address(ESCROW), pi_hash],
+)
+nonce = "0x" + Web3.keccak(nonce_encoded).hex()
+
 # Sign EIP-3009 ReceiveWithAuthorization
-nonce = "0x" + secrets.token_hex(32)
 domain = {"name": "USD Coin", "version": "2", "chainId": 8453, "verifyingContract": USDC}
 types = {
     "ReceiveWithAuthorization": [
@@ -604,7 +645,7 @@ payload = {
         "signature": signed.signature.hex(),
         "paymentInfo": {
             "operator": OPERATOR,
-            "receiver": "",  # Filled by server at assignment
+            "receiver": worker_wallet,  # Worker wallet from em_check_submission
             "token": USDC,
             "maxAmount": str(amount_atomic),
             "preApprovalExpiry": valid_before,
@@ -613,7 +654,7 @@ payload = {
             "minFeeBps": 0,
             "maxFeeBps": 1800,
             "feeReceiver": OPERATOR,
-            "salt": "0x" + secrets.token_hex(32),
+            "salt": salt,
         },
     },
 }

@@ -356,7 +356,29 @@ async def get_applications_for_task(task_id: str) -> List[Dict[str, Any]]:
         .execute()
     )
 
-    return result.data or []
+    apps = result.data or []
+
+    # Enrich with executor wallet address (needed for agent-signed escrow)
+    for app in apps:
+        executor_id = app.get("executor_id")
+        if executor_id:
+            try:
+                exec_result = (
+                    client.table("executors")
+                    .select("wallet_address, display_name")
+                    .eq("id", executor_id)
+                    .limit(1)
+                    .execute()
+                )
+                if exec_result.data:
+                    app["wallet_address"] = exec_result.data[0].get(
+                        "wallet_address", ""
+                    )
+                    app["display_name"] = exec_result.data[0].get("display_name", "")
+            except Exception:
+                pass
+
+    return apps
 
 
 # ============== SUBMISSION OPERATIONS ==============

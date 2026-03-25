@@ -992,9 +992,12 @@ No human has submitted evidence yet and no one has applied. The task is {"still 
             for app in applications:
                 status = app.get("status", "pending")
                 msg = app.get("message", "")
-                lines.append(
-                    f"- **Worker** {app.get('executor_id', 'unknown')} — status: {status}"
-                )
+                wallet = app.get("wallet_address", "")
+                name = app.get("display_name", "")
+                worker_label = name if name else app.get("executor_id", "unknown")
+                lines.append(f"- **Worker** {worker_label} — status: {status}")
+                if wallet:
+                    lines.append(f"  Wallet: `{wallet}`")
                 if msg:
                     lines.append(f"  Message: {msg}")
             lines.append("")
