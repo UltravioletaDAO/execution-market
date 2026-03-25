@@ -298,6 +298,13 @@ class WorkerAssignRequest(BaseModel):
         description="Worker's executor ID",
         pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
     )
+    escrow_tx: Optional[str] = Field(
+        default=None,
+        description=(
+            "Escrow lock transaction hash from AdvancedEscrowClient.authorize(). "
+            "Proves funds are locked on-chain before assignment."
+        ),
+    )
     notes: Optional[str] = Field(
         default=None,
         description="Optional assignment notes for the worker",
