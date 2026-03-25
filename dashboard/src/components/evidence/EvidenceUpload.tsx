@@ -12,7 +12,7 @@
  * - Support multiple evidence items
  */
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase'
 import type { EvidenceType } from '../../types/database'
@@ -437,6 +437,14 @@ export function EvidenceUpload({
     }
   }, [evidenceItems, uploadItem, uploadedEvidence, requiredTypes, onComplete, onEvidenceAdded])
 
+  // Auto-upload: trigger upload as soon as pending items exist (no manual click needed)
+  useEffect(() => {
+    const hasPending = evidenceItems.some(item => item.uploadStatus === 'pending')
+    if (hasPending && !isUploading && viewMode === 'preview') {
+      uploadAllEvidence()
+    }
+  }, [evidenceItems, isUploading, viewMode, uploadAllEvidence])
+
   // Handle retry
   const handleRetry = useCallback(async (id: string) => {
     const item = evidenceItems.find(i => i.id === id)
@@ -546,8 +554,7 @@ export function EvidenceUpload({
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <button
               onClick={() => setViewMode('camera')}
-              disabled={(requireGps || currentEvidenceType === 'photo_geo') && !currentGps}
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -561,6 +568,7 @@ export function EvidenceUpload({
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
+                  capture="environment"
                   multiple={maxFiles > 1}
                   onChange={handleFileSelect}
                   className="hidden"

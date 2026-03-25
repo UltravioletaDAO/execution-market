@@ -115,7 +115,6 @@ export function SubmissionForm({
   const [textResponses, setTextResponses] = useState<Map<string, string>>(new Map())
   // Camera evidence from EvidenceUpload component
   const [cameraEvidence, setCameraEvidence] = useState<UploadedEvidence[]>([])
-  const [cameraComplete, setCameraComplete] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [pollingStatus, setPollingStatus] = useState<string | null>(null)
@@ -186,7 +185,6 @@ export function SubmissionForm({
   // Camera evidence handlers
   const handleCameraComplete = useCallback((evidence: UploadedEvidence[]) => {
     setCameraEvidence(evidence)
-    setCameraComplete(true)
   }, [])
 
   const handleCameraEvidenceAdded = useCallback((ev: UploadedEvidence) => {
@@ -572,6 +570,7 @@ export function SubmissionForm({
             <input
               type="file"
               accept={config?.accept}
+              {...(config?.accept?.startsWith('image/') ? { capture: 'environment' as const } : {})}
               onChange={(e) => {
                 const file = e.target.files?.[0]
                 if (file) handleFileSelect(type, file)
@@ -628,8 +627,10 @@ export function SubmissionForm({
 
   // Check if any file is still uploading or verifying
   const anyFilePending = [...files.values()].some((f) => f.uploading || f.verifying)
-  // Camera types: if there are required camera types but none completed yet
-  const anyCameraPending = cameraRequired.length > 0 && !cameraComplete
+  // Camera types: check if required camera types are missing from uploaded evidence
+  // (each uploaded item via onEvidenceAdded populates cameraEvidence)
+  const uploadedCameraTypes = new Set(cameraEvidence.map((e) => e.evidenceType))
+  const anyCameraPending = cameraRequired.some((t) => !uploadedCameraTypes.has(t))
   const anyPending = anyFilePending || anyCameraPending
 
   // Parse task location for geofence check

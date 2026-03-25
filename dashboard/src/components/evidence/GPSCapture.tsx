@@ -58,6 +58,8 @@ export function GPSCapture({
 }: GPSCaptureProps) {
   const { t } = useTranslation()
   const watchIdRef = useRef<number | null>(null)
+  const retryCountRef = useRef(0)
+  const MAX_RETRIES = 2
 
   const [position, setPosition] = useState<GPSPosition | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -124,7 +126,7 @@ export function GPSCapture({
     onPositionChange(newPosition)
   }, [minAccuracy, onPositionChange, t])
 
-  // Handle position error
+  // Handle position error — retries automatically on timeout/unavailable
   const handleError = useCallback((err: GeolocationPositionError) => {
     let errorMessage: string
 
@@ -143,11 +145,43 @@ export function GPSCapture({
         errorMessage = t('gps.error', 'Error obteniendo ubicacion')
     }
 
+    // Auto-retry on timeout or position unavailable (not on permission denied)
+    if (err.code !== err.PERMISSION_DENIED && retryCountRef.current < MAX_RETRIES) {
+      retryCountRef.current += 1
+      // Retry with relaxed settings: lower accuracy, longer timeout, allow cached
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          retryCountRef.current = 0
+          handleSuccess(pos)
+        },
+        (retryErr) => {
+          // Final failure after retries
+          const msg = retryErr.code === retryErr.PERMISSION_DENIED
+            ? t('gps.permissionDenied', 'Permiso de ubicacion denegado')
+            : retryErr.code === retryErr.TIMEOUT
+            ? t('gps.timeout', 'Tiempo agotado. Intenta de nuevo.')
+            : t('gps.unavailable', 'Ubicacion no disponible')
+          setError(msg)
+          setIsLoading(false)
+          if (retryErr.code === retryErr.PERMISSION_DENIED) setPermissionStatus('denied')
+          onError?.(msg)
+          onPositionChange(null)
+        },
+        {
+          enableHighAccuracy: false,
+          timeout: 20000,
+          maximumAge: 60000,
+        }
+      )
+      return
+    }
+
+    retryCountRef.current = 0
     setError(errorMessage)
     setIsLoading(false)
     onError?.(errorMessage)
     onPositionChange(null)
-  }, [onError, onPositionChange, t])
+  }, [onError, onPositionChange, t, handleSuccess])
 
   // Get current position
   const getCurrentPosition = useCallback(() => {
@@ -156,6 +190,7 @@ export function GPSCapture({
       return
     }
 
+    retryCountRef.current = 0
     setIsLoading(true)
     setError(null)
 
