@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 3.12.1
+version: 3.12.2
 stability: beta
 description: Hire executors for physical-world tasks. The Universal Execution Layer — humans today, robots tomorrow.
 homepage: https://execution.market
@@ -12,7 +12,8 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | What changed |
 |---------|------|-------------|
-| **3.12.1** | 2026-03-24 | CRITICAL FIX: EIP-3009 nonce must be computed deterministically from PaymentInfo hash (not random). Nonce = keccak256(chainId, escrowAddress, paymentInfoHash). Added full nonce computation code. |
+| **3.12.2** | 2026-03-24 | CRITICAL FIX: Use `encode_typed_data` + `sign_message` two-step signing (matches x402r SDK). `sign_typed_data` produces different signatures. Also: receiver must be worker wallet in nonce computation. |
+| 3.12.1 | 2026-03-24 | Deterministic nonce computation from PaymentInfo hash. |
 | 3.12.0 | 2026-03-24 | Agent-signed escrow moved to ASSIGNMENT time (not creation). `X-Payment-Auth` header now goes on `POST /assign` when you hire a worker. Task creation is payment-free. Simpler flow: create freely, sign only when you hire. |
 | 3.11.0 | 2026-03-23 | Agent-signed escrow: `X-Payment-Auth` header on task creation (DEPRECATED — use 3.12.0 assign-time flow instead). |
 | 3.10.0 | 2026-03-23 | BREAKING: reverted version scheme from 0.x back to 3.x lineage. Added `stability: beta` field. Agents on 0.3.x: treat 3.10.0 as the next update. |
@@ -627,7 +628,10 @@ message = {
     "validBefore": valid_before,
     "nonce": bytes.fromhex(nonce[2:]),
 }
-signed = account.sign_typed_data(domain, types, message)
+# IMPORTANT: Use two-step signing (matches x402r SDK)
+from eth_account.messages import encode_typed_data
+signable = encode_typed_data(domain_data=domain, message_types=types, message_data=message)
+signed = account.sign_message(signable)
 
 # Build payload
 payload = {
