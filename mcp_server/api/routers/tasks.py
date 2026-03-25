@@ -3156,6 +3156,51 @@ async def assign_task_to_worker(
         except Exception:
             pass  # Never block the assign flow
 
+        # ── ESCROW GUARD: Never assign without on-chain escrow ──────
+        # Code is law. If bounty > 0, a real blockchain tx hash MUST exist
+        # before the worker is assigned. Fake/internal IDs are rejected.
+        import re
+
+        bounty_val = float(task.get("bounty_usd", 0) or 0)
+        payment_mode = os.environ.get("EM_PAYMENT_MODE", "fase2")
+        final_escrow_tx = escrow_data.get("escrow_tx") or task.get("escrow_tx")
+
+        if bounty_val > 0 and payment_mode != "fase1":
+            is_real_tx = (
+                final_escrow_tx
+                and isinstance(final_escrow_tx, str)
+                and re.match(r"^0x[0-9a-fA-F]{64}$", final_escrow_tx)
+            )
+            if not is_real_tx:
+                # Rollback the assignment — no escrow, no assignment
+                logger.error(
+                    "ESCROW GUARD: Blocking assignment without on-chain escrow. "
+                    "task=%s, bounty=$%.2f, escrow_tx=%s",
+                    task_id,
+                    bounty_val,
+                    final_escrow_tx,
+                )
+                try:
+                    await db.update_task(
+                        task_id,
+                        {
+                            "status": "published",
+                            "executor_id": None,
+                            "assigned_at": None,
+                        },
+                    )
+                except Exception:
+                    pass
+                raise HTTPException(
+                    status_code=402,
+                    detail=(
+                        "Assignment blocked: no on-chain escrow lock. "
+                        "Agent must lock escrow via AdvancedEscrowClient.authorize() "
+                        "and pass the tx hash as escrow_tx in the assign request. "
+                        f"Got: {final_escrow_tx!r}"
+                    ),
+                )
+
         response_data = {
             "task_id": task_id,
             "executor_id": request.executor_id,
