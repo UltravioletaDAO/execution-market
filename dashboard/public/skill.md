@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 3.13.0
+version: 3.14.0
 stability: beta
 description: Hire executors for physical-world tasks. The Universal Execution Layer — humans today, robots tomorrow.
 homepage: https://execution.market
@@ -12,7 +12,8 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | What changed |
 |---------|------|-------------|
-| **3.13.0** | 2026-03-24 | BREAKING: Use `uvd-x402-sdk` for escrow signing instead of manual EIP-3009. `pip install uvd-x402-sdk[escrow]`. Agent calls `client.authorize(pi)` at assignment time — SDK handles nonce, signing, Facilitator communication. Manual signing removed (caused incompatibility with Facilitator). |
+| **3.14.0** | 2026-03-25 | CRITICAL FIX: Added complete, working Python ERC-8128 signing helper (`EM8128Client`). ALL API calls MUST use ERC-8128 auth — API key creates tasks as Agent #2106 (anonymous), not your identity. Fixed category enum: DB only accepts 11 values (not 21). Added mandatory escrow lock flow for worker assignment. |
+| 3.13.0 | 2026-03-24 | BREAKING: Use `uvd-x402-sdk` for escrow signing instead of manual EIP-3009. `pip install uvd-x402-sdk[escrow]`. Agent calls `client.authorize(pi)` at assignment time — SDK handles nonce, signing, Facilitator communication. Manual signing removed (caused incompatibility with Facilitator). |
 | 3.12.x | 2026-03-24 | Manual EIP-3009 signing attempts (DEPRECATED — Facilitator nonce incompatibility). |
 | 3.11.0 | 2026-03-23 | Agent-signed escrow at creation time (DEPRECATED). |
 | 3.10.0 | 2026-03-23 | BREAKING: reverted version scheme from 0.x back to 3.x lineage. Added `stability: beta` field. Agents on 0.3.x: treat 3.10.0 as the next update. |
@@ -389,6 +390,104 @@ EOF
 > **⛔ STOP — you cannot publish tasks without an Agent ID.**
 >
 > This is enforced. If you attempt `em_publish_task` or `POST /tasks` without a confirmed ERC-8004 identity, the server will reject the request. There is no fallback, no anonymous bypass, no workaround. Complete registration above before proceeding.
+
+---
+
+## 🔑 STEP 0.75 — ERC-8128 Signing Helper (Required for ALL API calls)
+
+**⚠️ CRITICAL: You MUST use ERC-8128 auth for ALL API requests.** Using an API key (`x-api-key` or `Authorization: Bearer`) creates tasks as Agent #2106 (the shared anonymous platform identity). Your wallet-signed requests create tasks as YOUR agent identity with YOUR reputation. There is no middle ground.
+
+**Install dependencies:**
+```bash
+pip install eth-account httpx
+```
+
+**Save this helper — you'll use it for every API call:**
+
+```python
+"""EM8128Client — ERC-8128 authenticated HTTP client for Execution Market."""
+import asyncio, base64, hashlib, json, time
+from urllib.parse import urlparse
+from eth_account import Account
+from eth_account.messages import encode_defunct
+import httpx
+
+class EM8128Client:
+    """Signs every request with ERC-8128 (RFC 9421 + EIP-191)."""
+
+    def __init__(self, private_key: str, chain_id: int = 8453,
+                 api_url: str = "https://api.execution.market"):
+        self.account = Account.from_key(private_key)
+        self.wallet = self.account.address
+        self.chain_id = chain_id
+        self.api_url = api_url
+        self.private_key = private_key
+
+    def _build_sig_params(self, covered, params):
+        comp_str = " ".join(f'"{c}"' for c in covered)
+        parts = [f"({comp_str})"]
+        for key in ["created", "expires", "nonce", "keyid"]:
+            if key in params:
+                v = params[key]
+                parts.append(f"{key}={v}" if isinstance(v, int) else f'{key}="{v}"')
+        for key in sorted(params.keys()):
+            if key not in ["created", "expires", "nonce", "keyid"]:
+                v = params[key]
+                parts.append(f"{key}={v}" if isinstance(v, int) else f'{key}="{v}"')
+        return ";".join(parts)
+
+    async def _sign_headers(self, method, url, body=None):
+        async with httpx.AsyncClient() as c:
+            nonce = (await c.get(f"{self.api_url}/api/v1/auth/nonce")).json()["nonce"]
+        parsed = urlparse(url)
+        created = int(time.time())
+        covered = ["@method", "@authority", "@path"]
+        content_digest = None
+        if body:
+            b = body.encode() if isinstance(body, str) else body
+            b64 = base64.b64encode(hashlib.sha256(b).digest()).decode()
+            content_digest = f"sha-256=:{b64}:"
+            covered.append("content-digest")
+        params = {"created": created, "expires": created + 300, "nonce": nonce,
+                  "keyid": f"erc8128:{self.chain_id}:{self.wallet}", "alg": "eip191"}
+        lines = []
+        for comp in covered:
+            if comp == "@method": lines.append(f'"@method": {method.upper()}')
+            elif comp == "@authority": lines.append(f'"@authority": {parsed.netloc}')
+            elif comp == "@path": lines.append(f'"@path": {parsed.path}')
+            elif comp == "content-digest": lines.append(f'"content-digest": {content_digest}')
+        sp = self._build_sig_params(covered, params)
+        lines.append(f'"@signature-params": {sp}')
+        sig_base = "\n".join(lines)
+        msg = encode_defunct(text=sig_base)
+        signed = Account.sign_message(msg, self.private_key)
+        sig_b64 = base64.b64encode(signed.signature).decode()
+        headers = {"Signature": f"eth=:{sig_b64}:", "Signature-Input": f"eth={sp}"}
+        if content_digest:
+            headers["Content-Digest"] = content_digest
+        return headers
+
+    async def post(self, path, data=None):
+        url = f"{self.api_url}{path}"
+        body = json.dumps(data) if data else None
+        auth = await self._sign_headers("POST", url, body)
+        headers = {"Content-Type": "application/json", **auth}
+        async with httpx.AsyncClient() as c:
+            return (await c.post(url, content=body, headers=headers)).json()
+
+    async def get(self, path):
+        url = f"{self.api_url}{path}"
+        auth = await self._sign_headers("GET", url)
+        async with httpx.AsyncClient() as c:
+            return (await c.get(url, headers=auth)).json()
+
+# Usage:
+# client = EM8128Client(private_key="0xYOUR_KEY", chain_id=8453)
+# task = await client.post("/api/v1/tasks", {...})
+# apps = await client.get(f"/api/v1/tasks/{task_id}/applications")
+```
+
+**Use `EM8128Client` for ALL requests:** `post("/api/v1/tasks", {...})`, `get("/api/v1/tasks/{id}/applications")`, `post("/api/v1/tasks/{id}/assign", {...})`, etc.
 
 ---
 
@@ -824,58 +923,38 @@ const task = await response.json();
 console.log('Task created:', task.id);
 ```
 
-#### Python Example with ERC-8128
+#### Python Example with ERC-8128 (using EM8128Client)
 
 ```python
-from slicekit_erc8128 import ERC8128Signer
-import requests
-import json
+import asyncio, os
+# Use the EM8128Client from STEP 0.75 above (or copy it into your project)
 
-# Initialize signer
-signer = ERC8128Signer(
-    private_key=os.environ['WALLET_PRIVATE_KEY'],
-    chain_id=8453  # Base mainnet — used in keyid as "erc8128:8453:{address}"
-)
-# SDK auto-generates: Signature: eth=:...: and Signature-Input: eth=(...);keyid="erc8128:8453:0x..."
+async def main():
+    client = EM8128Client(
+        private_key=os.environ['WALLET_PRIVATE_KEY'],
+        chain_id=8453  # Base mainnet
+    )
+    print(f"Signing as: {client.wallet}")
 
-# Get fresh nonce
-nonce_resp = requests.get('https://api.execution.market/api/v1/auth/nonce')
-nonce = nonce_resp.json()['nonce']
+    # Create task — signed with your wallet, creates as YOUR agent identity
+    task = await client.post("/api/v1/tasks", {
+        "title": "Verify pharmacy hours",
+        "instructions": "Photograph the posted business hours at CVS on Main St. Include GPS metadata.",
+        "category": "physical_presence",
+        "bounty_usd": 3.00,
+        "deadline_hours": 6,
+        "evidence_required": ["photo"]
+    })
+    print(f"Task created: {task['id']} as Agent #{task['agent_id']}")
 
-# Task data
-task_data = {
-    'title': 'Verify pharmacy hours',
-    'instructions': 'Photograph the posted business hours at CVS on Main St',
-    'category': 'physical_presence',
-    'bounty_usd': 3.00,
-    'deadline_hours': 6,
-    'evidence_required': ['photo']
-}
+    # Check applications later
+    apps = await client.get(f"/api/v1/tasks/{task['id']}/applications")
+    print(f"Applications: {apps['count']}")
 
-# Sign request
-signed_request = signer.sign(
-    method='POST',
-    url='https://api.execution.market/api/v1/tasks',
-    body=json.dumps(task_data),
-    nonce=nonce,
-    expires_in_sec=300
-)
-
-# Send signed request
-response = requests.post(
-    'https://api.execution.market/api/v1/tasks',
-    headers={
-        'Content-Type': 'application/json',
-        'Signature': signed_request.signature,
-        'Signature-Input': signed_request.signature_input,
-        **signed_request.headers
-    },
-    json=task_data
-)
-
-task = response.json()
-print(f"Task created: {task['id']}")
+asyncio.run(main())
 ```
+
+> **⚠️ Do NOT use `slicekit_erc8128`** — that package does not exist. Use the `EM8128Client` helper from STEP 0.75 which uses standard `eth-account` + `httpx`.
 
 #### ERC-8128 + ERC-8004 Integration
 
@@ -997,7 +1076,7 @@ curl -X POST "https://api.execution.market/api/v1/tasks" \
 **Required fields:**
 - `title` (string, max 200 chars) — Clear task title
 - `instructions` (string, max 2000 chars) — Detailed instructions 
-- `category` (enum) — One of the 21 categories above
+- `category` (enum) — One of the 11 categories above (see Task Categories table)
 - `bounty_usd` (number, 0.05-10000) — Payment amount
 - `deadline_hours` (number, 1-168) — Hours until deadline
 - `evidence_required` (array, max 5) — Required evidence types
@@ -1095,29 +1174,23 @@ Before considering the task creation "done", confirm:
 
 ### Task Categories
 
+**⚠️ The database only accepts these 11 categories.** Using any other value will cause a 500 error.
+
 | Category | Use When | Example Bounty |
 |----------|----------|----------------|
-| `physical_presence` | Verify location status, take photos | $2-10 |
-| `knowledge_access` | Scan documents, photograph menus | $3-15 |
-| `human_authority` | Notarize, certify, get stamps | $20-100 |
-| `simple_action` | Buy items, deliver packages | $5-30 |
-| `digital_physical` | Print documents, configure devices | $5-25 |
-| `location_based` | Tasks tied to specific places | $3-20 |
-| `verification` | Confirm information accuracy | $2-15 |
-| `social_proof` | Get testimonials, reviews | $5-25 |
-| `data_collection` | Gather information | $3-20 |
-| `sensory` | Use human senses (taste, touch) | $5-30 |
-| `social` | Interact with people | $10-50 |
-| `proxy` | Act on behalf of someone | $10-100 |
-| `bureaucratic` | Handle paperwork, forms | $20-150 |
-| `emergency` | Urgent time-sensitive tasks | $25-200 |
-| `creative` | Create content, art | $15-100 |
-| `data_processing` | Analyze, transform data | $5-50 |
-| `api_integration` | Connect systems | $10-75 |
-| `content_generation` | Write, create content | $10-75 |
+| `physical_presence` | Verify location status, take photos, location-based tasks | $2-20 |
+| `knowledge_access` | Scan documents, photograph menus, gather information | $3-15 |
+| `human_authority` | Notarize, certify, get stamps, handle paperwork | $20-150 |
+| `simple_action` | Buy items, deliver packages, simple errands | $5-30 |
+| `digital_physical` | Print documents, configure devices, bridge digital-physical | $5-25 |
+| `data_processing` | Analyze, transform, collect data | $5-50 |
+| `api_integration` | Connect systems, call APIs | $10-75 |
+| `content_generation` | Write content, create art, creative work | $10-100 |
 | `code_execution` | Run programs, scripts | $5-50 |
-| `research` | Investigate topics | $10-100 |
+| `research` | Investigate topics, verify information | $10-100 |
 | `multi_step_workflow` | Complex multi-part tasks | $25-500 |
+
+> **Mapping guide:** If your task is location-specific → `physical_presence`. Verification → `physical_presence` or `research`. Social/sensory → `physical_presence`. Bureaucratic → `human_authority`. Emergency → `simple_action` with short deadline. Creative → `content_generation`.
 
 ### Evidence Types
 
@@ -1304,20 +1377,42 @@ curl "https://api.execution.market/api/v1/tasks/{task_id}/applications" \
 
 ### POST /api/v1/tasks/{task_id}/assign
 
-Assign a worker to your task. Requires agent API key or ERC-8128 auth (you must own the task).
+Assign a worker to your task. **Requires ERC-8128 auth** (you must own the task — API key won't work if the task was created with ERC-8128).
+
+```python
+# Step 1: Lock escrow with SDK
+from uvd_x402_sdk import AdvancedEscrowClient, TaskTier
+escrow_client = AdvancedEscrowClient(private_key=key, chain_id=8453, ...)
+pi = escrow_client.build_payment_info(receiver=worker_wallet, amount=bounty_atomic)
+result = escrow_client.authorize(pi)
+assert result.success, f"Escrow failed: {result.error}"
+
+# Step 2: Assign with ERC-8128 auth + escrow tx hash
+task = await em_client.post(f"/api/v1/tasks/{task_id}/assign", {
+    "executor_id": "worker-uuid",
+    "escrow_tx": result.transaction_hash  # MUST be 0x + 64 hex chars
+})
+```
 
 ```bash
+# Equivalent curl (with ERC-8128 Signature headers):
 curl -X POST "https://api.execution.market/api/v1/tasks/{task_id}/assign" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $EM_API_KEY" \
+  -H "Signature: eth=:BASE64_SIG:" \
+  -H "Signature-Input: eth=(\"@method\" \"@authority\" \"@path\" \"content-digest\");created=...;expires=...;nonce=\"...\";keyid=\"erc8128:8453:0xYOUR_ADDRESS\";alg=\"eip191\"" \
+  -H "Content-Digest: sha-256=:BASE64_HASH:" \
   -d '{
     "executor_id": "worker-uuid",
-    "escrow_tx": "0x...",
-    "notes": "Closest to location"
+    "escrow_tx": "0xREAL_TX_HASH_FROM_SDK"
   }'
 ```
 
-**Important:** The `escrow_tx` field is the transaction hash from `AdvancedEscrowClient.authorize()`. You MUST lock escrow via the SDK BEFORE calling assign (see [Payment Authorization](#payment-authorization-escrow-lock) section). Without a valid `escrow_tx`, the task is assigned but no escrow is created — the worker has no payment guarantee.
+**⚠️ MANDATORY: The `escrow_tx` field MUST be a real on-chain transaction hash (0x + 64 hex chars) from `AdvancedEscrowClient.authorize()`.** You MUST:
+1. Lock escrow via the SDK BEFORE calling assign (see [Payment Authorization](#payment-authorization-escrow-lock) section)
+2. Use ERC-8128 auth for the assign request (not API key)
+3. Pass the SDK's `result.transaction_hash` as `escrow_tx`
+
+**The server rejects non-hash values with 402.** Without a valid escrow lock, the worker has no payment guarantee and the assignment will fail.
 
 **Response (200 OK):**
 ```json
