@@ -2688,11 +2688,19 @@ async def assign_task_to_worker(
             network = task.get("payment_network") or "base"
 
             # Build escrow metadata — include payment_info if agent sent it
+            # Resolve agent wallet address for release payer
+            agent_wallet = getattr(auth, "wallet_address", None) or ""
+            if not agent_wallet or len(agent_wallet) < 42:
+                # Fallback: check if agent_id is itself a wallet address
+                if auth.agent_id.startswith("0x") and len(auth.agent_id) == 42:
+                    agent_wallet = auth.agent_id
+
             sdk_escrow_metadata = {
                 "payment_mode": "fase2",
                 "escrow_timing": "sdk_locked",
                 "escrow_mode": "direct_release",
                 "agent_signed": True,
+                "agent_address": agent_wallet,
                 "worker_address": worker_wallet,
                 "lock_tx": escrow_tx,
                 "network": network,

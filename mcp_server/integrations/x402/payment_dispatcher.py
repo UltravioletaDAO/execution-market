@@ -1696,8 +1696,28 @@ class PaymentDispatcher:
             "salt": pi.salt,
         }
 
-        # Determine payer from escrow metadata or task
-        payer = pi_meta.get("agent_address", pi_meta.get("beneficiary_address", ""))
+        # Determine payer (agent wallet) from escrow metadata or task
+        # The agent_id might be a numeric ERC-8004 ID (e.g., "35627") — we need
+        # the actual wallet address. Check multiple sources.
+        payer = pi_meta.get("agent_address", "")
+        if not payer or len(payer) < 42:
+            payer = pi_meta.get("beneficiary_address", "")
+        if not payer or len(payer) < 42:
+            # Look up from task via DB
+            try:
+                import supabase_client as db_mod
+
+                task_data = await db_mod.get_task(task_id)
+                if task_data:
+                    agent_id = task_data.get("agent_id", "")
+                    if agent_id and agent_id.startswith("0x") and len(agent_id) == 42:
+                        payer = agent_id
+            except Exception as e:
+                logger.warning("Could not resolve payer for task %s: %s", task_id, e)
+        if not payer or len(payer) < 42:
+            # Last resort: use zero address (payer-agnostic)
+            payer = "0x0000000000000000000000000000000000000000"
+            logger.warning("Using ZERO_ADDRESS as payer for task %s release", task_id)
 
         release_payload = {
             "x402Version": 2,
