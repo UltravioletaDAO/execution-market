@@ -4,6 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 > **Local overrides**: See `CLAUDE.md.local` (gitignored) for real AWS account IDs, ECR URIs, wallet addresses, and copy-paste deploy commands. That file replaces the `<YOUR_*>` placeholders used throughout this file.
 
+## Engineering Discipline — ABSOLUTE RULES
+
+> **NEVER use quick fixes, hardcodes, or workarounds.** Always find and fix the root cause. If you need more logs/traces to diagnose, add them. If the fix requires changing the skill, change the skill. If it requires changing the contract interface, document what needs to change. Quick fixes create debt that compounds into production outages. See INC-2026-03-24 for the cascading failures caused by incomplete ADR-001 migration.
+
 ## Open Items — Remind Me
 
 > **[OPEN] Anonymous mode (Agent #2106) is testing-only** — The API accepts unauthenticated requests and falls back to Agent #2106 identity. This is intentionally left open for the platform owner's internal testing (e.g., "run a quick E2E test"). It must NEVER be the default for external agents or skills. The `em-*` skills now block at Step 0 if no wallet is found. Reminder: once Ultra Wallet (`ultra-wallet` package) ships, audit all `em-*` skills to verify none of them allow silent fallback to Agent #2106 without an explicit `--test` flag from the user.
