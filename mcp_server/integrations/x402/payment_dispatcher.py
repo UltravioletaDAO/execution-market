@@ -1461,13 +1461,20 @@ class PaymentDispatcher:
         payload.setdefault("x402Version", 2)
         payload.setdefault("scheme", "escrow")
 
-        # Log the outbound payload structure (without signature)
+        # Log the outbound payload structure (with nonce, without full signature)
+        auth_obj = inner.get("authorization", {})
+        sig_hex = inner.get("signature", "")
+        sig_preview = sig_hex[:20] + "..." if len(sig_hex) > 20 else sig_hex
         debug_payload = {
             "x402Version": payload.get("x402Version"),
             "scheme": payload.get("scheme"),
-            "payload.authorization.from": inner.get("authorization", {}).get("from"),
-            "payload.authorization.to": inner.get("authorization", {}).get("to"),
-            "payload.authorization.value": inner.get("authorization", {}).get("value"),
+            "payload.authorization.from": auth_obj.get("from"),
+            "payload.authorization.to": auth_obj.get("to"),
+            "payload.authorization.value": auth_obj.get("value"),
+            "payload.authorization.validAfter": auth_obj.get("validAfter"),
+            "payload.authorization.validBefore": auth_obj.get("validBefore"),
+            "payload.authorization.nonce": auth_obj.get("nonce"),
+            "payload.signature_preview": sig_preview,
             "payload.paymentInfo.operator": pi.get("operator"),
             "payload.paymentInfo.receiver": pi.get("receiver"),
             "payload.paymentInfo.token": pi.get("token"),
