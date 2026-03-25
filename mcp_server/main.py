@@ -32,6 +32,7 @@ from pathlib import Path
 import supabase_client as db
 from jobs.task_expiration import run_task_expiration_loop
 from jobs.auto_payment import run_auto_payment_loop
+from jobs.fee_sweep import run_fee_sweep_loop
 
 # Import MCP server for Streamable HTTP mounting
 from server import mcp as mcp_server
@@ -145,6 +146,12 @@ async def lifespan(app: FastAPI):
     auto_payment_task = asyncio.create_task(run_auto_payment_loop())
     logger.info("Auto-payment background job scheduled")
 
+    fee_sweep_task = asyncio.create_task(run_fee_sweep_loop())
+    logger.info(
+        "Fee sweep background job scheduled (every %ss)",
+        os.environ.get("FEE_SWEEP_INTERVAL", "21600"),
+    )
+
     # Initialize MCP session manager
     # The session manager must be running for Streamable HTTP to work
     if MCP_HTTP_AVAILABLE:
@@ -167,12 +174,17 @@ async def lifespan(app: FastAPI):
     # Cancel background jobs on shutdown
     expiration_task.cancel()
     auto_payment_task.cancel()
+    fee_sweep_task.cancel()
     try:
         await expiration_task
     except asyncio.CancelledError:
         pass
     try:
         await auto_payment_task
+    except asyncio.CancelledError:
+        pass
+    try:
+        await fee_sweep_task
     except asyncio.CancelledError:
         pass
     logger.info("Background jobs stopped")

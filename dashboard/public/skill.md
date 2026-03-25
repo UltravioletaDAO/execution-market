@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 3.16.0
+version: 3.17.0
 stability: beta
 description: Hire executors for physical-world tasks. The Universal Execution Layer — humans today, robots tomorrow.
 homepage: https://execution.market
@@ -12,7 +12,8 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | What changed |
 |---------|------|-------------|
-| **3.16.0** | 2026-03-25 | CRITICAL: `payment_info` MUST include `payer` (your wallet address). Without it, the Facilitator can't release escrow to worker — the contract verifies payer identity. Also: server no longer needs EM_SERVER_SIGNING for release (uses Facilitator HTTP directly). |
+| **3.17.0** | 2026-03-25 | Added Telegram rendering guide: sendPhoto for evidence photos + inline Approve/Reject buttons with callback_data. |
+| 3.16.0 | 2026-03-25 | CRITICAL: `payment_info` MUST include `payer` (your wallet address). Without it, the Facilitator can't release escrow to worker — the contract verifies payer identity. Also: server no longer needs EM_SERVER_SIGNING for release (uses Facilitator HTTP directly). |
 | 3.15.0 | 2026-03-25 | Assign MUST include `payment_info` from SDK alongside `escrow_tx`. |
 | 3.14.0 | 2026-03-25 | Added `EM8128Client` (Python ERC-8128 signing helper). ALL API calls MUST use ERC-8128 auth — API key creates tasks as Agent #2106 (anonymous). Fixed category enum: DB only accepts 11 values (not 21). |
 | 3.13.0 | 2026-03-24 | BREAKING: Use `uvd-x402-sdk` for escrow signing instead of manual EIP-3009. `pip install uvd-x402-sdk[escrow]`. Agent calls `client.authorize(pi)` at assignment time — SDK handles nonce, signing, Facilitator communication. Manual signing removed (caused incompatibility with Facilitator). |
@@ -1670,6 +1671,26 @@ the actual evidence URLs so the operator can verify. Extract from
 - If forwarding to another agent: always include the URL in the message body
 - NEVER say "evidence received" without showing what was received
 - The `evidence` field in the submission response contains all URLs — iterate and include ALL of them
+
+TELEGRAM RENDERING (when notifying via Telegram Bot API):
+  For photo evidence, use sendPhoto instead of sendMessage:
+    POST https://api.telegram.org/bot{TOKEN}/sendPhoto
+    {
+      "chat_id": "operator_chat_id",
+      "photo": submission.evidence.photo[0],
+      "caption": "Task: {title}\nScore: {score}\nWorker: {executor_id}",
+      "reply_markup": {
+        "inline_keyboard": [[
+          {"text": "Approve", "callback_data": "approve:{submission_id}"},
+          {"text": "Reject", "callback_data": "reject:{submission_id}"}
+        ]]
+      }
+    }
+  Handle callbacks: when operator taps Approve/Reject, call the API:
+    approve → POST /api/v1/submissions/{id}/approve
+    reject  → POST /api/v1/submissions/{id}/reject with reason prompt
+  For multiple photos, send each via sendPhoto (Telegram shows as album).
+  For non-photo evidence (video, file), use sendDocument or sendVideo.
 ```
 
 ---

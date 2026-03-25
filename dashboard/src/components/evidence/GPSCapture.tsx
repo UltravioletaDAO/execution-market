@@ -49,7 +49,7 @@ export function GPSCapture({
   onError,
   highAccuracy = true,
   maxAge = 30000,
-  timeout = 15000,
+  timeout = 30000,
   watchMode = false,
   minAccuracy,
   showMap = true,
@@ -169,8 +169,8 @@ export function GPSCapture({
         },
         {
           enableHighAccuracy: false,
-          timeout: 20000,
-          maximumAge: 60000,
+          timeout: 30000,
+          maximumAge: 120000,
         }
       )
       return
@@ -183,7 +183,10 @@ export function GPSCapture({
     onPositionChange(null)
   }, [onError, onPositionChange, t, handleSuccess])
 
-  // Get current position
+  // Detect mobile (iOS Safari / Android) for GPS strategy
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+
+  // Get current position — on mobile, try low accuracy first for faster fix
   const getCurrentPosition = useCallback(() => {
     if (!isSupported) {
       setError(t('gps.notSupported', 'Geolocalizacion no soportada'))
@@ -194,16 +197,29 @@ export function GPSCapture({
     setIsLoading(true)
     setError(null)
 
-    navigator.geolocation.getCurrentPosition(
-      handleSuccess,
-      handleError,
-      {
-        enableHighAccuracy: highAccuracy,
-        timeout,
-        maximumAge: maxAge,
-      }
-    )
-  }, [isSupported, handleSuccess, handleError, highAccuracy, timeout, maxAge, t])
+    if (isMobile && highAccuracy) {
+      // Mobile strategy: get a quick low-accuracy fix first, then upgrade
+      navigator.geolocation.getCurrentPosition(
+        (quickPos) => {
+          // Got a quick fix — report it, then try high accuracy
+          handleSuccess(quickPos)
+          navigator.geolocation.getCurrentPosition(
+            handleSuccess,
+            () => { /* high-accuracy upgrade failed — keep the quick fix */ },
+            { enableHighAccuracy: true, timeout, maximumAge: maxAge }
+          )
+        },
+        handleError,
+        { enableHighAccuracy: false, timeout, maximumAge: maxAge }
+      )
+    } else {
+      navigator.geolocation.getCurrentPosition(
+        handleSuccess,
+        handleError,
+        { enableHighAccuracy: highAccuracy, timeout, maximumAge: maxAge }
+      )
+    }
+  }, [isSupported, handleSuccess, handleError, highAccuracy, timeout, maxAge, isMobile, t])
 
   // Watch position mode
   useEffect(() => {
