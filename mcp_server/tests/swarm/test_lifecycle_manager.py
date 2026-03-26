@@ -16,7 +16,6 @@ Covers:
 """
 
 from datetime import datetime, timezone, timedelta
-from unittest.mock import patch
 
 import pytest
 
@@ -25,7 +24,6 @@ from mcp_server.swarm.lifecycle_manager import (
     AgentState,
     AgentRecord,
     BudgetConfig,
-    BudgetState,
     HealthStatus,
     LifecycleError,
     BudgetExceededError,
@@ -70,16 +68,12 @@ class TestRegistration:
         assert record.state == AgentState.INITIALIZING
 
     def test_register_with_personality(self, manager):
-        record = manager.register_agent(
-            1, "aurora", "0xABC", personality="specialist"
-        )
+        record = manager.register_agent(1, "aurora", "0xABC", personality="specialist")
         assert record.personality == "specialist"
 
     def test_register_with_custom_budget(self, manager):
         config = BudgetConfig(daily_limit_usd=10.0, task_limit_usd=5.0)
-        record = manager.register_agent(
-            1, "aurora", "0xABC", budget_config=config
-        )
+        record = manager.register_agent(1, "aurora", "0xABC", budget_config=config)
         assert record.budget_config.daily_limit_usd == 10.0
         assert record.budget_config.task_limit_usd == 5.0
 
@@ -538,16 +532,12 @@ class TestStateHistory:
 
 class TestAgentRecord:
     def test_post_init_sets_timestamps(self):
-        record = AgentRecord(
-            agent_id=1, name="test", wallet_address="0x123"
-        )
+        record = AgentRecord(agent_id=1, name="test", wallet_address="0x123")
         assert record.created_at is not None
         assert record.state_changed_at is not None
 
     def test_default_state_is_initializing(self):
-        record = AgentRecord(
-            agent_id=1, name="test", wallet_address="0x123"
-        )
+        record = AgentRecord(agent_id=1, name="test", wallet_address="0x123")
         assert record.state == AgentState.INITIALIZING
 
     def test_default_budget_config(self):

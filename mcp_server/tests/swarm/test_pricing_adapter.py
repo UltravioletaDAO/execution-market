@@ -13,7 +13,6 @@ Tests cover:
 
 import pytest
 import time
-from unittest.mock import patch, MagicMock
 from mcp_server.swarm.pricing_adapter import (
     PricingAdapter,
     PricingSnapshot,
@@ -117,7 +116,10 @@ class TestPricingAdapter:
         """When API is unreachable, falls back to defaults."""
         pricing = adapter.get_task_pricing("physical_verification")
         assert pricing.source == "default"
-        assert pricing.recommended_usd == DEFAULT_PRICING["physical_verification"]["median"]
+        assert (
+            pricing.recommended_usd
+            == DEFAULT_PRICING["physical_verification"]["median"]
+        )
         assert pricing.confidence == 0.3
 
     def test_unknown_category_uses_general(self, adapter):

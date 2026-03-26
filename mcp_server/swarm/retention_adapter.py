@@ -32,8 +32,8 @@ Caching strategy:
 import json
 import logging
 import time
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from dataclasses import dataclass
+from datetime import timezone
 from typing import Optional, Callable
 from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
@@ -51,6 +51,7 @@ UTC = timezone.utc
 @dataclass
 class RetentionSnapshot:
     """Cached retention analysis for a worker."""
+
     wallet: str
     churn_probability: float = 0.3
     risk_level: str = "at_risk"
@@ -176,7 +177,7 @@ class RetentionAdapter:
             start = time.monotonic()
             with urlopen(req, timeout=self.timeout_s) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
-            elapsed_ms = (time.monotonic() - start) * 1000
+            (time.monotonic() - start) * 1000
 
             if not data.get("success"):
                 logger.warning("Retention API returned failure for %s", wallet[:10])

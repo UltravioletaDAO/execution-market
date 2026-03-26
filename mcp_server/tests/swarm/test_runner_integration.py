@@ -7,11 +7,11 @@ ensuring all 7 phases execute correctly.
 """
 
 import pytest
-from unittest.mock import MagicMock, patch
-from datetime import datetime, timezone
+from unittest.mock import MagicMock
+from datetime import datetime
 
 from swarm.runner import SwarmRunner, RunMode, CycleResult, Phase
-from swarm.coordinator import SwarmCoordinator, EMApiClient
+from swarm.coordinator import EMApiClient
 
 
 # ---------------------------------------------------------------------------
@@ -92,8 +92,13 @@ class TestDryRunCycle:
         assert len(cycle.phases_completed) == 7
         assert len(cycle.phases_failed) == 0
         assert set(cycle.phases_completed) == {
-            "discover", "enrich", "route", "monitor",
-            "collect", "learn", "report",
+            "discover",
+            "enrich",
+            "route",
+            "monitor",
+            "collect",
+            "learn",
+            "report",
         }
 
     def test_duration_tracked(self, runner):
@@ -123,17 +128,29 @@ class TestDryRunCycle:
         cycle = runner.run_once()
         # Should be a valid ISO 8601 timestamp
         dt = datetime.fromisoformat(cycle.started_at)
-        assert dt.tzinfo is not None or "+" in cycle.started_at or "Z" in cycle.started_at
+        assert (
+            dt.tzinfo is not None or "+" in cycle.started_at or "Z" in cycle.started_at
+        )
 
 
 class TestCycleWithTasks:
     def test_discover_finds_tasks(self, runner):
         """Discover phase should count found tasks."""
         mock_tasks = [
-            {"id": "t1", "title": "Test Task 1", "status": "published",
-             "category": "digital_physical", "bounty_usd": 0.5},
-            {"id": "t2", "title": "Test Task 2", "status": "published",
-             "category": "digital_physical", "bounty_usd": 1.0},
+            {
+                "id": "t1",
+                "title": "Test Task 1",
+                "status": "published",
+                "category": "digital_physical",
+                "bounty_usd": 0.5,
+            },
+            {
+                "id": "t2",
+                "title": "Test Task 2",
+                "status": "published",
+                "category": "digital_physical",
+                "bounty_usd": 1.0,
+            },
         ]
 
         runner.coordinator.em_client = MagicMock()

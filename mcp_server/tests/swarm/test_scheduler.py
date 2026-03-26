@@ -18,11 +18,8 @@ Tests cover:
 """
 
 import time
-from collections import defaultdict
 from datetime import datetime, timezone, timedelta
-from unittest.mock import MagicMock, PropertyMock
 
-import pytest
 
 from mcp_server.swarm.scheduler import (
     AgentLoadBalancer,
@@ -37,10 +34,8 @@ from mcp_server.swarm.scheduler import (
     URGENCY_MULTIPLIERS,
 )
 from mcp_server.swarm.orchestrator import (
-    Assignment,
     RoutingStrategy,
     TaskPriority,
-    TaskRequest,
 )
 
 
@@ -56,8 +51,14 @@ class TestUrgencyConstants:
         assert URGENCY_MULTIPLIERS[UrgencyLevel.EXPIRED] == 0.0
 
     def test_critical_highest_multiplier(self):
-        assert URGENCY_MULTIPLIERS[UrgencyLevel.CRITICAL] > URGENCY_MULTIPLIERS[UrgencyLevel.URGENT]
-        assert URGENCY_MULTIPLIERS[UrgencyLevel.URGENT] > URGENCY_MULTIPLIERS[UrgencyLevel.NORMAL]
+        assert (
+            URGENCY_MULTIPLIERS[UrgencyLevel.CRITICAL]
+            > URGENCY_MULTIPLIERS[UrgencyLevel.URGENT]
+        )
+        assert (
+            URGENCY_MULTIPLIERS[UrgencyLevel.URGENT]
+            > URGENCY_MULTIPLIERS[UrgencyLevel.NORMAL]
+        )
 
 
 # ─── ScheduledTask Tests ────────────────────────────────────────────────
@@ -66,8 +67,11 @@ class TestUrgencyConstants:
 class TestScheduledTask:
     def test_defaults(self):
         task = ScheduledTask(
-            task_id="t1", title="Test", categories=["delivery"],
-            bounty_usd=5.0, priority=TaskPriority.NORMAL
+            task_id="t1",
+            title="Test",
+            categories=["delivery"],
+            bounty_usd=5.0,
+            priority=TaskPriority.NORMAL,
         )
         assert task.urgency == UrgencyLevel.NORMAL
         assert task.retry_count == 0
@@ -75,22 +79,31 @@ class TestScheduledTask:
 
     def test_batch_key(self):
         task = ScheduledTask(
-            task_id="t1", title="Test", categories=["delivery", "photo"],
-            bounty_usd=5.0, priority=TaskPriority.NORMAL
+            task_id="t1",
+            title="Test",
+            categories=["delivery", "photo"],
+            bounty_usd=5.0,
+            priority=TaskPriority.NORMAL,
         )
         assert task.batch_key == "delivery|photo"
 
     def test_batch_key_sorted(self):
         task = ScheduledTask(
-            task_id="t1", title="Test", categories=["photo", "delivery"],
-            bounty_usd=5.0, priority=TaskPriority.NORMAL
+            task_id="t1",
+            title="Test",
+            categories=["photo", "delivery"],
+            bounty_usd=5.0,
+            priority=TaskPriority.NORMAL,
         )
         assert task.batch_key == "delivery|photo"
 
     def test_empty_categories(self):
         task = ScheduledTask(
-            task_id="t1", title="Test", categories=[],
-            bounty_usd=0, priority=TaskPriority.LOW
+            task_id="t1",
+            title="Test",
+            categories=[],
+            bounty_usd=0,
+            priority=TaskPriority.LOW,
         )
         assert task.batch_key == "uncategorized"
 
@@ -212,8 +225,12 @@ class TestCircuitBreaker:
         assert cb.state == CircuitState.OPEN
 
     def test_half_open_max_calls(self):
-        cb = CircuitBreaker("test", failure_threshold=2,
-                           recovery_timeout_seconds=0.01, half_open_max_calls=2)
+        cb = CircuitBreaker(
+            "test",
+            failure_threshold=2,
+            recovery_timeout_seconds=0.01,
+            half_open_max_calls=2,
+        )
         cb.record_failure()
         cb.record_failure()
         time.sleep(0.02)
@@ -349,8 +366,11 @@ class TestSchedulerTaskManagement:
 
     def test_add_task(self):
         task = self.scheduler.add_task(
-            task_id="t1", title="Photo job", categories=["photo"],
-            bounty_usd=5.0, priority=TaskPriority.NORMAL
+            task_id="t1",
+            title="Photo job",
+            categories=["photo"],
+            bounty_usd=5.0,
+            priority=TaskPriority.NORMAL,
         )
         assert task.task_id == "t1"
         assert self.scheduler.pending_count == 1
@@ -382,36 +402,56 @@ class TestUrgencyComputation:
 
     def test_past_deadline_expired(self):
         task = self.scheduler.add_task(
-            "t1", "Test", ["a"], 5.0, TaskPriority.NORMAL,
-            deadline=datetime.now(timezone.utc) - timedelta(hours=1)
+            "t1",
+            "Test",
+            ["a"],
+            5.0,
+            TaskPriority.NORMAL,
+            deadline=datetime.now(timezone.utc) - timedelta(hours=1),
         )
         assert task.urgency == UrgencyLevel.EXPIRED
 
     def test_30min_deadline_critical(self):
         task = self.scheduler.add_task(
-            "t1", "Test", ["a"], 5.0, TaskPriority.NORMAL,
-            deadline=datetime.now(timezone.utc) + timedelta(minutes=30)
+            "t1",
+            "Test",
+            ["a"],
+            5.0,
+            TaskPriority.NORMAL,
+            deadline=datetime.now(timezone.utc) + timedelta(minutes=30),
         )
         assert task.urgency == UrgencyLevel.CRITICAL
 
     def test_2h_deadline_urgent(self):
         task = self.scheduler.add_task(
-            "t1", "Test", ["a"], 5.0, TaskPriority.NORMAL,
-            deadline=datetime.now(timezone.utc) + timedelta(hours=2)
+            "t1",
+            "Test",
+            ["a"],
+            5.0,
+            TaskPriority.NORMAL,
+            deadline=datetime.now(timezone.utc) + timedelta(hours=2),
         )
         assert task.urgency == UrgencyLevel.URGENT
 
     def test_12h_deadline_normal(self):
         task = self.scheduler.add_task(
-            "t1", "Test", ["a"], 5.0, TaskPriority.NORMAL,
-            deadline=datetime.now(timezone.utc) + timedelta(hours=12)
+            "t1",
+            "Test",
+            ["a"],
+            5.0,
+            TaskPriority.NORMAL,
+            deadline=datetime.now(timezone.utc) + timedelta(hours=12),
         )
         assert task.urgency == UrgencyLevel.NORMAL
 
     def test_48h_deadline_relaxed(self):
         task = self.scheduler.add_task(
-            "t1", "Test", ["a"], 5.0, TaskPriority.NORMAL,
-            deadline=datetime.now(timezone.utc) + timedelta(hours=48)
+            "t1",
+            "Test",
+            ["a"],
+            5.0,
+            TaskPriority.NORMAL,
+            deadline=datetime.now(timezone.utc) + timedelta(hours=48),
         )
         assert task.urgency == UrgencyLevel.RELAXED
 
@@ -427,24 +467,22 @@ class TestEffectivePriority:
         t_critical = self.scheduler.add_task(
             "t1", "A", ["a"], 5.0, TaskPriority.CRITICAL
         )
-        t_low = self.scheduler.add_task(
-            "t2", "B", ["a"], 5.0, TaskPriority.LOW
-        )
+        t_low = self.scheduler.add_task("t2", "B", ["a"], 5.0, TaskPriority.LOW)
         assert t_critical.effective_priority > t_low.effective_priority
 
     def test_higher_bounty_adds_bonus(self):
-        t_high = self.scheduler.add_task(
-            "t1", "A", ["a"], 100.0, TaskPriority.NORMAL
-        )
-        t_low = self.scheduler.add_task(
-            "t2", "B", ["a"], 1.0, TaskPriority.NORMAL
-        )
+        t_high = self.scheduler.add_task("t1", "A", ["a"], 100.0, TaskPriority.NORMAL)
+        t_low = self.scheduler.add_task("t2", "B", ["a"], 1.0, TaskPriority.NORMAL)
         assert t_high.effective_priority > t_low.effective_priority
 
     def test_expired_task_zero_priority(self):
         t = self.scheduler.add_task(
-            "t1", "A", ["a"], 5.0, TaskPriority.CRITICAL,
-            deadline=datetime.now(timezone.utc) - timedelta(hours=1)
+            "t1",
+            "A",
+            ["a"],
+            5.0,
+            TaskPriority.CRITICAL,
+            deadline=datetime.now(timezone.utc) - timedelta(hours=1),
         )
         assert t.effective_priority == 0.0
 
@@ -463,11 +501,15 @@ class TestStrategySelection:
     def setup_method(self):
         self.scheduler = SwarmScheduler(enable_circuit_breakers=False)
 
-    def _make_task(self, urgency=UrgencyLevel.NORMAL, priority=TaskPriority.NORMAL,
-                   categories=None):
+    def _make_task(
+        self, urgency=UrgencyLevel.NORMAL, priority=TaskPriority.NORMAL, categories=None
+    ):
         task = ScheduledTask(
-            task_id="t1", title="Test", categories=categories or ["general"],
-            bounty_usd=5.0, priority=priority
+            task_id="t1",
+            title="Test",
+            categories=categories or ["general"],
+            bounty_usd=5.0,
+            priority=priority,
         )
         task.urgency = urgency
         return task
@@ -495,9 +537,7 @@ class TestStrategySelection:
 
     def test_overloaded_round_robin(self):
         task = self._make_task()
-        conditions = SwarmConditions(
-            idle_agents=1, active_agents=0, pending_tasks=5
-        )
+        conditions = SwarmConditions(idle_agents=1, active_agents=0, pending_tasks=5)
         strategy, _ = self.scheduler.select_strategy(task, conditions)
         assert strategy == RoutingStrategy.ROUND_ROBIN
 
@@ -536,8 +576,12 @@ class TestComputeSchedule:
 
     def test_expired_tasks_excluded(self):
         self.scheduler.add_task(
-            "t1", "Expired", ["a"], 5.0, TaskPriority.NORMAL,
-            deadline=datetime.now(timezone.utc) - timedelta(hours=1)
+            "t1",
+            "Expired",
+            ["a"],
+            5.0,
+            TaskPriority.NORMAL,
+            deadline=datetime.now(timezone.utc) - timedelta(hours=1),
         )
         self.scheduler.add_task("t2", "Valid", ["a"], 5.0, TaskPriority.NORMAL)
         batches = self.scheduler.compute_schedule()
@@ -556,8 +600,12 @@ class TestComputeSchedule:
     def test_priority_ordering(self):
         self.scheduler.add_task("t_low", "Low", ["a"], 1.0, TaskPriority.LOW)
         self.scheduler.add_task(
-            "t_crit", "Crit", ["a"], 5.0, TaskPriority.CRITICAL,
-            deadline=datetime.now(timezone.utc) + timedelta(minutes=30)
+            "t_crit",
+            "Crit",
+            ["a"],
+            5.0,
+            TaskPriority.CRITICAL,
+            deadline=datetime.now(timezone.utc) + timedelta(minutes=30),
         )
         batches = self.scheduler.compute_schedule()
         assert len(batches) > 0
@@ -568,7 +616,9 @@ class TestComputeSchedule:
     def test_batch_size_limit(self):
         scheduler = SwarmScheduler(max_batch_size=2, enable_circuit_breakers=False)
         for i in range(5):
-            scheduler.add_task(f"t{i}", f"Task {i}", ["photo"], 5.0, TaskPriority.NORMAL)
+            scheduler.add_task(
+                f"t{i}", f"Task {i}", ["photo"], 5.0, TaskPriority.NORMAL
+            )
         batches = scheduler.compute_schedule()
         for batch in batches:
             assert len(batch.tasks) <= 2
@@ -596,8 +646,12 @@ class TestSchedulerStatus:
         scheduler = SwarmScheduler(enable_circuit_breakers=False)
         scheduler.add_task("t1", "A", ["a"], 5.0, TaskPriority.NORMAL)
         scheduler.add_task(
-            "t2", "B", ["a"], 5.0, TaskPriority.NORMAL,
-            deadline=datetime.now(timezone.utc) + timedelta(minutes=30)
+            "t2",
+            "B",
+            ["a"],
+            5.0,
+            TaskPriority.NORMAL,
+            deadline=datetime.now(timezone.utc) + timedelta(minutes=30),
         )
         dist = scheduler.get_urgency_distribution()
         assert "normal" in dist

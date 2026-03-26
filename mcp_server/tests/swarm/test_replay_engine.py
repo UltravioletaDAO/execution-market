@@ -18,7 +18,6 @@ Coverage:
 """
 
 import json
-import math
 import tempfile
 import pytest
 
@@ -26,7 +25,6 @@ from mcp_server.swarm.replay_engine import (
     TaskOutcome,
     TaskSnapshot,
     AgentProfile,
-    RoutingDecision,
     ReplayResult,
     ScenarioReport,
     RoutingConfig,
@@ -44,18 +42,27 @@ def agents():
     """Standard agent pool."""
     return [
         AgentProfile(
-            agent_id="alice", skills=["delivery", "photo", "verification"],
-            success_rate=0.95, avg_completion_hours=2.0, capacity=5,
+            agent_id="alice",
+            skills=["delivery", "photo", "verification"],
+            success_rate=0.95,
+            avg_completion_hours=2.0,
+            capacity=5,
             reputation_score=0.9,
         ),
         AgentProfile(
-            agent_id="bob", skills=["delivery", "manual_labor"],
-            success_rate=0.80, avg_completion_hours=4.0, capacity=3,
+            agent_id="bob",
+            skills=["delivery", "manual_labor"],
+            success_rate=0.80,
+            avg_completion_hours=4.0,
+            capacity=3,
             reputation_score=0.7,
         ),
         AgentProfile(
-            agent_id="carol", skills=["photo", "creative", "data_entry"],
-            success_rate=0.70, avg_completion_hours=3.0, capacity=4,
+            agent_id="carol",
+            skills=["photo", "creative", "data_entry"],
+            success_rate=0.70,
+            avg_completion_hours=3.0,
+            capacity=4,
             reputation_score=0.5,
         ),
     ]
@@ -72,32 +79,50 @@ def tasks():
     """Batch of task snapshots for scenario testing."""
     return [
         TaskSnapshot(
-            task_id="t1", title="Deliver package",
-            category="delivery", bounty_usd=5.0, deadline_hours=4.0,
+            task_id="t1",
+            title="Deliver package",
+            category="delivery",
+            bounty_usd=5.0,
+            deadline_hours=4.0,
             required_skills=["delivery"],
-            actual_worker_id="alice", actual_outcome="completed",
+            actual_worker_id="alice",
+            actual_outcome="completed",
         ),
         TaskSnapshot(
-            task_id="t2", title="Take photo of store",
-            category="verification", bounty_usd=3.0, deadline_hours=2.0,
+            task_id="t2",
+            title="Take photo of store",
+            category="verification",
+            bounty_usd=3.0,
+            deadline_hours=2.0,
             required_skills=["photo", "verification"],
         ),
         TaskSnapshot(
-            task_id="t3", title="Data entry task",
-            category="data_entry", bounty_usd=2.0, deadline_hours=8.0,
+            task_id="t3",
+            title="Data entry task",
+            category="data_entry",
+            bounty_usd=2.0,
+            deadline_hours=8.0,
             required_skills=["data_entry"],
         ),
         TaskSnapshot(
-            task_id="t4", title="Creative writing",
-            category="creative", bounty_usd=10.0, deadline_hours=24.0,
+            task_id="t4",
+            title="Creative writing",
+            category="creative",
+            bounty_usd=10.0,
+            deadline_hours=24.0,
             required_skills=["creative"],
-            actual_worker_id="carol", actual_outcome="completed",
+            actual_worker_id="carol",
+            actual_outcome="completed",
         ),
         TaskSnapshot(
-            task_id="t5", title="Heavy lifting",
-            category="manual_labor", bounty_usd=15.0, deadline_hours=6.0,
+            task_id="t5",
+            title="Heavy lifting",
+            category="manual_labor",
+            bounty_usd=15.0,
+            deadline_hours=6.0,
             required_skills=["manual_labor"],
-            actual_worker_id="bob", actual_outcome="expired",
+            actual_worker_id="bob",
+            actual_outcome="expired",
         ),
     ]
 
@@ -120,8 +145,11 @@ class TestDataTypes:
 
     def test_task_snapshot_roundtrip(self):
         original = TaskSnapshot(
-            task_id="t1", title="Test", category="delivery",
-            bounty_usd=5.0, required_skills=["photo"],
+            task_id="t1",
+            title="Test",
+            category="delivery",
+            bounty_usd=5.0,
+            required_skills=["photo"],
             actual_outcome="completed",
         )
         d = original.to_dict()
@@ -208,8 +236,13 @@ class TestRoutingConfig:
 
     def test_default_weights_sum_to_one(self):
         cfg = RoutingConfig()
-        total = (cfg.skill_weight + cfg.capacity_weight + cfg.reputation_weight
-                 + cfg.speed_weight + cfg.cost_weight)
+        total = (
+            cfg.skill_weight
+            + cfg.capacity_weight
+            + cfg.reputation_weight
+            + cfg.speed_weight
+            + cfg.cost_weight
+        )
         assert abs(total - 1.0) < 0.001
 
     def test_valid_config(self):
@@ -218,15 +251,25 @@ class TestRoutingConfig:
         assert errors == []
 
     def test_invalid_weight_sum(self):
-        cfg = RoutingConfig(skill_weight=0.5, capacity_weight=0.5,
-                            reputation_weight=0.5, speed_weight=0.5, cost_weight=0.5)
+        cfg = RoutingConfig(
+            skill_weight=0.5,
+            capacity_weight=0.5,
+            reputation_weight=0.5,
+            speed_weight=0.5,
+            cost_weight=0.5,
+        )
         errors = cfg.validate()
         assert len(errors) > 0
         assert "sum" in errors[0].lower() or "1.0" in errors[0]
 
     def test_negative_weight(self):
-        cfg = RoutingConfig(skill_weight=-0.1, capacity_weight=0.25,
-                            reputation_weight=0.35, speed_weight=0.25, cost_weight=0.25)
+        cfg = RoutingConfig(
+            skill_weight=-0.1,
+            capacity_weight=0.25,
+            reputation_weight=0.35,
+            speed_weight=0.25,
+            cost_weight=0.25,
+        )
         errors = cfg.validate()
         assert any("negative" in e.lower() for e in errors)
 
@@ -250,8 +293,10 @@ class TestTaskRouting:
 
     def test_route_delivery_task(self, engine):
         task = TaskSnapshot(
-            task_id="t1", title="Deliver package",
-            required_skills=["delivery"], bounty_usd=5.0,
+            task_id="t1",
+            title="Deliver package",
+            required_skills=["delivery"],
+            bounty_usd=5.0,
         )
         decision = engine.route_task(task)
         assert decision.recommended_agent_id is not None
@@ -259,7 +304,8 @@ class TestTaskRouting:
 
     def test_route_prefers_best_skill_match(self, engine):
         task = TaskSnapshot(
-            task_id="t1", title="Take photo",
+            task_id="t1",
+            title="Take photo",
             required_skills=["photo", "verification"],
             bounty_usd=5.0,
         )
@@ -277,7 +323,8 @@ class TestTaskRouting:
     def test_route_no_eligible_agents(self, engine):
         """All agents filtered out by skill requirement."""
         task = TaskSnapshot(
-            task_id="t1", title="Brain surgery",
+            task_id="t1",
+            title="Brain surgery",
             required_skills=["neurosurgery"],
             bounty_usd=5.0,
         )
@@ -288,29 +335,38 @@ class TestTaskRouting:
         """Agent at capacity is excluded."""
         engine.agents["alice"].active_tasks = 5  # At max
         task = TaskSnapshot(
-            task_id="t1", title="Deliver",
-            required_skills=["delivery"], bounty_usd=5.0,
+            task_id="t1",
+            title="Deliver",
+            required_skills=["delivery"],
+            bounty_usd=5.0,
         )
         decision = engine.route_task(task)
         assert decision.recommended_agent_id != "alice"
 
     def test_route_reputation_filter(self):
         engine = ReplayEngine(
-            agents=[AgentProfile(agent_id="low_rep", reputation_score=0.05,
-                                 skills=["delivery"])],
+            agents=[
+                AgentProfile(
+                    agent_id="low_rep", reputation_score=0.05, skills=["delivery"]
+                )
+            ],
             config=RoutingConfig(min_reputation=0.1),
         )
         task = TaskSnapshot(
-            task_id="t1", title="Deliver",
-            required_skills=["delivery"], bounty_usd=5.0,
+            task_id="t1",
+            title="Deliver",
+            required_skills=["delivery"],
+            bounty_usd=5.0,
         )
         decision = engine.route_task(task)
         assert decision.recommended_agent_id is None
 
     def test_route_alternatives_included(self, engine):
         task = TaskSnapshot(
-            task_id="t1", title="Deliver",
-            required_skills=["delivery"], bounty_usd=5.0,
+            task_id="t1",
+            title="Deliver",
+            required_skills=["delivery"],
+            bounty_usd=5.0,
         )
         decision = engine.route_task(task)
         # Both alice and bob have delivery skill
@@ -318,16 +374,20 @@ class TestTaskRouting:
 
     def test_route_reasoning_string(self, engine):
         task = TaskSnapshot(
-            task_id="t1", title="Deliver",
-            required_skills=["delivery"], bounty_usd=5.0,
+            task_id="t1",
+            title="Deliver",
+            required_skills=["delivery"],
+            bounty_usd=5.0,
         )
         decision = engine.route_task(task)
         assert len(decision.reasoning) > 0
 
     def test_route_matches_actual(self, engine):
         task = TaskSnapshot(
-            task_id="t1", title="Deliver",
-            required_skills=["delivery"], bounty_usd=5.0,
+            task_id="t1",
+            title="Deliver",
+            required_skills=["delivery"],
+            bounty_usd=5.0,
             actual_worker_id="alice",
         )
         decision = engine.route_task(task)
@@ -338,9 +398,12 @@ class TestTaskRouting:
 
     def test_route_actual_was_better_check(self, engine):
         task = TaskSnapshot(
-            task_id="t1", title="Deliver",
-            required_skills=["delivery", "manual_labor"], bounty_usd=5.0,
-            actual_worker_id="bob", actual_outcome="completed",
+            task_id="t1",
+            title="Deliver",
+            required_skills=["delivery", "manual_labor"],
+            bounty_usd=5.0,
+            actual_worker_id="bob",
+            actual_outcome="completed",
         )
         decision = engine.route_task(task)
         # actual_was_better is set when actual differs from recommended
@@ -355,8 +418,10 @@ class TestTaskRouting:
 
     def test_route_composite_score_populated(self, engine):
         task = TaskSnapshot(
-            task_id="t1", title="Deliver",
-            required_skills=["delivery"], bounty_usd=5.0,
+            task_id="t1",
+            title="Deliver",
+            required_skills=["delivery"],
+            bounty_usd=5.0,
         )
         decision = engine.route_task(task)
         assert decision.composite_score > 0
@@ -365,30 +430,51 @@ class TestTaskRouting:
 
     def test_speed_score_considers_deadline(self):
         """Agent that's slow relative to deadline gets lower speed score."""
-        slow = AgentProfile(agent_id="slow", skills=["delivery"],
-                            avg_completion_hours=20.0, reputation_score=0.8)
-        fast = AgentProfile(agent_id="fast", skills=["delivery"],
-                            avg_completion_hours=1.0, reputation_score=0.8)
+        slow = AgentProfile(
+            agent_id="slow",
+            skills=["delivery"],
+            avg_completion_hours=20.0,
+            reputation_score=0.8,
+        )
+        fast = AgentProfile(
+            agent_id="fast",
+            skills=["delivery"],
+            avg_completion_hours=1.0,
+            reputation_score=0.8,
+        )
         engine = ReplayEngine(agents=[slow, fast])
         task = TaskSnapshot(
-            task_id="t1", title="Urgent delivery",
-            required_skills=["delivery"], deadline_hours=4.0, bounty_usd=5.0,
+            task_id="t1",
+            title="Urgent delivery",
+            required_skills=["delivery"],
+            deadline_hours=4.0,
+            bounty_usd=5.0,
         )
         decision = engine.route_task(task)
         assert decision.recommended_agent_id == "fast"
 
     def test_cost_score_with_hourly_rate(self):
         """Agent with lower cost gets better cost score."""
-        cheap = AgentProfile(agent_id="cheap", skills=["delivery"],
-                             hourly_rate=5.0, avg_completion_hours=2.0,
-                             reputation_score=0.5)
-        expensive = AgentProfile(agent_id="expensive", skills=["delivery"],
-                                 hourly_rate=50.0, avg_completion_hours=2.0,
-                                 reputation_score=0.5)
+        cheap = AgentProfile(
+            agent_id="cheap",
+            skills=["delivery"],
+            hourly_rate=5.0,
+            avg_completion_hours=2.0,
+            reputation_score=0.5,
+        )
+        expensive = AgentProfile(
+            agent_id="expensive",
+            skills=["delivery"],
+            hourly_rate=50.0,
+            avg_completion_hours=2.0,
+            reputation_score=0.5,
+        )
         engine = ReplayEngine(agents=[cheap, expensive])
         task = TaskSnapshot(
-            task_id="t1", title="Deliver",
-            required_skills=["delivery"], bounty_usd=20.0,
+            task_id="t1",
+            title="Deliver",
+            required_skills=["delivery"],
+            bounty_usd=20.0,
         )
         decision = engine.route_task(task)
         assert decision.recommended_agent_id == "cheap"
@@ -404,8 +490,10 @@ class TestReplayPipeline:
 
     def test_replay_basic(self, engine):
         task = TaskSnapshot(
-            task_id="t1", title="Deliver",
-            required_skills=["delivery"], bounty_usd=5.0,
+            task_id="t1",
+            title="Deliver",
+            required_skills=["delivery"],
+            bounty_usd=5.0,
         )
         result = engine.replay_task(task)
         assert isinstance(result, ReplayResult)
@@ -420,8 +508,10 @@ class TestReplayPipeline:
 
     def test_replay_increments_agent_load(self, engine):
         task = TaskSnapshot(
-            task_id="t1", title="Deliver",
-            required_skills=["delivery"], bounty_usd=5.0,
+            task_id="t1",
+            title="Deliver",
+            required_skills=["delivery"],
+            bounty_usd=5.0,
         )
         result = engine.replay_task(task)
         agent_id = result.decision.recommended_agent_id
@@ -430,8 +520,10 @@ class TestReplayPipeline:
     def test_replay_high_confidence_completed(self, engine):
         """High confidence + high success rate → simulated completed."""
         task = TaskSnapshot(
-            task_id="t1", title="Deliver",
-            required_skills=["delivery"], bounty_usd=5.0,
+            task_id="t1",
+            title="Deliver",
+            required_skills=["delivery"],
+            bounty_usd=5.0,
         )
         result = engine.replay_task(task)
         # Alice has 0.95 success rate, should get high confidence
@@ -446,16 +538,20 @@ class TestReplayPipeline:
 
     def test_replay_estimated_hours(self, engine):
         task = TaskSnapshot(
-            task_id="t1", title="Deliver",
-            required_skills=["delivery"], bounty_usd=5.0,
+            task_id="t1",
+            title="Deliver",
+            required_skills=["delivery"],
+            bounty_usd=5.0,
         )
         result = engine.replay_task(task)
         assert result.estimated_completion_hours > 0
 
     def test_accuracy_signal_completed(self, engine):
         task = TaskSnapshot(
-            task_id="t1", title="Deliver",
-            required_skills=["delivery"], bounty_usd=5.0,
+            task_id="t1",
+            title="Deliver",
+            required_skills=["delivery"],
+            bounty_usd=5.0,
             actual_outcome="completed",
         )
         result = engine.replay_task(task)
@@ -511,13 +607,25 @@ class TestScenarioExecution:
 
     def test_scenario_single_agent_diversity(self):
         """All tasks to one agent → diversity = 0."""
-        engine = ReplayEngine(agents=[
-            AgentProfile(agent_id="solo", skills=["everything"],
-                         capacity=100, reputation_score=0.8),
-        ])
-        tasks = [TaskSnapshot(task_id=f"t{i}", title="Test",
-                              required_skills=["everything"], bounty_usd=5.0)
-                 for i in range(5)]
+        engine = ReplayEngine(
+            agents=[
+                AgentProfile(
+                    agent_id="solo",
+                    skills=["everything"],
+                    capacity=100,
+                    reputation_score=0.8,
+                ),
+            ]
+        )
+        tasks = [
+            TaskSnapshot(
+                task_id=f"t{i}",
+                title="Test",
+                required_skills=["everything"],
+                bounty_usd=5.0,
+            )
+            for i in range(5)
+        ]
         report = engine.run_scenario("solo_test", tasks)
         assert report.agent_diversity == 0.0
 
@@ -569,12 +677,20 @@ class TestWhatIfAnalysis:
     """Config comparison for what-if scenarios."""
 
     def test_compare_two_configs(self, engine, tasks):
-        config_a = RoutingConfig(skill_weight=0.5, capacity_weight=0.1,
-                                  reputation_weight=0.2, speed_weight=0.1,
-                                  cost_weight=0.1)
-        config_b = RoutingConfig(skill_weight=0.1, capacity_weight=0.1,
-                                  reputation_weight=0.5, speed_weight=0.2,
-                                  cost_weight=0.1)
+        config_a = RoutingConfig(
+            skill_weight=0.5,
+            capacity_weight=0.1,
+            reputation_weight=0.2,
+            speed_weight=0.1,
+            cost_weight=0.1,
+        )
+        config_b = RoutingConfig(
+            skill_weight=0.1,
+            capacity_weight=0.1,
+            reputation_weight=0.5,
+            speed_weight=0.2,
+            cost_weight=0.1,
+        )
         comparisons = engine.compare_configs(tasks, [config_a, config_b])
         assert len(comparisons) == 2
         for name, metrics in comparisons.items():
@@ -585,12 +701,20 @@ class TestWhatIfAnalysis:
 
     def test_compare_configs_different_results(self, engine, tasks):
         """Different weights should produce different outcomes."""
-        skill_heavy = RoutingConfig(skill_weight=0.8, capacity_weight=0.05,
-                                     reputation_weight=0.05, speed_weight=0.05,
-                                     cost_weight=0.05)
-        reputation_heavy = RoutingConfig(skill_weight=0.05, capacity_weight=0.05,
-                                          reputation_weight=0.8, speed_weight=0.05,
-                                          cost_weight=0.05)
+        skill_heavy = RoutingConfig(
+            skill_weight=0.8,
+            capacity_weight=0.05,
+            reputation_weight=0.05,
+            speed_weight=0.05,
+            cost_weight=0.05,
+        )
+        reputation_heavy = RoutingConfig(
+            skill_weight=0.05,
+            capacity_weight=0.05,
+            reputation_weight=0.8,
+            speed_weight=0.05,
+            cost_weight=0.05,
+        )
         comparisons = engine.compare_configs(tasks, [skill_heavy, reputation_heavy])
         configs = list(comparisons.values())
         # At least one metric should differ
@@ -617,10 +741,13 @@ class TestIOHelpers:
 
     def test_load_tasks_from_list(self, engine):
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-            json.dump([
-                {"task_id": "t1", "title": "Test 1"},
-                {"task_id": "t2", "title": "Test 2"},
-            ], f)
+            json.dump(
+                [
+                    {"task_id": "t1", "title": "Test 1"},
+                    {"task_id": "t2", "title": "Test 2"},
+                ],
+                f,
+            )
             f.flush()
             tasks = engine.load_tasks(f.name)
         assert len(tasks) == 2
@@ -628,9 +755,14 @@ class TestIOHelpers:
 
     def test_load_tasks_from_dict(self, engine):
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-            json.dump({"tasks": [
-                {"task_id": "t1", "title": "Test 1"},
-            ]}, f)
+            json.dump(
+                {
+                    "tasks": [
+                        {"task_id": "t1", "title": "Test 1"},
+                    ]
+                },
+                f,
+            )
             f.flush()
             tasks = engine.load_tasks(f.name)
         assert len(tasks) == 1
@@ -676,39 +808,68 @@ class TestEdgeCases:
         assert result.simulated_outcome == "unroutable"
 
     def test_single_agent_gets_all(self):
-        engine = ReplayEngine(agents=[
-            AgentProfile(agent_id="only", skills=["all"],
-                         capacity=100, reputation_score=0.8),
-        ])
-        tasks = [TaskSnapshot(task_id=f"t{i}", title=f"Task {i}",
-                              required_skills=["all"], bounty_usd=5.0)
-                 for i in range(10)]
+        engine = ReplayEngine(
+            agents=[
+                AgentProfile(
+                    agent_id="only", skills=["all"], capacity=100, reputation_score=0.8
+                ),
+            ]
+        )
+        tasks = [
+            TaskSnapshot(
+                task_id=f"t{i}",
+                title=f"Task {i}",
+                required_skills=["all"],
+                bounty_usd=5.0,
+            )
+            for i in range(10)
+        ]
         report = engine.run_scenario("solo", tasks)
         assert report.agent_load == {"only": 10}
 
     def test_capacity_exhaustion(self):
         """Agent runs out of capacity during scenario."""
-        engine = ReplayEngine(agents=[
-            AgentProfile(agent_id="limited", skills=["work"],
-                         capacity=2, reputation_score=0.8),
-        ])
-        tasks = [TaskSnapshot(task_id=f"t{i}", title=f"Task {i}",
-                              required_skills=["work"], bounty_usd=5.0)
-                 for i in range(5)]
+        engine = ReplayEngine(
+            agents=[
+                AgentProfile(
+                    agent_id="limited",
+                    skills=["work"],
+                    capacity=2,
+                    reputation_score=0.8,
+                ),
+            ]
+        )
+        tasks = [
+            TaskSnapshot(
+                task_id=f"t{i}",
+                title=f"Task {i}",
+                required_skills=["work"],
+                bounty_usd=5.0,
+            )
+            for i in range(5)
+        ]
         report = engine.run_scenario("exhaust", tasks, reset_loads=False)
         # Only 2 tasks should be routed (capacity = 2, max_load_ratio = 0.9)
         assert report.unroutable_count > 0
 
     def test_zero_bounty_task(self, engine):
-        task = TaskSnapshot(task_id="t1", title="Free task",
-                            required_skills=["delivery"], bounty_usd=0.0)
+        task = TaskSnapshot(
+            task_id="t1",
+            title="Free task",
+            required_skills=["delivery"],
+            bounty_usd=0.0,
+        )
         result = engine.replay_task(task)
         assert result.cost_estimate == 0.0
 
     def test_zero_deadline(self, engine):
-        task = TaskSnapshot(task_id="t1", title="Urgent",
-                            required_skills=["delivery"], deadline_hours=0,
-                            bounty_usd=5.0)
+        task = TaskSnapshot(
+            task_id="t1",
+            title="Urgent",
+            required_skills=["delivery"],
+            deadline_hours=0,
+            bounty_usd=5.0,
+        )
         result = engine.replay_task(task)
         # Should not crash — deadline_hours=0 is handled
         assert result is not None

@@ -19,8 +19,6 @@ Covers:
 """
 
 import time
-from unittest.mock import patch
-from datetime import datetime, timezone
 
 import pytest
 
@@ -179,9 +177,7 @@ class TestSpendAuthorization:
     def test_spend_requires_approval_in_passive(self, controller):
         controller.set_phase(SpendPhase.PASSIVE)
         with pytest.raises(BudgetExceededError) as exc_info:
-            controller.authorize_spend(
-                task_id="t1", agent_id=1, amount_usd=0.01
-            )
+            controller.authorize_spend(task_id="t1", agent_id=1, amount_usd=0.01)
         # Passive max_task is 0, so it fails on phase_task first
         assert exc_info.value.limit_type == "phase_task"
 
@@ -208,15 +204,9 @@ class TestSpendAuthorization:
         assert record.approved_by == "saul"
 
     def test_spend_tracked_per_agent(self, full_auto_controller):
-        full_auto_controller.authorize_spend(
-            task_id="t1", agent_id=1, amount_usd=1.00
-        )
-        full_auto_controller.authorize_spend(
-            task_id="t2", agent_id=2, amount_usd=2.00
-        )
-        full_auto_controller.authorize_spend(
-            task_id="t3", agent_id=1, amount_usd=0.50
-        )
+        full_auto_controller.authorize_spend(task_id="t1", agent_id=1, amount_usd=1.00)
+        full_auto_controller.authorize_spend(task_id="t2", agent_id=2, amount_usd=2.00)
+        full_auto_controller.authorize_spend(task_id="t3", agent_id=1, amount_usd=0.50)
 
         agent1 = full_auto_controller.get_agent_spend(1)
         assert agent1["total_usd"] == 1.50
@@ -226,9 +216,7 @@ class TestSpendAuthorization:
         assert agent2["total_usd"] == 2.00
 
     def test_spend_updates_all_counters(self, semi_auto_controller):
-        semi_auto_controller.authorize_spend(
-            task_id="t1", agent_id=1, amount_usd=0.10
-        )
+        semi_auto_controller.authorize_spend(task_id="t1", agent_id=1, amount_usd=0.10)
         status = semi_auto_controller.get_fleet_budget_status()
         assert status["daily"]["spent_usd"] == 0.10
         assert status["monthly"]["spent_usd"] == 0.10
@@ -269,9 +257,7 @@ class TestCanSpend:
 
 class TestRefunds:
     def test_refund_reduces_counters(self, semi_auto_controller):
-        semi_auto_controller.authorize_spend(
-            task_id="t1", agent_id=1, amount_usd=0.20
-        )
+        semi_auto_controller.authorize_spend(task_id="t1", agent_id=1, amount_usd=0.20)
         semi_auto_controller.record_refund("t1", 0.20)
 
         status = semi_auto_controller.get_fleet_budget_status()
@@ -280,18 +266,14 @@ class TestRefunds:
         assert status["all_time"]["refund_count"] == 1
 
     def test_refund_marks_record(self, semi_auto_controller):
-        semi_auto_controller.authorize_spend(
-            task_id="t1", agent_id=1, amount_usd=0.20
-        )
+        semi_auto_controller.authorize_spend(task_id="t1", agent_id=1, amount_usd=0.20)
         semi_auto_controller.record_refund("t1", 0.20)
 
         agent = semi_auto_controller.get_agent_spend(1)
         assert agent["total_usd"] == 0.0
 
     def test_refund_generates_alert(self, semi_auto_controller):
-        semi_auto_controller.authorize_spend(
-            task_id="t1", agent_id=1, amount_usd=0.20
-        )
+        semi_auto_controller.authorize_spend(task_id="t1", agent_id=1, amount_usd=0.20)
         semi_auto_controller.record_refund("t1", 0.20)
 
         alerts = semi_auto_controller.get_alerts(level="info")
@@ -299,9 +281,7 @@ class TestRefunds:
         assert len(refund_alerts) == 1
 
     def test_refund_floors_at_zero(self, semi_auto_controller):
-        semi_auto_controller.authorize_spend(
-            task_id="t1", agent_id=1, amount_usd=0.10
-        )
+        semi_auto_controller.authorize_spend(task_id="t1", agent_id=1, amount_usd=0.10)
         # Refund more than spent
         semi_auto_controller.record_refund("t1", 1.00)
         status = semi_auto_controller.get_fleet_budget_status()
@@ -608,9 +588,7 @@ class TestPhaseGateMetrics:
         assert metrics["burn_rate_usd_per_hour"] == 0.0
 
     def test_metrics_after_spending(self, semi_auto_controller):
-        semi_auto_controller.authorize_spend(
-            task_id="t1", agent_id=1, amount_usd=0.25
-        )
+        semi_auto_controller.authorize_spend(task_id="t1", agent_id=1, amount_usd=0.25)
         metrics = semi_auto_controller.get_metrics_for_phase_gate()
         assert metrics["daily_utilization"] > 0
         assert metrics["approval_count"] == 1
@@ -621,9 +599,7 @@ class TestPhaseGateMetrics:
 
 class TestSerialization:
     def test_to_dict(self, semi_auto_controller):
-        semi_auto_controller.authorize_spend(
-            task_id="t1", agent_id=1, amount_usd=0.10
-        )
+        semi_auto_controller.authorize_spend(task_id="t1", agent_id=1, amount_usd=0.10)
         d = semi_auto_controller.to_dict()
         assert d["phase"] == "SEMI_AUTO"
         assert d["daily_spent"] == 0.10
@@ -632,9 +608,7 @@ class TestSerialization:
         assert 1 in d["agent_totals"]
 
     def test_from_dict_roundtrip(self, semi_auto_controller):
-        semi_auto_controller.authorize_spend(
-            task_id="t1", agent_id=1, amount_usd=0.10
-        )
+        semi_auto_controller.authorize_spend(task_id="t1", agent_id=1, amount_usd=0.10)
         d = semi_auto_controller.to_dict()
         restored = BudgetController.from_dict(d)
         assert restored.current_phase == SpendPhase.SEMI_AUTO
@@ -656,27 +630,21 @@ class TestSerialization:
 
 class TestResets:
     def test_daily_reset_on_new_day(self, semi_auto_controller):
-        semi_auto_controller.authorize_spend(
-            task_id="t1", agent_id=1, amount_usd=0.10
-        )
+        semi_auto_controller.authorize_spend(task_id="t1", agent_id=1, amount_usd=0.10)
         # Simulate next day
         semi_auto_controller._last_daily_reset = "2020-01-01"
         semi_auto_controller._check_resets()
         assert semi_auto_controller._daily_spent_usd == 0.0
 
     def test_monthly_reset_on_new_month(self, semi_auto_controller):
-        semi_auto_controller.authorize_spend(
-            task_id="t1", agent_id=1, amount_usd=0.10
-        )
+        semi_auto_controller.authorize_spend(task_id="t1", agent_id=1, amount_usd=0.10)
         # Simulate next month
         semi_auto_controller._last_monthly_reset = "2020-01"
         semi_auto_controller._check_resets()
         assert semi_auto_controller._monthly_spent_usd == 0.0
 
     def test_agent_daily_cleared_on_reset(self, semi_auto_controller):
-        semi_auto_controller.authorize_spend(
-            task_id="t1", agent_id=1, amount_usd=0.10
-        )
+        semi_auto_controller.authorize_spend(task_id="t1", agent_id=1, amount_usd=0.10)
         semi_auto_controller._last_daily_reset = "2020-01-01"
         semi_auto_controller._check_resets()
         assert semi_auto_controller._agent_daily == {}
@@ -696,9 +664,7 @@ class TestDiagnosticReport:
         assert "SEMI_AUTO" in report
 
     def test_report_with_spends(self, full_auto_controller):
-        full_auto_controller.authorize_spend(
-            task_id="t1", agent_id=1, amount_usd=1.0
-        )
+        full_auto_controller.authorize_spend(task_id="t1", agent_id=1, amount_usd=1.0)
         report = full_auto_controller.diagnostic_report()
         assert "$" in report
 
@@ -769,12 +735,8 @@ class TestEdgeCases:
 
     def test_multiple_agents_share_fleet_budget(self, semi_auto_controller):
         # Both agents contribute to fleet daily total
-        semi_auto_controller.authorize_spend(
-            task_id="t1", agent_id=1, amount_usd=0.25
-        )
-        semi_auto_controller.authorize_spend(
-            task_id="t2", agent_id=2, amount_usd=0.25
-        )
+        semi_auto_controller.authorize_spend(task_id="t1", agent_id=1, amount_usd=0.25)
+        semi_auto_controller.authorize_spend(task_id="t2", agent_id=2, amount_usd=0.25)
         status = semi_auto_controller.get_fleet_budget_status()
         assert status["daily"]["spent_usd"] == 0.50
 

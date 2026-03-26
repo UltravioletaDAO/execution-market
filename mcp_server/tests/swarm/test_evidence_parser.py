@@ -13,10 +13,8 @@ Tests cover:
 - WorkerRegistry: CRUD, specialists, category search, persistence
 """
 
-import json
 import os
 import tempfile
-from datetime import datetime, timezone, timedelta
 
 import pytest
 
@@ -206,19 +204,21 @@ class TestParseSingleEvidence:
         assert SkillDimension.GEO_MOBILITY in dims
         assert SkillDimension.VERIFICATION_SKILL in dims
         # geo_verified boost
-        geo_signal = [s for s in signals if s.dimension == SkillDimension.GEO_MOBILITY][0]
+        geo_signal = [s for s in signals if s.dimension == SkillDimension.GEO_MOBILITY][
+            0
+        ]
         assert geo_signal.strength > 0.8  # Base 0.8 + 0.15 boost
 
     def test_rich_content_boosts_strength(self):
-        short = self.parser._parse_single_evidence(
-            {"content": "ok"}, "text_response"
-        )
+        short = self.parser._parse_single_evidence({"content": "ok"}, "text_response")
         long_content = "x" * 200
         long = self.parser._parse_single_evidence(
             {"content": long_content}, "text_response"
         )
         # Long content should boost communication signal
-        comm_short = [s for s in short if s.dimension == SkillDimension.COMMUNICATION][0]
+        comm_short = [s for s in short if s.dimension == SkillDimension.COMMUNICATION][
+            0
+        ]
         comm_long = [s for s in long if s.dimension == SkillDimension.COMMUNICATION][0]
         assert comm_long.strength > comm_short.strength
 
@@ -250,7 +250,7 @@ class TestParseSingleEvidence:
     def test_timestamp_speed_boost(self):
         signals = self.parser._parse_single_evidence(
             {"content": "proof", "metadata": {"timestamp": "2026-03-23T04:00:00Z"}},
-            "timestamp_proof"
+            "timestamp_proof",
         )
         speed_signal = [s for s in signals if s.dimension == SkillDimension.SPEED][0]
         assert speed_signal.strength >= 0.5  # Base 0.4 + 0.1 timestamp boost
@@ -288,8 +288,11 @@ class TestAssessItemQuality:
 
     def test_score_capped_at_one(self):
         score = self.parser._assess_item_quality(
-            {"content": "x" * 300, "metadata": {"a": 1, "b": 2, "c": 3, "d": 4, "latitude": 25.7}},
-            "photo_geo"
+            {
+                "content": "x" * 300,
+                "metadata": {"a": 1, "b": 2, "c": 3, "d": 4, "latitude": 25.7},
+            },
+            "photo_geo",
         )
         assert score <= 1.0
 
@@ -309,19 +312,28 @@ class TestParseEvidence:
         assert "no_evidence_submitted" in result.flags
 
     def test_single_photo(self):
-        result = self.parser.parse_evidence([
-            {"type": "photo", "content": "storefront picture"}
-        ])
+        result = self.parser.parse_evidence(
+            [{"type": "photo", "content": "storefront picture"}]
+        )
         assert result.evidence_count == 1
         assert result.quality in (EvidenceQuality.ADEQUATE, EvidenceQuality.GOOD)
         assert result.score > 0.0
 
     def test_rich_multi_type_evidence(self):
-        result = self.parser.parse_evidence([
-            {"type": "photo_geo", "content": "geo photo", "metadata": {"latitude": 25.7}},
-            {"type": "text_response", "content": "Detailed report of what I found at the location including measurements and observations"},
-            {"type": "screenshot", "content": "verification screenshot"},
-        ])
+        result = self.parser.parse_evidence(
+            [
+                {
+                    "type": "photo_geo",
+                    "content": "geo photo",
+                    "metadata": {"latitude": 25.7},
+                },
+                {
+                    "type": "text_response",
+                    "content": "Detailed report of what I found at the location including measurements and observations",
+                },
+                {"type": "screenshot", "content": "verification screenshot"},
+            ]
+        )
         assert result.evidence_count == 3
         assert len(set(result.evidence_types)) == 3
         # Should get diversity bonus
@@ -329,27 +341,35 @@ class TestParseEvidence:
         assert result.score > 0.6
 
     def test_suspicious_content_flagged(self):
-        result = self.parser.parse_evidence([
-            {"type": "text_response", "content": "Lorem ipsum dolor sit amet"},
-        ])
+        result = self.parser.parse_evidence(
+            [
+                {"type": "text_response", "content": "Lorem ipsum dolor sit amet"},
+            ]
+        )
         assert any("suspicious" in f for f in result.flags)
         assert result.quality == EvidenceQuality.SUSPICIOUS
 
     def test_quantity_bonus(self):
-        single = self.parser.parse_evidence([
-            {"type": "photo", "content": "one photo"},
-        ])
-        multiple = self.parser.parse_evidence([
-            {"type": "photo", "content": "photo 1"},
-            {"type": "photo", "content": "photo 2"},
-            {"type": "photo", "content": "photo 3"},
-        ])
+        single = self.parser.parse_evidence(
+            [
+                {"type": "photo", "content": "one photo"},
+            ]
+        )
+        multiple = self.parser.parse_evidence(
+            [
+                {"type": "photo", "content": "photo 1"},
+                {"type": "photo", "content": "photo 2"},
+                {"type": "photo", "content": "photo 3"},
+            ]
+        )
         assert multiple.details["quantity_bonus"] > single.details["quantity_bonus"]
 
     def test_quality_assessment_to_dict(self):
-        result = self.parser.parse_evidence([
-            {"type": "photo", "content": "test pic"},
-        ])
+        result = self.parser.parse_evidence(
+            [
+                {"type": "photo", "content": "test pic"},
+            ]
+        )
         d = result.to_dict()
         assert "quality" in d
         assert "score" in d
@@ -358,9 +378,15 @@ class TestParseEvidence:
         assert isinstance(d["signals"], list)
 
     def test_signals_extracted(self):
-        result = self.parser.parse_evidence([
-            {"type": "photo_geo", "content": "location photo", "metadata": {"latitude": 25.7}},
-        ])
+        result = self.parser.parse_evidence(
+            [
+                {
+                    "type": "photo_geo",
+                    "content": "location photo",
+                    "metadata": {"latitude": 25.7},
+                },
+            ]
+        )
         assert len(result.signals) > 0
         dims = {s.dimension for s in result.signals}
         assert SkillDimension.GEO_MOBILITY in dims
@@ -380,7 +406,9 @@ class TestParseEvidence:
             task_data={"category": "delivery"},
         )
         context_signals = [s for s in result.signals if s.source == "task_context"]
-        assert any(s.dimension == SkillDimension.PHYSICAL_EXECUTION for s in context_signals)
+        assert any(
+            s.dimension == SkillDimension.PHYSICAL_EXECUTION for s in context_signals
+        )
 
     def test_task_context_blockchain(self):
         result = self.parser.parse_evidence(
@@ -388,7 +416,9 @@ class TestParseEvidence:
             task_data={"category": "blockchain"},
         )
         context_signals = [s for s in result.signals if s.source == "task_context"]
-        assert any(s.dimension == SkillDimension.BLOCKCHAIN_LITERACY for s in context_signals)
+        assert any(
+            s.dimension == SkillDimension.BLOCKCHAIN_LITERACY for s in context_signals
+        )
 
     def test_task_context_design(self):
         result = self.parser.parse_evidence(
@@ -396,7 +426,9 @@ class TestParseEvidence:
             task_data={"category": "design"},
         )
         context_signals = [s for s in result.signals if s.source == "task_context"]
-        assert any(s.dimension == SkillDimension.CREATIVE_SKILL for s in context_signals)
+        assert any(
+            s.dimension == SkillDimension.CREATIVE_SKILL for s in context_signals
+        )
 
     def test_task_context_low_bounty_no_technical_signal(self):
         result = self.parser.parse_evidence(
@@ -404,7 +436,9 @@ class TestParseEvidence:
             task_data={"bounty_amount": 5},
         )
         context_signals = [s for s in result.signals if s.source == "task_context"]
-        assert not any(s.dimension == SkillDimension.TECHNICAL_SKILL for s in context_signals)
+        assert not any(
+            s.dimension == SkillDimension.TECHNICAL_SKILL for s in context_signals
+        )
 
 
 # ─── EvidenceParser.update_skill_dna Tests ───────────────────────────────
@@ -439,12 +473,16 @@ class TestUpdateSkillDNA:
     def test_running_average_quality(self):
         dna = SkillDNA(worker_id="w1")
         a1 = QualityAssessment(
-            quality=EvidenceQuality.GOOD, score=0.8,
-            evidence_count=1, evidence_types=["photo"],
+            quality=EvidenceQuality.GOOD,
+            score=0.8,
+            evidence_count=1,
+            evidence_types=["photo"],
         )
         a2 = QualityAssessment(
-            quality=EvidenceQuality.ADEQUATE, score=0.4,
-            evidence_count=1, evidence_types=["photo"],
+            quality=EvidenceQuality.ADEQUATE,
+            score=0.4,
+            evidence_count=1,
+            evidence_types=["photo"],
         )
         self.parser.update_skill_dna(dna, a1)
         assert dna.task_count == 1
@@ -456,8 +494,10 @@ class TestUpdateSkillDNA:
     def test_categories_accumulate(self):
         dna = SkillDNA(worker_id="w1")
         a1 = QualityAssessment(
-            quality=EvidenceQuality.GOOD, score=0.7,
-            evidence_count=1, evidence_types=["photo"],
+            quality=EvidenceQuality.GOOD,
+            score=0.7,
+            evidence_count=1,
+            evidence_types=["photo"],
         )
         self.parser.update_skill_dna(dna, a1, task_categories=["delivery"])
         self.parser.update_skill_dna(dna, a1, task_categories=["photo_verification"])
@@ -500,7 +540,11 @@ class TestWorkerRegistry:
     def test_process_completion(self):
         registry = WorkerRegistry()
         evidence = [
-            {"type": "photo_geo", "content": "verified", "metadata": {"latitude": 25.7}},
+            {
+                "type": "photo_geo",
+                "content": "verified",
+                "metadata": {"latitude": 25.7},
+            },
             {"type": "text_response", "content": "Detailed report with observations"},
         ]
         dna, assessment = registry.process_completion(
@@ -522,7 +566,9 @@ class TestWorkerRegistry:
         dna3 = registry.get_or_create("w3")
         dna3.dimensions = {"speed": 0.9}
 
-        geo_specialists = registry.get_specialists(SkillDimension.GEO_MOBILITY, min_score=0.5)
+        geo_specialists = registry.get_specialists(
+            SkillDimension.GEO_MOBILITY, min_score=0.5
+        )
         assert len(geo_specialists) == 2
         assert geo_specialists[0].worker_id == "w1"  # Highest geo score
 
@@ -553,7 +599,11 @@ class TestWorkerRegistry:
     def test_save_and_load(self):
         registry = WorkerRegistry()
         evidence = [
-            {"type": "photo_geo", "content": "verified", "metadata": {"latitude": 25.7}},
+            {
+                "type": "photo_geo",
+                "content": "verified",
+                "metadata": {"latitude": 25.7},
+            },
         ]
         registry.process_completion("w1", evidence, task_categories=["photo"])
         registry.process_completion("w2", evidence, task_categories=["delivery"])
@@ -595,19 +645,61 @@ class TestEvidenceTypeCoverage:
     def setup_method(self):
         self.parser = EvidenceParser()
 
-    @pytest.mark.parametrize("ev_type,expected_dims", [
-        ("photo", {SkillDimension.PHYSICAL_EXECUTION, SkillDimension.THOROUGHNESS}),
-        ("photo_geo", {SkillDimension.GEO_MOBILITY, SkillDimension.VERIFICATION_SKILL, SkillDimension.PHYSICAL_EXECUTION}),
-        ("video", {SkillDimension.THOROUGHNESS, SkillDimension.COMMUNICATION, SkillDimension.PHYSICAL_EXECUTION}),
-        ("document", {SkillDimension.DIGITAL_PROFICIENCY, SkillDimension.COMMUNICATION, SkillDimension.THOROUGHNESS}),
-        ("receipt", {SkillDimension.THOROUGHNESS, SkillDimension.PHYSICAL_EXECUTION}),
-        ("text_response", {SkillDimension.COMMUNICATION, SkillDimension.DIGITAL_PROFICIENCY}),
-        ("screenshot", {SkillDimension.DIGITAL_PROFICIENCY, SkillDimension.VERIFICATION_SKILL}),
-        ("measurement", {SkillDimension.TECHNICAL_SKILL, SkillDimension.THOROUGHNESS}),
-        ("signature", {SkillDimension.VERIFICATION_SKILL}),
-        ("notarized", {SkillDimension.VERIFICATION_SKILL, SkillDimension.THOROUGHNESS}),
-        ("timestamp_proof", {SkillDimension.VERIFICATION_SKILL, SkillDimension.SPEED}),
-    ])
+    @pytest.mark.parametrize(
+        "ev_type,expected_dims",
+        [
+            ("photo", {SkillDimension.PHYSICAL_EXECUTION, SkillDimension.THOROUGHNESS}),
+            (
+                "photo_geo",
+                {
+                    SkillDimension.GEO_MOBILITY,
+                    SkillDimension.VERIFICATION_SKILL,
+                    SkillDimension.PHYSICAL_EXECUTION,
+                },
+            ),
+            (
+                "video",
+                {
+                    SkillDimension.THOROUGHNESS,
+                    SkillDimension.COMMUNICATION,
+                    SkillDimension.PHYSICAL_EXECUTION,
+                },
+            ),
+            (
+                "document",
+                {
+                    SkillDimension.DIGITAL_PROFICIENCY,
+                    SkillDimension.COMMUNICATION,
+                    SkillDimension.THOROUGHNESS,
+                },
+            ),
+            (
+                "receipt",
+                {SkillDimension.THOROUGHNESS, SkillDimension.PHYSICAL_EXECUTION},
+            ),
+            (
+                "text_response",
+                {SkillDimension.COMMUNICATION, SkillDimension.DIGITAL_PROFICIENCY},
+            ),
+            (
+                "screenshot",
+                {SkillDimension.DIGITAL_PROFICIENCY, SkillDimension.VERIFICATION_SKILL},
+            ),
+            (
+                "measurement",
+                {SkillDimension.TECHNICAL_SKILL, SkillDimension.THOROUGHNESS},
+            ),
+            ("signature", {SkillDimension.VERIFICATION_SKILL}),
+            (
+                "notarized",
+                {SkillDimension.VERIFICATION_SKILL, SkillDimension.THOROUGHNESS},
+            ),
+            (
+                "timestamp_proof",
+                {SkillDimension.VERIFICATION_SKILL, SkillDimension.SPEED},
+            ),
+        ],
+    )
     def test_evidence_type_mapping(self, ev_type, expected_dims):
         signals = self.parser._parse_single_evidence({"content": "data"}, ev_type)
         produced_dims = {s.dimension for s in signals}
@@ -615,9 +707,17 @@ class TestEvidenceTypeCoverage:
 
     def test_all_evidence_types_in_map(self):
         expected_types = {
-            "photo", "photo_geo", "video", "document", "receipt",
-            "text_response", "screenshot", "measurement", "signature",
-            "notarized", "timestamp_proof"
+            "photo",
+            "photo_geo",
+            "video",
+            "document",
+            "receipt",
+            "text_response",
+            "screenshot",
+            "measurement",
+            "signature",
+            "notarized",
+            "timestamp_proof",
         }
         assert set(EvidenceParser.EVIDENCE_SKILL_MAP.keys()) == expected_types
 
@@ -631,22 +731,49 @@ class TestQualityTiers:
 
     def test_excellent_tier(self):
         # Multiple diverse evidence types with rich content
-        result = self.parser.parse_evidence([
-            {"type": "photo_geo", "content": "Detailed storefront photo with exact location marker " * 4, "metadata": {"latitude": 25.7, "a": 1, "b": 2, "c": 3}},
-            {"type": "text_response", "content": "Comprehensive field report documenting all observations at the site " * 5},
-            {"type": "video", "content": "Video walkthrough of the entire property showing condition " * 4},
-            {"type": "measurement", "content": "Precise measurements taken with calibrated equipment readings " * 2},
-        ])
+        result = self.parser.parse_evidence(
+            [
+                {
+                    "type": "photo_geo",
+                    "content": "Detailed storefront photo with exact location marker "
+                    * 4,
+                    "metadata": {"latitude": 25.7, "a": 1, "b": 2, "c": 3},
+                },
+                {
+                    "type": "text_response",
+                    "content": "Comprehensive field report documenting all observations at the site "
+                    * 5,
+                },
+                {
+                    "type": "video",
+                    "content": "Video walkthrough of the entire property showing condition "
+                    * 4,
+                },
+                {
+                    "type": "measurement",
+                    "content": "Precise measurements taken with calibrated equipment readings "
+                    * 2,
+                },
+            ]
+        )
         assert result.quality == EvidenceQuality.EXCELLENT
 
     def test_poor_tier_minimal(self):
-        result = self.parser.parse_evidence([
-            {"type": "unknown_type", "content": ""},
-        ])
+        result = self.parser.parse_evidence(
+            [
+                {"type": "unknown_type", "content": ""},
+            ]
+        )
         assert result.quality in (EvidenceQuality.POOR, EvidenceQuality.ADEQUATE)
 
     def test_suspicious_overrides_other_tiers(self):
-        result = self.parser.parse_evidence([
-            {"type": "photo_geo", "content": "lorem ipsum verified", "metadata": {"latitude": 25.7}},
-        ])
+        result = self.parser.parse_evidence(
+            [
+                {
+                    "type": "photo_geo",
+                    "content": "lorem ipsum verified",
+                    "metadata": {"latitude": 25.7},
+                },
+            ]
+        )
         assert result.quality == EvidenceQuality.SUSPICIOUS

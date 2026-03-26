@@ -16,8 +16,8 @@ Covers:
 """
 
 import pytest
-from unittest.mock import MagicMock, patch
-from datetime import datetime, timezone
+from unittest.mock import MagicMock
+from datetime import datetime
 
 from mcp_server.swarm.event_bus import (
     EventBus,
@@ -26,16 +26,11 @@ from mcp_server.swarm.event_bus import (
     # Event type constants
     TASK_ASSIGNED,
     TASK_COMPLETED,
-    TASK_FAILED,
-    TASK_EXPIRED,
     AGENT_REGISTERED,
-    AGENT_DEGRADED,
     WORKER_APPLIED,
     SWARM_CYCLE_START,
-    SWARM_CYCLE_END,
     PAYMENT_CONFIRMED,
     REPUTATION_UPDATED,
-    NOTIFICATION_SENT,
 )
 
 
@@ -70,7 +65,7 @@ class TestSubscription:
 
     def test_subscribe_wildcard(self, bus):
         handler = MagicMock()
-        sub = bus.on("task.*", handler)
+        bus.on("task.*", handler)
         bus.emit(TASK_ASSIGNED, {"task_id": "t1"})
         bus.emit(TASK_COMPLETED, {"task_id": "t2"})
         assert handler.call_count == 2

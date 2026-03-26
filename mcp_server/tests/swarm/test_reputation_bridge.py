@@ -15,10 +15,8 @@ Tests cover:
 - calculate_category_multiplier()
 """
 
-import math
 from datetime import datetime, timezone, timedelta
 
-import pytest
 
 from mcp_server.swarm.reputation_bridge import (
     OnChainReputation,
@@ -27,7 +25,6 @@ from mcp_server.swarm.reputation_bridge import (
     ReputationBridge,
     ReputationTier,
     TIER_BONUSES,
-    TIER_THRESHOLDS,
 )
 
 
@@ -50,15 +47,17 @@ class TestOnChainReputation:
 
     def test_seal_ratio_all_positive(self):
         rep = OnChainReputation(
-            agent_id=1, wallet_address="0xABC",
-            total_seals=10, positive_seals=10
+            agent_id=1, wallet_address="0xABC", total_seals=10, positive_seals=10
         )
         assert rep.seal_ratio == 1.0
 
     def test_seal_ratio_mixed(self):
         rep = OnChainReputation(
-            agent_id=1, wallet_address="0xABC",
-            total_seals=10, positive_seals=7, negative_seals=3
+            agent_id=1,
+            wallet_address="0xABC",
+            total_seals=10,
+            positive_seals=7,
+            negative_seals=3,
         )
         assert abs(rep.seal_ratio - 0.7) < 1e-9
 
@@ -68,22 +67,32 @@ class TestOnChainReputation:
 
     def test_chain_diversity_one_chain(self):
         rep = OnChainReputation(
-            agent_id=1, wallet_address="0xABC",
-            chains_active=["base"]
+            agent_id=1, wallet_address="0xABC", chains_active=["base"]
         )
         assert abs(rep.chain_diversity - 0.125) < 1e-9
 
     def test_chain_diversity_max_at_eight(self):
         rep = OnChainReputation(
-            agent_id=1, wallet_address="0xABC",
-            chains_active=["base", "eth", "polygon", "arb", "opt", "celo", "avax", "monad"]
+            agent_id=1,
+            wallet_address="0xABC",
+            chains_active=[
+                "base",
+                "eth",
+                "polygon",
+                "arb",
+                "opt",
+                "celo",
+                "avax",
+                "monad",
+            ],
         )
         assert rep.chain_diversity == 1.0
 
     def test_chain_diversity_caps_beyond_eight(self):
         rep = OnChainReputation(
-            agent_id=1, wallet_address="0xABC",
-            chains_active=list(range(12))  # 12 chains
+            agent_id=1,
+            wallet_address="0xABC",
+            chains_active=list(range(12)),  # 12 chains
         )
         assert rep.chain_diversity == 1.0
 
@@ -208,37 +217,32 @@ class TestDetermineTier:
 
     def test_bronce_minimum(self):
         rep = InternalReputation(
-            agent_id=1, total_tasks=5, successful_tasks=3,
-            avg_rating=3.0
+            agent_id=1, total_tasks=5, successful_tasks=3, avg_rating=3.0
         )
         assert self.bridge._determine_tier(rep) == ReputationTier.BRONCE
 
     def test_plata_minimum(self):
         rep = InternalReputation(
-            agent_id=1, total_tasks=20, successful_tasks=16,
-            avg_rating=4.0
+            agent_id=1, total_tasks=20, successful_tasks=16, avg_rating=4.0
         )
         assert self.bridge._determine_tier(rep) == ReputationTier.PLATA
 
     def test_oro_minimum(self):
         rep = InternalReputation(
-            agent_id=1, total_tasks=50, successful_tasks=45,
-            avg_rating=4.5
+            agent_id=1, total_tasks=50, successful_tasks=45, avg_rating=4.5
         )
         assert self.bridge._determine_tier(rep) == ReputationTier.ORO
 
     def test_diamante_minimum(self):
         rep = InternalReputation(
-            agent_id=1, total_tasks=100, successful_tasks=95,
-            avg_rating=4.8
+            agent_id=1, total_tasks=100, successful_tasks=95, avg_rating=4.8
         )
         assert self.bridge._determine_tier(rep) == ReputationTier.DIAMANTE
 
     def test_high_tasks_low_rating_stays_lower(self):
         # 100 tasks but rating 3.5 → can't be DIAMANTE or ORO (need 4.5+)
         rep = InternalReputation(
-            agent_id=1, total_tasks=100, successful_tasks=95,
-            avg_rating=3.5
+            agent_id=1, total_tasks=100, successful_tasks=95, avg_rating=3.5
         )
         tier = self.bridge._determine_tier(rep)
         assert tier in (ReputationTier.PLATA, ReputationTier.BRONCE)
@@ -246,24 +250,21 @@ class TestDetermineTier:
     def test_high_rating_low_tasks_stays_lower(self):
         # Rating 5.0 but only 3 tasks → NUEVO (need 5 for BRONCE)
         rep = InternalReputation(
-            agent_id=1, total_tasks=3, successful_tasks=3,
-            avg_rating=5.0
+            agent_id=1, total_tasks=3, successful_tasks=3, avg_rating=5.0
         )
         assert self.bridge._determine_tier(rep) == ReputationTier.NUEVO
 
     def test_low_success_rate_blocks_tier(self):
         # 100 tasks, perfect rating, but only 50% success → below BRONCE threshold
         rep = InternalReputation(
-            agent_id=1, total_tasks=100, successful_tasks=50,
-            avg_rating=4.8
+            agent_id=1, total_tasks=100, successful_tasks=50, avg_rating=4.8
         )
         assert self.bridge._determine_tier(rep) == ReputationTier.NUEVO
 
     def test_tier_priority_is_highest_qualifying(self):
         # Qualifies for ALL tiers → should get DIAMANTE
         rep = InternalReputation(
-            agent_id=1, total_tasks=200, successful_tasks=198,
-            avg_rating=4.9
+            agent_id=1, total_tasks=200, successful_tasks=198, avg_rating=4.9
         )
         assert self.bridge._determine_tier(rep) == ReputationTier.DIAMANTE
 
@@ -276,9 +277,7 @@ class TestComputeSkillScore:
         self.bridge = ReputationBridge()
 
     def test_no_categories_fallback(self):
-        internal = InternalReputation(
-            agent_id=1, total_tasks=10, successful_tasks=8
-        )
+        internal = InternalReputation(agent_id=1, total_tasks=10, successful_tasks=8)
         score = self.bridge._compute_skill_score(internal, [])
         # Fallback: success_rate * 60 + volume * 40
         expected = 0.8 * 60 + min(10 / 50, 1.0) * 40
@@ -293,8 +292,7 @@ class TestComputeSkillScore:
 
     def test_exact_category_match(self):
         internal = InternalReputation(
-            agent_id=1,
-            category_scores={"photo_verification": 0.9}
+            agent_id=1, category_scores={"photo_verification": 0.9}
         )
         score = self.bridge._compute_skill_score(internal, ["photo_verification"])
         # avg_category=0.9, coverage=1.0 → 0.9*70 + 1.0*30 = 93.0
@@ -302,8 +300,7 @@ class TestComputeSkillScore:
 
     def test_partial_category_match(self):
         internal = InternalReputation(
-            agent_id=1,
-            category_scores={"photo_verification": 0.8, "delivery": 0.6}
+            agent_id=1, category_scores={"photo_verification": 0.8, "delivery": 0.6}
         )
         score = self.bridge._compute_skill_score(
             internal, ["photo_verification", "data_entry"]
@@ -313,10 +310,7 @@ class TestComputeSkillScore:
         assert abs(score - expected) < 1e-9
 
     def test_all_categories_match(self):
-        internal = InternalReputation(
-            agent_id=1,
-            category_scores={"a": 0.7, "b": 0.9}
-        )
+        internal = InternalReputation(agent_id=1, category_scores={"a": 0.7, "b": 0.9})
         score = self.bridge._compute_skill_score(internal, ["a", "b"])
         avg = (0.7 + 0.9) / 2
         expected = avg * 70 + 1.0 * 30
@@ -324,13 +318,9 @@ class TestComputeSkillScore:
 
     def test_high_volume_boosts_fallback(self):
         # 50+ tasks maxes out the volume component
-        internal = InternalReputation(
-            agent_id=1, total_tasks=100, successful_tasks=90
-        )
+        internal = InternalReputation(agent_id=1, total_tasks=100, successful_tasks=90)
         score_high = self.bridge._compute_skill_score(internal, [])
-        internal_low = InternalReputation(
-            agent_id=1, total_tasks=5, successful_tasks=4
-        )
+        internal_low = InternalReputation(agent_id=1, total_tasks=5, successful_tasks=4)
         score_low = self.bridge._compute_skill_score(internal_low, [])
         assert score_high > score_low
 
@@ -352,9 +342,20 @@ class TestComputeReputationScore:
 
     def test_perfect_seals_and_bayesian(self):
         on_chain = OnChainReputation(
-            agent_id=1, wallet_address="0x1",
-            total_seals=20, positive_seals=20,
-            chains_active=["base", "eth", "polygon", "arb", "opt", "celo", "avax", "monad"]
+            agent_id=1,
+            wallet_address="0x1",
+            total_seals=20,
+            positive_seals=20,
+            chains_active=[
+                "base",
+                "eth",
+                "polygon",
+                "arb",
+                "opt",
+                "celo",
+                "avax",
+                "monad",
+            ],
         )
         internal = InternalReputation(agent_id=1, bayesian_score=1.0)
         score = self.bridge._compute_reputation_score(on_chain, internal)
@@ -364,9 +365,11 @@ class TestComputeReputationScore:
 
     def test_low_bayesian_high_seals(self):
         on_chain = OnChainReputation(
-            agent_id=1, wallet_address="0x1",
-            total_seals=10, positive_seals=10,
-            chains_active=["base"]
+            agent_id=1,
+            wallet_address="0x1",
+            total_seals=10,
+            positive_seals=10,
+            chains_active=["base"],
         )
         internal = InternalReputation(agent_id=1, bayesian_score=0.2)
         score = self.bridge._compute_reputation_score(on_chain, internal)
@@ -390,8 +393,11 @@ class TestComputeReliabilityScore:
 
     def test_perfect_worker(self):
         internal = InternalReputation(
-            agent_id=1, total_tasks=100, successful_tasks=100,
-            avg_rating=5.0, consecutive_failures=0
+            agent_id=1,
+            total_tasks=100,
+            successful_tasks=100,
+            avg_rating=5.0,
+            consecutive_failures=0,
         )
         score = self.bridge._compute_reliability_score(internal)
         # 1.0*40 + (5/5)*40 + log10(100)/log10(100)*20 = 40+40+20 = 100
@@ -399,12 +405,18 @@ class TestComputeReliabilityScore:
 
     def test_failure_penalty(self):
         internal_no_fail = InternalReputation(
-            agent_id=1, total_tasks=20, successful_tasks=18,
-            avg_rating=4.0, consecutive_failures=0
+            agent_id=1,
+            total_tasks=20,
+            successful_tasks=18,
+            avg_rating=4.0,
+            consecutive_failures=0,
         )
         internal_failing = InternalReputation(
-            agent_id=1, total_tasks=20, successful_tasks=18,
-            avg_rating=4.0, consecutive_failures=5
+            agent_id=1,
+            total_tasks=20,
+            successful_tasks=18,
+            avg_rating=4.0,
+            consecutive_failures=5,
         )
         score_ok = self.bridge._compute_reliability_score(internal_no_fail)
         score_bad = self.bridge._compute_reliability_score(internal_failing)
@@ -412,8 +424,7 @@ class TestComputeReliabilityScore:
 
     def test_no_rating_zero_rating_pts(self):
         internal = InternalReputation(
-            agent_id=1, total_tasks=10, successful_tasks=10,
-            avg_rating=0
+            agent_id=1, total_tasks=10, successful_tasks=10, avg_rating=0
         )
         score = self.bridge._compute_reliability_score(internal)
         # success=40, rating=0, volume=log10(10)/log10(100)*20 = 10
@@ -422,8 +433,11 @@ class TestComputeReliabilityScore:
 
     def test_score_never_negative(self):
         internal = InternalReputation(
-            agent_id=1, total_tasks=1, successful_tasks=0,
-            avg_rating=1.0, consecutive_failures=5
+            agent_id=1,
+            total_tasks=1,
+            successful_tasks=0,
+            avg_rating=1.0,
+            consecutive_failures=5,
         )
         score = self.bridge._compute_reliability_score(internal)
         assert score >= 0
@@ -498,7 +512,9 @@ class TestComputeComposite:
 
     def test_basic_composite(self):
         on_chain = OnChainReputation(agent_id=1, wallet_address="0x1")
-        internal = InternalReputation(agent_id=1, total_tasks=10, successful_tasks=8, avg_rating=4.0)
+        internal = InternalReputation(
+            agent_id=1, total_tasks=10, successful_tasks=8, avg_rating=4.0
+        )
         score = self.bridge.compute_composite(on_chain, internal)
         assert isinstance(score, CompositeScore)
         assert score.agent_id == 1
@@ -513,16 +529,20 @@ class TestComputeComposite:
 
     def test_diamante_gets_bonus(self):
         on_chain = OnChainReputation(
-            agent_id=1, wallet_address="0x1",
-            total_seals=50, positive_seals=50,
+            agent_id=1,
+            wallet_address="0x1",
+            total_seals=50,
+            positive_seals=50,
         )
         internal = InternalReputation(
-            agent_id=1, total_tasks=100, successful_tasks=96,
-            avg_rating=4.9, bayesian_score=0.95
+            agent_id=1,
+            total_tasks=100,
+            successful_tasks=96,
+            avg_rating=4.9,
+            bayesian_score=0.95,
         )
         score = self.bridge.compute_composite(
-            on_chain, internal,
-            last_active=datetime.now(timezone.utc)
+            on_chain, internal, last_active=datetime.now(timezone.utc)
         )
         assert score.tier == ReputationTier.DIAMANTE
         assert score.tier_bonus == 15
@@ -530,9 +550,11 @@ class TestComputeComposite:
     def test_categories_affect_skill_score(self):
         on_chain = OnChainReputation(agent_id=1, wallet_address="0x1")
         internal = InternalReputation(
-            agent_id=1, total_tasks=20, successful_tasks=18,
+            agent_id=1,
+            total_tasks=20,
+            successful_tasks=18,
             avg_rating=4.5,
-            category_scores={"photo_verification": 0.95}
+            category_scores={"photo_verification": 0.95},
         )
         score_match = self.bridge.compute_composite(
             on_chain, internal, task_categories=["photo_verification"]
@@ -558,7 +580,9 @@ class TestRankAgents:
         agents = [
             (
                 OnChainReputation(agent_id=1, wallet_address="0x1"),
-                InternalReputation(agent_id=1, total_tasks=10, successful_tasks=8, avg_rating=4.0),
+                InternalReputation(
+                    agent_id=1, total_tasks=10, successful_tasks=8, avg_rating=4.0
+                ),
             )
         ]
         result = self.bridge.rank_agents(agents)
@@ -569,16 +593,25 @@ class TestRankAgents:
         agents = [
             (
                 OnChainReputation(agent_id=1, wallet_address="0x1"),
-                InternalReputation(agent_id=1, total_tasks=5, successful_tasks=2, avg_rating=2.0),
+                InternalReputation(
+                    agent_id=1, total_tasks=5, successful_tasks=2, avg_rating=2.0
+                ),
             ),
             (
-                OnChainReputation(agent_id=2, wallet_address="0x2", total_seals=20, positive_seals=20),
-                InternalReputation(agent_id=2, total_tasks=100, successful_tasks=98, avg_rating=4.9, bayesian_score=0.95),
+                OnChainReputation(
+                    agent_id=2, wallet_address="0x2", total_seals=20, positive_seals=20
+                ),
+                InternalReputation(
+                    agent_id=2,
+                    total_tasks=100,
+                    successful_tasks=98,
+                    avg_rating=4.9,
+                    bayesian_score=0.95,
+                ),
             ),
         ]
         result = self.bridge.rank_agents(
-            agents,
-            last_active_map={2: datetime.now(timezone.utc)}
+            agents, last_active_map={2: datetime.now(timezone.utc)}
         )
         assert result[0].agent_id == 2
         assert result[0].total > result[1].total
@@ -588,23 +621,25 @@ class TestRankAgents:
             (
                 OnChainReputation(agent_id=1, wallet_address="0x1"),
                 InternalReputation(
-                    agent_id=1, total_tasks=20, successful_tasks=18,
+                    agent_id=1,
+                    total_tasks=20,
+                    successful_tasks=18,
                     avg_rating=4.5,
-                    category_scores={"photo_verification": 0.95}
+                    category_scores={"photo_verification": 0.95},
                 ),
             ),
             (
                 OnChainReputation(agent_id=2, wallet_address="0x2"),
                 InternalReputation(
-                    agent_id=2, total_tasks=20, successful_tasks=18,
+                    agent_id=2,
+                    total_tasks=20,
+                    successful_tasks=18,
                     avg_rating=4.5,
-                    category_scores={"data_entry": 0.95}
+                    category_scores={"data_entry": 0.95},
                 ),
             ),
         ]
-        result = self.bridge.rank_agents(
-            agents, task_categories=["photo_verification"]
-        )
+        result = self.bridge.rank_agents(agents, task_categories=["photo_verification"])
         # Agent 1 has exact category match, should rank higher
         assert result[0].agent_id == 1
 
@@ -612,7 +647,9 @@ class TestRankAgents:
         agents = [
             (
                 OnChainReputation(agent_id=i, wallet_address=f"0x{i}"),
-                InternalReputation(agent_id=i, total_tasks=10, successful_tasks=i + 1, avg_rating=3.0),
+                InternalReputation(
+                    agent_id=i, total_tasks=10, successful_tasks=i + 1, avg_rating=3.0
+                ),
             )
             for i in range(5)
         ]

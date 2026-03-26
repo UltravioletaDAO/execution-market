@@ -2,10 +2,8 @@
 Tests for OutcomeAdapter — the 9th signal in the decision pipeline.
 """
 
-import json
 import time
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 
 import sys
 import os
@@ -15,7 +13,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from swarm.outcome_adapter import (
     OutcomeAdapter,
     PredictionSnapshot,
-    OutcomeAdapterStats,
     make_outcome_scorer,
 )
 from swarm.decision_synthesizer import SignalType
@@ -27,12 +24,14 @@ from swarm.decision_synthesizer import SignalType
 
 
 class TestPredictionSnapshot:
-
     def test_fresh_prediction(self):
         snap = PredictionSnapshot(
-            wallet="0x1", category="delivery",
-            success_probability=0.8, confidence=0.7,
-            recommendation="proceed", risk_count=1,
+            wallet="0x1",
+            category="delivery",
+            success_probability=0.8,
+            confidence=0.7,
+            recommendation="proceed",
+            risk_count=1,
             fetched_at=time.time(),
         )
         assert snap.is_fresh
@@ -40,9 +39,12 @@ class TestPredictionSnapshot:
 
     def test_stale_prediction(self):
         snap = PredictionSnapshot(
-            wallet="0x1", category="delivery",
-            success_probability=0.8, confidence=0.7,
-            recommendation="proceed", risk_count=0,
+            wallet="0x1",
+            category="delivery",
+            success_probability=0.8,
+            confidence=0.7,
+            recommendation="proceed",
+            risk_count=0,
             fetched_at=time.time() - 3600,
         )
         assert not snap.is_fresh
@@ -50,9 +52,12 @@ class TestPredictionSnapshot:
 
     def test_expired_prediction(self):
         snap = PredictionSnapshot(
-            wallet="0x1", category="delivery",
-            success_probability=0.8, confidence=0.7,
-            recommendation="proceed", risk_count=0,
+            wallet="0x1",
+            category="delivery",
+            success_probability=0.8,
+            confidence=0.7,
+            recommendation="proceed",
+            risk_count=0,
             fetched_at=time.time() - 20000,
         )
         assert not snap.is_fresh
@@ -60,9 +65,12 @@ class TestPredictionSnapshot:
 
     def test_age_seconds(self):
         snap = PredictionSnapshot(
-            wallet="0x1", category="delivery",
-            success_probability=0.5, confidence=0.5,
-            recommendation="defer", risk_count=0,
+            wallet="0x1",
+            category="delivery",
+            success_probability=0.5,
+            confidence=0.5,
+            recommendation="defer",
+            risk_count=0,
             fetched_at=time.time() - 60,
         )
         assert snap.age_seconds >= 59
@@ -74,7 +82,6 @@ class TestPredictionSnapshot:
 
 
 class TestCacheBehavior:
-
     def test_default_fallback_on_no_api(self):
         adapter = OutcomeAdapter(autojob_url="http://localhost:1/unreachable")
         result = adapter.predict("0xWallet", "delivery")
@@ -87,7 +94,7 @@ class TestCacheBehavior:
         adapter = OutcomeAdapter(autojob_url="http://localhost:1/unreachable")
         result1 = adapter.predict("0xA", "delivery")
         assert result1.source == "default"
-        result2 = adapter.predict("0xA", "delivery")
+        adapter.predict("0xA", "delivery")
         assert adapter.stats.cache_hits == 1
 
     def test_different_keys_no_collision(self):
@@ -108,9 +115,12 @@ class TestCacheBehavior:
         adapter = OutcomeAdapter(autojob_url="http://localhost:1/unreachable")
         cache_key = "0xwallet:delivery"
         adapter._cache[cache_key] = PredictionSnapshot(
-            wallet="0xWallet", category="delivery",
-            success_probability=0.85, confidence=0.7,
-            recommendation="proceed", risk_count=0,
+            wallet="0xWallet",
+            category="delivery",
+            success_probability=0.85,
+            confidence=0.7,
+            recommendation="proceed",
+            risk_count=0,
             fetched_at=time.time() - 3600,
             source="api",
         )
@@ -126,7 +136,6 @@ class TestCacheBehavior:
 
 
 class TestStats:
-
     def test_initial_stats(self):
         adapter = OutcomeAdapter()
         stats = adapter.get_stats()
@@ -150,7 +159,6 @@ class TestStats:
 
 
 class TestBatchPrediction:
-
     def test_batch_returns_list(self):
         adapter = OutcomeAdapter(autojob_url="http://localhost:1/unreachable")
         results = adapter.predict_batch("delivery", ["0xA", "0xB", "0xC"])
@@ -164,7 +172,6 @@ class TestBatchPrediction:
 
 
 class TestOutcomeScorer:
-
     def test_scorer_returns_score(self):
         adapter = OutcomeAdapter(autojob_url="http://localhost:1/unreachable")
         scorer = make_outcome_scorer(adapter)
@@ -181,10 +188,14 @@ class TestOutcomeScorer:
         adapter = OutcomeAdapter(autojob_url="http://localhost:1/unreachable")
         cache_key = "0xgood:delivery"
         adapter._cache[cache_key] = PredictionSnapshot(
-            wallet="0xGood", category="delivery",
-            success_probability=0.95, confidence=0.9,
-            recommendation="proceed", risk_count=0,
-            fetched_at=time.time(), source="api",
+            wallet="0xGood",
+            category="delivery",
+            success_probability=0.95,
+            confidence=0.9,
+            recommendation="proceed",
+            risk_count=0,
+            fetched_at=time.time(),
+            source="api",
         )
         scorer = make_outcome_scorer(adapter)
         score = scorer({"category": "delivery"}, {"wallet": "0xGood"})
@@ -194,10 +205,14 @@ class TestOutcomeScorer:
         adapter = OutcomeAdapter(autojob_url="http://localhost:1/unreachable")
         cache_key = "0xbad:delivery"
         adapter._cache[cache_key] = PredictionSnapshot(
-            wallet="0xBad", category="delivery",
-            success_probability=0.15, confidence=0.8,
-            recommendation="reject", risk_count=4,
-            fetched_at=time.time(), source="api",
+            wallet="0xBad",
+            category="delivery",
+            success_probability=0.15,
+            confidence=0.8,
+            recommendation="reject",
+            risk_count=4,
+            fetched_at=time.time(),
+            source="api",
         )
         scorer = make_outcome_scorer(adapter)
         score = scorer({"category": "delivery"}, {"wallet": "0xBad"})
@@ -210,7 +225,6 @@ class TestOutcomeScorer:
 
 
 class TestSynthesizerIntegration:
-
     def test_outcome_signal_type_exists(self):
         assert hasattr(SignalType, "OUTCOME")
         assert SignalType.OUTCOME == "outcome"
@@ -230,7 +244,6 @@ class TestSynthesizerIntegration:
 
 
 class TestBridgeWiring:
-
     def test_bridge_accepts_outcome_adapter(self):
         from swarm.decision_bridge import DecisionBridge
         from swarm.decision_synthesizer import DecisionSynthesizer
@@ -249,7 +262,7 @@ class TestBridgeWiring:
 
         adapter = OutcomeAdapter()
         synth = DecisionSynthesizer()
-        bridge = DecisionBridge(
+        DecisionBridge(
             synthesizer=synth,
             orchestrator=MagicMock(),
             outcome_adapter=adapter,

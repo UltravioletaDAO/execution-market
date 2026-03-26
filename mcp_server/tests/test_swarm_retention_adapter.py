@@ -20,7 +20,6 @@ from mcp_server.swarm.retention_adapter import (
     RetentionSnapshot,
     make_retention_scorer,
     FRESH_TTL,
-    STALE_TTL,
 )
 
 
@@ -96,32 +95,47 @@ class TestStabilityScore:
     def test_tenure_bonus(self):
         """Longer tenure provides stability bonus."""
         short = RetentionSnapshot(
-            wallet="0xShort", churn_probability=0.3, risk_level="at_risk",
-            tenure_days=10, fetched_at=time.time(),
+            wallet="0xShort",
+            churn_probability=0.3,
+            risk_level="at_risk",
+            tenure_days=10,
+            fetched_at=time.time(),
         )
         long = RetentionSnapshot(
-            wallet="0xLong", churn_probability=0.3, risk_level="at_risk",
-            tenure_days=365, fetched_at=time.time(),
+            wallet="0xLong",
+            churn_probability=0.3,
+            risk_level="at_risk",
+            tenure_days=365,
+            fetched_at=time.time(),
         )
         assert long.stability_score > short.stability_score
 
     def test_risk_adjustment(self):
         """Risk level adjusts score independently of churn probability."""
         base = RetentionSnapshot(
-            wallet="0xBase", churn_probability=0.3, risk_level="at_risk",
-            tenure_days=90, fetched_at=time.time(),
+            wallet="0xBase",
+            churn_probability=0.3,
+            risk_level="at_risk",
+            tenure_days=90,
+            fetched_at=time.time(),
         )
         stable = RetentionSnapshot(
-            wallet="0xBase", churn_probability=0.3, risk_level="stable",
-            tenure_days=90, fetched_at=time.time(),
+            wallet="0xBase",
+            churn_probability=0.3,
+            risk_level="stable",
+            tenure_days=90,
+            fetched_at=time.time(),
         )
         assert stable.stability_score > base.stability_score
 
     def test_zero_churn_max_score(self):
         """Zero churn with stable risk → near maximum score."""
         snap = RetentionSnapshot(
-            wallet="0xPerfect", churn_probability=0.0, risk_level="stable",
-            tenure_days=365, fetched_at=time.time(),
+            wallet="0xPerfect",
+            churn_probability=0.0,
+            risk_level="stable",
+            tenure_days=365,
+            fetched_at=time.time(),
         )
         assert snap.stability_score >= 95.0
 

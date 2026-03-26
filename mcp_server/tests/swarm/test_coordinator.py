@@ -21,10 +21,8 @@ Coverage:
     - Edge cases: duplicate tasks, expired tasks, empty queue, no agents
 """
 
-import json
-import time
 from datetime import datetime, timezone, timedelta
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -45,7 +43,6 @@ from mcp_server.swarm.lifecycle_manager import (
     LifecycleManager,
     AgentState,
     BudgetConfig,
-    BudgetExceededError,
 )
 from mcp_server.swarm.orchestrator import (
     SwarmOrchestrator,
@@ -614,9 +611,13 @@ class TestTaskCompletion:
 
         # Check internal reputation exists
         if agent_id in coordinator_with_agents.orchestrator._internal:
-            before = coordinator_with_agents.orchestrator._internal[agent_id].successful_tasks
+            before = coordinator_with_agents.orchestrator._internal[
+                agent_id
+            ].successful_tasks
             coordinator_with_agents.complete_task(task_id)
-            after = coordinator_with_agents.orchestrator._internal[agent_id].successful_tasks
+            after = coordinator_with_agents.orchestrator._internal[
+                agent_id
+            ].successful_tasks
             assert after == before + 1
 
 
@@ -654,12 +655,16 @@ class TestHealthChecks:
         report = coordinator_with_agents.run_health_checks()
         assert "em_api" not in report["systems"]
 
-    def test_health_check_autojob_available(self, coordinator_with_agents, mock_autojob):
+    def test_health_check_autojob_available(
+        self, coordinator_with_agents, mock_autojob
+    ):
         mock_autojob.is_available.return_value = True
         report = coordinator_with_agents.run_health_checks()
         assert report["systems"]["autojob"] == "available"
 
-    def test_health_check_autojob_unavailable(self, coordinator_with_agents, mock_autojob):
+    def test_health_check_autojob_unavailable(
+        self, coordinator_with_agents, mock_autojob
+    ):
         mock_autojob.is_available.return_value = False
         report = coordinator_with_agents.run_health_checks()
         assert report["systems"]["autojob"] == "unavailable"
@@ -785,12 +790,8 @@ class TestDashboard:
             assert "health" in agent
 
     def test_dashboard_queue_breakdown(self, coordinator_with_agents):
-        coordinator_with_agents.ingest_task(
-            task_id="d1", title="T1", categories=["x"]
-        )
-        coordinator_with_agents.ingest_task(
-            task_id="d2", title="T2", categories=["y"]
-        )
+        coordinator_with_agents.ingest_task(task_id="d1", title="T1", categories=["x"])
+        coordinator_with_agents.ingest_task(task_id="d2", title="T2", categories=["y"])
         coordinator_with_agents.process_task_queue(max_tasks=1)
 
         dashboard = coordinator_with_agents.get_dashboard()
@@ -822,9 +823,7 @@ class TestEventSystem:
             CoordinatorEvent.TASK_INGESTED,
             lambda e: captured.append(e),
         )
-        coordinator.ingest_task(
-            task_id="hook-1", title="Hook test", categories=["x"]
-        )
+        coordinator.ingest_task(task_id="hook-1", title="Hook test", categories=["x"])
         assert len(captured) == 1
         assert captured[0].event == CoordinatorEvent.TASK_INGESTED
 
@@ -837,9 +836,7 @@ class TestEventSystem:
         coordinator.on_event(
             CoordinatorEvent.TASK_INGESTED, lambda e: captured_b.append(e)
         )
-        coordinator.ingest_task(
-            task_id="multi-hook", title="Both", categories=["x"]
-        )
+        coordinator.ingest_task(task_id="multi-hook", title="Both", categories=["x"])
         assert len(captured_a) == 1
         assert len(captured_b) == 1
 
@@ -849,9 +846,7 @@ class TestEventSystem:
 
         coordinator.on_event(CoordinatorEvent.TASK_INGESTED, bad_hook)
         # Should not raise
-        coordinator.ingest_task(
-            task_id="safe", title="Safe", categories=["x"]
-        )
+        coordinator.ingest_task(task_id="safe", title="Safe", categories=["x"])
 
     def test_query_events_by_type(self, coordinator):
         coordinator.ingest_task(task_id="e1", title="T1", categories=["x"])
@@ -862,9 +857,7 @@ class TestEventSystem:
 
     def test_query_events_with_limit(self, coordinator):
         for i in range(10):
-            coordinator.ingest_task(
-                task_id=f"lim-{i}", title=f"T{i}", categories=["x"]
-            )
+            coordinator.ingest_task(task_id=f"lim-{i}", title=f"T{i}", categories=["x"])
         events = coordinator.get_events(limit=3)
         assert len(events) == 3
 
@@ -888,9 +881,7 @@ class TestEventSystem:
 
     def test_events_capped_at_1000(self, coordinator):
         for i in range(1100):
-            coordinator._emit(
-                CoordinatorEvent.HEALTH_CHECK, {"iteration": i}
-            )
+            coordinator._emit(CoordinatorEvent.HEALTH_CHECK, {"iteration": i})
         assert len(coordinator._events) == 1000  # deque maxlen
 
 
@@ -923,9 +914,9 @@ class TestQueueManagement:
         coordinator_with_agents.complete_task("clean-1")
 
         # Backdate the ingestion
-        coordinator_with_agents._task_queue["clean-1"].ingested_at = (
-            datetime.now(timezone.utc) - timedelta(hours=48)
-        )
+        coordinator_with_agents._task_queue["clean-1"].ingested_at = datetime.now(
+            timezone.utc
+        ) - timedelta(hours=48)
 
         removed = coordinator_with_agents.cleanup_completed(older_than_hours=24.0)
         assert removed == 1
@@ -945,9 +936,9 @@ class TestQueueManagement:
         coordinator.ingest_task(
             task_id="clean-pending", title="Still pending", categories=["x"]
         )
-        coordinator._task_queue["clean-pending"].ingested_at = (
-            datetime.now(timezone.utc) - timedelta(hours=48)
-        )
+        coordinator._task_queue["clean-pending"].ingested_at = datetime.now(
+            timezone.utc
+        ) - timedelta(hours=48)
 
         removed = coordinator.cleanup_completed(older_than_hours=24.0)
         assert removed == 0  # Pending tasks not cleaned

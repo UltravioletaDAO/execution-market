@@ -15,9 +15,6 @@ Covers:
 - Edge cases (single agent, agent disappears)
 """
 
-from datetime import datetime, timezone, timedelta
-from unittest.mock import MagicMock, patch
-
 import pytest
 
 from mcp_server.swarm.orchestrator import (
@@ -33,7 +30,6 @@ from mcp_server.swarm.reputation_bridge import (
     ReputationBridge,
     OnChainReputation,
     InternalReputation,
-    CompositeScore,
 )
 from mcp_server.swarm.lifecycle_manager import (
     LifecycleManager,
@@ -142,9 +138,7 @@ class TestRoutingStrategies:
         assigned_agents = []
         for i in range(6):
             task = TaskRequest(task_id=f"rr-{i}", title="Test", categories=["photo"])
-            result = orchestrator.route_task(
-                task, strategy=RoutingStrategy.ROUND_ROBIN
-            )
+            result = orchestrator.route_task(task, strategy=RoutingStrategy.ROUND_ROBIN)
             if isinstance(result, Assignment):
                 assigned_agents.append(result.agent_id)
                 orchestrator.complete_task(result.task_id)
@@ -153,9 +147,7 @@ class TestRoutingStrategies:
                 agent = orchestrator.lifecycle._agents[result.agent_id]
                 agent.cooldown_until = None
                 if agent.state == AgentState.COOLDOWN:
-                    orchestrator.lifecycle.transition(
-                        result.agent_id, AgentState.IDLE
-                    )
+                    orchestrator.lifecycle.transition(result.agent_id, AgentState.IDLE)
                 orchestrator.lifecycle.transition(result.agent_id, AgentState.ACTIVE)
 
         # Should have used multiple agents
@@ -168,9 +160,7 @@ class TestRoutingStrategies:
             title="Specialized task",
             categories=["rare_category"],
         )
-        result = orchestrator.route_task(
-            task, strategy=RoutingStrategy.SPECIALIST
-        )
+        result = orchestrator.route_task(task, strategy=RoutingStrategy.SPECIALIST)
         # May fail if no agent has skill_score >= 50
         # That's expected behavior — specialists must be qualified
         assert isinstance(result, (Assignment, RoutingFailure))
@@ -293,7 +283,9 @@ class TestMinScoreThreshold:
         lifecycle.transition(1, AgentState.ACTIVE)
 
         orch = SwarmOrchestrator(
-            bridge, lifecycle, min_score_threshold=99.0  # Very high
+            bridge,
+            lifecycle,
+            min_score_threshold=99.0,  # Very high
         )
         orch.register_reputation(
             1,
@@ -491,7 +483,9 @@ class TestEdgeCases:
         """Test that lifecycle errors during assignment return RoutingFailure."""
         lifecycle = LifecycleManager()
         lifecycle.register_agent(
-            1, "budget_blown", "0x0001",
+            1,
+            "budget_blown",
+            "0x0001",
             budget_config=BudgetConfig(daily_limit_usd=0.01),
         )
         lifecycle.transition(1, AgentState.IDLE)

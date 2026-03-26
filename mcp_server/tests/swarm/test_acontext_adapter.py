@@ -16,10 +16,8 @@ resolution, state sync, and message handling — all without actual IRC.
     - Callback system (events, errors)
 """
 
-import asyncio
 import json
 import time
-from unittest.mock import MagicMock, AsyncMock, patch
 
 import pytest
 
@@ -29,7 +27,6 @@ from mcp_server.swarm.acontext_adapter import (
     TaskBid,
     TaskAuction,
     AgentPresence,
-    CoordinationStats,
 )
 
 
@@ -56,24 +53,33 @@ def make_adapter(**kwargs) -> AcontextAdapter:
 class TestWorkerLock:
     def test_lock_not_expired_when_fresh(self):
         lock = WorkerLock(
-            worker_id="w1", agent_id="a1", task_type="photo",
-            acquired_at=time.time(), ttl_seconds=300.0,
+            worker_id="w1",
+            agent_id="a1",
+            task_type="photo",
+            acquired_at=time.time(),
+            ttl_seconds=300.0,
         )
         assert not lock.is_expired
         assert lock.remaining_seconds > 299
 
     def test_lock_expired_after_ttl(self):
         lock = WorkerLock(
-            worker_id="w1", agent_id="a1", task_type="photo",
-            acquired_at=time.time() - 400, ttl_seconds=300.0,
+            worker_id="w1",
+            agent_id="a1",
+            task_type="photo",
+            acquired_at=time.time() - 400,
+            ttl_seconds=300.0,
         )
         assert lock.is_expired
         assert lock.remaining_seconds == 0
 
     def test_lock_renew_extends_ttl(self):
         lock = WorkerLock(
-            worker_id="w1", agent_id="a1", task_type="photo",
-            acquired_at=time.time() - 250, ttl_seconds=300.0,
+            worker_id="w1",
+            agent_id="a1",
+            task_type="photo",
+            acquired_at=time.time() - 250,
+            ttl_seconds=300.0,
         )
         assert not lock.is_expired
         assert lock.remaining_seconds < 60
@@ -83,8 +89,11 @@ class TestWorkerLock:
 
     def test_lock_expired_then_renewed_uses_renewal_time(self):
         lock = WorkerLock(
-            worker_id="w1", agent_id="a1", task_type="photo",
-            acquired_at=time.time() - 400, ttl_seconds=300.0,
+            worker_id="w1",
+            agent_id="a1",
+            task_type="photo",
+            acquired_at=time.time() - 400,
+            ttl_seconds=300.0,
         )
         assert lock.is_expired
         lock.renew()
@@ -455,20 +464,25 @@ class TestAdapterStateSync:
 
     def test_build_sync_payload_excludes_expired_locks(self, adapter):
         adapter.hiring_locks["w1"] = WorkerLock(
-            worker_id="w1", agent_id="a1", task_type="photo",
-            acquired_at=time.time() - 500, ttl_seconds=300.0,
+            worker_id="w1",
+            agent_id="a1",
+            task_type="photo",
+            acquired_at=time.time() - 500,
+            ttl_seconds=300.0,
         )
         payload = adapter._build_sync_payload()
         data = json.loads(payload)
         assert "w1" not in data["locks"]
 
     def test_apply_sync_state_merges_locks(self, adapter):
-        payload = json.dumps({
-            "locks": {
-                "w1": {"agent": "remote-agent", "task": "photo", "remaining": 200},
-            },
-            "presence": {},
-        })
+        payload = json.dumps(
+            {
+                "locks": {
+                    "w1": {"agent": "remote-agent", "task": "photo", "remaining": 200},
+                },
+                "presence": {},
+            }
+        )
         adapter._apply_sync_state(payload)
         assert "w1" in adapter.hiring_locks
         assert adapter.hiring_locks["w1"].agent_id == "remote-agent"
@@ -476,22 +490,26 @@ class TestAdapterStateSync:
     @pytest.mark.asyncio
     async def test_apply_sync_state_doesnt_overwrite_own_locks(self, adapter):
         await adapter.broadcast_intent("local", "w1", "photo")
-        payload = json.dumps({
-            "locks": {
-                "w1": {"agent": "remote", "task": "delivery"},
-            },
-            "presence": {},
-        })
+        payload = json.dumps(
+            {
+                "locks": {
+                    "w1": {"agent": "remote", "task": "delivery"},
+                },
+                "presence": {},
+            }
+        )
         adapter._apply_sync_state(payload)
         assert adapter.hiring_locks["w1"].agent_id == "local"
 
     def test_apply_sync_state_merges_presence(self, adapter):
-        payload = json.dumps({
-            "locks": {},
-            "presence": {
-                "remote-agent": {"status": "working", "tasks": 2},
-            },
-        })
+        payload = json.dumps(
+            {
+                "locks": {},
+                "presence": {
+                    "remote-agent": {"status": "working", "tasks": 2},
+                },
+            }
+        )
         adapter._apply_sync_state(payload)
         assert "remote-agent" in adapter.agent_presence
         assert adapter.agent_presence["remote-agent"].status == "working"
@@ -499,12 +517,14 @@ class TestAdapterStateSync:
     @pytest.mark.asyncio
     async def test_apply_sync_state_doesnt_overwrite_own_presence(self, adapter):
         await adapter.send_heartbeat(status="idle")
-        payload = json.dumps({
-            "locks": {},
-            "presence": {
-                "Sync-Agent": {"status": "working", "tasks": 5},
-            },
-        })
+        payload = json.dumps(
+            {
+                "locks": {},
+                "presence": {
+                    "Sync-Agent": {"status": "working", "tasks": 5},
+                },
+            }
+        )
         adapter._apply_sync_state(payload)
         # Our own presence should not be overwritten
         assert adapter.agent_presence["Sync-Agent"].status == "idle"
@@ -531,7 +551,9 @@ class TestAdapterMessageParsing:
 
     def test_handle_release_command(self, adapter):
         adapter.hiring_locks["w1"] = WorkerLock(
-            worker_id="w1", agent_id="a1", task_type="photo",
+            worker_id="w1",
+            agent_id="a1",
+            task_type="photo",
             acquired_at=time.time(),
         )
         adapter._handle_swarm_command("!release w1", "a1")
@@ -539,7 +561,9 @@ class TestAdapterMessageParsing:
 
     def test_handle_renew_command(self, adapter):
         adapter.hiring_locks["w1"] = WorkerLock(
-            worker_id="w1", agent_id="a1", task_type="photo",
+            worker_id="w1",
+            agent_id="a1",
+            task_type="photo",
             acquired_at=time.time() - 200,
         )
         old_renewed = adapter.hiring_locks["w1"].last_renewed
@@ -579,7 +603,9 @@ class TestAdapterMessageParsing:
         assert adapter.auctions["t1"].closed
 
     def test_handle_auction_command(self, adapter):
-        payload = json.dumps({"task_id": "t99", "category": "delivery", "bounty_usd": 2.5})
+        payload = json.dumps(
+            {"task_id": "t99", "category": "delivery", "bounty_usd": 2.5}
+        )
         adapter._handle_swarm_command(f"!auction {payload}", "coordinator")
         assert "t99" in adapter.auctions
         assert adapter.auctions["t99"].category == "delivery"
@@ -589,10 +615,12 @@ class TestAdapterMessageParsing:
         assert len(adapter.auctions) == 0
 
     def test_handle_sync_state_command(self, adapter):
-        payload = json.dumps({
-            "locks": {"w5": {"agent": "remote", "task": "photo"}},
-            "presence": {},
-        })
+        payload = json.dumps(
+            {
+                "locks": {"w5": {"agent": "remote", "task": "photo"}},
+                "presence": {},
+            }
+        )
         adapter._handle_swarm_command(f"!sync-state {payload}", "remote")
         assert "w5" in adapter.hiring_locks
 
@@ -604,12 +632,12 @@ class TestAdapterMessageParsing:
         assert adapter.agent_presence["a1"].status == "cooldown"
 
     def test_parse_message_extracts_command(self, adapter):
-        irc_msg = f":remote!user@host PRIVMSG #test :!heartbeat remote idle 0"
+        irc_msg = ":remote!user@host PRIVMSG #test :!heartbeat remote idle 0"
         adapter._parse_message(irc_msg)
         assert "remote" in adapter.agent_presence
 
     def test_parse_message_ignores_wrong_channel(self, adapter):
-        irc_msg = f":remote!user@host PRIVMSG #other :!heartbeat remote idle 0"
+        irc_msg = ":remote!user@host PRIVMSG #other :!heartbeat remote idle 0"
         adapter._parse_message(irc_msg)
         assert len(adapter.agent_presence) == 0
 
@@ -659,6 +687,7 @@ class TestAdapterCallbacks:
     async def test_callback_error_doesnt_crash(self, adapter):
         def bad_callback(t, d):
             raise RuntimeError("Boom!")
+
         adapter.on_intent(bad_callback)
         # Should not raise
         result = await adapter.broadcast_intent("a1", "w1", "photo")
@@ -691,12 +720,18 @@ class TestAdapterCleanup:
 
     def test_cleanup_expired_locks(self, adapter):
         adapter.hiring_locks["w1"] = WorkerLock(
-            worker_id="w1", agent_id="a1", task_type="photo",
-            acquired_at=time.time() - 500, ttl_seconds=300.0,
+            worker_id="w1",
+            agent_id="a1",
+            task_type="photo",
+            acquired_at=time.time() - 500,
+            ttl_seconds=300.0,
         )
         adapter.hiring_locks["w2"] = WorkerLock(
-            worker_id="w2", agent_id="a2", task_type="delivery",
-            acquired_at=time.time(), ttl_seconds=300.0,
+            worker_id="w2",
+            agent_id="a2",
+            task_type="delivery",
+            acquired_at=time.time(),
+            ttl_seconds=300.0,
         )
         adapter._cleanup_expired_locks()
         assert "w1" not in adapter.hiring_locks

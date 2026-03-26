@@ -15,7 +15,6 @@ and the "swarm enabled" path (with mock coordinator).
 
 import asyncio
 import os
-import pytest
 from dataclasses import dataclass
 from unittest.mock import MagicMock, patch
 
@@ -23,6 +22,7 @@ from unittest.mock import MagicMock, patch
 # ---------------------------------------------------------------------------
 # Minimal MCP mock — captures registered tools for testing
 # ---------------------------------------------------------------------------
+
 
 class MockMCP:
     """Minimal MCP mock that captures tools registered via @mcp.tool()."""
@@ -32,15 +32,18 @@ class MockMCP:
 
     def tool(self):
         """Decorator that captures the function."""
+
         def decorator(fn):
             self.tools[fn.__name__] = fn
             return fn
+
         return decorator
 
 
 # ---------------------------------------------------------------------------
 # Mock coordinator and its dependencies
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class MockMetrics:
@@ -156,6 +159,7 @@ from swarm.mcp_tools import register_swarm_tools
 # SECTION 1: Disabled Swarm (coordinator=None)
 # ===========================================================================
 
+
 class TestDisabledSwarm:
     """All tools should return graceful 'not enabled' responses."""
 
@@ -190,11 +194,14 @@ class TestDisabledSwarm:
 # SECTION 2: em_swarm_status
 # ===========================================================================
 
+
 class TestSwarmStatus:
     def setup_method(self):
         self.mcp = MockMCP()
         self.coordinator = make_coordinator()
-        with patch.dict(os.environ, {"SWARM_ENABLED": "true", "SWARM_MODE": "semi-auto"}):
+        with patch.dict(
+            os.environ, {"SWARM_ENABLED": "true", "SWARM_MODE": "semi-auto"}
+        ):
             register_swarm_tools(self.mcp, self.coordinator)
 
     def test_status_enabled(self):
@@ -232,11 +239,14 @@ class TestSwarmStatus:
 # SECTION 3: em_swarm_dashboard
 # ===========================================================================
 
+
 class TestSwarmDashboard:
     def setup_method(self):
         self.mcp = MockMCP()
         self.coordinator = make_coordinator()
-        with patch.dict(os.environ, {"SWARM_ENABLED": "true", "SWARM_MODE": "full-auto"}):
+        with patch.dict(
+            os.environ, {"SWARM_ENABLED": "true", "SWARM_MODE": "full-auto"}
+        ):
             register_swarm_tools(self.mcp, self.coordinator)
 
     def test_dashboard_returns_full_data(self):
@@ -262,6 +272,7 @@ class TestSwarmDashboard:
 # SECTION 4: em_swarm_poll
 # ===========================================================================
 
+
 class TestSwarmPoll:
     def test_poll_passive_mode(self):
         mcp = MockMCP()
@@ -277,7 +288,9 @@ class TestSwarmPoll:
     def test_poll_semi_auto(self):
         mcp = MockMCP()
         coordinator = make_coordinator(ingest_count=5)
-        with patch.dict(os.environ, {"SWARM_ENABLED": "true", "SWARM_MODE": "semi-auto"}):
+        with patch.dict(
+            os.environ, {"SWARM_ENABLED": "true", "SWARM_MODE": "semi-auto"}
+        ):
             register_swarm_tools(mcp, coordinator)
         result = _run(mcp.tools["em_swarm_poll"]())
         assert result["mode"] == "semi-auto"
@@ -290,7 +303,9 @@ class TestSwarmPoll:
     def test_poll_full_auto(self):
         mcp = MockMCP()
         coordinator = make_coordinator(ingest_count=0)
-        with patch.dict(os.environ, {"SWARM_ENABLED": "true", "SWARM_MODE": "full-auto"}):
+        with patch.dict(
+            os.environ, {"SWARM_ENABLED": "true", "SWARM_MODE": "full-auto"}
+        ):
             register_swarm_tools(mcp, coordinator)
         result = _run(mcp.tools["em_swarm_poll"]())
         assert result["new_tasks"] == 0
@@ -300,7 +315,9 @@ class TestSwarmPoll:
         mcp = MockMCP()
         coordinator = make_coordinator()
         coordinator.ingest_from_api.side_effect = RuntimeError("API unreachable")
-        with patch.dict(os.environ, {"SWARM_ENABLED": "true", "SWARM_MODE": "semi-auto"}):
+        with patch.dict(
+            os.environ, {"SWARM_ENABLED": "true", "SWARM_MODE": "semi-auto"}
+        ):
             register_swarm_tools(mcp, coordinator)
         result = _run(mcp.tools["em_swarm_poll"]())
         issues = result["health_issues"]
@@ -310,7 +327,9 @@ class TestSwarmPoll:
         mcp = MockMCP()
         coordinator = make_coordinator()
         coordinator.process_task_queue.side_effect = RuntimeError("Routing failed")
-        with patch.dict(os.environ, {"SWARM_ENABLED": "true", "SWARM_MODE": "semi-auto"}):
+        with patch.dict(
+            os.environ, {"SWARM_ENABLED": "true", "SWARM_MODE": "semi-auto"}
+        ):
             register_swarm_tools(mcp, coordinator)
         result = _run(mcp.tools["em_swarm_poll"]())
         issues = result["health_issues"]
@@ -318,12 +337,16 @@ class TestSwarmPoll:
 
     def test_poll_health_degraded_agents(self):
         mcp = MockMCP()
-        coordinator = make_coordinator(health={
-            "agents": {"total": 24, "active": 18, "degraded": 3},
-            "tasks": {"queued": 2, "stale": 0},
-            "systems": {},
-        })
-        with patch.dict(os.environ, {"SWARM_ENABLED": "true", "SWARM_MODE": "semi-auto"}):
+        coordinator = make_coordinator(
+            health={
+                "agents": {"total": 24, "active": 18, "degraded": 3},
+                "tasks": {"queued": 2, "stale": 0},
+                "systems": {},
+            }
+        )
+        with patch.dict(
+            os.environ, {"SWARM_ENABLED": "true", "SWARM_MODE": "semi-auto"}
+        ):
             register_swarm_tools(mcp, coordinator)
         result = _run(mcp.tools["em_swarm_poll"]())
         issues = result["health_issues"]
@@ -333,7 +356,9 @@ class TestSwarmPoll:
         mcp = MockMCP()
         coordinator = make_coordinator()
         coordinator.run_health_checks.side_effect = Exception("health boom")
-        with patch.dict(os.environ, {"SWARM_ENABLED": "true", "SWARM_MODE": "semi-auto"}):
+        with patch.dict(
+            os.environ, {"SWARM_ENABLED": "true", "SWARM_MODE": "semi-auto"}
+        ):
             register_swarm_tools(mcp, coordinator)
         result = _run(mcp.tools["em_swarm_poll"]())
         issues = result["health_issues"]
@@ -342,7 +367,9 @@ class TestSwarmPoll:
     def test_poll_no_assignments(self):
         mcp = MockMCP()
         coordinator = make_coordinator(assignments=[])
-        with patch.dict(os.environ, {"SWARM_ENABLED": "true", "SWARM_MODE": "full-auto"}):
+        with patch.dict(
+            os.environ, {"SWARM_ENABLED": "true", "SWARM_MODE": "full-auto"}
+        ):
             register_swarm_tools(mcp, coordinator)
         result = _run(mcp.tools["em_swarm_poll"]())
         assert result["tasks_assigned"] == 0
@@ -352,11 +379,14 @@ class TestSwarmPoll:
 # SECTION 5: em_swarm_agent_info
 # ===========================================================================
 
+
 class TestSwarmAgentInfo:
     def setup_method(self):
         self.mcp = MockMCP()
         self.coordinator = make_coordinator()
-        with patch.dict(os.environ, {"SWARM_ENABLED": "true", "SWARM_MODE": "semi-auto"}):
+        with patch.dict(
+            os.environ, {"SWARM_ENABLED": "true", "SWARM_MODE": "semi-auto"}
+        ):
             register_swarm_tools(self.mcp, self.coordinator)
 
     def test_agent_info_success(self):
@@ -409,11 +439,14 @@ class TestSwarmAgentInfo:
 # SECTION 6: em_swarm_health
 # ===========================================================================
 
+
 class TestSwarmHealth:
     def setup_method(self):
         self.mcp = MockMCP()
         self.coordinator = make_coordinator()
-        with patch.dict(os.environ, {"SWARM_ENABLED": "true", "SWARM_MODE": "semi-auto"}):
+        with patch.dict(
+            os.environ, {"SWARM_ENABLED": "true", "SWARM_MODE": "semi-auto"}
+        ):
             register_swarm_tools(self.mcp, self.coordinator)
 
     def test_health_healthy(self):
@@ -462,6 +495,7 @@ class TestSwarmHealth:
 # SECTION 7: Registration
 # ===========================================================================
 
+
 class TestRegistration:
     def test_registers_5_tools(self):
         mcp = MockMCP()
@@ -486,5 +520,6 @@ class TestRegistration:
         mcp = MockMCP()
         register_swarm_tools(mcp, coordinator=None)
         import inspect
+
         for name, fn in mcp.tools.items():
             assert inspect.iscoroutinefunction(fn), f"{name} is not async"

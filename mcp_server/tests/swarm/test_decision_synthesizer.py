@@ -8,18 +8,14 @@ weight management, candidate comparison, and what-if analysis.
 """
 
 import pytest
-import time
 
 from mcp_server.swarm.decision_synthesizer import (
     DecisionSynthesizer,
     SignalType,
     SignalValue,
     SignalVector,
-    RankedDecision,
     DecisionOutcome,
     ConfidenceLevel,
-    DEFAULT_WEIGHTS,
-    MINIMUM_ROUTE_THRESHOLD,
 )
 
 
@@ -49,15 +45,21 @@ def candidates():
     return [
         {"id": "agent_1", "wallet": "0xAAA", "skills": ["photography", "field_work"]},
         {"id": "agent_2", "wallet": "0xBBB", "skills": ["data_entry", "research"]},
-        {"id": "agent_3", "wallet": "0xCCC", "skills": ["photography", "geo_verification"]},
+        {
+            "id": "agent_3",
+            "wallet": "0xCCC",
+            "skills": ["photography", "geo_verification"],
+        },
     ]
 
 
 def make_scorer(score_map: dict):
     """Create a scorer function from a score map {candidate_id: score}."""
+
     def scorer(task, candidate):
         cid = str(candidate.get("id", candidate.get("agent_id", "")))
         return score_map.get(cid, 50.0)
+
     return scorer
 
 
@@ -102,7 +104,6 @@ def loaded_synth():
 
 
 class TestBasicSynthesis:
-
     def test_empty_candidates_returns_held(self, synth, task):
         decision = synth.synthesize(task, [])
         assert decision.outcome == DecisionOutcome.HELD
@@ -144,7 +145,6 @@ class TestBasicSynthesis:
 
 
 class TestSignalRegistration:
-
     def test_register_signal(self, synth):
         synth.register_signal(
             SignalType.REPUTATION,
@@ -183,7 +183,6 @@ class TestSignalRegistration:
 
 
 class TestCompositeScoring:
-
     def test_perfect_scores(self, synth, task):
         synth.register_signal(
             SignalType.SKILL_MATCH,
@@ -227,9 +226,7 @@ class TestCompositeScoring:
             make_scorer({"a1": 30, "a2": 90}),
             weight=0.1,
         )
-        decision = synth.synthesize(
-            task, [{"id": "a1"}, {"id": "a2"}]
-        )
+        decision = synth.synthesize(task, [{"id": "a1"}, {"id": "a2"}])
         assert decision.best_candidate == "a1"
 
     def test_signal_values_normalized(self, loaded_synth, task, candidates):
@@ -243,7 +240,6 @@ class TestCompositeScoring:
 
 
 class TestOutcomeDetermination:
-
     def test_below_threshold_held(self, synth, task):
         synth.register_signal(
             SignalType.SKILL_MATCH,
@@ -274,7 +270,6 @@ class TestOutcomeDetermination:
 
 
 class TestConfidence:
-
     def test_single_signal_low_confidence(self, synth, task):
         synth.register_signal(
             SignalType.SKILL_MATCH,
@@ -282,13 +277,15 @@ class TestConfidence:
         )
         decision = synth.synthesize(task, [{"id": "a1"}])
         assert decision.confidence_level in (
-            ConfidenceLevel.LOW, ConfidenceLevel.MEDIUM
+            ConfidenceLevel.LOW,
+            ConfidenceLevel.MEDIUM,
         )
 
     def test_many_signals_higher_confidence(self, loaded_synth, task, candidates):
         decision = loaded_synth.synthesize(task, candidates)
         assert decision.confidence_level in (
-            ConfidenceLevel.MEDIUM, ConfidenceLevel.HIGH
+            ConfidenceLevel.MEDIUM,
+            ConfidenceLevel.HIGH,
         )
         assert decision.confidence_score > 0.3
 
@@ -301,7 +298,6 @@ class TestConfidence:
 
 
 class TestExplanations:
-
     def test_has_explanation(self, loaded_synth, task, candidates):
         decision = loaded_synth.synthesize(task, candidates)
         assert decision.explanation
@@ -309,7 +305,10 @@ class TestExplanations:
 
     def test_explanation_mentions_candidates(self, loaded_synth, task, candidates):
         decision = loaded_synth.synthesize(task, candidates)
-        assert "agent_1" in decision.explanation or "candidate" in decision.explanation.lower()
+        assert (
+            "agent_1" in decision.explanation
+            or "candidate" in decision.explanation.lower()
+        )
 
     def test_held_explanation(self, synth, task):
         synth.register_signal(
@@ -317,14 +316,16 @@ class TestExplanations:
             lambda t, c: 1.0,
         )
         decision = synth.synthesize(task, [{"id": "a1"}])
-        assert "held" in decision.explanation.lower() or "threshold" in decision.explanation.lower()
+        assert (
+            "held" in decision.explanation.lower()
+            or "threshold" in decision.explanation.lower()
+        )
 
 
 # ── Signal Vector ─────────────────────────────────────────────
 
 
 class TestSignalVector:
-
     def test_signal_count(self):
         vec = SignalVector(
             candidate_id="a1",
@@ -381,7 +382,6 @@ class TestSignalVector:
 
 
 class TestWeightedScore:
-
     def test_signal_value_weighted_score(self):
         sv = SignalValue(
             signal_type=SignalType.SKILL_MATCH,
@@ -418,7 +418,6 @@ class TestWeightedScore:
 
 
 class TestAuditTrail:
-
     def test_logs_decisions(self, loaded_synth, task, candidates):
         loaded_synth.synthesize(task, candidates)
         assert len(loaded_synth.decision_history) == 1
@@ -454,7 +453,6 @@ class TestAuditTrail:
 
 
 class TestWeightManagement:
-
     def test_get_weights(self, synth):
         weights = synth.get_weights()
         assert "skill_match" in weights
@@ -475,17 +473,19 @@ class TestWeightManagement:
             SignalType.REPUTATION,
             make_scorer({"a1": 30, "a2": 90}),
         )
-        
+
         # Default: skill_match has higher weight
-        d1 = s.synthesize(task, [{"id": "a1"}, {"id": "a2"}])
-        
+        s.synthesize(task, [{"id": "a1"}, {"id": "a2"}])
+
         # Flip weights
-        s.update_weights({
-            SignalType.SKILL_MATCH: 0.01,
-            SignalType.REPUTATION: 0.99,
-        })
+        s.update_weights(
+            {
+                SignalType.SKILL_MATCH: 0.01,
+                SignalType.REPUTATION: 0.99,
+            }
+        )
         d2 = s.synthesize(task, [{"id": "a1"}, {"id": "a2"}])
-        
+
         # With reputation weighted heavily, a2 should win
         assert d2.best_candidate == "a2"
 
@@ -494,7 +494,6 @@ class TestWeightManagement:
 
 
 class TestCandidateComparison:
-
     def test_compare_returns_winner(self, loaded_synth, task):
         a = {"id": "agent_1", "wallet": "0xAAA"}
         b = {"id": "agent_2", "wallet": "0xBBB"}
@@ -523,10 +522,10 @@ class TestCandidateComparison:
 
 
 class TestWhatIf:
-
     def test_what_if_returns_comparison(self, loaded_synth, task, candidates):
         result = loaded_synth.what_if(
-            task, candidates,
+            task,
+            candidates,
             {SignalType.SKILL_MATCH: 0.01, SignalType.REPUTATION: 0.99},
         )
         assert "current_best" in result
@@ -559,7 +558,6 @@ class TestWhatIf:
 
 
 class TestQuickSynthesis:
-
     def test_quick_returns_id(self, loaded_synth, task, candidates):
         result = loaded_synth.synthesize_quick(task, candidates)
         assert result is not None
@@ -578,7 +576,6 @@ class TestQuickSynthesis:
 
 
 class TestSerialization:
-
     def test_decision_to_dict(self, loaded_synth, task, candidates):
         decision = loaded_synth.synthesize(task, candidates)
         d = decision.to_dict()
@@ -590,6 +587,7 @@ class TestSerialization:
 
     def test_decision_dict_json_serializable(self, loaded_synth, task, candidates):
         import json
+
         decision = loaded_synth.synthesize(task, candidates)
         d = decision.to_dict()
         serialized = json.dumps(d)
@@ -601,9 +599,9 @@ class TestSerialization:
 
 
 class TestDegradation:
-
     def test_failing_signal_skipped(self, synth, task):
         """Signal that throws an exception should be skipped."""
+
         def bad_scorer(t, c):
             raise ValueError("Signal source unavailable")
 
@@ -636,6 +634,7 @@ class TestDegradation:
 
     def test_all_signals_fail_gracefully(self, synth, task):
         """If all signals fail, should return HELD, not crash."""
+
         def bad_scorer(t, c):
             raise RuntimeError("everything is broken")
 
@@ -649,7 +648,6 @@ class TestDegradation:
 
 
 class TestPerformance:
-
     def test_decision_time_tracked(self, loaded_synth, task, candidates):
         decision = loaded_synth.synthesize(task, candidates)
         assert decision.decision_time_ms > 0
@@ -665,13 +663,10 @@ class TestPerformance:
 
 
 class TestTopN:
-
     def test_top_n_returns_3(self, loaded_synth, task, candidates):
         decision = loaded_synth.synthesize(task, candidates)
         assert len(decision.top_n) == 3
 
     def test_top_n_with_fewer_candidates(self, loaded_synth, task):
-        decision = loaded_synth.synthesize(
-            task, [{"id": "a1"}, {"id": "a2"}]
-        )
+        decision = loaded_synth.synthesize(task, [{"id": "a1"}, {"id": "a2"}])
         assert len(decision.top_n) == 2

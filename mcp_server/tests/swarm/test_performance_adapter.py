@@ -3,12 +3,12 @@ Tests for PerformanceAdapter — AutoJob worker performance as routing signal.
 """
 
 import json
-import pytest
 from datetime import datetime, timezone, timedelta
 from unittest.mock import patch, MagicMock
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from swarm.performance_adapter import (
@@ -22,6 +22,7 @@ from swarm.performance_adapter import (
 # PerformanceSnapshot Tests
 # ---------------------------------------------------------------------------
 
+
 class TestPerformanceSnapshot:
     def test_default_values(self):
         snap = PerformanceSnapshot(worker_id="0x1")
@@ -32,14 +33,29 @@ class TestPerformanceSnapshot:
 
     def test_risk_penalty(self):
         assert PerformanceSnapshot(worker_id="a", risk_level="low").risk_penalty == 0.0
-        assert PerformanceSnapshot(worker_id="a", risk_level="medium").risk_penalty == 0.05
-        assert PerformanceSnapshot(worker_id="a", risk_level="high").risk_penalty == 0.15
-        assert PerformanceSnapshot(worker_id="a", risk_level="unknown").risk_penalty == 0.0
+        assert (
+            PerformanceSnapshot(worker_id="a", risk_level="medium").risk_penalty == 0.05
+        )
+        assert (
+            PerformanceSnapshot(worker_id="a", risk_level="high").risk_penalty == 0.15
+        )
+        assert (
+            PerformanceSnapshot(worker_id="a", risk_level="unknown").risk_penalty == 0.0
+        )
 
     def test_growth_bonus(self):
-        assert PerformanceSnapshot(worker_id="a", growth_trend="improving").growth_bonus == 0.10
-        assert PerformanceSnapshot(worker_id="a", growth_trend="stable").growth_bonus == 0.0
-        assert PerformanceSnapshot(worker_id="a", growth_trend="declining").growth_bonus == -0.05
+        assert (
+            PerformanceSnapshot(worker_id="a", growth_trend="improving").growth_bonus
+            == 0.10
+        )
+        assert (
+            PerformanceSnapshot(worker_id="a", growth_trend="stable").growth_bonus
+            == 0.0
+        )
+        assert (
+            PerformanceSnapshot(worker_id="a", growth_trend="declining").growth_bonus
+            == -0.05
+        )
 
     def test_category_affinity_optimal(self):
         snap = PerformanceSnapshot(
@@ -78,6 +94,7 @@ class TestPerformanceSnapshot:
 # ---------------------------------------------------------------------------
 # PerformanceAdapter Tests
 # ---------------------------------------------------------------------------
+
 
 class TestPerformanceAdapter:
     def test_default_returns_neutral(self):
@@ -170,6 +187,7 @@ class TestPerformanceAdapter:
 # ---------------------------------------------------------------------------
 # Scorer Tests
 # ---------------------------------------------------------------------------
+
 
 class TestPerformanceScorer:
     def test_scorer_neutral_worker(self):
@@ -289,26 +307,29 @@ class TestPerformanceScorer:
 # API Response Parsing
 # ---------------------------------------------------------------------------
 
+
 class TestAPIResponseParsing:
     def test_parse_full_api_response(self):
         """Verify _fetch_from_api correctly parses API response format."""
         adapter = PerformanceAdapter()
 
-        mock_response = json.dumps({
-            "success": True,
-            "worker_id": "0xTest",
-            "profile": {
-                "overall_score": 0.82,
-                "reliability_score": 0.88,
-                "speed_percentile": 0.75,
-                "quality_score": 0.79,
-                "consistency_score": 0.91,
-                "risk": {"overall_risk": "low", "flags": [], "details": {}},
-                "growth": {"trend": "improving", "slope": 0.15},
-                "optimal_categories": ["physical_verification", "delivery"],
-                "recommended_complexity": "complex",
+        mock_response = json.dumps(
+            {
+                "success": True,
+                "worker_id": "0xTest",
+                "profile": {
+                    "overall_score": 0.82,
+                    "reliability_score": 0.88,
+                    "speed_percentile": 0.75,
+                    "quality_score": 0.79,
+                    "consistency_score": 0.91,
+                    "risk": {"overall_risk": "low", "flags": [], "details": {}},
+                    "growth": {"trend": "improving", "slope": 0.15},
+                    "optimal_categories": ["physical_verification", "delivery"],
+                    "recommended_complexity": "complex",
+                },
             }
-        }).encode()
+        ).encode()
 
         mock_resp = MagicMock()
         mock_resp.read.return_value = mock_response

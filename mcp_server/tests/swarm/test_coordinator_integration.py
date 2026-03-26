@@ -13,21 +13,16 @@ These tests validate scenarios that unit tests can't:
     - Priority inversion detection and handling
 """
 
-import time
 from datetime import datetime, timezone, timedelta
 
 import pytest
 
 from mcp_server.swarm.coordinator import (
     SwarmCoordinator,
-    EMApiClient,
     CoordinatorEvent,
-    SwarmMetrics,
 )
 from mcp_server.swarm.reputation_bridge import (
     ReputationBridge,
-    OnChainReputation,
-    InternalReputation,
 )
 from mcp_server.swarm.lifecycle_manager import (
     LifecycleManager,
@@ -36,7 +31,6 @@ from mcp_server.swarm.lifecycle_manager import (
 )
 from mcp_server.swarm.orchestrator import (
     SwarmOrchestrator,
-    TaskRequest,
     TaskPriority,
     Assignment,
     RoutingFailure,
@@ -115,7 +109,7 @@ class TestMultiTaskRouting:
 
     def test_complete_and_reroute(self, swarm):
         """Complete a task, freeing an agent, then route more.
-        
+
         After completing a task, the agent transitions from WORKING → COOLDOWN → IDLE.
         We need to manually expire the cooldown for the agent to be available again.
         """
@@ -219,7 +213,7 @@ class TestBudgetLifecycle:
 
     def test_multiple_completions_accumulate_budget(self, coordinator):
         """Multiple task completions should accumulate budget spend.
-        
+
         After each completion, agent goes to COOLDOWN. We need to expire
         the cooldown and re-activate the agent before the next task.
         """
@@ -247,7 +241,9 @@ class TestBudgetLifecycle:
             # Expire cooldown and re-activate for next task
             record = coordinator.lifecycle.agents[201]
             if record.state == AgentState.COOLDOWN:
-                record.cooldown_until = datetime.now(timezone.utc) - timedelta(seconds=1)
+                record.cooldown_until = datetime.now(timezone.utc) - timedelta(
+                    seconds=1
+                )
                 coordinator.lifecycle.check_cooldown_expiry(201)
             if record.state == AgentState.IDLE:
                 coordinator.lifecycle.transition(201, AgentState.ACTIVE, "reactivate")
@@ -323,9 +319,7 @@ class TestEventDrivenWorkflows:
                 event_type, lambda e, et=event_type: events_seen.append(et.value)
             )
 
-        swarm.ingest_task(
-            task_id="chain-1", title="Track me", categories=["test"]
-        )
+        swarm.ingest_task(task_id="chain-1", title="Track me", categories=["test"])
         swarm.process_task_queue()
         swarm.complete_task("chain-1")
 
@@ -364,7 +358,7 @@ class TestTaskExpiry:
         task = swarm._task_queue["no-expire"]
         task.last_attempt_at = datetime.now(timezone.utc) - timedelta(hours=2)
 
-        report = swarm.run_health_checks()
+        swarm.run_health_checks()
         # Assigned tasks should be flagged stale, not expired
         assert task.status == "assigned"
 
@@ -420,9 +414,7 @@ class TestDashboardAccuracy:
 
     def test_dashboard_fleet_states(self, swarm):
         """Fleet should show accurate agent states."""
-        swarm.ingest_task(
-            task_id="state-1", title="T1", categories=["test"]
-        )
+        swarm.ingest_task(task_id="state-1", title="T1", categories=["test"])
         swarm.process_task_queue()
 
         dashboard = swarm.get_dashboard()
@@ -491,7 +483,7 @@ class TestResilience:
         swarm.process_task_queue()
 
         result1 = swarm.complete_task("double-1", bounty_earned_usd=5.0)
-        result2 = swarm.complete_task("double-1", bounty_earned_usd=5.0)
+        swarm.complete_task("double-1", bounty_earned_usd=5.0)
 
         # First should succeed, second may succeed or fail gracefully
         assert result1 is True
@@ -512,17 +504,16 @@ class TestResilience:
         # Backdate completed/failed tasks
         for tid in ["mix-0", "mix-1"]:
             if tid in swarm._task_queue:
-                swarm._task_queue[tid].ingested_at = (
-                    datetime.now(timezone.utc) - timedelta(hours=48)
-                )
+                swarm._task_queue[tid].ingested_at = datetime.now(
+                    timezone.utc
+                ) - timedelta(hours=48)
 
         removed = swarm.cleanup_completed(older_than_hours=24.0)
         assert removed >= 1
 
         # Pending/assigned tasks should survive
         remaining_pending = [
-            t for t in swarm._task_queue.values()
-            if t.status in ("pending", "assigned")
+            t for t in swarm._task_queue.values() if t.status in ("pending", "assigned")
         ]
         assert len(remaining_pending) >= 1
 

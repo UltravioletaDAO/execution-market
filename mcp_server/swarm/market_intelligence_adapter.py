@@ -109,7 +109,13 @@ class MarketSnapshot:
         }
         trend_contrib = trend_map.get(self.trend, 10.0)
 
-        return max(0.0, min(100.0, completion_contrib + expiry_contrib + demand_contrib + trend_contrib))
+        return max(
+            0.0,
+            min(
+                100.0,
+                completion_contrib + expiry_contrib + demand_contrib + trend_contrib,
+            ),
+        )
 
 
 # ──────────────────────────────────────────────────────────────
@@ -286,7 +292,7 @@ class MarketIntelligenceAdapter:
             start = time.monotonic()
             with urlopen(req, timeout=self.timeout_s) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
-            elapsed_ms = (time.monotonic() - start) * 1000
+            (time.monotonic() - start) * 1000
 
             if not data.get("success"):
                 logger.warning("Market report API returned failure")
@@ -300,7 +306,10 @@ class MarketIntelligenceAdapter:
             if not cat_data:
                 # Try fuzzy match
                 for key, val in categories.items():
-                    if category.lower() in key.lower() or key.lower() in category.lower():
+                    if (
+                        category.lower() in key.lower()
+                        or key.lower() in category.lower()
+                    ):
                         cat_data = val
                         break
 
@@ -325,10 +334,14 @@ class MarketIntelligenceAdapter:
                 expiry_rate=cat_data.get("expiry_rate", 0.5),
                 trend=cat_data.get("trend", "stable"),
                 avg_bounty_usd=cat_data.get("avg_bounty_usd", 3.0),
-                avg_time_to_acceptance_hours=cat_data.get("avg_time_to_acceptance_hours", 24.0),
+                avg_time_to_acceptance_hours=cat_data.get(
+                    "avg_time_to_acceptance_hours", 24.0
+                ),
                 active_tasks=cat_data.get("active_tasks", 0),
                 unique_workers=cat_data.get("unique_workers", 0),
-                competition_intensity=min(1.0, cat_data.get("avg_applications_per_task", 1.0) / 5.0),
+                competition_intensity=min(
+                    1.0, cat_data.get("avg_applications_per_task", 1.0) / 5.0
+                ),
                 confidence=min(0.9, 0.3 + cat_data.get("total_tasks", 0) * 0.01),
                 fetched_at=time.time(),
             )

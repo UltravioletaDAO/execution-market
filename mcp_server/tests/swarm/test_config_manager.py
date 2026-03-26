@@ -17,10 +17,7 @@ Coverage:
 import json
 import os
 import sys
-import time
-from copy import deepcopy
 from pathlib import Path
-from unittest.mock import patch, MagicMock
 
 import pytest
 
@@ -51,6 +48,7 @@ from swarm.config_manager import (
 # ---------------------------------------------------------------------------
 # 1. Default Configuration
 # ---------------------------------------------------------------------------
+
 
 class TestDefaults:
     """Verify sensible defaults on all config dataclasses."""
@@ -93,7 +91,12 @@ class TestDefaults:
     def test_reputation_defaults(self):
         rep = ReputationConfig()
         assert rep.erc8004_network == "base"
-        total_weight = rep.quality_weight + rep.speed_weight + rep.reliability_weight + rep.cost_weight
+        total_weight = (
+            rep.quality_weight
+            + rep.speed_weight
+            + rep.reliability_weight
+            + rep.cost_weight
+        )
         assert abs(total_weight - 1.0) < 0.01
 
     def test_dashboard_defaults(self):
@@ -131,6 +134,7 @@ class TestDefaults:
 # 2. Environment Profiles
 # ---------------------------------------------------------------------------
 
+
 class TestEnvironmentProfiles:
     """Test environment-specific overrides."""
 
@@ -164,6 +168,7 @@ class TestEnvironmentProfiles:
 # 3. Config Serialization
 # ---------------------------------------------------------------------------
 
+
 class TestSerialization:
     """Test to_dict/from_dict roundtrip."""
 
@@ -195,10 +200,12 @@ class TestSerialization:
         assert isinstance(d["environment"], str)
 
     def test_from_dict_overrides(self):
-        cfg = SwarmConfig.from_dict({
-            "agent_pool": {"max_agents": 50},
-            "scheduler": {"cycle_interval_seconds": 15},
-        })
+        cfg = SwarmConfig.from_dict(
+            {
+                "agent_pool": {"max_agents": 50},
+                "scheduler": {"cycle_interval_seconds": 15},
+            }
+        )
         assert cfg.agent_pool.max_agents == 50
         assert cfg.scheduler.cycle_interval_seconds == 15
         # Other defaults preserved
@@ -234,6 +241,7 @@ class TestSerialization:
 # ---------------------------------------------------------------------------
 # 4. Validation
 # ---------------------------------------------------------------------------
+
 
 class TestValidation:
     """Test all validation constraints."""
@@ -380,6 +388,7 @@ class TestValidation:
 # 5. ConfigManager Load
 # ---------------------------------------------------------------------------
 
+
 class TestConfigManagerLoad:
     """Test ConfigManager loading from files and env vars."""
 
@@ -395,10 +404,14 @@ class TestConfigManagerLoad:
         monkeypatch.delenv("EM_SWARM_ENVIRONMENT", raising=False)
         monkeypatch.delenv("EM_API_KEY", raising=False)
         config_file = tmp_path / "swarm.json"
-        config_file.write_text(json.dumps({
-            "agent_pool": {"max_agents": 42},
-            "scheduler": {"max_batch_size": 20},
-        }))
+        config_file.write_text(
+            json.dumps(
+                {
+                    "agent_pool": {"max_agents": 42},
+                    "scheduler": {"max_batch_size": 20},
+                }
+            )
+        )
         mgr = ConfigManager(config_path=str(config_file))
         cfg = mgr.load()
         assert cfg.agent_pool.max_agents == 42
@@ -483,19 +496,24 @@ class TestConfigManagerLoad:
 # 6. Hot Reload
 # ---------------------------------------------------------------------------
 
+
 class TestHotReload:
     """Test config reload with change detection."""
 
     def test_reload_detects_changes(self, tmp_path, monkeypatch):
         monkeypatch.delenv("EM_API_KEY", raising=False)
         config_file = tmp_path / "swarm.json"
-        config_file.write_text(json.dumps({"agent_pool": {"max_agents": 24, "min_healthy_agents": 8}}))
+        config_file.write_text(
+            json.dumps({"agent_pool": {"max_agents": 24, "min_healthy_agents": 8}})
+        )
 
         mgr = ConfigManager(config_path=str(config_file))
         mgr.load()
 
         # Change config file
-        config_file.write_text(json.dumps({"agent_pool": {"max_agents": 30, "min_healthy_agents": 8}}))
+        config_file.write_text(
+            json.dumps({"agent_pool": {"max_agents": 30, "min_healthy_agents": 8}})
+        )
         new_cfg, changes = mgr.reload()
 
         assert new_cfg.agent_pool.max_agents == 30
@@ -551,6 +569,7 @@ class TestHotReload:
 # ---------------------------------------------------------------------------
 # 7. Config Save
 # ---------------------------------------------------------------------------
+
 
 class TestConfigSave:
     """Test saving config to file."""
@@ -608,6 +627,7 @@ class TestConfigSave:
 # 8. Utility Functions
 # ---------------------------------------------------------------------------
 
+
 class TestUtilities:
     """Test utility functions."""
 
@@ -662,7 +682,9 @@ class TestUtilities:
         assert "a.c:" in changes[0]
 
     def test_merge_dataclass(self):
-        ap = _merge_dataclass(AgentPoolConfig, {"max_agents": 50, "cooldown_seconds": 10})
+        ap = _merge_dataclass(
+            AgentPoolConfig, {"max_agents": 50, "cooldown_seconds": 10}
+        )
         assert ap.max_agents == 50
         assert ap.cooldown_seconds == 10
         assert ap.min_healthy_agents == 12  # Default
@@ -675,6 +697,7 @@ class TestUtilities:
 # ---------------------------------------------------------------------------
 # 9. Edge Cases
 # ---------------------------------------------------------------------------
+
 
 class TestEdgeCases:
     """Edge cases and boundary conditions."""
@@ -745,6 +768,7 @@ class TestEdgeCases:
 # ---------------------------------------------------------------------------
 # 10. Integration: Full Config Lifecycle
 # ---------------------------------------------------------------------------
+
 
 class TestConfigLifecycle:
     """End-to-end configuration lifecycle."""

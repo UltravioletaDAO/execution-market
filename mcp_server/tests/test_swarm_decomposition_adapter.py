@@ -12,9 +12,8 @@ Tests cover:
 - SubTaskSnapshot construction
 """
 
-import json
 import time
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -25,7 +24,6 @@ from mcp_server.swarm.decomposition_adapter import (
     make_decomposition_scorer,
     _task_hash,
     FRESH_TTL,
-    STALE_TTL,
 )
 
 
@@ -73,7 +71,17 @@ def compound_snapshot():
                 difficulty=0.8,
             ),
         ],
-        unique_skills=["react", "css", "html", "python", "fastapi", "postgresql", "docker", "aws", "ci_cd"],
+        unique_skills=[
+            "react",
+            "css",
+            "html",
+            "python",
+            "fastapi",
+            "postgresql",
+            "docker",
+            "aws",
+            "ci_cd",
+        ],
         complexity="complex",
         team_strategy="specialist",
         estimated_hours=9.0,
@@ -112,7 +120,17 @@ def simple_snapshot():
 class TestDecompositionSnapshot:
     def test_skill_coverage_full_match(self, compound_snapshot):
         """Candidate with all skills gets high coverage."""
-        all_skills = ["react", "css", "html", "python", "fastapi", "postgresql", "docker", "aws", "ci_cd"]
+        all_skills = [
+            "react",
+            "css",
+            "html",
+            "python",
+            "fastapi",
+            "postgresql",
+            "docker",
+            "aws",
+            "ci_cd",
+        ]
         score = compound_snapshot.skill_coverage_score(all_skills)
         assert score > 90.0
 
@@ -138,8 +156,12 @@ class TestDecompositionSnapshot:
 
     def test_skill_coverage_case_insensitive(self, compound_snapshot):
         """Skill matching is case-insensitive."""
-        score_lower = compound_snapshot.skill_coverage_score(["react", "python", "docker"])
-        score_upper = compound_snapshot.skill_coverage_score(["React", "Python", "Docker"])
+        score_lower = compound_snapshot.skill_coverage_score(
+            ["react", "python", "docker"]
+        )
+        score_upper = compound_snapshot.skill_coverage_score(
+            ["React", "Python", "Docker"]
+        )
         assert score_lower == score_upper
 
     def test_complexity_multiplier_simple(self):
@@ -208,7 +230,9 @@ class TestAdapterCache:
         """Stale cache is used when API fails."""
         th = _task_hash({"title": "Build app"})
         compound_snapshot.task_hash = th
-        compound_snapshot.fetched_at = time.time() - FRESH_TTL - 10  # Expired fresh, still within stale
+        compound_snapshot.fetched_at = (
+            time.time() - FRESH_TTL - 10
+        )  # Expired fresh, still within stale
         adapter._cache[th] = compound_snapshot
 
         # API will fail (no server running)
@@ -265,7 +289,17 @@ class TestDecompositionScorer:
         adapter._cache[th] = compound_snapshot
 
         scorer = make_decomposition_scorer(adapter)
-        all_skills = ["react", "css", "html", "python", "fastapi", "postgresql", "docker", "aws", "ci_cd"]
+        all_skills = [
+            "react",
+            "css",
+            "html",
+            "python",
+            "fastapi",
+            "postgresql",
+            "docker",
+            "aws",
+            "ci_cd",
+        ]
         score = scorer({"title": "Build full stack"}, {"skills": all_skills})
         assert score > 80.0
 
@@ -276,7 +310,9 @@ class TestDecompositionScorer:
         adapter._cache[th] = compound_snapshot
 
         scorer = make_decomposition_scorer(adapter)
-        score = scorer({"title": "Build full stack"}, {"skills": ["cooking", "cleaning"]})
+        score = scorer(
+            {"title": "Build full stack"}, {"skills": ["cooking", "cleaning"]}
+        )
         assert score < 10.0
 
     def test_scorer_uses_skill_dna(self, adapter, compound_snapshot):
@@ -307,12 +343,14 @@ class TestDecompositionScorer:
             is_compound=True,
             unique_skills=["python"],
             complexity="expert",  # multiplier 1.15
-            sub_tasks=[SubTaskSnapshot(
-                title="Code",
-                task_type="code",
-                required_skills=["python"],
-                difficulty=0.1,
-            )],
+            sub_tasks=[
+                SubTaskSnapshot(
+                    title="Code",
+                    task_type="code",
+                    required_skills=["python"],
+                    difficulty=0.1,
+                )
+            ],
             fetched_at=time.time(),
         )
         adapter._cache[snap.task_hash] = snap

@@ -20,13 +20,11 @@ Coverage:
 
 import time
 import pytest
-from dataclasses import asdict
 
 from mcp_server.swarm.dashboard import (
     AgentStatus,
     PipelineMetrics,
     BudgetSummary,
-    CoordinationHealth,
     CategoryHeatmapEntry,
     DashboardAlert,
     SLAMetrics,
@@ -56,25 +54,38 @@ def populated_dashboard():
     """Dashboard with 5 registered agents and some events."""
     d = SwarmDashboard()
     for i in range(5):
-        d.register_agent(f"agent_{i}", budget_limit_usd=10.0,
-                         specializations=[f"skill_{i}", "general"])
+        d.register_agent(
+            f"agent_{i}",
+            budget_limit_usd=10.0,
+            specializations=[f"skill_{i}", "general"],
+        )
         d.update_agent_state(f"agent_{i}", "idle")
 
     # Record some task events
     for i in range(3):
         d.record_task_event(
-            agent_id="agent_0", task_id=f"task_{i}",
-            event_type="task_completed", category="delivery",
-            bounty_usd=2.0, quality=4.0, duration_s=3600,
+            agent_id="agent_0",
+            task_id=f"task_{i}",
+            event_type="task_completed",
+            category="delivery",
+            bounty_usd=2.0,
+            quality=4.0,
+            duration_s=3600,
         )
     d.record_task_event(
-        agent_id="agent_1", task_id="fail_1",
-        event_type="task_failed", category="verification",
+        agent_id="agent_1",
+        task_id="fail_1",
+        event_type="task_failed",
+        category="verification",
     )
     d.record_task_event(
-        agent_id="agent_1", task_id="complete_1",
-        event_type="task_completed", category="verification",
-        bounty_usd=3.0, quality=3.5, duration_s=7200,
+        agent_id="agent_1",
+        task_id="complete_1",
+        event_type="task_completed",
+        category="verification",
+        bounty_usd=3.0,
+        quality=3.5,
+        duration_s=7200,
     )
     return d
 
@@ -124,8 +135,9 @@ class TestDataTypes:
         assert b.utilization == 0.0
 
     def test_category_heatmap_entry_success_rate(self):
-        e = CategoryHeatmapEntry(agent_id="a1", category="delivery",
-                                  tasks_completed=8, tasks_failed=2)
+        e = CategoryHeatmapEntry(
+            agent_id="a1", category="delivery", tasks_completed=8, tasks_failed=2
+        )
         assert abs(e.success_rate - 0.8) < 0.001
 
     def test_category_heatmap_entry_no_tasks(self):
@@ -160,7 +172,8 @@ class TestDashboardSnapshot:
     def test_summary_line(self):
         snap = DashboardSnapshot(
             fleet_status=FleetStatus.HEALTHY,
-            agent_count=24, agents_operational=22,
+            agent_count=24,
+            agents_operational=22,
             pipeline=PipelineMetrics(completed_today=50, failed_today=3),
             budget=BudgetSummary(total_spent_today_usd=45.0),
         )
@@ -207,7 +220,9 @@ class TestAgentManagement:
     """Agent registration and lifecycle state updates."""
 
     def test_register_agent(self, dashboard):
-        dashboard.register_agent("a1", budget_limit_usd=5.0, specializations=["delivery"])
+        dashboard.register_agent(
+            "a1", budget_limit_usd=5.0, specializations=["delivery"]
+        )
         assert "a1" in dashboard.get_agent_ids()
 
     def test_register_multiple_agents(self, dashboard):
@@ -394,11 +409,16 @@ class TestAlertGeneration:
     def test_no_alerts_healthy(self, dashboard):
         dashboard.register_agent("a1")
         dashboard.update_agent_state("a1", "idle")
-        dashboard.record_task_event("a1", "t1", "task_completed",
-                                    bounty_usd=1.0, quality=4.0, duration_s=1800)
+        dashboard.record_task_event(
+            "a1", "t1", "task_completed", bounty_usd=1.0, quality=4.0, duration_s=1800
+        )
         snap = dashboard.generate_snapshot()
         # A single healthy agent shouldn't trigger critical alerts
-        critical = [a for a in snap.alerts if a.severity in (Severity.CRITICAL, Severity.EMERGENCY)]
+        critical = [
+            a
+            for a in snap.alerts
+            if a.severity in (Severity.CRITICAL, Severity.EMERGENCY)
+        ]
         assert len(critical) == 0
 
     def test_failure_streak_warning(self, dashboard):
@@ -406,8 +426,11 @@ class TestAlertGeneration:
         for i in range(3):
             dashboard.record_task_event("a1", f"f{i}", "task_failed")
         snap = dashboard.generate_snapshot()
-        streak_alerts = [a for a in snap.alerts if "failure streak" in a.title.lower()
-                         or "failing" in a.title.lower()]
+        streak_alerts = [
+            a
+            for a in snap.alerts
+            if "failure streak" in a.title.lower() or "failing" in a.title.lower()
+        ]
         assert len(streak_alerts) >= 1
 
     def test_failure_streak_critical(self, dashboard):
@@ -415,8 +438,11 @@ class TestAlertGeneration:
         for i in range(5):
             dashboard.record_task_event("a1", f"f{i}", "task_failed")
         snap = dashboard.generate_snapshot()
-        critical = [a for a in snap.alerts
-                    if a.severity == Severity.CRITICAL and "failure" in a.title.lower()]
+        critical = [
+            a
+            for a in snap.alerts
+            if a.severity == Severity.CRITICAL and "failure" in a.title.lower()
+        ]
         assert len(critical) >= 1
 
     def test_over_budget_alert(self, dashboard):
@@ -431,11 +457,18 @@ class TestAlertGeneration:
         dashboard.register_agent("a1")
         dashboard.update_agent_state("a1", "active")
         # Force old activity timestamp
-        dashboard._agent_events["a1"].append({
-            "agent_id": "a1", "task_id": "old", "event_type": "task_completed",
-            "category": "", "bounty_usd": 0, "quality": 0, "duration_s": 0,
-            "timestamp": time.time() - 2000,  # Way past stale timeout
-        })
+        dashboard._agent_events["a1"].append(
+            {
+                "agent_id": "a1",
+                "task_id": "old",
+                "event_type": "task_completed",
+                "category": "",
+                "bounty_usd": 0,
+                "quality": 0,
+                "duration_s": 0,
+                "timestamp": time.time() - 2000,  # Way past stale timeout
+            }
+        )
         snap = dashboard.generate_snapshot()
         stale_alerts = [a for a in snap.alerts if "unresponsive" in a.title.lower()]
         assert len(stale_alerts) >= 1
@@ -486,8 +519,10 @@ class TestAlertGeneration:
         if len(snap.alerts) >= 2:
             severities = [a.severity for a in snap.alerts]
             severity_order = {
-                Severity.EMERGENCY: 0, Severity.CRITICAL: 1,
-                Severity.WARNING: 2, Severity.INFO: 3,
+                Severity.EMERGENCY: 0,
+                Severity.CRITICAL: 1,
+                Severity.WARNING: 2,
+                Severity.INFO: 3,
             }
             indices = [severity_order[s] for s in severities]
             assert indices == sorted(indices)
@@ -546,7 +581,9 @@ class TestFleetStatus:
             dashboard.register_agent(f"a{i}", budget_limit_usd=1.0)
             dashboard.update_agent_state(f"a{i}", "idle")
             # All over budget
-            dashboard.record_task_event(f"a{i}", f"t{i}", "task_completed", bounty_usd=5.0)
+            dashboard.record_task_event(
+                f"a{i}", f"t{i}", "task_completed", bounty_usd=5.0
+            )
         snap = dashboard.generate_snapshot()
         # With all agents over budget → budget crisis → IMPAIRED or worse
         assert snap.fleet_status != FleetStatus.HEALTHY
@@ -623,8 +660,9 @@ class TestSLATracking:
         dashboard.register_agent("a1")
         # Complete before deadline
         future_deadline = time.time() + 3600
-        dashboard.record_task_event("a1", "t1", "task_completed",
-                                    deadline_ts=future_deadline)
+        dashboard.record_task_event(
+            "a1", "t1", "task_completed", deadline_ts=future_deadline
+        )
         snap = dashboard.generate_snapshot()
         assert snap.sla.tasks_met_deadline == 1
         assert snap.sla.tasks_missed_deadline == 0
@@ -633,8 +671,9 @@ class TestSLATracking:
         dashboard.register_agent("a1")
         # Complete AFTER deadline (past)
         past_deadline = time.time() - 3600
-        dashboard.record_task_event("a1", "t1", "task_completed",
-                                    deadline_ts=past_deadline)
+        dashboard.record_task_event(
+            "a1", "t1", "task_completed", deadline_ts=past_deadline
+        )
         snap = dashboard.generate_snapshot()
         assert snap.sla.tasks_missed_deadline == 1
 
@@ -644,10 +683,10 @@ class TestSLATracking:
         past = time.time() - 3600
         # 3 met, 1 missed = 75%
         for i in range(3):
-            dashboard.record_task_event("a1", f"m{i}", "task_completed",
-                                        deadline_ts=future)
-        dashboard.record_task_event("a1", "miss", "task_completed",
-                                    deadline_ts=past)
+            dashboard.record_task_event(
+                "a1", f"m{i}", "task_completed", deadline_ts=future
+            )
+        dashboard.record_task_event("a1", "miss", "task_completed", deadline_ts=past)
         snap = dashboard.generate_snapshot()
         assert abs(snap.sla.adherence_rate - 0.75) < 0.001
 
@@ -685,10 +724,22 @@ class TestHeatmap:
 
     def test_heatmap_quality_tracking(self, dashboard):
         dashboard.register_agent("a1")
-        dashboard.record_task_event("a1", "t1", "task_completed",
-                                    category="delivery", quality=4.0, duration_s=1800)
-        dashboard.record_task_event("a1", "t2", "task_completed",
-                                    category="delivery", quality=5.0, duration_s=1200)
+        dashboard.record_task_event(
+            "a1",
+            "t1",
+            "task_completed",
+            category="delivery",
+            quality=4.0,
+            duration_s=1800,
+        )
+        dashboard.record_task_event(
+            "a1",
+            "t2",
+            "task_completed",
+            category="delivery",
+            quality=5.0,
+            duration_s=1200,
+        )
         snap = dashboard.generate_snapshot()
         delivery_entries = [e for e in snap.heatmap if e.category == "delivery"]
         assert len(delivery_entries) == 1

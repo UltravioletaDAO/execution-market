@@ -5,14 +5,12 @@ Tests for DecisionBridge — wiring DecisionSynthesizer into SwarmCoordinator.
 import time
 import pytest
 from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock
 
 from mcp_server.swarm.decision_bridge import (
     DecisionBridge,
     BridgeMode,
     BridgeResult,
-    DecomposedTask,
-    FeedbackRecord,
     _make_reputation_scorer,
     _make_reliability_scorer,
     _make_capacity_scorer,
@@ -24,29 +22,20 @@ from mcp_server.swarm.decision_synthesizer import (
     DecisionSynthesizer,
     SignalType,
     DecisionOutcome,
-    ConfidenceLevel,
-    RankedDecision,
-    SignalVector,
 )
 from mcp_server.swarm.orchestrator import (
     SwarmOrchestrator,
     TaskRequest,
     TaskPriority,
-    Assignment,
-    RoutingFailure,
-    RoutingStrategy,
 )
 from mcp_server.swarm.reputation_bridge import (
     ReputationBridge,
     OnChainReputation,
     InternalReputation,
-    CompositeScore,
 )
 from mcp_server.swarm.lifecycle_manager import (
     LifecycleManager,
     AgentState,
-    AgentRecord,
-    BudgetConfig,
 )
 
 
@@ -63,11 +52,14 @@ def bridge_and_lifecycle():
     orchestrator = SwarmOrchestrator(rep_bridge, lifecycle)
 
     # Register 3 test agents
-    for i, (name, wallet, personality) in enumerate([
-        ("Agent Alpha", "0xAAA1111", "explorer"),
-        ("Agent Beta", "0xBBB2222", "specialist"),
-        ("Agent Gamma", "0xCCC3333", "generalist"),
-    ], start=1):
+    for i, (name, wallet, personality) in enumerate(
+        [
+            ("Agent Alpha", "0xAAA1111", "explorer"),
+            ("Agent Beta", "0xBBB2222", "specialist"),
+            ("Agent Gamma", "0xCCC3333", "generalist"),
+        ],
+        start=1,
+    ):
         lifecycle.register_agent(
             agent_id=i,
             name=name,
@@ -458,9 +450,7 @@ class TestFeedbackLoop:
 
     def test_record_unknown_task(self, decision_bridge):
         # Recording an outcome for a task we never processed
-        decision_bridge.record_outcome(
-            "unknown-task", "completed"
-        )
+        decision_bridge.record_outcome("unknown-task", "completed")
         assert decision_bridge._total_feedback_recorded == 1
         assert decision_bridge._feedback[0].decision_outcome == "unknown"
 
@@ -477,7 +467,9 @@ class TestFeedbackLoop:
         assert history[0]["actual"] == "completed"
         assert history[0]["quality"] == 0.85
 
-    def test_auto_evolve_not_triggered_below_threshold(self, decision_bridge, queued_task):
+    def test_auto_evolve_not_triggered_below_threshold(
+        self, decision_bridge, queued_task
+    ):
         decision_bridge.auto_evolve_threshold = 50
         mock_optimizer = MagicMock()
         decision_bridge.routing_optimizer = mock_optimizer
@@ -511,7 +503,7 @@ class TestFeedbackLoop:
         mock_optimizer.evolve.return_value = mock_rec
 
         decision_bridge.routing_optimizer = mock_optimizer
-        old_weights = decision_bridge.synthesizer.get_weights()
+        decision_bridge.synthesizer.get_weights()
 
         decision_bridge.record_outcome("t-001", "completed")
 
@@ -548,9 +540,7 @@ class TestBridgeModes:
         result = decision_bridge._process_single_task(queued_task)
         assert result.used_synthesis is True
         assert result.decision is not None
-        assert result.decision.outcome in (
-            DecisionOutcome.ROUTED, DecisionOutcome.HELD
-        )
+        assert result.decision.outcome in (DecisionOutcome.ROUTED, DecisionOutcome.HELD)
 
     def test_shadow_mode_logs_only(self, decision_bridge, queued_task):
         decision_bridge.mode = BridgeMode.SHADOW
@@ -654,9 +644,7 @@ class TestFactory:
         coordinator.availability_bridge = None
         coordinator.workforce_analytics = None
 
-        bridge = DecisionBridge.from_coordinator(
-            coordinator, mode=BridgeMode.SHADOW
-        )
+        bridge = DecisionBridge.from_coordinator(coordinator, mode=BridgeMode.SHADOW)
         assert bridge.mode == BridgeMode.SHADOW
 
 
@@ -791,7 +779,10 @@ class TestE2E:
         task_a.ingested_at = datetime.now(timezone.utc)
         task_a.raw_data = {}
         task_a.to_task_request.return_value = TaskRequest(
-            task_id="t-a", title="Photo", categories=["photo"], bounty_usd=5.0,
+            task_id="t-a",
+            title="Photo",
+            categories=["photo"],
+            bounty_usd=5.0,
         )
 
         task_b = MagicMock()
@@ -806,7 +797,10 @@ class TestE2E:
         task_b.ingested_at = datetime.now(timezone.utc)
         task_b.raw_data = {}
         task_b.to_task_request.return_value = TaskRequest(
-            task_id="t-b", title="Code review", categories=["technical"], bounty_usd=25.0,
+            task_id="t-b",
+            title="Code review",
+            categories=["technical"],
+            bounty_usd=25.0,
         )
 
         result_a = decision_bridge._process_single_task(task_a)
@@ -825,7 +819,6 @@ class TestDecisionBridgeWith12Signals:
         """MarketIntelligenceAdapter should register MARKET_INTELLIGENCE signal."""
         from mcp_server.swarm.market_intelligence_adapter import (
             MarketIntelligenceAdapter,
-            MarketSnapshot,
         )
 
         synthesizer = DecisionSynthesizer()
@@ -899,10 +892,21 @@ class TestDecisionBridgeWith12Signals:
     def test_all_12_signal_types_exist(self):
         """Verify all 12 SignalType enum values exist."""
         expected = [
-            "reputation", "skill_match", "availability", "capacity",
-            "speed", "cost", "recency", "reliability", "specialization",
-            "performance", "pricing", "outcome", "decomposition",
-            "retention", "market_intelligence",
+            "reputation",
+            "skill_match",
+            "availability",
+            "capacity",
+            "speed",
+            "cost",
+            "recency",
+            "reliability",
+            "specialization",
+            "performance",
+            "pricing",
+            "outcome",
+            "decomposition",
+            "retention",
+            "market_intelligence",
         ]
         for name in expected:
             assert hasattr(SignalType, name.upper()), f"Missing SignalType: {name}"
@@ -927,10 +931,7 @@ class TestDecisionBridgeWith12Signals:
         scorer = make_market_scorer(adapter)
         task = {"category": "physical_verification"}
 
-        scores = [
-            scorer(task, {"wallet": f"0x{i:040x}"})
-            for i in range(5)
-        ]
+        scores = [scorer(task, {"wallet": f"0x{i:040x}"}) for i in range(5)]
 
         # All scores should be identical (task-level signal)
         assert len(set(scores)) == 1, f"Scores should be identical: {scores}"

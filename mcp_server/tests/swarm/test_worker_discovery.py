@@ -13,7 +13,6 @@ Covers:
 """
 
 import time
-import pytest
 import sys
 import os
 
@@ -261,8 +260,12 @@ class TestTaskDemandTracker:
 
     def test_category_location_demand(self):
         tracker = TaskDemandTracker()
-        tracker.record_task(make_signal(task_id="t1", category="delivery", location="Miami"))
-        tracker.record_task(make_signal(task_id="t2", category="delivery", location="NYC"))
+        tracker.record_task(
+            make_signal(task_id="t1", category="delivery", location="Miami")
+        )
+        tracker.record_task(
+            make_signal(task_id="t2", category="delivery", location="NYC")
+        )
         demand = tracker.category_location_demand()
         assert demand[("delivery", "Miami")] == 1
         assert demand[("delivery", "NYC")] == 1
@@ -315,8 +318,12 @@ class TestWorkerCoverageMap:
 
     def test_workers_for_category_location(self):
         cmap = WorkerCoverageMap()
-        cmap.add_worker(make_worker(wallet="0xA", categories=["delivery"], locations=["Miami"]))
-        cmap.add_worker(make_worker(wallet="0xB", categories=["delivery"], locations=["NYC"]))
+        cmap.add_worker(
+            make_worker(wallet="0xA", categories=["delivery"], locations=["Miami"])
+        )
+        cmap.add_worker(
+            make_worker(wallet="0xB", categories=["delivery"], locations=["NYC"])
+        )
         result = cmap.workers_for_category_location("delivery", "Miami")
         assert len(result) == 1
 
@@ -330,7 +337,9 @@ class TestWorkerCoverageMap:
 
     def test_location_coverage(self):
         cmap = WorkerCoverageMap()
-        cmap.add_worker(make_worker(wallet="0xA", locations=["Miami", "Fort Lauderdale"]))
+        cmap.add_worker(
+            make_worker(wallet="0xA", locations=["Miami", "Fort Lauderdale"])
+        )
         coverage = cmap.location_coverage()
         assert "Miami" in coverage
         assert "Fort Lauderdale" in coverage
@@ -362,8 +371,14 @@ class TestWorkerCoverageMap:
 
     def test_top_performers(self):
         cmap = WorkerCoverageMap()
-        cmap.add_worker(make_worker(wallet="0xA", completed_tasks=8, total_tasks=10, avg_rating=4.5))
-        cmap.add_worker(make_worker(wallet="0xB", completed_tasks=10, total_tasks=10, avg_rating=5.0))
+        cmap.add_worker(
+            make_worker(wallet="0xA", completed_tasks=8, total_tasks=10, avg_rating=4.5)
+        )
+        cmap.add_worker(
+            make_worker(
+                wallet="0xB", completed_tasks=10, total_tasks=10, avg_rating=5.0
+            )
+        )
         top = cmap.top_performers(limit=2)
         # Worker B: 1.0 * 5.0 = 5.0, Worker A: 0.8 * 4.5 = 3.6
         assert top[0].wallet == "0xB"
@@ -408,7 +423,9 @@ class TestRecruitmentEngine:
 
     def test_gap_no_workers(self):
         tracker, coverage, engine = self._setup_engine()
-        tracker.record_task(make_signal(task_id="t1", category="delivery", location="Miami"))
+        tracker.record_task(
+            make_signal(task_id="t1", category="delivery", location="Miami")
+        )
         # No workers added → gap
         gaps = engine.identify_gaps()
         assert len(gaps) == 1
@@ -418,8 +435,12 @@ class TestRecruitmentEngine:
 
     def test_gap_with_workers(self):
         tracker, coverage, engine = self._setup_engine()
-        tracker.record_task(make_signal(task_id="t1", category="delivery", location="Miami"))
-        coverage.add_worker(make_worker(wallet="0xA", categories=["delivery"], locations=["Miami"]))
+        tracker.record_task(
+            make_signal(task_id="t1", category="delivery", location="Miami")
+        )
+        coverage.add_worker(
+            make_worker(wallet="0xA", categories=["delivery"], locations=["Miami"])
+        )
         gaps = engine.identify_gaps()
         assert len(gaps) == 1
         assert gaps[0].available_workers == 1
@@ -444,8 +465,12 @@ class TestRecruitmentEngine:
 
     def test_recommendations_ordered_by_priority(self):
         tracker, coverage, engine = self._setup_engine()
-        tracker.record_task(make_signal(task_id="t1", category="delivery", location="Miami"))
-        tracker.record_task(make_signal(task_id="t2", category="survey", location="NYC"))
+        tracker.record_task(
+            make_signal(task_id="t1", category="delivery", location="Miami")
+        )
+        tracker.record_task(
+            make_signal(task_id="t2", category="survey", location="NYC")
+        )
         recs = engine.generate_recommendations()
         assert len(recs) == 2
         assert recs[0].priority == 1
@@ -453,14 +478,18 @@ class TestRecruitmentEngine:
 
     def test_recommendations_includes_channels(self):
         tracker, coverage, engine = self._setup_engine()
-        tracker.record_task(make_signal(task_id="t1", category="delivery", location="Miami"))
+        tracker.record_task(
+            make_signal(task_id="t1", category="delivery", location="Miami")
+        )
         recs = engine.generate_recommendations()
         assert len(recs[0].recommended_channels) > 0
 
     def test_recommendations_max_count(self):
         tracker, coverage, engine = self._setup_engine()
         for i in range(20):
-            tracker.record_task(make_signal(task_id=f"t{i}", category=f"cat_{i}", location="remote"))
+            tracker.record_task(
+                make_signal(task_id=f"t{i}", category=f"cat_{i}", location="remote")
+            )
         recs = engine.generate_recommendations(max_count=3)
         assert len(recs) == 3
 
@@ -676,8 +705,13 @@ class TestRecruitmentChannels:
 
     def test_all_categories_have_channels(self):
         expected = [
-            "physical_verification", "delivery", "data_collection",
-            "survey", "mystery_shopping", "quality_assurance", "content_creation",
+            "physical_verification",
+            "delivery",
+            "data_collection",
+            "survey",
+            "mystery_shopping",
+            "quality_assurance",
+            "content_creation",
         ]
         for cat in expected:
             assert cat in RECRUITMENT_CHANNELS, f"Missing channels for {cat}"

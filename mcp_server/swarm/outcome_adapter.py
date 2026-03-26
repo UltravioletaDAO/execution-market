@@ -28,7 +28,7 @@ import json
 import logging
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import timezone
 from typing import Optional, Callable
 from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
@@ -41,6 +41,7 @@ UTC = timezone.utc
 @dataclass
 class PredictionSnapshot:
     """Cached prediction for a wallet+category pair."""
+
     wallet: str
     category: str
     success_probability: float
@@ -77,7 +78,6 @@ class OutcomeAdapterStats:
 
 
 class OutcomeAdapter:
-
     def __init__(self, autojob_url="http://localhost:8765", timeout_seconds=5.0):
         self.autojob_url = autojob_url.rstrip("/")
         self.timeout = timeout_seconds
@@ -111,15 +111,21 @@ class OutcomeAdapter:
 
         self._stats.default_fallbacks += 1
         default = PredictionSnapshot(
-            wallet=wallet, category=category,
-            success_probability=0.5, confidence=0.1,
-            recommendation="proceed_with_caution", risk_count=0,
-            fetched_at=time.time(), source="default",
+            wallet=wallet,
+            category=category,
+            success_probability=0.5,
+            confidence=0.1,
+            recommendation="proceed_with_caution",
+            risk_count=0,
+            fetched_at=time.time(),
+            source="default",
         )
         self._cache[cache_key] = default
         return default
 
-    def predict_batch(self, task_category: str, wallets: list[str]) -> list[PredictionSnapshot]:
+    def predict_batch(
+        self, task_category: str, wallets: list[str]
+    ) -> list[PredictionSnapshot]:
         return [self.predict(w, task_category) for w in wallets]
 
     def get_stats(self) -> dict:
@@ -139,7 +145,9 @@ class OutcomeAdapter:
         self._cache.clear()
         return count
 
-    def _fetch_from_api(self, wallet: str, category: str) -> Optional[PredictionSnapshot]:
+    def _fetch_from_api(
+        self, wallet: str, category: str
+    ) -> Optional[PredictionSnapshot]:
         url = f"{self.autojob_url}/api/predict/{wallet}/{category}"
         self._stats.api_calls += 1
         try:
@@ -155,12 +163,15 @@ class OutcomeAdapter:
                 return None
             pred = data.get("prediction", {})
             return PredictionSnapshot(
-                wallet=wallet, category=category,
+                wallet=wallet,
+                category=category,
                 success_probability=pred.get("success_probability", 0.5),
                 confidence=pred.get("confidence", 0.1),
                 recommendation=pred.get("recommendation", "proceed_with_caution"),
                 risk_count=len(pred.get("risk_factors", [])),
-                risk_names=[r.get("name", "") for r in pred.get("risk_factors", [])[:5]],
+                risk_names=[
+                    r.get("name", "") for r in pred.get("risk_factors", [])[:5]
+                ],
                 fetched_at=time.time(),
             )
         except (URLError, HTTPError, TimeoutError, json.JSONDecodeError) as e:
@@ -178,7 +189,9 @@ class OutcomeAdapter:
             self._stats.avg_probability = probability
         else:
             alpha = 0.1
-            self._stats.avg_probability = alpha * probability + (1 - alpha) * self._stats.avg_probability
+            self._stats.avg_probability = (
+                alpha * probability + (1 - alpha) * self._stats.avg_probability
+            )
 
 
 def make_outcome_scorer(adapter: OutcomeAdapter) -> Callable:
@@ -186,6 +199,7 @@ def make_outcome_scorer(adapter: OutcomeAdapter) -> Callable:
     Create a scorer function compatible with DecisionSynthesizer.
     Score = 70% probability + 20% confidence - 10% risk penalty.
     """
+
     def scorer(task: dict, candidate: dict) -> float:
         wallet = candidate.get("wallet", candidate.get("agent_id", ""))
         category = task.get("category", task.get("task_type", "general"))
@@ -197,4 +211,5 @@ def make_outcome_scorer(adapter: OutcomeAdapter) -> Callable:
         risk_penalty = min(30, prediction.risk_count * 8)
         score = prob_score * 0.70 + conf_score * 0.20 - risk_penalty * 0.10
         return max(0.0, min(100.0, score))
+
     return scorer

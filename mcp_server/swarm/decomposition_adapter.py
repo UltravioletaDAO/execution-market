@@ -41,7 +41,7 @@ import json
 import logging
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import timezone
 from typing import Optional, Callable
 from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
@@ -59,6 +59,7 @@ UTC = timezone.utc
 @dataclass
 class SubTaskSnapshot:
     """A decomposed sub-task summary."""
+
     title: str
     task_type: str
     required_skills: list[str] = field(default_factory=list)
@@ -70,6 +71,7 @@ class SubTaskSnapshot:
 @dataclass
 class DecompositionSnapshot:
     """Cached decomposition result for a task."""
+
     task_hash: str
     is_compound: bool = False
     sub_task_count: int = 1
@@ -258,14 +260,16 @@ class DecompositionAdapter:
 
             sub_tasks = []
             for st_data in data.get("sub_tasks", []):
-                sub_tasks.append(SubTaskSnapshot(
-                    title=st_data.get("title", ""),
-                    task_type=st_data.get("type", ""),
-                    required_skills=st_data.get("required_skills", []),
-                    estimated_hours=st_data.get("estimated_hours", 1.0),
-                    difficulty=st_data.get("difficulty", 0.5),
-                    bounty_share=st_data.get("bounty_share", 0.0),
-                ))
+                sub_tasks.append(
+                    SubTaskSnapshot(
+                        title=st_data.get("title", ""),
+                        task_type=st_data.get("type", ""),
+                        required_skills=st_data.get("required_skills", []),
+                        estimated_hours=st_data.get("estimated_hours", 1.0),
+                        difficulty=st_data.get("difficulty", 0.5),
+                        bounty_share=st_data.get("bounty_share", 0.0),
+                    )
+                )
 
             # Determine team size from team_options
             team_size = 1

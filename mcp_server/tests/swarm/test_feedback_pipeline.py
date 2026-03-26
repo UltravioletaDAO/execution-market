@@ -19,19 +19,14 @@ Tests cover:
 - AutoJob notification tracking
 """
 
-import json
-import os
 import tempfile
 from datetime import datetime, timezone
 
-import pytest
 
 from mcp_server.swarm.evidence_parser import (
     EvidenceParser,
     EvidenceQuality,
     QualityAssessment,
-    SkillDimension,
-    SkillSignal,
     WorkerRegistry,
 )
 from mcp_server.swarm.feedback_pipeline import (
@@ -41,8 +36,6 @@ from mcp_server.swarm.feedback_pipeline import (
     PipelineState,
 )
 from mcp_server.swarm.reputation_bridge import (
-    InternalReputation,
-    OnChainReputation,
     ReputationBridge,
 )
 
@@ -77,11 +70,18 @@ class TestCompletionFeedback:
 
     def test_error_feedback(self):
         fb = CompletionFeedback(
-            task_id="t1", worker_id="unknown",
-            quality=EvidenceQuality.POOR, quality_score=0.0,
-            evidence_count=0, evidence_types=[], skill_signals_count=0,
-            top_skills_updated=[], worker_task_count=0, worker_avg_quality=0.0,
-            reputation_delta=0.0, processing_time_ms=0.0,
+            task_id="t1",
+            worker_id="unknown",
+            quality=EvidenceQuality.POOR,
+            quality_score=0.0,
+            evidence_count=0,
+            evidence_types=[],
+            skill_signals_count=0,
+            top_skills_updated=[],
+            worker_task_count=0,
+            worker_avg_quality=0.0,
+            reputation_delta=0.0,
+            processing_time_ms=0.0,
             error="Task not found",
         )
         d = fb.to_dict()
@@ -142,9 +142,7 @@ class TestPipelineState:
 
 class TestExtractWorkerId:
     def setup_method(self):
-        self.pipeline = FeedbackPipeline(
-            state_dir=tempfile.mkdtemp()
-        )
+        self.pipeline = FeedbackPipeline(state_dir=tempfile.mkdtemp())
 
     def test_executor_id(self):
         task = {"executor_id": "0xABC123"}
@@ -189,33 +187,40 @@ class TestExtractWorkerId:
 
 class TestExtractEvidence:
     def setup_method(self):
-        self.pipeline = FeedbackPipeline(
-            state_dir=tempfile.mkdtemp()
-        )
+        self.pipeline = FeedbackPipeline(state_dir=tempfile.mkdtemp())
 
     def test_embedded_list(self):
-        task = {"evidence": [
-            {"type": "photo", "content": "pic1"},
-            {"type": "text_response", "content": "report"},
-        ]}
+        task = {
+            "evidence": [
+                {"type": "photo", "content": "pic1"},
+                {"type": "text_response", "content": "report"},
+            ]
+        }
         result = self.pipeline._extract_evidence(task)
         assert len(result) == 2
 
     def test_embedded_dict_normalized(self):
-        task = {"evidence": {
-            "photo_geo": {"url": "https://example.com/pic.jpg", "gps": {"lat": 25.7, "lng": -80.2}},
-            "device_metadata": {"os": "iOS"},  # Should be skipped
-        }}
+        task = {
+            "evidence": {
+                "photo_geo": {
+                    "url": "https://example.com/pic.jpg",
+                    "gps": {"lat": 25.7, "lng": -80.2},
+                },
+                "device_metadata": {"os": "iOS"},  # Should be skipped
+            }
+        }
         result = self.pipeline._extract_evidence(task)
         assert len(result) == 1
         assert result[0]["type"] == "photo_geo"
         assert result[0]["metadata"]["latitude"] == 25.7
 
     def test_submissions_flattened(self):
-        task = {"submissions": [
-            {"evidence": {"photo": {"url": "pic.jpg"}}},
-            {"evidence": {"text_response": {"text": "report"}}},
-        ]}
+        task = {
+            "submissions": [
+                {"evidence": {"photo": {"url": "pic.jpg"}}},
+                {"evidence": {"text_response": {"text": "report"}}},
+            ]
+        }
         result = self.pipeline._extract_evidence(task)
         assert len(result) == 2
 
@@ -228,9 +233,7 @@ class TestExtractEvidence:
 
 class TestNormalizeEvidenceDict:
     def setup_method(self):
-        self.pipeline = FeedbackPipeline(
-            state_dir=tempfile.mkdtemp()
-        )
+        self.pipeline = FeedbackPipeline(state_dir=tempfile.mkdtemp())
 
     def test_photo_geo_with_gps(self):
         evidence = {
@@ -273,18 +276,19 @@ class TestNormalizeEvidenceDict:
 
 class TestUpdateInternalReputation:
     def setup_method(self):
-        self.pipeline = FeedbackPipeline(
-            state_dir=tempfile.mkdtemp()
-        )
+        self.pipeline = FeedbackPipeline(state_dir=tempfile.mkdtemp())
 
     def _make_assessment(self, quality=EvidenceQuality.GOOD, score=0.7):
         return QualityAssessment(
-            quality=quality, score=score,
-            evidence_count=2, evidence_types=["photo"],
+            quality=quality,
+            score=score,
+            evidence_count=2,
+            evidence_types=["photo"],
         )
 
     def _make_dna(self, avg_quality=0.7):
         from mcp_server.swarm.evidence_parser import SkillDNA
+
         dna = SkillDNA(worker_id="w1")
         dna.avg_quality = avg_quality
         dna.task_count = 5
@@ -295,9 +299,7 @@ class TestUpdateInternalReputation:
         assessment = self._make_assessment()
         dna = self._make_dna()
 
-        delta = self.pipeline._update_internal_reputation(
-            "w1", task, assessment, dna
-        )
+        self.pipeline._update_internal_reputation("w1", task, assessment, dna)
 
         rep = self.pipeline.get_internal_reputation("w1")
         assert rep is not None
@@ -323,7 +325,8 @@ class TestUpdateInternalReputation:
         # Multiple suspicious submissions
         for _ in range(3):
             self.pipeline._update_internal_reputation(
-                "w1", task,
+                "w1",
+                task,
                 self._make_assessment(EvidenceQuality.SUSPICIOUS, 0.05),
                 dna,
             )
@@ -376,9 +379,7 @@ class TestUpdateInternalReputation:
 
 class TestProcessCompletionFromTask:
     def setup_method(self):
-        self.pipeline = FeedbackPipeline(
-            state_dir=tempfile.mkdtemp()
-        )
+        self.pipeline = FeedbackPipeline(state_dir=tempfile.mkdtemp())
 
     def test_full_pipeline_success(self):
         task = {
@@ -386,8 +387,15 @@ class TestProcessCompletionFromTask:
             "executor_id": "worker_42",
             "category": "delivery",
             "evidence": [
-                {"type": "photo_geo", "content": "delivery photo", "metadata": {"latitude": 25.7}},
-                {"type": "text_response", "content": "Delivered the package to the front door as requested"},
+                {
+                    "type": "photo_geo",
+                    "content": "delivery photo",
+                    "metadata": {"latitude": 25.7},
+                },
+                {
+                    "type": "text_response",
+                    "content": "Delivered the package to the front door as requested",
+                },
             ],
         }
         feedback = self.pipeline.process_completion_from_task(task)
@@ -442,7 +450,8 @@ class TestStatePersistence:
 
         # Process some data
         task = {
-            "id": "t1", "executor_id": "w1",
+            "id": "t1",
+            "executor_id": "w1",
             "evidence": [{"type": "photo", "content": "pic"}],
         }
         pipeline.process_completion_from_task(task)
@@ -463,7 +472,9 @@ class TestStatePersistence:
 
         # Build reputation
         task = {
-            "id": "t1", "executor_id": "w1", "category": "delivery",
+            "id": "t1",
+            "executor_id": "w1",
+            "category": "delivery",
             "evidence": [{"type": "photo", "content": "pic"}],
         }
         pipeline.process_completion_from_task(task)
@@ -481,13 +492,12 @@ class TestStatePersistence:
 
 class TestStatisticsAndProfiles:
     def setup_method(self):
-        self.pipeline = FeedbackPipeline(
-            state_dir=tempfile.mkdtemp()
-        )
+        self.pipeline = FeedbackPipeline(state_dir=tempfile.mkdtemp())
         # Process some completions
         for i, worker in enumerate(["w1", "w1", "w2"]):
             task = {
-                "id": f"t{i}", "executor_id": worker,
+                "id": f"t{i}",
+                "executor_id": worker,
                 "category": "delivery",
                 "evidence": [{"type": "photo", "content": f"pic{i}"}],
             }
@@ -555,12 +565,25 @@ class TestAutoJobNotification:
         )
         # Attempt notification (will fail silently)
         from mcp_server.swarm.feedback_pipeline import CompletionFeedback
-        pipeline._notify_autojob("w1", {"id": "t1"}, CompletionFeedback(
-            task_id="t1", worker_id="w1", quality=EvidenceQuality.GOOD,
-            quality_score=0.7, evidence_count=1, evidence_types=["photo"],
-            skill_signals_count=2, top_skills_updated=[], worker_task_count=1,
-            worker_avg_quality=0.7, reputation_delta=0.05, processing_time_ms=10,
-        ))
+
+        pipeline._notify_autojob(
+            "w1",
+            {"id": "t1"},
+            CompletionFeedback(
+                task_id="t1",
+                worker_id="w1",
+                quality=EvidenceQuality.GOOD,
+                quality_score=0.7,
+                evidence_count=1,
+                evidence_types=["photo"],
+                skill_signals_count=2,
+                top_skills_updated=[],
+                worker_task_count=1,
+                worker_avg_quality=0.7,
+                reputation_delta=0.05,
+                processing_time_ms=10,
+            ),
+        )
         assert pipeline._autojob_notify_errors >= 1
 
 
