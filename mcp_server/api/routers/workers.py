@@ -209,8 +209,32 @@ async def apply_to_task(
                     },
                 )
 
-            identity = await check_worker_identity(worker_wallet)
-            if not identity.agent_id:
+            # Guard 1: DB check — fast path (avoid unnecessary on-chain calls)
+            _db_executor = (
+                db.get_client()
+                .table("executors")
+                .select("erc8004_agent_id")
+                .eq("id", executor_id)
+                .limit(1)
+                .execute()
+            )
+            _db_agent_id = (
+                _db_executor.data[0].get("erc8004_agent_id")
+                if _db_executor.data
+                else None
+            )
+            if _db_agent_id:
+                logger.info(
+                    "Worker %s already has erc8004_agent_id=%s (DB), skipping registration",
+                    executor_id,
+                    _db_agent_id,
+                )
+                identity = None  # skip on-chain check + registration
+            else:
+                # Guard 2: On-chain check
+                identity = await check_worker_identity(worker_wallet)
+
+            if identity is not None and not identity.agent_id:
                 logger.info(
                     "Worker %s has no ERC-8004 identity — auto-registering gaslessly",
                     executor_id,

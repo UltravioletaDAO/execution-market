@@ -611,6 +611,65 @@ async def register_agent_endpoint(
     )
 
 
+@router.get(
+    "/identity/wallet/{wallet_address}",
+    responses={
+        200: {"description": "Identity found for wallet"},
+        404: {"description": "No ERC-8004 identity for this wallet"},
+    },
+)
+async def lookup_identity_by_wallet(wallet_address: str):
+    """Lookup ERC-8004 identity by wallet address (supports skill.md STEP 1)."""
+    if not ERC8004_AVAILABLE:
+        raise HTTPException(status_code=503, detail="ERC-8004 unavailable")
+
+    wallet_lower = wallet_address.strip().lower()
+    if not wallet_lower.startswith("0x") or len(wallet_lower) != 42:
+        raise HTTPException(status_code=400, detail="Invalid wallet address")
+
+    # Fast path: check DB
+    try:
+        result = (
+            db.get_client()
+            .table("executors")
+            .select("id, erc8004_agent_id, wallet_address")
+            .eq("wallet_address", wallet_lower)
+            .limit(1)
+            .execute()
+        )
+        if result.data and result.data[0].get("erc8004_agent_id"):
+            return {
+                "registered": True,
+                "agent_id": result.data[0]["erc8004_agent_id"],
+                "wallet": wallet_lower,
+                "source": "db",
+            }
+    except Exception:
+        pass
+
+    # On-chain check
+    try:
+        from integrations.erc8004.identity import check_worker_identity
+
+        identity = await check_worker_identity(wallet_lower)
+        if identity and identity.agent_id:
+            return {
+                "registered": True,
+                "agent_id": identity.agent_id,
+                "wallet": wallet_lower,
+                "source": "on_chain",
+            }
+    except Exception as e:
+        logger.warning(
+            "On-chain identity check failed for %s: %s", wallet_lower[:10], e
+        )
+
+    raise HTTPException(
+        status_code=404,
+        detail=f"No ERC-8004 identity found for {wallet_lower[:10]}...",
+    )
+
+
 # =============================================================================
 # AUTHENTICATED ENDPOINTS (Agents rate workers)
 # =============================================================================
@@ -658,6 +717,32 @@ async def rate_worker_endpoint(
         raise HTTPException(
             status_code=409, detail=f"Task status {task_status} cannot be rated yet"
         )
+
+    # Dedup: check if worker_rating feedback already exists for this task
+    try:
+        existing = (
+            db.get_client()
+            .table("feedback_documents")
+            .select("id")
+            .eq("task_id", request.task_id)
+            .eq("feedback_type", "worker_rating")
+            .limit(1)
+            .execute()
+        )
+        if existing.data:
+            logger.warning(
+                "Duplicate worker_rating feedback attempt for task=%s, returning existing",
+                request.task_id,
+            )
+            return FeedbackResponse(
+                success=True,
+                transaction_hash=None,
+                feedback_index=None,
+                network=ERC8004_NETWORK if ERC8004_AVAILABLE else "base",
+                error="Feedback already submitted for this task",
+            )
+    except Exception as e:
+        logger.warning("Dedup check failed (proceeding): %s", e)
 
     task_executor_wallet = _normalize_address(
         (task.get("executor") or {}).get("wallet_address")
@@ -832,6 +917,32 @@ async def rate_agent_endpoint(
             status_code=409, detail=f"Task status {task_status} cannot be rated yet"
         )
 
+    # Dedup: check if agent_rating feedback already exists for this task
+    try:
+        existing = (
+            db.get_client()
+            .table("feedback_documents")
+            .select("id")
+            .eq("task_id", request.task_id)
+            .eq("feedback_type", "agent_rating")
+            .limit(1)
+            .execute()
+        )
+        if existing.data:
+            logger.warning(
+                "Duplicate agent_rating feedback attempt for task=%s, returning existing",
+                request.task_id,
+            )
+            return FeedbackResponse(
+                success=True,
+                transaction_hash=None,
+                feedback_index=None,
+                network=ERC8004_NETWORK if ERC8004_AVAILABLE else "base",
+                error="Feedback already submitted for this task",
+            )
+    except Exception as e:
+        logger.warning("Dedup check failed (proceeding): %s", e)
+
     task_executor_wallet = _normalize_address(
         (task.get("executor") or {}).get("wallet_address")
     )
@@ -883,13 +994,31 @@ async def rate_agent_endpoint(
     # Use the numeric ERC-8004 token ID (erc8004_agent_id) when available,
     # falling back to wallet-address comparison for legacy tasks only.
     task_erc8004_id = task.get("erc8004_agent_id")
+    logger.info(
+        "RATING_DEBUG task=%s task_erc8004_id=%r request_agent_id=%r EM_AGENT_ID=%d",
+        request.task_id,
+        task_erc8004_id,
+        request.agent_id,
+        EM_AGENT_ID,
+    )
     if task_erc8004_id is not None:
         # Compare numeric ERC-8004 IDs directly — authoritative check.
         if int(task_erc8004_id) != request.agent_id:
-            raise HTTPException(
-                status_code=403,
-                detail="Task agent does not match rated agent identity",
-            )
+            if request.agent_id == EM_AGENT_ID:
+                # Dashboard fallback: task was created by external agent but dashboard
+                # fell back to platform agent ID. Use the task's actual agent ID instead.
+                logger.warning(
+                    "RATING_FALLBACK: request.agent_id=%d is EM_AGENT_ID but task has erc8004_agent_id=%s. "
+                    "Using task's agent ID for rating.",
+                    request.agent_id,
+                    task_erc8004_id,
+                )
+                request.agent_id = int(task_erc8004_id)
+            else:
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Task agent ({task_erc8004_id}) does not match rated agent identity ({request.agent_id})",
+                )
     elif request.agent_id != EM_AGENT_ID:
         # Legacy fallback: task has no erc8004_agent_id, compare wallet addresses.
         task_agent_addr = _normalize_address(task.get("agent_id", ""))
@@ -897,7 +1026,7 @@ async def rate_agent_endpoint(
         if task_agent_addr and identity_owner and task_agent_addr != identity_owner:
             raise HTTPException(
                 status_code=403,
-                detail="Task agent does not match rated agent identity",
+                detail=f"Task agent ({task_agent_addr}) does not match rated agent identity ({request.agent_id})",
             )
 
     # Use relay wallet for on-chain signing (worker→agent reputation).

@@ -104,6 +104,24 @@ export function TaskRatings({ taskId, executorId, paymentNetwork, taskTitle, age
   const [ratings, setRatings] = useState<Rating[]>([])
   const [loading, setLoading] = useState(true)
   const [showRateModal, setShowRateModal] = useState(false)
+  const [resolvedAgentId, setResolvedAgentId] = useState<number | undefined>(agentId)
+
+  // Resolve agent ID from API when not provided via props
+  useEffect(() => {
+    if (agentId) {
+      setResolvedAgentId(agentId)
+      return
+    }
+    const API_BASE = import.meta.env.VITE_API_URL || 'https://api.execution.market'
+    fetch(`${API_BASE}/api/v1/tasks/${taskId}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.erc8004_agent_id) {
+          setResolvedAgentId(Number(data.erc8004_agent_id))
+        }
+      })
+      .catch(() => {}) // Non-blocking — button stays disabled if unresolvable
+  }, [taskId, agentId])
 
   const fetchRatings = useCallback(async () => {
     try {
@@ -197,7 +215,7 @@ export function TaskRatings({ taskId, executorId, paymentNetwork, taskTitle, age
         />
       )}
 
-      {canRateAgent && (
+      {canRateAgent && resolvedAgentId && (
         <button
           type="button"
           onClick={(e) => {
@@ -211,11 +229,11 @@ export function TaskRatings({ taskId, executorId, paymentNetwork, taskTitle, age
         </button>
       )}
 
-      {showRateModal && (
+      {showRateModal && resolvedAgentId && (
         <RateAgentModal
           taskId={taskId}
           taskTitle={taskTitle || ''}
-          agentId={agentId || 2106}
+          agentId={resolvedAgentId}
           agentName={agentName}
           onClose={() => setShowRateModal(false)}
           onSuccess={() => {

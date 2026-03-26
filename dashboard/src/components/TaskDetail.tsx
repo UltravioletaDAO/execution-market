@@ -721,7 +721,7 @@ export function TaskDetail({
             executorId={currentExecutor?.id === task.executor_id ? currentExecutor.id : undefined}
             paymentNetwork={task.payment_network}
             taskTitle={task.title}
-            agentId={task.erc8004_agent_id ? Number(task.erc8004_agent_id) : 2106}
+            agentId={task.erc8004_agent_id ? Number(task.erc8004_agent_id) : undefined}
             agentName={task.agent_name ?? undefined}
           />
         )}
