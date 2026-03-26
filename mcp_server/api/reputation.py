@@ -880,11 +880,20 @@ async def rate_agent_endpoint(
         )
 
     # Verify the rated agent matches the task's agent.
-    task_agent_raw = task.get("agent_id", "")
-    identity_owner = _normalize_address(agent_identity.owner)
-
-    if request.agent_id != EM_AGENT_ID:
-        task_agent_addr = _normalize_address(task_agent_raw)
+    # Use the numeric ERC-8004 token ID (erc8004_agent_id) when available,
+    # falling back to wallet-address comparison for legacy tasks only.
+    task_erc8004_id = task.get("erc8004_agent_id")
+    if task_erc8004_id is not None:
+        # Compare numeric ERC-8004 IDs directly — authoritative check.
+        if int(task_erc8004_id) != request.agent_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Task agent does not match rated agent identity",
+            )
+    elif request.agent_id != EM_AGENT_ID:
+        # Legacy fallback: task has no erc8004_agent_id, compare wallet addresses.
+        task_agent_addr = _normalize_address(task.get("agent_id", ""))
+        identity_owner = _normalize_address(agent_identity.owner)
         if task_agent_addr and identity_owner and task_agent_addr != identity_owner:
             raise HTTPException(
                 status_code=403,

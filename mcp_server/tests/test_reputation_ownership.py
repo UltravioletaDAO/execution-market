@@ -177,6 +177,102 @@ async def test_rate_agent_rejects_mismatched_agent_identity(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_rate_agent_rejects_mismatched_erc8004_id(monkeypatch):
+    """When task has erc8004_agent_id, compare numeric IDs (not wallets)."""
+    monkeypatch.setattr(reputation, "ERC8004_AVAILABLE", True)
+    monkeypatch.setattr(
+        reputation.db,
+        "get_task",
+        AsyncMock(
+            return_value={
+                "id": TASK_ID,
+                "agent_id": "0xagentowner",
+                "erc8004_agent_id": "20",
+                "status": "completed",
+                "executor_id": "exec_1",
+                "executor": {"wallet_address": "0xworker"},
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        reputation,
+        "get_agent_info",
+        AsyncMock(return_value=SimpleNamespace(owner="0xagentowner")),
+        raising=False,
+    )
+
+    request = reputation.AgentFeedbackRequest(
+        agent_id=10,
+        task_id=TASK_ID,
+        score=70,
+        comment="ok",
+        proof_tx=None,
+    )
+
+    with pytest.raises(HTTPException) as exc:
+        await reputation.rate_agent_endpoint(
+            raw_request=_mock_request(),
+            request=request,
+            worker_auth=None,
+        )
+
+    assert exc.value.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_rate_agent_passes_matching_erc8004_id(monkeypatch):
+    """When task has erc8004_agent_id matching request, bypass wallet check."""
+    monkeypatch.setattr(reputation, "ERC8004_AVAILABLE", True)
+    monkeypatch.setattr(
+        reputation.db,
+        "get_task",
+        AsyncMock(
+            return_value={
+                "id": TASK_ID,
+                "agent_id": "0xplatformwallet",
+                "erc8004_agent_id": "10",
+                "status": "completed",
+                "executor_id": "exec_1",
+                "executor": {"wallet_address": "0xworker"},
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        reputation,
+        "get_agent_info",
+        AsyncMock(return_value=SimpleNamespace(owner="0xdifferentnftowner")),
+        raising=False,
+    )
+    rate_agent_mock = AsyncMock(
+        return_value=SimpleNamespace(
+            success=True,
+            transaction_hash="0xabc",
+            feedback_index=7,
+            network="ethereum",
+            error=None,
+        )
+    )
+    monkeypatch.setattr(reputation, "rate_agent", rate_agent_mock, raising=False)
+
+    request = reputation.AgentFeedbackRequest(
+        agent_id=10,
+        task_id=TASK_ID,
+        score=85,
+        comment="great",
+        proof_tx="0xproof",
+    )
+
+    result = await reputation.rate_agent_endpoint(
+        raw_request=_mock_request(),
+        request=request,
+        worker_auth=None,
+    )
+
+    assert result.success is True
+    assert rate_agent_mock.await_count == 1
+
+
+@pytest.mark.asyncio
 async def test_rate_agent_succeeds_with_valid_task_context(monkeypatch):
     monkeypatch.setattr(reputation, "ERC8004_AVAILABLE", True)
     monkeypatch.setattr(
