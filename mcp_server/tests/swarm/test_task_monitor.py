@@ -13,7 +13,6 @@ import time
 from pathlib import Path
 from unittest.mock import MagicMock
 
-import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
@@ -65,10 +64,14 @@ class TestMonitoredTask:
         assert t2.is_assigned
 
     def test_can_intervene(self):
-        t = MonitoredTask(task_id="t1", title="Test", max_interventions=3, intervention_count=2)
+        t = MonitoredTask(
+            task_id="t1", title="Test", max_interventions=3, intervention_count=2
+        )
         assert t.can_intervene
 
-        t2 = MonitoredTask(task_id="t2", title="Test", max_interventions=3, intervention_count=3)
+        t2 = MonitoredTask(
+            task_id="t2", title="Test", max_interventions=3, intervention_count=3
+        )
         assert not t2.can_intervene
 
 
@@ -114,7 +117,9 @@ class TestInterventionRule:
             requires_assignment=True,
         )
         unassigned = MonitoredTask(task_id="t1", title="T", urgency=TaskUrgency.WARNING)
-        assigned = MonitoredTask(task_id="t2", title="T", urgency=TaskUrgency.WARNING, worker_id="w1")
+        assigned = MonitoredTask(
+            task_id="t2", title="T", urgency=TaskUrgency.WARNING, worker_id="w1"
+        )
         assert not rule.matches(unassigned)
         assert rule.matches(assigned)
 
@@ -125,7 +130,9 @@ class TestInterventionRule:
             intervention_type=InterventionType.REBROADCAST,
             requires_assignment=False,
         )
-        assigned = MonitoredTask(task_id="t1", title="T", urgency=TaskUrgency.WARNING, worker_id="w1")
+        assigned = MonitoredTask(
+            task_id="t1", title="T", urgency=TaskUrgency.WARNING, worker_id="w1"
+        )
         assert not rule.matches(assigned)
 
     def test_bounty_filter(self):
@@ -136,9 +143,15 @@ class TestInterventionRule:
             min_bounty_usd=0.25,
             max_bounty_usd=5.00,
         )
-        low = MonitoredTask(task_id="t1", title="T", urgency=TaskUrgency.WARNING, bounty_usd=0.10)
-        mid = MonitoredTask(task_id="t2", title="T", urgency=TaskUrgency.WARNING, bounty_usd=1.00)
-        high = MonitoredTask(task_id="t3", title="T", urgency=TaskUrgency.WARNING, bounty_usd=10.00)
+        low = MonitoredTask(
+            task_id="t1", title="T", urgency=TaskUrgency.WARNING, bounty_usd=0.10
+        )
+        mid = MonitoredTask(
+            task_id="t2", title="T", urgency=TaskUrgency.WARNING, bounty_usd=1.00
+        )
+        high = MonitoredTask(
+            task_id="t3", title="T", urgency=TaskUrgency.WARNING, bounty_usd=10.00
+        )
         assert not rule.matches(low)
         assert rule.matches(mid)
         assert not rule.matches(high)
@@ -201,7 +214,9 @@ class TestTaskMonitorCore:
     def test_run_cycle_with_tasks(self):
         monitor = TaskMonitor()
         now = time.time()
-        monitor.ingest_task("t1", title="Test", created_at=now - 3600, deadline_at=now + 600)
+        monitor.ingest_task(
+            "t1", title="Test", created_at=now - 3600, deadline_at=now + 600
+        )
         monitor.run_cycle()
         # Task should have updated urgency
         task = monitor.get_task("t1")
@@ -217,7 +232,8 @@ class TestTaskMonitorRules:
     def test_add_rule(self):
         monitor = TaskMonitor()
         rule = InterventionRule(
-            name="test", urgency_trigger=TaskUrgency.WARNING,
+            name="test",
+            urgency_trigger=TaskUrgency.WARNING,
             intervention_type=InterventionType.REBROADCAST,
         )
         monitor.add_rule(rule)
@@ -225,19 +241,25 @@ class TestTaskMonitorRules:
 
     def test_get_rules(self):
         monitor = TaskMonitor()
-        monitor.add_rule(InterventionRule(
-            name="r1", urgency_trigger=TaskUrgency.WARNING,
-            intervention_type=InterventionType.REBROADCAST,
-        ))
+        monitor.add_rule(
+            InterventionRule(
+                name="r1",
+                urgency_trigger=TaskUrgency.WARNING,
+                intervention_type=InterventionType.REBROADCAST,
+            )
+        )
         rules = monitor.get_rules()
         assert len(rules) >= 1
 
     def test_remove_rule(self):
         monitor = TaskMonitor()
-        monitor.add_rule(InterventionRule(
-            name="r1", urgency_trigger=TaskUrgency.WARNING,
-            intervention_type=InterventionType.REBROADCAST,
-        ))
+        monitor.add_rule(
+            InterventionRule(
+                name="r1",
+                urgency_trigger=TaskUrgency.WARNING,
+                intervention_type=InterventionType.REBROADCAST,
+            )
+        )
         count_before = len(monitor.rules)
         monitor.remove_rule("r1")
         assert len(monitor.rules) < count_before
@@ -259,15 +281,18 @@ class TestTaskMonitorCallbacks:
         monitor.on_intervention(handler)
 
         # Set up conditions for intervention
-        monitor.add_rule(InterventionRule(
-            name="test",
-            urgency_trigger=TaskUrgency.CRITICAL,
-            intervention_type=InterventionType.REBROADCAST,
-            cooldown_seconds=0,
-        ))
+        monitor.add_rule(
+            InterventionRule(
+                name="test",
+                urgency_trigger=TaskUrgency.CRITICAL,
+                intervention_type=InterventionType.REBROADCAST,
+                cooldown_seconds=0,
+            )
+        )
         now = time.time()
-        monitor.ingest_task("t1", title="Test",
-                           created_at=now - 3600, deadline_at=now + 10)
+        monitor.ingest_task(
+            "t1", title="Test", created_at=now - 3600, deadline_at=now + 10
+        )
         monitor.run_cycle()
         # If urgency reached CRITICAL, handler may be called
 
@@ -277,8 +302,9 @@ class TestTaskMonitorCallbacks:
         monitor.on_urgency_change(handler)
 
         now = time.time()
-        monitor.ingest_task("t1", title="Test",
-                           created_at=now - 3600, deadline_at=now + 100)
+        monitor.ingest_task(
+            "t1", title="Test", created_at=now - 3600, deadline_at=now + 100
+        )
         monitor.run_cycle()
         # If urgency changed from HEALTHY, handler should be called
 
@@ -318,9 +344,13 @@ class TestTaskMonitorUrgency:
         monitor = TaskMonitor()
         now = time.time()
         # Healthy task (far from deadline)
-        monitor.ingest_task("t1", title="Healthy", created_at=now, deadline_at=now + 86400)
+        monitor.ingest_task(
+            "t1", title="Healthy", created_at=now, deadline_at=now + 86400
+        )
         # Overdue task
-        monitor.ingest_task("t2", title="Overdue", created_at=now - 7200, deadline_at=now - 100)
+        monitor.ingest_task(
+            "t2", title="Overdue", created_at=now - 7200, deadline_at=now - 100
+        )
         monitor.run_cycle()
 
         overdue = monitor.get_tasks_by_urgency(TaskUrgency.OVERDUE)
@@ -334,22 +364,30 @@ class TestTaskMonitorUrgency:
 
 class TestInterventionDataclass:
     def test_duration_unresolved(self):
-        i = Intervention(intervention_id="i1", task_id="t1",
-                        intervention_type=InterventionType.REBROADCAST)
+        i = Intervention(
+            intervention_id="i1",
+            task_id="t1",
+            intervention_type=InterventionType.REBROADCAST,
+        )
         assert i.duration_seconds is None
 
     def test_duration_resolved(self):
         now = time.time()
         i = Intervention(
-            intervention_id="i1", task_id="t1",
+            intervention_id="i1",
+            task_id="t1",
             intervention_type=InterventionType.REBROADCAST,
-            triggered_at=now - 60, resolved_at=now,
+            triggered_at=now - 60,
+            resolved_at=now,
         )
         assert abs(i.duration_seconds - 60) < 1
 
     def test_outcome_default_pending(self):
-        i = Intervention(intervention_id="i1", task_id="t1",
-                        intervention_type=InterventionType.REBROADCAST)
+        i = Intervention(
+            intervention_id="i1",
+            task_id="t1",
+            intervention_type=InterventionType.REBROADCAST,
+        )
         assert i.outcome == InterventionOutcome.PENDING
 
 

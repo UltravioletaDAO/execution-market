@@ -14,7 +14,6 @@ Covers:
 
 from datetime import datetime, timezone, timedelta
 
-import pytest
 
 from mcp_server.swarm.orchestrator import (
     SwarmOrchestrator,
@@ -29,15 +28,11 @@ from mcp_server.swarm.reputation_bridge import (
     ReputationBridge,
     OnChainReputation,
     InternalReputation,
-    CompositeScore,
-    ReputationTier,
 )
 from mcp_server.swarm.lifecycle_manager import (
     LifecycleManager,
     AgentState,
     BudgetConfig,
-    LifecycleError,
-    BudgetExceededError,
 )
 
 
@@ -54,7 +49,8 @@ def _setup_orchestrator(
     bridge = ReputationBridge()
     lifecycle = LifecycleManager()
     orch = SwarmOrchestrator(
-        bridge, lifecycle,
+        bridge,
+        lifecycle,
         default_strategy=strategy,
         cooldown_seconds=cooldown,
         min_score_threshold=min_score,
@@ -89,8 +85,15 @@ def _setup_orchestrator(
     return orch, lifecycle
 
 
-def _task(task_id="t1", title="Photo verification", categories=None, bounty=1.0,
-          priority=TaskPriority.NORMAL, preferred=None, exclude=None):
+def _task(
+    task_id="t1",
+    title="Photo verification",
+    categories=None,
+    bounty=1.0,
+    priority=TaskPriority.NORMAL,
+    preferred=None,
+    exclude=None,
+):
     return TaskRequest(
         task_id=task_id,
         title=title,
@@ -119,9 +122,16 @@ class TestTaskPriority:
         assert TaskPriority.LOW.value == "low"
 
     def test_weights_ordering(self):
-        assert PRIORITY_WEIGHTS[TaskPriority.CRITICAL] > PRIORITY_WEIGHTS[TaskPriority.HIGH]
-        assert PRIORITY_WEIGHTS[TaskPriority.HIGH] > PRIORITY_WEIGHTS[TaskPriority.NORMAL]
-        assert PRIORITY_WEIGHTS[TaskPriority.NORMAL] > PRIORITY_WEIGHTS[TaskPriority.LOW]
+        assert (
+            PRIORITY_WEIGHTS[TaskPriority.CRITICAL]
+            > PRIORITY_WEIGHTS[TaskPriority.HIGH]
+        )
+        assert (
+            PRIORITY_WEIGHTS[TaskPriority.HIGH] > PRIORITY_WEIGHTS[TaskPriority.NORMAL]
+        )
+        assert (
+            PRIORITY_WEIGHTS[TaskPriority.NORMAL] > PRIORITY_WEIGHTS[TaskPriority.LOW]
+        )
 
 
 class TestTaskRequest:
@@ -210,7 +220,9 @@ class TestOrchestratorAntiDuplication:
         result2 = orch.route_task(_task(task_id="t2"))
         assert isinstance(result1, Assignment)
         assert isinstance(result2, Assignment)
-        assert result1.agent_id != result2.agent_id or result1.task_id != result2.task_id
+        assert (
+            result1.agent_id != result2.agent_id or result1.task_id != result2.task_id
+        )
 
 
 class TestOrchestratorExclusions:
@@ -251,18 +263,24 @@ class TestOrchestratorScoreThreshold:
 
 class TestOrchestratorRoundRobin:
     def test_round_robin_distributes(self):
-        orch, lm = _setup_orchestrator(num_agents=3, strategy=RoutingStrategy.ROUND_ROBIN)
+        orch, lm = _setup_orchestrator(
+            num_agents=3, strategy=RoutingStrategy.ROUND_ROBIN
+        )
         results = []
         for i in range(3):
             # Need to free agents after each task
-            result = orch.route_task(_task(task_id=f"t{i}"), strategy=RoutingStrategy.ROUND_ROBIN)
+            result = orch.route_task(
+                _task(task_id=f"t{i}"), strategy=RoutingStrategy.ROUND_ROBIN
+            )
             if isinstance(result, Assignment):
                 results.append(result.agent_id)
                 orch.complete_task(f"t{i}")
                 # Move agent back to active
                 lm.check_cooldown_expiry(result.agent_id)
                 if lm.agents[result.agent_id].state == AgentState.COOLDOWN:
-                    lm._agents[result.agent_id].cooldown_until = datetime.now(timezone.utc) - timedelta(seconds=1)
+                    lm._agents[result.agent_id].cooldown_until = datetime.now(
+                        timezone.utc
+                    ) - timedelta(seconds=1)
                     lm.check_cooldown_expiry(result.agent_id)
                 if lm.agents[result.agent_id].state == AgentState.IDLE:
                     lm.transition(result.agent_id, AgentState.ACTIVE)
@@ -273,7 +291,9 @@ class TestOrchestratorSpecialist:
     def test_specialist_requires_category_experience(self):
         orch, lm = _setup_orchestrator(num_agents=3)
         # Agent 3 has skill_score > 50 for photo category
-        result = orch.route_task(_task(categories=["photo"]), strategy=RoutingStrategy.SPECIALIST)
+        result = orch.route_task(
+            _task(categories=["photo"]), strategy=RoutingStrategy.SPECIALIST
+        )
         assert isinstance(result, Assignment)
 
     def test_specialist_no_qualified(self):
@@ -286,14 +306,18 @@ class TestOrchestratorSpecialist:
             successful_tasks=1,
             category_scores={},
         )
-        result = orch.route_task(_task(categories=["notarization"]), strategy=RoutingStrategy.SPECIALIST)
+        result = orch.route_task(
+            _task(categories=["notarization"]), strategy=RoutingStrategy.SPECIALIST
+        )
         # With min_score=0 but specialist requires skill_score >= 50
         assert isinstance(result, (Assignment, RoutingFailure))
 
 
 class TestOrchestratorBudgetAware:
     def test_budget_aware_prefers_headroom(self):
-        orch, lm = _setup_orchestrator(num_agents=2, strategy=RoutingStrategy.BUDGET_AWARE)
+        orch, lm = _setup_orchestrator(
+            num_agents=2, strategy=RoutingStrategy.BUDGET_AWARE
+        )
         # Agent 1: spent a lot
         lm.record_spend(1, 8.0)  # 80% of $10 daily
         # Agent 2: barely spent
@@ -352,8 +376,10 @@ class TestOrchestratorTaskLifecycle:
         agent = lm.agents[1]
         # Failure cooldown should be 3x normal
         if agent.cooldown_until:
-            expected_min = datetime.now(timezone.utc) + timedelta(seconds=80)
-            assert agent.cooldown_until > datetime.now(timezone.utc) + timedelta(seconds=60)
+            datetime.now(timezone.utc) + timedelta(seconds=80)
+            assert agent.cooldown_until > datetime.now(timezone.utc) + timedelta(
+                seconds=60
+            )
 
 
 # ──────────────────── Reputation Registration ─────────────────────
@@ -377,8 +403,16 @@ class TestOrchestratorReputation:
         bridge = ReputationBridge()
         lifecycle = LifecycleManager()
         orch = SwarmOrchestrator(bridge, lifecycle)
-        orch.register_reputation(1, OnChainReputation(1, "0x1", total_seals=10), InternalReputation(1, bayesian_score=0.5))
-        orch.register_reputation(1, OnChainReputation(1, "0x1", total_seals=20), InternalReputation(1, bayesian_score=0.8))
+        orch.register_reputation(
+            1,
+            OnChainReputation(1, "0x1", total_seals=10),
+            InternalReputation(1, bayesian_score=0.5),
+        )
+        orch.register_reputation(
+            1,
+            OnChainReputation(1, "0x1", total_seals=20),
+            InternalReputation(1, bayesian_score=0.8),
+        )
         assert orch._on_chain[1].total_seals == 20
         assert orch._internal[1].bayesian_score == 0.8
 
@@ -475,7 +509,13 @@ class TestOrchestratorEdgeCases:
         orch.register_reputation(
             1,
             OnChainReputation(1, "0x1", total_seals=10, positive_seals=9),
-            InternalReputation(1, bayesian_score=0.7, total_tasks=20, successful_tasks=18, avg_rating=4.0),
+            InternalReputation(
+                1,
+                bayesian_score=0.7,
+                total_tasks=20,
+                successful_tasks=18,
+                avg_rating=4.0,
+            ),
         )
         result = orch.route_task(_task())
         assert isinstance(result, Assignment)

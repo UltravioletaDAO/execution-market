@@ -16,10 +16,8 @@ Covers:
 - Queue management (summary, cleanup)
 """
 
-import json
-import time
 from datetime import datetime, timezone, timedelta
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -39,16 +37,12 @@ from mcp_server.swarm.reputation_bridge import (
 from mcp_server.swarm.lifecycle_manager import (
     LifecycleManager,
     AgentState,
-    BudgetConfig,
-    LifecycleError,
 )
 from mcp_server.swarm.orchestrator import (
     SwarmOrchestrator,
-    RoutingStrategy,
     TaskPriority,
     TaskRequest,
     Assignment,
-    RoutingFailure,
 )
 
 
@@ -66,7 +60,9 @@ def _coordinator(num_agents=3, autojob=False, em_client=False):
         lifecycle=lifecycle,
         orchestrator=orchestrator,
         em_client=EMApiClient("http://fake") if em_client else None,
-        autojob_client=MagicMock(is_available=MagicMock(return_value=False)) if autojob else None,
+        autojob_client=MagicMock(is_available=MagicMock(return_value=False))
+        if autojob
+        else None,
     )
 
     for i in range(1, num_agents + 1):
@@ -313,7 +309,9 @@ class TestCoordinatorProcessing:
     def test_process_priority_ordering(self):
         coord = _coordinator(num_agents=3)
         coord.ingest_task("t_low", "Low", ["photo"], priority=TaskPriority.LOW)
-        coord.ingest_task("t_crit", "Critical", ["photo"], priority=TaskPriority.CRITICAL)
+        coord.ingest_task(
+            "t_crit", "Critical", ["photo"], priority=TaskPriority.CRITICAL
+        )
         coord.ingest_task("t_norm", "Normal", ["photo"], priority=TaskPriority.NORMAL)
         results = coord.process_task_queue()
         # Critical should be processed first
@@ -432,7 +430,9 @@ class TestCoordinatorHealth:
         coord = _coordinator(num_agents=0, em_client=False)
         coord.ingest_task("t1", "Old task", ["photo"])
         # Set ingestion time far in the past
-        coord._task_queue["t1"].ingested_at = datetime.now(timezone.utc) - timedelta(hours=48)
+        coord._task_queue["t1"].ingested_at = datetime.now(timezone.utc) - timedelta(
+            hours=48
+        )
         report = coord.run_health_checks()
         assert report["tasks"]["expired"] >= 1
         assert coord._task_queue["t1"].status == "expired"
@@ -588,7 +588,9 @@ class TestCoordinatorQueueManagement:
         coord.process_task_queue()
         coord.complete_task("t1")
         # Set completed task as old
-        coord._task_queue["t1"].ingested_at = datetime.now(timezone.utc) - timedelta(hours=48)
+        coord._task_queue["t1"].ingested_at = datetime.now(timezone.utc) - timedelta(
+            hours=48
+        )
         removed = coord.cleanup_completed(older_than_hours=24)
         assert removed == 1
         assert "t1" not in coord._task_queue

@@ -10,14 +10,12 @@ Covers:
 """
 
 import json
-import os
-import time
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
-import pytest
 
 import sys
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from swarm.state_persistence import (
@@ -69,7 +67,9 @@ class TestPersistedState:
             total_expired=1,
             total_bounty_earned=2.50,
             agent_reputations={"agent-1": {"on_chain": 80, "internal": 90}},
-            retry_backoffs={"t4": {"next_retry_at": "2026-01-01T00:00:00+00:00", "attempt": 2}},
+            retry_backoffs={
+                "t4": {"next_retry_at": "2026-01-01T00:00:00+00:00", "attempt": 2}
+            },
         )
         d = original.to_dict()
         restored = PersistedState.from_dict(d)
@@ -92,11 +92,13 @@ class TestPersistedState:
         assert state.total_ingested == 0
 
     def test_from_dict_extra_keys_ignored(self):
-        state = PersistedState.from_dict({
-            "schema_version": 1,
-            "unknown_key": "should_not_crash",
-            "counters": {"total_ingested": 7},
-        })
+        state = PersistedState.from_dict(
+            {
+                "schema_version": 1,
+                "unknown_key": "should_not_crash",
+                "counters": {"total_ingested": 7},
+            }
+        )
         assert state.total_ingested == 7
 
     def test_saved_at_preserved(self):
@@ -321,7 +323,10 @@ class TestSwarmStatePersistence:
     def test_load_rejects_future_schema(self, tmp_path):
         p = SwarmStatePersistence(str(tmp_path))
 
-        d = {"schema_version": SCHEMA_VERSION + 1, "saved_at": datetime.now(timezone.utc).isoformat()}
+        d = {
+            "schema_version": SCHEMA_VERSION + 1,
+            "saved_at": datetime.now(timezone.utc).isoformat(),
+        }
         (tmp_path / "coordinator_state.json").write_text(json.dumps(d))
 
         loaded = p.load()
@@ -363,7 +368,7 @@ class TestSwarmStatePersistence:
 
     def test_creates_state_dir(self, tmp_path):
         nested = tmp_path / "deep" / "nested" / "dir"
-        p = SwarmStatePersistence(str(nested))
+        SwarmStatePersistence(str(nested))
         assert nested.exists()
 
     def test_atomic_write_no_corruption(self, tmp_path):

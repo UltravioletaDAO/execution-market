@@ -4,7 +4,7 @@ Tests for ReputationBridge — on-chain + internal reputation → composite scor
 Covers:
 - ReputationTier determination (5 tiers)
 - OnChainReputation properties
-- InternalReputation properties  
+- InternalReputation properties
 - CompositeScore weighting & serialization
 - ReputationBridge scoring (skill, reputation, reliability, recency)
 - Agent ranking
@@ -95,7 +95,18 @@ class TestOnChainReputation:
         assert oc.chain_diversity == pytest.approx(0.25)
 
     def test_chain_diversity_max_at_eight(self):
-        oc = _on_chain(chains=["base", "ethereum", "polygon", "arbitrum", "celo", "monad", "avalanche", "optimism"])
+        oc = _on_chain(
+            chains=[
+                "base",
+                "ethereum",
+                "polygon",
+                "arbitrum",
+                "celo",
+                "monad",
+                "avalanche",
+                "optimism",
+            ]
+        )
         assert oc.chain_diversity == 1.0
 
     def test_chain_diversity_over_eight_capped(self):
@@ -304,7 +315,9 @@ class TestReputationBridge:
 
     def test_skill_score_partial_category_match(self):
         ir = _internal(categories={"photo_verification": 0.85})
-        score = self.bridge._compute_skill_score(ir, ["photo_verification", "notarization"])
+        score = self.bridge._compute_skill_score(
+            ir, ["photo_verification", "notarization"]
+        )
         # avg_category = 0.85 (only 1 hit), coverage = 0.5
         expected = 0.85 * 70 + 0.5 * 30
         assert score == pytest.approx(expected)
@@ -451,7 +464,11 @@ class TestReputationBridge:
         assert score.total > 0  # At least some baseline from neutral bayesian
 
     def test_compute_composite_diamante(self):
-        oc = _on_chain(total_seals=200, positive_seals=198, chains=["base", "ethereum", "polygon", "arbitrum"])
+        oc = _on_chain(
+            total_seals=200,
+            positive_seals=198,
+            chains=["base", "ethereum", "polygon", "arbitrum"],
+        )
         ir = _internal(total_tasks=150, successful=145, avg_rating=4.9, bayesian=0.95)
         score = self.bridge.compute_composite(oc, ir)
         assert score.tier == ReputationTier.DIAMANTE
@@ -462,10 +479,31 @@ class TestReputationBridge:
 
     def test_rank_agents_ordering(self):
         agents = [
-            (_on_chain(agent_id=1, total_seals=10, positive_seals=5, chains=[]),
-             _internal(agent_id=1, total_tasks=5, successful=3, avg_rating=3.0, bayesian=0.4)),
-            (_on_chain(agent_id=2, total_seals=100, positive_seals=95, chains=["base", "ethereum", "polygon"]),
-             _internal(agent_id=2, total_tasks=80, successful=76, avg_rating=4.7, bayesian=0.9)),
+            (
+                _on_chain(agent_id=1, total_seals=10, positive_seals=5, chains=[]),
+                _internal(
+                    agent_id=1,
+                    total_tasks=5,
+                    successful=3,
+                    avg_rating=3.0,
+                    bayesian=0.4,
+                ),
+            ),
+            (
+                _on_chain(
+                    agent_id=2,
+                    total_seals=100,
+                    positive_seals=95,
+                    chains=["base", "ethereum", "polygon"],
+                ),
+                _internal(
+                    agent_id=2,
+                    total_tasks=80,
+                    successful=76,
+                    avg_rating=4.7,
+                    bayesian=0.9,
+                ),
+            ),
         ]
         rankings = self.bridge.rank_agents(agents, ["photo"])
         assert rankings[0].agent_id == 2  # Better agent first

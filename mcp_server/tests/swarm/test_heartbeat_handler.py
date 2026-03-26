@@ -14,11 +14,9 @@ Covers:
 import json
 import os
 import tempfile
-from dataclasses import asdict
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 from mcp_server.swarm.heartbeat_handler import (
     HeartbeatReport,

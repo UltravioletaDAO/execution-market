@@ -13,7 +13,6 @@ Covers:
 """
 
 from datetime import datetime, timezone, timedelta
-from unittest.mock import patch
 
 import pytest
 
@@ -128,12 +127,17 @@ class TestHealthStatus:
         assert hs.seconds_since_heartbeat == float("inf")
 
     def test_seconds_since_heartbeat_recent(self):
-        hs = HealthStatus(last_heartbeat=datetime.now(timezone.utc) - timedelta(seconds=30))
+        hs = HealthStatus(
+            last_heartbeat=datetime.now(timezone.utc) - timedelta(seconds=30)
+        )
         assert 25 <= hs.seconds_since_heartbeat <= 35
 
     def test_seconds_since_heartbeat_naive(self):
         """Naive datetime treated as UTC."""
-        hs = HealthStatus(last_heartbeat=datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(seconds=60))
+        hs = HealthStatus(
+            last_heartbeat=datetime.now(timezone.utc).replace(tzinfo=None)
+            - timedelta(seconds=60)
+        )
         assert 55 <= hs.seconds_since_heartbeat <= 65
 
 
@@ -150,7 +154,9 @@ class TestAgentRecord:
         assert r.personality == "explorer"
 
     def test_custom_personality(self):
-        r = AgentRecord(agent_id=1, name="test", wallet_address="0x1", personality="cautious")
+        r = AgentRecord(
+            agent_id=1, name="test", wallet_address="0x1", personality="cautious"
+        )
         assert r.personality == "cautious"
 
 
@@ -292,7 +298,9 @@ class TestLifecycleManagerCooldown:
         mgr.assign_task(1, "task-001")
         mgr.complete_task(1, cooldown_seconds=0)
         # Set cooldown in the past
-        mgr._agents[1].cooldown_until = datetime.now(timezone.utc) - timedelta(seconds=10)
+        mgr._agents[1].cooldown_until = datetime.now(timezone.utc) - timedelta(
+            seconds=10
+        )
         result = mgr.check_cooldown_expiry(1)
         assert result is True
         assert mgr.agents[1].state == AgentState.IDLE
@@ -344,7 +352,9 @@ class TestLifecycleManagerHeartbeats:
         mgr, rec = _manager_with_agent()
         mgr.transition(1, AgentState.IDLE)
         # Set heartbeat way in the past
-        mgr._agents[1].health.last_heartbeat = datetime.now(timezone.utc) - timedelta(hours=1)
+        mgr._agents[1].health.last_heartbeat = datetime.now(timezone.utc) - timedelta(
+            hours=1
+        )
         mgr._agents[1].health.heartbeat_interval_seconds = 300
         # Need 3 missed to degrade
         mgr.check_heartbeat(1)  # miss 1
@@ -400,9 +410,15 @@ class TestLifecycleManagerBudget:
         mgr, rec = _manager_with_agent()
         status = mgr.get_budget_status(1)
         expected_keys = {
-            "agent_id", "daily_spent", "daily_limit", "daily_pct",
-            "monthly_spent", "monthly_limit", "monthly_pct",
-            "at_warning", "at_limit",
+            "agent_id",
+            "daily_spent",
+            "daily_limit",
+            "daily_pct",
+            "monthly_spent",
+            "monthly_limit",
+            "monthly_pct",
+            "at_warning",
+            "at_limit",
         }
         assert set(status.keys()) == expected_keys
 
@@ -446,7 +462,9 @@ class TestLifecycleManagerAvailability:
         mgr.assign_task(1, "task-1")
         mgr.complete_task(1, cooldown_seconds=0)
         # Force cooldown to past
-        mgr._agents[1].cooldown_until = datetime.now(timezone.utc) - timedelta(seconds=5)
+        mgr._agents[1].cooldown_until = datetime.now(timezone.utc) - timedelta(
+            seconds=5
+        )
         available = mgr.get_available_agents()
         assert len(available) == 1
         assert mgr.agents[1].state == AgentState.IDLE

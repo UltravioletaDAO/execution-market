@@ -11,10 +11,8 @@ Covers:
 """
 
 import sys
-import time
 from pathlib import Path
 
-import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
@@ -66,8 +64,11 @@ class TestPhaseEnum:
 class TestGateCheck:
     def test_to_dict(self):
         g = GateCheck(
-            name="test", description="Test gate", passed=True,
-            current_value=5, required_value=3,
+            name="test",
+            description="Test gate",
+            passed=True,
+            current_value=5,
+            required_value=3,
         )
         d = g.to_dict()
         assert d["name"] == "test"
@@ -103,7 +104,9 @@ class TestPhaseEvaluation:
             target_phase=Phase.PASSIVE,
             gates=[
                 GateCheck(name="a", description="a", passed=True),
-                GateCheck(name="b", description="B fails", passed=False, severity="blocker"),
+                GateCheck(
+                    name="b", description="B fails", passed=False, severity="blocker"
+                ),
             ],
         )
         assert ev.can_advance is False
@@ -114,7 +117,9 @@ class TestPhaseEvaluation:
             target_phase=Phase.PASSIVE,
             gates=[
                 GateCheck(name="a", description="a", passed=True),
-                GateCheck(name="b", description="B warns", passed=False, severity="warning"),
+                GateCheck(
+                    name="b", description="B warns", passed=False, severity="warning"
+                ),
             ],
         )
         assert ev.can_advance is True
@@ -124,9 +129,13 @@ class TestPhaseEvaluation:
             current_phase=Phase.PRE_FLIGHT,
             target_phase=Phase.PASSIVE,
             gates=[
-                GateCheck(name="a", description="Gate A", passed=False, severity="blocker"),
+                GateCheck(
+                    name="a", description="Gate A", passed=False, severity="blocker"
+                ),
                 GateCheck(name="b", description="Gate B", passed=True),
-                GateCheck(name="c", description="Gate C", passed=False, severity="blocker"),
+                GateCheck(
+                    name="c", description="Gate C", passed=False, severity="blocker"
+                ),
             ],
         )
         assert ev.blockers == ["Gate A", "Gate C"]
@@ -136,7 +145,9 @@ class TestPhaseEvaluation:
             current_phase=Phase.PRE_FLIGHT,
             target_phase=Phase.PASSIVE,
             gates=[
-                GateCheck(name="a", description="Gate A", passed=False, severity="warning"),
+                GateCheck(
+                    name="a", description="Gate A", passed=False, severity="warning"
+                ),
                 GateCheck(name="b", description="Gate B", passed=True),
             ],
         )
@@ -229,7 +240,9 @@ class TestGateDefinitions:
         assert len(blockers) == 0
 
     def test_passive_to_semi_auto_too_few_days(self):
-        gates = _gates_passive_to_semi_auto(self._healthy_metrics(days_in_current_phase=1))
+        gates = _gates_passive_to_semi_auto(
+            self._healthy_metrics(days_in_current_phase=1)
+        )
         day_gate = next(g for g in gates if g.name == "min_observation_days")
         assert not day_gate.passed
 
@@ -254,9 +267,9 @@ class TestGateDefinitions:
         assert not hhi_gate.passed
 
     def test_semi_auto_to_full_auto_over_budget(self):
-        gates = _gates_semi_auto_to_full_auto(self._healthy_metrics(
-            daily_spend_usd=18.0, daily_budget_usd=20.0
-        ))
+        gates = _gates_semi_auto_to_full_auto(
+            self._healthy_metrics(daily_spend_usd=18.0, daily_budget_usd=20.0)
+        )
         budget_gate = next(g for g in gates if g.name == "budget_under_control")
         assert not budget_gate.passed  # 18/20 = 90% > 80%
 
@@ -267,16 +280,25 @@ class TestGateDefinitions:
 
 
 class TestPhaseGateCore:
-
     def _healthy_metrics(self):
         return SwarmMetrics(
-            api_healthy=True, swarm_enabled=True, coordinator_active=True,
-            error_count_last_hour=0, error_count_last_24h=0,
-            uptime_hours=100, tasks_ingested=50, tasks_completed=30,
-            expiry_rate=0.04, worker_count=10, categories_with_workers=4,
-            agents_registered=24, agents_healthy=20,
-            daily_spend_usd=5, daily_budget_usd=20,
-            worker_hhi=0.25, days_in_current_phase=10,
+            api_healthy=True,
+            swarm_enabled=True,
+            coordinator_active=True,
+            error_count_last_hour=0,
+            error_count_last_24h=0,
+            uptime_hours=100,
+            tasks_ingested=50,
+            tasks_completed=30,
+            expiry_rate=0.04,
+            worker_count=10,
+            categories_with_workers=4,
+            agents_registered=24,
+            agents_healthy=20,
+            daily_spend_usd=5,
+            daily_budget_usd=20,
+            worker_hhi=0.25,
+            days_in_current_phase=10,
         )
 
     def test_initial_phase(self):
@@ -347,7 +369,6 @@ class TestPhaseGateCore:
 
 
 class TestPhaseGateEmergency:
-
     def test_emergency_stop(self):
         gate = PhaseGate(initial_phase=Phase.SEMI_AUTO)
         gate.emergency_stop("test crash")
@@ -364,8 +385,10 @@ class TestPhaseGateEmergency:
     def test_should_emergency_stop_runaway_spend(self):
         gate = PhaseGate(initial_phase=Phase.SEMI_AUTO)
         m = SwarmMetrics(
-            daily_spend_usd=50, daily_budget_usd=20,
-            api_healthy=True, uptime_hours=5,
+            daily_spend_usd=50,
+            daily_budget_usd=20,
+            api_healthy=True,
+            uptime_hours=5,
         )
         should_stop, reason = gate.should_emergency_stop(m)
         assert should_stop
@@ -375,7 +398,8 @@ class TestPhaseGateEmergency:
         gate = PhaseGate(initial_phase=Phase.PASSIVE)
         m = SwarmMetrics(
             error_count_last_hour=100,
-            api_healthy=True, uptime_hours=5,
+            api_healthy=True,
+            uptime_hours=5,
         )
         should_stop, reason = gate.should_emergency_stop(m)
         assert should_stop
@@ -400,7 +424,6 @@ class TestPhaseGateEmergency:
 
 
 class TestPhaseGateHealth:
-
     def test_health_check_preflight(self):
         gate = PhaseGate(initial_phase=Phase.PRE_FLIGHT)
         checks = gate.evaluate_health(SwarmMetrics(api_healthy=True))
@@ -409,19 +432,23 @@ class TestPhaseGateHealth:
 
     def test_health_check_passive_includes_errors(self):
         gate = PhaseGate(initial_phase=Phase.PASSIVE)
-        checks = gate.evaluate_health(SwarmMetrics(
-            api_healthy=True, error_count_last_hour=0
-        ))
+        checks = gate.evaluate_health(
+            SwarmMetrics(api_healthy=True, error_count_last_hour=0)
+        )
         names = [c.name for c in checks]
         assert "error_rate" in names
 
     def test_health_check_semi_auto_includes_budget(self):
         gate = PhaseGate(initial_phase=Phase.SEMI_AUTO)
-        checks = gate.evaluate_health(SwarmMetrics(
-            api_healthy=True, error_count_last_hour=0,
-            daily_spend_usd=5, daily_budget_usd=20,
-            expiry_rate=0.1,
-        ))
+        checks = gate.evaluate_health(
+            SwarmMetrics(
+                api_healthy=True,
+                error_count_last_hour=0,
+                daily_spend_usd=5,
+                daily_budget_usd=20,
+                expiry_rate=0.1,
+            )
+        )
         names = [c.name for c in checks]
         assert "budget_not_exceeded" in names
         assert "expiry_not_worsening" in names
@@ -433,7 +460,6 @@ class TestPhaseGateHealth:
 
 
 class TestPhaseGateSerialization:
-
     def test_status_structure(self):
         gate = PhaseGate()
         s = gate.status()

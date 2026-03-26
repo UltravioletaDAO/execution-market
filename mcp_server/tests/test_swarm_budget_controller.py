@@ -19,7 +19,6 @@ Covers:
 """
 
 import time
-from datetime import datetime, timezone
 
 import pytest
 
@@ -648,10 +647,17 @@ class TestBudgetControllerPhaseGateMetrics:
         bc = _controller()
         metrics = bc.get_metrics_for_phase_gate()
         expected = {
-            "avg_budget_utilization", "daily_utilization", "monthly_utilization",
-            "burn_rate_usd_per_hour", "burn_rate_trend", "total_balance_usd",
-            "daily_remaining_usd", "monthly_remaining_usd",
-            "approval_count", "rejection_count", "has_active_alerts",
+            "avg_budget_utilization",
+            "daily_utilization",
+            "monthly_utilization",
+            "burn_rate_usd_per_hour",
+            "burn_rate_trend",
+            "total_balance_usd",
+            "daily_remaining_usd",
+            "monthly_remaining_usd",
+            "approval_count",
+            "rejection_count",
+            "has_active_alerts",
         }
         assert set(metrics.keys()) == expected
 

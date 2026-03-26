@@ -20,7 +20,6 @@ import sys
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
-import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
@@ -42,6 +41,7 @@ UTC = timezone.utc
 # Test Data Factories
 # ──────────────────────────────────────────────────────────────
 
+
 def _make_task(
     task_id="task_001",
     category="physical_verification",
@@ -56,7 +56,9 @@ def _make_task(
     """Create a realistic task dict matching EM API shape."""
     now = datetime.now(UTC)
     created = now - timedelta(hours=created_hours_ago)
-    completed_at = now - timedelta(hours=completed_hours_ago) if completed_hours_ago else None
+    completed_at = (
+        now - timedelta(hours=completed_hours_ago) if completed_hours_ago else None
+    )
     expires = created + timedelta(hours=deadline_hours)
 
     task = {
@@ -115,6 +117,7 @@ def _make_expired_tasks(n=5, category="delivery", bounty=2.0, deadline_hours=4):
 # ──────────────────────────────────────────────────────────────
 # CategoryHealth Tests
 # ──────────────────────────────────────────────────────────────
+
 
 class TestCategoryHealth:
     """Test CategoryHealth data model and computed properties."""
@@ -181,6 +184,7 @@ class TestCategoryHealth:
 # ExpiryDiagnosis Tests
 # ──────────────────────────────────────────────────────────────
 
+
 class TestExpiryDiagnosis:
     """Test ExpiryDiagnosis serialization."""
 
@@ -209,6 +213,7 @@ class TestExpiryDiagnosis:
 # Countermeasure Tests
 # ──────────────────────────────────────────────────────────────
 
+
 class TestCountermeasure:
     """Test Countermeasure serialization."""
 
@@ -230,6 +235,7 @@ class TestCountermeasure:
 # ──────────────────────────────────────────────────────────────
 # ExpiryReport Tests
 # ──────────────────────────────────────────────────────────────
+
 
 class TestExpiryReport:
     """Test report summary and serialization."""
@@ -263,6 +269,7 @@ class TestExpiryReport:
 # ──────────────────────────────────────────────────────────────
 # ExpiryAnalyzer Offline Analysis Tests
 # ──────────────────────────────────────────────────────────────
+
 
 class TestAnalyzeOffline:
     """Test the full analysis pipeline with synthetic data."""
@@ -301,8 +308,9 @@ class TestAnalyzeOffline:
         assert report.overall_severity == Severity.MEDIUM
 
     def test_category_health_computed(self):
-        completed = _make_completed_tasks(5, category="delivery") + \
-                    _make_completed_tasks(3, category="physical_verification")
+        completed = _make_completed_tasks(
+            5, category="delivery"
+        ) + _make_completed_tasks(3, category="physical_verification")
         expired = _make_expired_tasks(2, category="delivery")
         analyzer = ExpiryAnalyzer()
         report = analyzer.analyze_offline(completed, expired)
@@ -346,13 +354,12 @@ class TestAnalyzeOffline:
 
     def test_multiple_categories(self):
         completed = (
-            _make_completed_tasks(10, category="delivery", bounty=5.0) +
-            _make_completed_tasks(5, category="physical_verification", bounty=8.0) +
-            _make_completed_tasks(3, category="digital_action", bounty=3.0)
+            _make_completed_tasks(10, category="delivery", bounty=5.0)
+            + _make_completed_tasks(5, category="physical_verification", bounty=8.0)
+            + _make_completed_tasks(3, category="digital_action", bounty=3.0)
         )
-        expired = (
-            _make_expired_tasks(2, category="delivery") +
-            _make_expired_tasks(5, category="digital_action")
+        expired = _make_expired_tasks(2, category="delivery") + _make_expired_tasks(
+            5, category="digital_action"
         )
         analyzer = ExpiryAnalyzer()
         report = analyzer.analyze_offline(completed, expired)
@@ -380,6 +387,7 @@ class TestAnalyzeOffline:
 # Diagnosis Logic Tests
 # ──────────────────────────────────────────────────────────────
 
+
 class TestDiagnosisLogic:
     """Test root cause diagnosis for individual expired tasks."""
 
@@ -403,15 +411,17 @@ class TestDiagnosisLogic:
         for i in range(3):
             created = now - timedelta(hours=48 + i)
             deadline = created + timedelta(hours=1)  # 1-hour deadline
-            expired.append({
-                "id": f"short_deadline_{i}",
-                "category": "delivery",
-                "title": "Deliver package urgently to downtown office for meeting",
-                "bounty_usd": 5.0,
-                "status": "expired",
-                "created_at": created.isoformat(),
-                "deadline": deadline.isoformat(),
-            })
+            expired.append(
+                {
+                    "id": f"short_deadline_{i}",
+                    "category": "delivery",
+                    "title": "Deliver package urgently to downtown office for meeting",
+                    "bounty_usd": 5.0,
+                    "status": "expired",
+                    "created_at": created.isoformat(),
+                    "deadline": deadline.isoformat(),
+                }
+            )
         analyzer = ExpiryAnalyzer()
         report = analyzer.analyze_offline(completed, expired)
         all_reasons = set()
@@ -436,7 +446,7 @@ class TestDiagnosisLogic:
         completed = _make_completed_tasks(10, category="delivery", bounty=5.0)
         analyzer = ExpiryAnalyzer()
         report = analyzer.analyze_offline(completed, expired)
-        reasons = {d.primary_reason for d in report.diagnoses}
+        {d.primary_reason for d in report.diagnoses}
         # Should detect UNCLEAR_TASK as at least a secondary reason
         all_reasons = set()
         for d in report.diagnoses:
@@ -449,7 +459,9 @@ class TestDiagnosisLogic:
         completed = _make_completed_tasks(
             3, category="code_execution", bounty=10.0, workers=["0xSolo"]
         )
-        expired = _make_expired_tasks(5, category="code_execution", bounty=10.0, deadline_hours=48)
+        expired = _make_expired_tasks(
+            5, category="code_execution", bounty=10.0, deadline_hours=48
+        )
         analyzer = ExpiryAnalyzer()
         report = analyzer.analyze_offline(completed, expired)
         all_reasons = set()
@@ -472,13 +484,16 @@ class TestDiagnosisLogic:
 # Countermeasure Tests
 # ──────────────────────────────────────────────────────────────
 
+
 class TestCountermeasureGeneration:
     """Test countermeasure generation logic."""
 
     def test_no_countermeasures_for_healthy_system(self):
         """If expiry rate is low, minimal/no countermeasures needed."""
         completed = _make_completed_tasks(50, category="delivery", bounty=5.0)
-        expired = _make_expired_tasks(2, category="delivery", bounty=5.0, deadline_hours=48)
+        expired = _make_expired_tasks(
+            2, category="delivery", bounty=5.0, deadline_hours=48
+        )
         analyzer = ExpiryAnalyzer()
         report = analyzer.analyze_offline(completed, expired)
         # Low expiry = few or no countermeasures
@@ -487,7 +502,9 @@ class TestCountermeasureGeneration:
     def test_countermeasures_for_critical_system(self):
         """High expiry rate should produce multiple countermeasures."""
         completed = _make_completed_tasks(5, category="delivery", bounty=5.0)
-        expired = _make_expired_tasks(15, category="delivery", bounty=0.10, deadline_hours=1)
+        expired = _make_expired_tasks(
+            15, category="delivery", bounty=0.10, deadline_hours=1
+        )
         analyzer = ExpiryAnalyzer()
         report = analyzer.analyze_offline(completed, expired)
         assert len(report.countermeasures) >= 2
@@ -519,6 +536,7 @@ class TestCountermeasureGeneration:
 # Worker Concentration Tests
 # ──────────────────────────────────────────────────────────────
 
+
 class TestWorkerConcentration:
     """Test Herfindahl-Hirschman Index (HHI) computation."""
 
@@ -549,6 +567,7 @@ class TestWorkerConcentration:
 # ──────────────────────────────────────────────────────────────
 # Recommend For Task Tests
 # ──────────────────────────────────────────────────────────────
+
 
 class TestRecommendForTask:
     """Test per-task recommendation."""
@@ -611,6 +630,7 @@ class TestRecommendForTask:
 # Enum Tests
 # ──────────────────────────────────────────────────────────────
 
+
 class TestEnums:
     """Test enum values and string representations."""
 
@@ -642,6 +662,7 @@ class TestEnums:
 # ──────────────────────────────────────────────────────────────
 # Severity Boundary Tests
 # ──────────────────────────────────────────────────────────────
+
 
 class TestSeverityBoundaries:
     """Test exact severity threshold boundaries."""
