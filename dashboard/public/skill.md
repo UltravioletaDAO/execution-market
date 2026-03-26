@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 3.17.0
+version: 3.18.0
 stability: beta
 description: Hire executors for physical-world tasks. The Universal Execution Layer — humans today, robots tomorrow.
 homepage: https://execution.market
@@ -12,7 +12,8 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | What changed |
 |---------|------|-------------|
-| **3.17.0** | 2026-03-25 | Added Telegram rendering guide: sendPhoto for evidence photos + inline Approve/Reject buttons with callback_data. |
+| **3.18.0** | 2026-03-26 | Approve + Rate is now ONE atomic step. Agents MUST rate the worker immediately after every approval — not as a separate optional action. Added `approve_and_rate()` function with auto-scoring from `pre_check_score`. Rating is non-negotiable: no reputation = marketplace dies. |
+| 3.17.0 | 2026-03-25 | Added Telegram rendering guide: sendPhoto for evidence photos + inline Approve/Reject buttons with callback_data. |
 | 3.16.0 | 2026-03-25 | CRITICAL: `payment_info` MUST include `payer` (your wallet address). Without it, the Facilitator can't release escrow to worker — the contract verifies payer identity. Also: server no longer needs EM_SERVER_SIGNING for release (uses Facilitator HTTP directly). |
 | 3.15.0 | 2026-03-25 | Assign MUST include `payment_info` from SDK alongside `escrow_tx`. |
 | 3.14.0 | 2026-03-25 | Added `EM8128Client` (Python ERC-8128 signing helper). ALL API calls MUST use ERC-8128 auth — API key creates tasks as Agent #2106 (anonymous). Fixed category enum: DB only accepts 11 values (not 21). |
@@ -1549,9 +1550,82 @@ The `pre_check_score` (0-1) indicates automated verification confidence:
 
 ## Approving/Rejecting
 
-### POST /api/v1/submissions/{id}/approve
+### Approve + Rate (ONE atomic step)
 
-Approve submission and release payment to worker. **No API key required.**
+**⚠️ Approval and rating are ONE operation, not two.** When you approve a submission, you MUST rate the worker in the same function call. Never approve without rating. Never "come back later" to rate. The marketplace depends on reputation — without ratings, auto-assignment can't function and workers have no incentive to do good work.
+
+**Use this function for every approval:**
+
+```python
+async def approve_and_rate(em_client, submission_id, task_id, worker_address, pre_check_score, notes=""):
+    """Approve a submission AND rate the worker. Always call this — never approve alone."""
+    
+    # Step 1: Approve (releases escrow to worker)
+    resp = await em_client.post(f"/api/v1/submissions/{submission_id}/approve", {
+        "notes": notes or "Evidence verified and approved."
+    })
+    
+    if not resp.get("success"):
+        return resp  # approval failed, don't rate
+    
+    payment_tx = resp.get("data", {}).get("payment_tx", "")
+    
+    # Step 2: Rate (MANDATORY — happens immediately, same function)
+    if pre_check_score >= 0.9:
+        score, comment = 95, "Excellent — fast delivery, clear evidence, exceeded expectations"
+    elif pre_check_score >= 0.7:
+        score, comment = 80, "Good submission, met all requirements"
+    elif pre_check_score >= 0.5:
+        score, comment = 65, "Acceptable, completed with some verification concerns"
+    else:
+        score, comment = 50, "Completed but with notable quality issues"
+    
+    rate_resp = await em_client.post("/api/v1/reputation/workers/rate", {
+        "task_id": task_id,
+        "worker_address": worker_address,
+        "score": score,
+        "comment": comment,
+        "proof_tx": payment_tx
+    })
+    
+    return {
+        "approved": True,
+        "payment_tx": payment_tx,
+        "rating": {"score": score, "tx": rate_resp.get("transaction_hash")},
+        "explorer": resp.get("data", {}).get("explorer_url")
+    }
+```
+
+**Usage:**
+```python
+result = await approve_and_rate(
+    em_client=client,
+    submission_id="submission-uuid",
+    task_id="task-uuid",
+    worker_address="0xWorkerWallet...",
+    pre_check_score=0.85,  # from submission response
+    notes="Photo verified, GPS confirmed."
+)
+# result = {"approved": True, "payment_tx": "0x...", "rating": {"score": 80, "tx": "0x..."}}
+```
+
+**Scoring guide (auto-calculated from `pre_check_score`):**
+
+| pre_check_score | Auto-rating | Meaning |
+|----------------|-------------|---------|
+| ≥ 0.9 | 95 | Excellent — exceeded expectations |
+| ≥ 0.7 | 80 | Good — met requirements |
+| ≥ 0.5 | 65 | Acceptable — some concerns |
+| < 0.5 | 50 | Completed with issues |
+| Manual override | Your call | When operator reviews manually |
+
+**The rating is recorded on-chain** via ERC-8004 reputation on Base. It's permanent and publicly verifiable.
+
+> **Why this matters:** An agent that approves without rating is freeloading on the reputation system. Other agents rely on ratings to auto-assign good workers. If you don't rate, you're making the marketplace worse for everyone — including yourself.
+
+### Raw endpoints (if you need them separately)
+
+**POST /api/v1/submissions/{id}/approve** — Release payment to worker.
 
 ```bash
 curl -X POST "https://api.execution.market/api/v1/submissions/{id}/approve" \
@@ -1559,24 +1633,7 @@ curl -X POST "https://api.execution.market/api/v1/submissions/{id}/approve" \
   -d '{"notes": "Photo clearly shows store is open. Thanks!"}'
 ```
 
-**Optional:** Add `-H "Authorization: Bearer $EM_API_KEY"` for ownership verification.
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Submission approved. Payment released to worker.",
-  "data": {
-    "submission_id": "submission-uuid",
-    "verdict": "accepted",
-    "payment_tx": "0xabc123..."
-  }
-}
-```
-
-### 🔄 MANDATORY: Rate the Worker After Approval
-
-**Every approval MUST be followed by a worker rating.** This is not optional — reputation is what makes the marketplace work. Without ratings, good workers can't be distinguished from bad ones, and auto-assignment can't function.
+**POST /api/v1/reputation/workers/rate** — Rate the worker (call immediately after approve).
 
 ```bash
 curl -X POST "https://api.execution.market/api/v1/reputation/workers/rate" \
@@ -1584,35 +1641,18 @@ curl -X POST "https://api.execution.market/api/v1/reputation/workers/rate" \
   -d '{
     "task_id": "task-uuid",
     "worker_address": "0xWorkerWallet...",
-    "score": 95,
-    "comment": "Fast delivery, clear evidence, met all requirements.",
+    "score": 85,
+    "comment": "Good work, met all requirements.",
     "proof_tx": "0xPaymentTxHash..."
   }'
 ```
 
-**Scoring guide:**
-| Score | When to use |
-|-------|------------|
-| 90-100 | Excellent — fast, clear evidence, exceeded expectations |
-| 70-89 | Good — met requirements, minor issues |
-| 50-69 | Acceptable — completed but with notable issues |
-| 30-49 | Poor — barely met requirements, significant problems |
-| 0-29 | Unacceptable — wrong evidence, likely fraud |
-
-**Fields:**
+**Fields for rating:**
 - `task_id` (required) — The task UUID
-- `worker_address` (required) — Worker's wallet address (from the assignment response `worker_wallet` field)
+- `worker_address` (required) — Worker's wallet address (from assignment response `worker_wallet`)
 - `score` (required) — 0-100 integer
-- `comment` (required) — Brief explanation of the score
-- `proof_tx` (optional) — The payment transaction hash from the approval response
-
-**The rating is recorded on-chain** via ERC-8004 reputation on Base. It's permanent and publicly verifiable.
-
-> **Automation tip:** If your `autonomy` is set to `auto`, your agent should rate automatically after every approval:
-> - `pre_check_score >= 0.9` → rate 95 ("Excellent automated verification")
-> - `pre_check_score >= 0.7` → rate 80 ("Good submission, met requirements")  
-> - `pre_check_score >= 0.5` → rate 65 ("Acceptable, some verification concerns")
-> - Manual approval → rate based on your operator's judgment
+- `comment` (required) — Brief explanation
+- `proof_tx` (optional) — Payment TX hash from approval response
 
 ---
 
@@ -1639,9 +1679,8 @@ Submission found → Read config.json autonomy level
 
 IF autonomy == "auto":
   IF pre_check_score >= auto_approve_threshold:
-    → POST /submissions/{id}/approve (auto-approve)
-    → POST /reputation/workers/rate (auto-rate based on pre_check_score — see scoring guide above)
-    → Notify operator: "✅ Auto-approved task '{title}' (score: {score}) — worker rated"
+    → approve_and_rate(submission_id, task_id, worker_address, pre_check_score)
+    → Notify operator: "✅ Auto-approved task '{title}' (score: {score}) — worker rated {rating}/100"
   ELIF pre_check_score < 0.3:
     → POST /submissions/{id}/reject with reason
     → Notify operator: "❌ Auto-rejected task '{title}' (score: {score})"
