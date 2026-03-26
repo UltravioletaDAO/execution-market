@@ -12,6 +12,7 @@ Runs every 60 seconds as a background asyncio task.
 import asyncio
 import logging
 import os
+import time as _time
 from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
@@ -350,6 +351,9 @@ async def run_task_expiration_loop() -> None:
     from supabase_client import get_client
 
     while True:
+        _cycle_start = _time.time()
+        _expired_count = 0
+        _skipped_count = 0
         try:
             client = get_client()
             now = datetime.now(timezone.utc).isoformat()
@@ -399,12 +403,23 @@ async def run_task_expiration_loop() -> None:
                     if action == "submitted":
                         handled = await _process_submitted_timeout_task(client, task)
                         if handled:
+                            _skipped_count += 1
                             continue
                     await _process_expired_task(client, task)
+                    _expired_count += 1
             else:
                 logger.debug("[expiration] No expired tasks found")
 
         except Exception as exc:
             logger.error("[expiration] Error in expiration loop: %s", exc)
+
+        from audit import audit_log
+
+        audit_log(
+            "expire_cycle",
+            expired_count=_expired_count,
+            skipped_count=_skipped_count,
+            duration_ms=round((_time.time() - _cycle_start) * 1000, 1),
+        )
 
         await asyncio.sleep(CHECK_INTERVAL)

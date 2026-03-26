@@ -163,6 +163,11 @@ async def lifespan(app: FastAPI):
             # Run the session manager as async context manager
             async with session_manager.run():
                 logger.info("MCP session manager started successfully")
+                from audit import audit_log
+
+                audit_log(
+                    "server_started", version=app.version, host="0.0.0.0", port=8000
+                )
                 yield
                 logger.info("Shutting down MCP session manager...")
         except Exception as e:

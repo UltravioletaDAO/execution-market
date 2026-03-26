@@ -1472,6 +1472,17 @@ async def _settle_submission_payment(
                     release_tx,
                 )
 
+                from audit import audit_log
+
+                audit_log(
+                    "payment_released",
+                    task_id=task_id,
+                    amount=float(worker_payout),
+                    worker=worker_address,
+                    tx_hash=release_tx,
+                    network=task_network,
+                )
+
                 # NOTE: Reputation feedback moved to WS-2b side effect
                 # (_execute_post_approval_side_effects) to avoid duplication
                 # and ensure it fires for all payment modes (fase1 + fase2).
