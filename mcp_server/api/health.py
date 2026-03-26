@@ -694,6 +694,10 @@ def get_health_checker() -> HealthChecker:
 # =============================================================================
 
 
+_last_health_audit_ts: float = 0.0
+_HEALTH_AUDIT_INTERVAL: float = 300.0  # 5 minutes
+
+
 @router.get(
     "/",
     summary="Comprehensive Health Check",
@@ -717,12 +721,32 @@ async def health_check(force: bool = False) -> Response:
         200: System is degraded (with warning)
         503: System is unhealthy
     """
+    global _last_health_audit_ts
+
     checker = get_health_checker()
     health = await checker.check_all(force_refresh=force)
 
     response_code = 200
     if health.status == HealthStatus.UNHEALTHY:
         response_code = 503
+
+    now = time.time()
+    if now - _last_health_audit_ts >= _HEALTH_AUDIT_INTERVAL:
+        _last_health_audit_ts = now
+        try:
+            import psutil
+
+            memory_pct = psutil.virtual_memory().percent
+        except Exception:
+            memory_pct = None
+        from audit import audit_log
+
+        audit_log(
+            "health_check",
+            status=health.status.value,
+            memory_pct=memory_pct,
+            uptime_s=round(health.uptime_seconds, 1),
+        )
 
     return Response(
         content=json.dumps(health.to_dict(), default=str),
