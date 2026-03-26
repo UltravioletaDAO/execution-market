@@ -1651,11 +1651,14 @@ async def get_task_payment(
             )
 
     try:
+        # Bug fix: use .filter() instead of .not_() to avoid
+        # 'SyncSelectRequestBuilder' object is not callable in some
+        # postgrest-py versions where .not_() returns a non-chainable builder.
         submission_result = (
             client.table("submissions")
             .select("id,payment_tx,payment_amount,paid_at,verified_at,submitted_at")
             .eq("task_id", task_id)
-            .not_("payment_tx", "is", "null")
+            .filter("payment_tx", "not.is", "null")
             .order("submitted_at", desc=True)
             .limit(1)
             .execute()

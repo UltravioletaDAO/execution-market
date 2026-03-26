@@ -191,6 +191,9 @@ class _TaskPaymentQuery:
     def not_(self, *_args, **_kwargs):
         return self
 
+    def filter(self, *_args, **_kwargs):
+        return self
+
     def execute(self):
         if self.fail_message:
             raise Exception(self.fail_message)

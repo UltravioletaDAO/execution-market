@@ -963,33 +963,16 @@ async def submit_work(
             )
 
     # Create submission
+    # Bug fix: removed 'notes' field — it doesn't exist in the submissions table schema.
+    # Also removed the retry-with-column-removal workaround that was masking the issue.
     submission_data = {
         "task_id": task_id,
         "executor_id": executor_id,
         "evidence": evidence,
-        "notes": notes,
         "submitted_at": datetime.now(timezone.utc).isoformat(),
         "agent_verdict": "pending",
     }
-    pending_submission_data = dict(submission_data)
-    while pending_submission_data:
-        try:
-            result = (
-                client.table("submissions").insert(pending_submission_data).execute()
-            )
-            break
-        except Exception as e:
-            missing_column = _extract_missing_column(str(e))
-            if missing_column and missing_column in pending_submission_data:
-                logger.warning(
-                    "submissions.%s missing in current schema; retrying submission insert without it",
-                    missing_column,
-                )
-                pending_submission_data.pop(missing_column, None)
-                continue
-            raise
-    else:
-        raise Exception("Failed to create submission: no compatible columns found")
+    result = client.table("submissions").insert(submission_data).execute()
 
     if result.data and len(result.data) > 0:
         # Update task status

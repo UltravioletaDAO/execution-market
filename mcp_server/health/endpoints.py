@@ -643,7 +643,7 @@ async def metrics_sanity_check(response: Response) -> Dict[str, Any]:
             submissions_result = (
                 client.table("submissions")
                 .select("task_id,payment_tx")
-                .not_("payment_tx", "is", "null")
+                .filter("payment_tx", "not.is", "null")
                 .execute()
             )
             for row in submissions_result.data or []:

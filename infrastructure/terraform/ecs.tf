@@ -146,8 +146,9 @@ resource "aws_cloudwatch_log_group" "mcp_server" {
 }
 
 # MCP Server Task Definition
-# cpu/memory: 512 CPU (0.5 vCPU) + 1024 MB — sufficient for FastMCP + AI image verification.
-# Prior default of 256/512 caused OOM during concurrent AI verification calls.
+# cpu/memory: 1024 CPU (1 vCPU) + 2048 MB — headroom for FastMCP + concurrent AI verification
+# (S3 image download + Anthropic API) + background jobs (escrow polling, task expiry).
+# History: 256/512 → OOM kills. 512/1024 → still tight under load. Doubled to 1024/2048 (rev 298 incident).
 resource "aws_ecs_task_definition" "mcp_server" {
   family                   = "${local.name_prefix}-mcp-server"
   network_mode             = "awsvpc"

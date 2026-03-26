@@ -14,6 +14,34 @@ from api import routes
 import supabase_client as db
 
 
+# ---------------------------------------------------------------------------
+# Shared mock helpers (must be defined before test-specific client classes)
+# ---------------------------------------------------------------------------
+
+
+class _ChainMock:
+    """Supports chained .eq() / .execute() / .insert() / .update() calls."""
+
+    def __init__(self):
+        self.calls = []
+
+    def eq(self, *args, **kwargs):
+        self.calls.append(("eq", args, kwargs))
+        return self
+
+    def execute(self):
+        self.calls.append(("execute",))
+        return SimpleNamespace(data=[])
+
+    def update(self, *args, **kwargs):
+        self.calls.append(("update", args, kwargs))
+        return self
+
+    def insert(self, *args, **kwargs):
+        self.calls.append(("insert", args, kwargs))
+        return self
+
+
 class _SubmissionQuery:
     def __init__(self, rows):
         self._rows = rows
@@ -35,12 +63,17 @@ class _SubmissionQuery:
 
 
 class _Client:
+    """Fake Supabase client supporting submissions + tasks tables."""
+
     def __init__(self, submission_rows):
         self._submission_rows = submission_rows
+        self.tasks_mock = _ChainMock()
 
     def table(self, name: str):
         if name == "submissions":
             return _SubmissionQuery(self._submission_rows)
+        if name == "tasks":
+            return self.tasks_mock
         raise AssertionError(f"Unexpected table access: {name}")
 
 
@@ -84,7 +117,9 @@ async def test_submitted_timeout_auto_settles_and_auto_approves(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_submitted_timeout_not_ready_keeps_task_for_retry(monkeypatch):
+async def test_submitted_timeout_permanent_failure_expires_task(monkeypatch):
+    """Permanent failure reasons (e.g. missing_payment_header) should fall
+    through to expiration instead of retrying forever."""
     task_id = "task-timeout-2"
     submission_id = "sub-timeout-2"
     submission_payload = {
@@ -101,6 +136,49 @@ async def test_submitted_timeout_not_ready_keeps_task_for_retry(monkeypatch):
         routes,
         "_is_submission_ready_for_instant_payout",
         AsyncMock(return_value={"ready": False, "reason": "missing_payment_header"}),
+    )
+    settle_mock = AsyncMock()
+    monkeypatch.setattr(routes, "_settle_submission_payment", settle_mock)
+    auto_approve_mock = AsyncMock()
+    monkeypatch.setattr(routes, "_auto_approve_submission", auto_approve_mock)
+
+    client = _Client([{"id": submission_id, "agent_verdict": "pending"}])
+    handled = await task_expiration._process_submitted_timeout_task(
+        client,
+        {"id": task_id, "status": "submitted"},
+    )
+
+    # Permanent failure returns False so the caller expires the task
+    assert handled is False
+    settle_mock.assert_not_awaited()
+    auto_approve_mock.assert_not_awaited()
+    # Metadata should be updated with payment_permanently_failed flag
+    update_calls = [c for c in client.tasks_mock.calls if c[0] == "update"]
+    assert len(update_calls) == 1
+    meta = update_calls[0][1][0]["metadata"]
+    assert meta["payment_permanently_failed"] is True
+    assert meta["payment_failure_reason"] == "missing_payment_header"
+
+
+@pytest.mark.asyncio
+async def test_submitted_timeout_transient_failure_keeps_for_retry(monkeypatch):
+    """Transient/unknown failure reasons should keep the task for retry."""
+    task_id = "task-timeout-2b"
+    submission_id = "sub-timeout-2b"
+    submission_payload = {
+        "id": submission_id,
+        "task": {"id": task_id, "agent_id": "agent_test", "bounty_usd": 1.0},
+        "executor": {"id": "worker_2", "wallet_address": "0x" + "a" * 40},
+        "agent_verdict": "pending",
+    }
+
+    monkeypatch.setattr(
+        db, "get_submission", AsyncMock(return_value=submission_payload)
+    )
+    monkeypatch.setattr(
+        routes,
+        "_is_submission_ready_for_instant_payout",
+        AsyncMock(return_value={"ready": False, "reason": "missing_worker_wallet"}),
     )
     settle_mock = AsyncMock()
     monkeypatch.setattr(routes, "_settle_submission_payment", settle_mock)
@@ -129,29 +207,6 @@ async def test_submitted_timeout_without_submission_falls_back_to_expire():
 # ---------------------------------------------------------------------------
 # Helper: mock Supabase client that supports update + insert for expiration
 # ---------------------------------------------------------------------------
-
-
-class _ChainMock:
-    """Supports chained .eq() / .execute() / .insert() calls."""
-
-    def __init__(self):
-        self.calls = []
-
-    def eq(self, *args, **kwargs):
-        self.calls.append(("eq", args, kwargs))
-        return self
-
-    def execute(self):
-        self.calls.append(("execute",))
-        return SimpleNamespace(data=[])
-
-    def update(self, *args, **kwargs):
-        self.calls.append(("update", args, kwargs))
-        return self
-
-    def insert(self, *args, **kwargs):
-        self.calls.append(("insert", args, kwargs))
-        return self
 
 
 class _ExpirationClient:
