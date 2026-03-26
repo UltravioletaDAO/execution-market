@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@dynamic-labs/ethereum": "^4.71.0",
-    "@dynamic-labs/sdk-react-core": "4.67.2",
+    "@dynamic-labs/sdk-react-core": "^4.71.0",
     "@rollup/rollup-linux-x64-gnu": "^4.57.0",
     "@supabase/supabase-js": "^2.100.0",
     "@tanstack/react-query": "^5.91.3",
