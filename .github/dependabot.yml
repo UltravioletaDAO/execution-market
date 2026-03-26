@@ -1,98 +1,62 @@
 version: 2
 updates:
-  # Python backend
+  # Python backend — minor/patch only, monthly
   - package-ecosystem: "pip"
     directory: "/mcp_server"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
+    open-pull-requests-limit: 2
     labels:
       - "dependencies"
       - "backend"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
-  # Dashboard (React)
+  # Dashboard (React) — minor/patch only, monthly
   - package-ecosystem: "npm"
     directory: "/dashboard"
     schedule:
-      interval: "weekly"
-    labels:
-      - "dependencies"
-      - "frontend"
-
-  # Admin Dashboard
-  - package-ecosystem: "npm"
-    directory: "/admin-dashboard"
-    schedule:
-      interval: "weekly"
-    labels:
-      - "dependencies"
-      - "frontend"
-
-  # Scripts
-  - package-ecosystem: "npm"
-    directory: "/scripts"
-    schedule:
-      interval: "weekly"
-    labels:
-      - "dependencies"
-
-  # SDK TypeScript
-  - package-ecosystem: "npm"
-    directory: "/sdk/typescript"
-    schedule:
-      interval: "weekly"
-    labels:
-      - "dependencies"
-      - "sdk"
-
-  # Smart Contracts
-  - package-ecosystem: "npm"
-    directory: "/contracts"
-    schedule:
-      interval: "weekly"
-    labels:
-      - "dependencies"
-      - "contracts"
-
-  # E2E Tests
-  - package-ecosystem: "npm"
-    directory: "/e2e"
-    schedule:
       interval: "monthly"
+    open-pull-requests-limit: 2
     labels:
       - "dependencies"
-      - "testing"
+      - "frontend"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
-  # GitHub Actions
+  # GitHub Actions — monthly, these are usually safe
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
+    open-pull-requests-limit: 2
     labels:
       - "dependencies"
       - "ci"
 
-  # Docker
+  # Docker — monthly, base image patches
   - package-ecosystem: "docker"
     directory: "/mcp_server"
     schedule:
       interval: "monthly"
+    open-pull-requests-limit: 1
     labels:
       - "dependencies"
       - "docker"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "docker"
     directory: "/dashboard"
     schedule:
       interval: "monthly"
+    open-pull-requests-limit: 1
     labels:
       - "dependencies"
       - "docker"
-
-  # Terraform
-  - package-ecosystem: "terraform"
-    directory: "/infrastructure/terraform"
-    schedule:
-      interval: "monthly"
-    labels:
-      - "dependencies"
-      - "infrastructure"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
