@@ -16,10 +16,8 @@ Covers:
 
 import json
 import tempfile
-import time
 from unittest.mock import patch, MagicMock
 
-import pytest
 
 from mcp_server.swarm.preflight import (
     CheckResult,
@@ -89,9 +87,7 @@ class TestCheckResult:
         assert d["severity"] == "blocker"
 
     def test_to_dict_with_error(self):
-        result = CheckResult(
-            name="fail", passed=False, error="boom", duration_ms=99.99
-        )
+        result = CheckResult(name="fail", passed=False, error="boom", duration_ms=99.99)
         d = result.to_dict()
         assert d["error"] == "boom"
         assert d["duration_ms"] == 100.0
@@ -399,7 +395,9 @@ class TestSwarmPreflightRunAll:
         report = preflight.run_all()
 
         # The failing check should be recorded as a failure
-        failed = [c for c in report.checks if not c.passed and "test boom" in (c.error or "")]
+        failed = [
+            c for c in report.checks if not c.passed and "test boom" in (c.error or "")
+        ]
         assert len(failed) == 1
         assert failed[0].passed is False
 
@@ -441,7 +439,9 @@ class TestSwarmPreflightConfig:
 
     def test_custom_api_url(self):
         preflight = SwarmPreflight(api_url="https://custom.api.example.com/")
-        assert preflight.api_url == "https://custom.api.example.com"  # trailing slash stripped
+        assert (
+            preflight.api_url == "https://custom.api.example.com"
+        )  # trailing slash stripped
 
     def test_custom_state_dir(self):
         with tempfile.TemporaryDirectory() as tmp:

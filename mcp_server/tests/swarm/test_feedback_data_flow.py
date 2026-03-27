@@ -18,22 +18,17 @@ all downstream systems receive correctly transformed data.
 """
 
 import os
-import time
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 
 from mcp_server.swarm.evidence_parser import (
-    EvidenceParser,
     EvidenceQuality,
-    SkillDNA,
     WorkerRegistry,
 )
 from mcp_server.swarm.reputation_bridge import (
     ReputationBridge,
-    InternalReputation,
 )
 from mcp_server.swarm.lifecycle_manager import LifecycleManager
 from mcp_server.swarm.feedback_pipeline import (
@@ -71,7 +66,9 @@ def lifecycle_manager():
 
 
 @pytest.fixture
-def feedback_pipeline(temp_state_dir, worker_registry, reputation_bridge, lifecycle_manager):
+def feedback_pipeline(
+    temp_state_dir, worker_registry, reputation_bridge, lifecycle_manager
+):
     """FeedbackPipeline wired to real components, no API calls."""
     pipeline = FeedbackPipeline(
         em_api_url="http://localhost:9999",
@@ -101,7 +98,8 @@ def make_completed_task(
         "status": "completed",
         "worker_wallet": worker_wallet,
         "assigned_worker": worker_wallet,
-        "evidence": evidence or [
+        "evidence": evidence
+        or [
             {
                 "type": "photo",
                 "url": "https://example.com/photo.jpg",
@@ -121,9 +119,7 @@ def make_completed_task(
 class TestSingleTaskFlow:
     """Verify data flow for a single task completion."""
 
-    def test_completion_creates_skill_dna(
-        self, feedback_pipeline, worker_registry
-    ):
+    def test_completion_creates_skill_dna(self, feedback_pipeline, worker_registry):
         """Processing a task should create/update the worker's SkillDNA."""
         task = make_completed_task(worker_wallet="0xNewWorker")
 
@@ -137,15 +133,16 @@ class TestSingleTaskFlow:
         assert dna is not None
         assert dna.task_count >= 1
 
-    def test_completion_returns_quality_assessment(
-        self, feedback_pipeline
-    ):
+    def test_completion_returns_quality_assessment(self, feedback_pipeline):
         """Completion feedback should include quality assessment data."""
         task = make_completed_task(
             evidence=[
                 {"type": "photo", "url": "https://example.com/photo1.jpg"},
                 {"type": "photo", "url": "https://example.com/photo2.jpg"},
-                {"type": "text_response", "content": "Detailed report with observations"},
+                {
+                    "type": "text_response",
+                    "content": "Detailed report with observations",
+                },
             ],
         )
 
@@ -157,9 +154,7 @@ class TestSingleTaskFlow:
         assert feedback.quality_score <= 1.0
         assert isinstance(feedback.quality, EvidenceQuality)
 
-    def test_completion_updates_internal_reputation(
-        self, feedback_pipeline
-    ):
+    def test_completion_updates_internal_reputation(self, feedback_pipeline):
         """Processing should update the internal reputation score."""
         task = make_completed_task()
 
@@ -185,9 +180,16 @@ class TestSingleTaskFlow:
             evidence=[
                 {"type": "photo", "url": "https://example.com/photo1.jpg"},
                 {"type": "photo", "url": "https://example.com/photo2.jpg"},
-                {"type": "photo_geo", "url": "https://example.com/geo.jpg",
-                 "lat": 25.7, "lon": -80.2},
-                {"type": "text_response", "content": "Comprehensive verification report"},
+                {
+                    "type": "photo_geo",
+                    "url": "https://example.com/geo.jpg",
+                    "lat": 25.7,
+                    "lon": -80.2,
+                },
+                {
+                    "type": "text_response",
+                    "content": "Comprehensive verification report",
+                },
                 {"type": "video", "url": "https://example.com/video.mp4"},
             ],
         )
@@ -242,7 +244,10 @@ class TestMultiTaskLearning:
                 worker_wallet=worker,
                 evidence=[
                     {"type": "photo", "url": f"https://example.com/{i}.jpg"},
-                    {"type": "text_response", "content": "Standard quality work completed"},
+                    {
+                        "type": "text_response",
+                        "content": "Standard quality work completed",
+                    },
                 ],
             )
             feedback_pipeline.process_completion_from_task(task)
@@ -331,13 +336,11 @@ class TestErrorResilience:
         feedback = feedback_pipeline.process_completion_from_task(task)
         assert isinstance(feedback, CompletionFeedback)
 
-    def test_pipeline_continues_after_individual_failure(
-        self, feedback_pipeline
-    ):
+    def test_pipeline_continues_after_individual_failure(self, feedback_pipeline):
         """A failing task shouldn't prevent subsequent tasks from processing."""
         # Process a bad task
         bad_task = {"id": "bad", "title": "broken"}
-        bad_feedback = feedback_pipeline.process_completion_from_task(bad_task)
+        feedback_pipeline.process_completion_from_task(bad_task)
 
         # Process a good task after
         good_task = make_completed_task(task_id="good-after-bad")
@@ -376,11 +379,15 @@ class TestReputationIntegration:
                 evidence=[
                     {"type": "photo", "url": f"https://example.com/{i}.jpg"},
                     {"type": "text_response", "content": "Excellent detailed work"},
-                    {"type": "photo_geo", "url": f"https://example.com/geo{i}.jpg",
-                     "lat": 25.7, "lon": -80.2},
+                    {
+                        "type": "photo_geo",
+                        "url": f"https://example.com/geo{i}.jpg",
+                        "lat": 25.7,
+                        "lon": -80.2,
+                    },
                 ],
             )
-            feedback = feedback_pipeline.process_completion_from_task(task)
+            feedback_pipeline.process_completion_from_task(task)
             if worker in feedback_pipeline._internal_reputations:
                 scores.append(
                     feedback_pipeline._internal_reputations[worker].bayesian_score
@@ -389,9 +396,7 @@ class TestReputationIntegration:
         # Should have scores after processing
         assert len(scores) >= 1
 
-    def test_multiple_workers_get_independent_reputations(
-        self, feedback_pipeline
-    ):
+    def test_multiple_workers_get_independent_reputations(self, feedback_pipeline):
         """Each worker's reputation should be tracked independently."""
         for w in ["0xA", "0xB", "0xC"]:
             task = make_completed_task(
@@ -462,10 +467,16 @@ class TestEvidenceParserIntegration:
             evidence=[
                 {"type": "photo", "url": "https://example.com/1.jpg"},
                 {"type": "photo", "url": "https://example.com/2.jpg"},
-                {"type": "photo_geo", "url": "https://example.com/g.jpg",
-                 "lat": 25.7, "lon": -80.2},
-                {"type": "text_response",
-                 "content": "Comprehensive report with multiple observations and measurements"},
+                {
+                    "type": "photo_geo",
+                    "url": "https://example.com/g.jpg",
+                    "lat": 25.7,
+                    "lon": -80.2,
+                },
+                {
+                    "type": "text_response",
+                    "content": "Comprehensive report with multiple observations and measurements",
+                },
                 {"type": "video", "url": "https://example.com/v.mp4"},
             ],
         )
@@ -510,6 +521,7 @@ class TestCallbackIntegration:
         self, temp_state_dir, worker_registry
     ):
         """A failing callback shouldn't crash the pipeline."""
+
         def bad_callback(fb):
             raise ValueError("callback exploded")
 
@@ -536,7 +548,7 @@ class TestStatePersistence:
     def test_state_dir_is_created(self, temp_state_dir):
         """Pipeline should create state directory if it doesn't exist."""
         subdir = os.path.join(temp_state_dir, "nested", "state")
-        pipeline = FeedbackPipeline(
+        FeedbackPipeline(
             em_api_url="http://localhost:9999",
             state_dir=subdir,
             autojob_base_url=None,

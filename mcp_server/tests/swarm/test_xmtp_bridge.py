@@ -22,7 +22,6 @@ import time
 from unittest.mock import patch, MagicMock
 from datetime import datetime, timezone
 
-import pytest
 
 from mcp_server.swarm.xmtp_bridge import (
     XMTPEventType,
@@ -117,21 +116,25 @@ class TestNotificationPayload:
 
 class TestWebhookEvent:
     def test_from_dict_valid(self):
-        event = WebhookEvent.from_dict({
-            "event_type": "worker_applied",
-            "sender_wallet": "0xWorker1",
-            "task_id": "task-001",
-            "payload": {"message": "I can do this!"},
-        })
+        event = WebhookEvent.from_dict(
+            {
+                "event_type": "worker_applied",
+                "sender_wallet": "0xWorker1",
+                "task_id": "task-001",
+                "payload": {"message": "I can do this!"},
+            }
+        )
         assert event.event_type == XMTPEventType.WORKER_APPLIED
         assert event.sender_wallet == "0xWorker1"
         assert event.task_id == "task-001"
 
     def test_from_dict_unknown_event(self):
-        event = WebhookEvent.from_dict({
-            "event_type": "totally_unknown",
-            "sender_wallet": "0xX",
-        })
+        event = WebhookEvent.from_dict(
+            {
+                "event_type": "totally_unknown",
+                "sender_wallet": "0xX",
+            }
+        )
         assert event.event_type == XMTPEventType.WORKER_MESSAGE  # fallback
 
     def test_from_dict_missing_fields(self):
@@ -141,18 +144,22 @@ class TestWebhookEvent:
         assert event.task_id is None
 
     def test_from_dict_sender_field_alias(self):
-        event = WebhookEvent.from_dict({
-            "event_type": "worker_registered",
-            "sender": "0xAlias",
-        })
+        event = WebhookEvent.from_dict(
+            {
+                "event_type": "worker_registered",
+                "sender": "0xAlias",
+            }
+        )
         assert event.sender_wallet == "0xAlias"
 
     def test_from_dict_data_field_alias(self):
-        event = WebhookEvent.from_dict({
-            "event_type": "evidence_submitted",
-            "sender_wallet": "0x1",
-            "data": {"evidence_url": "https://example.com/photo.jpg"},
-        })
+        event = WebhookEvent.from_dict(
+            {
+                "event_type": "evidence_submitted",
+                "sender_wallet": "0x1",
+                "data": {"evidence_url": "https://example.com/photo.jpg"},
+            }
+        )
         assert event.payload["evidence_url"] == "https://example.com/photo.jpg"
 
 
@@ -188,8 +195,10 @@ class TestDeliveryRecord:
 
     def test_to_dict_no_last_attempt(self):
         record = DeliveryRecord(
-            notification_id="n", status=DeliveryStatus.PENDING,
-            recipient="0x", event_type="test",
+            notification_id="n",
+            status=DeliveryStatus.PENDING,
+            recipient="0x",
+            event_type="test",
         )
         d = record.to_dict()
         assert d["last_attempt"] is None
@@ -242,11 +251,18 @@ class TestNotifyTaskAssigned:
 
     def test_successful_notification(self):
         bridge = XMTPBridge()
-        with patch("mcp_server.swarm.xmtp_bridge.urlopen", return_value=self._mock_urlopen(True)):
+        with patch(
+            "mcp_server.swarm.xmtp_bridge.urlopen",
+            return_value=self._mock_urlopen(True),
+        ):
             record = bridge.notify_task_assigned(
                 task_id="task-001",
                 worker_wallet="0xWorker123",
-                task_data={"title": "Buy coffee", "bounty_usdc": 5.0, "deadline": "2026-03-28"},
+                task_data={
+                    "title": "Buy coffee",
+                    "bounty_usdc": 5.0,
+                    "deadline": "2026-03-28",
+                },
             )
         assert record.status == DeliveryStatus.SENT
         assert record.delivered_at is not None
@@ -254,8 +270,11 @@ class TestNotifyTaskAssigned:
 
     def test_failed_notification(self):
         from urllib.error import URLError
+
         bridge = XMTPBridge()
-        with patch("mcp_server.swarm.xmtp_bridge.urlopen", side_effect=URLError("refused")):
+        with patch(
+            "mcp_server.swarm.xmtp_bridge.urlopen", side_effect=URLError("refused")
+        ):
             record = bridge.notify_task_assigned(
                 task_id="task-001",
                 worker_wallet="0xWorker",
@@ -273,7 +292,11 @@ class TestNotifyTaskAssigned:
             bridge.notify_task_assigned(
                 task_id="abcdef12-3456-7890",
                 worker_wallet="0xW",
-                task_data={"title": "Deliver package", "bounty_usdc": 10.50, "deadline": "Tomorrow"},
+                task_data={
+                    "title": "Deliver package",
+                    "bounty_usdc": 10.50,
+                    "deadline": "Tomorrow",
+                },
             )
             # Verify the request payload
             call_args = mock_url.call_args
@@ -294,7 +317,12 @@ class TestBroadcastNewTask:
 
         with patch("mcp_server.swarm.xmtp_bridge.urlopen", return_value=mock_resp):
             results = bridge.broadcast_new_task(
-                task_data={"id": "t1", "title": "Test", "bounty_usdc": 5, "category": "general"},
+                task_data={
+                    "id": "t1",
+                    "title": "Test",
+                    "bounty_usdc": 5,
+                    "category": "general",
+                },
                 worker_wallets=["0xA", "0xB", "0xC"],
             )
         assert len(results) == 3
@@ -425,11 +453,13 @@ class TestWebhookHandling:
             lambda event: received.append(event),
         )
 
-        result = bridge.handle_webhook({
-            "event_type": "worker_applied",
-            "sender_wallet": "0xWorker",
-            "task_id": "t1",
-        })
+        result = bridge.handle_webhook(
+            {
+                "event_type": "worker_applied",
+                "sender_wallet": "0xWorker",
+                "task_id": "t1",
+            }
+        )
 
         assert result is True
         assert len(received) == 1
@@ -437,10 +467,12 @@ class TestWebhookHandling:
 
     def test_no_handler_returns_false(self):
         bridge = XMTPBridge()
-        result = bridge.handle_webhook({
-            "event_type": "worker_registered",
-            "sender_wallet": "0x",
-        })
+        result = bridge.handle_webhook(
+            {
+                "event_type": "worker_registered",
+                "sender_wallet": "0x",
+            }
+        )
         assert result is False
 
     def test_multiple_handlers(self):
@@ -455,10 +487,12 @@ class TestWebhookHandling:
             lambda e: results.append("b"),
         )
 
-        bridge.handle_webhook({
-            "event_type": "evidence_submitted",
-            "sender_wallet": "0x",
-        })
+        bridge.handle_webhook(
+            {
+                "event_type": "evidence_submitted",
+                "sender_wallet": "0x",
+            }
+        )
         assert results == ["a", "b"]
 
     def test_handler_error_doesnt_crash(self):
@@ -467,16 +501,19 @@ class TestWebhookHandling:
             XMTPEventType.WORKER_MESSAGE,
             lambda e: (_ for _ in ()).throw(RuntimeError("boom")),
         )
+
         # This would need actual invocation to trigger the generator
         # Let's use a proper function:
         def bad_handler(event):
             raise RuntimeError("handler exploded")
 
         bridge._webhook_handlers[XMTPEventType.WORKER_MESSAGE] = [bad_handler]
-        result = bridge.handle_webhook({
-            "event_type": "worker_message",
-            "sender_wallet": "0x",
-        })
+        bridge.handle_webhook(
+            {
+                "event_type": "worker_message",
+                "sender_wallet": "0x",
+            }
+        )
         # Should still return True (handlers were registered)
         # but errors logged
 
@@ -523,6 +560,7 @@ class TestRetryQueue:
 
     def test_failed_retry(self):
         from urllib.error import URLError
+
         bridge = XMTPBridge()
         notification = NotificationPayload(
             event_type=XMTPEventType.TASK_ASSIGNED,
@@ -530,7 +568,9 @@ class TestRetryQueue:
         )
         bridge._pending_retries.append(notification)
 
-        with patch("mcp_server.swarm.xmtp_bridge.urlopen", side_effect=URLError("still down")):
+        with patch(
+            "mcp_server.swarm.xmtp_bridge.urlopen", side_effect=URLError("still down")
+        ):
             result = bridge.process_retry_queue()
         assert result == 0
         assert bridge._stats["notifications_failed"] >= 1
@@ -618,29 +658,39 @@ class TestStatusAndMetrics:
 class TestErrorHandling:
     def test_timeout_error(self):
         bridge = XMTPBridge()
-        with patch("mcp_server.swarm.xmtp_bridge.urlopen", side_effect=TimeoutError("timeout")):
+        with patch(
+            "mcp_server.swarm.xmtp_bridge.urlopen", side_effect=TimeoutError("timeout")
+        ):
             record = bridge.notify_task_assigned("t1", "0xW", {"title": "T"})
         assert record.status in (DeliveryStatus.FAILED, DeliveryStatus.RETRYING)
         assert "timeout" in record.error.lower()
 
     def test_unexpected_error(self):
         bridge = XMTPBridge()
-        with patch("mcp_server.swarm.xmtp_bridge.urlopen", side_effect=Exception("weird")):
+        with patch(
+            "mcp_server.swarm.xmtp_bridge.urlopen", side_effect=Exception("weird")
+        ):
             record = bridge.notify_task_assigned("t1", "0xW", {"title": "T"})
         assert record.status in (DeliveryStatus.FAILED, DeliveryStatus.RETRYING)
 
     def test_http_error(self):
         from urllib.error import HTTPError
+
         bridge = XMTPBridge()
-        with patch("mcp_server.swarm.xmtp_bridge.urlopen",
-                    side_effect=HTTPError("url", 503, "Service Unavailable", {}, None)):
+        with patch(
+            "mcp_server.swarm.xmtp_bridge.urlopen",
+            side_effect=HTTPError("url", 503, "Service Unavailable", {}, None),
+        ):
             record = bridge.notify_task_assigned("t1", "0xW", {"title": "T"})
         assert record.status in (DeliveryStatus.FAILED, DeliveryStatus.RETRYING)
 
     def test_max_retries_exceeded_stays_failed(self):
         from urllib.error import URLError
+
         bridge = XMTPBridge(max_retries=0)  # No retries
-        with patch("mcp_server.swarm.xmtp_bridge.urlopen", side_effect=URLError("down")):
+        with patch(
+            "mcp_server.swarm.xmtp_bridge.urlopen", side_effect=URLError("down")
+        ):
             record = bridge.notify_task_assigned("t1", "0xW", {"title": "T"})
         assert record.status == DeliveryStatus.FAILED
         assert len(bridge._pending_retries) == 0

@@ -27,15 +27,12 @@ Coverage matrix:
 """
 
 import time
-from collections import defaultdict
-from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from mcp_server.swarm.event_bus import (
     EventBus,
-    Event,
     TASK_ASSIGNED,
     TASK_COMPLETED,
     TASK_EXPIRED,
@@ -46,7 +43,6 @@ from mcp_server.swarm.event_bus import (
 from mcp_server.swarm.integrator import (
     SwarmIntegrator,
     SwarmMode,
-    CycleResult,
 )
 from mcp_server.swarm.xmtp_bridge import XMTPBridge
 from mcp_server.swarm.expiry_analyzer import ExpiryAnalyzer
@@ -64,12 +60,14 @@ class SpyAnalytics:
         self.flushed = False
 
     def record_event(self, event_type: str, data: dict, source: str = ""):
-        self.recorded_events.append({
-            "type": event_type,
-            "data": data,
-            "source": source,
-            "timestamp": time.time(),
-        })
+        self.recorded_events.append(
+            {
+                "type": event_type,
+                "data": data,
+                "source": source,
+                "timestamp": time.time(),
+            }
+        )
 
     def flush(self):
         self.flushed = True
@@ -312,8 +310,7 @@ class TestEventFlowWiring:
         event_bus.emit(TASK_EXPIRED, expiry_data)
 
         expired_events = [
-            e for e in spy_analytics.recorded_events
-            if e["type"] == TASK_EXPIRED
+            e for e in spy_analytics.recorded_events if e["type"] == TASK_EXPIRED
         ]
         assert len(expired_events) == 1
         assert expired_events[0]["data"]["task_id"] == "task-005"
@@ -341,7 +338,7 @@ class TestEventFlowWiring:
         """EventBus should keep a history of all emitted events."""
         for i in range(10):
             event_bus.emit(f"test.event.{i}", {"index": i})
-        
+
         history = event_bus.get_history()
         # History should include the wiring events plus our 10
         assert len(history) >= 10
@@ -446,12 +443,11 @@ class TestCycleIntegration:
         """When tasks are assigned in a cycle, task.assigned events should propagate."""
         fully_wired_integrator.set_mode(SwarmMode.FULL_AUTO)
         fully_wired_integrator.start()
-        result = fully_wired_integrator.run_cycle()
+        fully_wired_integrator.run_cycle()
 
         # The integrator emits TASK_ASSIGNED after routing phase
         assigned_events = [
-            e for e in spy_analytics.recorded_events
-            if e["type"] == TASK_ASSIGNED
+            e for e in spy_analytics.recorded_events if e["type"] == TASK_ASSIGNED
         ]
         assert len(assigned_events) == 1
         assert assigned_events[0]["data"]["count"] == 3
@@ -547,7 +543,8 @@ class TestErrorHandling:
     ):
         """XMTPBridge errors in event handler shouldn't crash the bus or other subscribers."""
         with patch.object(
-            xmtp_bridge, "notify_task_assigned",
+            xmtp_bridge,
+            "notify_task_assigned",
             side_effect=ConnectionError("XMTP bot unreachable"),
         ):
             # This should NOT raise
@@ -557,9 +554,7 @@ class TestErrorHandling:
             )
 
         # Analytics should still have received the event
-        assert any(
-            e["type"] == TASK_ASSIGNED for e in spy_analytics.recorded_events
-        )
+        assert any(e["type"] == TASK_ASSIGNED for e in spy_analytics.recorded_events)
 
     def test_feedback_pipeline_error_isolation(
         self, fully_wired_integrator, event_bus, spy_feedback, spy_analytics
@@ -573,9 +568,7 @@ class TestErrorHandling:
         event_bus.emit(TASK_COMPLETED, {"task_data": {"task_id": "broken"}})
 
         # Analytics should still capture it
-        assert any(
-            e["type"] == TASK_COMPLETED for e in spy_analytics.recorded_events
-        )
+        assert any(e["type"] == TASK_COMPLETED for e in spy_analytics.recorded_events)
 
 
 # ─── Test Group 4: Lifecycle & Mode Transitions ──────────────────
@@ -591,8 +584,7 @@ class TestLifecycleTransitions:
         fully_wired_integrator.start()
 
         started_events = [
-            e for e in spy_analytics.recorded_events
-            if e["type"] == "swarm.started"
+            e for e in spy_analytics.recorded_events if e["type"] == "swarm.started"
         ]
         assert len(started_events) == 1
         assert started_events[0]["data"]["mode"] == "passive"
@@ -605,8 +597,7 @@ class TestLifecycleTransitions:
         fully_wired_integrator.stop()
 
         stopped_events = [
-            e for e in spy_analytics.recorded_events
-            if e["type"] == "swarm.stopped"
+            e for e in spy_analytics.recorded_events if e["type"] == "swarm.stopped"
         ]
         assert len(stopped_events) == 1
 
@@ -632,14 +623,13 @@ class TestLifecycleTransitions:
         assert len(hook_calls) == 1
         assert hook_calls[0] == (SwarmMode.PASSIVE, SwarmMode.FULL_AUTO)
 
-    def test_mode_change_emits_event(
-        self, fully_wired_integrator, spy_analytics
-    ):
+    def test_mode_change_emits_event(self, fully_wired_integrator, spy_analytics):
         """Mode change should emit swarm.mode_changed event."""
         fully_wired_integrator.set_mode(SwarmMode.SEMI_AUTO)
 
         mode_events = [
-            e for e in spy_analytics.recorded_events
+            e
+            for e in spy_analytics.recorded_events
             if e["type"] == "swarm.mode_changed"
         ]
         assert len(mode_events) == 1
@@ -652,7 +642,9 @@ class TestLifecycleTransitions:
         post_calls = []
 
         fully_wired_integrator.on("pre_cycle", lambda cycle: pre_calls.append(cycle))
-        fully_wired_integrator.on("post_cycle", lambda result: post_calls.append(result))
+        fully_wired_integrator.on(
+            "post_cycle", lambda result: post_calls.append(result)
+        )
 
         fully_wired_integrator.start()
         fully_wired_integrator.run_cycle()
@@ -682,9 +674,7 @@ class TestHealthDiagnostics:
 
         health = fully_wired_integrator.health()
         assert health["status"] == "degraded"
-        assert (
-            health["components"]["healthy"] < health["components"]["total"]
-        )
+        assert health["components"]["healthy"] < health["components"]["total"]
 
     def test_health_includes_event_bus_status(self, fully_wired_integrator, event_bus):
         """Health report should include EventBus stats."""
@@ -749,57 +739,72 @@ class TestEventCascades:
         fully_wired_integrator.start()
 
         # Task discovered
-        event_bus.emit("task.discovered", {
-            "task_id": "lifecycle-001",
-            "title": "Integration test task",
-            "bounty_usdc": 5.0,
-        })
+        event_bus.emit(
+            "task.discovered",
+            {
+                "task_id": "lifecycle-001",
+                "title": "Integration test task",
+                "bounty_usdc": 5.0,
+            },
+        )
 
         # Task assigned
         with patch.object(
             fully_wired_integrator._xmtp_bridge, "notify_task_assigned"
         ) as mock_assign:
-            event_bus.emit(TASK_ASSIGNED, {
-                "task_id": "lifecycle-001",
-                "worker_wallet": "0xWorker",
-                "task_data": {"title": "Integration test task", "bounty_usdc": 5.0},
-            })
+            event_bus.emit(
+                TASK_ASSIGNED,
+                {
+                    "task_id": "lifecycle-001",
+                    "worker_wallet": "0xWorker",
+                    "task_data": {"title": "Integration test task", "bounty_usdc": 5.0},
+                },
+            )
             mock_assign.assert_called_once()
 
         # Task completed
-        event_bus.emit(TASK_COMPLETED, {
-            "task_data": {
-                "task_id": "lifecycle-001",
-                "worker_id": "worker-alpha",
-                "quality": "excellent",
+        event_bus.emit(
+            TASK_COMPLETED,
+            {
+                "task_data": {
+                    "task_id": "lifecycle-001",
+                    "worker_id": "worker-alpha",
+                    "quality": "excellent",
+                },
             },
-        })
+        )
         assert len(spy_feedback.completions) == 1
 
         # Reputation updated
         with patch.object(
             fully_wired_integrator._xmtp_bridge, "notify_reputation_update"
         ) as mock_rep:
-            event_bus.emit(REPUTATION_UPDATED, {
-                "worker_wallet": "0xWorker",
-                "task_id": "lifecycle-001",
-                "score": 5.0,
-                "new_average": 4.8,
-                "total_ratings": 15,
-            })
+            event_bus.emit(
+                REPUTATION_UPDATED,
+                {
+                    "worker_wallet": "0xWorker",
+                    "task_id": "lifecycle-001",
+                    "score": 5.0,
+                    "new_average": 4.8,
+                    "total_ratings": 15,
+                },
+            )
             mock_rep.assert_called_once()
 
         # Payment confirmed
         with patch.object(
             fully_wired_integrator._xmtp_bridge, "notify_payment_confirmed"
         ) as mock_pay:
-            event_bus.emit(PAYMENT_CONFIRMED, {
-                "worker_wallet": "0xWorker",
-                "task_id": "lifecycle-001",
-                "amount": 5.0,
-                "chain": "base",
-                "tx_hash": "0xABC123",
-            })
+            event_bus.emit(
+                PAYMENT_CONFIRMED,
+                {
+                    "worker_wallet": "0xWorker",
+                    "task_id": "lifecycle-001",
+                    "amount": 5.0,
+                    "chain": "base",
+                    "tx_hash": "0xABC123",
+                },
+            )
             mock_pay.assert_called_once()
 
         # Analytics should have recorded ALL 5 events
@@ -812,20 +817,21 @@ class TestEventCascades:
         fully_wired_integrator.start()
 
         for i in range(10):
-            event_bus.emit(TASK_COMPLETED, {
-                "task_data": {
-                    "task_id": f"batch-{i:03d}",
-                    "worker_id": f"worker-{i}",
+            event_bus.emit(
+                TASK_COMPLETED,
+                {
+                    "task_data": {
+                        "task_id": f"batch-{i:03d}",
+                        "worker_id": f"worker-{i}",
+                    },
                 },
-            })
+            )
 
         assert len(spy_feedback.completions) == 10
         task_ids = {c["task_id"] for c in spy_feedback.completions}
         assert len(task_ids) == 10
 
-    def test_assignment_hook_fires_on_cycle_routing(
-        self, fully_wired_integrator
-    ):
+    def test_assignment_hook_fires_on_cycle_routing(self, fully_wired_integrator):
         """on_assignment hook should fire when tasks are assigned during cycle."""
         assignment_counts = []
         fully_wired_integrator.on(
@@ -919,9 +925,14 @@ class TestEventBusMetrics:
         initial_deliveries = event_bus.get_status()["total_deliveries"]
 
         # TASK_ASSIGNED matches: xmtp_bridge + analytics = 2 subscribers
-        event_bus.emit(TASK_ASSIGNED, {
-            "task_id": "x", "worker_wallet": "0x", "task_data": {},
-        })
+        event_bus.emit(
+            TASK_ASSIGNED,
+            {
+                "task_id": "x",
+                "worker_wallet": "0x",
+                "task_data": {},
+            },
+        )
 
         final_deliveries = event_bus.get_status()["total_deliveries"]
         # At least 2 deliveries (XMTP + analytics wildcard)

@@ -19,7 +19,7 @@ These tests verify the orchestrator as a behavioral system, not just individual 
 
 import pytest
 from datetime import datetime, timezone, timedelta
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from mcp_server.swarm.orchestrator import (
     SwarmOrchestrator,
@@ -32,7 +32,6 @@ from mcp_server.swarm.reputation_bridge import (
     ReputationBridge,
     OnChainReputation,
     InternalReputation,
-    CompositeScore,
 )
 from mcp_server.swarm.lifecycle_manager import (
     LifecycleManager,
@@ -98,9 +97,16 @@ def orchestrator(bridge, lifecycle):
     )
 
 
-def register_agent(orchestrator, lifecycle, agent_id, name="Agent",
-                   positive_seals=17, bayesian_score=0.75,
-                   categories=None, consecutive_failures=0) -> int:
+def register_agent(
+    orchestrator,
+    lifecycle,
+    agent_id,
+    name="Agent",
+    positive_seals=17,
+    bayesian_score=0.75,
+    categories=None,
+    consecutive_failures=0,
+) -> int:
     """Helper: register and activate an agent with given parameters."""
     wallet = f"0x{'0' * 38}{agent_id:02d}"
     lifecycle.register_agent(agent_id, name=name, wallet_address=wallet)
@@ -109,16 +115,24 @@ def register_agent(orchestrator, lifecycle, agent_id, name="Agent",
     on_chain = make_on_chain(positive_seals=positive_seals, total_seals=20)
     on_chain.agent_id = agent_id
     on_chain.wallet_address = wallet
-    internal = make_internal(bayesian_score=bayesian_score, categories=categories,
-                             consecutive_failures=consecutive_failures)
+    internal = make_internal(
+        bayesian_score=bayesian_score,
+        categories=categories,
+        consecutive_failures=consecutive_failures,
+    )
     internal.agent_id = agent_id
 
     orchestrator.register_reputation(agent_id, on_chain, internal)
     return agent_id
 
 
-def make_task(task_id="t1", category="delivery", bounty=0.50, priority=TaskPriority.NORMAL,
-              exclude=None) -> TaskRequest:
+def make_task(
+    task_id="t1",
+    category="delivery",
+    bounty=0.50,
+    priority=TaskPriority.NORMAL,
+    exclude=None,
+) -> TaskRequest:
     return TaskRequest(
         task_id=task_id,
         title=f"Task {task_id}",
@@ -184,9 +198,30 @@ class TestBasicRouting:
 class TestScoreCompetition:
     def test_best_fit_routes_to_highest_score(self, orchestrator, lifecycle):
         """BEST_FIT always picks the highest-scored agent."""
-        register_agent(orchestrator, lifecycle, 1, "LowScore", positive_seals=4, bayesian_score=0.30)
-        register_agent(orchestrator, lifecycle, 2, "HighScore", positive_seals=19, bayesian_score=0.95)
-        register_agent(orchestrator, lifecycle, 3, "MidScore", positive_seals=12, bayesian_score=0.60)
+        register_agent(
+            orchestrator,
+            lifecycle,
+            1,
+            "LowScore",
+            positive_seals=4,
+            bayesian_score=0.30,
+        )
+        register_agent(
+            orchestrator,
+            lifecycle,
+            2,
+            "HighScore",
+            positive_seals=19,
+            bayesian_score=0.95,
+        )
+        register_agent(
+            orchestrator,
+            lifecycle,
+            3,
+            "MidScore",
+            positive_seals=12,
+            bayesian_score=0.60,
+        )
 
         task = make_task("t1")
         result = orchestrator.route_task(task)
@@ -195,9 +230,30 @@ class TestScoreCompetition:
 
     def test_best_fit_second_task_goes_to_second_best(self, orchestrator, lifecycle):
         """After top agent takes task, next task goes to next best."""
-        register_agent(orchestrator, lifecycle, 1, "LowScore", positive_seals=4, bayesian_score=0.30)
-        register_agent(orchestrator, lifecycle, 2, "HighScore", positive_seals=19, bayesian_score=0.95)
-        register_agent(orchestrator, lifecycle, 3, "MidScore", positive_seals=12, bayesian_score=0.60)
+        register_agent(
+            orchestrator,
+            lifecycle,
+            1,
+            "LowScore",
+            positive_seals=4,
+            bayesian_score=0.30,
+        )
+        register_agent(
+            orchestrator,
+            lifecycle,
+            2,
+            "HighScore",
+            positive_seals=19,
+            bayesian_score=0.95,
+        )
+        register_agent(
+            orchestrator,
+            lifecycle,
+            3,
+            "MidScore",
+            positive_seals=12,
+            bayesian_score=0.60,
+        )
 
         orchestrator.route_task(make_task("t1"))
         # Agent 2 is now busy; next task should go to agent 3
@@ -233,7 +289,9 @@ class TestScoreCompetition:
 
     def test_assignment_includes_score(self, orchestrator, lifecycle):
         """Assignment object carries the score used for routing."""
-        register_agent(orchestrator, lifecycle, 1, "Alpha", positive_seals=18, bayesian_score=0.88)
+        register_agent(
+            orchestrator, lifecycle, 1, "Alpha", positive_seals=18, bayesian_score=0.88
+        )
         result = orchestrator.route_task(make_task())
         assert isinstance(result, Assignment)
         assert result.score > 0
@@ -241,7 +299,7 @@ class TestScoreCompetition:
     def test_alternatives_count_is_n_minus_one(self, orchestrator, lifecycle):
         """alternatives_count reflects how many other candidates existed."""
         for i in range(4):
-            register_agent(orchestrator, lifecycle, i + 1, f"Agent{i+1}")
+            register_agent(orchestrator, lifecycle, i + 1, f"Agent{i + 1}")
         result = orchestrator.route_task(make_task())
         assert isinstance(result, Assignment)
         assert result.alternatives_count == 3
@@ -254,19 +312,20 @@ class TestRoundRobin:
     def test_round_robin_distributes_across_agents(self, orchestrator, lifecycle):
         """RR cycles through available agents across multiple tasks."""
         for i in range(3):
-            register_agent(orchestrator, lifecycle, i + 1, f"Agent{i+1}")
+            register_agent(orchestrator, lifecycle, i + 1, f"Agent{i + 1}")
 
         assignments = []
         for i in range(6):
             result = orchestrator.route_task(
                 make_task(f"t{i}", category="delivery"),
-                strategy=RoutingStrategy.ROUND_ROBIN
+                strategy=RoutingStrategy.ROUND_ROBIN,
             )
             if isinstance(result, Assignment):
                 assignments.append(result.agent_id)
 
         # With 6 tasks and 3 agents, each agent should get 2
         from collections import Counter
+
         counts = Counter(assignments)
         assert len(counts) == 3  # All 3 agents were used
         assert max(counts.values()) - min(counts.values()) <= 1  # Even distribution
@@ -274,10 +333,12 @@ class TestRoundRobin:
     def test_round_robin_skips_busy_agents(self, orchestrator, lifecycle):
         """RR skips agents that are currently busy."""
         for i in range(3):
-            register_agent(orchestrator, lifecycle, i + 1, f"Agent{i+1}")
+            register_agent(orchestrator, lifecycle, i + 1, f"Agent{i + 1}")
 
         # Assign a task to agent 1 first (via BEST_FIT)
-        result1 = orchestrator.route_task(make_task("t_busy"), strategy=RoutingStrategy.BEST_FIT)
+        result1 = orchestrator.route_task(
+            make_task("t_busy"), strategy=RoutingStrategy.BEST_FIT
+        )
         busy_agent = result1.agent_id
 
         # Now run 2 more tasks via RR — busy agent should not appear twice
@@ -300,16 +361,34 @@ class TestSpecialistRouting:
     def test_specialist_routes_to_category_expert(self, orchestrator, lifecycle):
         """SPECIALIST mode prefers agents with matching category experience."""
         # Agent 1: delivery specialist, high seals
-        register_agent(orchestrator, lifecycle, 1, "GeneralistA",
-                       positive_seals=18, bayesian_score=0.90,
-                       categories=["delivery"])
+        register_agent(
+            orchestrator,
+            lifecycle,
+            1,
+            "GeneralistA",
+            positive_seals=18,
+            bayesian_score=0.90,
+            categories=["delivery"],
+        )
         # Agent 2: code_execution specialist but lower seals
-        register_agent(orchestrator, lifecycle, 2, "Specialist",
-                       positive_seals=12, bayesian_score=0.60,
-                       categories=["code_execution"])
-        register_agent(orchestrator, lifecycle, 3, "GeneralistB",
-                       positive_seals=15, bayesian_score=0.75,
-                       categories=["delivery"])
+        register_agent(
+            orchestrator,
+            lifecycle,
+            2,
+            "Specialist",
+            positive_seals=12,
+            bayesian_score=0.60,
+            categories=["code_execution"],
+        )
+        register_agent(
+            orchestrator,
+            lifecycle,
+            3,
+            "GeneralistB",
+            positive_seals=15,
+            bayesian_score=0.75,
+            categories=["delivery"],
+        )
 
         # Task requiring "code_execution" — Agent 2 has matching category
         task = make_task("t1", category="code_execution")
@@ -317,12 +396,28 @@ class TestSpecialistRouting:
         # Should be assigned to someone — specialist or fallback
         assert isinstance(result, Assignment)
 
-    def test_specialist_falls_back_to_best_fit_if_no_specialist(self, orchestrator, lifecycle):
+    def test_specialist_falls_back_to_best_fit_if_no_specialist(
+        self, orchestrator, lifecycle
+    ):
         """If no specialist exists, SPECIALIST may fall back or return a failure — both are valid."""
-        register_agent(orchestrator, lifecycle, 1, "Alpha",
-                       positive_seals=17, bayesian_score=0.85, categories=["delivery"])
-        register_agent(orchestrator, lifecycle, 2, "Beta",
-                       positive_seals=17, bayesian_score=0.85, categories=["pickup"])
+        register_agent(
+            orchestrator,
+            lifecycle,
+            1,
+            "Alpha",
+            positive_seals=17,
+            bayesian_score=0.85,
+            categories=["delivery"],
+        )
+        register_agent(
+            orchestrator,
+            lifecycle,
+            2,
+            "Beta",
+            positive_seals=17,
+            bayesian_score=0.85,
+            categories=["pickup"],
+        )
 
         # Task for "knowledge_access" — no specialist
         task = make_task("t1", category="knowledge_access")
@@ -337,8 +432,12 @@ class TestSpecialistRouting:
 class TestBudgetAwareRouting:
     def test_budget_aware_routes_successfully(self, orchestrator, lifecycle):
         """BUDGET_AWARE routing assigns a task."""
-        register_agent(orchestrator, lifecycle, 1, "AgentA", positive_seals=15, bayesian_score=0.75)
-        register_agent(orchestrator, lifecycle, 2, "AgentB", positive_seals=12, bayesian_score=0.60)
+        register_agent(
+            orchestrator, lifecycle, 1, "AgentA", positive_seals=15, bayesian_score=0.75
+        )
+        register_agent(
+            orchestrator, lifecycle, 2, "AgentB", positive_seals=12, bayesian_score=0.60
+        )
 
         task = make_task()
         result = orchestrator.route_task(task, strategy=RoutingStrategy.BUDGET_AWARE)
@@ -359,9 +458,12 @@ class TestBudgetAwareRouting:
         """
         # Register agent with tight budget
         wallet = "0x0000000000000000000000000000000000000099"
-        lifecycle.register_agent(99, name="OverBudget", wallet_address=wallet,
-                                 budget_config=BudgetConfig(daily_limit_usd=0.01,
-                                                             monthly_limit_usd=0.01))
+        lifecycle.register_agent(
+            99,
+            name="OverBudget",
+            wallet_address=wallet,
+            budget_config=BudgetConfig(daily_limit_usd=0.01, monthly_limit_usd=0.01),
+        )
         lifecycle.transition(99, AgentState.IDLE, "ready")
         on_chain = make_on_chain()
         on_chain.agent_id = 99
@@ -543,7 +645,7 @@ class TestConcurrentLoad:
         """N tasks with N agents should all be assignable."""
         n = 5
         for i in range(n):
-            register_agent(orchestrator, lifecycle, i + 1, f"Agent{i+1}")
+            register_agent(orchestrator, lifecycle, i + 1, f"Agent{i + 1}")
 
         results = []
         for i in range(n):
@@ -556,7 +658,7 @@ class TestConcurrentLoad:
         """n+1 tasks with n agents → exactly 1 failure."""
         n = 3
         for i in range(n):
-            register_agent(orchestrator, lifecycle, i + 1, f"Agent{i+1}")
+            register_agent(orchestrator, lifecycle, i + 1, f"Agent{i + 1}")
 
         results = []
         for i in range(n + 1):
@@ -583,7 +685,6 @@ class TestConcurrentLoad:
             orchestrator.complete_task(f"t{i}")
             # Manually expire cooldown and return agent to IDLE for next cycle
             agent_rec = lifecycle.agents[1]
-            from datetime import timedelta
             agent_rec.cooldown_until = datetime.now(timezone.utc) - timedelta(seconds=1)
             lifecycle.transition(1, AgentState.IDLE, "cooldown_expired_simulated")
 
@@ -629,8 +730,13 @@ class TestStrategySwitching:
     def test_can_mix_strategies_across_tasks(self, orchestrator, lifecycle):
         """Different strategies can be used for different tasks."""
         for i in range(4):
-            register_agent(orchestrator, lifecycle, i + 1, f"Agent{i+1}",
-                           positive_seals=10 + i * 2)
+            register_agent(
+                orchestrator,
+                lifecycle,
+                i + 1,
+                f"Agent{i + 1}",
+                positive_seals=10 + i * 2,
+            )
 
         strategies = [
             RoutingStrategy.BEST_FIT,

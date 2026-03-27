@@ -16,10 +16,8 @@ Covers:
 import json
 import os
 import tempfile
-from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock
 
-import pytest
 
 from mcp_server.swarm.runner import (
     SwarmRunner,
@@ -31,6 +29,7 @@ from mcp_server.swarm.runner import (
 
 
 # ─── Helpers ──────────────────────────────────────────────────
+
 
 def make_mock_coordinator():
     """Create a mock SwarmCoordinator with required attributes."""
@@ -65,6 +64,7 @@ def make_runner(mode="passive", **kwargs):
 
 # ─── Section 1: Enums ────────────────────────────────────────
 
+
 class TestEnums:
     def test_run_modes(self):
         assert RunMode.PASSIVE.value == "passive"
@@ -77,12 +77,21 @@ class TestEnums:
         assert Phase.REPORT.value == "report"
 
     def test_phase_order(self):
-        expected = ["discover", "enrich", "route", "monitor", "collect", "learn", "report"]
+        expected = [
+            "discover",
+            "enrich",
+            "route",
+            "monitor",
+            "collect",
+            "learn",
+            "report",
+        ]
         actual = [p.value for p in Phase]
         assert actual == expected
 
 
 # ─── Section 2: CycleResult ──────────────────────────────────
+
 
 class TestCycleResult:
     def test_default_values(self):
@@ -140,6 +149,7 @@ class TestCycleResult:
 
 # ─── Section 3: RunnerState ──────────────────────────────────
 
+
 class TestRunnerState:
     def test_default_state(self):
         s = RunnerState()
@@ -183,6 +193,7 @@ class TestRunnerState:
 
 # ─── Section 4: SwarmRunner Lifecycle ─────────────────────────
 
+
 class TestRunnerLifecycle:
     def test_run_once_returns_cycle_result(self):
         runner = make_runner()
@@ -225,6 +236,7 @@ class TestRunnerLifecycle:
 
 # ─── Section 5: 7-Phase Execution ────────────────────────────
 
+
 class TestPhaseExecution:
     def test_all_phases_complete(self):
         runner = make_runner()
@@ -235,7 +247,12 @@ class TestPhaseExecution:
     def test_discover_phase_finds_tasks(self):
         runner = make_runner()
         runner.coordinator.em_client.list_tasks.return_value = [
-            {"id": "t1", "title": "Task 1", "category": "delivery", "bounty_amount": 5.0},
+            {
+                "id": "t1",
+                "title": "Task 1",
+                "category": "delivery",
+                "bounty_amount": 5.0,
+            },
             {"id": "t2", "title": "Task 2", "category": "photo", "bounty_amount": 3.0},
         ]
         result = runner.run_once()
@@ -255,7 +272,7 @@ class TestPhaseExecution:
 
     def test_monitor_phase_counts_agents(self):
         runner = make_runner()
-        
+
         # Create mock agents with state
         agent1 = MagicMock()
         agent1.state = MagicMock(value="active")
@@ -297,6 +314,7 @@ class TestPhaseExecution:
 
 # ─── Section 6: State Management ─────────────────────────────
 
+
 class TestStateManagement:
     def test_state_persists_to_disk(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -337,6 +355,7 @@ class TestStateManagement:
 
 # ─── Section 7: Task Deduplication ────────────────────────────
 
+
 class TestTaskDeduplication:
     def test_known_tasks_cap(self):
         runner = make_runner()
@@ -365,6 +384,7 @@ class TestTaskDeduplication:
 
 
 # ─── Section 8: Status & Diagnostics ─────────────────────────
+
 
 class TestDiagnostics:
     def test_get_status(self):
@@ -395,6 +415,7 @@ class TestDiagnostics:
 
 
 # ─── Section 9: Error Handling ────────────────────────────────
+
 
 class TestErrorHandling:
     def test_discover_error_recorded(self):

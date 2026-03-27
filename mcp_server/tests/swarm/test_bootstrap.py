@@ -18,7 +18,6 @@ import json
 import os
 import tempfile
 
-import pytest
 
 from mcp_server.swarm.bootstrap import (
     DEFAULT_AGENTS,
@@ -63,9 +62,18 @@ class TestDefaultAgents:
         assert uv[0]["personality"] == "orchestrator"
 
     def test_personalities_are_valid(self):
-        valid = {"explorer", "strategist", "executor", "analyst", "specialist", "orchestrator"}
+        valid = {
+            "explorer",
+            "strategist",
+            "executor",
+            "analyst",
+            "specialist",
+            "orchestrator",
+        }
         for agent in DEFAULT_AGENTS:
-            assert agent["personality"] in valid, f"Invalid personality: {agent['personality']}"
+            assert agent["personality"] in valid, (
+                f"Invalid personality: {agent['personality']}"
+            )
 
     def test_all_agents_have_at_least_two_tags(self):
         for agent in DEFAULT_AGENTS:
@@ -141,7 +149,12 @@ class TestSwarmBootstrapInit:
 
     def test_custom_agents(self):
         custom = [
-            {"agent_id": 9001, "name": "TestAgent", "personality": "explorer", "tags": ["test"]},
+            {
+                "agent_id": 9001,
+                "name": "TestAgent",
+                "personality": "explorer",
+                "tags": ["test"],
+            },
         ]
         bootstrap = SwarmBootstrap(agents=custom)
         assert bootstrap._custom_agents == custom
@@ -178,8 +191,18 @@ class TestCreateCoordinator:
 
     def test_create_with_custom_agents(self):
         custom = [
-            {"agent_id": 9001, "name": "Alpha", "personality": "explorer", "tags": ["general"]},
-            {"agent_id": 9002, "name": "Beta", "personality": "analyst", "tags": ["research"]},
+            {
+                "agent_id": 9001,
+                "name": "Alpha",
+                "personality": "explorer",
+                "tags": ["general"],
+            },
+            {
+                "agent_id": 9002,
+                "name": "Beta",
+                "personality": "analyst",
+                "tags": ["research"],
+            },
         ]
         bootstrap = SwarmBootstrap(agents=custom)
         coordinator, result = bootstrap.create_coordinator(
@@ -275,8 +298,12 @@ class TestReputationBuilding:
     def test_tag_based_category_scores(self):
         """Agent tags should become base category scores."""
         custom = [
-            {"agent_id": 9999, "name": "Test", "personality": "explorer",
-             "tags": ["coding", "blockchain", "defi"]},
+            {
+                "agent_id": 9999,
+                "name": "Test",
+                "personality": "explorer",
+                "tags": ["coding", "blockchain", "defi"],
+            },
         ]
         bootstrap = SwarmBootstrap(agents=custom)
         bootstrap._agents = custom
@@ -332,7 +359,12 @@ class TestProfileBuilding:
 
     def test_profile_skill_dna(self):
         tasks = [
-            {"executor_id": "w1", "payment_network": "base", "category": "coding", "bounty_usd": 10},
+            {
+                "executor_id": "w1",
+                "payment_network": "base",
+                "category": "coding",
+                "bounty_usd": 10,
+            },
         ] * 25  # 25 tasks → intermediate
 
         bootstrap = SwarmBootstrap()
@@ -355,18 +387,35 @@ class TestProfileBuilding:
         ]
         for count, expected_level in levels:
             tasks = [
-                {"executor_id": "w", "payment_network": "base", "category": "general", "bounty_usd": 1}
+                {
+                    "executor_id": "w",
+                    "payment_network": "base",
+                    "category": "general",
+                    "bounty_usd": 1,
+                }
             ] * count
             bootstrap = SwarmBootstrap()
             bootstrap._completed_tasks = tasks
             bootstrap._build_profiles_from_history()
-            assert bootstrap._profiles["w"]["skill_dna"]["experience_level"] == expected_level, \
-                f"Count {count} should be {expected_level}"
+            assert (
+                bootstrap._profiles["w"]["skill_dna"]["experience_level"]
+                == expected_level
+            ), f"Count {count} should be {expected_level}"
 
     def test_multi_chain_detection(self):
         tasks = [
-            {"executor_id": "w", "payment_network": "base", "category": "general", "bounty_usd": 1},
-            {"executor_id": "w", "payment_network": "ethereum", "category": "general", "bounty_usd": 1},
+            {
+                "executor_id": "w",
+                "payment_network": "base",
+                "category": "general",
+                "bounty_usd": 1,
+            },
+            {
+                "executor_id": "w",
+                "payment_network": "ethereum",
+                "category": "general",
+                "bounty_usd": 1,
+            },
         ]
         bootstrap = SwarmBootstrap()
         bootstrap._completed_tasks = tasks
@@ -376,7 +425,12 @@ class TestProfileBuilding:
     def test_tasks_without_executor_id_skipped(self):
         tasks = [
             {"payment_network": "base", "category": "general", "bounty_usd": 1},
-            {"executor_id": "", "payment_network": "base", "category": "general", "bounty_usd": 1},
+            {
+                "executor_id": "",
+                "payment_network": "base",
+                "category": "general",
+                "bounty_usd": 1,
+            },
         ]
         bootstrap = SwarmBootstrap()
         bootstrap._completed_tasks = tasks
@@ -446,11 +500,14 @@ class TestCachePersistence:
 
     def test_load_valid_cache(self):
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-            json.dump({
-                "profiles": {"w1": {"total_tasks": 5}},
-                "chain_analytics": {},
-                "summary": {"total_tasks": 5},
-            }, f)
+            json.dump(
+                {
+                    "profiles": {"w1": {"total_tasks": 5}},
+                    "chain_analytics": {},
+                    "summary": {"total_tasks": 5},
+                },
+                f,
+            )
             path = f.name
 
         try:
@@ -497,7 +554,12 @@ class TestBootstrapEdgeCases:
 
     def test_single_agent(self):
         custom = [
-            {"agent_id": 1, "name": "Solo", "personality": "explorer", "tags": ["general"]},
+            {
+                "agent_id": 1,
+                "name": "Solo",
+                "personality": "explorer",
+                "tags": ["general"],
+            },
         ]
         bootstrap = SwarmBootstrap(agents=custom)
         coordinator, result = bootstrap.create_coordinator(
@@ -508,8 +570,18 @@ class TestBootstrapEdgeCases:
     def test_duplicate_agent_ids_handled(self):
         """Duplicate agent IDs should be handled gracefully."""
         custom = [
-            {"agent_id": 1, "name": "Alpha", "personality": "explorer", "tags": ["general"]},
-            {"agent_id": 1, "name": "Beta", "personality": "analyst", "tags": ["research"]},
+            {
+                "agent_id": 1,
+                "name": "Alpha",
+                "personality": "explorer",
+                "tags": ["general"],
+            },
+            {
+                "agent_id": 1,
+                "name": "Beta",
+                "personality": "analyst",
+                "tags": ["research"],
+            },
         ]
         bootstrap = SwarmBootstrap(agents=custom)
         # Second registration might overwrite or fail gracefully

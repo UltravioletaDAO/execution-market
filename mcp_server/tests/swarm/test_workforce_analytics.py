@@ -24,7 +24,6 @@ import pytest
 from mcp_server.swarm.workforce_analytics import (
     TrendDirection,
     AlertSeverity,
-    MetricPoint,
     MetricSeries,
     WorkerProfile,
     CategoryBreakdown,
@@ -52,26 +51,30 @@ def sample_events():
     events = []
     # 10 completed tasks from 3 workers across 2 categories
     for i in range(10):
-        events.append(TaskEvent(
-            task_id=f"task_{i}",
-            category="delivery" if i % 2 == 0 else "verification",
-            worker_id=f"worker_{i % 3}",
-            outcome="completed",
-            quality_score=0.7 + (i % 4) * 0.05,
-            bounty_usd=3.0 + i * 0.5,
-            completion_hours=2.0 + i * 0.3,
-            timestamp=now - (10 - i) * 3600,
-        ))
+        events.append(
+            TaskEvent(
+                task_id=f"task_{i}",
+                category="delivery" if i % 2 == 0 else "verification",
+                worker_id=f"worker_{i % 3}",
+                outcome="completed",
+                quality_score=0.7 + (i % 4) * 0.05,
+                bounty_usd=3.0 + i * 0.5,
+                completion_hours=2.0 + i * 0.3,
+                timestamp=now - (10 - i) * 3600,
+            )
+        )
     # 3 expired tasks
     for i in range(3):
-        events.append(TaskEvent(
-            task_id=f"expired_{i}",
-            category="delivery",
-            worker_id=f"worker_{i % 3}",
-            outcome="expired",
-            bounty_usd=5.0,
-            timestamp=now - i * 3600,
-        ))
+        events.append(
+            TaskEvent(
+                task_id=f"expired_{i}",
+                category="delivery",
+                worker_id=f"worker_{i % 3}",
+                outcome="expired",
+                bounty_usd=5.0,
+                timestamp=now - i * 3600,
+            )
+        )
     return events
 
 
@@ -150,18 +153,21 @@ class TestWorkerProfile:
         assert w.completion_rate == 0.0
 
     def test_is_mvp(self):
-        w = WorkerProfile(worker_id="w1", tasks_completed=10, tasks_total=12,
-                          avg_quality=0.85)
+        w = WorkerProfile(
+            worker_id="w1", tasks_completed=10, tasks_total=12, avg_quality=0.85
+        )
         assert w.is_mvp is True
 
     def test_not_mvp_low_quality(self):
-        w = WorkerProfile(worker_id="w1", tasks_completed=10, tasks_total=12,
-                          avg_quality=0.5)
+        w = WorkerProfile(
+            worker_id="w1", tasks_completed=10, tasks_total=12, avg_quality=0.5
+        )
         assert w.is_mvp is False
 
     def test_not_mvp_low_volume(self):
-        w = WorkerProfile(worker_id="w1", tasks_completed=2, tasks_total=2,
-                          avg_quality=0.9)
+        w = WorkerProfile(
+            worker_id="w1", tasks_completed=2, tasks_total=2, avg_quality=0.9
+        )
         assert w.is_mvp is False
 
     def test_is_at_risk(self):
@@ -177,8 +183,9 @@ class TestWorkerProfile:
         assert w.specialization == "delivery"
 
     def test_specialization_generalist(self):
-        w = WorkerProfile(worker_id="w1",
-                          categories=["delivery", "photo", "verification", "data"])
+        w = WorkerProfile(
+            worker_id="w1", categories=["delivery", "photo", "verification", "data"]
+        )
         assert w.specialization == "generalist"
 
     def test_specialization_empty(self):
@@ -219,14 +226,16 @@ class TestAnalyticsReport:
 
     def test_health_score_good(self):
         r = AnalyticsReport(
-            completion_rate=0.9, avg_quality=0.85,
+            completion_rate=0.9,
+            avg_quality=0.85,
             total_workers=15,
         )
         assert r.health_score > 60
 
     def test_health_score_bad(self):
         r = AnalyticsReport(
-            completion_rate=0.1, avg_quality=0.2,
+            completion_rate=0.1,
+            avg_quality=0.2,
             total_workers=1,
             alerts=[AnalyticsAlert(severity=AlertSeverity.CRITICAL, message="bad")],
         )
@@ -242,7 +251,9 @@ class TestIngestion:
     """Event recording into analytics."""
 
     def test_ingest_single(self, analytics):
-        analytics.ingest(TaskEvent(task_id="t1", outcome="completed", quality_score=0.8))
+        analytics.ingest(
+            TaskEvent(task_id="t1", outcome="completed", quality_score=0.8)
+        )
         assert len(analytics._events) == 1
 
     def test_ingest_batch(self, analytics, sample_events):
@@ -250,16 +261,22 @@ class TestIngestion:
         assert len(analytics._events) == 13  # 10 completed + 3 expired
 
     def test_series_created(self, analytics):
-        analytics.ingest(TaskEvent(task_id="t1", outcome="completed", quality_score=0.8))
+        analytics.ingest(
+            TaskEvent(task_id="t1", outcome="completed", quality_score=0.8)
+        )
         assert "completion_rate" in analytics._series
         assert "quality" in analytics._series
         assert "volume" in analytics._series
 
     def test_series_updated(self, analytics):
         for i in range(5):
-            analytics.ingest(TaskEvent(
-                task_id=f"t{i}", outcome="completed", quality_score=0.7,
-            ))
+            analytics.ingest(
+                TaskEvent(
+                    task_id=f"t{i}",
+                    outcome="completed",
+                    quality_score=0.7,
+                )
+            )
         q = analytics.get_series("quality")
         assert q is not None
         assert len(q.points) == 5
@@ -319,22 +336,30 @@ class TestReportGeneration:
     def test_report_mvp_workers(self, analytics):
         """Inject high-volume high-quality worker."""
         for i in range(10):
-            analytics.ingest(TaskEvent(
-                task_id=f"t{i}", worker_id="mvp_worker",
-                outcome="completed", quality_score=0.9,
-                bounty_usd=5.0, completion_hours=2.0,
-            ))
+            analytics.ingest(
+                TaskEvent(
+                    task_id=f"t{i}",
+                    worker_id="mvp_worker",
+                    outcome="completed",
+                    quality_score=0.9,
+                    bounty_usd=5.0,
+                    completion_hours=2.0,
+                )
+            )
         r = analytics.generate_report()
         assert "mvp_worker" in r.mvp_workers
 
     def test_report_at_risk_workers(self, analytics):
         """Worker with mostly failures."""
         for i in range(5):
-            analytics.ingest(TaskEvent(
-                task_id=f"t{i}", worker_id="bad_worker",
-                outcome="expired" if i < 4 else "completed",
-                quality_score=0.3,
-            ))
+            analytics.ingest(
+                TaskEvent(
+                    task_id=f"t{i}",
+                    worker_id="bad_worker",
+                    outcome="expired" if i < 4 else "completed",
+                    quality_score=0.3,
+                )
+            )
         r = analytics.generate_report()
         assert "bad_worker" in r.at_risk_workers
 
@@ -353,46 +378,67 @@ class TestAlerts:
 
     def test_low_completion_alert(self, analytics):
         for i in range(10):
-            analytics.ingest(TaskEvent(
-                task_id=f"t{i}", worker_id="w1",
-                outcome="expired" if i < 8 else "completed",
-                quality_score=0.7, bounty_usd=5.0,
-            ))
+            analytics.ingest(
+                TaskEvent(
+                    task_id=f"t{i}",
+                    worker_id="w1",
+                    outcome="expired" if i < 8 else "completed",
+                    quality_score=0.7,
+                    bounty_usd=5.0,
+                )
+            )
         r = analytics.generate_report()
         completion_alerts = [a for a in r.alerts if a.metric == "completion_rate"]
         assert len(completion_alerts) >= 1
 
     def test_low_quality_alert(self, analytics):
         for i in range(5):
-            analytics.ingest(TaskEvent(
-                task_id=f"t{i}", worker_id="w1",
-                outcome="completed", quality_score=0.3,
-                bounty_usd=5.0,
-            ))
+            analytics.ingest(
+                TaskEvent(
+                    task_id=f"t{i}",
+                    worker_id="w1",
+                    outcome="completed",
+                    quality_score=0.3,
+                    bounty_usd=5.0,
+                )
+            )
         r = analytics.generate_report()
         quality_alerts = [a for a in r.alerts if a.metric == "avg_quality"]
         assert len(quality_alerts) >= 1
 
     def test_slow_completion_alert(self):
-        a = WorkforceAnalytics(alert_thresholds={"max_avg_hours": 10.0,
-                                                   "min_completion_rate": 0.0,
-                                                   "min_quality": 0.0,
-                                                   "min_workers": 0})
+        a = WorkforceAnalytics(
+            alert_thresholds={
+                "max_avg_hours": 10.0,
+                "min_completion_rate": 0.0,
+                "min_quality": 0.0,
+                "min_workers": 0,
+            }
+        )
         for i in range(5):
-            a.ingest(TaskEvent(
-                task_id=f"t{i}", worker_id="w1",
-                outcome="completed", quality_score=0.8,
-                completion_hours=20.0, bounty_usd=5.0,
-            ))
+            a.ingest(
+                TaskEvent(
+                    task_id=f"t{i}",
+                    worker_id="w1",
+                    outcome="completed",
+                    quality_score=0.8,
+                    completion_hours=20.0,
+                    bounty_usd=5.0,
+                )
+            )
         r = a.generate_report()
         speed_alerts = [a for a in r.alerts if a.metric == "avg_speed_hours"]
         assert len(speed_alerts) >= 1
 
     def test_low_worker_count_alert(self, analytics):
-        analytics.ingest(TaskEvent(
-            task_id="t1", worker_id="only_worker",
-            outcome="completed", quality_score=0.8,
-        ))
+        analytics.ingest(
+            TaskEvent(
+                task_id="t1",
+                worker_id="only_worker",
+                outcome="completed",
+                quality_score=0.8,
+            )
+        )
         r = analytics.generate_report()
         worker_alerts = [a for a in r.alerts if a.metric == "worker_count"]
         assert len(worker_alerts) >= 1
@@ -400,57 +446,78 @@ class TestAlerts:
     def test_worker_concentration_alert(self, analytics):
         # One worker does 80% of tasks
         for i in range(8):
-            analytics.ingest(TaskEvent(
-                task_id=f"dom_{i}", worker_id="dominant",
-                outcome="completed", quality_score=0.8,
-            ))
+            analytics.ingest(
+                TaskEvent(
+                    task_id=f"dom_{i}",
+                    worker_id="dominant",
+                    outcome="completed",
+                    quality_score=0.8,
+                )
+            )
         for i in range(2):
-            analytics.ingest(TaskEvent(
-                task_id=f"other_{i}", worker_id=f"other_{i}",
-                outcome="completed", quality_score=0.8,
-            ))
+            analytics.ingest(
+                TaskEvent(
+                    task_id=f"other_{i}",
+                    worker_id=f"other_{i}",
+                    outcome="completed",
+                    quality_score=0.8,
+                )
+            )
         r = analytics.generate_report()
         conc_alerts = [a for a in r.alerts if a.metric == "concentration"]
         assert len(conc_alerts) >= 1
 
     def test_at_risk_worker_alert(self, analytics):
         for i in range(5):
-            analytics.ingest(TaskEvent(
-                task_id=f"t{i}", worker_id="struggling",
-                outcome="expired" if i < 4 else "completed",
-            ))
+            analytics.ingest(
+                TaskEvent(
+                    task_id=f"t{i}",
+                    worker_id="struggling",
+                    outcome="expired" if i < 4 else "completed",
+                )
+            )
         r = analytics.generate_report()
-        risk_alerts = [a for a in r.alerts
-                       if a.metric == "worker_completion_rate"]
+        risk_alerts = [a for a in r.alerts if a.metric == "worker_completion_rate"]
         assert len(risk_alerts) >= 1
 
     def test_critical_completion_rate(self, analytics):
         """Very low completion rate → CRITICAL severity."""
         for i in range(10):
-            analytics.ingest(TaskEvent(
-                task_id=f"t{i}", worker_id="w1",
-                outcome="expired" if i < 9 else "completed",
-                quality_score=0.5,
-            ))
+            analytics.ingest(
+                TaskEvent(
+                    task_id=f"t{i}",
+                    worker_id="w1",
+                    outcome="expired" if i < 9 else "completed",
+                    quality_score=0.5,
+                )
+            )
         r = analytics.generate_report()
-        critical = [a for a in r.alerts
-                    if a.metric == "completion_rate" and a.severity == AlertSeverity.CRITICAL]
+        critical = [
+            a
+            for a in r.alerts
+            if a.metric == "completion_rate" and a.severity == AlertSeverity.CRITICAL
+        ]
         assert len(critical) >= 1
 
     def test_custom_thresholds(self):
-        a = WorkforceAnalytics(alert_thresholds={
-            "min_completion_rate": 0.9,
-            "min_quality": 0.0,
-            "max_avg_hours": 999,
-            "min_workers": 0,
-            "max_concentration": 1.0,
-        })
+        a = WorkforceAnalytics(
+            alert_thresholds={
+                "min_completion_rate": 0.9,
+                "min_quality": 0.0,
+                "max_avg_hours": 999,
+                "min_workers": 0,
+                "max_concentration": 1.0,
+            }
+        )
         for i in range(10):
-            a.ingest(TaskEvent(
-                task_id=f"t{i}", worker_id="w1",
-                outcome="completed" if i < 8 else "expired",
-                quality_score=0.9,
-            ))
+            a.ingest(
+                TaskEvent(
+                    task_id=f"t{i}",
+                    worker_id="w1",
+                    outcome="completed" if i < 8 else "expired",
+                    quality_score=0.9,
+                )
+            )
         r = a.generate_report()
         # 80% completion < 90% threshold
         comp_alerts = [al for al in r.alerts if al.metric == "completion_rate"]
@@ -479,41 +546,64 @@ class TestValueAnalysis:
     def test_waste_rate(self, analytics):
         # 5 completed, 5 expired
         for i in range(10):
-            analytics.ingest(TaskEvent(
-                task_id=f"t{i}", worker_id="w1",
-                outcome="completed" if i < 5 else "expired",
-                quality_score=0.8, bounty_usd=10.0,
-            ))
+            analytics.ingest(
+                TaskEvent(
+                    task_id=f"t{i}",
+                    worker_id="w1",
+                    outcome="completed" if i < 5 else "expired",
+                    quality_score=0.8,
+                    bounty_usd=10.0,
+                )
+            )
         v = analytics.value_analysis()
         assert abs(v["waste_rate"] - 0.5) < 0.01
 
     def test_quality_adjusted_value(self, analytics):
-        analytics.ingest(TaskEvent(
-            task_id="t1", worker_id="w1",
-            outcome="completed", quality_score=0.9, bounty_usd=10.0,
-        ))
+        analytics.ingest(
+            TaskEvent(
+                task_id="t1",
+                worker_id="w1",
+                outcome="completed",
+                quality_score=0.9,
+                bounty_usd=10.0,
+            )
+        )
         v = analytics.value_analysis()
         assert abs(v["quality_adjusted_value"] - 9.0) < 0.01  # 10 * 0.9
 
     def test_avg_cost_per_completion(self, analytics):
         for i in range(4):
-            analytics.ingest(TaskEvent(
-                task_id=f"t{i}", worker_id="w1",
-                outcome="completed", quality_score=0.8, bounty_usd=5.0,
-            ))
-        analytics.ingest(TaskEvent(
-            task_id="exp", worker_id="w1",
-            outcome="expired", bounty_usd=5.0,
-        ))
+            analytics.ingest(
+                TaskEvent(
+                    task_id=f"t{i}",
+                    worker_id="w1",
+                    outcome="completed",
+                    quality_score=0.8,
+                    bounty_usd=5.0,
+                )
+            )
+        analytics.ingest(
+            TaskEvent(
+                task_id="exp",
+                worker_id="w1",
+                outcome="expired",
+                bounty_usd=5.0,
+            )
+        )
         v = analytics.value_analysis()
         # 4 completions cost $20 (5*4), total was $25
         assert abs(v["avg_cost_per_completion"] - 5.0) < 0.01
 
     def test_roi_calculation(self, analytics):
-        analytics.ingest(TaskEvent(
-            task_id="t1", worker_id="w1",
-            outcome="completed", quality_score=1.0, bounty_usd=10.0,
-        ))
+        analytics.ingest(
+            TaskEvent(
+                task_id="t1",
+                worker_id="w1",
+                outcome="completed",
+                quality_score=1.0,
+                bounty_usd=10.0,
+            )
+        )
         v = analytics.value_analysis()
         # quality_adjusted_value = 10 * 1.0 = 10, total_spent = 10
         # ROI = 10/10 = 1.0
@@ -529,8 +619,11 @@ class TestCorrelation:
     """Bounty-quality relationship analysis."""
 
     def test_insufficient_data(self, analytics):
-        analytics.ingest(TaskEvent(task_id="t1", outcome="completed",
-                                   quality_score=0.8, bounty_usd=5.0))
+        analytics.ingest(
+            TaskEvent(
+                task_id="t1", outcome="completed", quality_score=0.8, bounty_usd=5.0
+            )
+        )
         c = analytics.bounty_quality_correlation()
         assert c["insight"] == "Insufficient data"
 
@@ -538,10 +631,15 @@ class TestCorrelation:
         # Higher bounty → higher quality
         pairs = [(1.0, 0.3), (2.0, 0.5), (5.0, 0.7), (10.0, 0.9), (20.0, 0.95)]
         for bounty, quality in pairs:
-            analytics.ingest(TaskEvent(
-                task_id=f"t_{bounty}", worker_id="w1",
-                outcome="completed", quality_score=quality, bounty_usd=bounty,
-            ))
+            analytics.ingest(
+                TaskEvent(
+                    task_id=f"t_{bounty}",
+                    worker_id="w1",
+                    outcome="completed",
+                    quality_score=quality,
+                    bounty_usd=bounty,
+                )
+            )
         c = analytics.bounty_quality_correlation()
         assert c["correlation"] > 0.3
         assert "higher bounties correlate" in c["insight"].lower()
@@ -549,30 +647,45 @@ class TestCorrelation:
     def test_no_correlation(self, analytics):
         """Same quality regardless of bounty."""
         for bounty in [1.0, 5.0, 10.0, 20.0, 50.0]:
-            analytics.ingest(TaskEvent(
-                task_id=f"t_{bounty}", worker_id="w1",
-                outcome="completed", quality_score=0.7, bounty_usd=bounty,
-            ))
+            analytics.ingest(
+                TaskEvent(
+                    task_id=f"t_{bounty}",
+                    worker_id="w1",
+                    outcome="completed",
+                    quality_score=0.7,
+                    bounty_usd=bounty,
+                )
+            )
         c = analytics.bounty_quality_correlation()
         # All same quality → correlation near 0
         assert abs(c["correlation"]) < 0.3
 
     def test_correlation_averages(self, analytics):
         for bounty, quality in [(5.0, 0.6), (10.0, 0.8), (15.0, 0.9)]:
-            analytics.ingest(TaskEvent(
-                task_id=f"t_{bounty}", worker_id="w1",
-                outcome="completed", quality_score=quality, bounty_usd=bounty,
-            ))
+            analytics.ingest(
+                TaskEvent(
+                    task_id=f"t_{bounty}",
+                    worker_id="w1",
+                    outcome="completed",
+                    quality_score=quality,
+                    bounty_usd=bounty,
+                )
+            )
         c = analytics.bounty_quality_correlation()
         assert c["avg_bounty"] == 10.0
         assert abs(c["avg_quality"] - (0.6 + 0.8 + 0.9) / 3) < 0.01
 
     def test_sample_size(self, analytics):
         for i in range(7):
-            analytics.ingest(TaskEvent(
-                task_id=f"t{i}", worker_id="w1",
-                outcome="completed", quality_score=0.7, bounty_usd=5.0,
-            ))
+            analytics.ingest(
+                TaskEvent(
+                    task_id=f"t{i}",
+                    worker_id="w1",
+                    outcome="completed",
+                    quality_score=0.7,
+                    bounty_usd=5.0,
+                )
+            )
         c = analytics.bounty_quality_correlation()
         assert c["sample_size"] == 7
 
@@ -610,11 +723,17 @@ class TestWorkerCategoryAnalytics:
 
     def test_category_quality(self, analytics):
         for i in range(5):
-            analytics.ingest(TaskEvent(
-                task_id=f"d{i}", category="delivery", worker_id="w1",
-                outcome="completed", quality_score=0.9, bounty_usd=5.0,
-                completion_hours=2.0,
-            ))
+            analytics.ingest(
+                TaskEvent(
+                    task_id=f"d{i}",
+                    category="delivery",
+                    worker_id="w1",
+                    outcome="completed",
+                    quality_score=0.9,
+                    bounty_usd=5.0,
+                    completion_hours=2.0,
+                )
+            )
         cats = analytics.category_comparison()
         delivery = next(c for c in cats if c.name == "delivery")
         assert abs(delivery.avg_quality - 0.9) < 0.01
@@ -635,56 +754,88 @@ class TestRecommendations:
     """Action recommendations engine."""
 
     def test_recruit_recommendation(self, analytics):
-        analytics.ingest(TaskEvent(
-            task_id="t1", worker_id="only", outcome="completed", quality_score=0.8,
-        ))
+        analytics.ingest(
+            TaskEvent(
+                task_id="t1",
+                worker_id="only",
+                outcome="completed",
+                quality_score=0.8,
+            )
+        )
         r = analytics.generate_report()
         has_recruit = any("recruit" in rec.lower() for rec in r.recommended_actions)
         assert has_recruit
 
     def test_mvp_retention_recommendation(self, analytics):
         for i in range(10):
-            analytics.ingest(TaskEvent(
-                task_id=f"t{i}", worker_id="star",
-                outcome="completed", quality_score=0.9,
-            ))
+            analytics.ingest(
+                TaskEvent(
+                    task_id=f"t{i}",
+                    worker_id="star",
+                    outcome="completed",
+                    quality_score=0.9,
+                )
+            )
         # Need 3+ workers to avoid worker count alert dominating
         for i in range(3):
-            analytics.ingest(TaskEvent(
-                task_id=f"x{i}", worker_id=f"other_{i}",
-                outcome="completed", quality_score=0.8,
-            ))
+            analytics.ingest(
+                TaskEvent(
+                    task_id=f"x{i}",
+                    worker_id=f"other_{i}",
+                    outcome="completed",
+                    quality_score=0.8,
+                )
+            )
         r = analytics.generate_report()
-        has_retain = any("retain" in rec.lower() or "mvp" in rec.lower()
-                         for rec in r.recommended_actions)
+        has_retain = any(
+            "retain" in rec.lower() or "mvp" in rec.lower()
+            for rec in r.recommended_actions
+        )
         assert has_retain
 
     def test_healthy_system_recommendation(self, analytics):
         """Good system gets 'normal parameters' message."""
         for i in range(20):
-            analytics.ingest(TaskEvent(
-                task_id=f"t{i}", worker_id=f"w_{i % 5}",
-                outcome="completed", quality_score=0.9,
-                bounty_usd=5.0, completion_hours=2.0,
-            ))
+            analytics.ingest(
+                TaskEvent(
+                    task_id=f"t{i}",
+                    worker_id=f"w_{i % 5}",
+                    outcome="completed",
+                    quality_score=0.9,
+                    bounty_usd=5.0,
+                    completion_hours=2.0,
+                )
+            )
         r = analytics.generate_report()
         has_normal = any("normal" in rec.lower() for rec in r.recommended_actions)
         assert has_normal
 
     def test_speed_recommendation(self):
-        a = WorkforceAnalytics(alert_thresholds={
-            "min_completion_rate": 0.0, "min_quality": 0.0,
-            "max_avg_hours": 999, "min_workers": 0, "max_concentration": 1.0,
-        })
+        a = WorkforceAnalytics(
+            alert_thresholds={
+                "min_completion_rate": 0.0,
+                "min_quality": 0.0,
+                "max_avg_hours": 999,
+                "min_workers": 0,
+                "max_concentration": 1.0,
+            }
+        )
         for i in range(5):
-            a.ingest(TaskEvent(
-                task_id=f"t{i}", worker_id=f"w{i}",
-                outcome="completed", quality_score=0.9,
-                completion_hours=30.0, bounty_usd=5.0,
-            ))
+            a.ingest(
+                TaskEvent(
+                    task_id=f"t{i}",
+                    worker_id=f"w{i}",
+                    outcome="completed",
+                    quality_score=0.9,
+                    completion_hours=30.0,
+                    bounty_usd=5.0,
+                )
+            )
         r = a.generate_report()
-        has_speed = any("speed" in rec.lower() or "completion" in rec.lower()
-                        for rec in r.recommended_actions)
+        has_speed = any(
+            "speed" in rec.lower() or "completion" in rec.lower()
+            for rec in r.recommended_actions
+        )
         assert has_speed
 
 
@@ -705,7 +856,9 @@ class TestSerialization:
         d = populated_analytics.to_dict()
         assert d["event_count"] == 13
         assert "completion_rate" in d["series"]
-        assert d["series"]["completion_rate"]["trend"] in [t.value for t in TrendDirection]
+        assert d["series"]["completion_rate"]["trend"] in [
+            t.value for t in TrendDirection
+        ]
 
     def test_stats_empty(self, analytics):
         s = analytics.stats()

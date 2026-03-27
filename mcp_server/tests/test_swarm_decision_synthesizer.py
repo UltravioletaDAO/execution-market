@@ -11,7 +11,6 @@ Validates that the decision engine correctly:
 """
 
 import pytest
-from datetime import datetime, timezone
 
 from mcp_server.swarm.decision_synthesizer import (
     DecisionSynthesizer,
@@ -21,11 +20,9 @@ from mcp_server.swarm.decision_synthesizer import (
     RankedDecision,
     DecisionOutcome,
     ConfidenceLevel,
-    SignalProvider,
     DEFAULT_WEIGHTS,
     MINIMUM_ROUTE_THRESHOLD,
     HIGH_CONFIDENCE_SIGNALS,
-    CLEAR_WINNER_GAP,
 )
 
 
@@ -34,7 +31,9 @@ from mcp_server.swarm.decision_synthesizer import (
 # ---------------------------------------------------------------------------
 
 
-def make_task(task_id="t1", category="physical_verification", title="Verify store", bounty=5.0):
+def make_task(
+    task_id="t1", category="physical_verification", title="Verify store", bounty=5.0
+):
     return {
         "id": task_id,
         "category": category,
@@ -53,16 +52,20 @@ def make_candidate(cid="c1", wallet="0xABC", skills=None):
 
 def constant_scorer(value):
     """Returns a scorer that always returns `value`."""
+
     def scorer(task, candidate):
         return value
+
     return scorer
 
 
 def candidate_based_scorer(scores_map):
     """Returns a scorer that returns different scores per candidate."""
+
     def scorer(task, candidate):
         cid = candidate.get("id", "")
         return scores_map.get(cid, 50)
+
     return scorer
 
 
@@ -477,7 +480,9 @@ class TestExplanation:
                 candidate_id="c1",
                 composite_score=0.85,
                 signals=[
-                    SignalValue(SignalType.REPUTATION, 80, 0.8, 0.2, 0.9, detail="High rep"),
+                    SignalValue(
+                        SignalType.REPUTATION, 80, 0.8, 0.2, 0.9, detail="High rep"
+                    ),
                 ],
             ),
         ]
@@ -516,6 +521,7 @@ class TestExplanation:
 class TestGracefulDegradation:
     def test_failing_scorer(self, synth):
         """A failing signal scorer shouldn't crash the synthesis."""
+
         def failing_scorer(task, candidate):
             raise ValueError("Signal source unavailable")
 
@@ -531,6 +537,7 @@ class TestGracefulDegradation:
 
     def test_none_return_scorer(self, synth):
         """A scorer returning None should be skipped gracefully."""
+
         def none_scorer(task, candidate):
             return None
 

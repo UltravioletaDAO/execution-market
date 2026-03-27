@@ -31,12 +31,10 @@ Usage:
             policy.record_failure("em_api")
 """
 
-import math
 import random
-import time
 from collections import deque
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 
@@ -450,14 +448,10 @@ class RetryPolicy:
             "task_id": record.task_id,
             "attempts": record.attempts,
             "first_failure_at": (
-                record.first_failure_at.isoformat()
-                if record.first_failure_at
-                else None
+                record.first_failure_at.isoformat() if record.first_failure_at else None
             ),
             "last_failure_at": (
-                record.last_failure_at.isoformat()
-                if record.last_failure_at
-                else None
+                record.last_failure_at.isoformat() if record.last_failure_at else None
             ),
             "last_error": record.last_error,
             "dead_lettered": record.dead_lettered,
@@ -496,9 +490,7 @@ class RetryPolicy:
             "active_retries": len(active),
             "dead_letters": len(self._dead_letters),
             "total_tracked": len(self._records),
-            "circuits": {
-                name: cb.state.value for name, cb in self._circuits.items()
-            },
+            "circuits": {name: cb.state.value for name, cb in self._circuits.items()},
             "avg_attempts": (
                 sum(r.attempts for r in active) / len(active) if active else 0
             ),

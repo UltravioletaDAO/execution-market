@@ -13,11 +13,7 @@ Covers:
 """
 
 import json
-import time
-from datetime import datetime, timezone, timedelta
-from unittest.mock import MagicMock, patch, PropertyMock
-from http.server import HTTPServer, BaseHTTPRequestHandler
-import threading
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -31,6 +27,7 @@ from mcp_server.swarm.autojob_client import (
 
 
 # ─── Section 1: AutoJobEnrichment ─────────────────────────────
+
 
 class TestAutoJobEnrichment:
     def test_default_values(self):
@@ -82,6 +79,7 @@ class TestAutoJobEnrichment:
 
 # ─── Section 2: AutoJobRouteResult ────────────────────────────
 
+
 class TestAutoJobRouteResult:
     def test_empty_result(self):
         r = AutoJobRouteResult(
@@ -113,6 +111,7 @@ class TestAutoJobRouteResult:
 
 # ─── Section 3: AutoJobHealth ─────────────────────────────────
 
+
 class TestAutoJobHealth:
     def test_defaults(self):
         h = AutoJobHealth()
@@ -135,24 +134,27 @@ class TestAutoJobHealth:
 
 # ─── Section 4: AutoJobClient HTTP (Mocked) ──────────────────
 
+
 class TestAutoJobClientMocked:
     """Test client with mocked HTTP responses."""
 
     @patch("mcp_server.swarm.autojob_client.urlopen")
     def test_enrich_agents_success(self, mock_urlopen):
         mock_resp = MagicMock()
-        mock_resp.read.return_value = json.dumps({
-            "success": True,
-            "enrichments": {
-                "0xAAA": {
-                    "wallet": "0xAAA",
-                    "match_score": 0.85,
-                    "predicted_quality": 0.90,
-                    "tier": "Gold",
-                    "on_chain_registered": True,
+        mock_resp.read.return_value = json.dumps(
+            {
+                "success": True,
+                "enrichments": {
+                    "0xAAA": {
+                        "wallet": "0xAAA",
+                        "match_score": 0.85,
+                        "predicted_quality": 0.90,
+                        "tier": "Gold",
+                        "on_chain_registered": True,
+                    },
                 },
-            },
-        }).encode()
+            }
+        ).encode()
         mock_resp.__enter__ = MagicMock(return_value=mock_resp)
         mock_resp.__exit__ = MagicMock(return_value=False)
         mock_urlopen.return_value = mock_resp
@@ -169,10 +171,12 @@ class TestAutoJobClientMocked:
     @patch("mcp_server.swarm.autojob_client.urlopen")
     def test_enrich_agents_failure_fallback(self, mock_urlopen):
         mock_resp = MagicMock()
-        mock_resp.read.return_value = json.dumps({
-            "success": False,
-            "error": "internal error",
-        }).encode()
+        mock_resp.read.return_value = json.dumps(
+            {
+                "success": False,
+                "error": "internal error",
+            }
+        ).encode()
         mock_resp.__enter__ = MagicMock(return_value=mock_resp)
         mock_resp.__exit__ = MagicMock(return_value=False)
         mock_urlopen.return_value = mock_resp
@@ -190,16 +194,18 @@ class TestAutoJobClientMocked:
     @patch("mcp_server.swarm.autojob_client.urlopen")
     def test_route_task_success(self, mock_urlopen):
         mock_resp = MagicMock()
-        mock_resp.read.return_value = json.dumps({
-            "success": True,
-            "task_id": "t1",
-            "task_category": "delivery",
-            "total_candidates": 5,
-            "qualified_candidates": 2,
-            "match_time_ms": 32.5,
-            "best_match": {"wallet": "0xTOP", "score": 92.3},
-            "rankings": [{"wallet": "0xTOP"}, {"wallet": "0x2ND"}],
-        }).encode()
+        mock_resp.read.return_value = json.dumps(
+            {
+                "success": True,
+                "task_id": "t1",
+                "task_category": "delivery",
+                "total_candidates": 5,
+                "qualified_candidates": 2,
+                "match_time_ms": 32.5,
+                "best_match": {"wallet": "0xTOP", "score": 92.3},
+                "rankings": [{"wallet": "0xTOP"}, {"wallet": "0x2ND"}],
+            }
+        ).encode()
         mock_resp.__enter__ = MagicMock(return_value=mock_resp)
         mock_resp.__exit__ = MagicMock(return_value=False)
         mock_urlopen.return_value = mock_resp
@@ -226,15 +232,17 @@ class TestAutoJobClientMocked:
     @patch("mcp_server.swarm.autojob_client.urlopen")
     def test_get_health_success(self, mock_urlopen):
         mock_resp = MagicMock()
-        mock_resp.read.return_value = json.dumps({
-            "success": True,
-            "health": {"overall": "optimal", "checks": {"data": "green"}},
-            "status": {
-                "workers": {"total": 6},
-                "erc8004": {"coverage_pct": 83.3},
-                "matching": {"ready": True},
-            },
-        }).encode()
+        mock_resp.read.return_value = json.dumps(
+            {
+                "success": True,
+                "health": {"overall": "optimal", "checks": {"data": "green"}},
+                "status": {
+                    "workers": {"total": 6},
+                    "erc8004": {"coverage_pct": 83.3},
+                    "matching": {"ready": True},
+                },
+            }
+        ).encode()
         mock_resp.__enter__ = MagicMock(return_value=mock_resp)
         mock_resp.__exit__ = MagicMock(return_value=False)
         mock_urlopen.return_value = mock_resp
@@ -261,13 +269,15 @@ class TestAutoJobClientMocked:
     @patch("mcp_server.swarm.autojob_client.urlopen")
     def test_get_worker_profile(self, mock_urlopen):
         mock_resp = MagicMock()
-        mock_resp.read.return_value = json.dumps({
-            "success": True,
-            "worker": {
-                "wallet": "0x52E0",
-                "skills": {"photography": {"level": "EXPERT"}},
-            },
-        }).encode()
+        mock_resp.read.return_value = json.dumps(
+            {
+                "success": True,
+                "worker": {
+                    "wallet": "0x52E0",
+                    "skills": {"photography": {"level": "EXPERT"}},
+                },
+            }
+        ).encode()
         mock_resp.__enter__ = MagicMock(return_value=mock_resp)
         mock_resp.__exit__ = MagicMock(return_value=False)
         mock_urlopen.return_value = mock_resp
@@ -292,6 +302,7 @@ class TestAutoJobClientMocked:
 
 # ─── Section 5: Availability Caching ──────────────────────────
 
+
 class TestAvailabilityCaching:
     @patch("mcp_server.swarm.autojob_client.urlopen")
     def test_availability_caches_result(self, mock_urlopen):
@@ -302,7 +313,7 @@ class TestAvailabilityCaching:
         mock_urlopen.return_value = mock_resp
 
         client = AutoJobClient()
-        
+
         # First call hits the API
         assert client.is_available() is True
         assert mock_urlopen.call_count == 1
@@ -327,6 +338,7 @@ class TestAvailabilityCaching:
     @patch("mcp_server.swarm.autojob_client.urlopen")
     def test_availability_handles_exception(self, mock_urlopen):
         from urllib.error import URLError
+
         mock_urlopen.side_effect = URLError("Connection refused")
 
         client = AutoJobClient()
@@ -335,10 +347,12 @@ class TestAvailabilityCaching:
 
 # ─── Section 6: Error Handling & Retries ──────────────────────
 
+
 class TestErrorHandling:
     @patch("mcp_server.swarm.autojob_client.urlopen")
     def test_network_error_with_fallback(self, mock_urlopen):
         from urllib.error import URLError
+
         mock_urlopen.side_effect = URLError("Connection refused")
 
         client = AutoJobClient(fallback_on_error=True, retries=0)
@@ -350,6 +364,7 @@ class TestErrorHandling:
     @patch("mcp_server.swarm.autojob_client.urlopen")
     def test_network_error_without_fallback(self, mock_urlopen):
         from urllib.error import URLError
+
         mock_urlopen.side_effect = URLError("Connection refused")
 
         client = AutoJobClient(fallback_on_error=False, retries=0)
@@ -359,6 +374,7 @@ class TestErrorHandling:
     @patch("mcp_server.swarm.autojob_client.urlopen")
     def test_retry_on_failure(self, mock_urlopen):
         from urllib.error import URLError
+
         mock_urlopen.side_effect = URLError("Timeout")
 
         client = AutoJobClient(retries=2, fallback_on_error=True)
@@ -376,6 +392,7 @@ class TestErrorHandling:
 
 
 # ─── Section 7: EnrichedOrchestrator ──────────────────────────
+
 
 class TestEnrichedOrchestrator:
     def _make_mock_orchestrator(self):
@@ -415,6 +432,7 @@ class TestEnrichedOrchestrator:
 
 
 # ─── Section 8: Client Configuration ─────────────────────────
+
 
 class TestClientConfiguration:
     def test_base_url_trailing_slash(self):

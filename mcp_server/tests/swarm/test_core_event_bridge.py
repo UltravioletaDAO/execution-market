@@ -12,9 +12,8 @@ Covers:
   8. Stats reporting
 """
 
-import asyncio
 from datetime import datetime, timezone
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -23,11 +22,11 @@ from mcp_server.swarm.core_event_bridge import (
     BridgeFilter,
     BridgeStats,
     EVENT_TYPE_MAP,
-    SKIP_SOURCES,
 )
 
 
 # ─── Mocks ────────────────────────────────────────────────────
+
 
 class MockEMEvent:
     """Minimal EMEvent mock."""
@@ -80,15 +79,18 @@ class MockSwarmBus:
         self.events = []
 
     def emit(self, event_type, data, source=None, correlation_id=None):
-        self.events.append({
-            "type": event_type,
-            "data": data,
-            "source": source,
-            "correlation_id": correlation_id,
-        })
+        self.events.append(
+            {
+                "type": event_type,
+                "data": data,
+                "source": source,
+                "correlation_id": correlation_id,
+            }
+        )
 
 
 # ─── Section 1: Event Type Mapping ───────────────────────────
+
 
 class TestEventTypeMapping:
     def test_task_created_maps_to_discovered(self):
@@ -121,6 +123,7 @@ class TestEventTypeMapping:
 
 
 # ─── Section 2: BridgeFilter ─────────────────────────────────
+
 
 class TestBridgeFilter:
     def test_default_filter_passes_all(self):
@@ -158,22 +161,29 @@ class TestBridgeFilter:
             categories={"delivery"},
         )
         # Passes all filters
-        assert f.should_bridge(
-            MockEMEvent(
-                event_type="task.created",
-                payload={"bounty_usd": 5.0, "category": "delivery"},
+        assert (
+            f.should_bridge(
+                MockEMEvent(
+                    event_type="task.created",
+                    payload={"bounty_usd": 5.0, "category": "delivery"},
+                )
             )
-        ) is True
+            is True
+        )
         # Wrong event type
-        assert f.should_bridge(
-            MockEMEvent(
-                event_type="task.completed",
-                payload={"bounty_usd": 5.0, "category": "delivery"},
+        assert (
+            f.should_bridge(
+                MockEMEvent(
+                    event_type="task.completed",
+                    payload={"bounty_usd": 5.0, "category": "delivery"},
+                )
             )
-        ) is False
+            is False
+        )
 
 
 # ─── Section 3: BridgeStats ──────────────────────────────────
+
 
 class TestBridgeStats:
     def test_default_stats(self):
@@ -198,6 +208,7 @@ class TestBridgeStats:
 
 
 # ─── Section 4: CoreEventBridge Lifecycle ─────────────────────
+
 
 class TestBridgeLifecycle:
     def test_start_subscribes_to_all_types(self):
@@ -241,6 +252,7 @@ class TestBridgeLifecycle:
 
 # ─── Section 5: Event Transformation ─────────────────────────
 
+
 class TestEventTransformation:
     def test_default_transform_preserves_payload(self):
         event = MockEMEvent(
@@ -277,6 +289,7 @@ class TestEventTransformation:
 
 
 # ─── Section 6: Event Bridging (async) ────────────────────────
+
 
 class TestEventBridging:
     @pytest.mark.asyncio
@@ -344,6 +357,7 @@ class TestEventBridging:
 
 # ─── Section 7: Stats Reporting ───────────────────────────────
 
+
 class TestStatsReporting:
     @pytest.mark.asyncio
     async def test_stats_after_bridging(self):
@@ -404,6 +418,7 @@ class TestStatsReporting:
 
 
 # ─── Section 8: Error Handling ────────────────────────────────
+
 
 class TestErrorHandling:
     @pytest.mark.asyncio

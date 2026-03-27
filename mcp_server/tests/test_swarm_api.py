@@ -195,7 +195,9 @@ try:
     noauth_client = TestClient(_noauth_app)
 
     HAS_TESTCLIENT = True
-except ImportError:
+except (ImportError, TypeError):
+    # TypeError: httpx 0.28+ removed the `app` kwarg from Client.__init__,
+    # which breaks starlette <0.36 TestClient at instantiation time.
     HAS_TESTCLIENT = False
 
 

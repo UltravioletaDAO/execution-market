@@ -406,7 +406,7 @@ class TestCircuitBreakersInPolicy:
         assert policy.circuit_open("em_api") is True
 
     def test_circuit_recovers_after_success(self, policy):
-        cb = policy.get_or_create_circuit(
+        policy.get_or_create_circuit(
             "em_api", failure_threshold=2, recovery_timeout=0.05
         )
         policy.record_circuit_failure("em_api")
@@ -585,7 +585,7 @@ class TestEdgeCases:
         p2 = RetryPolicy(max_retries=5, jitter_factor=0.0)
 
         p1.should_retry("t1", error="fail")
-        d2 = p2.should_retry("t1", error="fail")
+        p2.should_retry("t1", error="fail")
 
         # Each policy has its own state
         assert p1.get_retry_record("t1")["attempts"] == 1

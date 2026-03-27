@@ -24,10 +24,8 @@ Covers:
 import json
 import os
 import tempfile
-import time
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
-import pytest
 
 from mcp_server.swarm.event_listener import (
     EM_CATEGORY_MAP,
@@ -149,7 +147,9 @@ class TestPollResult:
         assert result.total_events == 0
 
     def test_total_events(self):
-        result = PollResult(new_tasks=5, completed_tasks=3, failed_tasks=1, expired_tasks=2)
+        result = PollResult(
+            new_tasks=5, completed_tasks=3, failed_tasks=1, expired_tasks=2
+        )
         assert result.total_events == 11
 
     def test_to_dict(self):
@@ -295,9 +295,16 @@ class TestEventListenerInit:
 
     def test_init_with_state_path(self):
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-            json.dump({"poll_count": 5, "total_new_tasks": 10,
-                        "total_completions": 3, "total_failures": 1,
-                        "total_errors": 0}, f)
+            json.dump(
+                {
+                    "poll_count": 5,
+                    "total_new_tasks": 10,
+                    "total_completions": 3,
+                    "total_failures": 1,
+                    "total_errors": 0,
+                },
+                f,
+            )
             path = f.name
 
         try:
@@ -323,8 +330,18 @@ class TestPollNewTasks:
     def test_ingest_new_tasks(self):
         coord = _make_mock_coordinator()
         coord.em_client.list_tasks.return_value = [
-            {"id": "t1", "title": "Buy coffee", "category": "errand", "bounty_amount": 5.0},
-            {"id": "t2", "title": "Code review", "category": "coding", "bounty_amount": 20.0},
+            {
+                "id": "t1",
+                "title": "Buy coffee",
+                "category": "errand",
+                "bounty_amount": 5.0,
+            },
+            {
+                "id": "t2",
+                "title": "Code review",
+                "category": "coding",
+                "bounty_amount": 20.0,
+            },
         ]
 
         listener = EventListener(coord)
@@ -374,7 +391,9 @@ class TestPollNewTasks:
         ]
 
         events = []
-        listener = EventListener(coord, on_event=lambda evt, data: events.append((evt, data)))
+        listener = EventListener(
+            coord, on_event=lambda evt, data: events.append((evt, data))
+        )
         listener.poll_new_tasks()
 
         assert len(events) == 1
@@ -385,7 +404,12 @@ class TestPollNewTasks:
         """Handle tasks that use 'task_id' instead of 'id'."""
         coord = _make_mock_coordinator()
         coord.em_client.list_tasks.return_value = [
-            {"task_id": "t1", "title": "Task", "category": "general", "bounty_amount": 1.0},
+            {
+                "task_id": "t1",
+                "title": "Task",
+                "category": "general",
+                "bounty_amount": 1.0,
+            },
         ]
 
         listener = EventListener(coord)
@@ -511,8 +535,12 @@ class TestPollFailures:
         coord = _make_mock_coordinator()
         cancelled_tasks = [{"id": "t1", "status": "cancelled"}]
         coord.em_client.list_tasks.side_effect = [
-            cancelled_tasks, [], [],  # First poll
-            cancelled_tasks, [], [],  # Second poll
+            cancelled_tasks,
+            [],
+            [],  # First poll
+            cancelled_tasks,
+            [],
+            [],  # Second poll
         ]
 
         listener = EventListener(coord)
@@ -524,7 +552,9 @@ class TestPollFailures:
     def test_external_failure_handled(self):
         coord = _make_mock_coordinator()
         coord.em_client.list_tasks.side_effect = [
-            [{"id": "t1", "status": "cancelled"}], [], [],
+            [{"id": "t1", "status": "cancelled"}],
+            [],
+            [],
         ]
         coord.fail_task.side_effect = KeyError("not in queue")
 
@@ -553,9 +583,18 @@ class TestPollOnce:
     def test_poll_with_new_tasks_triggers_queue_processing(self):
         coord = _make_mock_coordinator()
         coord.em_client.list_tasks.side_effect = [
-            [{"id": "t1", "title": "Test", "category": "general", "bounty_amount": 1.0}],
+            [
+                {
+                    "id": "t1",
+                    "title": "Test",
+                    "category": "general",
+                    "bounty_amount": 1.0,
+                }
+            ],
             [],  # completed
-            [], [], [],  # failures
+            [],
+            [],
+            [],  # failures
         ]
 
         listener = EventListener(coord)
