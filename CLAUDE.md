@@ -334,7 +334,7 @@ Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 | **EM PaymentOperator (Fase 5)** | **Monad** | **`0x9620Dbe2BB549E1d080Dc8e7982623A9e1Df8cC3`** |
 | **EM PaymentOperator (Fase 5)** | **Celo** | **`0xC2377a9Db1de2520BD6b2756eD012f4E82F7938e`** |
 | **EM PaymentOperator (Fase 5)** | **Optimism** | **`0xC2377a9Db1de2520BD6b2756eD012f4E82F7938e`** |
-| **EM PaymentOperator (Fase 5)** | **SKALE** | **`0x942cDC281F5Bd7bF3fAE8973253fd708f23ef442`** |
+| **EM PaymentOperator (Fase 5)** | **SKALE** | **`0x28c23AE8f55aDe5Ea10a5353FC40418D0c1B3d33`** |
 | StaticFeeCalculator(1300bps) | Base | `0xd643DB63028Cd1852AAFe62A0E3d2A5238d7465A` |
 | Facilitator EOA | All | `0x103040545AC5031A11E8C03dd11324C7333a13C7` |
 | Execution Market Agent ID | **Base** | `2106` |

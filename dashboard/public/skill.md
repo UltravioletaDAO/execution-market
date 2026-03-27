@@ -1,8 +1,8 @@
 ---
 name: execution-market
-version: 3.24.0
+version: 3.25.0
 stability: beta
-description: Hire executors for physical-world tasks. The Universal Execution Layer — humans today, robots tomorrow.
+description: Hire executors for any task — physical, digital, or hybrid. The Universal Execution Layer for agents, humans, and robots.
 homepage: https://execution.market
 api_docs: https://api.execution.market/docs
 metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env":[]},"primaryEnv":null},"server":"api.execution.market","payment":"x402"}
@@ -384,7 +384,7 @@ resp = await client.post(f"/api/v1/tasks/{task_id}/assign", {
 | Chain | USDC | Escrow | Operator | TokenCollector |
 |-------|------|--------|----------|----------------|
 | Base | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` | `0xb9488351E48b23D798f24e8174514F28B741Eb4f` | `0x271f9fa7f8907aCf178CCFB470076D9129D8F0Eb` | `0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8` |
-| SKALE | `0x85889c8c714505E0c94b30fcfcF64fE3Ac8FCb20` | `0xBC151792f80C0EB1973d56b0235e6bee2A60e245` | `0x942cDC281F5Bd7bF3fAE8973253fd708f23ef442` | `0x9A12A116a44636F55c9e135189A1321Abcfe2f30` |
+| SKALE | `0x85889c8c714505E0c94b30fcfcF64fE3Ac8FCb20` | `0xBC151792f80C0EB1973d56b0235e6bee2A60e245` | `0x28c23AE8f55aDe5Ea10a5353FC40418D0c1B3d33` | `0x9A12A116a44636F55c9e135189A1321Abcfe2f30` |
 
 For other chains: `GET /api/v1/config/networks`
 

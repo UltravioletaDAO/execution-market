@@ -193,13 +193,13 @@ const CHAIN_CONFIGS: Record<string, ChainConfig> = {
     rpcUrl: "https://skale-base.skalenodes.com/v1/base",
     escrow: "0xBC151792f80C0EB1973d56b0235e6bee2A60e245",
     paymentOperatorFactory: "0x3Cd5c76Fefe46CB07788Ee8f80B93B20D81941D4",
-    staticAddressConditionFactory: "0x0000000000000000000000000000000000000000" as Address, // TBD
-    orConditionFactory: "0x0000000000000000000000000000000000000000" as Address, // TBD
-    staticFeeCalculatorFactory: "0x0000000000000000000000000000000000000000" as Address, // TBD
+    staticAddressConditionFactory: "0xE606cA9568c92115a3Deb76E9f3891BEfac141f3",
+    orConditionFactory: "0x3dF6b5B840989Ce466161C31A49b8FadF2DA52E5",
+    staticFeeCalculatorFactory: "0x8a9C93F3401A5C712bEd8A52436Ac09cD9aFe2De",
     protocolFeeConfig: "0xf62788834C99B2E85a6891C0b46D1EB996f8f596",
-    usdcTvlLimit: "0x0000000000000000000000000000000000000000" as Address, // TBD
+    usdcTvlLimit: "0x0000000000000000000000000000000000000000" as Address, // SKALE has no TVL limit
     tokenCollector: "0x9A12A116a44636F55c9e135189A1321Abcfe2f30",
-    payerCondition: "0x0000000000000000000000000000000000000000" as Address, // TBD
+    payerCondition: "0x0000000000000000000000000000000000000000" as Address, // Uses facilitator condition
   },
 };
 

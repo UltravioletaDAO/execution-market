@@ -208,15 +208,24 @@ Update `EM_ENABLED_NETWORKS` value to include the new network:
 { name = "EM_ENABLED_NETWORKS", value = "base,ethereum,polygon,arbitrum,celo,monad,avalanche,optimism,<new_network>" },
 ```
 
-### Step 12: Deploy PaymentOperator
+### Step 12: Deploy PaymentOperator (CRITICAL — DO NOT SKIP)
+
+> **WARNING: NEVER use pre-deployed operators from the SDK or facilitator team.**
+> Pre-deployed operators may be a different contract version missing critical functions
+> like `release()`. Always deploy your OWN operator via the factory. This was learned
+> from INC-2026-03-27 (SKALE operator missing release function, $0.05 stuck in escrow).
 
 Run the deploy script to create EM's PaymentOperator on the new chain:
 ```bash
-cd scripts && npx tsx deploy-payment-operator.ts --network <network_name> --deploy
+cd scripts && npx tsx deploy-payment-operator.ts --network <network_name> --fase5 --deploy
 ```
 
-Then update `sdk_client.py` NETWORK_CONFIG `"operator"` field with the deployed address.
-Also update `em-plugin-sdk/em_plugin_sdk/networks.py` `has_operator=True`.
+After deploy:
+1. Update `sdk_client.py` NETWORK_CONFIG `"operator"` field with the deployed address
+2. Update `em-plugin-sdk/em_plugin_sdk/networks.py` `has_operator=True`
+3. **Give the operator address to the facilitator team** (IRC #agents or contact Ali) so they add it to their allowlist
+4. Wait for facilitator confirmation before testing payments
+5. Update `CLAUDE.md` contract table and `skill.md` contract table
 
 ### Step 13: Documentation
 
