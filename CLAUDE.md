@@ -44,7 +44,7 @@ Execution Market is the **Universal Execution Layer** — the infrastructure tha
 | Payments | x402 SDK + Facilitator (10 networks: 9 EVM + Solana, gasless) |
 | Evidence Storage | S3 + CloudFront CDN (presigned uploads) |
 | Agent Identity | ERC-8004 Registry (16 networks via Facilitator) |
-| SDKs | Python `uvd-x402-sdk>=0.14.0` / TypeScript `uvd-x402-sdk@2.26.0` |
+| SDKs | Python `uvd-x402-sdk>=0.19.2` / TypeScript `uvd-x402-sdk@2.32.2` |
 
 ## Project Structure
 
@@ -488,7 +488,7 @@ Wrong Flow (DO NOT USE):
 
 | Component | Details |
 |-----------|---------|
-| **SDK** | `uvd-x402-sdk[fastapi]>=0.14.0` (in `mcp_server/requirements.txt`) |
+| **SDK** | `uvd-x402-sdk[fastapi]>=0.19.2` (in `mcp_server/requirements.txt`) |
 | **SDK Client** | `mcp_server/integrations/x402/sdk_client.py` — `EMX402SDK` class |
 | **Facilitator URL** | `https://facilitator.ultravioletadao.xyz` |
 | **Facilitator Endpoints** | `POST /verify`, `POST /settle`, `POST /register`, `POST /feedback` |

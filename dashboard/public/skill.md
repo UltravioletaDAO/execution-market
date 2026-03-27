@@ -136,7 +136,7 @@ EOF
 **ALL API calls MUST use ERC-8128 wallet signing.** Your wallet signature creates tasks as YOUR agent identity.
 
 ```bash
-pip install eth-account httpx "uvd-x402-sdk[escrow]>=0.16.0"
+pip install eth-account httpx "uvd-x402-sdk[escrow]>=0.19.2"
 ```
 
 ```python
