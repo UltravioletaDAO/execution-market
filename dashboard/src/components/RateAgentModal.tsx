@@ -80,7 +80,16 @@ export function RateAgentModal({
         onClose()
       }, 2000)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Unknown error')
+      const errorMsg = e instanceof Error ? e.message : 'Unknown error'
+      const friendlyMessages: [RegExp, string][] = [
+        [/does not match/, t('ratings.errorAgentMismatch', 'Unable to rate this agent. Please refresh the page and try again.')],
+        [/already submitted|already rated/i, t('ratings.errorAlreadyRated', 'You have already rated this agent for this task.')],
+        [/cannot be rated/i, t('ratings.errorNotReady', 'This task cannot be rated yet.')],
+        [/not found/i, t('ratings.errorNotFound', 'Agent or task not found.')],
+        [/503|unavailable/i, t('ratings.errorUnavailable', 'Rating service is temporarily unavailable. Please try again later.')],
+      ]
+      const friendly = friendlyMessages.find(([re]) => re.test(errorMsg))?.[1]
+      setError(friendly || errorMsg)
     } finally {
       setSubmitting(false)
     }

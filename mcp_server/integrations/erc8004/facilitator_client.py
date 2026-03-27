@@ -329,10 +329,28 @@ class ERC8004FacilitatorClient:
             data = response.json()
 
             if response.status_code != 200 or not data.get("success"):
+                error_msg = data.get("error", f"HTTP {response.status_code}")
+                # Treat "already registered" as idempotent success
+                if any(
+                    s in error_msg.lower() for s in ("already", "duplicate", "exists")
+                ):
+                    logger.info(
+                        "Registration idempotent for %s on %s: %s",
+                        agent_uri[:30] if agent_uri else "unknown",
+                        network,
+                        error_msg,
+                    )
+                    return {
+                        "success": True,
+                        "idempotent": True,
+                        "network": network,
+                        "agentId": data.get("agent_id") or data.get("agentId"),
+                        "error": None,
+                    }
                 logger.error("Agent registration failed: %s", data)
                 return {
                     "success": False,
-                    "error": data.get("error", f"HTTP {response.status_code}"),
+                    "error": error_msg,
                     "network": network,
                 }
 

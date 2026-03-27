@@ -66,6 +66,40 @@ export function TaskDetailModal({ taskId, onClose, onReviewSubmission }: TaskDet
     return () => { cancelled = true }
   }, [taskId])
 
+  // Auto-refresh on task status changes (avoids stale "reviewing" state)
+  useEffect(() => {
+    const channel = supabase
+      .channel(`task-updates-${taskId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'tasks', filter: `id=eq.${taskId}` },
+        (payload: { new: Record<string, unknown> }) => {
+          setTask((prev) => prev ? { ...prev, ...payload.new } as Task : prev)
+        }
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [taskId])
+
+  // Auto-refresh submissions on any change
+  useEffect(() => {
+    const channel = supabase
+      .channel(`submissions-${taskId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'submissions', filter: `task_id=eq.${taskId}` },
+        () => {
+          supabase.from('submissions')
+            .select('*, executor:executors(id, display_name, reputation_score)')
+            .eq('task_id', taskId)
+            .order('submitted_at', { ascending: false })
+            .then(({ data }: { data: Submission[] | null }) => { if (data) setSubmissions(data) })
+        }
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [taskId])
+
   const statusColors: Record<string, string> = {
     published: 'bg-green-100 text-green-700',
     accepted: 'bg-blue-100 text-blue-700',

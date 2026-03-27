@@ -114,7 +114,7 @@ function resolveEvidenceUrl(fileUrl: string): string {
 }
 
 export function TaskDetail({
-  task,
+  task: taskProp,
   currentExecutor,
   onBack,
   onAccept,
@@ -123,6 +123,10 @@ export function TaskDetail({
   const navigate = useNavigate()
   const [accepting, setAccepting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Live task state: starts from prop, updated via realtime subscription
+  const [task, setTask] = useState<Task>(taskProp)
+  useEffect(() => { setTask(taskProp) }, [taskProp])
   const [zoomImage, setZoomImage] = useState<{ url: string; alt: string } | null>(null)
 
   const hasEscrowContext = Boolean(task.escrow_tx || task.escrow_id)
@@ -165,6 +169,36 @@ export function TaskDetail({
   useEffect(() => {
     fetchSubmissions()
   }, [fetchSubmissions])
+
+  // Auto-refresh on task status changes (avoids stale "reviewing" state)
+  useEffect(() => {
+    const channel = supabase
+      .channel(`task-updates-${task.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'tasks', filter: `id=eq.${task.id}` },
+        (payload: { new: Record<string, unknown> }) => {
+          setTask((prev) => ({ ...prev, ...payload.new } as Task))
+        }
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [task.id])
+
+  // Auto-refresh submissions on any change
+  useEffect(() => {
+    const channel = supabase
+      .channel(`submissions-${task.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'submissions', filter: `task_id=eq.${task.id}` },
+        () => {
+          fetchSubmissions()
+        }
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [task.id, fetchSubmissions])
 
   const canAccept =
     task.status === 'published' &&

@@ -60,6 +60,11 @@ GIVE_FEEDBACK_ABI = [
 BASE_CHAIN_ID = 8453
 BASE_RPC_URL = os.environ.get("BASE_RPC_URL", "https://mainnet.base.org")
 
+# Module-level nonce lock to serialise direct on-chain TXs and prevent
+# "replacement transaction underpriced" errors when multiple reputation
+# calls fire in quick succession (e.g. WS-2b + WS-2 in the same approval).
+_nonce_lock = asyncio.Lock()
+
 
 def _get_web3() -> Web3:
     """Create a Web3 instance connected to Base Mainnet."""
@@ -146,7 +151,7 @@ async def give_feedback_direct(
                 "from": account.address,
                 "chainId": BASE_CHAIN_ID,
                 "gasPrice": w3.eth.gas_price,
-                "nonce": w3.eth.get_transaction_count(account.address),
+                "nonce": w3.eth.get_transaction_count(account.address, "pending"),
             }
         )
 
@@ -170,7 +175,8 @@ async def give_feedback_direct(
         return tx_hash.hex(), receipt
 
     try:
-        tx_hash_hex, receipt = await asyncio.to_thread(_send_tx)
+        async with _nonce_lock:
+            tx_hash_hex, receipt = await asyncio.to_thread(_send_tx)
 
         if receipt["status"] == 1:
             logger.info(
@@ -200,6 +206,40 @@ async def give_feedback_direct(
 
     except Exception as e:
         error_msg = str(e)
+        # Retry once on nonce-related errors (e.g. "replacement transaction
+        # underpriced" or "nonce too low") — the pending nonce may have been
+        # stale if a prior TX landed between our read and send.
+        if any(
+            s in error_msg.lower()
+            for s in (
+                "replacement transaction underpriced",
+                "nonce too low",
+                "already known",
+            )
+        ):
+            logger.warning(
+                "Direct feedback nonce conflict, retrying in 2s: agent_id=%d, error=%s",
+                agent_id,
+                error_msg,
+            )
+            try:
+                await asyncio.sleep(2)
+                async with _nonce_lock:
+                    tx_hash_hex, receipt = await asyncio.to_thread(_send_tx)
+                if receipt["status"] == 1:
+                    logger.info(
+                        "Direct feedback retry succeeded: agent_id=%d, tx=%s",
+                        agent_id,
+                        tx_hash_hex,
+                    )
+                    return FeedbackResult(
+                        success=True,
+                        transaction_hash=tx_hash_hex,
+                        network=ERC8004_NETWORK,
+                    )
+            except Exception as retry_err:
+                error_msg = f"Retry also failed: {retry_err}"
+
         logger.error(
             "Direct feedback failed: agent_id=%d, error=%s",
             agent_id,

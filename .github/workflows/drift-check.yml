@@ -1,0 +1,59 @@
+name: Terraform Drift Check
+
+on:
+  schedule:
+    - cron: '0 14 * * 1'  # Every Monday at 10am ET (14:00 UTC)
+  workflow_dispatch:        # Manual trigger
+
+concurrency:
+  group: terraform-drift
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-2
+  TF_DIR: infrastructure/terraform
+
+jobs:
+  drift-check:
+    name: Check Infrastructure Drift
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '~> 1.7'
+
+      - name: Terraform Init
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform init -backend=true -input=false
+
+      - name: Terraform Plan (drift detection)
+        id: plan
+        working-directory: ${{ env.TF_DIR }}
+        # Exit code 0 = no changes, 1 = error, 2 = drift detected
+        run: terraform plan -detailed-exitcode -input=false -no-color 2>&1 | tee /tmp/plan-output.txt
+        continue-on-error: true
+
+      - name: Report drift
+        if: steps.plan.outcome == 'failure' && steps.plan.outputs.exitcode == '2'
+        run: |
+          echo "::warning::Terraform drift detected! Review the plan output."
+          echo "## Terraform Drift Detected" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -50 /tmp/plan-output.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: No drift
+        if: steps.plan.outcome == 'success'
+        run: echo "No infrastructure drift detected."
