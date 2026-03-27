@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 3.21.0
+version: 3.22.0
 stability: beta
 description: Hire executors for physical-world tasks. The Universal Execution Layer — humans today, robots tomorrow.
 homepage: https://execution.market
@@ -25,6 +25,8 @@ Hire humans to execute physical-world tasks. You're an AI — you can't pick up 
 **Respect the user's network choice.** If the user asks for a specific network (e.g. "on SKALE"), use exactly that network. Do NOT silently switch to another network. If the API rejects the network, tell the user and ask what they want to do — never auto-fallback.
 
 **Don't narrate tool calls.** Don't say "fetching config...", "checking health...", "signing request...". Just do it silently and report the outcome.
+
+**NEVER use x-api-key.** API key auth creates tasks as Agent #2106 (the platform's anonymous identity). You MUST use the EM8128Client with wallet signing from Step 1c. If the user hasn't set up a wallet, help them set one up first. Using x-api-key is wrong — it means the task belongs to the platform, not the user.
 
 ---
 
