@@ -1,11 +1,14 @@
 import { Routes, Route, Link, useLocation } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Settings from './pages/Settings'
 import Tasks from './pages/Tasks'
 import Analytics from './pages/Analytics'
 import Payments from './pages/Payments'
 import Users from './pages/Users'
 import AuditLog from './pages/AuditLog'
+import { AuthError } from './lib/api'
+
+const API_BASE = import.meta.env.VITE_API_URL || 'https://api.execution.market'
 
 const navItems = [
   { path: '/', label: 'Analytics', icon: '📊' },
@@ -16,11 +19,80 @@ const navItems = [
   { path: '/audit', label: 'Audit Log', icon: '📜' },
 ]
 
+/**
+ * Verify an admin key against the backend.
+ * Returns true if the key is valid, false otherwise.
+ */
+async function verifyAdminKey(key: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_BASE}/api/v1/admin/verify`, {
+      headers: { 'X-Admin-Key': key },
+    })
+    return response.ok
+  } catch {
+    // Network error — treat as invalid so user can re-authenticate
+    return false
+  }
+}
+
 function App() {
-  const [adminKey, setAdminKey] = useState('')
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  // Lazy initializers read sessionStorage synchronously on first render
+  const [adminKey, setAdminKey] = useState<string>(
+    () => sessionStorage.getItem('adminKey') || '',
+  )
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
+  const [isVerifying, setIsVerifying] = useState<boolean>(
+    () => !!sessionStorage.getItem('adminKey'),
+  )
   const [loginError, setLoginError] = useState('')
   const location = useLocation()
+
+  /** Clear auth state and sessionStorage. */
+  const handleLogout = useCallback(() => {
+    setIsAuthenticated(false)
+    setAdminKey('')
+    setLoginError('')
+    sessionStorage.removeItem('adminKey')
+  }, [])
+
+  // On mount: if we have a stored key, verify it is still valid
+  useEffect(() => {
+    const storedKey = sessionStorage.getItem('adminKey')
+    if (!storedKey) {
+      setIsVerifying(false)
+      return
+    }
+
+    let cancelled = false
+    verifyAdminKey(storedKey).then((valid) => {
+      if (cancelled) return
+      if (valid) {
+        setAdminKey(storedKey)
+        setIsAuthenticated(true)
+      } else {
+        // Stored key is stale or invalid — force re-login
+        handleLogout()
+      }
+      setIsVerifying(false)
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [handleLogout])
+
+  // Global listener: auto-logout on AuthError (401/403) from any child page.
+  // Child pages use react-query which may swallow errors, so we also listen for
+  // unhandled rejections that carry an AuthError.
+  useEffect(() => {
+    const onUnhandled = (event: PromiseRejectionEvent) => {
+      if (event.reason instanceof AuthError) {
+        handleLogout()
+      }
+    }
+    window.addEventListener('unhandledrejection', onUnhandled)
+    return () => window.removeEventListener('unhandledrejection', onUnhandled)
+  }, [handleLogout])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,14 +103,9 @@ function App() {
       return
     }
 
-    // Verify the admin key with the backend using header auth
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || 'https://api.execution.market'
-      const response = await fetch(`${API_BASE}/api/v1/admin/verify`, {
-        headers: { 'X-Admin-Key': adminKey },
-      })
-
-      if (response.ok) {
+      const valid = await verifyAdminKey(adminKey)
+      if (valid) {
         setIsAuthenticated(true)
         sessionStorage.setItem('adminKey', adminKey)
       } else {
@@ -49,20 +116,17 @@ function App() {
     }
   }
 
-  const handleLogout = () => {
-    setIsAuthenticated(false)
-    setAdminKey('')
-    sessionStorage.removeItem('adminKey')
+  // Show spinner while verifying a stored session
+  if (isVerifying) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-em-500 mx-auto mb-4" />
+          <p className="text-gray-400 text-sm">Verifying session...</p>
+        </div>
+      </div>
+    )
   }
-
-  // Check session storage on mount
-  useState(() => {
-    const storedKey = sessionStorage.getItem('adminKey')
-    if (storedKey) {
-      setAdminKey(storedKey)
-      setIsAuthenticated(true)
-    }
-  })
 
   if (!isAuthenticated) {
     return (
