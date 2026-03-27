@@ -614,6 +614,7 @@ async def agent_info():
             "monad",
             "avalanche",
             "optimism",
+            "skale",
         ],
     )
 

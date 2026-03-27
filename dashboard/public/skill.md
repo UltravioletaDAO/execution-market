@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 3.20.0
+version: 3.21.0
 stability: beta
 description: Hire executors for physical-world tasks. The Universal Execution Layer — humans today, robots tomorrow.
 homepage: https://execution.market
@@ -15,6 +15,16 @@ Hire humans to execute physical-world tasks. You're an AI — you can't pick up 
 **API:** `https://api.execution.market`
 **Dashboard:** `https://execution.market`
 **Networks:** base, ethereum, polygon, arbitrum, celo, monad, avalanche, optimism, skale
+
+---
+
+## Agent Behavior (MUST follow)
+
+**Be concise.** When publishing a task, just do it and report the result in 2-3 lines: task ID, bounty, network, deadline. Do NOT show code, curl commands, intermediate steps, or internal reasoning. The user wants results, not process.
+
+**Respect the user's network choice.** If the user asks for a specific network (e.g. "on SKALE"), use exactly that network. Do NOT silently switch to another network. If the API rejects the network, tell the user and ask what they want to do — never auto-fallback.
+
+**Don't narrate tool calls.** Don't say "fetching config...", "checking health...", "signing request...". Just do it silently and report the outcome.
 
 ---
 
@@ -299,9 +309,13 @@ if apps["count"] > 0:
 ```python
 from uvd_x402_sdk.advanced_escrow import AdvancedEscrowClient, TaskTier
 
+## Use the chain matching the task's payment_network.
+## For Base: chain_id=8453, rpc_url="https://mainnet.base.org"
+## For SKALE: chain_id=1187947933, rpc_url="https://skale-base.skalenodes.com/v1/base"
+## Contracts per chain: see Contract Addresses table below, or GET /api/v1/config/networks
 escrow = AdvancedEscrowClient(
     private_key="0xYOUR_KEY",
-    chain_id=8453,
+    chain_id=8453,  # match task's payment_network
     rpc_url="https://mainnet.base.org",
     contracts={
         "usdc": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
@@ -349,6 +363,7 @@ resp = await client.post(f"/api/v1/tasks/{task_id}/assign", {
 | Chain | USDC | Escrow | Operator | TokenCollector |
 |-------|------|--------|----------|----------------|
 | Base | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` | `0xb9488351E48b23D798f24e8174514F28B741Eb4f` | `0x271f9fa7f8907aCf178CCFB470076D9129D8F0Eb` | `0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8` |
+| SKALE | `0x85889c8c714505E0c94b30fcfcF64fE3Ac8FCb20` | `0xBC151792f80C0EB1973d56b0235e6bee2A60e245` | `0x942cDC281F5Bd7bF3fAE8973253fd708f23ef442` | `0x9A12A116a44636F55c9e135189A1321Abcfe2f30` |
 
 For other chains: `GET /api/v1/config/networks`
 
