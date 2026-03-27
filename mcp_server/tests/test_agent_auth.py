@@ -118,6 +118,7 @@ class TestVerifyAgentJWT:
 # ---------------------------------------------------------------------------
 
 
+@patch("api.auth._API_KEYS_ENABLED", True)
 class TestAuthenticateAgent:
     """Tests for POST /api/v1/agent/auth endpoint."""
 

@@ -184,6 +184,11 @@ async def verify_api_key_optional(
 
 _REQUIRE_API_KEY = os.environ.get("EM_REQUIRE_API_KEY", "false").lower() == "true"
 
+# Kill switch: when false, ALL API key auth is rejected. Only ERC-8128 wallet
+# signing is accepted. Set EM_API_KEYS_ENABLED=true to re-enable API keys.
+# DEFAULT: disabled — API keys are a security risk (tasks created as Agent #2106).
+_API_KEYS_ENABLED = os.environ.get("EM_API_KEYS_ENABLED", "false").lower() == "true"
+
 
 def _anonymous_agent_data() -> APIKeyData:
     """Return a default APIKeyData for unauthenticated requests."""
@@ -581,7 +586,33 @@ async def verify_agent_auth(request: Request) -> AgentAuth:
                 headers={"WWW-Authenticate": 'ERC8128 realm="execution-market"'},
             )
 
-    # Path 2: API key auth (existing behavior, unchanged)
+    # Path 2: API key auth — disabled by default (EM_API_KEYS_ENABLED=false)
+    if not _API_KEYS_ENABLED:
+        # No ERC-8128 signature was provided and API keys are disabled
+        authorization = request.headers.get("authorization")
+        x_api_key = request.headers.get("x-api-key")
+        if authorization or x_api_key:
+            logger.warning(
+                "API key auth attempted but EM_API_KEYS_ENABLED=false — rejected"
+            )
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    "API key authentication is disabled. "
+                    "Use ERC-8128 wallet signing instead. "
+                    "See https://execution.market/skill.md for setup instructions."
+                ),
+            )
+        raise HTTPException(
+            status_code=401,
+            detail=(
+                "Authentication required. Use ERC-8128 wallet signing. "
+                "API key authentication is currently disabled."
+            ),
+            headers={"WWW-Authenticate": 'ERC8128 realm="execution-market"'},
+        )
+
+    # Path 2b: API key auth (only reachable when EM_API_KEYS_ENABLED=true)
     authorization = request.headers.get("authorization")
     x_api_key = request.headers.get("x-api-key")
 

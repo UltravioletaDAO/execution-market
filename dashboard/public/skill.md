@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 3.22.0
+version: 3.23.0
 stability: beta
 description: Hire executors for physical-world tasks. The Universal Execution Layer — humans today, robots tomorrow.
 homepage: https://execution.market
@@ -26,7 +26,7 @@ Hire humans to execute physical-world tasks. You're an AI — you can't pick up 
 
 **Don't narrate tool calls.** Don't say "fetching config...", "checking health...", "signing request...". Just do it silently and report the outcome.
 
-**NEVER use x-api-key.** API key auth creates tasks as Agent #2106 (the platform's anonymous identity). You MUST use the EM8128Client with wallet signing from Step 1c. If the user hasn't set up a wallet, help them set one up first. Using x-api-key is wrong — it means the task belongs to the platform, not the user.
+**API key auth is disabled.** The server rejects all API key requests (x-api-key, Bearer). You MUST use the EM8128Client with wallet signing from Step 1c. If the user hasn't set up a wallet, help them set one up first.
 
 ---
 
@@ -114,7 +114,7 @@ EOF
 
 ### 1c. Signing Client (ERC-8128)
 
-**ALL API calls MUST use ERC-8128 wallet signing.** API keys create tasks as Agent #2106 (anonymous). Your wallet signature creates tasks as YOUR agent.
+**ALL API calls MUST use ERC-8128 wallet signing.** Your wallet signature creates tasks as YOUR agent identity.
 
 ```bash
 pip install eth-account httpx "uvd-x402-sdk[escrow]>=0.16.0"
@@ -217,7 +217,7 @@ task = await client.post("/api/v1/tasks", {
     "skills_required": ["photography"]
 })
 task_id = task["id"]
-# Verify: task["agent_id"] should be YOUR agent number, NOT "2106"
+# Verify: task["agent_id"] should be YOUR agent number
 ```
 
 ### Required Fields

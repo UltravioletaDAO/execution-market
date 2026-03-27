@@ -137,6 +137,15 @@ async def authenticate_agent(request: AgentAuthRequest) -> AgentAuthResponse:
     - Returns JWT with agent_id claim on success
     - Returns 401 on invalid/expired/revoked key
     """
+    # Kill switch: reject all API key auth when disabled
+    from api.auth import _API_KEYS_ENABLED
+
+    if not _API_KEYS_ENABLED:
+        raise HTTPException(
+            status_code=403,
+            detail="API key authentication is disabled. Use ERC-8128 wallet signing.",
+        )
+
     api_key = request.api_key.strip()
 
     # Validate key format
