@@ -1,14 +1,8 @@
 # Execution Market Infrastructure - Monitoring & Alerting
 #
 # CloudWatch alarms for the MCP server (ECS Fargate) and ALB health.
-# All alarms publish to a single SNS topic. Subscribe an email or PagerDuty
-# endpoint manually after apply:
-#
-#   aws sns subscribe \
-#     --topic-arn <TOPIC_ARN> \
-#     --protocol email \
-#     --notification-endpoint you@example.com \
-#     --region us-east-2
+# All alarms publish to SNS topics with automatic email subscription.
+# After `terraform apply`, confirm the subscription via the link in your inbox.
 
 # ── SNS Topic ────────────────────────────────────────────────────────────────
 
@@ -18,6 +12,14 @@ resource "aws_sns_topic" "mcp_alerts" {
   tags = {
     Name = "${local.name_prefix}-mcp-alerts"
   }
+}
+
+# Email subscription — confirm via inbox after first apply
+resource "aws_sns_topic_subscription" "mcp_alerts_email" {
+  count     = var.alert_email != "" ? 1 : 0
+  topic_arn = aws_sns_topic.mcp_alerts.arn
+  protocol  = "email"
+  endpoint  = var.alert_email
 }
 
 # ── Alarm 1: Running Task Count = 0 (SERVICE DOWN) ──────────────────────────

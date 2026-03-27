@@ -140,7 +140,7 @@ variable "evidence_max_upload_mb" {
 
 # Monitoring
 variable "alert_email" {
-  description = "Email for CloudWatch alarm notifications. After apply, subscribe manually: aws sns subscribe --topic-arn <ARN> --protocol email --notification-endpoint <EMAIL> --region us-east-2"
+  description = "Email for CloudWatch alarm notifications (SNS subscription created automatically)"
   type        = string
-  default     = ""
+  default     = "0xultravioleta@gmail.com"
 }
