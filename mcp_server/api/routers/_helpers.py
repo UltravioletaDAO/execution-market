@@ -1724,6 +1724,7 @@ _EXPLORER_TX_URLS: Dict[str, str] = {
     "avalanche": "https://snowtrace.io/tx/",
     "optimism": "https://optimistic.etherscan.io/tx/",
     "monad": "https://explorer.monad.xyz/tx/",
+    "skale": "https://skale-base-explorer.skalenodes.com/tx/",
     "base-sepolia": "https://sepolia.basescan.org/tx/",
     "sepolia": "https://sepolia.etherscan.io/tx/",
 }

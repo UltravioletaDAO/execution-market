@@ -38,6 +38,7 @@ export const TX_EXPLORER_URLS: Record<string, string> = {
   monad: 'https://explorer.monad.xyz/tx/',
   avalanche: 'https://snowtrace.io/tx/',
   optimism: 'https://optimistic.etherscan.io/tx/',
+  skale: 'https://skale-base-explorer.skalenodes.com/tx/',
   solana: 'https://solscan.io/tx/',
 };
 
@@ -54,6 +55,7 @@ export const ADDRESS_EXPLORER_URLS: Record<string, string> = {
   monad: 'https://explorer.monad.xyz/address/',
   avalanche: 'https://snowtrace.io/address/',
   optimism: 'https://optimistic.etherscan.io/address/',
+  skale: 'https://skale-base-explorer.skalenodes.com/address/',
   solana: 'https://solscan.io/account/',
 };
 

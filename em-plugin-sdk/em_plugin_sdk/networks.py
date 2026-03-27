@@ -114,6 +114,13 @@ NETWORKS: dict[str, NetworkInfo] = {
         ),
         has_escrow=True, has_operator=True,
     ),
+    "skale": NetworkInfo(
+        name="skale", chain_id=1187947933, network_type="evm",
+        tokens=(
+            TokenInfo("USDC", "0x85889c8c714505E0c94b30fcfcF64fE3Ac8FCb20", "Bridged USDC (SKALE Bridge)"),
+        ),
+        has_escrow=True, has_operator=True,
+    ),
     "solana": NetworkInfo(
         name="solana", chain_id=None, network_type="svm",
         tokens=(
@@ -126,7 +133,7 @@ NETWORKS: dict[str, NetworkInfo] = {
 # Enabled by default (matches EM_ENABLED_NETWORKS default)
 DEFAULT_ENABLED = frozenset({
     "base", "ethereum", "polygon", "arbitrum",
-    "celo", "monad", "avalanche", "optimism", "solana",
+    "celo", "monad", "avalanche", "optimism", "skale", "solana",
 })
 
 DEFAULT_NETWORK = "base"

@@ -1,9 +1,9 @@
 # SKALE Network Integration — Execution Market
 
 **Date:** 2026-03-21
-**Status:** Pre-Integration (Blocked on x402r contracts + facilitator SKALE support)
+**Status:** INTEGRATED (all code changes complete, pending deploy)
 **Priority:** HIGH — SKALE is actively courting agent/x402 projects
-**Updated:** 2026-03-21 (consolidated from 4-agent deep audit of codebase)
+**Updated:** 2026-03-27 (integration complete — all blockers resolved, code changes done)
 
 ---
 
@@ -61,32 +61,28 @@ Add SKALE as a payment network for Execution Market. SKALE offers **zero gas fee
 ## SKALE Network Details (To Be Filled)
 
 ```
-Chain Name:       SKALE ??? (Europa / Calypso / AppChain)
-Chain ID:         ???
-RPC URL:          https://???
-Block Explorer:   https://???
-Gas Model:        ZERO (sFUEL distributed free, no real cost)
-Brand Color:      #??? (hex for mobile NetworkBadge)
+Chain Name:       SKALE Base
+Chain ID:         1187947933
+RPC URL:          https://skale-base.skalenodes.com/v1/base
+Block Explorer:   https://skale-base-explorer.skalenodes.com
+Gas Model:        ZERO (CREDIT token, zero cost, legacy TX only)
+Brand Color:      #000000 (black)
 
-USDC Address:     0x???
-USDC Version:     ??? (must be "1" or "2" for EIP-3009)
-EIP-3009:         ??? (CRITICAL — must support transferWithAuthorization)
+USDC Address:     0x85889c8c714505E0c94b30fcfcF64fE3Ac8FCb20 (Bridged USDC via SKALE Bridge)
+USDC EIP-712:     name='Bridged USDC (SKALE Bridge)', version='2'
+EIP-3009:         YES (transferWithAuthorization supported)
 
-x402r Escrow (AuthCaptureEscrow):          0x???
-x402r Factory (PaymentOperatorFactory):    0x???
+x402r Escrow (AuthCaptureEscrow):          0xBC151792f80C0EB1973d56b0235e6bee2A60e245
+x402r Factory (PaymentOperatorFactory):    0x3Cd5c76Fefe46CB07788Ee8f80B93B20D81941D4
 x402r Infrastructure:
-  staticAddressConditionFactory:           0x???
-  orConditionFactory:                      0x???
-  staticFeeCalculatorFactory:              0x???
-  protocolFeeConfig:                       0x???
-  usdcTvlLimit:                            0x???
-  tokenCollector:                          0x???
-  payerCondition:                          0x???
+  protocolFeeConfig:                       0xf62788834C99B2E85a6891C0b46D1EB996f8f596
+  tokenCollector:                          0x9A12A116a44636F55c9e135189A1321Abcfe2f30
+  refundRequest:                           0x69e9BF2b40Ed472b55E47e9D4205d93Ed673093F
 
-EM PaymentOperator:   0x??? (we deploy after factory is ready)
+EM PaymentOperator:   0x942cDC281F5Bd7bF3fAE8973253fd708f23ef442 (pre-deployed by facilitator)
 
-ERC-8004 Identity:    0x??? (pending CREATE2 deployment)
-ERC-8004 Reputation:  0x??? (pending CREATE2 deployment)
+ERC-8004 Identity:    0x8004A169FB4a3325136EB29fA0ceB6D2e539a432 (CREATE2 — confirmed)
+ERC-8004 Reputation:  0x8004BAa17C55a88189AE136b182e5fdA19dE9b63 (CREATE2 — confirmed)
 ```
 
 ---

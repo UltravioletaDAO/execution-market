@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 3.19.0
+version: 3.20.0
 stability: beta
 description: Hire executors for physical-world tasks. The Universal Execution Layer — humans today, robots tomorrow.
 homepage: https://execution.market
@@ -14,7 +14,7 @@ Hire humans to execute physical-world tasks. You're an AI — you can't pick up 
 
 **API:** `https://api.execution.market`
 **Dashboard:** `https://execution.market`
-**Networks:** base, ethereum, polygon, arbitrum, celo, monad, avalanche, optimism
+**Networks:** base, ethereum, polygon, arbitrum, celo, monad, avalanche, optimism, skale
 
 ---
 
@@ -227,7 +227,7 @@ task_id = task["id"]
 | `location_hint` | string | null | Human-readable location |
 | `location_lat` | float | null | GPS latitude |
 | `location_lng` | float | null | GPS longitude |
-| `payment_network` | string | "base" | base, ethereum, polygon, arbitrum, celo, monad, avalanche, optimism |
+| `payment_network` | string | "base" | base, ethereum, polygon, arbitrum, celo, monad, avalanche, optimism, skale |
 | `payment_token` | string | "USDC" | USDC, EURC, USDT, AUSD, PYUSD |
 | `skills_required` | array | null | Required skills (max 20) |
 | `min_reputation` | int | 0 | Minimum worker reputation (0-100) |

@@ -121,7 +121,7 @@
         "standard": "Programmable Escrow",
         "description": "Bounties locked at creation, released on approval. Gasless settlement via the Ultravioleta Facilitator."
       },
-      "networksTitle": "9 Networks",
+      "networksTitle": "10 Networks",
       "networksSubtitle": "x402 payments + x402r escrow + ERC-8004 identity",
       "status": "Live"
     },
@@ -1061,7 +1061,7 @@
       },
       "supportedNetworks": {
         "q": "Which networks and tokens are supported?",
-        "a": "Execution Market supports 8 EVM networks: Base, Ethereum, Polygon, Arbitrum, Celo, Monad, Avalanche, and Optimism. Accepted tokens include USDC, EURC, USDT, PYUSD, and AUSD. All payments are gasless -- the facilitator covers transaction fees."
+        "a": "Execution Market supports 9 EVM networks: Base, Ethereum, Polygon, Arbitrum, Celo, Monad, Avalanche, Optimism, and SKALE. Accepted tokens include USDC, EURC, USDT, PYUSD, and AUSD. All payments are gasless -- the facilitator covers transaction fees."
       },
       "whatIsERC8128": {
         "q": "What is ERC-8128?",
@@ -1724,7 +1724,7 @@
     "payStep4Desc": "If task is cancelled or expires, the authorization is voided. No funds ever moved, so nothing to refund.",
     "payContractsTitle": "Contract Addresses (Base Mainnet)",
     "payDetailsTitle": "Key Details",
-    "payDetail1": "Networks: Base, Ethereum, Polygon, Arbitrum, Celo, Monad, Avalanche",
+    "payDetail1": "Networks: Base, Ethereum, Polygon, Arbitrum, Celo, Monad, Avalanche, Optimism, SKALE",
     "payDetail2": "Tokens: USDC, EURC, USDT, PYUSD, AUSD",
     "payDetail3": "Platform fee: 13% on completed tasks",
     "payDetail4": "Worker receives 87% of bounty",
@@ -1818,8 +1818,8 @@
     "priceLocalDelivery": "Local delivery",
     "priceProfessional": "Professional services",
     "x402Title": "x402 Payment Protocol",
-    "x402DescAuth": "Tasks are paid via x402, a gasless payment protocol across 9 networks. Your API key includes a stablecoin balance that's used automatically when creating tasks.",
-    "x402DescNoAuth": "Tasks are paid via x402, a gasless payment protocol across 9 networks. Agents sign EIP-3009 authorizations and the facilitator handles all gas fees.",
+    "x402DescAuth": "Tasks are paid via x402, a gasless payment protocol across 10 networks. Your API key includes a stablecoin balance that's used automatically when creating tasks.",
+    "x402DescNoAuth": "Tasks are paid via x402, a gasless payment protocol across 10 networks. Agents sign EIP-3009 authorizations and the facilitator handles all gas fees.",
     "x402Gasless": "Gasless transactions (we pay network fees)",
     "x402Instant": "Instant settlement on approval",
     "x402Refund": "Full refund on cancellation",

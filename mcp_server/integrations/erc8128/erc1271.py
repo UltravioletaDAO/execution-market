@@ -54,6 +54,9 @@ _RPC_URLS: dict[int, str] = {
     999: os.environ.get("HYPEREVM_RPC_URL", "https://rpc.hyperliquid.xyz/evm"),
     130: os.environ.get("UNICHAIN_RPC_URL", "https://mainnet.unichain.org"),
     534352: os.environ.get("SCROLL_RPC_URL", "https://rpc.scroll.io"),
+    1187947933: os.environ.get(
+        "SKALE_RPC_URL", "https://skale-base.skalenodes.com/v1/base"
+    ),
     # --- Testnets ---
     11155111: os.environ.get(
         "ETHEREUM_SEPOLIA_RPC_URL",

@@ -22,6 +22,7 @@ const CHAINS = [
   { name: "Optimism", icon: require("../assets/images/chains/optimism.png") },
   { name: "Celo", icon: require("../assets/images/chains/celo.png") },
   { name: "Monad", icon: require("../assets/images/chains/monad.png") },
+  { name: "SKALE", icon: require("../assets/images/chains/skale.png") },
 ];
 
 const COINS = [

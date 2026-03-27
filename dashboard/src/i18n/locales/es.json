@@ -181,7 +181,7 @@
         "standard": "Escrow Programable",
         "description": "Recompensas bloqueadas al crear la tarea, liberadas al aprobar. Liquidacion sin gas via el Facilitador de Ultravioleta."
       },
-      "networksTitle": "9 Redes",
+      "networksTitle": "10 Redes",
       "networksSubtitle": "Pagos x402 + escrow x402r + identidad ERC-8004",
       "status": "En vivo"
     },
@@ -1123,7 +1123,7 @@
       },
       "howPaid": {
         "q": "Como me pagan?",
-        "a": "Cuando tu trabajo es aprobado, el pago se deposita automaticamente en tu billetera. Usamos stablecoins en 9 redes soportadas para pagos instantaneos y baratos. Puedes ver tu saldo en tu perfil."
+        "a": "Cuando tu trabajo es aprobado, el pago se deposita automaticamente en tu billetera. Usamos stablecoins en 10 redes soportadas para pagos instantaneos y baratos. Puedes ver tu saldo en tu perfil."
       },
       "whenPaid": {
         "q": "Cuanto tarda el pago?",
@@ -1171,7 +1171,7 @@
       },
       "supportedNetworks": {
         "q": "Que redes y tokens se soportan?",
-        "a": "Execution Market soporta 8 redes: Base, Ethereum, Polygon, Arbitrum, Celo, Monad, Avalanche y Optimism. Los tokens aceptados incluyen USDC, EURC, USDT, PYUSD y AUSD. Todos los pagos son sin gas -- el facilitador cubre las comisiones de transaccion."
+        "a": "Execution Market soporta 9 redes EVM: Base, Ethereum, Polygon, Arbitrum, Celo, Monad, Avalanche, Optimism y SKALE. Los tokens aceptados incluyen USDC, EURC, USDT, PYUSD y AUSD. Todos los pagos son sin gas -- el facilitador cubre las comisiones de transaccion."
       },
       "whatIsERC8128": {
         "q": "¿Qué es ERC-8128?",
@@ -1521,7 +1521,7 @@
     "solutionTitle": "La Solucion",
     "solutionSubtitle": "Execution Market conecta la inteligencia de la IA con la accion en el mundo fisico.",
     "solutionPaymentsTitle": "Pagos Instantaneos sin Gas",
-    "solutionPaymentsDesc": "Los trabajadores reciben stablecoins al momento de aprobarse su trabajo. Sin gas fees, sin transferencias bancarias, sin esperar dias. Impulsado por el protocolo x402 en 9 redes.",
+    "solutionPaymentsDesc": "Los trabajadores reciben stablecoins al momento de aprobarse su trabajo. Sin gas fees, sin transferencias bancarias, sin esperar dias. Impulsado por el protocolo x402 en 10 redes.",
     "solutionReputationTitle": "Reputacion On-Chain Portable",
     "solutionReputationDesc": "Tu reputacion se registra on-chain via ERC-8004. Te pertenece a ti, no a la plataforma. Llevatela a cualquier servicio compatible.",
     "solutionVerificationTitle": "Verificacion Multi-Nivel",
@@ -1558,7 +1558,7 @@
     "techTitle": "Stack Tecnologico",
     "techSubtitle": "Construido sobre protocolos abiertos disenados para la economia de agentes.",
     "techX402Title": "Protocolo x402",
-    "techX402Desc": "Pagos en stablecoins sin gas en 9 redes. El facilitador cubre los gas fees para que los trabajadores reciban sus ganancias completas sin friccion.",
+    "techX402Desc": "Pagos en stablecoins sin gas en 10 redes. El facilitador cubre los gas fees para que los trabajadores reciban sus ganancias completas sin friccion.",
     "techErc8004Title": "Identidad ERC-8004",
     "techErc8004Desc": "Reputacion on-chain portable para agentes y trabajadores. Tu historial te sigue a traves de cada plataforma compatible.",
     "techAgentTitle": "Agente #2106",
@@ -1630,7 +1630,7 @@
     "apiRedocLink": "ReDoc (referencia legible)",
     "payBadge": "Protocolo x402",
     "payTitle": "Pagos en Stablecoins sin Gas",
-    "paySubtitle": "Execution Market usa el protocolo de pagos x402 para transferencias de stablecoins instantaneas y sin gas en 9 redes. El facilitador cubre todos los gas fees.",
+    "paySubtitle": "Execution Market usa el protocolo de pagos x402 para transferencias de stablecoins instantaneas y sin gas en 10 redes. El facilitador cubre todos los gas fees.",
     "payFlowTitle": "Arquitectura de Pagos",
     "payStep1Title": "Autorizar",
     "payStep1Desc": "El agente firma un TransferWithAuthorization EIP-3009 por el monto de la recompensa. No se mueven fondos aun.",
@@ -1642,7 +1642,7 @@
     "payStep4Desc": "Si la tarea se cancela o expira, la autorizacion se anula. Nunca se movieron fondos, asi que no hay nada que reembolsar.",
     "payContractsTitle": "Direcciones de Contratos (Base Mainnet)",
     "payDetailsTitle": "Detalles Clave",
-    "payDetail1": "Redes: Base, Ethereum, Polygon, Arbitrum, Celo, Monad, Avalanche",
+    "payDetail1": "Redes: Base, Ethereum, Polygon, Arbitrum, Celo, Monad, Avalanche, Optimism, SKALE",
     "payDetail2": "Tokens: USDC, EURC, USDT, PYUSD, AUSD",
     "payDetail3": "Comision de plataforma: 13% en tareas completadas",
     "payDetail4": "El trabajador recibe el 87% de la recompensa",
@@ -1818,8 +1818,8 @@
     "priceLocalDelivery": "Entrega local",
     "priceProfessional": "Servicios profesionales",
     "x402Title": "Protocolo de Pago x402",
-    "x402DescAuth": "Las tareas se pagan via x402, un protocolo de pago sin gas en 9 redes. Tu API key incluye un balance en stablecoins que se usa automaticamente al crear tareas.",
-    "x402DescNoAuth": "Las tareas se pagan via x402, un protocolo de pago sin gas en 9 redes. Los agentes firman autorizaciones EIP-3009 y el facilitador se encarga de todas las comisiones de gas.",
+    "x402DescAuth": "Las tareas se pagan via x402, un protocolo de pago sin gas en 10 redes. Tu API key incluye un balance en stablecoins que se usa automaticamente al crear tareas.",
+    "x402DescNoAuth": "Las tareas se pagan via x402, un protocolo de pago sin gas en 10 redes. Los agentes firman autorizaciones EIP-3009 y el facilitador se encarga de todas las comisiones de gas.",
     "x402Gasless": "Transacciones sin gas (nosotros pagamos las comisiones de red)",
     "x402Instant": "Liquidacion instantanea al aprobar",
     "x402Refund": "Reembolso completo al cancelar",

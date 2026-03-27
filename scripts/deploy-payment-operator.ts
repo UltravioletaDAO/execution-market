@@ -52,6 +52,14 @@ const monad: Chain = defineChain({
   rpcUrls: { default: { http: ["https://rpc.monad.xyz"] } },
 });
 
+const skaleBase: Chain = defineChain({
+  id: 1187947933,
+  name: "SKALE Base",
+  nativeCurrency: { name: "CREDIT", symbol: "CREDIT", decimals: 18 },
+  rpcUrls: { default: { http: ["https://skale-base.skalenodes.com/v1/base"] } },
+  blockExplorers: { default: { name: "SKALE Explorer", url: "https://skale-base-explorer.skalenodes.com" } },
+});
+
 // Per-chain x402r infrastructure addresses (from @x402r/sdk source of truth)
 // Sub-factory addresses are DIFFERENT per chain (not CREATE2-identical).
 // Pattern: Arb/Celo/Monad/Avax/Op share identical addresses. Ethereum and Polygon each unique.
@@ -179,6 +187,19 @@ const CHAIN_CONFIGS: Record<string, ChainConfig> = {
     usdcTvlLimit: "0x9B16ff5bcF5C0B2c31Cd17032a306E91CA67F546",
     tokenCollector: "0x230fd3A171750FA45db2976121376b7F47Cba308",
     payerCondition: "0xed02d3E5167BCc9582D851885A89b050AB816a56",
+  },
+  skale: {
+    chain: skaleBase,
+    rpcUrl: "https://skale-base.skalenodes.com/v1/base",
+    escrow: "0xBC151792f80C0EB1973d56b0235e6bee2A60e245",
+    paymentOperatorFactory: "0x3Cd5c76Fefe46CB07788Ee8f80B93B20D81941D4",
+    staticAddressConditionFactory: "0x0000000000000000000000000000000000000000" as Address, // TBD
+    orConditionFactory: "0x0000000000000000000000000000000000000000" as Address, // TBD
+    staticFeeCalculatorFactory: "0x0000000000000000000000000000000000000000" as Address, // TBD
+    protocolFeeConfig: "0xf62788834C99B2E85a6891C0b46D1EB996f8f596",
+    usdcTvlLimit: "0x0000000000000000000000000000000000000000" as Address, // TBD
+    tokenCollector: "0x9A12A116a44636F55c9e135189A1321Abcfe2f30",
+    payerCondition: "0x0000000000000000000000000000000000000000" as Address, // TBD
   },
 };
 

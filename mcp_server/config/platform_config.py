@@ -138,6 +138,8 @@ class PlatformConfig:
             "celo",
             "monad",
             "avalanche",
+            "optimism",
+            "skale",
         ],
         "x402.supported_tokens": ["USDC", "EURC", "USDT", "PYUSD", "AUSD"],
         "x402.preferred_network": "base",

@@ -41,9 +41,9 @@ Execution Market is the **Universal Execution Layer** — the infrastructure tha
 | Database | Supabase (PostgreSQL) |
 | Dashboard | React 18 + TypeScript + Vite + Tailwind CSS |
 | Blockchain Scripts | TypeScript + viem |
-| Payments | x402 SDK + Facilitator (9 networks: 8 EVM + Solana, gasless) |
+| Payments | x402 SDK + Facilitator (10 networks: 9 EVM + Solana, gasless) |
 | Evidence Storage | S3 + CloudFront CDN (presigned uploads) |
-| Agent Identity | ERC-8004 Registry (15 networks via Facilitator) |
+| Agent Identity | ERC-8004 Registry (16 networks via Facilitator) |
 | SDKs | Python `uvd-x402-sdk>=0.14.0` / TypeScript `uvd-x402-sdk@2.26.0` |
 
 ## Project Structure
@@ -245,7 +245,7 @@ npm run register:x402r       # Register as x402r merchant (pending)
 ```
 AI Agent → MCP Server → Supabase → Dashboard → Human Worker
                 ↓
-           x402r Escrow (8 EVM networks) + Solana SPL transfers
+           x402r Escrow (9 EVM networks) + Solana SPL transfers
                 ↓
            Payment Release
 ```
@@ -301,12 +301,12 @@ Required in `.env.local` (project root):
 Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 
 ### Multichain Payment Config
-- `EM_ENABLED_NETWORKS` - Comma-separated list of enabled payment networks (default: `base,ethereum,polygon,arbitrum,celo,monad,avalanche,optimism,solana`)
+- `EM_ENABLED_NETWORKS` - Comma-separated list of enabled payment networks (default: `base,ethereum,polygon,arbitrum,celo,monad,avalanche,optimism,skale,solana`)
 - `X402_NETWORK` - Default payment network (default: `base`)
 - **To add a new chain or stablecoin**: Use the **`add-network` skill** (`.claude/skills/add-network/SKILL.md`) — it has the complete step-by-step checklist
 - **To deploy/redeploy PaymentOperators**: Use the **`deploy-operator` skill** (`.claude/skills/deploy-operator/SKILL.md`) — deploys Fase 5 operators on any supported chain
 - **Solana**: Uses Fase 1 only (direct SPL transfers, no escrow/operator). USDC + AUSD supported. No PaymentOperator on Solana.
-- Token registry lives in `mcp_server/integrations/x402/sdk_client.py` (`NETWORK_CONFIG` dict — single source of truth, 15 EVM networks + Solana, 6 stablecoins, 10 with x402r escrow)
+- Token registry lives in `mcp_server/integrations/x402/sdk_client.py` (`NETWORK_CONFIG` dict — single source of truth, 16 EVM networks + Solana, 6 stablecoins, 11 with x402r escrow)
 - Other Python files (facilitator_client, tests, platform_config) **auto-derive** from sdk_client.py — no manual updates needed
 
 ## On-Chain Contracts
@@ -320,6 +320,7 @@ Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 | x402r Escrow (AuthCaptureEscrow) | Ethereum | `0x9D4146EF898c8E60B3e865AE254ef438E7cEd2A0` |
 | x402r Escrow (AuthCaptureEscrow) | Polygon | `0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6` |
 | x402r Escrow (AuthCaptureEscrow) | Arbitrum, Avalanche, Celo, Monad, Optimism | `0x320a3c35F131E5D2Fb36af56345726B298936037` |
+| x402r Escrow (AuthCaptureEscrow) | SKALE | `0xBC151792f80C0EB1973d56b0235e6bee2A60e245` |
 | **EM PaymentOperator (Fase 5 Trustless Fee Split)** | **Base** | **`0x271f9fa7f8907aCf178CCFB470076D9129D8F0Eb`** |
 | **EM PaymentOperator (Fase 5)** | **Ethereum** | **`0x69B67962ffb7c5C7078ff348a87DF604dfA8001b`** |
 | **EM PaymentOperator (Fase 5)** | **Polygon** | **`0xB87F1ECC85f074e50df3DD16A1F40e4e1EC4102e`** |
@@ -328,6 +329,7 @@ Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 | **EM PaymentOperator (Fase 5)** | **Monad** | **`0x9620Dbe2BB549E1d080Dc8e7982623A9e1Df8cC3`** |
 | **EM PaymentOperator (Fase 5)** | **Celo** | **`0xC2377a9Db1de2520BD6b2756eD012f4E82F7938e`** |
 | **EM PaymentOperator (Fase 5)** | **Optimism** | **`0xC2377a9Db1de2520BD6b2756eD012f4E82F7938e`** |
+| **EM PaymentOperator (Fase 5)** | **SKALE** | **`0x942cDC281F5Bd7bF3fAE8973253fd708f23ef442`** |
 | StaticFeeCalculator(1300bps) | Base | `0xd643DB63028Cd1852AAFe62A0E3d2A5238d7465A` |
 | Facilitator EOA | All | `0x103040545AC5031A11E8C03dd11324C7333a13C7` |
 | Execution Market Agent ID | **Base** | `2106` |
@@ -486,7 +488,7 @@ Wrong Flow (DO NOT USE):
 | **Facilitator URL** | `https://facilitator.ultravioletadao.xyz` |
 | **Facilitator Endpoints** | `POST /verify`, `POST /settle`, `POST /register`, `POST /feedback` |
 | **Network** | Base Mainnet (chain 8453) for production payments |
-| **ERC-8004 Networks** | 15 total: 9 mainnets + 6 testnets (all via Facilitator) |
+| **ERC-8004 Networks** | 16 total: 10 mainnets + 6 testnets (all via Facilitator) |
 
 **Wallet Roles (CRITICAL — read this before touching payments)**:
 - **Dev wallet** (`<YOUR_DEV_WALLET>`): Used by local scripts and tests. Key in `.env.local`.
@@ -540,7 +542,7 @@ signing for internal testing ONLY. Not set in production ECS.
 - **Layer 2:** `PaymentOperator` — per-config contract with pluggable conditions (who can authorize/release/refund)
 - **Layer 3:** `Facilitator` — off-chain server, pays gas, enforces business logic
 
-**Fase 5 Operators deployed on 8 EVM chains** (all active in Facilitator allowlist, Golden Flow 7/8 PASS). Solana uses Fase 1 (no operator). Addresses in On-Chain Contracts table above. StaticFeeCalculator(1300 BPS = 13%) auto-splits at release: worker 87%, operator 13%. `distributeFees(USDC)` flushes to treasury. Deploy script: `scripts/deploy-payment-operator.ts`.
+**Fase 5 Operators deployed on 9 EVM chains** (all active in Facilitator allowlist, Golden Flow 7/8 PASS). Solana uses Fase 1 (no operator). Addresses in On-Chain Contracts table above. StaticFeeCalculator(1300 BPS = 13%) auto-splits at release: worker 87%, operator 13%. `distributeFees(USDC)` flushes to treasury. Deploy script: `scripts/deploy-payment-operator.ts`.
 
 **Key upstream repos:**
 | Repo | URL | Stack |
@@ -583,11 +585,11 @@ BackTrack controls `ProtocolFeeConfig` (`0x59314674...`) — up to 5% hard cap, 
 - **Bounties**: **ALWAYS under $0.20** for testing (~$4 USDC per chain). E2E uses `TEST_BOUNTY = 0.10`. Deadlines: 5-15 minutes.
 - **Script**: `cd scripts && npx tsx task-factory.ts --preset screenshot --bounty 0.10 --deadline 10`
 - **E2E script**: `python scripts/e2e_mcp_api.py` — full lifecycle through REST API
-- **Production wallet**: `<YOUR_PLATFORM_WALLET>` (funded on all 8 EVM chains + Solana wallet for SPL)
+- **Production wallet**: `<YOUR_PLATFORM_WALLET>` (funded on all 9 EVM chains + Solana wallet for SPL)
 
 ### ERC-8004 Identity
 
-Agent ID **2106** on Base. Registration and reputation via Facilitator (`POST /register`, `POST /feedback`) — gasless. **15 EVM networks**: 9 mainnets + 6 testnets. On Solana, ERC-8004 identity via QuantuLabs 8004-solana Anchor programs (future). Network naming: `"base"`, `"polygon"`, `"solana"`, etc. (`"base-mainnet"` kept as alias).
+Agent ID **2106** on Base. Registration and reputation via Facilitator (`POST /register`, `POST /feedback`) — gasless. **16 EVM networks**: 10 mainnets + 6 testnets. On Solana, ERC-8004 identity via QuantuLabs 8004-solana Anchor programs (future). Network naming: `"base"`, `"polygon"`, `"solana"`, etc. (`"base-mainnet"` kept as alias).
 
 ### Production URLs
 
@@ -607,7 +609,7 @@ Agent ID **2106** on Base. Registration and reputation via Facilitator (`POST /r
 | `mcp_server/integrations/x402/sdk_client.py` | x402 SDK wrapper + multichain token registry (12 EVM + Solana, 6 stablecoins) — **USE THIS for all payments** |
 | `mcp_server/integrations/x402/client.py` | Direct HTTP facilitator client (fallback) |
 | `mcp_server/integrations/x402/advanced_escrow_integration.py` | Advanced escrow flows documentation |
-| `mcp_server/integrations/erc8004/facilitator_client.py` | ERC-8004 identity, reputation, registration (15 networks) |
+| `mcp_server/integrations/erc8004/facilitator_client.py` | ERC-8004 identity, reputation, registration (16 networks) |
 | `mcp_server/integrations/erc8004/identity.py` | Worker identity check + gasless registration |
 | `mcp_server/api/routes.py` | REST API endpoints (task CRUD, submissions, escrow) |
 | `mcp_server/api/reputation.py` | Reputation + registration endpoints |

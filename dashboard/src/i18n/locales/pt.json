@@ -120,7 +120,7 @@
         "standard": "Escrow Programavel",
         "description": "Recompensas bloqueadas na criacao, liberadas na aprovacao. Liquidacao sem gas via o Facilitador Ultravioleta."
       },
-      "networksTitle": "9 Redes",
+      "networksTitle": "10 Redes",
       "networksSubtitle": "Pagamentos x402 + escrow x402r + identidade ERC-8004",
       "status": "Ao vivo"
     },
@@ -965,7 +965,7 @@
       },
       "howPaid": {
         "q": "Como recebo?",
-        "a": "Quando seu trabalho e aprovado, o pagamento e depositado automaticamente na sua carteira. Usamos stablecoins em 9 redes suportadas para pagamentos instantaneos e baratos. Voce pode ver seu saldo no seu perfil."
+        "a": "Quando seu trabalho e aprovado, o pagamento e depositado automaticamente na sua carteira. Usamos stablecoins em 10 redes suportadas para pagamentos instantaneos e baratos. Voce pode ver seu saldo no seu perfil."
       },
       "whenPaid": {
         "q": "Quanto tempo leva para receber?",
@@ -1013,7 +1013,7 @@
       },
       "supportedNetworks": {
         "q": "Quais redes e tokens sao suportados?",
-        "a": "Execution Market suporta 8 redes: Base, Ethereum, Polygon, Arbitrum, Celo, Monad, Avalanche e Optimism. Os tokens aceitos incluem USDC, EURC, USDT, PYUSD e AUSD. Todos os pagamentos sao sem gas -- o facilitador cobre as taxas de transacao."
+        "a": "Execution Market suporta 9 redes EVM: Base, Ethereum, Polygon, Arbitrum, Celo, Monad, Avalanche, Optimism e SKALE. Os tokens aceitos incluem USDC, EURC, USDT, PYUSD e AUSD. Todos os pagamentos sao sem gas -- o facilitador cobre as taxas de transacao."
       },
       "whatIsERC8128": {
         "q": "O que e ERC-8128?",
@@ -1676,7 +1676,7 @@
     "payStep4Desc": "Se a tarefa for cancelada ou expirar, a autorizacao e anulada. Nenhum fundo se moveu, entao nao ha nada a reembolsar.",
     "payContractsTitle": "Enderecos de Contratos (Base Mainnet)",
     "payDetailsTitle": "Detalhes Importantes",
-    "payDetail1": "Redes: Base, Ethereum, Polygon, Arbitrum, Celo, Monad, Avalanche",
+    "payDetail1": "Redes: Base, Ethereum, Polygon, Arbitrum, Celo, Monad, Avalanche, Optimism, SKALE",
     "payDetail2": "Tokens: USDC, EURC, USDT, PYUSD, AUSD",
     "payDetail3": "Taxa da plataforma: 13% em tarefas concluidas",
     "payDetail4": "Trabalhador recebe 87% da recompensa",
@@ -1770,8 +1770,8 @@
     "priceLocalDelivery": "Entrega local",
     "priceProfessional": "Servicos profissionais",
     "x402Title": "Protocolo de Pagamento x402",
-    "x402DescAuth": "As tarefas sao pagas via x402, um protocolo de pagamento sem gas em 9 redes. Sua API key inclui um saldo em stablecoins que e usado automaticamente ao criar tarefas.",
-    "x402DescNoAuth": "As tarefas sao pagas via x402, um protocolo de pagamento sem gas em 9 redes. Agentes assinam autorizacoes EIP-3009 e o facilitador cuida de todas as taxas de gas.",
+    "x402DescAuth": "As tarefas sao pagas via x402, um protocolo de pagamento sem gas em 10 redes. Sua API key inclui um saldo em stablecoins que e usado automaticamente ao criar tarefas.",
+    "x402DescNoAuth": "As tarefas sao pagas via x402, um protocolo de pagamento sem gas em 10 redes. Agentes assinam autorizacoes EIP-3009 e o facilitador cuida de todas as taxas de gas.",
     "x402Gasless": "Transacoes sem gas (nos pagamos as taxas de rede)",
     "x402Instant": "Liquidacao instantanea na aprovacao",
     "x402Refund": "Reembolso completo no cancelamento",

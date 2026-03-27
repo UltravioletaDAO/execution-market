@@ -45,6 +45,7 @@ _RPC_ENDPOINTS = {
     "monad": "https://rpc.monad.xyz",
     "avalanche": "https://api.avax.network/ext/bc/C/rpc",
     "optimism": "https://mainnet.optimism.io",
+    "skale": "https://skale-base.skalenodes.com/v1/base",
 }
 
 # Build NETWORKS dict from sdk_client registry + test RPC endpoints

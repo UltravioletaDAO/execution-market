@@ -103,7 +103,7 @@ EM_SETTLEMENT_ADDRESS = os.environ.get("EM_SETTLEMENT_ADDRESS")
 # To enable more: fund the platform wallet with USDC on that chain, then add to this list.
 _enabled_raw = os.environ.get(
     "EM_ENABLED_NETWORKS",
-    "base,ethereum,polygon,arbitrum,celo,monad,avalanche,optimism,solana",
+    "base,ethereum,polygon,arbitrum,celo,monad,avalanche,optimism,skale,solana",
 )
 ENABLED_NETWORKS = [n.strip() for n in _enabled_raw.split(",") if n.strip()]
 
@@ -396,6 +396,30 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
             "usdcTvlLimit": "0x9B16ff5bcF5C0B2c31Cd17032a306E91CA67F546",
             "tokenCollector": "0x230fd3A171750FA45db2976121376b7F47Cba308",
             "payerCondition": "0xed02d3E5167BCc9582D851885A89b050AB816a56",
+        },
+    },
+    # --- SKALE Base (gasless L3) ---
+    # Zero gas fees (sFUEL/CREDIT token). Legacy TX only (no EIP-1559).
+    # USDC.e bridged via SKALE Bridge. EIP-3009 version "2".
+    "skale": {
+        "chain_id": 1187947933,
+        "network_type": "evm",
+        "rpc_url": "https://skale-base.skalenodes.com/v1/base",
+        "tokens": {
+            "USDC": {
+                "address": "0x85889c8c714505E0c94b30fcfcF64fE3Ac8FCb20",
+                "name": "Bridged USDC (SKALE Bridge)",
+                "version": "2",
+                "decimals": 6,
+            },
+        },
+        "escrow": "0xBC151792f80C0EB1973d56b0235e6bee2A60e245",
+        "factory": "0x3Cd5c76Fefe46CB07788Ee8f80B93B20D81941D4",
+        "operator": "0x942cDC281F5Bd7bF3fAE8973253fd708f23ef442",
+        "x402r_infra": {
+            "tokenCollector": "0x9A12A116a44636F55c9e135189A1321Abcfe2f30",
+            "protocolFeeConfig": "0xf62788834C99B2E85a6891C0b46D1EB996f8f596",
+            "refundRequest": "0x69e9BF2b40Ed472b55E47e9D4205d93Ed673093F",
         },
     },
     # --- SVM (Solana) ---

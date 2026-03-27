@@ -17,6 +17,7 @@ const CHAIN_IMAGES: Record<string, number> = {
   optimism: require("../../assets/images/chains/optimism.png"),
   celo: require("../../assets/images/chains/celo.png"),
   monad: require("../../assets/images/chains/monad.png"),
+  skale: require("../../assets/images/chains/skale.png"),
 };
 
 type Step = 1 | 2 | 3 | 4;

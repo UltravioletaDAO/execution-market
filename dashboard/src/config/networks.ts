@@ -37,6 +37,7 @@ export const NETWORKS: NetworkInfo[] = [
   { key: 'monad', name: 'Monad', chainId: 143, logo: '/monad.png', live: true },
   { key: 'avalanche', name: 'Avalanche', chainId: 43114, logo: '/avalanche.png', live: true },
   { key: 'optimism', name: 'Optimism', chainId: 10, logo: '/optimism.png', live: true },
+  { key: 'skale', name: 'SKALE', chainId: 1187947933, logo: '/skale.png', live: true },
 ]
 
 /** Quick lookup by network key */
