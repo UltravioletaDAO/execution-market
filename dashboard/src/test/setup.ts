@@ -68,6 +68,12 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 })
 
+// Mock URL.createObjectURL (not available in jsdom)
+if (typeof URL.createObjectURL === 'undefined') {
+  URL.createObjectURL = vi.fn(() => 'blob:mock-url')
+  URL.revokeObjectURL = vi.fn()
+}
+
 // Mock navigator.clipboard
 Object.assign(navigator, {
   clipboard: {
