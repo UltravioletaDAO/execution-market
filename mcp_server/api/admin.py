@@ -1628,3 +1628,110 @@ async def retry_submission_payment(
     except Exception as e:
         logger.error(f"Error retrying payment for submission {submission_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# =============================================================================
+# AUDIT SUMMARY
+# =============================================================================
+
+
+@router.get("/audit/summary")
+async def audit_summary(admin=Depends(verify_admin_key)):
+    """Aggregated financial audit summary for the last 24h."""
+
+    client = db.get_client()
+    since = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+
+    # Tasks created/completed/cancelled in last 24h
+    tasks = (
+        client.table("tasks")
+        .select("id, status, bounty_usd, payment_network, created_at")
+        .gte("created_at", since)
+        .execute()
+    )
+    task_data = tasks.data or []
+
+    tasks_created = len(task_data)
+    by_status: Dict[str, int] = {}
+    total_bounty = 0.0
+    for t in task_data:
+        s = t.get("status", "unknown")
+        by_status[s] = by_status.get(s, 0) + 1
+        total_bounty += float(t.get("bounty_usd") or 0)
+
+    # Payment events in last 24h
+    events = (
+        client.table("payment_events")
+        .select("event_type, amount, status, tx_hash")
+        .gte("created_at", since)
+        .execute()
+    )
+    event_data = events.data or []
+
+    released = sum(
+        1
+        for e in event_data
+        if e.get("event_type") == "escrow_release" and e.get("status") == "success"
+    )
+    refunded = sum(
+        1
+        for e in event_data
+        if e.get("event_type") == "refund" and e.get("status") == "success"
+    )
+    total_released = sum(
+        float(e.get("amount") or 0)
+        for e in event_data
+        if e.get("event_type") == "escrow_release" and e.get("status") == "success"
+    )
+    total_refunded = sum(
+        float(e.get("amount") or 0)
+        for e in event_data
+        if e.get("event_type") == "refund" and e.get("status") == "success"
+    )
+
+    # Active escrows
+    active_escrows = (
+        client.table("escrows")
+        .select("task_id, amount, status, created_at")
+        .in_("status", ["deposited", "pending", "locked"])
+        .execute()
+    )
+    open_escrows = []
+    for esc in active_escrows.data or []:
+        age_h = 0
+        try:
+            created_dt = datetime.fromisoformat(
+                esc["created_at"].replace("Z", "+00:00")
+            )
+            age_h = round(
+                (datetime.now(timezone.utc) - created_dt).total_seconds() / 3600, 1
+            )
+        except Exception:
+            pass
+        open_escrows.append(
+            {
+                "task_id": esc.get("task_id"),
+                "amount": float(esc.get("amount") or 0),
+                "status": esc.get("status"),
+                "age_hours": age_h,
+            }
+        )
+
+    # Run reconciliation
+    from audit.escrow_reconciler import reconcile_escrows
+
+    recon = await reconcile_escrows()
+
+    return {
+        "period": "last_24h",
+        "tasks_created": tasks_created,
+        "tasks_by_status": by_status,
+        "total_bounty_usd": round(total_bounty, 2),
+        "payments_released": released,
+        "payments_refunded": refunded,
+        "total_released_usd": round(total_released, 6),
+        "total_refunded_usd": round(total_refunded, 6),
+        "estimated_fees_usd": round(total_released * 0.13, 6),
+        "escrow_reconciliation": recon,
+        "open_escrows": open_escrows,
+    }

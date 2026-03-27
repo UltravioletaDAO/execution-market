@@ -68,6 +68,9 @@ async def _process_expired_task(client, task: dict) -> None:
     # 2. Refund escrow if applicable
     if not escrow_id:
         logger.info("[expiration] Task %s has no escrow_id, skipping refund", task_id)
+        from audit import audit_log
+
+        audit_log("preauth_expired", task_id=task_id, zero_cost=True)
         return
 
     escrow_mode = os.environ.get("EM_ESCROW_MODE", "platform_release")

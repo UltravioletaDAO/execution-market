@@ -273,6 +273,10 @@ async def approve_submission(
                     detail=f"Cannot approve: escrow not in releasable state (status: {esc_status})",
                 )
 
+    from audit import audit_log as _audit_approve
+
+    _audit_approve("task_approved", task_id=task.get("id"), approved_by=auth.agent_id)
+
     notes = request.notes if request else None
     rating_score = getattr(request, "rating_score", None) if request else None
     settlement = await _settle_submission_payment(

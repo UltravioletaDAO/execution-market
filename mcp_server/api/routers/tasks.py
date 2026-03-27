@@ -802,6 +802,18 @@ async def create_task(
                         }
                     )
 
+                from audit import audit_log as _audit_log
+
+                _audit_log(
+                    "preauth_signed",
+                    task_id=task["id"],
+                    amount_usd=float(total_required),
+                    valid_before=valid_before
+                    if escrow_timing != "lock_on_creation"
+                    else None,
+                    escrow_timing=escrow_timing,
+                )
+
                 logger.info(
                     "Agent-signed escrow: task=%s, timing=%s, status=%s",
                     task["id"],
@@ -1153,6 +1165,16 @@ async def create_task(
             auth.agent_id,
             request.bounty_usd,
             X402_AVAILABLE,
+        )
+
+        from audit import audit_log
+
+        audit_log(
+            "task_created",
+            task_id=task["id"],
+            agent=auth.agent_id,
+            bounty_usd=request.bounty_usd,
+            network=request.payment_network,
         )
 
         # ---- Auto-register agent in executor directory (non-blocking) ----
@@ -2545,6 +2567,15 @@ async def cancel_task(
             refund_info,
         )
 
+        from audit import audit_log as _audit_cancel
+
+        _audit_cancel(
+            "task_cancelled",
+            task_id=task_id,
+            refund_tx=(refund_info or {}).get("tx_hash"),
+            refund_amount=float(task.get("bounty_usd", 0)),
+        )
+
         response_data = {"task_id": task_id, "reason": reason}
         if refund_info:
             response_data["escrow"] = refund_info
@@ -2766,6 +2797,17 @@ async def assign_task_to_worker(
                     "agent_signed": True,
                 }
                 agent_preauth_executed = True
+
+                from audit import audit_log as _audit_escrow
+
+                _audit_escrow(
+                    "escrow_locked",
+                    task_id=task_id,
+                    tx_hash=escrow_tx,
+                    amount_usd=float(bounty),
+                    escrow_contract="sdk_locked",
+                )
+
                 logger.info(
                     "SDK-locked escrow recorded: task=%s, worker=%s, tx=%s, "
                     "has_payment_info=%s",
@@ -2851,6 +2893,17 @@ async def assign_task_to_worker(
                         "agent_signed_at": "assignment",
                     }
                     agent_preauth_executed = True
+
+                    from audit import audit_log as _audit_lock
+
+                    _audit_lock(
+                        "escrow_locked",
+                        task_id=task_id,
+                        tx_hash=escrow_tx,
+                        amount_usd=float(bounty),
+                        escrow_contract="agent_signed_assignment",
+                    )
+
                     logger.info(
                         "Agent-signed auth at assignment: task=%s, worker=%s, tx=%s",
                         task_id,
@@ -2943,6 +2996,17 @@ async def assign_task_to_worker(
                                 "agent_signed": True,
                             }
                             agent_preauth_executed = True
+
+                            from audit import audit_log as _audit_preauth_lock
+
+                            _audit_preauth_lock(
+                                "escrow_locked",
+                                task_id=task_id,
+                                tx_hash=escrow_tx,
+                                amount_usd=float(task.get("bounty_usd", 0)),
+                                escrow_contract="preauth_deferred",
+                            )
+
                             logger.info(
                                 "Agent-signed pre-auth executed at assignment: "
                                 "task=%s, worker=%s, tx=%s",
@@ -3091,6 +3155,16 @@ async def assign_task_to_worker(
                             "bounty_locked": str(bounty),
                             "fee_model": "credit_card",
                         }
+                        from audit import audit_log as _audit_trustless_lock
+
+                        _audit_trustless_lock(
+                            "escrow_locked",
+                            task_id=task_id,
+                            tx_hash=escrow_tx,
+                            amount_usd=float(bounty),
+                            escrow_contract="trustless_direct_release",
+                        )
+
                         logger.info(
                             "trustless: Escrow locked at assignment: task=%s, "
                             "worker=%s, tx=%s",
@@ -3138,6 +3212,15 @@ async def assign_task_to_worker(
             task_id,
             auth.agent_id[:10],
             request.executor_id[:10],
+        )
+
+        from audit import audit_log as _audit_assign
+
+        _audit_assign(
+            "worker_assigned",
+            task_id=task_id,
+            worker_wallet=worker_wallet,
+            worker_agent_id=request.executor_id,
         )
 
         # Non-blocking webhook dispatch

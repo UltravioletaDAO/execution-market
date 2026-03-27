@@ -405,6 +405,16 @@ async def submit_work(
             submission_id,
         )
 
+        from audit import audit_log as _audit_evidence
+
+        _audit_evidence(
+            "evidence_submitted",
+            task_id=task_id,
+            submission_id=submission_id,
+            score=None,
+            evidence_count=len(evidence),
+        )
+
         # --- Automated evidence verification (non-blocking) ---
         verification_result = None
         try:

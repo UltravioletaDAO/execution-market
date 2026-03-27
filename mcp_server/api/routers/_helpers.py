@@ -625,6 +625,17 @@ async def _send_reputation_feedback(
                 reputation_score,
                 reputation_result.transaction_hash,
             )
+
+            from audit import audit_log as _audit_rep
+
+            _audit_rep(
+                "reputation_logged",
+                task_id=task["id"],
+                direction="agent_rates_worker",
+                tx_hash=reputation_result.transaction_hash,
+                score=reputation_score,
+            )
+
             # Update feedback_documents with the on-chain TX hash
             if reputation_result.transaction_hash:
                 try:
@@ -1104,6 +1115,16 @@ async def _ws2_auto_rate_agent(
                 status="success",
                 tx_hash=feedback_result.transaction_hash,
             )
+            from audit import audit_log as _audit_ws2
+
+            _audit_ws2(
+                "reputation_logged",
+                task_id=task_id,
+                direction="worker_rates_agent",
+                tx_hash=feedback_result.transaction_hash,
+                score=score,
+            )
+
             logger.info(
                 "WS-2 success: worker rated agent %d with score=%d, tx=%s",
                 agent_erc8004_id,
@@ -1472,7 +1493,7 @@ async def _settle_submission_payment(
                     release_tx,
                 )
 
-                from audit import audit_log
+                from audit import audit_log, verify_fee_split
 
                 audit_log(
                     "payment_released",
@@ -1481,6 +1502,24 @@ async def _settle_submission_payment(
                     worker=worker_address,
                     tx_hash=release_tx,
                     network=task_network,
+                )
+
+                _protocol_fee = float(result.get("protocol_fee", 0)) if result else 0.0
+                audit_log(
+                    "fee_split",
+                    task_id=task_id,
+                    gross=float(bounty),
+                    worker_net=float(worker_payout),
+                    treasury_fee=float(fee),
+                    protocol_fee=_protocol_fee,
+                    fee_pct=0.13,
+                )
+                verify_fee_split(
+                    task_id=task_id,
+                    gross_usd=float(bounty),
+                    worker_net_usd=float(worker_payout),
+                    treasury_fee_usd=float(fee),
+                    protocol_fee_usd=_protocol_fee,
                 )
 
                 # NOTE: Reputation feedback moved to WS-2b side effect

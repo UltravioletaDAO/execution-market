@@ -287,6 +287,25 @@ async def get_task(task_id: str) -> Optional[Dict[str, Any]]:
 
 async def update_task(task_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
     """Update a task."""
+    # Lifecycle state machine validation (log-only, non-blocking)
+    if "status" in updates:
+        try:
+            from audit.lifecycle_validator import validate_transition
+
+            current_task = await get_task(task_id)
+            current_status = (current_task or {}).get("status", "")
+            if current_status and not validate_transition(
+                current_status, updates["status"], task_id
+            ):
+                logger.warning(
+                    "Detected illegal transition for task %s: %s -> %s",
+                    task_id,
+                    current_status,
+                    updates["status"],
+                )
+        except Exception as e:
+            logger.debug("Lifecycle validation skipped: %s", e)
+
     client = get_client()
     pending_updates = dict(updates)
 

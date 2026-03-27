@@ -33,6 +33,7 @@ import supabase_client as db
 from jobs.task_expiration import run_task_expiration_loop
 from jobs.auto_payment import run_auto_payment_loop
 from jobs.fee_sweep import run_fee_sweep_loop
+from audit.escrow_reconciler import run_escrow_reconciliation_loop
 
 # Import MCP server for Streamable HTTP mounting
 from server import mcp as mcp_server
@@ -150,6 +151,12 @@ async def lifespan(app: FastAPI):
     logger.info(
         "Fee sweep background job scheduled (every %ss)",
         os.environ.get("FEE_SWEEP_INTERVAL", "21600"),
+    )
+
+    asyncio.create_task(run_escrow_reconciliation_loop())  # noqa: RUF006
+    logger.info(
+        "Escrow reconciliation background job scheduled (every %ss)",
+        os.environ.get("EM_RECONCILE_INTERVAL", "900"),
     )
 
     # Initialize MCP session manager
