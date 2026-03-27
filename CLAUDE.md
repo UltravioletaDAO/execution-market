@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Open Items — Remind Me
 
-> **[OPEN] Anonymous mode (Agent #2106) is testing-only** — The API accepts unauthenticated requests and falls back to Agent #2106 identity. This is intentionally left open for the platform owner's internal testing (e.g., "run a quick E2E test"). It must NEVER be the default for external agents or skills. The `em-*` skills now block at Step 0 if no wallet is found. Reminder: once Ultra Wallet (`ultra-wallet` package) ships, audit all `em-*` skills to verify none of them allow silent fallback to Agent #2106 without an explicit `--test` flag from the user.
+> **[RESOLVED 2026-03-27] API key auth disabled by default** — `EM_API_KEYS_ENABLED=false` (default). All API key auth (x-api-key, Bearer) returns HTTP 403. Only ERC-8128 wallet signing is accepted. This closes the security hole where external agents could use API keys to create tasks as Agent #2106 (platform identity), potentially spending the platform wallet. To re-enable for internal testing: set `EM_API_KEYS_ENABLED=true` in ECS task definition. See INC-2026-03-27.
 
 > **[PARTIALLY RESOLVED 2026-03-22] ERC-8004 identity enforcement** — `EM_REQUIRE_ERC8004=true` deployed on ECS rev 256. Server now returns HTTP 403 for unregistered ERC-8128 agents at `POST /tasks`. `EM_REQUIRE_ERC8004_WORKER=true` deployed on ECS rev 257 — workers auto-register gaslessly at apply time. Phase 4 em-* skills guard also complete (6 skills updated, em-browse-tasks skipped as read-only). skill.md bumped to v3.5.0 with hard enforcement text. See `docs/planning/MASTER_PLAN_ERC8004_ENFORCEMENT.md`. **Remaining**: audit after Ultra Wallet (P1) ships to verify no silent fallback to Agent #2106.
 
@@ -299,6 +299,11 @@ Required in `.env.local` (project root):
 - `SOLANA_WALLET_ADDRESS` - Solana wallet for balance checks (base58, no private key needed)
 
 Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+
+### Auth Config
+- `EM_API_KEYS_ENABLED` - Enable/disable API key auth (default: `false`). When false, ALL API key requests (x-api-key, Bearer) return HTTP 403. Only ERC-8128 wallet signing is accepted. Set to `true` only for internal testing.
+- `EM_REQUIRE_ERC8004` - Require ERC-8004 identity for task creation (default: `true` in production)
+- `EM_REQUIRE_ERC8004_WORKER` - Require ERC-8004 identity for workers (default: `true` in production)
 
 ### Multichain Payment Config
 - `EM_ENABLED_NETWORKS` - Comma-separated list of enabled payment networks (default: `base,ethereum,polygon,arbitrum,celo,monad,avalanche,optimism,skale,solana`)
