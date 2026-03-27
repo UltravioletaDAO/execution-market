@@ -354,6 +354,7 @@ class ExpiryAnalyzer:
             return
 
         import time as _time
+
         event = {
             **event_data,
             "_recorded_at": _time.time(),
@@ -363,7 +364,7 @@ class ExpiryAnalyzer:
         # Trim to max size (FIFO — keep most recent)
         if len(self._recent_expiry_events) > self._max_recent_events:
             self._recent_expiry_events = self._recent_expiry_events[
-                -self._max_recent_events:
+                -self._max_recent_events :
             ]
 
         logger.debug(

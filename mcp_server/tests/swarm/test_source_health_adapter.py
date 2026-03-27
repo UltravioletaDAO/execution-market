@@ -238,18 +238,14 @@ class TestHealthReportIngestion:
 
     def test_consecutive_failures_reset_on_success(self, adapter):
         error_report = {
-            "probes": [
-                {"name": "flaky", "status": "error", "overall_health": 0.1}
-            ]
+            "probes": [{"name": "flaky", "status": "error", "overall_health": 0.1}]
         }
         adapter.ingest_health_report(error_report)
         adapter.ingest_health_report(error_report)
         assert adapter.get_source("flaky").consecutive_failures == 2
 
         ok_report = {
-            "probes": [
-                {"name": "flaky", "status": "healthy", "overall_health": 0.9}
-            ]
+            "probes": [{"name": "flaky", "status": "healthy", "overall_health": 0.9}]
         }
         adapter.ingest_health_report(ok_report)
         assert adapter.get_source("flaky").consecutive_failures == 0
@@ -423,9 +419,7 @@ class TestShouldQuery:
 
     def test_too_many_failures_not_queryable(self, adapter):
         report = {
-            "probes": [
-                {"name": "flaky", "status": "healthy", "overall_health": 0.9}
-            ]
+            "probes": [{"name": "flaky", "status": "healthy", "overall_health": 0.9}]
         }
         adapter.ingest_health_report(report)
         adapter._sources["flaky"].consecutive_failures = 5
@@ -508,9 +502,7 @@ class TestTrendAnalysis:
 
     def test_unknown_trend_insufficient_data(self, adapter):
         report = {
-            "probes": [
-                {"name": "new", "status": "healthy", "overall_health": 0.8}
-            ]
+            "probes": [{"name": "new", "status": "healthy", "overall_health": 0.8}]
         }
         adapter.ingest_health_report(report)
         source = adapter.get_source("new")
@@ -523,9 +515,7 @@ class TestTrendAnalysis:
 class TestMultipleUpdates:
     def test_source_updated_on_second_report(self, adapter):
         report1 = {
-            "probes": [
-                {"name": "changing", "status": "healthy", "overall_health": 0.9}
-            ]
+            "probes": [{"name": "changing", "status": "healthy", "overall_health": 0.9}]
         }
         adapter.ingest_health_report(report1)
         assert adapter.get_source("changing").tier == SourceTier.GOLD.value
@@ -552,7 +542,11 @@ class TestMultipleUpdates:
     def test_update_count_tracks_reports(self, adapter):
         for i in range(5):
             adapter.ingest_health_report(
-                {"probes": [{"name": "src", "status": "healthy", "overall_health": 0.8}]}
+                {
+                    "probes": [
+                        {"name": "src", "status": "healthy", "overall_health": 0.8}
+                    ]
+                }
             )
         assert adapter.update_count == 5
 
@@ -562,11 +556,7 @@ class TestMultipleUpdates:
 
 class TestEdgeCases:
     def test_probe_missing_optional_fields(self, adapter):
-        report = {
-            "probes": [
-                {"name": "minimal", "overall_health": 0.7}
-            ]
-        }
+        report = {"probes": [{"name": "minimal", "overall_health": 0.7}]}
         adapter.ingest_health_report(report)
         source = adapter.get_source("minimal")
         assert source is not None
@@ -574,21 +564,13 @@ class TestEdgeCases:
         assert source.avg_response_ms == 0.0
 
     def test_zero_health_score(self, adapter):
-        report = {
-            "probes": [
-                {"name": "zero", "overall_health": 0.0}
-            ]
-        }
+        report = {"probes": [{"name": "zero", "overall_health": 0.0}]}
         adapter.ingest_health_report(report)
         source = adapter.get_source("zero")
         assert source.tier == SourceTier.DEAD.value
 
     def test_perfect_health_score(self, adapter):
-        report = {
-            "probes": [
-                {"name": "perfect", "overall_health": 1.0}
-            ]
-        }
+        report = {"probes": [{"name": "perfect", "overall_health": 1.0}]}
         adapter.ingest_health_report(report)
         source = adapter.get_source("perfect")
         assert source.tier == SourceTier.GOLD.value
