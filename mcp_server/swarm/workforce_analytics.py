@@ -556,7 +556,7 @@ class WorkforceAnalytics:
                         message=f"Worker {top_worker.worker_id} handles {concentration:.0%} of all tasks (risk: single point of failure)",
                         metric="concentration",
                         value=concentration,
-                        threshold=thresholds["max_concentration"],
+                        threshold=thresholds.get("max_concentration", 0.7),
                     )
                 )
 
@@ -700,7 +700,8 @@ class WorkforceAnalytics:
         sum_x2 = sum(x**2 for x in bounties)
         sum_y2 = sum(y**2 for y in qualities)
 
-        denom = math.sqrt((n * sum_x2 - sum_x**2) * (n * sum_y2 - sum_y**2))
+        denom_product = (n * sum_x2 - sum_x**2) * (n * sum_y2 - sum_y**2)
+        denom = math.sqrt(max(0.0, denom_product))  # Guard against float rounding
         if denom == 0:
             corr = 0.0
         else:
