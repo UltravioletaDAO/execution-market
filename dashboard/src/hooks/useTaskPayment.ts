@@ -44,6 +44,7 @@ interface TaskEscrowRow {
   bounty_usd: number
   escrow_tx: string | null
   escrow_id: string | null
+  payment_network: string | null
   created_at: string
   updated_at: string
 }
@@ -161,6 +162,14 @@ function normalizeNetwork(row: Pick<PaymentRow, 'network' | 'chain_id'>): string
   if (row.network) return row.network
   if (row.chain_id === 8453) return 'base'
   if (row.chain_id === 84532) return 'base-sepolia'
+  if (row.chain_id === 1) return 'ethereum'
+  if (row.chain_id === 137) return 'polygon'
+  if (row.chain_id === 42161) return 'arbitrum'
+  if (row.chain_id === 42220) return 'celo'
+  if (row.chain_id === 143) return 'monad'
+  if (row.chain_id === 43114) return 'avalanche'
+  if (row.chain_id === 10) return 'optimism'
+  if (row.chain_id === 1187947933) return 'skale'
   return 'base'
 }
 
@@ -336,6 +345,7 @@ function buildFromTaskFallback(task: TaskEscrowRow, submissionPayment: Submissio
     return null
   }
 
+  const taskNetwork = task.payment_network || 'base'
   const payoutTx = pickTxHash(submissionPayment?.payment_tx)
   const payoutAmount = asNumber(submissionPayment?.payment_amount) || task.bounty_usd
   const payoutTimestamp =
@@ -358,7 +368,7 @@ function buildFromTaskFallback(task: TaskEscrowRow, submissionPayment: Submissio
       type: 'escrow_created',
       amount: task.bounty_usd,
       tx_hash: txHash,
-      network: 'base',
+      network: taskNetwork,
       timestamp: task.created_at,
       actor: 'agent',
       note: reference ? formatReference(reference) : undefined,
@@ -371,7 +381,7 @@ function buildFromTaskFallback(task: TaskEscrowRow, submissionPayment: Submissio
       type: 'final_release',
       amount: payoutAmount,
       tx_hash: payoutTx,
-      network: 'base',
+      network: taskNetwork,
       timestamp: payoutTimestamp,
       actor: 'system',
     })
@@ -382,7 +392,7 @@ function buildFromTaskFallback(task: TaskEscrowRow, submissionPayment: Submissio
       id: `${task.id}-refund`,
       type: 'refund',
       amount: task.bounty_usd,
-      network: 'base',
+      network: taskNetwork,
       timestamp: task.updated_at,
       actor: 'system',
     })
@@ -396,7 +406,7 @@ function buildFromTaskFallback(task: TaskEscrowRow, submissionPayment: Submissio
     currency: 'USDC',
     escrow_tx: txHash,
     escrow_contract: undefined,
-    network: 'base',
+    network: taskNetwork,
     events,
     created_at: task.created_at,
     updated_at: task.updated_at,
@@ -527,7 +537,7 @@ export function useTaskPayment(taskId: string | null | undefined): UseTaskPaymen
           .order('created_at', { ascending: true }),
         supabase
           .from('tasks')
-          .select('id, status, bounty_usd, escrow_tx, escrow_id, created_at, updated_at')
+          .select('id, status, bounty_usd, escrow_tx, escrow_id, payment_network, created_at, updated_at')
           .eq('id', taskId)
           .maybeSingle(),
         supabase
