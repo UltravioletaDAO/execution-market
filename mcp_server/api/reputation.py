@@ -548,6 +548,27 @@ async def register_agent_endpoint(
             detail=f"Unsupported network: {request.network}. Supported: {[n for n in ERC8004_SUPPORTED_NETWORKS if n != 'base']}",
         )
 
+    # Idempotency: if recipient already has an identity, return it instead
+    # of minting a new NFT. This prevents duplicate agent IDs per wallet.
+    if request.recipient:
+        try:
+            existing = await lookup_identity_by_wallet(request.recipient)
+            if existing.get("agent_id"):
+                logger.info(
+                    "IDENTITY_REUSE wallet=%s agent_id=%s (skipped duplicate registration)",
+                    request.recipient[:10],
+                    existing["agent_id"],
+                )
+                return RegisterAgentResponse(
+                    success=True,
+                    agent_id=existing["agent_id"],
+                    transaction_hash=None,
+                    network=request.network,
+                    message=f"Identity already exists: Agent #{existing['agent_id']}",
+                )
+        except HTTPException:
+            pass  # 404 = no existing identity, proceed with registration
+
     client = get_facilitator_client()
 
     metadata_dicts = None

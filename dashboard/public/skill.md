@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 3.23.0
+version: 3.24.0
 stability: beta
 description: Hire executors for physical-world tasks. The Universal Execution Layer — humans today, robots tomorrow.
 homepage: https://execution.market
@@ -84,12 +84,23 @@ EOF
 
 ### 1b. On-Chain Identity (ERC-8004)
 
+**IMPORTANT: Identity is persistent.** Each wallet gets ONE agent ID forever. The setup script checks config.json first, then the API. Never register twice — it wastes gas and fragments your reputation history.
+
 ```python
 python3 - << 'EOF'
 import json, urllib.request, ssl
+from pathlib import Path
 
-wallet = "0xYOUR_ADDRESS"  # Replace with your wallet
+SKILL_DIR = Path.home() / ".openclaw" / "skills" / "execution-market"
+cfg_path = SKILL_DIR / "config.json"
+cfg = json.loads(cfg_path.read_text()) if cfg_path.exists() else {}
+wallet = cfg.get("wallet_address", "0xYOUR_ADDRESS")
 ctx = ssl.create_default_context()
+
+# Check 1: config.json already has agent_id
+if cfg.get("agent_id"):
+    print(f"✓ Agent #{cfg['agent_id']} (cached)")
+    exit()
 
 def api(method, path, body=None):
     url = f"https://api.execution.market/api/v1{path}"
@@ -101,14 +112,22 @@ def api(method, path, body=None):
     except urllib.error.HTTPError as e:
         return json.loads(e.read()), e.code
 
-data, _ = api("GET", f"/reputation/identity/{wallet}")
+# Check 2: API knows this wallet
+data, code = api("GET", f"/reputation/identity/{wallet}")
 if data.get("agent_id"):
-    print(f"✓ Agent #{data['agent_id']}")
-else:
-    print("Registering...")
-    reg, _ = api("POST", "/reputation/register", {"network": "base", "recipient": wallet,
-        "agent_uri": f"https://execution.market/workers/{wallet.lower()}"})
-    print(f"✓ Agent #{reg.get('agent_id', 'check dashboard')}")
+    cfg["agent_id"] = data["agent_id"]
+    cfg_path.write_text(json.dumps(cfg, indent=2))
+    print(f"✓ Agent #{data['agent_id']} (found on-chain, saved)")
+    exit()
+
+# Check 3: register (idempotent — server returns existing ID if wallet already registered)
+reg, _ = api("POST", "/reputation/register", {"network": "base", "recipient": wallet,
+    "agent_uri": f"https://execution.market/workers/{wallet.lower()}"})
+aid = reg.get("agent_id")
+if aid:
+    cfg["agent_id"] = aid
+    cfg_path.write_text(json.dumps(cfg, indent=2))
+print(f"✓ Agent #{aid or 'check dashboard'} (registered, saved)")
 EOF
 ```
 
