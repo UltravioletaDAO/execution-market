@@ -206,20 +206,32 @@ class TestFitnessScore:
         assert f.is_viable is True
 
     def test_dominance_clear(self):
-        a = FitnessScore(completion_rate=0.8, avg_quality=0.9, avg_speed=0.7, cost_efficiency=0.6)
-        b = FitnessScore(completion_rate=0.5, avg_quality=0.5, avg_speed=0.5, cost_efficiency=0.5)
+        a = FitnessScore(
+            completion_rate=0.8, avg_quality=0.9, avg_speed=0.7, cost_efficiency=0.6
+        )
+        b = FitnessScore(
+            completion_rate=0.5, avg_quality=0.5, avg_speed=0.5, cost_efficiency=0.5
+        )
         assert a.dominates(b) is True
         assert b.dominates(a) is False
 
     def test_dominance_equal(self):
-        a = FitnessScore(completion_rate=0.8, avg_quality=0.9, avg_speed=0.7, cost_efficiency=0.6)
-        b = FitnessScore(completion_rate=0.8, avg_quality=0.9, avg_speed=0.7, cost_efficiency=0.6)
+        a = FitnessScore(
+            completion_rate=0.8, avg_quality=0.9, avg_speed=0.7, cost_efficiency=0.6
+        )
+        b = FitnessScore(
+            completion_rate=0.8, avg_quality=0.9, avg_speed=0.7, cost_efficiency=0.6
+        )
         # Equal in all dimensions — not strictly better in any
         assert a.dominates(b) is False
 
     def test_dominance_mixed(self):
-        a = FitnessScore(completion_rate=0.9, avg_quality=0.5, avg_speed=0.7, cost_efficiency=0.6)
-        b = FitnessScore(completion_rate=0.5, avg_quality=0.9, avg_speed=0.7, cost_efficiency=0.6)
+        a = FitnessScore(
+            completion_rate=0.9, avg_quality=0.5, avg_speed=0.7, cost_efficiency=0.6
+        )
+        b = FitnessScore(
+            completion_rate=0.5, avg_quality=0.9, avg_speed=0.7, cost_efficiency=0.6
+        )
         # Neither dominates (a beats on completion, b beats on quality)
         assert a.dominates(b) is False
         assert b.dominates(a) is False
@@ -306,7 +318,13 @@ class TestFitnessEvaluator:
 
     def test_custom_fitness_weights(self):
         evaluator = FitnessEvaluator(
-            fitness_weights={"completion_rate": 1.0, "avg_quality": 0.0, "avg_speed": 0.0, "cost_efficiency": 0.0, "diversity": 0.0}
+            fitness_weights={
+                "completion_rate": 1.0,
+                "avg_quality": 0.0,
+                "avg_speed": 0.0,
+                "cost_efficiency": 0.0,
+                "diversity": 0.0,
+            }
         )
         records = [make_task(task_id=f"t{i}") for i in range(5)]
         score = evaluator.evaluate(RoutingWeights(), records)
@@ -336,9 +354,7 @@ class TestOptimizerPopulation:
         opt = RoutingOptimizer(population_size=10)
         opt.seed_population()
         # Should include at least one skill-heavy config
-        has_skill_heavy = any(
-            c.weights.skill_match > 0.7 for c in opt.population
-        )
+        has_skill_heavy = any(c.weights.skill_match > 0.7 for c in opt.population)
         assert has_skill_heavy
 
     def test_initial_generation_is_zero(self):
@@ -590,6 +606,7 @@ class TestSerialization:
         opt.save(path)
         assert path.exists()
         import json
+
         data = json.loads(path.read_text())
         assert "best_ever" in data
 

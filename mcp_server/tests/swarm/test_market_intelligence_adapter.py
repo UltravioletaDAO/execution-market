@@ -14,7 +14,9 @@ from mcp_server.swarm.market_intelligence_adapter import (
 
 @pytest.fixture
 def adapter():
-    return MarketIntelligenceAdapter(autojob_base_url="http://localhost:19999", timeout_s=0.5)
+    return MarketIntelligenceAdapter(
+        autojob_base_url="http://localhost:19999", timeout_s=0.5
+    )
 
 
 @pytest.fixture
@@ -64,8 +66,11 @@ class TestMarketSnapshot:
 class TestTimingSnapshot:
     def test_basic_fields(self):
         snap = TimingSnapshot(
-            category="test", best_day="Wednesday", best_hour_utc=14,
-            acceptance_likelihood=0.75, confidence=0.8,
+            category="test",
+            best_day="Wednesday",
+            best_hour_utc=14,
+            acceptance_likelihood=0.75,
+            confidence=0.8,
             fetched_at=time.time(),
         )
         assert snap.category == "test"
@@ -76,8 +81,10 @@ class TestTimingSnapshot:
 class TestSupplyGapSnapshot:
     def test_creation(self):
         gap = SupplyGapSnapshot(
-            category="delivery", gap_severity=0.8,
-            worker_deficit=5, avg_wait_hours=48,
+            category="delivery",
+            gap_severity=0.8,
+            worker_deficit=5,
+            avg_wait_hours=48,
             fetched_at=time.time(),
         )
         assert gap.gap_severity == 0.8
@@ -87,7 +94,7 @@ class TestSupplyGapSnapshot:
 class TestMarketIntelligenceAdapter:
     def test_init(self):
         adapter = MarketIntelligenceAdapter()
-        assert hasattr(adapter, 'base_url')
+        assert hasattr(adapter, "base_url")
 
     def test_analyze_returns_snapshot(self, adapter):
         result = adapter.analyze("physical_presence")

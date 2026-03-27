@@ -1261,7 +1261,9 @@ class TestAutoJobNotification:
             processing_time_ms=100.0,
         )
 
-        with patch("swarm.feedback_pipeline.urlopen", return_value=mock_resp) as mock_ul:
+        with patch(
+            "swarm.feedback_pipeline.urlopen", return_value=mock_resp
+        ) as mock_ul:
             pipeline_with_autojob._notify_autojob(
                 "0xABC",
                 {"id": "test-123", "category": "delivery"},
@@ -1297,7 +1299,9 @@ class TestAutoJobNotification:
             processing_time_ms=50.0,
         )
 
-        with patch("swarm.feedback_pipeline.urlopen", side_effect=TimeoutError("timeout")):
+        with patch(
+            "swarm.feedback_pipeline.urlopen", side_effect=TimeoutError("timeout")
+        ):
             # Should not raise
             pipeline_with_autojob._notify_autojob(
                 "0xDEF",
@@ -1370,7 +1374,9 @@ class TestAutoJobNotification:
             processing_time_ms=200.0,
         )
 
-        with patch("swarm.feedback_pipeline.urlopen", return_value=mock_resp) as mock_ul:
+        with patch(
+            "swarm.feedback_pipeline.urlopen", return_value=mock_resp
+        ) as mock_ul:
             pipeline_with_autojob._notify_autojob("0xWORKER", task, feedback)
 
             # Parse the sent payload

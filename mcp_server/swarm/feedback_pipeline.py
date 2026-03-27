@@ -665,7 +665,9 @@ class FeedbackPipeline:
             return result
         return result.get("tasks", result.get("data", []))
 
-    def _notify_autojob(self, worker_id: str, task: dict, feedback: CompletionFeedback) -> None:
+    def _notify_autojob(
+        self, worker_id: str, task: dict, feedback: CompletionFeedback
+    ) -> None:
         """Push completion evidence to AutoJob for worker Skill DNA update.
 
         Calls AutoJob's POST /api/evidence/execution-market endpoint to trigger
@@ -682,11 +684,13 @@ class FeedbackPipeline:
         try:
             url = f"{self.autojob_base_url.rstrip('/')}/api/evidence/execution-market"
 
-            payload = json.dumps({
-                "wallet_address": worker_id,
-                "tasks": [task],
-                "persist": True,
-            }).encode("utf-8")
+            payload = json.dumps(
+                {
+                    "wallet_address": worker_id,
+                    "tasks": [task],
+                    "persist": True,
+                }
+            ).encode("utf-8")
 
             req = Request(url, data=payload, method="POST")
             req.add_header("Content-Type", "application/json")
@@ -703,7 +707,9 @@ class FeedbackPipeline:
                 )
             else:
                 self._autojob_notify_errors += 1
-                logger.warning("AutoJob notification returned failure for %s", worker_id[:10])
+                logger.warning(
+                    "AutoJob notification returned failure for %s", worker_id[:10]
+                )
 
         except (URLError, HTTPError, TimeoutError, OSError) as e:
             self._autojob_notify_errors += 1

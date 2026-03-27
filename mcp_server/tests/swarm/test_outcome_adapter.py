@@ -53,7 +53,7 @@ class TestPredictionSnapshot:
 class TestOutcomeAdapter:
     def test_init_defaults(self):
         adapter = OutcomeAdapter()
-        assert hasattr(adapter, 'autojob_url') or hasattr(adapter, '_autojob_url')
+        assert hasattr(adapter, "autojob_url") or hasattr(adapter, "_autojob_url")
 
     def test_predict_returns_snapshot_on_failure(self, adapter):
         result = adapter.predict("0xTest", "physical_presence")

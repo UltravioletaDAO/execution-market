@@ -140,7 +140,9 @@ class TestMarketSnapshot(unittest.TestCase):
         s_declining = MarketSnapshot(**base, trend="declining")
 
         self.assertGreater(s_growing.market_health_score, s_stable.market_health_score)
-        self.assertGreater(s_stable.market_health_score, s_declining.market_health_score)
+        self.assertGreater(
+            s_stable.market_health_score, s_declining.market_health_score
+        )
 
 
 class TestTimingSnapshot(unittest.TestCase):
@@ -195,25 +197,27 @@ class TestMarketIntelligenceAdapter(unittest.TestCase):
     def test_api_success(self, mock_urlopen):
         """Tier 2: Successful API call should return and cache."""
         mock_resp = MagicMock()
-        mock_resp.read.return_value = json.dumps({
-            "success": True,
-            "report": {
-                "categories": {
-                    "delivery": {
-                        "demand_score": 0.6,
-                        "completion_rate": 0.75,
-                        "expiry_rate": 0.25,
-                        "trend": "growing",
-                        "avg_bounty_usd": 4.0,
-                        "avg_time_to_acceptance_hours": 12.0,
-                        "active_tasks": 15,
-                        "unique_workers": 8,
-                        "avg_applications_per_task": 2.5,
-                        "total_tasks": 50,
+        mock_resp.read.return_value = json.dumps(
+            {
+                "success": True,
+                "report": {
+                    "categories": {
+                        "delivery": {
+                            "demand_score": 0.6,
+                            "completion_rate": 0.75,
+                            "expiry_rate": 0.25,
+                            "trend": "growing",
+                            "avg_bounty_usd": 4.0,
+                            "avg_time_to_acceptance_hours": 12.0,
+                            "active_tasks": 15,
+                            "unique_workers": 8,
+                            "avg_applications_per_task": 2.5,
+                            "total_tasks": 50,
+                        }
                     }
-                }
+                },
             }
-        }).encode()
+        ).encode()
         mock_resp.__enter__ = lambda s: s
         mock_resp.__exit__ = MagicMock(return_value=False)
         mock_urlopen.return_value = mock_resp
@@ -268,10 +272,12 @@ class TestMarketIntelligenceAdapter(unittest.TestCase):
     def test_unknown_category_returns_empty_market(self, mock_urlopen):
         """Category not in market report should return zero-data snapshot."""
         mock_resp = MagicMock()
-        mock_resp.read.return_value = json.dumps({
-            "success": True,
-            "report": {"categories": {"delivery": {"demand_score": 0.5}}}
-        }).encode()
+        mock_resp.read.return_value = json.dumps(
+            {
+                "success": True,
+                "report": {"categories": {"delivery": {"demand_score": 0.5}}},
+            }
+        ).encode()
         mock_resp.__enter__ = lambda s: s
         mock_resp.__exit__ = MagicMock(return_value=False)
         mock_urlopen.return_value = mock_resp
@@ -285,12 +291,19 @@ class TestMarketIntelligenceAdapter(unittest.TestCase):
     def test_fuzzy_category_match(self, mock_urlopen):
         """Should fuzzy-match category names."""
         mock_resp = MagicMock()
-        mock_resp.read.return_value = json.dumps({
-            "success": True,
-            "report": {"categories": {
-                "physical_verification": {"demand_score": 0.7, "total_tasks": 30}
-            }}
-        }).encode()
+        mock_resp.read.return_value = json.dumps(
+            {
+                "success": True,
+                "report": {
+                    "categories": {
+                        "physical_verification": {
+                            "demand_score": 0.7,
+                            "total_tasks": 30,
+                        }
+                    }
+                },
+            }
+        ).encode()
         mock_resp.__enter__ = lambda s: s
         mock_resp.__exit__ = MagicMock(return_value=False)
         mock_urlopen.return_value = mock_resp
@@ -316,15 +329,17 @@ class TestMarketTimingFetch(unittest.TestCase):
     @patch("mcp_server.swarm.market_intelligence_adapter.urlopen")
     def test_timing_success(self, mock_urlopen):
         mock_resp = MagicMock()
-        mock_resp.read.return_value = json.dumps({
-            "success": True,
-            "timing": {
-                "best_hour_utc": 16,
-                "best_day": "wednesday",
-                "acceptance_likelihood": 0.75,
-                "confidence": 0.8,
+        mock_resp.read.return_value = json.dumps(
+            {
+                "success": True,
+                "timing": {
+                    "best_hour_utc": 16,
+                    "best_day": "wednesday",
+                    "acceptance_likelihood": 0.75,
+                    "confidence": 0.8,
+                },
             }
-        }).encode()
+        ).encode()
         mock_resp.__enter__ = lambda s: s
         mock_resp.__exit__ = MagicMock(return_value=False)
         mock_urlopen.return_value = mock_resp
@@ -361,25 +376,27 @@ class TestSupplyGapsFetch(unittest.TestCase):
     @patch("mcp_server.swarm.market_intelligence_adapter.urlopen")
     def test_gaps_success(self, mock_urlopen):
         mock_resp = MagicMock()
-        mock_resp.read.return_value = json.dumps({
-            "success": True,
-            "gaps": [
-                {
-                    "category": "notarization",
-                    "severity": 0.8,
-                    "worker_deficit": 5,
-                    "avg_wait_hours": 48.0,
-                    "recommendation": "increase_bounty",
-                },
-                {
-                    "category": "code_execution",
-                    "severity": 0.6,
-                    "worker_deficit": 3,
-                    "avg_wait_hours": 36.0,
-                    "recommendation": "notify_workers",
-                },
-            ]
-        }).encode()
+        mock_resp.read.return_value = json.dumps(
+            {
+                "success": True,
+                "gaps": [
+                    {
+                        "category": "notarization",
+                        "severity": 0.8,
+                        "worker_deficit": 5,
+                        "avg_wait_hours": 48.0,
+                        "recommendation": "increase_bounty",
+                    },
+                    {
+                        "category": "code_execution",
+                        "severity": 0.6,
+                        "worker_deficit": 3,
+                        "avg_wait_hours": 36.0,
+                        "recommendation": "notify_workers",
+                    },
+                ],
+            }
+        ).encode()
         mock_resp.__enter__ = lambda s: s
         mock_resp.__exit__ = MagicMock(return_value=False)
         mock_urlopen.return_value = mock_resp
@@ -453,7 +470,7 @@ class TestMarketScorer(unittest.TestCase):
 
         # Force an error by passing None
         scorer = make_market_scorer(adapter)
-        with patch.object(adapter, 'analyze', side_effect=Exception("boom")):
+        with patch.object(adapter, "analyze", side_effect=Exception("boom")):
             score = scorer(task={"category": "test"}, candidate={})
             self.assertEqual(score, 50.0)
 

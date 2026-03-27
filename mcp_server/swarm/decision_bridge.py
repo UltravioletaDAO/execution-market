@@ -558,7 +558,9 @@ class DecisionBridge:
                 )
                 registered.append("market_intelligence")
             except ImportError:
-                logger.debug("MarketIntelligenceAdapter available but scorer import failed")
+                logger.debug(
+                    "MarketIntelligenceAdapter available but scorer import failed"
+                )
 
         logger.info(
             "DecisionBridge registered %d signals: %s",

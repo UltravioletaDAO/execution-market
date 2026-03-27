@@ -14,7 +14,9 @@ from mcp_server.swarm.decomposition_adapter import (
 
 @pytest.fixture
 def adapter():
-    return DecompositionAdapter(autojob_base_url="http://localhost:19999", timeout_s=0.5)
+    return DecompositionAdapter(
+        autojob_base_url="http://localhost:19999", timeout_s=0.5
+    )
 
 
 @pytest.fixture
@@ -37,9 +39,17 @@ def snapshot():
         is_compound=True,
         sub_task_count=3,
         sub_tasks=[
-            SubTaskSnapshot(title="Build API", task_type="coding", required_skills=["python", "flask"]),
-            SubTaskSnapshot(title="Write tests", task_type="testing", required_skills=["pytest"]),
-            SubTaskSnapshot(title="Deploy", task_type="devops", required_skills=["docker", "aws"]),
+            SubTaskSnapshot(
+                title="Build API",
+                task_type="coding",
+                required_skills=["python", "flask"],
+            ),
+            SubTaskSnapshot(
+                title="Write tests", task_type="testing", required_skills=["pytest"]
+            ),
+            SubTaskSnapshot(
+                title="Deploy", task_type="devops", required_skills=["docker", "aws"]
+            ),
         ],
         unique_skills=["python", "flask", "pytest", "docker", "aws"],
         complexity="complex",
@@ -49,7 +59,9 @@ def snapshot():
 
 class TestSubTaskSnapshot:
     def test_creation(self):
-        st = SubTaskSnapshot(title="Test", task_type="coding", required_skills=["python"])
+        st = SubTaskSnapshot(
+            title="Test", task_type="coding", required_skills=["python"]
+        )
         assert st.title == "Test"
         assert st.required_skills == ["python"]
         assert st.task_type == "coding"
@@ -60,7 +72,9 @@ class TestDecompositionSnapshot:
         assert 0 <= snapshot.age_seconds < 5
 
     def test_skill_coverage_full(self, snapshot):
-        score = snapshot.skill_coverage_score(["python", "flask", "pytest", "docker", "aws"])
+        score = snapshot.skill_coverage_score(
+            ["python", "flask", "pytest", "docker", "aws"]
+        )
         assert score == 100.0
 
     def test_skill_coverage_partial(self, snapshot):
@@ -80,16 +94,24 @@ class TestDecompositionSnapshot:
 
     def test_complexity_multiplier_simple(self):
         snap = DecompositionSnapshot(
-            task_hash="x", is_compound=False, sub_task_count=1,
-            sub_tasks=[], unique_skills=[], complexity="simple",
+            task_hash="x",
+            is_compound=False,
+            sub_task_count=1,
+            sub_tasks=[],
+            unique_skills=[],
+            complexity="simple",
             fetched_at=time.time(),
         )
         assert snap.complexity_multiplier < 1.0  # "simple" = 0.7
 
     def test_complexity_multiplier_expert(self):
         snap = DecompositionSnapshot(
-            task_hash="x", is_compound=True, sub_task_count=5,
-            sub_tasks=[], unique_skills=[], complexity="expert",
+            task_hash="x",
+            is_compound=True,
+            sub_task_count=5,
+            sub_tasks=[],
+            unique_skills=[],
+            complexity="expert",
             fetched_at=time.time(),
         )
         assert snap.complexity_multiplier > 1.0  # "expert" = 1.15
@@ -98,7 +120,7 @@ class TestDecompositionSnapshot:
 class TestDecompositionAdapter:
     def test_init(self):
         adapter = DecompositionAdapter()
-        assert hasattr(adapter, 'base_url')
+        assert hasattr(adapter, "base_url")
 
     def test_analyze_returns_snapshot(self, adapter, simple_task):
         result = adapter.analyze(simple_task)

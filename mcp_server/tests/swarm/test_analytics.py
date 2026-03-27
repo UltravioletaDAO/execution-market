@@ -55,31 +55,37 @@ def sample_events():
     now = time.time()
     events = []
     for i in range(10):
-        events.append(TaskEvent(
-            event_type="task_completed",
-            agent_id=f"agent_{i % 3}",
-            task_id=f"task_{i}",
-            category="physical_verification" if i % 2 == 0 else "delivery",
-            bounty_usd=5.0 + i * 0.5,
-            quality_rating=3.5 + (i % 5) * 0.3,
-            duration_seconds=1800 + i * 300,
-            timestamp=now - (10 - i) * 3600,
-        ))
+        events.append(
+            TaskEvent(
+                event_type="task_completed",
+                agent_id=f"agent_{i % 3}",
+                task_id=f"task_{i}",
+                category="physical_verification" if i % 2 == 0 else "delivery",
+                bounty_usd=5.0 + i * 0.5,
+                quality_rating=3.5 + (i % 5) * 0.3,
+                duration_seconds=1800 + i * 300,
+                timestamp=now - (10 - i) * 3600,
+            )
+        )
     # Add some failures
-    events.append(TaskEvent(
-        event_type="task_failed",
-        agent_id="agent_0",
-        task_id="task_f1",
-        category="physical_verification",
-        timestamp=now - 500,
-    ))
-    events.append(TaskEvent(
-        event_type="task_expired",
-        agent_id="agent_1",
-        task_id="task_e1",
-        category="delivery",
-        timestamp=now - 200,
-    ))
+    events.append(
+        TaskEvent(
+            event_type="task_failed",
+            agent_id="agent_0",
+            task_id="task_f1",
+            category="physical_verification",
+            timestamp=now - 500,
+        )
+    )
+    events.append(
+        TaskEvent(
+            event_type="task_expired",
+            agent_id="agent_1",
+            task_id="task_e1",
+            category="delivery",
+            timestamp=now - 200,
+        )
+    )
     return events
 
 
@@ -164,11 +170,15 @@ class TestAgentMetrics:
         assert m.success_rate == 0.0
 
     def test_success_rate_all_completed(self):
-        m = AgentMetrics(agent_id="a1", tasks_completed=10, tasks_failed=0, tasks_expired=0)
+        m = AgentMetrics(
+            agent_id="a1", tasks_completed=10, tasks_failed=0, tasks_expired=0
+        )
         assert m.success_rate == 1.0
 
     def test_success_rate_mixed(self):
-        m = AgentMetrics(agent_id="a1", tasks_completed=7, tasks_failed=2, tasks_expired=1)
+        m = AgentMetrics(
+            agent_id="a1", tasks_completed=7, tasks_failed=2, tasks_expired=1
+        )
         assert abs(m.success_rate - 0.7) < 0.001
 
     def test_is_active_recent(self):
@@ -256,15 +266,20 @@ class TestEventRecording:
     def test_max_events_enforced(self):
         a = SwarmAnalytics(max_events=5)
         for i in range(10):
-            a.record_event(TaskEvent(
-                event_type="task_completed", agent_id="a1", task_id=f"t{i}"
-            ))
+            a.record_event(
+                TaskEvent(event_type="task_completed", agent_id="a1", task_id=f"t{i}")
+            )
         assert a.event_count == 5
 
     def test_batch_recording(self, analytics):
         events = [
-            TaskEvent(event_type="task_completed", agent_id="a1", task_id=f"t{i}",
-                      bounty_usd=1.0, quality_rating=3.0)
+            TaskEvent(
+                event_type="task_completed",
+                agent_id="a1",
+                task_id=f"t{i}",
+                bounty_usd=1.0,
+                quality_rating=3.0,
+            )
             for i in range(5)
         ]
         count = analytics.record_batch(events)
@@ -366,7 +381,14 @@ class TestTrends:
         t = analytics.get_trends(window_hours=168)
         assert t["events"] > 0
         assert t["total_completed"] > 0
-        assert t["trend"] in ("improving", "declining", "stable", "growing", "flat", "insufficient_data")
+        assert t["trend"] in (
+            "improving",
+            "declining",
+            "stable",
+            "growing",
+            "flat",
+            "insufficient_data",
+        )
 
     def test_trends_daily_rollups(self, analytics, sample_events):
         analytics.record_batch(sample_events)
@@ -381,15 +403,23 @@ class TestTrends:
         """Events outside window are excluded."""
         now = time.time()
         # Old event (2 weeks ago)
-        analytics.record_event(TaskEvent(
-            event_type="task_completed", agent_id="a1", task_id="old",
-            timestamp=now - 14 * 86400,
-        ))
+        analytics.record_event(
+            TaskEvent(
+                event_type="task_completed",
+                agent_id="a1",
+                task_id="old",
+                timestamp=now - 14 * 86400,
+            )
+        )
         # Recent event
-        analytics.record_event(TaskEvent(
-            event_type="task_completed", agent_id="a1", task_id="new",
-            timestamp=now - 3600,
-        ))
+        analytics.record_event(
+            TaskEvent(
+                event_type="task_completed",
+                agent_id="a1",
+                task_id="new",
+                timestamp=now - 3600,
+            )
+        )
         t = analytics.get_trends(window_hours=24)
         assert t["events"] == 1  # Only the recent one
 
@@ -397,36 +427,53 @@ class TestTrends:
         """More completions in second half = improving trend."""
         now = time.time()
         # 1 early completion (first half of window)
-        analytics.record_event(TaskEvent(
-            event_type="task_completed", agent_id="a1", task_id="early_0",
-            timestamp=now - 60 * 3600,
-        ))
+        analytics.record_event(
+            TaskEvent(
+                event_type="task_completed",
+                agent_id="a1",
+                task_id="early_0",
+                timestamp=now - 60 * 3600,
+            )
+        )
         # 10 completions in last 10 hours (second half)
         for i in range(10):
-            analytics.record_event(TaskEvent(
-                event_type="task_completed", agent_id="a1", task_id=f"late_{i}",
-                timestamp=now - 5 * 3600 + i * 1800,  # Cluster in recent hours
-            ))
+            analytics.record_event(
+                TaskEvent(
+                    event_type="task_completed",
+                    agent_id="a1",
+                    task_id=f"late_{i}",
+                    timestamp=now - 5 * 3600 + i * 1800,  # Cluster in recent hours
+                )
+            )
         t = analytics.get_trends(window_hours=72)
         assert t["trend"] in ("improving", "growing")
 
     def test_trends_total_revenue(self, analytics):
         now = time.time()
         for i in range(5):
-            analytics.record_event(TaskEvent(
-                event_type="task_completed", agent_id="a1", task_id=f"t{i}",
-                bounty_usd=10.0, timestamp=now - i * 3600,
-            ))
+            analytics.record_event(
+                TaskEvent(
+                    event_type="task_completed",
+                    agent_id="a1",
+                    task_id=f"t{i}",
+                    bounty_usd=10.0,
+                    timestamp=now - i * 3600,
+                )
+            )
         t = analytics.get_trends(window_hours=24)
         assert t["total_revenue"] == 50.0
 
     def test_trends_window_zero_events_outside(self, analytics):
         """Very narrow window with no events."""
         now = time.time()
-        analytics.record_event(TaskEvent(
-            event_type="task_completed", agent_id="a1", task_id="t1",
-            timestamp=now - 48 * 3600,
-        ))
+        analytics.record_event(
+            TaskEvent(
+                event_type="task_completed",
+                agent_id="a1",
+                task_id="t1",
+                timestamp=now - 48 * 3600,
+            )
+        )
         t = analytics.get_trends(window_hours=1)
         assert t["events"] == 0
 
@@ -447,15 +494,23 @@ class TestAlerts:
         """Agent with <60% success rate triggers warning."""
         # Record events: 2 completed, 5 failed (28.5% success rate)
         for i in range(2):
-            analytics.record_event(TaskEvent(
-                event_type="task_completed", agent_id="bad_agent",
-                task_id=f"c{i}", timestamp=time.time(),
-            ))
+            analytics.record_event(
+                TaskEvent(
+                    event_type="task_completed",
+                    agent_id="bad_agent",
+                    task_id=f"c{i}",
+                    timestamp=time.time(),
+                )
+            )
         for i in range(5):
-            analytics.record_event(TaskEvent(
-                event_type="task_failed", agent_id="bad_agent",
-                task_id=f"f{i}", timestamp=time.time(),
-            ))
+            analytics.record_event(
+                TaskEvent(
+                    event_type="task_failed",
+                    agent_id="bad_agent",
+                    task_id=f"f{i}",
+                    timestamp=time.time(),
+                )
+            )
         alerts = analytics.check_alerts()
         success_alerts = [a for a in alerts if a["metric"] == "success_rate"]
         assert len(success_alerts) == 1
@@ -464,27 +519,40 @@ class TestAlerts:
     def test_low_quality_alert(self, analytics):
         """Agent with avg quality < 2.5 triggers warning."""
         for i in range(5):
-            analytics.record_event(TaskEvent(
-                event_type="task_completed", agent_id="low_q",
-                task_id=f"t{i}", quality_rating=1.5, timestamp=time.time(),
-            ))
+            analytics.record_event(
+                TaskEvent(
+                    event_type="task_completed",
+                    agent_id="low_q",
+                    task_id=f"t{i}",
+                    quality_rating=1.5,
+                    timestamp=time.time(),
+                )
+            )
         alerts = analytics.check_alerts()
         quality_alerts = [a for a in alerts if a["metric"] == "avg_quality"]
         assert len(quality_alerts) == 1
 
     def test_stale_agent_alert(self, analytics):
         """Agent inactive for 7+ days triggers info alert."""
-        analytics.record_event(TaskEvent(
-            event_type="task_completed", agent_id="stale",
-            task_id="t1", timestamp=time.time() - 8 * 86400,
-        ))
+        analytics.record_event(
+            TaskEvent(
+                event_type="task_completed",
+                agent_id="stale",
+                task_id="t1",
+                timestamp=time.time() - 8 * 86400,
+            )
+        )
         # Need at least 3 tasks for alerts to trigger on other metrics,
         # but stale is checked separately
         for i in range(3):
-            analytics.record_event(TaskEvent(
-                event_type="task_completed", agent_id="stale",
-                task_id=f"t{i+2}", timestamp=time.time() - 8 * 86400,
-            ))
+            analytics.record_event(
+                TaskEvent(
+                    event_type="task_completed",
+                    agent_id="stale",
+                    task_id=f"t{i + 2}",
+                    timestamp=time.time() - 8 * 86400,
+                )
+            )
         alerts = analytics.check_alerts()
         stale_alerts = [a for a in alerts if a["metric"] == "days_inactive"]
         assert len(stale_alerts) == 1
@@ -496,12 +564,14 @@ class TestAlerts:
         for i in range(4):
             # 3 completions each (to pass min task threshold) but old
             for j in range(3):
-                analytics.record_event(TaskEvent(
-                    event_type="task_completed",
-                    agent_id=f"agent_{i}",
-                    task_id=f"t{i}_{j}",
-                    timestamp=time.time() - 100000,  # Very old
-                ))
+                analytics.record_event(
+                    TaskEvent(
+                        event_type="task_completed",
+                        agent_id=f"agent_{i}",
+                        task_id=f"t{i}_{j}",
+                        timestamp=time.time() - 100000,  # Very old
+                    )
+                )
         alerts = analytics.check_alerts()
         fleet_alerts = [a for a in alerts if a["metric"] == "fleet_active_pct"]
         assert len(fleet_alerts) == 1
@@ -509,12 +579,20 @@ class TestAlerts:
 
     def test_no_alert_insufficient_data(self, analytics):
         """Agents with <3 tasks don't trigger per-agent alerts."""
-        analytics.record_event(TaskEvent(
-            event_type="task_failed", agent_id="new_agent", task_id="t1",
-        ))
-        analytics.record_event(TaskEvent(
-            event_type="task_failed", agent_id="new_agent", task_id="t2",
-        ))
+        analytics.record_event(
+            TaskEvent(
+                event_type="task_failed",
+                agent_id="new_agent",
+                task_id="t1",
+            )
+        )
+        analytics.record_event(
+            TaskEvent(
+                event_type="task_failed",
+                agent_id="new_agent",
+                task_id="t2",
+            )
+        )
         alerts = analytics.check_alerts()
         agent_alerts = [a for a in alerts if a.get("agent_id") == "new_agent"]
         # Should be empty — not enough data
@@ -532,10 +610,14 @@ class TestAlerts:
     def test_alert_dict_format(self, analytics):
         """Verify alert dict has expected keys."""
         for i in range(5):
-            analytics.record_event(TaskEvent(
-                event_type="task_failed", agent_id="bad",
-                task_id=f"t{i}", timestamp=time.time(),
-            ))
+            analytics.record_event(
+                TaskEvent(
+                    event_type="task_failed",
+                    agent_id="bad",
+                    task_id=f"t{i}",
+                    timestamp=time.time(),
+                )
+            )
         alerts = analytics.check_alerts()
         assert len(alerts) > 0
         alert = alerts[0]
@@ -549,10 +631,15 @@ class TestAlerts:
     def test_good_agent_no_alerts(self, analytics):
         """Agent with 100% success rate and good quality → no alerts."""
         for i in range(5):
-            analytics.record_event(TaskEvent(
-                event_type="task_completed", agent_id="good",
-                task_id=f"t{i}", quality_rating=4.5, timestamp=time.time(),
-            ))
+            analytics.record_event(
+                TaskEvent(
+                    event_type="task_completed",
+                    agent_id="good",
+                    task_id=f"t{i}",
+                    quality_rating=4.5,
+                    timestamp=time.time(),
+                )
+            )
         alerts = analytics.check_alerts()
         agent_alerts = [a for a in alerts if a.get("agent_id") == "good"]
         assert len(agent_alerts) == 0
@@ -572,18 +659,26 @@ class TestSnapshots:
     def test_snapshot_auto_generated(self):
         """Snapshot generated when interval elapsed."""
         a = SwarmAnalytics(snapshot_interval_seconds=0)  # Generate immediately
-        a.record_event(TaskEvent(
-            event_type="task_completed", agent_id="a1", task_id="t1",
-        ))
+        a.record_event(
+            TaskEvent(
+                event_type="task_completed",
+                agent_id="a1",
+                task_id="t1",
+            )
+        )
         snaps = a.get_snapshots()
         assert len(snaps) >= 1
 
     def test_snapshot_content(self):
         a = SwarmAnalytics(snapshot_interval_seconds=0)
-        a.record_event(TaskEvent(
-            event_type="task_completed", agent_id="a1", task_id="t1",
-            bounty_usd=5.0,
-        ))
+        a.record_event(
+            TaskEvent(
+                event_type="task_completed",
+                agent_id="a1",
+                task_id="t1",
+                bounty_usd=5.0,
+            )
+        )
         snaps = a.get_snapshots(limit=1)
         assert len(snaps) == 1
         snap = snaps[0]
@@ -595,9 +690,13 @@ class TestSnapshots:
         a = SwarmAnalytics(snapshot_interval_seconds=0)
         for i in range(10):
             a._last_snapshot_time = 0  # Force new snapshot each time
-            a.record_event(TaskEvent(
-                event_type="task_completed", agent_id="a1", task_id=f"t{i}",
-            ))
+            a.record_event(
+                TaskEvent(
+                    event_type="task_completed",
+                    agent_id="a1",
+                    task_id=f"t{i}",
+                )
+            )
         snaps = a.get_snapshots(limit=3)
         assert len(snaps) == 3
 
@@ -642,20 +741,30 @@ class TestPersistence:
 
     def test_save_creates_file(self, analytics_with_dir):
         a, tmp = analytics_with_dir
-        a.record_event(TaskEvent(
-            event_type="task_completed", agent_id="a1", task_id="t1",
-            bounty_usd=5.0,
-        ))
+        a.record_event(
+            TaskEvent(
+                event_type="task_completed",
+                agent_id="a1",
+                task_id="t1",
+                bounty_usd=5.0,
+            )
+        )
         a.flush()
         assert os.path.exists(os.path.join(tmp, "analytics_state.json"))
 
     def test_roundtrip(self, analytics_with_dir):
         a, tmp = analytics_with_dir
         for i in range(5):
-            a.record_event(TaskEvent(
-                event_type="task_completed", agent_id="a1", task_id=f"t{i}",
-                bounty_usd=2.0, quality_rating=4.0, category="delivery",
-            ))
+            a.record_event(
+                TaskEvent(
+                    event_type="task_completed",
+                    agent_id="a1",
+                    task_id=f"t{i}",
+                    bounty_usd=2.0,
+                    quality_rating=4.0,
+                    category="delivery",
+                )
+            )
         a.flush()
 
         # Load into new instance
@@ -667,10 +776,14 @@ class TestPersistence:
 
     def test_load_preserves_categories(self, analytics_with_dir):
         a, tmp = analytics_with_dir
-        a.record_event(TaskEvent(
-            event_type="task_completed", agent_id="a1", task_id="t1",
-            category="physical_verification",
-        ))
+        a.record_event(
+            TaskEvent(
+                event_type="task_completed",
+                agent_id="a1",
+                task_id="t1",
+                category="physical_verification",
+            )
+        )
         a.flush()
 
         b = SwarmAnalytics(storage_dir=tmp)
@@ -680,9 +793,13 @@ class TestPersistence:
     def test_load_preserves_thresholds(self, analytics_with_dir):
         a, tmp = analytics_with_dir
         a.set_alert_threshold("min_success_rate", 0.75)
-        a.record_event(TaskEvent(
-            event_type="task_completed", agent_id="a1", task_id="t1",
-        ))
+        a.record_event(
+            TaskEvent(
+                event_type="task_completed",
+                agent_id="a1",
+                task_id="t1",
+            )
+        )
         a.flush()
 
         b = SwarmAnalytics(storage_dir=tmp)
@@ -706,9 +823,13 @@ class TestPersistence:
 
     def test_no_storage_dir_no_file(self):
         a = SwarmAnalytics()  # No storage dir
-        a.record_event(TaskEvent(
-            event_type="task_completed", agent_id="a1", task_id="t1",
-        ))
+        a.record_event(
+            TaskEvent(
+                event_type="task_completed",
+                agent_id="a1",
+                task_id="t1",
+            )
+        )
         a.flush()  # Should not raise
 
     def test_debounced_saves(self):
@@ -718,9 +839,13 @@ class TestPersistence:
             a._save_debounce_seconds = 9999  # Very long debounce
             a._last_save_time = time.time()  # Set to now
 
-            a.record_event(TaskEvent(
-                event_type="task_completed", agent_id="a1", task_id="t1",
-            ))
+            a.record_event(
+                TaskEvent(
+                    event_type="task_completed",
+                    agent_id="a1",
+                    task_id="t1",
+                )
+            )
             # File should not exist yet (debounce not expired)
             assert not os.path.exists(os.path.join(tmp, "analytics_state.json"))
 
@@ -758,26 +883,38 @@ class TestUtilities:
 
     def test_event_count_property(self, analytics):
         assert analytics.event_count == 0
-        analytics.record_event(TaskEvent(
-            event_type="task_completed", agent_id="a1", task_id="t1",
-        ))
+        analytics.record_event(
+            TaskEvent(
+                event_type="task_completed",
+                agent_id="a1",
+                task_id="t1",
+            )
+        )
         assert analytics.event_count == 1
 
     def test_agent_count_property(self, analytics):
         assert analytics.agent_count == 0
-        analytics.record_event(TaskEvent(
-            event_type="task_completed", agent_id="a1", task_id="t1",
-        ))
+        analytics.record_event(
+            TaskEvent(
+                event_type="task_completed",
+                agent_id="a1",
+                task_id="t1",
+            )
+        )
         assert analytics.agent_count == 1
 
     def test_quality_tracking_accuracy(self, analytics):
         """Verify running average of quality scores."""
         ratings = [3.0, 4.0, 5.0]
         for i, r in enumerate(ratings):
-            analytics.record_event(TaskEvent(
-                event_type="task_completed", agent_id="a1", task_id=f"t{i}",
-                quality_rating=r,
-            ))
+            analytics.record_event(
+                TaskEvent(
+                    event_type="task_completed",
+                    agent_id="a1",
+                    task_id=f"t{i}",
+                    quality_rating=r,
+                )
+            )
         detail = analytics.get_agent_detail("a1")
         expected_avg = sum(ratings) / len(ratings)
         assert abs(detail["avg_quality"] - expected_avg) < 0.001
@@ -786,9 +923,13 @@ class TestUtilities:
         """Verify running average of durations."""
         durations = [1000, 2000, 3000]
         for i, d in enumerate(durations):
-            analytics.record_event(TaskEvent(
-                event_type="task_completed", agent_id="a1", task_id=f"t{i}",
-                duration_seconds=d,
-            ))
+            analytics.record_event(
+                TaskEvent(
+                    event_type="task_completed",
+                    agent_id="a1",
+                    task_id=f"t{i}",
+                    duration_seconds=d,
+                )
+            )
         detail = analytics.get_agent_detail("a1")
         assert abs(detail["avg_duration_seconds"] - 2000.0) < 0.001

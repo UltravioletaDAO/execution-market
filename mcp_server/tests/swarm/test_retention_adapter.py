@@ -62,7 +62,7 @@ class TestRetentionSnapshot:
 class TestRetentionAdapter:
     def test_init(self):
         adapter = RetentionAdapter()
-        assert hasattr(adapter, 'base_url')
+        assert hasattr(adapter, "base_url")
 
     def test_analyze_returns_snapshot_on_failure(self, adapter):
         result = adapter.analyze("0xTest")
