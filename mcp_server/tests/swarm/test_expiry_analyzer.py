@@ -699,3 +699,125 @@ class TestSeverityBoundaries:
     def test_just_above_critical(self):
         ch = CategoryHealth(category="test", completed=49, expired=51)
         assert ch.severity == Severity.CRITICAL
+
+
+class TestRecordExpiry:
+    """Tests for the new real-time record_expiry() method."""
+
+    def setup_method(self):
+        self.analyzer = ExpiryAnalyzer(em_api_url="http://localhost:9999")
+
+    def _make_event(self, task_id="t1", category="delivery", bounty=0.25):
+        return {
+            "task_id": task_id,
+            "category": category,
+            "bounty_usd": bounty,
+            "title": "Test task",
+            "created_at": "2026-03-27T04:00:00Z",
+            "expired_at": "2026-03-27T06:00:00Z",
+        }
+
+    def test_record_expiry_adds_event(self):
+        """Events are stored in the recent buffer."""
+        self.analyzer.record_expiry(self._make_event())
+        assert len(self.analyzer._recent_expiry_events) == 1
+
+    def test_record_expiry_multiple_events(self):
+        """Multiple events accumulate."""
+        for i in range(5):
+            self.analyzer.record_expiry(self._make_event(task_id=f"t{i}"))
+        assert len(self.analyzer._recent_expiry_events) == 5
+
+    def test_record_expiry_adds_recorded_at(self):
+        """Each event gets a _recorded_at timestamp."""
+        self.analyzer.record_expiry(self._make_event())
+        ev = self.analyzer._recent_expiry_events[0]
+        assert "_recorded_at" in ev
+        assert ev["_recorded_at"] > 0
+
+    def test_record_expiry_preserves_original_fields(self):
+        """Original event fields are preserved."""
+        ev = self._make_event(task_id="abc", category="delivery", bounty=0.50)
+        self.analyzer.record_expiry(ev)
+        stored = self.analyzer._recent_expiry_events[0]
+        assert stored["task_id"] == "abc"
+        assert stored["category"] == "delivery"
+        assert stored["bounty_usd"] == 0.50
+
+    def test_record_expiry_ignores_non_dict(self):
+        """Non-dict input is silently ignored."""
+        self.analyzer.record_expiry("not a dict")
+        assert len(self.analyzer._recent_expiry_events) == 0
+
+    def test_record_expiry_fifo_trim(self):
+        """Buffer trims to max_recent_events (FIFO)."""
+        self.analyzer._max_recent_events = 5
+        for i in range(10):
+            self.analyzer.record_expiry(self._make_event(task_id=f"t{i}"))
+        assert len(self.analyzer._recent_expiry_events) == 5
+        # Last 5 are kept
+        task_ids = [e["task_id"] for e in self.analyzer._recent_expiry_events]
+        assert task_ids == ["t5", "t6", "t7", "t8", "t9"]
+
+    def test_get_recent_expiry_events_empty(self):
+        """Empty buffer returns empty list."""
+        assert self.analyzer.get_recent_expiry_events() == []
+
+    def test_get_recent_expiry_events_returns_list(self):
+        """Returns a list of recorded events."""
+        self.analyzer.record_expiry(self._make_event(task_id="x1"))
+        self.analyzer.record_expiry(self._make_event(task_id="x2"))
+        events = self.analyzer.get_recent_expiry_events()
+        assert len(events) == 2
+
+    def test_get_recent_expiry_events_limit(self):
+        """Limit parameter restricts returned count."""
+        for i in range(10):
+            self.analyzer.record_expiry(self._make_event(task_id=f"t{i}"))
+        events = self.analyzer.get_recent_expiry_events(limit=3)
+        assert len(events) == 3
+
+    def test_get_recent_returns_copy(self):
+        """Modifying returned list doesn't affect internal buffer."""
+        self.analyzer.record_expiry(self._make_event())
+        events = self.analyzer.get_recent_expiry_events()
+        events.clear()
+        assert len(self.analyzer._recent_expiry_events) == 1
+
+    def test_analyze_recent_returns_none_when_empty(self):
+        """No events → analyze_recent returns None."""
+        assert self.analyzer.analyze_recent() is None
+
+    def test_analyze_recent_returns_report_when_events(self):
+        """With events, returns ExpiryReport."""
+        self.analyzer.record_expiry(self._make_event(category="delivery"))
+        self.analyzer.record_expiry(self._make_event(task_id="t2", category="pickup"))
+        report = self.analyzer.analyze_recent()
+        assert report is not None
+        assert report.total_expired == 2
+
+    def test_analyze_recent_counts_events_as_expired(self):
+        """Recorded events are treated as expired tasks in the report."""
+        for i in range(3):
+            self.analyzer.record_expiry(self._make_event(task_id=f"t{i}"))
+        report = self.analyzer.analyze_recent()
+        assert report.total_expired == 3
+        assert report.total_completed == 0
+
+    def test_analyze_recent_overall_expiry_is_100pct(self):
+        """All-expired buffer yields 100% expiry rate."""
+        self.analyzer.record_expiry(self._make_event())
+        report = self.analyzer.analyze_recent()
+        assert report.overall_expiry_rate == 1.0
+
+    def test_integrator_wiring_now_works(self):
+        """
+        Verify the integrator's hasattr check is satisfied.
+        This test documents that the wiring bug (found in test_integrator_cross_component)
+        is now fixed — ExpiryAnalyzer has record_expiry() as a first-class method.
+        """
+        assert hasattr(self.analyzer, "record_expiry")
+        assert callable(self.analyzer.record_expiry)
+        # Should not raise
+        self.analyzer.record_expiry({"task_id": "wiring_test", "category": "test"})
+        assert len(self.analyzer._recent_expiry_events) == 1

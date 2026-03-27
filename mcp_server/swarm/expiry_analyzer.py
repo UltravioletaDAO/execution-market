@@ -316,6 +316,10 @@ class ExpiryAnalyzer:
         self.niche_worker_threshold = 2  # Categories with fewer workers are "niche"
         self.vague_title_min_words = 4  # Titles shorter than this may be "unclear"
 
+        # Real-time expiry event log (populated by integrator via record_expiry)
+        self._recent_expiry_events: list[dict] = []
+        self._max_recent_events: int = 500
+
     @classmethod
     def create(
         cls,
@@ -323,6 +327,73 @@ class ExpiryAnalyzer:
         api_key: Optional[str] = None,
     ) -> "ExpiryAnalyzer":
         return cls(em_api_url=em_api_url, api_key=api_key)
+
+    # ── Real-Time Event Recording ─────────────────────────────────────
+
+    def record_expiry(self, event_data: dict) -> None:
+        """
+        Record a real-time task.expired event from the integrator.
+
+        Called by the SwarmIntegrator when a task.expired event fires.
+        Builds a running log that can be used for incremental analysis
+        without re-fetching all historical data from the API.
+
+        Args:
+            event_data: Event payload from the EventBus, typically:
+                {
+                    "task_id": "...",
+                    "category": "...",
+                    "bounty_usd": 0.25,
+                    "title": "...",
+                    "created_at": "2026-...",
+                    "expired_at": "2026-..."
+                }
+        """
+        if not isinstance(event_data, dict):
+            logger.warning("record_expiry: expected dict, got %s", type(event_data))
+            return
+
+        import time as _time
+        event = {
+            **event_data,
+            "_recorded_at": _time.time(),
+        }
+        self._recent_expiry_events.append(event)
+
+        # Trim to max size (FIFO — keep most recent)
+        if len(self._recent_expiry_events) > self._max_recent_events:
+            self._recent_expiry_events = self._recent_expiry_events[
+                -self._max_recent_events:
+            ]
+
+        logger.debug(
+            "record_expiry: task_id=%s category=%s bounty=%.2f",
+            event_data.get("task_id", "?"),
+            event_data.get("category", "?"),
+            float(event_data.get("bounty_usd", 0) or 0),
+        )
+
+    def get_recent_expiry_events(self, limit: int = 50) -> list[dict]:
+        """Return the most recent recorded expiry events (real-time buffer)."""
+        return list(self._recent_expiry_events[-limit:])
+
+    def analyze_recent(self) -> Optional["ExpiryReport"]:
+        """
+        Run analysis on recently recorded events (real-time buffer).
+
+        Useful for continuous monitoring without expensive API calls.
+        Returns None if no recent events have been recorded.
+        """
+        if not self._recent_expiry_events:
+            return None
+
+        # Build fake completed list — we only have expired events
+        # but analyze_offline needs both to compute rates
+        return self.analyze_offline(
+            completed=[],
+            expired=list(self._recent_expiry_events),
+            cancelled=[],
+        )
 
     # ── API Fetching ──────────────────────────────────────────────────
 
