@@ -587,10 +587,11 @@ async def verify_agent_auth(request: Request) -> AgentAuth:
             )
 
     # Path 2: API key auth — disabled by default (EM_API_KEYS_ENABLED=false)
+    authorization = request.headers.get("authorization")
+    x_api_key = request.headers.get("x-api-key")
+
     if not _API_KEYS_ENABLED:
-        # No ERC-8128 signature was provided and API keys are disabled
-        authorization = request.headers.get("authorization")
-        x_api_key = request.headers.get("x-api-key")
+        # Reject explicit API key attempts with 403
         if authorization or x_api_key:
             logger.warning(
                 "API key auth attempted but EM_API_KEYS_ENABLED=false — rejected"
@@ -603,13 +604,12 @@ async def verify_agent_auth(request: Request) -> AgentAuth:
                     "See https://execution.market/skill.md for setup instructions."
                 ),
             )
-        raise HTTPException(
-            status_code=401,
-            detail=(
-                "Authentication required. Use ERC-8128 wallet signing. "
-                "API key authentication is currently disabled."
-            ),
-            headers={"WWW-Authenticate": 'ERC8128 realm="execution-market"'},
+        # No auth headers at all — allow anonymous read access (Agent #2106)
+        # This preserves dashboard/public endpoint functionality.
+        return AgentAuth(
+            agent_id=str(os.environ.get("EM_AGENT_ID", "2106")),
+            tier="free",
+            auth_method="anonymous",
         )
 
     # Path 2b: API key auth (only reachable when EM_API_KEYS_ENABLED=true)
