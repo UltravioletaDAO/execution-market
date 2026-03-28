@@ -13,7 +13,7 @@ Tests cover:
 """
 
 import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import MagicMock
 from datetime import datetime, timezone
 
 from mcp_server.swarm.core_event_bridge import (
@@ -21,7 +21,6 @@ from mcp_server.swarm.core_event_bridge import (
     BridgeFilter,
     BridgeStats,
     EVENT_TYPE_MAP,
-    SKIP_SOURCES,
 )
 from mcp_server.events.models import EMEvent, EventSource
 from mcp_server.events.bus import EventBus as CoreEventBus
@@ -33,8 +32,13 @@ from mcp_server.swarm.event_bus import EventBus as SwarmEventBus
 # ══════════════════════════════════════════════════════════════
 
 
-def _mock_core_event(event_type="task.created", task_id="t1", bounty_usd=5.0,
-                      category="photo", source=EventSource.REST_API):
+def _mock_core_event(
+    event_type="task.created",
+    task_id="t1",
+    bounty_usd=5.0,
+    category="photo",
+    source=EventSource.REST_API,
+):
     """Create a mock EMEvent."""
     event = MagicMock(spec=EMEvent)
     event.event_type = event_type
@@ -118,11 +122,26 @@ class TestBridgeFilter:
             categories={"photo"},
         )
         # Passes all filters
-        assert f.should_bridge(_mock_core_event("task.created", bounty_usd=5.0, category="photo")) is True
+        assert (
+            f.should_bridge(
+                _mock_core_event("task.created", bounty_usd=5.0, category="photo")
+            )
+            is True
+        )
         # Fails event type
-        assert f.should_bridge(_mock_core_event("task.assigned", bounty_usd=5.0, category="photo")) is False
+        assert (
+            f.should_bridge(
+                _mock_core_event("task.assigned", bounty_usd=5.0, category="photo")
+            )
+            is False
+        )
         # Fails bounty
-        assert f.should_bridge(_mock_core_event("task.created", bounty_usd=1.0, category="photo")) is False
+        assert (
+            f.should_bridge(
+                _mock_core_event("task.created", bounty_usd=1.0, category="photo")
+            )
+            is False
+        )
 
 
 # ══════════════════════════════════════════════════════════════

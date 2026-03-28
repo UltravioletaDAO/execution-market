@@ -24,18 +24,13 @@ Test Layers:
     7. Edge cases (new agents, degraded agents, seal expiry)
 """
 
-import math
 import time
-import pytest
 from datetime import datetime, timezone, timedelta
 
 from mcp_server.swarm.seal_bridge import (
     SealBridge,
     SealQuadrant,
-    SealRecommendation,
-    SealProfile,
     SealIssuanceRecord,
-    BatchSealRequest,
     A2H_SEALS,
     H2A_SEALS,
 )
@@ -45,14 +40,13 @@ from mcp_server.swarm.reputation_bridge import (
     InternalReputation,
     CompositeScore,
     ReputationTier,
-    TIER_BONUSES,
-    TIER_THRESHOLDS,
 )
 
 
 # ──────────────────────────────────────────────────────────────
 # Helpers
 # ──────────────────────────────────────────────────────────────
+
 
 def make_worker_metrics(
     tasks_completed: int = 20,
@@ -128,6 +122,7 @@ def make_internal(
 # 1. Single-Agent Closed-Loop Feedback
 # ──────────────────────────────────────────────────────────────
 
+
 class TestSingleAgentFeedbackLoop:
     """Validates the complete loop for one agent."""
 
@@ -145,7 +140,9 @@ class TestSingleAgentFeedbackLoop:
     def test_seal_profile_to_composite_score(self):
         """SealProfile → ReputationBridge → CompositeScore for routing."""
         seal_bridge = SealBridge()
-        metrics = make_worker_metrics(tasks_completed=30, avg_quality=4.5, tasks_failed=1)
+        metrics = make_worker_metrics(
+            tasks_completed=30, avg_quality=4.5, tasks_failed=1
+        )
         profile = seal_bridge.evaluate_worker("0xW1", "worker_1", metrics)
 
         # Convert seal recommendations to on-chain reputation data
@@ -220,7 +217,7 @@ class TestSingleAgentFeedbackLoop:
         # Scores should generally increase (flywheel effect)
         for i in range(1, len(scores_over_time)):
             assert scores_over_time[i] >= scores_over_time[i - 1] - 2, (
-                f"Score dropped at stage {i}: {scores_over_time[i-1]:.1f} → {scores_over_time[i]:.1f}"
+                f"Score dropped at stage {i}: {scores_over_time[i - 1]:.1f} → {scores_over_time[i]:.1f}"
             )
 
     def test_closed_loop_seal_confidence_grows(self):
@@ -256,6 +253,7 @@ class TestSingleAgentFeedbackLoop:
 # 2. Multi-Agent Competitive Routing
 # ──────────────────────────────────────────────────────────────
 
+
 class TestMultiAgentRouting:
     """Validates seal-informed competitive routing decisions."""
 
@@ -265,11 +263,13 @@ class TestMultiAgentRouting:
         rep_bridge = ReputationBridge()
 
         agents = []
-        for i, (quality, success, tasks) in enumerate([
-            (4.8, 0.98, 50),   # Expert
-            (4.0, 0.85, 30),   # Intermediate
-            (3.0, 0.60, 10),   # Beginner
-        ]):
+        for i, (quality, success, tasks) in enumerate(
+            [
+                (4.8, 0.98, 50),  # Expert
+                (4.0, 0.85, 30),  # Intermediate
+                (3.0, 0.60, 10),  # Beginner
+            ]
+        ):
             metrics = make_worker_metrics(
                 tasks_completed=tasks,
                 tasks_failed=int(tasks * (1 - success)),
@@ -335,7 +335,10 @@ class TestMultiAgentRouting:
         rankings = rep_bridge.rank_agents(
             [(specialist_chain, specialist), (generalist_chain, generalist)],
             task_categories=["photo_verification"],
-            last_active_map={1: datetime.now(timezone.utc), 2: datetime.now(timezone.utc)},
+            last_active_map={
+                1: datetime.now(timezone.utc),
+                2: datetime.now(timezone.utc),
+            },
         )
 
         # Specialist should win for photo_verification due to 45% skill weight
@@ -352,7 +355,9 @@ class TestMultiAgentRouting:
             quality = 3.0 + i * 0.4  # 3.0, 3.4, 3.8, 4.2, 4.6
             tasks = 10 + i * 10  # 10, 20, 30, 40, 50
             success = 0.6 + i * 0.08  # 60%, 68%, 76%, 84%, 92%
-            on_chain = make_on_chain(agent_id=i, total_seals=i * 2, positive_seals=i * 2)
+            on_chain = make_on_chain(
+                agent_id=i, total_seals=i * 2, positive_seals=i * 2
+            )
             internal = make_internal(
                 agent_id=i,
                 bayesian_score=quality / 5.0,
@@ -394,10 +399,12 @@ class TestMultiAgentRouting:
         )
         plata_chain = make_on_chain(agent_id=2, total_seals=10, positive_seals=10)
 
-        d_score = rep_bridge.compute_composite(diamante_chain, diamante,
-            last_active=datetime.now(timezone.utc))
-        p_score = rep_bridge.compute_composite(plata_chain, plata,
-            last_active=datetime.now(timezone.utc))
+        d_score = rep_bridge.compute_composite(
+            diamante_chain, diamante, last_active=datetime.now(timezone.utc)
+        )
+        p_score = rep_bridge.compute_composite(
+            plata_chain, plata, last_active=datetime.now(timezone.utc)
+        )
 
         assert d_score.tier == ReputationTier.DIAMANTE
         assert d_score.tier_bonus == 15
@@ -408,6 +415,7 @@ class TestMultiAgentRouting:
 # ──────────────────────────────────────────────────────────────
 # 3. Fleet Evolution Over Time
 # ──────────────────────────────────────────────────────────────
+
 
 class TestFleetEvolution:
     """Validates fleet-wide reputation trajectory."""
@@ -445,12 +453,18 @@ class TestFleetEvolution:
     def test_fleet_scores_differentiate_performance(self):
         """Fleet evaluation should clearly separate good vs bad workers."""
         seal_bridge = SealBridge()
-        rep_bridge = ReputationBridge()
+        ReputationBridge()
 
         fleet_metrics = {
-            "star": make_worker_metrics(tasks_completed=80, tasks_failed=2, avg_quality=4.9),
-            "average": make_worker_metrics(tasks_completed=30, tasks_failed=8, avg_quality=3.5),
-            "struggling": make_worker_metrics(tasks_completed=5, tasks_failed=10, avg_quality=2.0),
+            "star": make_worker_metrics(
+                tasks_completed=80, tasks_failed=2, avg_quality=4.9
+            ),
+            "average": make_worker_metrics(
+                tasks_completed=30, tasks_failed=8, avg_quality=3.5
+            ),
+            "struggling": make_worker_metrics(
+                tasks_completed=5, tasks_failed=10, avg_quality=2.0
+            ),
         }
 
         profiles = seal_bridge.evaluate_fleet(fleet_metrics)
@@ -490,6 +504,7 @@ class TestFleetEvolution:
 # ──────────────────────────────────────────────────────────────
 # 4. Cross-Quadrant Bidirectional Reputation
 # ──────────────────────────────────────────────────────────────
+
 
 class TestCrossQuadrantReputation:
     """Validates A2H + H2A bidirectional seal evaluation."""
@@ -552,15 +567,23 @@ class TestCrossQuadrantReputation:
         """A2H and H2A seal counts are independent."""
         bridge = SealBridge()
 
-        a2h_profile = bridge.evaluate_worker("0xW", "w1",
-            make_worker_metrics(tasks_completed=20))
-        h2a_profile = bridge.evaluate_agent_for_worker("0xA", "a1", {
-            "tasks_assigned": 20, "tasks_completed": 18,
-            "tasks_failed": 1, "tasks_expired": 1,
-            "avg_quality": 4.0, "success_rate": 0.9,
-            "avg_duration_seconds": 3600,
-            "categories": {"photo_verification": 20},
-        })
+        a2h_profile = bridge.evaluate_worker(
+            "0xW", "w1", make_worker_metrics(tasks_completed=20)
+        )
+        h2a_profile = bridge.evaluate_agent_for_worker(
+            "0xA",
+            "a1",
+            {
+                "tasks_assigned": 20,
+                "tasks_completed": 18,
+                "tasks_failed": 1,
+                "tasks_expired": 1,
+                "avg_quality": 4.0,
+                "success_rate": 0.9,
+                "avg_duration_seconds": 3600,
+                "categories": {"photo_verification": 20},
+            },
+        )
 
         # A2H has more seal types (7) than H2A (4)
         assert len(a2h_profile.recommendations) > 0
@@ -570,6 +593,7 @@ class TestCrossQuadrantReputation:
 # ──────────────────────────────────────────────────────────────
 # 5. Cold-Start to Expert Progression
 # ──────────────────────────────────────────────────────────────
+
 
 class TestColdStartToExpert:
     """Validates the full career arc from new agent to expert."""
@@ -584,7 +608,9 @@ class TestColdStartToExpert:
     def test_new_agent_gets_low_confidence_seals(self):
         """Agent with 3-10 tasks gets low-confidence seals."""
         bridge = SealBridge()
-        metrics = make_worker_metrics(tasks_completed=5, tasks_failed=0, avg_quality=4.0)
+        metrics = make_worker_metrics(
+            tasks_completed=5, tasks_failed=0, avg_quality=4.0
+        )
         profile = bridge.evaluate_worker("0xJunior", "j1", metrics)
 
         assert len(profile.recommendations) > 0
@@ -620,7 +646,7 @@ class TestColdStartToExpert:
             )
             profile = seal_bridge.evaluate_worker(f"0x{name}", "worker_1", metrics)
 
-            success_rate = tasks / (tasks + failed)
+            tasks / (tasks + failed)
             on_chain = make_on_chain(
                 agent_id=1,
                 total_seals=len(profile.recommendations),
@@ -634,7 +660,8 @@ class TestColdStartToExpert:
                 avg_rating=quality,
             )
             composite = rep_bridge.compute_composite(
-                on_chain, internal, last_active=datetime.now(timezone.utc))
+                on_chain, internal, last_active=datetime.now(timezone.utc)
+            )
 
             # Verify monotonic improvement
             assert composite.total >= prev_composite - 3, (
@@ -674,6 +701,7 @@ class TestColdStartToExpert:
 # 6. Seal-to-Routing Influence Measurement
 # ──────────────────────────────────────────────────────────────
 
+
 class TestSealRoutingInfluence:
     """Quantifies how seal data influences routing decisions."""
 
@@ -684,14 +712,17 @@ class TestSealRoutingInfluence:
 
         # No seals
         no_seals = make_on_chain(agent_id=1, total_seals=0)
-        score_no = rep_bridge.compute_composite(no_seals, internal,
-            last_active=datetime.now(timezone.utc))
+        score_no = rep_bridge.compute_composite(
+            no_seals, internal, last_active=datetime.now(timezone.utc)
+        )
 
         # With seals
-        with_seals = make_on_chain(agent_id=1, total_seals=10, positive_seals=9,
-            chains=["base", "ethereum"])
-        score_with = rep_bridge.compute_composite(with_seals, internal,
-            last_active=datetime.now(timezone.utc))
+        with_seals = make_on_chain(
+            agent_id=1, total_seals=10, positive_seals=9, chains=["base", "ethereum"]
+        )
+        score_with = rep_bridge.compute_composite(
+            with_seals, internal, last_active=datetime.now(timezone.utc)
+        )
 
         assert score_with.reputation_score > score_no.reputation_score
 
@@ -700,9 +731,15 @@ class TestSealRoutingInfluence:
         rep_bridge = ReputationBridge()
         internal = make_internal(agent_id=1)
 
-        single = make_on_chain(agent_id=1, total_seals=5, positive_seals=5, chains=["base"])
-        multi = make_on_chain(agent_id=1, total_seals=5, positive_seals=5,
-            chains=["base", "ethereum", "polygon", "arbitrum"])
+        single = make_on_chain(
+            agent_id=1, total_seals=5, positive_seals=5, chains=["base"]
+        )
+        multi = make_on_chain(
+            agent_id=1,
+            total_seals=5,
+            positive_seals=5,
+            chains=["base", "ethereum", "polygon", "arbitrum"],
+        )
 
         s_single = rep_bridge.compute_composite(single, internal)
         s_multi = rep_bridge.compute_composite(multi, internal)
@@ -738,10 +775,18 @@ class TestSealRoutingInfluence:
         chain = make_on_chain(agent_id=1, total_seals=5, positive_seals=5)
         chain2 = make_on_chain(agent_id=2, total_seals=5, positive_seals=5)
 
-        s_matched = rep_bridge.compute_composite(chain, matched,
-            task_categories=["notarization"], last_active=datetime.now(timezone.utc))
-        s_unmatched = rep_bridge.compute_composite(chain2, unmatched,
-            task_categories=["notarization"], last_active=datetime.now(timezone.utc))
+        s_matched = rep_bridge.compute_composite(
+            chain,
+            matched,
+            task_categories=["notarization"],
+            last_active=datetime.now(timezone.utc),
+        )
+        s_unmatched = rep_bridge.compute_composite(
+            chain2,
+            unmatched,
+            task_categories=["notarization"],
+            last_active=datetime.now(timezone.utc),
+        )
 
         assert s_matched.skill_score > s_unmatched.skill_score
         assert s_matched.total > s_unmatched.total
@@ -761,6 +806,7 @@ class TestSealRoutingInfluence:
 # ──────────────────────────────────────────────────────────────
 # 7. Edge Cases and Degradation
 # ──────────────────────────────────────────────────────────────
+
 
 class TestEdgeCases:
     """Edge cases in the reputation feedback loop."""
@@ -830,10 +876,14 @@ class TestEdgeCases:
         on_chain = make_on_chain(agent_id=1)
         internal = make_internal(agent_id=1)
 
-        recent = rep_bridge.compute_composite(on_chain, internal,
-            last_active=datetime.now(timezone.utc))
-        old = rep_bridge.compute_composite(on_chain, internal,
-            last_active=datetime.now(timezone.utc) - timedelta(days=60))
+        recent = rep_bridge.compute_composite(
+            on_chain, internal, last_active=datetime.now(timezone.utc)
+        )
+        old = rep_bridge.compute_composite(
+            on_chain,
+            internal,
+            last_active=datetime.now(timezone.utc) - timedelta(days=60),
+        )
 
         assert recent.recency_score > old.recency_score
 
@@ -861,14 +911,16 @@ class TestEdgeCases:
         assert bridge.issuance_count == 0
 
         for i in range(5):
-            bridge.record_issuance(SealIssuanceRecord(
-                seal_id=i,
-                tx_hash=f"0xTx{i}",
-                seal_type="SKILLFUL",
-                subject_address="0xW",
-                score=80,
-                quadrant=SealQuadrant.A2H,
-            ))
+            bridge.record_issuance(
+                SealIssuanceRecord(
+                    seal_id=i,
+                    tx_hash=f"0xTx{i}",
+                    seal_type="SKILLFUL",
+                    subject_address="0xW",
+                    score=80,
+                    quadrant=SealQuadrant.A2H,
+                )
+            )
 
         assert bridge.issuance_count == 5
         history = bridge.get_issuance_history(limit=3)
@@ -878,8 +930,12 @@ class TestEdgeCases:
         """Category + complexity should adjust reputation requirements."""
         rep_bridge = ReputationBridge()
 
-        senior_tech = rep_bridge.calculate_category_multiplier("technical_task", "SENIOR")
-        junior_data = rep_bridge.calculate_category_multiplier("data_collection", "JUNIOR")
+        senior_tech = rep_bridge.calculate_category_multiplier(
+            "technical_task", "SENIOR"
+        )
+        junior_data = rep_bridge.calculate_category_multiplier(
+            "data_collection", "JUNIOR"
+        )
 
         # Senior technical should require much higher reputation
         assert senior_tech > junior_data
@@ -890,6 +946,7 @@ class TestEdgeCases:
 # ──────────────────────────────────────────────────────────────
 # 8. Seal Score Accuracy
 # ──────────────────────────────────────────────────────────────
+
 
 class TestSealScoreAccuracy:
     """Validates individual seal scoring functions."""
@@ -904,8 +961,12 @@ class TestSealScoreAccuracy:
         low_prof = bridge.evaluate_worker("0xL", "l1", low_q)
         high_prof = bridge.evaluate_worker("0xH", "h1", high_q)
 
-        low_skill = next(r for r in low_prof.recommendations if r.seal_type == "SKILLFUL")
-        high_skill = next(r for r in high_prof.recommendations if r.seal_type == "SKILLFUL")
+        low_skill = next(
+            r for r in low_prof.recommendations if r.seal_type == "SKILLFUL"
+        )
+        high_skill = next(
+            r for r in high_prof.recommendations if r.seal_type == "SKILLFUL"
+        )
 
         assert high_skill.score > low_skill.score + 20
 
@@ -915,16 +976,22 @@ class TestSealScoreAccuracy:
 
         # RESPONSIVE is an H2A seal — use evaluate_agent_for_worker
         fast_metrics = {
-            "tasks_assigned": 20, "tasks_completed": 18,
-            "tasks_failed": 1, "tasks_expired": 1,
-            "avg_quality": 4.0, "success_rate": 0.9,
+            "tasks_assigned": 20,
+            "tasks_completed": 18,
+            "tasks_failed": 1,
+            "tasks_expired": 1,
+            "avg_quality": 4.0,
+            "success_rate": 0.9,
             "avg_duration_seconds": 3600,  # 1h
             "categories": {"photo_verification": 20},
         }
         slow_metrics = {
-            "tasks_assigned": 20, "tasks_completed": 18,
-            "tasks_failed": 1, "tasks_expired": 1,
-            "avg_quality": 4.0, "success_rate": 0.9,
+            "tasks_assigned": 20,
+            "tasks_completed": 18,
+            "tasks_failed": 1,
+            "tasks_expired": 1,
+            "avg_quality": 4.0,
+            "success_rate": 0.9,
             "avg_duration_seconds": 172800,  # 48h
             "categories": {"photo_verification": 20},
         }
@@ -932,8 +999,12 @@ class TestSealScoreAccuracy:
         fast_prof = bridge.evaluate_agent_for_worker("0xF", "f1", fast_metrics)
         slow_prof = bridge.evaluate_agent_for_worker("0xS", "s1", slow_metrics)
 
-        fast_resp = next(r for r in fast_prof.recommendations if r.seal_type == "RESPONSIVE")
-        slow_resp = next(r for r in slow_prof.recommendations if r.seal_type == "RESPONSIVE")
+        fast_resp = next(
+            r for r in fast_prof.recommendations if r.seal_type == "RESPONSIVE"
+        )
+        slow_resp = next(
+            r for r in slow_prof.recommendations if r.seal_type == "RESPONSIVE"
+        )
 
         assert fast_resp.score > slow_resp.score + 20
 
@@ -941,17 +1012,29 @@ class TestSealScoreAccuracy:
         """CURIOUS should reward diverse category experience."""
         bridge = SealBridge()
 
-        narrow = make_worker_metrics(tasks_completed=20,
-            categories={"photo_verification": 20})
-        diverse = make_worker_metrics(tasks_completed=20,
-            categories={"photo": 4, "delivery": 4, "notarization": 4,
-                       "data": 4, "measurement": 4})
+        narrow = make_worker_metrics(
+            tasks_completed=20, categories={"photo_verification": 20}
+        )
+        diverse = make_worker_metrics(
+            tasks_completed=20,
+            categories={
+                "photo": 4,
+                "delivery": 4,
+                "notarization": 4,
+                "data": 4,
+                "measurement": 4,
+            },
+        )
 
         narrow_prof = bridge.evaluate_worker("0xN", "n1", narrow)
         diverse_prof = bridge.evaluate_worker("0xD", "d1", diverse)
 
-        narrow_curious = next(r for r in narrow_prof.recommendations if r.seal_type == "CURIOUS")
-        diverse_curious = next(r for r in diverse_prof.recommendations if r.seal_type == "CURIOUS")
+        narrow_curious = next(
+            r for r in narrow_prof.recommendations if r.seal_type == "CURIOUS"
+        )
+        diverse_curious = next(
+            r for r in diverse_prof.recommendations if r.seal_type == "CURIOUS"
+        )
 
         assert diverse_curious.score > narrow_curious.score
 
@@ -973,8 +1056,12 @@ class TestSealScoreAccuracy:
         active_prof = bridge.evaluate_worker("0xA", "a1", active)
         inactive_prof = bridge.evaluate_worker("0xI", "i1", inactive)
 
-        active_engaged = next(r for r in active_prof.recommendations if r.seal_type == "ENGAGED")
-        inactive_engaged = next(r for r in inactive_prof.recommendations if r.seal_type == "ENGAGED")
+        active_engaged = next(
+            r for r in active_prof.recommendations if r.seal_type == "ENGAGED"
+        )
+        inactive_engaged = next(
+            r for r in inactive_prof.recommendations if r.seal_type == "ENGAGED"
+        )
 
         assert active_engaged.score > inactive_engaged.score
 
@@ -984,7 +1071,9 @@ class TestSealScoreAccuracy:
 
         # Extreme metrics
         extreme = make_worker_metrics(
-            tasks_completed=1000, tasks_failed=0, avg_quality=5.0,
+            tasks_completed=1000,
+            tasks_failed=0,
+            avg_quality=5.0,
             avg_duration_seconds=60,  # 1 minute
             categories={f"cat_{i}": 100 for i in range(20)},
         )
@@ -1009,6 +1098,7 @@ class TestSealScoreAccuracy:
 # ──────────────────────────────────────────────────────────────
 # 9. Flywheel Simulation (Multi-Round)
 # ──────────────────────────────────────────────────────────────
+
 
 class TestFlywheelSimulation:
     """Simulates multiple rounds of the feedback flywheel."""
@@ -1051,7 +1141,9 @@ class TestFlywheelSimulation:
                 on_chain = make_on_chain(
                     agent_id=hash(name) % 1000,
                     total_seals=len(profile.recommendations),
-                    positive_seals=sum(1 for r in profile.recommendations if r.is_positive),
+                    positive_seals=sum(
+                        1 for r in profile.recommendations if r.is_positive
+                    ),
                 )
                 internal = make_internal(
                     agent_id=hash(name) % 1000,
@@ -1061,7 +1153,8 @@ class TestFlywheelSimulation:
                     avg_rating=agent["quality"],
                 )
                 composite = rep_bridge.compute_composite(
-                    on_chain, internal, last_active=datetime.now(timezone.utc))
+                    on_chain, internal, last_active=datetime.now(timezone.utc)
+                )
                 ranking_data.append((name, composite.total))
 
             ranking_data.sort(key=lambda x: x[1], reverse=True)
@@ -1088,14 +1181,21 @@ class TestFlywheelSimulation:
                 avg_quality=4.0,
             )
             profile = seal_bridge.evaluate_worker("0xW", "w1", metrics)
-            on_chain = make_on_chain(agent_id=1,
+            on_chain = make_on_chain(
+                agent_id=1,
                 total_seals=len(profile.recommendations),
-                positive_seals=sum(1 for r in profile.recommendations if r.is_positive))
-            internal = make_internal(agent_id=1,
+                positive_seals=sum(1 for r in profile.recommendations if r.is_positive),
+            )
+            internal = make_internal(
+                agent_id=1,
                 total_tasks=tasks + max(1, tasks // 15),
-                successful_tasks=tasks, avg_rating=4.0, bayesian_score=0.75)
-            composite = rep_bridge.compute_composite(on_chain, internal,
-                last_active=datetime.now(timezone.utc))
+                successful_tasks=tasks,
+                avg_rating=4.0,
+                bayesian_score=0.75,
+            )
+            composite = rep_bridge.compute_composite(
+                on_chain, internal, last_active=datetime.now(timezone.utc)
+            )
             scores.append(composite.total)
 
         # Check: later rounds should show smaller changes (convergence)
@@ -1112,13 +1212,15 @@ class TestFlywheelSimulation:
         rep_bridge = ReputationBridge()
 
         import random
+
         rng = random.Random(42)
 
         agents = {}
         for i in range(10):
             base_quality = 2.5 + rng.random() * 2.5  # 2.5-5.0
             agents[f"agent_{i}"] = {
-                "tasks": 0, "failed": 0,
+                "tasks": 0,
+                "failed": 0,
                 "quality": base_quality,
                 "speed": rng.randint(1800, 86400),
             }
@@ -1133,19 +1235,29 @@ class TestFlywheelSimulation:
 
             for name, a in agents.items():
                 metrics = make_worker_metrics(
-                    tasks_completed=a["tasks"], tasks_failed=a["failed"],
-                    avg_quality=a["quality"], avg_duration_seconds=a["speed"],
+                    tasks_completed=a["tasks"],
+                    tasks_failed=a["failed"],
+                    avg_quality=a["quality"],
+                    avg_duration_seconds=a["speed"],
                 )
                 profile = seal_bridge.evaluate_worker(f"0x{name}", name, metrics)
-                on_chain = make_on_chain(agent_id=hash(name) % 10000,
+                on_chain = make_on_chain(
+                    agent_id=hash(name) % 10000,
                     total_seals=len(profile.recommendations),
-                    positive_seals=sum(1 for r in profile.recommendations if r.is_positive))
-                internal = make_internal(agent_id=hash(name) % 10000,
+                    positive_seals=sum(
+                        1 for r in profile.recommendations if r.is_positive
+                    ),
+                )
+                internal = make_internal(
+                    agent_id=hash(name) % 10000,
                     bayesian_score=a["quality"] / 5.0,
                     total_tasks=a["tasks"] + a["failed"],
-                    successful_tasks=a["tasks"], avg_rating=a["quality"])
-                composite = rep_bridge.compute_composite(on_chain, internal,
-                    last_active=datetime.now(timezone.utc))
+                    successful_tasks=a["tasks"],
+                    avg_rating=a["quality"],
+                )
+                composite = rep_bridge.compute_composite(
+                    on_chain, internal, last_active=datetime.now(timezone.utc)
+                )
                 final_scores[name] = composite.total
 
         # Should have differentiation: best vs worst gap > 10 points
