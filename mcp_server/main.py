@@ -647,6 +647,33 @@ app.add_middleware(
     ],
 )
 
+# Request timeout middleware — prevent hung requests from consuming resources
+from starlette.middleware.base import BaseHTTPMiddleware
+
+
+class RequestTimeoutMiddleware(BaseHTTPMiddleware):
+    LONG_TIMEOUT_PATHS = ("/api/v1/tasks/", "/api/v1/submissions/", "/api/v1/escrow/")
+    STREAM_PATHS = ("/a2a/v1", "/mcp/")
+
+    async def dispatch(self, request, call_next):
+        path = request.url.path
+        if any(path.startswith(p) for p in self.STREAM_PATHS):
+            timeout = 300.0
+        elif any(path.startswith(p) for p in self.LONG_TIMEOUT_PATHS):
+            timeout = 120.0
+        else:
+            timeout = 30.0
+        try:
+            return await asyncio.wait_for(call_next(request), timeout=timeout)
+        except asyncio.TimeoutError:
+            return JSONResponse(
+                status_code=504,
+                content={"error": "Request timeout", "timeout_seconds": timeout},
+            )
+
+
+app.add_middleware(RequestTimeoutMiddleware)
+
 # Mount MCP Streamable HTTP app at /mcp
 # Note: Due to Starlette routing, the canonical URL is /mcp/ (with trailing slash)
 # Requests to /mcp will redirect to /mcp/

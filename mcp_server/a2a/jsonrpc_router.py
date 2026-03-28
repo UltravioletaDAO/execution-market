@@ -274,15 +274,19 @@ async def _dispatch(
             "id": req_id,
             "result": result,
         }
-    except Exception as e:
-        logger.exception(f"Error handling A2A method {method}: {e}")
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning("A2A validation error: %s", str(e)[:100])
         return {
             "jsonrpc": "2.0",
             "id": req_id,
-            "error": JSONRPCError.make(
-                JSONRPCError.INTERNAL_ERROR,
-                f"Internal error: {str(e)}",
-            ),
+            "error": {"code": -32602, "message": f"Invalid params: {str(e)[:200]}"},
+        }
+    except Exception as e:
+        logger.error("A2A error: %s: %s", type(e).__name__, str(e)[:100])
+        return {
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "error": {"code": -32603, "message": "Internal error"},
         }
 
 
@@ -383,6 +387,24 @@ async def a2a_jsonrpc_endpoint(request: Request):
     """
     agent_id = await _extract_agent_id(request)
 
+    if not agent_id:
+        return JSONResponse(
+            status_code=401,
+            content={
+                "jsonrpc": "2.0",
+                "error": {
+                    "code": -32001,
+                    "message": "Authentication required. Provide X-ERC8004-Agent-Id or X-API-Key header.",
+                },
+                "id": None,
+            },
+        )
+
+    _client_ip = request.headers.get(  # noqa: F841
+        "X-Forwarded-For", request.client.host if request.client else "unknown"
+    )
+    request_id = None  # noqa: F841
+
     try:
         body = await request.json()
     except Exception:
@@ -397,6 +419,9 @@ async def a2a_jsonrpc_endpoint(request: Request):
             },
             status_code=200,  # JSON-RPC errors are always 200
         )
+
+    if isinstance(body, dict):
+        request_id = body.get("id")  # noqa: F841
 
     # Batch support
     if isinstance(body, list):
@@ -448,6 +473,19 @@ async def a2a_stream_endpoint(request: Request):
     Creates a task (or monitors existing) and returns SSE updates.
     """
     agent_id = await _extract_agent_id(request)
+
+    if not agent_id:
+        return JSONResponse(
+            status_code=401,
+            content={
+                "jsonrpc": "2.0",
+                "error": {
+                    "code": -32001,
+                    "message": "Authentication required. Provide X-ERC8004-Agent-Id or X-API-Key header.",
+                },
+                "id": None,
+            },
+        )
 
     try:
         body = await request.json()
