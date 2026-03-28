@@ -24,6 +24,7 @@ jobs:
       xmtp-bot: ${{ steps.filter.outputs.xmtp-bot }}
       e2e: ${{ steps.filter.outputs.e2e }}
       infra: ${{ steps.filter.outputs.infra }}
+      admin-dashboard: ${{ steps.filter.outputs.admin-dashboard }}
     steps:
       - uses: actions/checkout@v6
       - uses: dorny/paths-filter@v4
@@ -38,6 +39,8 @@ jobs:
               - 'xmtp-bot/**'
             e2e:
               - 'e2e/**'
+            admin-dashboard:
+              - 'admin-dashboard/**'
             infra:
               - '.github/**'
               - 'Dockerfile*'
@@ -257,10 +260,37 @@ jobs:
       - name: TypeScript check
         run: npx tsc --noEmit
 
+  test-admin-dashboard:
+    name: Test Admin Dashboard
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.admin-dashboard == 'true'
+    defaults:
+      run:
+        working-directory: admin-dashboard
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: admin-dashboard/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Run tests
+        run: npm test
+
   build:
     name: Build Docker Images
     runs-on: ubuntu-latest
-    needs: [detect-changes, test-backend, test-frontend, test-xmtp-bot, e2e-smoke]
+    needs: [detect-changes, test-backend, test-frontend, test-xmtp-bot, test-admin-dashboard, e2e-smoke]
     if: always() && !cancelled() && github.event_name == 'push' && (needs.detect-changes.outputs.backend == 'true' || needs.detect-changes.outputs.frontend == 'true') && !contains(needs.*.result, 'failure')
     steps:
       - uses: actions/checkout@v6
