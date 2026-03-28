@@ -14,36 +14,28 @@ Tests the scheduler under extreme conditions:
     - Urgency transitions as deadlines approach
 """
 
-import math
 import time
 from datetime import datetime, timezone, timedelta
-from collections import Counter
-from unittest.mock import MagicMock, patch
 
-import pytest
 
 from mcp_server.swarm.scheduler import (
     SwarmScheduler,
     ScheduledTask,
     SchedulingBatch,
-    SchedulingDecision,
     SwarmConditions,
     UrgencyLevel,
-    URGENCY_MULTIPLIERS,
     CircuitBreaker,
     CircuitState,
     RetryScheduler,
     AgentLoadBalancer,
 )
 from mcp_server.swarm.coordinator import SwarmCoordinator
-from mcp_server.swarm.reputation_bridge import ReputationBridge, OnChainReputation, InternalReputation
-from mcp_server.swarm.lifecycle_manager import LifecycleManager, AgentState, BudgetConfig
+from mcp_server.swarm.reputation_bridge import ReputationBridge
+from mcp_server.swarm.lifecycle_manager import LifecycleManager
 from mcp_server.swarm.orchestrator import (
     SwarmOrchestrator,
     TaskPriority,
     RoutingStrategy,
-    Assignment,
-    RoutingFailure,
 )
 
 
@@ -351,7 +343,9 @@ class TestUrgencyChaos:
                 categories=["a"],
                 deadline=deadline,
             )
-            assert task.urgency == expected_urgency, f"Expected {expected_urgency}, got {task.urgency}"
+            assert task.urgency == expected_urgency, (
+                f"Expected {expected_urgency}, got {task.urgency}"
+            )
 
     def test_no_deadline_is_normal(self):
         """Task without deadline defaults to NORMAL urgency."""
@@ -668,7 +662,12 @@ class TestScheduleComputationChaos:
                 title=f"Mix {i}",
                 categories=[f"cat-{i % 10}"],
                 bounty_usd=float(i % 20) + 1.0,
-                priority=[TaskPriority.LOW, TaskPriority.NORMAL, TaskPriority.HIGH, TaskPriority.CRITICAL][i % 4],
+                priority=[
+                    TaskPriority.LOW,
+                    TaskPriority.NORMAL,
+                    TaskPriority.HIGH,
+                    TaskPriority.CRITICAL,
+                ][i % 4],
                 deadline=deadline,
             )
 
@@ -715,9 +714,7 @@ class TestScheduleComputationChaos:
         batches = scheduler.compute_schedule()
         assert len(batches) == 2
         # Critical batch should be first
-        critical_first = any(
-            t.task_id == "critical" for t in batches[0].tasks
-        )
+        critical_first = any(t.task_id == "critical" for t in batches[0].tasks)
         assert critical_first
 
     def test_backoff_tasks_deferred(self):
@@ -821,7 +818,11 @@ class TestScheduleExecutionChaos:
         batches = scheduler.compute_schedule()
         results = scheduler.execute_schedule(batches)
 
-        assigned = [r for r in results if r.get("outcome") == "assigned" and r.get("task_id") == "clear-me"]
+        assigned = [
+            r
+            for r in results
+            if r.get("outcome") == "assigned" and r.get("task_id") == "clear-me"
+        ]
         if assigned:
             assert "clear-me" not in scheduler.retry_scheduler._previous_delays
 
@@ -905,7 +906,10 @@ class TestSchedulingCycleChaos:
 
         for i in range(5):
             scheduler.add_task(
-                task_id=f"su-{i}", title=f"SU{i}", categories=["general"], bounty_usd=5.0
+                task_id=f"su-{i}",
+                title=f"SU{i}",
+                categories=["general"],
+                bounty_usd=5.0,
             )
 
         scheduler.run_scheduling_cycle()
@@ -1038,9 +1042,7 @@ class TestDecisionAuditChaos:
         scheduler = _standalone_scheduler()
 
         for i in range(20):
-            scheduler.add_task(
-                task_id=f"lim-{i}", title=f"L{i}", categories=["a"]
-            )
+            scheduler.add_task(task_id=f"lim-{i}", title=f"L{i}", categories=["a"])
         scheduler.compute_schedule()
 
         decisions = scheduler.get_decisions(limit=5)
@@ -1081,16 +1083,22 @@ class TestStatusChaos:
         # 3 normal, 2 critical, 1 relaxed
         for i in range(3):
             scheduler.add_task(
-                task_id=f"norm-{i}", title=f"N{i}", categories=["a"],
+                task_id=f"norm-{i}",
+                title=f"N{i}",
+                categories=["a"],
                 deadline=now + timedelta(hours=12),
             )
         for i in range(2):
             scheduler.add_task(
-                task_id=f"crit-{i}", title=f"C{i}", categories=["a"],
+                task_id=f"crit-{i}",
+                title=f"C{i}",
+                categories=["a"],
                 deadline=now + timedelta(minutes=30),
             )
         scheduler.add_task(
-            task_id="relax-0", title="R0", categories=["a"],
+            task_id="relax-0",
+            title="R0",
+            categories=["a"],
             deadline=now + timedelta(hours=48),
         )
 
@@ -1112,7 +1120,13 @@ class TestBatchProperties:
             batch_id="b1",
             category_key="general",
             tasks=[
-                ScheduledTask(task_id=f"t{i}", title=f"T{i}", categories=["a"], bounty_usd=10.0 + i, priority=TaskPriority.NORMAL)
+                ScheduledTask(
+                    task_id=f"t{i}",
+                    title=f"T{i}",
+                    categories=["a"],
+                    bounty_usd=10.0 + i,
+                    priority=TaskPriority.NORMAL,
+                )
                 for i in range(5)
             ],
         )
@@ -1121,9 +1135,27 @@ class TestBatchProperties:
     def test_max_urgency_finds_highest(self):
         """max_urgency returns the highest urgency in the batch."""
         tasks = [
-            ScheduledTask(task_id="t1", title="T1", categories=["a"], bounty_usd=1.0, priority=TaskPriority.NORMAL),
-            ScheduledTask(task_id="t2", title="T2", categories=["a"], bounty_usd=1.0, priority=TaskPriority.NORMAL),
-            ScheduledTask(task_id="t3", title="T3", categories=["a"], bounty_usd=1.0, priority=TaskPriority.NORMAL),
+            ScheduledTask(
+                task_id="t1",
+                title="T1",
+                categories=["a"],
+                bounty_usd=1.0,
+                priority=TaskPriority.NORMAL,
+            ),
+            ScheduledTask(
+                task_id="t2",
+                title="T2",
+                categories=["a"],
+                bounty_usd=1.0,
+                priority=TaskPriority.NORMAL,
+            ),
+            ScheduledTask(
+                task_id="t3",
+                title="T3",
+                categories=["a"],
+                bounty_usd=1.0,
+                priority=TaskPriority.NORMAL,
+            ),
         ]
         tasks[0].urgency = UrgencyLevel.RELAXED
         tasks[1].urgency = UrgencyLevel.URGENT
@@ -1138,7 +1170,13 @@ class TestBatchProperties:
             batch_id="b1",
             category_key="photo",
             tasks=[
-                ScheduledTask(task_id="t1", title="T1", categories=["photo"], bounty_usd=5.0, priority=TaskPriority.NORMAL),
+                ScheduledTask(
+                    task_id="t1",
+                    title="T1",
+                    categories=["photo"],
+                    bounty_usd=5.0,
+                    priority=TaskPriority.NORMAL,
+                ),
             ],
             strategy=RoutingStrategy.SPECIALIST,
         )

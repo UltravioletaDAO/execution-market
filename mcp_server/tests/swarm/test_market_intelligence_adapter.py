@@ -125,13 +125,19 @@ class TestMarketSnapshot:
     def test_health_score_low_demand(self):
         """Very low demand gets proportionally lower score."""
         low = MarketSnapshot(
-            category="low", demand_score=0.1,
-            completion_rate=0.5, expiry_rate=0.5, trend="stable",
+            category="low",
+            demand_score=0.1,
+            completion_rate=0.5,
+            expiry_rate=0.5,
+            trend="stable",
             fetched_at=time.time(),
         )
         moderate = MarketSnapshot(
-            category="mod", demand_score=0.5,
-            completion_rate=0.5, expiry_rate=0.5, trend="stable",
+            category="mod",
+            demand_score=0.5,
+            completion_rate=0.5,
+            expiry_rate=0.5,
+            trend="stable",
             fetched_at=time.time(),
         )
         assert low.market_health_score < moderate.market_health_score
@@ -139,32 +145,44 @@ class TestMarketSnapshot:
     def test_health_score_high_demand_penalty(self):
         """Very high demand (>0.7) reduces score vs moderate."""
         high = MarketSnapshot(
-            category="high", demand_score=0.95,
-            completion_rate=0.5, expiry_rate=0.5, trend="stable",
+            category="high",
+            demand_score=0.95,
+            completion_rate=0.5,
+            expiry_rate=0.5,
+            trend="stable",
             fetched_at=time.time(),
         )
         moderate = MarketSnapshot(
-            category="mod", demand_score=0.5,
-            completion_rate=0.5, expiry_rate=0.5, trend="stable",
+            category="mod",
+            demand_score=0.5,
+            completion_rate=0.5,
+            expiry_rate=0.5,
+            trend="stable",
             fetched_at=time.time(),
         )
         assert high.market_health_score < moderate.market_health_score
 
     def test_health_score_trend_ordering(self):
         """Growing > stable > declining for same base metrics."""
+
         def make(trend):
             return MarketSnapshot(
-                category="test", demand_score=0.5, completion_rate=0.5,
-                expiry_rate=0.5, trend=trend, fetched_at=time.time(),
+                category="test",
+                demand_score=0.5,
+                completion_rate=0.5,
+                expiry_rate=0.5,
+                trend=trend,
+                fetched_at=time.time(),
             )
+
         assert make("growing").market_health_score > make("stable").market_health_score
-        assert make("stable").market_health_score > make("declining").market_health_score
+        assert (
+            make("stable").market_health_score > make("declining").market_health_score
+        )
 
     def test_health_score_unknown_trend(self):
         """Unknown trend uses default (same as stable)."""
-        stable = MarketSnapshot(
-            category="test", trend="stable", fetched_at=time.time()
-        )
+        stable = MarketSnapshot(category="test", trend="stable", fetched_at=time.time())
         unknown = MarketSnapshot(
             category="test", trend="unknown_trend", fetched_at=time.time()
         )
@@ -173,16 +191,24 @@ class TestMarketSnapshot:
     def test_health_score_clamped_to_100(self):
         """Score cannot exceed 100."""
         snap = MarketSnapshot(
-            category="over", demand_score=0.5, completion_rate=1.0,
-            expiry_rate=0.0, trend="growing", fetched_at=time.time(),
+            category="over",
+            demand_score=0.5,
+            completion_rate=1.0,
+            expiry_rate=0.0,
+            trend="growing",
+            fetched_at=time.time(),
         )
         assert snap.market_health_score <= 100.0
 
     def test_health_score_clamped_to_0(self):
         """Score cannot go below 0."""
         snap = MarketSnapshot(
-            category="under", demand_score=0.0, completion_rate=0.0,
-            expiry_rate=1.0, trend="declining", fetched_at=time.time(),
+            category="under",
+            demand_score=0.0,
+            completion_rate=0.0,
+            expiry_rate=1.0,
+            trend="declining",
+            fetched_at=time.time(),
         )
         assert snap.market_health_score >= 0.0
 
@@ -435,7 +461,9 @@ class TestAdapterCaching:
 
     def test_gaps_cache_fresh(self, adapter):
         """Fresh gaps cache is returned."""
-        gaps = [SupplyGapSnapshot(category="test", gap_severity=0.5, fetched_at=time.time())]
+        gaps = [
+            SupplyGapSnapshot(category="test", gap_severity=0.5, fetched_at=time.time())
+        ]
         adapter._gaps_cache = gaps
         adapter._gaps_fetched_at = time.time()
 

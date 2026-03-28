@@ -18,10 +18,7 @@ Tests cover:
     9. Data types (BridgeResult, DecomposedTask, FeedbackRecord)
 """
 
-import pytest
-from unittest.mock import MagicMock, patch, PropertyMock
-from collections import deque
-from dataclasses import asdict
+from unittest.mock import MagicMock, patch
 
 from mcp_server.swarm.decision_bridge import (
     DecisionBridge,
@@ -56,7 +53,12 @@ from mcp_server.swarm.orchestrator import (
 # ══════════════════════════════════════════════════════════════
 
 
-def _mock_synthesizer(outcome=DecisionOutcome.ROUTED, best="42", score=85.0, confidence=ConfidenceLevel.HIGH):
+def _mock_synthesizer(
+    outcome=DecisionOutcome.ROUTED,
+    best="42",
+    score=85.0,
+    confidence=ConfidenceLevel.HIGH,
+):
     """Create a mock DecisionSynthesizer with configurable synthesis results."""
     synth = MagicMock(spec=DecisionSynthesizer)
     decision = MagicMock(spec=RankedDecision)
@@ -79,8 +81,11 @@ def _mock_orchestrator():
     orch._on_chain = {}
     orch._internal = {}
     assignment = Assignment(
-        task_id="task-1", agent_id=42, agent_name="TestAgent",
-        score=85.0, strategy_used=RoutingStrategy.BEST_FIT,
+        task_id="task-1",
+        agent_id=42,
+        agent_name="TestAgent",
+        score=85.0,
+        strategy_used=RoutingStrategy.BEST_FIT,
     )
     orch.route_task.return_value = assignment
     return orch
@@ -111,7 +116,9 @@ def _mock_lifecycle():
     return lifecycle
 
 
-def _mock_queued_task(task_id="task-1", title="Test Task", categories=None, bounty=25.0, priority="normal"):
+def _mock_queued_task(
+    task_id="task-1", title="Test Task", categories=None, bounty=25.0, priority="normal"
+):
     """Create a mock QueuedTask."""
     task = MagicMock()
     task.task_id = task_id
@@ -178,8 +185,11 @@ class TestDecomposedTask:
 class TestBridgeResult:
     def test_succeeded_with_assignment(self):
         assignment = Assignment(
-            task_id="t1", agent_id=42, agent_name="A",
-            score=80.0, strategy_used=RoutingStrategy.BEST_FIT,
+            task_id="t1",
+            agent_id=42,
+            agent_name="A",
+            score=80.0,
+            strategy_used=RoutingStrategy.BEST_FIT,
         )
         result = BridgeResult(task_id="t1", assignment=assignment)
         assert result.succeeded
@@ -187,7 +197,9 @@ class TestBridgeResult:
     def test_failed_without_assignment(self):
         result = BridgeResult(
             task_id="t1",
-            failure=RoutingFailure(task_id="t1", reason="none", attempted_agents=0, excluded_agents=0),
+            failure=RoutingFailure(
+                task_id="t1", reason="none", attempted_agents=0, excluded_agents=0
+            ),
         )
         assert not result.succeeded
 
@@ -546,7 +558,7 @@ class TestSignalRegistration:
         synth = MagicMock(spec=DecisionSynthesizer)
         orch = _mock_orchestrator()
 
-        bridge = DecisionBridge(
+        DecisionBridge(
             synthesizer=synth,
             orchestrator=orch,
             mode=BridgeMode.PRIMARY,
@@ -563,7 +575,7 @@ class TestSignalRegistration:
         orch = _mock_orchestrator()
         autojob = MagicMock()
 
-        bridge = DecisionBridge(
+        DecisionBridge(
             synthesizer=synth,
             orchestrator=orch,
             autojob_client=autojob,
@@ -578,7 +590,7 @@ class TestSignalRegistration:
         orch = _mock_orchestrator()
         avail = MagicMock()
 
-        bridge = DecisionBridge(
+        DecisionBridge(
             synthesizer=synth,
             orchestrator=orch,
             availability_bridge=avail,
@@ -593,7 +605,7 @@ class TestSignalRegistration:
         orch = _mock_orchestrator()
         lifecycle = _mock_lifecycle()
 
-        bridge = DecisionBridge(
+        DecisionBridge(
             synthesizer=synth,
             orchestrator=orch,
             lifecycle_manager=lifecycle,
@@ -610,7 +622,7 @@ class TestSignalRegistration:
         del orch._on_chain
         del orch._internal
 
-        bridge = DecisionBridge(
+        DecisionBridge(
             synthesizer=synth,
             orchestrator=orch,
             mode=BridgeMode.PRIMARY,
@@ -629,7 +641,9 @@ class TestSignalRegistrationAdapters:
         orch = _mock_orchestrator()
         perf = MagicMock()
 
-        with patch("mcp_server.swarm.decision_bridge.DecisionBridge._register_available_signals"):
+        with patch(
+            "mcp_server.swarm.decision_bridge.DecisionBridge._register_available_signals"
+        ):
             bridge = DecisionBridge(
                 synthesizer=synth,
                 orchestrator=orch,
@@ -644,7 +658,9 @@ class TestSignalRegistrationAdapters:
         orch = _mock_orchestrator()
         pricing = MagicMock()
 
-        with patch("mcp_server.swarm.decision_bridge.DecisionBridge._register_available_signals"):
+        with patch(
+            "mcp_server.swarm.decision_bridge.DecisionBridge._register_available_signals"
+        ):
             bridge = DecisionBridge(
                 synthesizer=synth,
                 orchestrator=orch,
@@ -659,7 +675,9 @@ class TestSignalRegistrationAdapters:
         synth = MagicMock(spec=DecisionSynthesizer)
         orch = _mock_orchestrator()
 
-        with patch("mcp_server.swarm.decision_bridge.DecisionBridge._register_available_signals"):
+        with patch(
+            "mcp_server.swarm.decision_bridge.DecisionBridge._register_available_signals"
+        ):
             bridge = DecisionBridge(
                 synthesizer=synth,
                 orchestrator=orch,
@@ -808,7 +826,9 @@ class TestSingleTaskProcessing:
 
     def test_orchestrator_returns_routing_failure(self):
         orch = _mock_orchestrator()
-        orch.route_task.return_value = RoutingFailure(task_id="t1", reason="no capacity", attempted_agents=2, excluded_agents=0)
+        orch.route_task.return_value = RoutingFailure(
+            task_id="t1", reason="no capacity", attempted_agents=2, excluded_agents=0
+        )
         bridge = _make_bridge(orchestrator=orch)
         task = _mock_queued_task()
 
@@ -866,7 +886,7 @@ class TestDecomposition:
         bridge = _make_bridge(autojob_client=autojob)
         task = _mock_queued_task(bounty=5.0)
 
-        results = bridge.process_with_synthesis({"t1": task})
+        bridge.process_with_synthesis({"t1": task})
         autojob._post.assert_not_called()
 
     def test_decomposes_high_bounty_tasks(self):
@@ -902,7 +922,7 @@ class TestDecomposition:
         bridge = _make_bridge(autojob_client=autojob, decomposition_enabled=False)
         task = _mock_queued_task(bounty=50.0)
 
-        results = bridge.process_with_synthesis({"t1": task})
+        bridge.process_with_synthesis({"t1": task})
         autojob._post.assert_not_called()
 
     def test_autojob_not_available(self):
@@ -911,7 +931,7 @@ class TestDecomposition:
         bridge = _make_bridge(autojob_client=autojob)
         task = _mock_queued_task(bounty=50.0)
 
-        results = bridge.process_with_synthesis({"t1": task})
+        bridge.process_with_synthesis({"t1": task})
         autojob._post.assert_not_called()
 
 
@@ -1115,16 +1135,20 @@ class TestStatsAndDashboard:
 
         # Simulate 3 correct and 1 incorrect feedback
         for i in range(3):
-            bridge._feedback.append(FeedbackRecord(
-                task_id=f"t{i}",
+            bridge._feedback.append(
+                FeedbackRecord(
+                    task_id=f"t{i}",
+                    decision_outcome="routed",
+                    actual_outcome="completed",
+                )
+            )
+        bridge._feedback.append(
+            FeedbackRecord(
+                task_id="t3",
                 decision_outcome="routed",
-                actual_outcome="completed",
-            ))
-        bridge._feedback.append(FeedbackRecord(
-            task_id="t3",
-            decision_outcome="routed",
-            actual_outcome="expired",
-        ))
+                actual_outcome="expired",
+            )
+        )
 
         stats = bridge.stats
         assert stats["routing_accuracy"] == 0.75  # 3/4
@@ -1133,14 +1157,16 @@ class TestStatsAndDashboard:
         bridge = _make_bridge()
 
         for i in range(5):
-            bridge._feedback.append(FeedbackRecord(
-                task_id=f"t{i}",
-                decision_outcome="routed",
-                actual_outcome="completed",
-                agent_id="42",
-                decision_score=85.0,
-                timestamp="2026-03-28T00:00:00Z",
-            ))
+            bridge._feedback.append(
+                FeedbackRecord(
+                    task_id=f"t{i}",
+                    decision_outcome="routed",
+                    actual_outcome="completed",
+                    agent_id="42",
+                    decision_score=85.0,
+                    timestamp="2026-03-28T00:00:00Z",
+                )
+            )
 
         history = bridge.get_feedback_history(limit=3)
         assert len(history) == 3
@@ -1150,11 +1176,13 @@ class TestStatsAndDashboard:
         bridge = _make_bridge()
 
         for i in range(3):
-            bridge._feedback.append(FeedbackRecord(
-                task_id=f"t{i}",
-                decision_outcome="routed",
-                actual_outcome="completed",
-            ))
+            bridge._feedback.append(
+                FeedbackRecord(
+                    task_id=f"t{i}",
+                    decision_outcome="routed",
+                    actual_outcome="completed",
+                )
+            )
 
         history = bridge.get_feedback_history(limit=50)
         assert len(history) == 3
@@ -1204,7 +1232,7 @@ class TestEdgeCases:
         bridge = _make_bridge(orchestrator=orch, mode=BridgeMode.SHADOW)
         task = _mock_queued_task()
 
-        results = bridge.process_with_synthesis({"t1": task})
+        bridge.process_with_synthesis({"t1": task})
         # Legacy route should be called
         orch.route_task.assert_called()
 

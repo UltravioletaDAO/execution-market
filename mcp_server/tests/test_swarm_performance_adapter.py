@@ -11,8 +11,6 @@ Tests cover:
     6. Edge cases (empty IDs, no data, cache clearing)
 """
 
-import pytest
-from unittest.mock import patch, MagicMock
 from datetime import datetime, timezone, timedelta
 
 from mcp_server.swarm.performance_adapter import (

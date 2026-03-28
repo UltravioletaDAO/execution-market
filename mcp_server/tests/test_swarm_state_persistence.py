@@ -12,8 +12,6 @@ Tests cover:
 import json
 import os
 import tempfile
-import time
-import pytest
 from datetime import datetime, timezone, timedelta
 
 from mcp_server.swarm.state_persistence import (
@@ -38,7 +36,8 @@ class TestPersistedState:
 
     def test_to_dict(self):
         state = PersistedState(
-            total_ingested=10, total_completed=5,
+            total_ingested=10,
+            total_completed=5,
             pending_tasks=[{"id": "t1"}],
         )
         d = state.to_dict()
@@ -167,7 +166,9 @@ class TestRetryBackoff:
         backoff._backoffs = {
             "old": {"next_retry_at": old_time, "attempt": 1, "delay_seconds": 30},
             "recent": {
-                "next_retry_at": (datetime.now(timezone.utc) + timedelta(seconds=30)).isoformat(),
+                "next_retry_at": (
+                    datetime.now(timezone.utc) + timedelta(seconds=30)
+                ).isoformat(),
                 "attempt": 1,
                 "delay_seconds": 30,
             },
@@ -194,7 +195,8 @@ class TestSwarmStatePersistence:
         with tempfile.TemporaryDirectory() as tmpdir:
             persistence = SwarmStatePersistence(tmpdir)
             state = PersistedState(
-                total_ingested=50, total_completed=30,
+                total_ingested=50,
+                total_completed=30,
                 pending_tasks=[{"id": "t1"}],
             )
             assert persistence.save(state) is True
@@ -268,7 +270,10 @@ class TestSwarmStatePersistence:
         with tempfile.TemporaryDirectory() as tmpdir:
             persistence = SwarmStatePersistence(tmpdir)
 
-            data = {"schema_version": 999, "saved_at": datetime.now(timezone.utc).isoformat()}
+            data = {
+                "schema_version": 999,
+                "saved_at": datetime.now(timezone.utc).isoformat(),
+            }
             with open(persistence.state_file, "w") as f:
                 json.dump(data, f)
 
@@ -308,5 +313,5 @@ class TestSwarmStatePersistence:
     def test_creates_directory(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             nested = os.path.join(tmpdir, "deep", "nested", "dir")
-            persistence = SwarmStatePersistence(nested)
+            SwarmStatePersistence(nested)  # side effect: creates directory
             assert os.path.isdir(nested)
