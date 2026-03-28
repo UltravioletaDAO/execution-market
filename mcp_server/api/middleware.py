@@ -21,6 +21,21 @@ logger = logging.getLogger(__name__)
 # Global rate limiter instance
 _rate_limiter: Optional[RateLimiter] = None
 
+# A2A-specific rate limit (in-memory sliding window)
+_a2a_requests: dict = {}  # ip -> list of timestamps
+
+
+def _check_a2a_limit(ip: str, limit: int = 5, window: int = 60) -> tuple:
+    """Check A2A-specific rate limit. Returns (is_limited, retry_after_seconds)."""
+    now = time.time()
+    timestamps = _a2a_requests.setdefault(ip, [])
+    cutoff = now - window
+    timestamps[:] = [t for t in timestamps if t > cutoff]
+    if len(timestamps) >= limit:
+        return True, int(window - (now - timestamps[0])) if timestamps else window
+    timestamps.append(now)
+    return False, 0
+
 
 def get_rate_limiter() -> RateLimiter:
     """Get or create the global rate limiter."""
@@ -121,8 +136,49 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if request.headers.get("upgrade") == "websocket":
             return await call_next(request)
 
-        # Get client identifiers
+        # Get client IP early (needed for ban check + rate limiting)
         client_ip = _get_client_ip(request)
+
+        # Check IP ban FIRST (cheapest check, no processing for banned IPs)
+        try:
+            from security.ip_ban import is_banned, record_429
+
+            if is_banned(client_ip):
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "Temporarily banned due to excessive requests"},
+                )
+        except ImportError:
+            record_429 = None  # type: ignore[assignment]
+
+        # Reject oversized request bodies (1 MB max)
+        content_length = int(request.headers.get("content-length", 0))
+        if content_length > 1_048_576:
+            return JSONResponse(
+                status_code=413,
+                content={"error": "Request body too large", "max_bytes": 1_048_576},
+            )
+
+        # A2A-specific rate limits (stricter: 5 req/min per IP)
+        if request.url.path.startswith("/a2a/"):
+            is_limited, retry_after = _check_a2a_limit(client_ip, limit=5, window=60)
+            if is_limited:
+                if record_429:
+                    record_429(client_ip)
+                return JSONResponse(
+                    status_code=429,
+                    content={
+                        "jsonrpc": "2.0",
+                        "error": {"code": -32005, "message": "A2A rate limit exceeded"},
+                        "id": None,
+                    },
+                    headers={
+                        "Retry-After": str(retry_after),
+                        "X-RateLimit-Type": "a2a",
+                    },
+                )
+
+        # Get remaining client identifiers
         device_id = request.headers.get("X-Device-ID")
         api_key = _extract_api_key(request)
 
@@ -158,6 +214,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 limit_type,
                 retry_after,
             )
+            if record_429:
+                record_429(client_ip)
 
             return JSONResponse(
                 status_code=429,
