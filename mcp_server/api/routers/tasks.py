@@ -1696,7 +1696,7 @@ async def get_task_payment(
                 submission_err,
             )
 
-    default_network = "base"
+    default_network = str(task.get("payment_network") or "base").strip().lower()
     created_at = str(task.get("created_at") or datetime.now(timezone.utc).isoformat())
     updated_at = str(task.get("updated_at") or created_at)
     events: List[Dict[str, Any]] = []

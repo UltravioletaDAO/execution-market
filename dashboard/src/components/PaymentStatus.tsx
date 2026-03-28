@@ -351,7 +351,7 @@ function TimelineEvent({ event, network, bountyAmount }: { event: PaymentEvent; 
         {/* Transaction hash */}
         {event.tx_hash && (
           <a
-            href={getExplorerUrl(network, event.tx_hash)}
+            href={getExplorerUrl(event.network || network, event.tx_hash)}
             target="_blank"
             rel="noopener noreferrer"
             className="mt-1.5 inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 transition-colors"
@@ -484,24 +484,7 @@ export function PaymentStatus({
             <dt className="text-gray-500">{t('payment.updated', 'Actualizado')}</dt>
             <dd className="font-medium text-gray-900">{formatRelativeTime(payment.updated_at)}</dd>
           </div>
-          {payment.escrow_tx && (
-            <div className="col-span-2">
-              <dt className="text-gray-500 mb-1">{t('payment.escrowTx', 'TX de Escrow')}</dt>
-              <dd>
-                <a
-                  href={getExplorerUrl(payment.network, payment.escrow_tx)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 font-mono text-sm text-blue-600 hover:text-blue-700 transition-colors"
-                >
-                  {truncateHash(payment.escrow_tx)}
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </a>
-              </dd>
-            </div>
-          )}
+          {/* Escrow TX is already shown in the timeline below — removed from details to avoid duplication */}
           {payment.escrow_contract && (
             <div className="col-span-2">
               <dt className="text-gray-500 mb-1">{t('payment.escrowContract', 'Contrato de Escrow')}</dt>
