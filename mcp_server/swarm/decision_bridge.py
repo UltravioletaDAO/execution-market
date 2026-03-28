@@ -933,7 +933,7 @@ class DecisionBridge:
             return
 
         # Map string outcomes to optimizer's OutcomeType
-        from .routing_optimizer import OutcomeType, TaskOutcome
+        from .routing_optimizer import OutcomeType, TaskRecord
 
         outcome_map = {
             "completed": OutcomeType.COMPLETED,
@@ -946,11 +946,11 @@ class DecisionBridge:
         outcome_type = outcome_map.get(record.actual_outcome, OutcomeType.REJECTED)
 
         self.routing_optimizer.record_outcome(
-            TaskOutcome(
+            TaskRecord(
                 task_id=record.task_id,
                 outcome=outcome_type,
-                quality=record.quality_rating,
-                time_hours=record.time_to_completion_hours,
+                quality_score=record.quality_rating,
+                completion_hours=record.time_to_completion_hours,
             )
         )
 
