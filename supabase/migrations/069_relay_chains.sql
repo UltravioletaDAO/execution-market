@@ -1,3 +1,4 @@
+-- Made idempotent 2026-03-28: safe to re-run on partial application
 -- Migration 069: Relay Chains (Multi-Worker Chained Execution)
 -- Enables complex tasks that require handoff between workers
 -- (e.g., package relay across cities, multi-leg deliveries).
@@ -33,18 +34,40 @@ CREATE TABLE IF NOT EXISTS relay_legs (
     UNIQUE(chain_id, leg_number)
 );
 
-CREATE INDEX idx_relay_chains_parent ON relay_chains(parent_task_id);
-CREATE INDEX idx_relay_chains_status ON relay_chains(status)
-    WHERE status IN ('pending', 'active');
-CREATE INDEX idx_relay_legs_chain ON relay_legs(chain_id);
-CREATE INDEX idx_relay_legs_worker ON relay_legs(worker_wallet)
-    WHERE worker_wallet IS NOT NULL;
+DO $$ BEGIN
+    CREATE INDEX idx_relay_chains_parent ON relay_chains(parent_task_id);
+EXCEPTION WHEN duplicate_table THEN NULL;
+END $$;
+
+DO $$ BEGIN
+    CREATE INDEX idx_relay_chains_status ON relay_chains(status)
+        WHERE status IN ('pending', 'active');
+EXCEPTION WHEN duplicate_table THEN NULL;
+END $$;
+
+DO $$ BEGIN
+    CREATE INDEX idx_relay_legs_chain ON relay_legs(chain_id);
+EXCEPTION WHEN duplicate_table THEN NULL;
+END $$;
+
+DO $$ BEGIN
+    CREATE INDEX idx_relay_legs_worker ON relay_legs(worker_wallet)
+        WHERE worker_wallet IS NOT NULL;
+EXCEPTION WHEN duplicate_table THEN NULL;
+END $$;
 
 -- RLS: service_role full access
 ALTER TABLE relay_chains ENABLE ROW LEVEL SECURITY;
 ALTER TABLE relay_legs ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY relay_chains_service_all ON relay_chains
-    FOR ALL TO service_role USING (true) WITH CHECK (true);
-CREATE POLICY relay_legs_service_all ON relay_legs
-    FOR ALL TO service_role USING (true) WITH CHECK (true);
+DO $$ BEGIN
+    CREATE POLICY relay_chains_service_all ON relay_chains
+        FOR ALL TO service_role USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+    CREATE POLICY relay_legs_service_all ON relay_legs
+        FOR ALL TO service_role USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;

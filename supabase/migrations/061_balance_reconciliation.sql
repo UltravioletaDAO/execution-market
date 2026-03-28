@@ -1,3 +1,4 @@
+-- Made idempotent 2026-03-28: safe to re-run on partial application
 -- Migration 061: Balance Reconciliation Function
 -- Source: DB Optimization Audit 2026-03-15 (Phase 5, Task 5.5)
 -- Compares stored executor balances against calculated balances from

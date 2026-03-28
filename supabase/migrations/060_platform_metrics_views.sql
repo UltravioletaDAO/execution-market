@@ -1,3 +1,4 @@
+-- Made idempotent 2026-03-28: safe to re-run on partial application
 -- Migration 060: Platform Metrics & Leaderboard Materialized Views
 -- Source: DB Optimization Audit 2026-03-15 (Phase 5, Tasks 5.1, 5.2, 5.3)
 -- Replaces full table scans on every dashboard load with pre-computed views.
@@ -21,7 +22,10 @@ SELECT
 FROM tasks;
 
 -- Unique index required for CONCURRENTLY refresh
-CREATE UNIQUE INDEX ON platform_metrics ((1));
+DO $$ BEGIN
+    CREATE UNIQUE INDEX ON platform_metrics ((1));
+EXCEPTION WHEN duplicate_table THEN NULL;
+END $$;
 
 -- ============================================================
 -- 2. Executor Leaderboard (Task 5.2)
@@ -44,9 +48,20 @@ WHERE e.status = 'active'
 ORDER BY e.reputation_score DESC, e.tasks_completed DESC
 LIMIT 500;
 
-CREATE UNIQUE INDEX ON executor_leaderboard (id);
-CREATE INDEX ON executor_leaderboard (rank);
-CREATE INDEX ON executor_leaderboard (reputation_score DESC);
+DO $$ BEGIN
+    CREATE UNIQUE INDEX ON executor_leaderboard (id);
+EXCEPTION WHEN duplicate_table THEN NULL;
+END $$;
+
+DO $$ BEGIN
+    CREATE INDEX ON executor_leaderboard (rank);
+EXCEPTION WHEN duplicate_table THEN NULL;
+END $$;
+
+DO $$ BEGIN
+    CREATE INDEX ON executor_leaderboard (reputation_score DESC);
+EXCEPTION WHEN duplicate_table THEN NULL;
+END $$;
 
 -- ============================================================
 -- 3. Refresh Function (Task 5.3)

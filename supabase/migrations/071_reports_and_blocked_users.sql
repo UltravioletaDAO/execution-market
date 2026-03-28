@@ -1,3 +1,4 @@
+-- Made idempotent 2026-03-28: safe to re-run on partial application
 -- Reports table for content moderation (Apple 1.2 / Google UGC policy)
 CREATE TABLE IF NOT EXISTS reports (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -12,9 +13,20 @@ CREATE TABLE IF NOT EXISTS reports (
     resolved_at TIMESTAMPTZ
 );
 
-CREATE INDEX idx_reports_status ON reports(status);
-CREATE INDEX idx_reports_target ON reports(target_type, target_id);
-CREATE INDEX idx_reports_reporter ON reports(reporter_id);
+DO $$ BEGIN
+    CREATE INDEX idx_reports_status ON reports(status);
+EXCEPTION WHEN duplicate_table THEN NULL;
+END $$;
+
+DO $$ BEGIN
+    CREATE INDEX idx_reports_target ON reports(target_type, target_id);
+EXCEPTION WHEN duplicate_table THEN NULL;
+END $$;
+
+DO $$ BEGIN
+    CREATE INDEX idx_reports_reporter ON reports(reporter_id);
+EXCEPTION WHEN duplicate_table THEN NULL;
+END $$;
 
 -- Blocked users table
 CREATE TABLE IF NOT EXISTS blocked_users (
@@ -25,15 +37,28 @@ CREATE TABLE IF NOT EXISTS blocked_users (
     UNIQUE(user_id, blocked_user_id)
 );
 
-CREATE INDEX idx_blocked_users_user ON blocked_users(user_id);
+DO $$ BEGIN
+    CREATE INDEX idx_blocked_users_user ON blocked_users(user_id);
+EXCEPTION WHEN duplicate_table THEN NULL;
+END $$;
 
 -- RLS policies
 ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE blocked_users ENABLE ROW LEVEL SECURITY;
 
 -- Reports: users can create, admins can read/update
-CREATE POLICY reports_insert ON reports FOR INSERT WITH CHECK (true);
-CREATE POLICY reports_select_own ON reports FOR SELECT USING (reporter_id = auth.uid()::uuid);
+DO $$ BEGIN
+    CREATE POLICY reports_insert ON reports FOR INSERT WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+    CREATE POLICY reports_select_own ON reports FOR SELECT USING (reporter_id = auth.uid()::uuid);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- Blocked users: users manage their own blocks
-CREATE POLICY blocked_users_own ON blocked_users FOR ALL USING (user_id = auth.uid()::uuid);
+DO $$ BEGIN
+    CREATE POLICY blocked_users_own ON blocked_users FOR ALL USING (user_id = auth.uid()::uuid);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;

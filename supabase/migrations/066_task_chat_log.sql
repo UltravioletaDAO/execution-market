@@ -1,3 +1,4 @@
+-- Made idempotent 2026-03-28: safe to re-run on partial application
 -- Migration 066: Task Chat Log
 -- Persists IRC task channel messages as evidence for disputes.
 -- Only stores messages from #task-{id} channels (NOT #bounties, NOT DMs).
@@ -14,11 +15,21 @@ CREATE TABLE IF NOT EXISTS task_chat_log (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_task_chat_log_task ON task_chat_log(task_id);
-CREATE INDEX idx_task_chat_log_task_time ON task_chat_log(task_id, created_at);
+DO $$ BEGIN
+    CREATE INDEX idx_task_chat_log_task ON task_chat_log(task_id);
+EXCEPTION WHEN duplicate_table THEN NULL;
+END $$;
+
+DO $$ BEGIN
+    CREATE INDEX idx_task_chat_log_task_time ON task_chat_log(task_id, created_at);
+EXCEPTION WHEN duplicate_table THEN NULL;
+END $$;
 
 -- RLS: service_role full access, admin read
 ALTER TABLE task_chat_log ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY task_chat_log_service_all ON task_chat_log
-    FOR ALL TO service_role USING (true) WITH CHECK (true);
+DO $$ BEGIN
+    CREATE POLICY task_chat_log_service_all ON task_chat_log
+        FOR ALL TO service_role USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;

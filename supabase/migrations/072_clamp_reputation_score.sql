@@ -1,3 +1,4 @@
+-- Made idempotent 2026-03-28: safe to re-run on partial application
 -- Migration 072: Clamp reputation_score to 0-100 range
 --
 -- Bug: reputation_score values > 100 found in production (e.g., 120).

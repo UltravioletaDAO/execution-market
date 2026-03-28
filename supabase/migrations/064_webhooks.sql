@@ -1,6 +1,7 @@
--- Migration 064: Webhooks and Webhook Deliveries
+-- Migration 064: Webhooks and Webhook Deliveries (idempotent)
 -- Enables persistent webhook registration for partners (MeshRelay, agents).
 -- Fixes BUG-3: registry.py:481 calls table("webhooks") but table didn't exist.
+-- Made idempotent 2026-03-28: handles partial application (index existed before table completed).
 
 CREATE TABLE IF NOT EXISTS webhooks (
     webhook_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -21,8 +22,16 @@ CREATE TABLE IF NOT EXISTS webhooks (
     UNIQUE(owner_id, url)
 );
 
-CREATE INDEX idx_webhooks_owner ON webhooks(owner_id);
-CREATE INDEX idx_webhooks_status ON webhooks(status);
+-- Indexes: use DO block to handle "already exists" gracefully
+DO $$ BEGIN
+    CREATE INDEX idx_webhooks_owner ON webhooks(owner_id);
+EXCEPTION WHEN duplicate_table THEN NULL;
+END $$;
+
+DO $$ BEGIN
+    CREATE INDEX idx_webhooks_status ON webhooks(status);
+EXCEPTION WHEN duplicate_table THEN NULL;
+END $$;
 
 CREATE TABLE IF NOT EXISTS webhook_deliveries (
     delivery_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -36,15 +45,28 @@ CREATE TABLE IF NOT EXISTS webhook_deliveries (
     completed_at TIMESTAMPTZ
 );
 
-CREATE INDEX idx_webhook_deliveries_webhook ON webhook_deliveries(webhook_id, created_at DESC);
-CREATE INDEX idx_webhook_deliveries_status ON webhook_deliveries(status);
+DO $$ BEGIN
+    CREATE INDEX idx_webhook_deliveries_webhook ON webhook_deliveries(webhook_id, created_at DESC);
+EXCEPTION WHEN duplicate_table THEN NULL;
+END $$;
+
+DO $$ BEGIN
+    CREATE INDEX idx_webhook_deliveries_status ON webhook_deliveries(status);
+EXCEPTION WHEN duplicate_table THEN NULL;
+END $$;
 
 -- RLS: service_role has full access (server-side only)
 ALTER TABLE webhooks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE webhook_deliveries ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY webhooks_service_all ON webhooks
-    FOR ALL TO service_role USING (true) WITH CHECK (true);
+DO $$ BEGIN
+    CREATE POLICY webhooks_service_all ON webhooks
+        FOR ALL TO service_role USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY webhook_deliveries_service_all ON webhook_deliveries
-    FOR ALL TO service_role USING (true) WITH CHECK (true);
+DO $$ BEGIN
+    CREATE POLICY webhook_deliveries_service_all ON webhook_deliveries
+        FOR ALL TO service_role USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
