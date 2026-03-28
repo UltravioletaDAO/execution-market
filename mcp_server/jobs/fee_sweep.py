@@ -30,6 +30,7 @@ SWEEP_NETWORKS = [
     "monad",
     "celo",
     "optimism",
+    "skale",
 ]
 
 

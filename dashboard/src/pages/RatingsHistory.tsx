@@ -35,6 +35,7 @@ interface RatingEntry {
   created_at: string
   task_title: string | null
   reputation_tx: string | null
+  payment_network: string | null
 }
 
 // ============================================================================
@@ -50,7 +51,7 @@ function useRatingsReceived(executorId: string | undefined) {
       const { data, error } = await supabase
         .from('ratings')
         .select(
-          'id, executor_id, task_id, rater_id, rater_type, rating, stars, comment, created_at, tasks:task_id(title)'
+          'id, executor_id, task_id, rater_id, rater_type, rating, stars, comment, created_at, tasks:task_id(title, payment_network)'
         )
         .eq('executor_id', executorId)
         .eq('rater_type', 'agent')
@@ -73,6 +74,7 @@ function useRatingsReceived(executorId: string | undefined) {
           ...(row as unknown as RatingEntry),
           task_title: null,
           reputation_tx: null,
+          payment_network: null,
         }))
       }
 
@@ -93,7 +95,7 @@ function useRatingsReceived(executorId: string | undefined) {
       }
 
       return (data || []).map((row: Record<string, unknown>) => {
-        const task = (row.tasks || {}) as { title?: string }
+        const task = (row.tasks || {}) as { title?: string; payment_network?: string }
         return {
           id: row.id as string,
           executor_id: row.executor_id as string,
@@ -106,6 +108,7 @@ function useRatingsReceived(executorId: string | undefined) {
           created_at: row.created_at as string,
           task_title: task.title || null,
           reputation_tx: feedbackMap[row.task_id as string] || null,
+          payment_network: task.payment_network || null,
         }
       })
     },
@@ -123,7 +126,7 @@ function useRatingsGiven(executorId: string | undefined) {
       const { data, error } = await supabase
         .from('ratings')
         .select(
-          'id, executor_id, task_id, rater_id, rater_type, rating, stars, comment, created_at, tasks:task_id(title)'
+          'id, executor_id, task_id, rater_id, rater_type, rating, stars, comment, created_at, tasks:task_id(title, payment_network)'
         )
         .eq('rater_id', executorId)
         .eq('is_public', true)
@@ -143,6 +146,7 @@ function useRatingsGiven(executorId: string | undefined) {
           ...(row as unknown as RatingEntry),
           task_title: null,
           reputation_tx: null,
+          payment_network: null,
         }))
       }
 
@@ -163,7 +167,7 @@ function useRatingsGiven(executorId: string | undefined) {
       }
 
       return (data || []).map((row: Record<string, unknown>) => {
-        const task = (row.tasks || {}) as { title?: string }
+        const task = (row.tasks || {}) as { title?: string; payment_network?: string }
         return {
           id: row.id as string,
           executor_id: row.executor_id as string,
@@ -176,6 +180,7 @@ function useRatingsGiven(executorId: string | undefined) {
           created_at: row.created_at as string,
           task_title: task.title || null,
           reputation_tx: feedbackMap[row.task_id as string] || null,
+          payment_network: task.payment_network || null,
         }
       })
     },
@@ -244,7 +249,7 @@ function RatingCard({ entry, t }: { entry: RatingEntry; t: (key: string) => stri
           <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
           </svg>
-          <TxLink txHash={entry.reputation_tx} network="base" />
+          <TxLink txHash={entry.reputation_tx} network={entry.payment_network || "base"} />
         </div>
       )}
     </div>

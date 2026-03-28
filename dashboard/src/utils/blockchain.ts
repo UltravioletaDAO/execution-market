@@ -23,6 +23,7 @@ export type NetworkId =
   | 'monad'
   | 'avalanche'
   | 'optimism'
+  | 'skale'
   | 'solana';
 
 /** Explorer base URLs for transactions */

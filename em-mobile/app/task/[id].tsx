@@ -896,7 +896,7 @@ export default function TaskDetailScreen() {
                   {taskRatings.agentRating.reputation_tx && (
                     <Pressable
                       className="mt-1"
-                      onPress={() => openUrl(getExplorerTxUrl("base", taskRatings.agentRating!.reputation_tx!))}
+                      onPress={() => openUrl(getExplorerTxUrl(task.payment_network || "base", taskRatings.agentRating!.reputation_tx!))}
                     >
                       <Text className="text-blue-400 text-xs">
                         {t("task.reputationTx")} · {taskRatings.agentRating.reputation_tx.slice(0, 10)}... ↗
@@ -938,7 +938,7 @@ export default function TaskDetailScreen() {
                   {taskRatings.workerRating.reputation_tx && (
                     <Pressable
                       className="mt-1"
-                      onPress={() => openUrl(getExplorerTxUrl("base", taskRatings.workerRating!.reputation_tx!))}
+                      onPress={() => openUrl(getExplorerTxUrl(task.payment_network || "base", taskRatings.workerRating!.reputation_tx!))}
                     >
                       <Text className="text-blue-400 text-xs">
                         {t("task.reputationTx")} · {taskRatings.workerRating.reputation_tx.slice(0, 10)}... ↗

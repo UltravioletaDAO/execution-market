@@ -33,6 +33,7 @@ export interface TaskHistoryItem {
   submitted_at: string
   verified_at: string | null
   payment_amount: number | null
+  payment_network: string | null
 }
 
 // Hook for earnings data

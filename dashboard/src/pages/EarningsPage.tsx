@@ -46,7 +46,7 @@ export function EarningsPage() {
           ? 'failed'
           : 'pending') as 'completed' | 'failed' | 'pending',
       tx_hash: null,
-      network: 'base',
+      network: item.payment_network || 'base',
       created_at: item.verified_at ?? item.submitted_at,
       task_title: item.task_title,
       task_id: item.task_id,
