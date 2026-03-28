@@ -8,6 +8,7 @@ import Users from './pages/Users'
 import AuditLog from './pages/AuditLog'
 
 const Integrations = lazy(() => import('./pages/Integrations'))
+const Webhooks = lazy(() => import('./pages/Webhooks'))
 
 const navItems = [
   { path: '/', label: 'Analytics', icon: '📊' },
@@ -17,6 +18,7 @@ const navItems = [
   { path: '/settings', label: 'Settings', icon: '⚙️' },
   { path: '/audit', label: 'Audit Log', icon: '📜' },
   { path: '/integrations', label: 'Integrations', icon: '🔗' },
+  { path: '/webhooks', label: 'Webhooks', icon: '🔔' },
 ]
 
 function App() {
@@ -168,6 +170,7 @@ function App() {
           <Route path="/settings" element={<Settings adminKey={adminKey} />} />
           <Route path="/audit" element={<AuditLog adminKey={adminKey} />} />
           <Route path="/integrations" element={<Suspense fallback={<div className="text-gray-400">Loading...</div>}><Integrations adminKey={adminKey} /></Suspense>} />
+          <Route path="/webhooks" element={<Suspense fallback={<div className="text-gray-400">Loading...</div>}><Webhooks adminKey={adminKey} /></Suspense>} />
         </Routes>
       </main>
     </div>
