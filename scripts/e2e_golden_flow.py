@@ -17,6 +17,7 @@ Usage:
 Environment:
     EM_API_KEY           -- Agent API key (optional when EM_REQUIRE_API_KEY=false)
     EM_API_URL           -- API base URL (default: https://api.execution.market)
+    WALLET_PRIVATE_KEY   -- Agent wallet key (signs escrow for task assignment)
     EM_WORKER_WALLET     -- Worker wallet (default: 0x52E0...)
     EM_WORKER_PRIVATE_KEY -- Worker private key (for on-chain reputation signing)
     EM_TEST_EXECUTOR_ID  -- Existing executor UUID (skips registration if set)
@@ -74,6 +75,9 @@ TREASURY_WALLET = "YOUR_TREASURY_WALLET"
 
 # Existing executor ID (skips registration if set)
 EXISTING_EXECUTOR_ID = os.environ.get("EM_TEST_EXECUTOR_ID", "")
+
+# Agent wallet (signs escrow -- acts as the hiring agent in Golden Flow)
+AGENT_PRIVATE_KEY = os.environ.get("WALLET_PRIVATE_KEY", "")
 
 # Blockchain
 BASE_RPC = "https://mainnet.base.org"
@@ -386,6 +390,101 @@ def _fetch_payment_from_supabase(task_id: str) -> Optional[Dict[str, Any]]:
 
 
 # ---------------------------------------------------------------------------
+# Escrow signing (Fase 2 agent-signed escrow via AdvancedEscrowClient)
+# ---------------------------------------------------------------------------
+def sign_escrow_for_assign(
+    worker_wallet: str,
+    bounty_usd: float,
+    network: str = "base",
+) -> Dict[str, Any]:
+    """
+    Sign escrow authorization using AdvancedEscrowClient.
+
+    Returns dict with escrow_tx, payment_info for the assign request.
+    This is a SYNCHRONOUS call (on-chain transaction).
+    """
+    if not AGENT_PRIVATE_KEY:
+        raise RuntimeError("WALLET_PRIVATE_KEY not set -- cannot sign escrow")
+
+    try:
+        from uvd_x402_sdk.advanced_escrow import AdvancedEscrowClient, TaskTier
+    except ImportError:
+        raise RuntimeError(
+            "uvd-x402-sdk[escrow] not installed. "
+            "Run: pip install 'uvd-x402-sdk[escrow]'"
+        )
+
+    # Network config -- Base mainnet
+    CHAIN_CONFIGS: Dict[str, Dict[str, Any]] = {
+        "base": {
+            "chain_id": 8453,
+            "rpc_url": "https://mainnet.base.org",
+            "usdc": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+            "escrow": "0xb9488351E48b23D798f24e8174514F28B741Eb4f",
+            "operator": "0x271f9fa7f8907aCf178CCFB470076D9129D8F0Eb",
+            "token_collector": "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8",
+        },
+    }
+
+    config = CHAIN_CONFIGS.get(network)
+    if not config:
+        raise ValueError(f"Unsupported network for Golden Flow escrow: {network}")
+
+    escrow_client = AdvancedEscrowClient(
+        private_key=AGENT_PRIVATE_KEY,
+        chain_id=config["chain_id"],
+        rpc_url=config["rpc_url"],
+        contracts={
+            "usdc": config["usdc"],
+            "escrow": config["escrow"],
+            "operator": config["operator"],
+            "token_collector": config["token_collector"],
+        },
+    )
+
+    # Build payment info
+    bounty_atomic = int(bounty_usd * 1_000_000)  # USDC 6 decimals
+    pi = escrow_client.build_payment_info(
+        receiver=worker_wallet,
+        amount=bounty_atomic,
+        tier=TaskTier.MICRO,
+        max_fee_bps=1800,  # 18% max (13% actual + margin)
+    )
+
+    # Sign and submit authorization on-chain (synchronous)
+    result = escrow_client.authorize(pi)
+    if not result.success:
+        raise RuntimeError(f"Escrow authorize failed: {result.error}")
+
+    # Derive agent address from private key
+    from eth_account import Account
+
+    agent_address = Account.from_key(AGENT_PRIVATE_KEY).address
+
+    payment_info = {
+        "mode": "fase2",
+        "payer": agent_address,
+        "operator": pi.operator,
+        "receiver": pi.receiver,
+        "token": pi.token,
+        "max_amount": pi.max_amount,
+        "pre_approval_expiry": pi.pre_approval_expiry,
+        "authorization_expiry": pi.authorization_expiry,
+        "refund_expiry": pi.refund_expiry,
+        "min_fee_bps": pi.min_fee_bps,
+        "max_fee_bps": pi.max_fee_bps,
+        "fee_receiver": pi.fee_receiver,
+        "salt": pi.salt,
+    }
+
+    return {
+        "escrow_tx": result.transaction_hash,
+        "payment_info": payment_info,
+        "agent_address": agent_address,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Phase 1: Health & Config
 # ---------------------------------------------------------------------------
 async def phase_health_config(
@@ -679,16 +778,43 @@ async def phase_task_lifecycle(
         application_id = (apply_data.get("data") or {}).get("application_id")
         print(f"         Application ID: {application_id}")
 
-        # Step 2: Agent assigns worker (escrow lock happens here in direct_release)
-        print("  [2/4] Agent assigning worker (+ escrow lock)...")
+        # Step 2: Sign escrow and assign worker
+        print("  [2/4] Signing escrow + assigning worker...")
+
+        # Get bounty value for escrow amount
+        bounty_val = bounty
+
+        # Sign escrow on-chain via AdvancedEscrowClient (agent-signed, Fase 2)
+        agent_escrow_result = None
+        if AGENT_PRIVATE_KEY:
+            try:
+                agent_escrow_result = sign_escrow_for_assign(
+                    worker_wallet=WORKER_WALLET,
+                    bounty_usd=bounty_val,
+                    network="base",
+                )
+                print(f"         Escrow signed: {agent_escrow_result['escrow_tx'][:16]}...")
+                print(f"         Agent wallet:  {agent_escrow_result['agent_address']}")
+            except Exception as e:
+                return phase.fail(f"Escrow signing failed: {e}")
+        else:
+            print("         WALLET_PRIVATE_KEY not set -- skipping agent escrow signing")
+            print("         (server will attempt server-side escrow if EM_SERVER_SIGNING=true)")
+
+        # Build assign payload
+        assign_payload: Dict[str, Any] = {
+            "executor_id": executor_id,
+            "notes": "Golden Flow E2E test assignment",
+        }
+        if agent_escrow_result:
+            assign_payload["escrow_tx"] = agent_escrow_result["escrow_tx"]
+            assign_payload["payment_info"] = agent_escrow_result["payment_info"]
+
         assign_data = await api_call(
             client,
             "POST",
             f"/tasks/{task_id}/assign",
-            {
-                "executor_id": executor_id,
-                "notes": "Golden Flow E2E test assignment",
-            },
+            assign_payload,
         )
         assign_status = assign_data.get("_http_status")
         print(f"         Assign: HTTP {assign_status}")
@@ -704,6 +830,12 @@ async def phase_task_lifecycle(
         escrow_mode = escrow_info.get("escrow_mode")
         escrow_status = escrow_info.get("escrow_status")
         fee_model = escrow_info.get("fee_model")
+
+        # Fall back to agent-signed escrow TX if not returned by API
+        if not escrow_tx and agent_escrow_result:
+            escrow_tx = agent_escrow_result["escrow_tx"]
+            escrow_mode = "agent_signed"
+            fee_model = "credit_card"
 
         if escrow_tx:
             print(f"         Escrow TX:     {escrow_tx}")
@@ -2015,6 +2147,11 @@ async def main() -> int:
     _print_kv("Worker", WORKER_WALLET, 2)
     _print_kv("Treasury", TREASURY_WALLET, 2)
     _print_kv("Auth", "API key set" if API_KEY else "Anonymous (no API key)", 2)
+    _print_kv(
+        "Agent wallet",
+        "set (will sign escrow)" if AGENT_PRIVATE_KEY else "NOT SET (server-side escrow fallback)",
+        2,
+    )
     if EXISTING_EXECUTOR_ID:
         _print_kv("Executor", EXISTING_EXECUTOR_ID, 2)
     _print_kv("Dry run", dry_run, 2)
