@@ -292,6 +292,15 @@ resource "aws_ecs_service" "mcp_server" {
     assign_public_ip = false
   }
 
+  # Zero-downtime deploy: start new task BEFORE stopping old one.
+  # With desiredCount=1: ECS briefly runs 2 tasks (200%), then drains the old (100%).
+  # Eliminates the ~1 min gap where RunningTaskCount=0 during rolling updates.
+  deployment_minimum_healthy_percent = 100
+  deployment_maximum_percent         = 200
+
+  # Grace period: don't fail health checks during startup (server needs ~30s to warm up)
+  health_check_grace_period_seconds = 60
+
   load_balancer {
     target_group_arn = aws_lb_target_group.mcp_server.arn
     container_name   = "mcp-server"
