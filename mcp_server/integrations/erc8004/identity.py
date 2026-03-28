@@ -374,26 +374,37 @@ async def _eth_estimate_gas(
 # ---------------------------------------------------------------------------
 
 
-async def check_worker_identity(wallet_address: str) -> WorkerIdentityResult:
+async def check_worker_identity(
+    wallet_address: str,
+    network: str = "base",
+) -> WorkerIdentityResult:
     """
     Check whether a wallet holds an ERC-8004 identity token on-chain.
 
-    Uses ``balanceOf(address)`` via direct JSON-RPC to the Base Mainnet
-    (or testnet when ``ERC8004_USE_TESTNET=1``).  If balance > 0, attempts
-    ``tokenOfOwnerByIndex(address, 0)`` to retrieve the token ID.
+    Uses ``balanceOf(address)`` via direct JSON-RPC to the specified network.
+    If balance > 0, attempts ``tokenOfOwnerByIndex(address, 0)`` to retrieve
+    the token ID.
 
     Parameters
     ----------
     wallet_address:
         Worker's Ethereum address (``0x``-prefixed).
+    network:
+        EVM network name (e.g. ``"base"``, ``"polygon"``, ``"skale"``).
+        Defaults to ``"base"``.
 
     Returns
     -------
     WorkerIdentityResult
     """
-    registry = _get_registry_address()
-    chain_id = _get_chain_id()
-    network = "ethereum-sepolia" if _USE_TESTNET else "base"
+    from .facilitator_client import ERC8004_CONTRACTS
+    from ..x402.sdk_client import get_rpc_url
+
+    # Resolve per-chain config from ERC8004_CONTRACTS (auto-derived from NETWORK_CONFIG)
+    net_cfg = ERC8004_CONTRACTS.get(network, {})
+    registry = net_cfg.get("identity_registry", _get_registry_address())
+    chain_id = net_cfg.get("chain_id", _get_chain_id())
+    rpc_url = get_rpc_url(network)
 
     # Check cache first
     cache_key = _cache_key(f"worker:{wallet_address}", network)
@@ -413,7 +424,7 @@ async def check_worker_identity(wallet_address: str) -> WorkerIdentityResult:
     try:
         # 1. balanceOf(wallet)
         calldata = SELECTOR_BALANCE_OF + _encode_address(wallet_address)
-        raw = await _eth_call(registry, calldata)
+        raw = await _eth_call(registry, calldata, rpc_url=rpc_url)
         balance = int(raw, 16) if raw and raw != "0x" else 0
 
         if balance == 0:
@@ -435,7 +446,7 @@ async def check_worker_identity(wallet_address: str) -> WorkerIdentityResult:
             tok_data = (
                 SELECTOR_TOKEN_OF_OWNER + _encode_address(wallet_address) + "0" * 64
             )
-            tok_raw = await _eth_call(registry, tok_data)
+            tok_raw = await _eth_call(registry, tok_data, rpc_url=rpc_url)
             if tok_raw and tok_raw != "0x":
                 agent_id = int(tok_raw, 16)
         except Exception as e:

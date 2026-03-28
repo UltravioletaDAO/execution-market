@@ -11,7 +11,7 @@ import logging
 import os
 from typing import Optional, List, Dict, Any
 
-from fastapi import APIRouter, HTTPException, Depends, Path, Request
+from fastapi import APIRouter, HTTPException, Depends, Path, Query, Request
 from pydantic import BaseModel, Field
 
 import supabase_client as db
@@ -413,16 +413,26 @@ async def get_em_identity_endpoint() -> IdentityResponse:
 )
 async def get_agent_reputation_endpoint(
     agent_id: int = Path(..., ge=1, description="Agent's ERC-8004 token ID"),
+    network: Optional[str] = None,
 ) -> ReputationResponse:
     """
     Get reputation for any registered agent by their ERC-8004 token ID.
+
+    Optional query param `network` overrides the default chain (e.g. ?network=polygon).
     """
     if not ERC8004_AVAILABLE:
         raise HTTPException(
             status_code=503, detail="ERC-8004 integration not available"
         )
 
-    reputation = await get_agent_reputation(agent_id)
+    if network:
+        from integrations.erc8004.facilitator_client import ERC8004FacilitatorClient
+
+        client = ERC8004FacilitatorClient(network=network)
+        reputation = await client.get_reputation(agent_id)
+    else:
+        reputation = await get_agent_reputation(agent_id)
+
     if not reputation:
         raise HTTPException(status_code=404, detail=f"Agent {agent_id} not found")
 
@@ -639,8 +649,12 @@ async def register_agent_endpoint(
         404: {"description": "No ERC-8004 identity for this wallet"},
     },
 )
-async def lookup_identity_by_wallet(wallet_address: str):
-    """Lookup ERC-8004 identity by wallet address (supports skill.md STEP 1)."""
+async def lookup_identity_by_wallet(
+    wallet_address: str,
+    network: Optional[str] = Query(None, description="Chain to check (default: base)"),
+):
+    """Lookup ERC-8004 identity by wallet address (supports skill.md STEP 1).
+    Optional `?network=skale` to check on a specific chain."""
     if not ERC8004_AVAILABLE:
         raise HTTPException(status_code=503, detail="ERC-8004 unavailable")
 
@@ -672,7 +686,7 @@ async def lookup_identity_by_wallet(wallet_address: str):
     try:
         from integrations.erc8004.identity import check_worker_identity
 
-        identity = await check_worker_identity(wallet_lower)
+        identity = await check_worker_identity(wallet_lower, network=network or "base")
         if identity and identity.agent_id:
             return {
                 "registered": True,
@@ -1436,4 +1450,104 @@ async def get_feedback_endpoint(
         raise HTTPException(
             status_code=500,
             detail="Failed to retrieve feedback document",
+        )
+
+
+# =============================================================================
+# CROSS-CHAIN REPUTATION AGGREGATION
+# =============================================================================
+
+
+class CrossChainReputationResponse(BaseModel):
+    """Response model for cross-chain reputation aggregation."""
+
+    wallet_address: str
+    final_score: float = Field(description="Average of per-chain averages (0-100)")
+    chain_count: int = Field(
+        description="Number of chains that contributed to the score"
+    )
+    total_reviews: int = Field(description="Total reviews across all chains")
+    chains_with_identity: int = Field(
+        description="Chains where wallet has identity NFT"
+    )
+    chains_skipped: int = Field(
+        description="Chains with identity but 0 reviews (excluded)"
+    )
+    per_chain: Dict[str, Any] = Field(
+        description="Per-chain breakdown: {network: {agent_ids, scores, average, review_count}}"
+    )
+    cached: bool = False
+
+
+@router.get(
+    "/wallet/{wallet_address}/cross-chain",
+    response_model=CrossChainReputationResponse,
+    summary="Cross-chain reputation aggregation",
+    description=(
+        "Aggregates reputation across all 9 EVM chains where the wallet has "
+        "an ERC-8004 identity NFT. Returns average of per-chain averages. "
+        "Chains with identity but 0 reviews are excluded from the score."
+    ),
+    responses={
+        200: {"description": "Cross-chain reputation aggregation"},
+        503: {"description": "ERC-8004 integration unavailable"},
+    },
+)
+async def get_cross_chain_reputation_endpoint(
+    wallet_address: str = Path(
+        ..., description="Ethereum wallet address (0x-prefixed)"
+    ),
+    networks: Optional[str] = Query(
+        None,
+        description="Comma-separated list of networks to query (defaults to all 9 EVM)",
+    ),
+):
+    """
+    Get aggregated reputation for a wallet across all EVM chains.
+
+    Algorithm:
+    1. Check identity on each chain (parallel, 5s timeout)
+    2. For chains with identity: get reputation scores
+    3. Per-chain score = average of all scores on that chain
+    4. Final score = average of per-chain averages (equal chain weight)
+    5. Chains with identity but 0 reviews are excluded
+
+    Optional: use `?networks=base,polygon` to limit scope.
+    """
+    if not ERC8004_AVAILABLE:
+        raise HTTPException(
+            status_code=503, detail="ERC-8004 integration not available"
+        )
+
+    # Validate wallet address
+    if (
+        not wallet_address
+        or not wallet_address.startswith("0x")
+        or len(wallet_address) != 42
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid wallet address. Must be 0x-prefixed, 42 characters.",
+        )
+
+    network_list = None
+    if networks:
+        network_list = [n.strip() for n in networks.split(",") if n.strip()]
+
+    try:
+        from integrations.erc8004.facilitator_client import get_cross_chain_reputation
+
+        result = await get_cross_chain_reputation(
+            wallet_address=wallet_address,
+            networks=network_list,
+        )
+
+        return CrossChainReputationResponse(**result.to_dict())
+    except Exception as exc:
+        logger.error(
+            "Cross-chain reputation error for %s: %s", wallet_address[:10], exc
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to aggregate cross-chain reputation",
         )

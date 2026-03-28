@@ -567,22 +567,25 @@ async def create_task(
         erc8004_identity: Optional[Dict[str, Any]] = None
         if ERC8004_IDENTITY_AVAILABLE and verify_agent_identity is not None:
             try:
+                task_network = request.payment_network or "base"
                 erc8004_identity = await verify_agent_identity(
                     auth.agent_id,
-                    network="base",
+                    network=task_network,
                 )
                 if erc8004_identity and erc8004_identity.get("registered"):
                     logger.info(
-                        "ERC-8004 identity verified for agent %s: agent_id=%s, owner=%s",
+                        "ERC-8004 identity verified for agent %s on %s: agent_id=%s, owner=%s",
                         auth.agent_id,
+                        task_network,
                         erc8004_identity.get("agent_id"),
                         erc8004_identity.get("owner"),
                     )
                 else:
                     logger.warning(
-                        "ERC-8004 identity NOT registered for agent %s (network=base). "
+                        "ERC-8004 identity NOT registered for agent %s (network=%s). "
                         "EM_REQUIRE_ERC8004=%s",
                         auth.agent_id,
+                        task_network,
                         _require_erc8004,
                     )
             except Exception as e:

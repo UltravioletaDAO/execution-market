@@ -36,6 +36,20 @@ logger = logging.getLogger(__name__)
 # ReputationRegistry — CREATE2 deterministic, same address on all mainnets
 REPUTATION_REGISTRY_ADDRESS = "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63"
 
+# Lazy import to avoid circular dependency at module level
+_ERC8004_CONTRACTS = None
+
+
+def _get_erc8004_contracts():
+    """Lazy-load ERC8004_CONTRACTS to avoid circular imports."""
+    global _ERC8004_CONTRACTS
+    if _ERC8004_CONTRACTS is None:
+        from .facilitator_client import ERC8004_CONTRACTS
+
+        _ERC8004_CONTRACTS = ERC8004_CONTRACTS
+    return _ERC8004_CONTRACTS
+
+
 # Minimal ABI for giveFeedback
 GIVE_FEEDBACK_ABI = [
     {
@@ -60,17 +74,35 @@ GIVE_FEEDBACK_ABI = [
 BASE_CHAIN_ID = 8453
 BASE_RPC_URL = os.environ.get("BASE_RPC_URL", "https://mainnet.base.org")
 
-# Module-level nonce lock to serialise direct on-chain TXs and prevent
+# Per-chain nonce locks to serialise direct on-chain TXs per chain and prevent
 # "replacement transaction underpriced" errors when multiple reputation
 # calls fire in quick succession (e.g. WS-2b + WS-2 in the same approval).
+_nonce_locks: dict[str, asyncio.Lock] = {}
+# Legacy single lock kept for backward-compat (tests may reference it)
 _nonce_lock = asyncio.Lock()
 
+# Per-chain Web3 instance cache (avoid re-creating HTTP providers)
+_web3_cache: dict[str, Web3] = {}
 
-def _get_web3() -> Web3:
-    """Create a Web3 instance connected to Base Mainnet."""
-    rpc_url = os.environ.get("X402_RPC_URL", BASE_RPC_URL)
+
+def _get_nonce_lock(network: str = "base") -> asyncio.Lock:
+    """Get or create a per-chain nonce lock."""
+    if network not in _nonce_locks:
+        _nonce_locks[network] = asyncio.Lock()
+    return _nonce_locks[network]
+
+
+def _get_web3(network: str = "base") -> Web3:
+    """Create or return a cached Web3 instance for the given network."""
+    if network in _web3_cache:
+        return _web3_cache[network]
+
+    from ..x402.sdk_client import get_rpc_url
+
+    rpc_url = get_rpc_url(network)
     w3 = Web3(Web3.HTTPProvider(rpc_url))
     w3.middleware_onion.inject(_poa_middleware, layer=0)
+    _web3_cache[network] = w3
     return w3
 
 
@@ -95,6 +127,7 @@ async def give_feedback_direct(
     feedback_uri: str = "",
     feedback_hash: Optional[str] = None,
     private_key: Optional[str] = None,
+    network: str = "base",
 ) -> "FeedbackResult":
     """
     Submit reputation feedback directly on-chain to the ReputationRegistry.
@@ -112,24 +145,32 @@ async def give_feedback_direct(
         feedback_uri: URI to off-chain feedback document (S3/CDN)
         feedback_hash: Keccak256 hash of feedback content (0x-prefixed hex)
         private_key: Private key for signing. Defaults to WALLET_PRIVATE_KEY.
+        network: Target chain for the on-chain TX (default "base").
 
     Returns:
         FeedbackResult with transaction hash on success.
     """
-    from .facilitator_client import FeedbackResult, ERC8004_NETWORK
+    from .facilitator_client import FeedbackResult
+
+    target_network = network
 
     pk = private_key or os.environ.get("WALLET_PRIVATE_KEY")
     if not pk:
         return FeedbackResult(
             success=False,
             error="No private key available for direct feedback",
-            network=ERC8004_NETWORK,
+            network=target_network,
         )
 
     hash_bytes = _normalize_feedback_hash(feedback_hash)
 
+    # Resolve chain_id for the target network
+    contracts = _get_erc8004_contracts()
+    net_cfg = contracts.get(target_network, {})
+    chain_id = net_cfg.get("chain_id", BASE_CHAIN_ID)
+
     def _send_tx():
-        w3 = _get_web3()
+        w3 = _get_web3(target_network)
         account = w3.eth.account.from_key(pk)
         contract = w3.eth.contract(
             address=Web3.to_checksum_address(REPUTATION_REGISTRY_ADDRESS),
@@ -149,7 +190,7 @@ async def give_feedback_direct(
         ).build_transaction(
             {
                 "from": account.address,
-                "chainId": BASE_CHAIN_ID,
+                "chainId": chain_id,
                 "gasPrice": w3.eth.gas_price,
                 "nonce": w3.eth.get_transaction_count(account.address, "pending"),
             }
@@ -174,34 +215,38 @@ async def give_feedback_direct(
 
         return tx_hash.hex(), receipt
 
+    nonce_lock = _get_nonce_lock(target_network)
+
     try:
-        async with _nonce_lock:
+        async with nonce_lock:
             tx_hash_hex, receipt = await asyncio.to_thread(_send_tx)
 
         if receipt["status"] == 1:
             logger.info(
-                "Direct feedback submitted: agent_id=%d, value=%d, tx=%s, sender=%s",
+                "Direct feedback submitted: agent_id=%d, value=%d, network=%s, tx=%s, sender=%s",
                 agent_id,
                 value,
+                target_network,
                 tx_hash_hex,
                 receipt.get("from", "unknown"),
             )
             return FeedbackResult(
                 success=True,
                 transaction_hash=tx_hash_hex,
-                network=ERC8004_NETWORK,
+                network=target_network,
             )
         else:
             logger.error(
-                "Direct feedback TX reverted: agent_id=%d, tx=%s",
+                "Direct feedback TX reverted: agent_id=%d, network=%s, tx=%s",
                 agent_id,
+                target_network,
                 tx_hash_hex,
             )
             return FeedbackResult(
                 success=False,
                 transaction_hash=tx_hash_hex,
                 error="Transaction reverted (possible self-feedback or invalid agent ID)",
-                network=ERC8004_NETWORK,
+                network=target_network,
             )
 
     except Exception as e:
@@ -218,35 +263,38 @@ async def give_feedback_direct(
             )
         ):
             logger.warning(
-                "Direct feedback nonce conflict, retrying in 2s: agent_id=%d, error=%s",
+                "Direct feedback nonce conflict, retrying in 2s: agent_id=%d, network=%s, error=%s",
                 agent_id,
+                target_network,
                 error_msg,
             )
             try:
                 await asyncio.sleep(2)
-                async with _nonce_lock:
+                async with nonce_lock:
                     tx_hash_hex, receipt = await asyncio.to_thread(_send_tx)
                 if receipt["status"] == 1:
                     logger.info(
-                        "Direct feedback retry succeeded: agent_id=%d, tx=%s",
+                        "Direct feedback retry succeeded: agent_id=%d, network=%s, tx=%s",
                         agent_id,
+                        target_network,
                         tx_hash_hex,
                     )
                     return FeedbackResult(
                         success=True,
                         transaction_hash=tx_hash_hex,
-                        network=ERC8004_NETWORK,
+                        network=target_network,
                     )
             except Exception as retry_err:
                 error_msg = f"Retry also failed: {retry_err}"
 
         logger.error(
-            "Direct feedback failed: agent_id=%d, error=%s",
+            "Direct feedback failed: agent_id=%d, network=%s, error=%s",
             agent_id,
+            target_network,
             error_msg,
         )
         return FeedbackResult(
             success=False,
             error=error_msg,
-            network=ERC8004_NETWORK,
+            network=target_network,
         )

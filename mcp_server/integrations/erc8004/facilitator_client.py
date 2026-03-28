@@ -20,6 +20,7 @@ ERC-8004 networks are auto-derived from sdk_client.py NETWORK_CONFIG (single sou
 All mainnets use the same CREATE2-deployed contracts at deterministic addresses.
 """
 
+import asyncio
 import os
 import logging
 from typing import Optional, Dict, Any, List, Union
@@ -752,6 +753,7 @@ async def rate_worker(
     task_category: str = "",
     bounty_usd: float = 0.0,
     worker_agent_id: Optional[int] = None,
+    network: str = ERC8004_NETWORK,
 ) -> FeedbackResult:
     """
     Rate a worker after task completion (agent rates human).
@@ -776,6 +778,10 @@ async def rate_worker(
     Returns:
         FeedbackResult
     """
+    # Invalidate cross-chain cache for this worker (reputation is about to change)
+    if worker_address:
+        invalidate_cross_chain_cache(worker_address)
+
     # Resolve worker's ERC-8004 agent ID — feedback goes to THEIR identity
     target_agent_id = worker_agent_id
     if not target_agent_id and worker_address:
@@ -806,7 +812,7 @@ async def rate_worker(
         try:
             from integrations.erc8004.identity import check_worker_identity
 
-            onchain = await check_worker_identity(worker_address)
+            onchain = await check_worker_identity(worker_address, network=network)
             if onchain.agent_id:
                 target_agent_id = onchain.agent_id
                 logger.info(
@@ -840,7 +846,7 @@ async def rate_worker(
             success=False,
             error=f"Worker {worker_address[:10]}... has no ERC-8004 identity. "
             "Register the worker first via POST /reputation/register.",
-            network=ERC8004_NETWORK,
+            network=network,
         )
 
     # Persist feedback document to S3 and compute hash
@@ -867,7 +873,7 @@ async def rate_worker(
             task_title=task_title,
             task_category=task_category,
             bounty_usd=bounty_usd,
-            network=ERC8004_NETWORK,
+            network=network,
         )
     except Exception as exc:
         logger.warning("Feedback persistence failed (continuing): %s", exc)
@@ -887,6 +893,7 @@ async def rate_worker(
         endpoint=f"task:{task_id}",
         feedback_uri=feedback_uri,
         feedback_hash=feedback_hash,
+        network=network,
         # private_key=None → defaults to WALLET_PRIVATE_KEY (platform wallet)
     )
 
@@ -901,6 +908,7 @@ async def rate_agent(
     task_category: str = "",
     bounty_usd: float = 0.0,
     relay_private_key: Optional[str] = None,
+    network: str = ERC8004_NETWORK,
 ) -> FeedbackResult:
     """
     Rate an agent (human/worker rates agent).
@@ -950,7 +958,7 @@ async def rate_agent(
             task_title=task_title,
             task_category=task_category,
             bounty_usd=bounty_usd,
-            network=ERC8004_NETWORK,
+            network=network,
         )
     except Exception as exc:
         logger.warning("Feedback persistence failed (continuing): %s", exc)
@@ -974,6 +982,7 @@ async def rate_agent(
             feedback_uri=feedback_uri,
             feedback_hash=feedback_hash,
             private_key=relay_private_key,
+            network=network,
         )
 
     # No relay key available — return pending result.
@@ -1002,3 +1011,227 @@ async def get_agent_reputation(agent_id: int) -> Optional[ReputationSummary]:
     """Get any agent's reputation."""
     client = get_facilitator_client()
     return await client.get_reputation(agent_id)
+
+
+# =============================================================================
+# Cross-Chain Reputation Aggregation
+# =============================================================================
+
+# The 9 EVM chains where ERC-8004 identity and reputation are active.
+# Excludes Solana (SVM, no ERC-721) and BSC (no x402 payments/escrow).
+_CROSS_CHAIN_EVM_NETWORKS = [
+    "base",
+    "ethereum",
+    "polygon",
+    "arbitrum",
+    "celo",
+    "monad",
+    "avalanche",
+    "optimism",
+    "skale",
+]
+
+# Cache: wallet_address.lower() -> (timestamp, result_dict)
+_cross_chain_cache: Dict[str, tuple] = {}
+_CROSS_CHAIN_CACHE_TTL = 600  # 10 minutes
+
+
+@dataclass
+class ChainReputationDetail:
+    """Per-chain reputation detail for cross-chain aggregation."""
+
+    network: str
+    agent_ids: List[int]
+    scores: List[float]
+    average: float
+    review_count: int
+
+
+@dataclass
+class CrossChainReputationResult:
+    """Aggregated reputation across multiple chains."""
+
+    wallet_address: str
+    final_score: float
+    chain_count: int
+    total_reviews: int
+    per_chain: Dict[str, ChainReputationDetail]
+    chains_with_identity: int
+    chains_skipped: int  # identity but 0 reviews
+    cached: bool = False
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "wallet_address": self.wallet_address,
+            "final_score": round(self.final_score, 2),
+            "chain_count": self.chain_count,
+            "total_reviews": self.total_reviews,
+            "chains_with_identity": self.chains_with_identity,
+            "chains_skipped": self.chains_skipped,
+            "per_chain": {
+                net: {
+                    "agent_ids": detail.agent_ids,
+                    "scores": detail.scores,
+                    "average": round(detail.average, 2),
+                    "review_count": detail.review_count,
+                }
+                for net, detail in self.per_chain.items()
+            },
+            "cached": self.cached,
+        }
+
+
+def invalidate_cross_chain_cache(wallet_address: str) -> None:
+    """Invalidate cross-chain reputation cache for a wallet."""
+    key = wallet_address.lower()
+    _cross_chain_cache.pop(key, None)
+
+
+async def get_cross_chain_reputation(
+    wallet_address: str,
+    networks: Optional[List[str]] = None,
+) -> CrossChainReputationResult:
+    """
+    Aggregate reputation across all EVM chains where a wallet has identity.
+
+    Algorithm:
+    1. For each enabled EVM chain (parallel, 5s timeout per chain):
+       - check_worker_identity(wallet, network=net) → balance + agent_id(s)
+    2. For chains where balance > 0:
+       - Get all agent_ids via tokenOfOwnerByIndex
+       - Facilitator GET /reputation/{network}/{agent_id} → scores
+    3. Per-chain average = mean of all scores on that chain
+    4. Skip chains with 0 reviews (identity but no feedback)
+    5. Final score = mean of per-chain averages (equal weight per chain)
+
+    Args:
+        wallet_address: Ethereum wallet (0x-prefixed)
+        networks: Optional list of chains to query (defaults to all 9 EVM)
+
+    Returns:
+        CrossChainReputationResult with per-chain breakdown
+    """
+    import time
+
+    wallet_lower = wallet_address.lower()
+
+    # Check cache
+    cached = _cross_chain_cache.get(wallet_lower)
+    if cached:
+        ts, result = cached
+        if time.time() - ts < _CROSS_CHAIN_CACHE_TTL:
+            from copy import copy
+
+            cached_copy = copy(result)
+            cached_copy.cached = True
+            return cached_copy
+
+    target_networks = networks or _CROSS_CHAIN_EVM_NETWORKS
+
+    # Step 1: Check identity on all chains in parallel
+    from integrations.erc8004.identity import check_worker_identity
+
+    async def _check_identity_safe(net: str):
+        try:
+            return net, await asyncio.wait_for(
+                check_worker_identity(wallet_lower, network=net),
+                timeout=5.0,
+            )
+        except asyncio.TimeoutError:
+            logger.warning("Cross-chain identity check timeout: %s (5s)", net)
+            return net, None
+        except Exception as exc:
+            logger.warning("Cross-chain identity check error on %s: %s", net, exc)
+            return net, None
+
+    identity_results = await asyncio.gather(
+        *[_check_identity_safe(net) for net in target_networks]
+    )
+
+    # Step 2: For chains with identity, get reputation for each agent_id
+    chains_with_identity = 0
+    per_chain: Dict[str, ChainReputationDetail] = {}
+
+    async def _get_chain_reputation(net: str, agent_ids: List[int]):
+        """Get all reputation scores for a list of agent_ids on one chain."""
+        client = ERC8004FacilitatorClient(network=net)
+        scores: List[float] = []
+        for aid in agent_ids:
+            try:
+                rep = await asyncio.wait_for(
+                    client.get_reputation(aid),
+                    timeout=5.0,
+                )
+                if rep and rep.count > 0:
+                    scores.append(rep.score)
+            except asyncio.TimeoutError:
+                logger.warning("Reputation timeout: agent %d on %s", aid, net)
+            except Exception as exc:
+                logger.warning("Reputation error: agent %d on %s: %s", aid, net, exc)
+        return net, agent_ids, scores
+
+    rep_tasks = []
+    for net, identity_result in identity_results:
+        if identity_result is None:
+            continue
+        if identity_result.status.value != "registered":
+            continue
+        chains_with_identity += 1
+
+        # Collect agent_ids — may have multiple NFTs
+        agent_ids = []
+        if identity_result.agent_id is not None:
+            agent_ids.append(identity_result.agent_id)
+        # TODO: if balance > 1, enumerate additional tokens via tokenOfOwnerByIndex
+        # For now, we get the first one (most common case)
+
+        if agent_ids:
+            rep_tasks.append(_get_chain_reputation(net, agent_ids))
+
+    # Run all reputation queries in parallel
+    if rep_tasks:
+        rep_results = await asyncio.gather(*rep_tasks, return_exceptions=True)
+    else:
+        rep_results = []
+
+    chains_skipped = 0
+    for result in rep_results:
+        if isinstance(result, Exception):
+            logger.warning("Cross-chain reputation gather error: %s", result)
+            continue
+        net, agent_ids, scores = result
+        if not scores:
+            chains_skipped += 1
+            continue
+        avg = sum(scores) / len(scores)
+        per_chain[net] = ChainReputationDetail(
+            network=net,
+            agent_ids=agent_ids,
+            scores=scores,
+            average=avg,
+            review_count=len(scores),
+        )
+
+    # Step 3: Compute final score (average of per-chain averages)
+    if per_chain:
+        final_score = sum(d.average for d in per_chain.values()) / len(per_chain)
+        total_reviews = sum(d.review_count for d in per_chain.values())
+    else:
+        final_score = 0.0
+        total_reviews = 0
+
+    result = CrossChainReputationResult(
+        wallet_address=wallet_lower,
+        final_score=final_score,
+        chain_count=len(per_chain),
+        total_reviews=total_reviews,
+        per_chain=per_chain,
+        chains_with_identity=chains_with_identity,
+        chains_skipped=chains_skipped,
+        cached=False,
+    )
+
+    # Cache the result
+    _cross_chain_cache[wallet_lower] = (time.time(), result)
+
+    return result

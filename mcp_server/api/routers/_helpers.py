@@ -609,12 +609,14 @@ async def _send_reputation_feedback(
         else:
             reputation_score = 80  # Legacy hardcoded score.
 
+        task_network = task.get("payment_network", "base")
         reputation_result = await rate_worker(
             task_id=task["id"],
             score=reputation_score,
             worker_address=worker_address,
             comment=f"Task completed and paid: {task.get('title', 'Unknown')[:50]}",
             proof_tx=release_tx,
+            network=task_network,
         )
 
         if reputation_result.success:
@@ -852,7 +854,9 @@ async def _ws1_auto_register_worker(
             update_executor_identity,
         )
 
-        onchain_result = await check_worker_identity(worker_address)
+        onchain_result = await check_worker_identity(
+            worker_address, network=task_network
+        )
         if onchain_result.status.value == "registered":
             # Worker already has an ERC-8004 NFT on-chain (balanceOf > 0).
             # The agent_id may be None if the contract doesn't support ERC-721
@@ -1101,11 +1105,13 @@ async def _ws2_auto_rate_agent(
     try:
         from integrations.erc8004.facilitator_client import rate_agent
 
+        task_network = task.get("payment_network", "base")
         feedback_result = await rate_agent(
             agent_id=agent_erc8004_id,
             task_id=task_id or "",
             score=score,
             proof_tx=release_tx,
+            network=task_network,
         )
 
         if feedback_result.success:

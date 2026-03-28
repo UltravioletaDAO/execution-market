@@ -242,6 +242,35 @@ resource "aws_ecs_task_definition" "mcp_server" {
           name      = "EM_TREASURY_ADDRESS"
           valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/commission:wallet_address::"
         },
+        # Per-chain private RPCs (from facilitator QuikNode endpoints)
+        {
+          name      = "BASE_RPC_URL"
+          valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/rpc-mainnet:base::"
+        },
+        {
+          name      = "ETHEREUM_RPC_URL"
+          valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/rpc-mainnet:ethereum::"
+        },
+        {
+          name      = "POLYGON_RPC_URL"
+          valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/rpc-mainnet:polygon::"
+        },
+        {
+          name      = "ARBITRUM_RPC_URL"
+          valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/rpc-mainnet:arbitrum::"
+        },
+        {
+          name      = "CELO_RPC_URL"
+          valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/rpc-mainnet:celo::"
+        },
+        {
+          name      = "AVALANCHE_RPC_URL"
+          valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/rpc-mainnet:avalanche::"
+        },
+        {
+          name      = "OPTIMISM_RPC_URL"
+          valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/rpc-mainnet:optimism::"
+        },
       ]
 
       logConfiguration = {

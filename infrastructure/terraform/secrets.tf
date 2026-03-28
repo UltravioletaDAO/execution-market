@@ -6,6 +6,7 @@
 #   - em/contracts (avalanche, etc.)
 #   - em/commission (address)
 #   - em/x402 (private_key)
+#   - em/rpc-mainnet (per-chain private RPCs: base, ethereum, polygon, arbitrum, celo, avalanche, optimism, monad)
 #   - em/api-keys (api keys)
 #
 # This file only creates IAM policies for accessing these secrets.
