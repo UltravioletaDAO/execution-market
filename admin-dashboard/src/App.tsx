@@ -1,22 +1,26 @@
 import { Routes, Route, Link, useLocation } from 'react-router-dom'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import Settings from './pages/Settings'
 import Tasks from './pages/Tasks'
 import Analytics from './pages/Analytics'
 import Payments from './pages/Payments'
 import Users from './pages/Users'
 import AuditLog from './pages/AuditLog'
+import { PhantomTasksBadge } from './components/PhantomTasks'
 import { AuthError } from './lib/api'
+
+const Health = lazy(() => import('./pages/Health'))
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://api.execution.market'
 
 const navItems = [
-  { path: '/', label: 'Analytics', icon: '📊' },
-  { path: '/tasks', label: 'Tasks', icon: '📋' },
-  { path: '/payments', label: 'Payments', icon: '💰' },
-  { path: '/users', label: 'Users', icon: '👥' },
-  { path: '/settings', label: 'Settings', icon: '⚙️' },
-  { path: '/audit', label: 'Audit Log', icon: '📜' },
+  { path: '/', label: 'Analytics' },
+  { path: '/tasks', label: 'Tasks', badge: 'phantom' as const },
+  { path: '/payments', label: 'Payments' },
+  { path: '/users', label: 'Users' },
+  { path: '/settings', label: 'Settings' },
+  { path: '/audit', label: 'Audit Log' },
+  { path: '/health', label: 'Health' },
 ]
 
 /**
@@ -194,12 +198,14 @@ function App() {
             <Link
               key={item.path}
               to={item.path}
-              className={`flex items-center px-6 py-3 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors ${
+              className={`flex items-center justify-between px-6 py-3 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors ${
                 location.pathname === item.path ? 'bg-gray-700 text-white border-l-4 border-em-500' : ''
               }`}
             >
-              <span className="mr-3 text-lg">{item.icon}</span>
-              {item.label}
+              <span>{item.label}</span>
+              {'badge' in item && item.badge === 'phantom' && isAuthenticated && (
+                <PhantomTasksBadge adminKey={adminKey} />
+              )}
             </Link>
           ))}
         </nav>
@@ -228,6 +234,14 @@ function App() {
           <Route path="/users" element={<Users adminKey={adminKey} />} />
           <Route path="/settings" element={<Settings adminKey={adminKey} />} />
           <Route path="/audit" element={<AuditLog adminKey={adminKey} />} />
+          <Route
+            path="/health"
+            element={
+              <Suspense fallback={<div className="text-gray-400">Loading health dashboard...</div>}>
+                <Health adminKey={adminKey} />
+              </Suspense>
+            }
+          />
         </Routes>
       </main>
     </div>

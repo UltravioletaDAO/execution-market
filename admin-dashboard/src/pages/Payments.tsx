@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { adminGet, adminFetch } from '../lib/api'
+import OrphanedPayments from '../components/OrphanedPayments'
 
 // ---------------------------------------------------------------------------
 // Types matching backend response shapes (mcp_server/api/admin.py)
@@ -688,6 +689,11 @@ export default function Payments({ adminKey }: PaymentsProps) {
             </button>
           </div>
         )}
+      </div>
+
+      {/* Orphaned Payments Section */}
+      <div className="border-t border-gray-700 pt-8 mt-8">
+        <OrphanedPayments adminKey={adminKey} />
       </div>
     </div>
   )
