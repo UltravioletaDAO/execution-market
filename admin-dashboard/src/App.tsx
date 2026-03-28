@@ -1,14 +1,13 @@
 import { Routes, Route, Link, useLocation } from 'react-router-dom'
-import { useState, lazy, Suspense } from 'react'
+import { useState } from 'react'
 import Settings from './pages/Settings'
 import Tasks from './pages/Tasks'
 import Analytics from './pages/Analytics'
 import Payments from './pages/Payments'
 import Users from './pages/Users'
 import AuditLog from './pages/AuditLog'
-
-const Integrations = lazy(() => import('./pages/Integrations'))
-const Webhooks = lazy(() => import('./pages/Webhooks'))
+import ConnectionStatus from './components/ConnectionStatus'
+import { useWebSocketInvalidation } from './lib/ws'
 
 const navItems = [
   { path: '/', label: 'Analytics', icon: '📊' },
@@ -17,8 +16,6 @@ const navItems = [
   { path: '/users', label: 'Users', icon: '👥' },
   { path: '/settings', label: 'Settings', icon: '⚙️' },
   { path: '/audit', label: 'Audit Log', icon: '📜' },
-  { path: '/integrations', label: 'Integrations', icon: '🔗' },
-  { path: '/webhooks', label: 'Webhooks', icon: '🔔' },
 ]
 
 function App() {
@@ -26,6 +23,9 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loginError, setLoginError] = useState('')
   const location = useLocation()
+
+  // Auto-invalidate React Query caches on WebSocket events
+  useWebSocketInvalidation()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -145,7 +145,10 @@ function App() {
           ))}
         </nav>
 
-        <div className="p-6 border-t border-gray-700">
+        <div className="p-6 border-t border-gray-700 space-y-3">
+          <div className="flex items-center justify-between">
+            <ConnectionStatus />
+          </div>
           <div className="flex items-center justify-between">
             <div className="text-gray-400 text-sm">
               <span className="text-gray-500">Key:</span> {adminKey.slice(0, 8)}...
@@ -169,8 +172,6 @@ function App() {
           <Route path="/users" element={<Users adminKey={adminKey} />} />
           <Route path="/settings" element={<Settings adminKey={adminKey} />} />
           <Route path="/audit" element={<AuditLog adminKey={adminKey} />} />
-          <Route path="/integrations" element={<Suspense fallback={<div className="text-gray-400">Loading...</div>}><Integrations adminKey={adminKey} /></Suspense>} />
-          <Route path="/webhooks" element={<Suspense fallback={<div className="text-gray-400">Loading...</div>}><Webhooks adminKey={adminKey} /></Suspense>} />
         </Routes>
       </main>
     </div>
