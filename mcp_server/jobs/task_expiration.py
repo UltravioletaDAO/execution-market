@@ -263,24 +263,10 @@ async def _process_submitted_timeout_task(client, task: dict) -> bool:
                     submission_id,
                     reason,
                 )
-                try:
-                    # Store the failure reason in metadata for diagnostics
-                    existing_metadata = task.get("metadata") or {}
-                    if isinstance(existing_metadata, str):
-                        import json
-
-                        existing_metadata = json.loads(existing_metadata)
-                    existing_metadata["payment_permanently_failed"] = True
-                    existing_metadata["payment_failure_reason"] = reason
-                    client.table("tasks").update({"metadata": existing_metadata}).eq(
-                        "id", task_id
-                    ).execute()
-                except Exception as meta_err:
-                    logger.debug(
-                        "[expiration] Could not update metadata for task %s: %s",
-                        task_id,
-                        meta_err,
-                    )
+                # Note: tasks table has no metadata column — just log and expire
+                logger.info(
+                    "[expiration] Task %s permanently failed: %s", task_id, reason
+                )
                 return False  # Fall through to normal expiration
             logger.warning(
                 "[expiration] Task %s submission %s not ready for payout (reason=%s). Keeping submitted for retry.",
@@ -362,12 +348,9 @@ async def run_task_expiration_loop() -> None:
             now = datetime.now(timezone.utc).isoformat()
 
             # Query tasks past deadline that are still active.
-            # Include metadata to skip tasks already flagged as permanently failed.
             result = (
                 client.table("tasks")
-                .select(
-                    "id, status, agent_id, bounty_usd, escrow_id, deadline, metadata"
-                )
+                .select("id, status, agent_id, bounty_usd, escrow_id, deadline")
                 .in_("status", ["published", "accepted", "submitted"])
                 .lt("deadline", now)
                 .execute()
@@ -376,23 +359,9 @@ async def run_task_expiration_loop() -> None:
             expired_tasks = result.data or []
 
             if expired_tasks:
-                # Filter out tasks already marked as permanently failed —
-                # they will be expired on this cycle if still in an active status.
                 actionable_tasks = []
                 for task in expired_tasks:
-                    meta = task.get("metadata") or {}
-                    if isinstance(meta, str):
-                        import json
-
-                        meta = json.loads(meta)
-                    if (
-                        meta.get("payment_permanently_failed")
-                        and task.get("status") == "submitted"
-                    ):
-                        # Already flagged — skip the submitted-timeout path,
-                        # go straight to expiration.
-                        actionable_tasks.append(("expire", task))
-                    elif task.get("status") == "submitted":
+                    if task.get("status") == "submitted":
                         actionable_tasks.append(("submitted", task))
                     else:
                         actionable_tasks.append(("expire", task))
