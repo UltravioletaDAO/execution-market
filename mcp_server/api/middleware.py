@@ -25,7 +25,7 @@ _rate_limiter: Optional[RateLimiter] = None
 _a2a_requests: dict = {}  # ip -> list of timestamps
 
 
-def _check_a2a_limit(ip: str, limit: int = 5, window: int = 60) -> tuple:
+def _check_a2a_limit(ip: str, limit: int = 5, window: int = 150) -> tuple:
     """Check A2A-specific rate limit. Returns (is_limited, retry_after_seconds)."""
     now = time.time()
     timestamps = _a2a_requests.setdefault(ip, [])
@@ -159,9 +159,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 content={"error": "Request body too large", "max_bytes": 1_048_576},
             )
 
-        # A2A-specific rate limits (stricter: 5 req/min per IP)
+        # A2A-specific rate limits (stricter: 5 req per 2.5 min per IP)
         if request.url.path.startswith("/a2a/"):
-            is_limited, retry_after = _check_a2a_limit(client_ip, limit=5, window=60)
+            is_limited, retry_after = _check_a2a_limit(client_ip, limit=5, window=150)
             if is_limited:
                 if record_429:
                     record_429(client_ip)
