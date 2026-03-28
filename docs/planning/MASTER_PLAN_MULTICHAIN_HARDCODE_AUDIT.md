@@ -21,22 +21,22 @@ status: active
 
 ## P0 — User-Facing Bugs
 
-- [ ] **em-mobile `task/[id].tsx` lines 899, 941** — Reputation TX links hardcoded to `"base"`. Should use `task.payment_network`.
-- [ ] **dashboard `FeedbackPage.tsx` line 70** — Explorers map missing monad + skale. Falls back to Base.
-- [ ] **dashboard `blockchain.ts` NetworkId type** — Missing `'skale'` in union type.
+- [x] **em-mobile `task/[id].tsx` lines 899, 941** — Reputation TX links hardcoded to `"base"`. ✅ Fixed: uses `task.payment_network || "base"`.
+- [x] **dashboard `FeedbackPage.tsx` line 70** — Explorers map missing monad + skale. ✅ Already had skale in TX_EXPLORER_URLS.
+- [x] **dashboard `blockchain.ts` NetworkId type** — Missing `'skale'` in union type. ✅ Added.
 
 ## P1 — Data Integrity
 
 - [ ] **`mcp_server/main.py` lines 1024-1043** — `/api/v1/x402/networks` endpoint missing "skale" in mainnets list.
-- [ ] **`mcp_server/jobs/fee_sweep.py` lines 24-33** — `SWEEP_NETWORKS` missing "skale". Platform fees on SKALE won't be collected.
+- [x] **`mcp_server/jobs/fee_sweep.py` lines 24-33** — `SWEEP_NETWORKS` missing "skale". ✅ Added.
 - [ ] **dashboard `TaskFeedCard.tsx`** — ~4 instances of `|| 'base'` fallback.
 - [ ] **dashboard `TaskLifecycleTimeline.tsx` lines 311, 320** — `|| 'base'` fallback.
 - [ ] **dashboard `TaskDetailModal.tsx` lines 163, 208, 252** — `|| 'base'` fallback.
 - [ ] **dashboard `TransactionTimeline.tsx` line 146** — `|| 'base'` fallback.
 - [ ] **dashboard `TaskDetailPanel.tsx` line 261** — `|| 'base'` fallback.
-- [ ] **dashboard `EarningsPage.tsx` line 49** — `|| 'base'` fallback.
+- [x] **dashboard `EarningsPage.tsx` line 49** — ✅ Now uses `item.payment_network || 'base'`.
 - [ ] **dashboard `reputation.ts` line 291** — `|| 'base'` fallback.
-- [ ] **dashboard `RatingsHistory.tsx` line 247** — Hardcoded `network="base"` for `TxLink`.
+- [x] **dashboard `RatingsHistory.tsx` line 247** — ✅ Now uses `entry.payment_network || "base"` with joined task data.
 
 ## P2 — Config/Cosmetic
 
