@@ -6,6 +6,8 @@ import Analytics from './pages/Analytics'
 import Payments from './pages/Payments'
 import Users from './pages/Users'
 import AuditLog from './pages/AuditLog'
+import ConnectionStatus from './components/ConnectionStatus'
+import { useWebSocketInvalidation } from './lib/ws'
 
 const navItems = [
   { path: '/', label: 'Analytics', icon: '📊' },
@@ -21,6 +23,9 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loginError, setLoginError] = useState('')
   const location = useLocation()
+
+  // Auto-invalidate React Query caches on WebSocket events
+  useWebSocketInvalidation()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -140,7 +145,10 @@ function App() {
           ))}
         </nav>
 
-        <div className="p-6 border-t border-gray-700">
+        <div className="p-6 border-t border-gray-700 space-y-3">
+          <div className="flex items-center justify-between">
+            <ConnectionStatus />
+          </div>
           <div className="flex items-center justify-between">
             <div className="text-gray-400 text-sm">
               <span className="text-gray-500">Key:</span> {adminKey.slice(0, 8)}...

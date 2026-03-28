@@ -1,9 +1,26 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
-import { adminGet, adminPut } from '../lib/api'
+import { useState, useRef } from 'react'
+import { adminGet, adminPut, adminPost } from '../lib/api'
 
 interface SettingsProps {
   adminKey: string
+}
+
+// -- Import types --
+interface ImportChange {
+  key: string
+  old: any
+  new: any
+  status: 'updated' | 'unchanged' | 'error'
+  error?: string
+}
+
+interface ImportResult {
+  updated: number
+  skipped: number
+  changes: ImportChange[]
+  errors: string[]
+  dry_run: boolean
 }
 
 function ConfigInput({
@@ -32,7 +49,7 @@ function ConfigInput({
   const mutation = useMutation({
     mutationFn: () => {
       let parsedValue: any = type === 'number' ? parseFloat(newValue) :
-                         type === 'boolean' ? newValue === 'true' : newValue
+                       type === 'boolean' ? newValue === 'true' : newValue
       if (type === 'number' && saveDivisor) {
         parsedValue = parsedValue / saveDivisor
       }
@@ -140,6 +157,329 @@ function ConfigSection({
   )
 }
 
+// =============================================================================
+// Import Modal
+// =============================================================================
+
+function ImportModal({
+  adminKey,
+  onClose,
+  onApplied,
+}: {
+  adminKey: string
+  onClose: () => void
+  onApplied: () => void
+}) {
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [parsed, setParsed] = useState<Record<string, any> | null>(null)
+  const [parseError, setParseError] = useState<string | null>(null)
+  const [reason, setReason] = useState('')
+  const [result, setResult] = useState<ImportResult | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setParseError(null)
+    setParsed(null)
+    setResult(null)
+
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      try {
+        const json = JSON.parse(ev.target?.result as string)
+        // Accept either {configs: {...}} or flat {key: value}
+        const configs = json.configs || json
+        if (typeof configs !== 'object' || Array.isArray(configs)) {
+          setParseError('JSON must be an object with key-value pairs (or {configs: {...}})')
+          return
+        }
+        setParsed(configs)
+      } catch {
+        setParseError('Invalid JSON file')
+      }
+    }
+    reader.readAsText(file)
+  }
+
+  const runImport = async (dryRun: boolean) => {
+    if (!parsed) return
+    setLoading(true)
+    setResult(null)
+    try {
+      const res = await adminPost<ImportResult>(
+        '/api/v1/admin/config/import',
+        adminKey,
+        { configs: parsed, reason: reason || undefined, dry_run: dryRun },
+      )
+      setResult(res)
+      if (!dryRun && res.updated > 0) {
+        onApplied()
+      }
+    } catch (err: any) {
+      setResult({
+        updated: 0,
+        skipped: 0,
+        changes: [],
+        errors: [err.message || 'Import failed'],
+        dry_run: dryRun,
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-800 rounded-lg w-full max-w-3xl max-h-[90vh] flex flex-col border border-gray-700">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-700">
+          <h2 className="text-lg font-semibold text-white">Import Configuration</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-white text-xl leading-none"
+          >
+            x
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-6 overflow-y-auto flex-1 space-y-4">
+          {/* File input */}
+          <div>
+            <label className="block text-sm text-gray-400 mb-2">Select JSON file</label>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".json"
+              onChange={handleFile}
+              className="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-gray-700 file:text-white hover:file:bg-gray-600"
+            />
+          </div>
+
+          {parseError && (
+            <p className="text-red-400 text-sm">{parseError}</p>
+          )}
+
+          {/* Reason */}
+          {parsed && (
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Reason for change</label>
+              <input
+                type="text"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="e.g. Quarterly fee adjustment"
+                className="w-full bg-gray-700 text-white px-3 py-2 rounded border border-gray-600 text-sm"
+              />
+            </div>
+          )}
+
+          {/* Preview table (from parsed or result) */}
+          {(parsed && !result) && (
+            <div>
+              <h3 className="text-sm font-medium text-gray-300 mb-2">
+                {Object.keys(parsed).length} key(s) to import
+              </h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-gray-400 border-b border-gray-700">
+                      <th className="text-left py-2 pr-4">Key</th>
+                      <th className="text-left py-2 pr-4">New Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(parsed).map(([key, val]) => (
+                      <tr key={key} className="border-b border-gray-700/50">
+                        <td className="py-2 pr-4 text-gray-300 font-mono text-xs">{key}</td>
+                        <td className="py-2 pr-4 text-white font-mono text-xs">{JSON.stringify(val)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Result table */}
+          {result && (
+            <div>
+              <div className="flex gap-4 mb-3 text-sm">
+                <span className="text-green-400">Updated: {result.updated}</span>
+                <span className="text-gray-400">Skipped: {result.skipped}</span>
+                {result.errors.length > 0 && (
+                  <span className="text-red-400">Errors: {result.errors.length}</span>
+                )}
+                {result.dry_run && (
+                  <span className="text-yellow-400 font-medium">[DRY RUN]</span>
+                )}
+              </div>
+
+              {result.errors.length > 0 && (
+                <div className="bg-red-900/30 border border-red-700 rounded p-3 mb-3">
+                  <p className="text-red-400 text-sm font-medium mb-1">Errors:</p>
+                  {result.errors.map((err, i) => (
+                    <p key={i} className="text-red-300 text-xs">{err}</p>
+                  ))}
+                </div>
+              )}
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-gray-400 border-b border-gray-700">
+                      <th className="text-left py-2 pr-4">Key</th>
+                      <th className="text-left py-2 pr-4">Current</th>
+                      <th className="text-left py-2 pr-4">New</th>
+                      <th className="text-left py-2">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {result.changes.map((ch) => (
+                      <tr
+                        key={ch.key}
+                        className={`border-b border-gray-700/50 ${
+                          ch.status === 'updated'
+                            ? 'bg-green-900/10'
+                            : ch.status === 'error'
+                            ? 'bg-red-900/10'
+                            : ''
+                        }`}
+                      >
+                        <td className="py-2 pr-4 text-gray-300 font-mono text-xs">{ch.key}</td>
+                        <td className="py-2 pr-4 font-mono text-xs text-gray-400">
+                          {ch.old !== null && ch.old !== undefined ? JSON.stringify(ch.old) : '--'}
+                        </td>
+                        <td className={`py-2 pr-4 font-mono text-xs ${
+                          ch.status === 'updated' ? 'text-green-400' : 'text-white'
+                        }`}>
+                          {JSON.stringify(ch.new)}
+                        </td>
+                        <td className="py-2 text-xs">
+                          {ch.status === 'updated' && (
+                            <span className="text-green-400">changed</span>
+                          )}
+                          {ch.status === 'unchanged' && (
+                            <span className="text-gray-500">same</span>
+                          )}
+                          {ch.status === 'error' && (
+                            <span className="text-red-400" title={ch.error}>error</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-700">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm text-gray-400 hover:text-white"
+          >
+            Close
+          </button>
+          {parsed && (
+            <>
+              <button
+                onClick={() => runImport(true)}
+                disabled={loading}
+                className="px-4 py-2 text-sm bg-gray-700 hover:bg-gray-600 text-white rounded disabled:opacity-50"
+              >
+                {loading ? '...' : 'Dry Run'}
+              </button>
+              <button
+                onClick={() => {
+                  if (window.confirm('Apply all changes? This will update the live platform configuration.')) {
+                    runImport(false)
+                  }
+                }}
+                disabled={loading}
+                className="px-4 py-2 text-sm bg-em-600 hover:bg-em-700 text-white rounded disabled:opacity-50"
+              >
+                {loading ? '...' : 'Apply Changes'}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// =============================================================================
+// Config Toolbar (Export / Import)
+// =============================================================================
+
+function ConfigToolbar({ adminKey, onImported }: { adminKey: string; onImported: () => void }) {
+  const [exporting, setExporting] = useState(false)
+  const [showImport, setShowImport] = useState(false)
+
+  const handleExport = async () => {
+    setExporting(true)
+    try {
+      const data = await adminGet<{ configs: Record<string, any>; exported_at: string; total: number }>(
+        '/api/v1/admin/config/export',
+        adminKey,
+      )
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const date = new Date().toISOString().slice(0, 10)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `em-config-${date}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('Export failed:', err)
+      alert('Failed to export configuration. Check console for details.')
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  return (
+    <>
+      <div className="flex items-center gap-3 mb-6 bg-gray-800 rounded-lg p-4 border border-gray-700">
+        <span className="text-gray-400 text-sm mr-auto">Bulk Operations</span>
+        <button
+          onClick={handleExport}
+          disabled={exporting}
+          className="px-4 py-2 text-sm bg-gray-700 hover:bg-gray-600 text-white rounded border border-gray-600 disabled:opacity-50"
+        >
+          {exporting ? 'Exporting...' : 'Export Config'}
+        </button>
+        <button
+          onClick={() => setShowImport(true)}
+          className="px-4 py-2 text-sm bg-em-600 hover:bg-em-700 text-white rounded disabled:opacity-50"
+        >
+          Import Config
+        </button>
+      </div>
+      {showImport && (
+        <ImportModal
+          adminKey={adminKey}
+          onClose={() => setShowImport(false)}
+          onApplied={() => {
+            onImported()
+          }}
+        />
+      )}
+    </>
+  )
+}
+
+// =============================================================================
+// Settings Page
+// =============================================================================
+
 export default function Settings({ adminKey }: SettingsProps) {
   const queryClient = useQueryClient()
 
@@ -173,7 +513,9 @@ export default function Settings({ adminKey }: SettingsProps) {
     <div>
       <h1 className="text-2xl font-bold text-white mb-8">Platform Settings</h1>
 
-      <ConfigSection title="Fees" icon="💰">
+      <ConfigToolbar adminKey={adminKey} onImported={handleSuccess} />
+
+      <ConfigSection title="Fees" icon="$">
         <ConfigInput
           label="Platform Fee"
           configKey="fees.platform_fee_pct"
@@ -202,7 +544,7 @@ export default function Settings({ adminKey }: SettingsProps) {
         />
       </ConfigSection>
 
-      <ConfigSection title="Bounty Limits" icon="🎯">
+      <ConfigSection title="Bounty Limits" icon="#">
         <ConfigInput
           label="Minimum Bounty"
           configKey="bounty.min_usd"
@@ -221,7 +563,7 @@ export default function Settings({ adminKey }: SettingsProps) {
         />
       </ConfigSection>
 
-      <ConfigSection title="Tier-Based Fees" icon="📊">
+      <ConfigSection title="Tier-Based Fees" icon="%">
         <div className="py-3 border-b border-gray-700">
           <div className="text-gray-300 mb-3">Fee Structure by Tier</div>
           <div className="bg-gray-700/50 rounded p-3">
@@ -265,7 +607,7 @@ export default function Settings({ adminKey }: SettingsProps) {
         />
       </ConfigSection>
 
-      <ConfigSection title="Timeouts" icon="⏱️">
+      <ConfigSection title="Timeouts" icon="~">
         <ConfigInput
           label="Approval Timeout"
           configKey="timeout.approval_hours"
@@ -292,7 +634,7 @@ export default function Settings({ adminKey }: SettingsProps) {
         />
       </ConfigSection>
 
-      <ConfigSection title="Limits" icon="🔧">
+      <ConfigSection title="Limits" icon="=">
         <ConfigInput
           label="Max Resubmissions"
           configKey="limits.max_resubmissions"
@@ -316,7 +658,7 @@ export default function Settings({ adminKey }: SettingsProps) {
         />
       </ConfigSection>
 
-      <ConfigSection title="Feature Flags" icon="🚀">
+      <ConfigSection title="Feature Flags" icon="*">
         <ConfigInput
           label="Disputes Enabled"
           configKey="feature.disputes_enabled"
@@ -351,7 +693,7 @@ export default function Settings({ adminKey }: SettingsProps) {
         />
       </ConfigSection>
 
-      <ConfigSection title="Payment Networks" icon="💳">
+      <ConfigSection title="Payment Networks" icon="@">
         <div className="py-3 border-b border-gray-700">
           <span className="text-gray-300">Supported Networks</span>
           <div className="flex flex-wrap gap-2 mt-2">

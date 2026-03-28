@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
+import FinancialAudit from '../components/FinancialAudit'
 import {
   AreaChart,
   Area,
@@ -374,6 +375,11 @@ export default function Analytics({ adminKey }: AnalyticsProps) {
             <p className="text-gray-400">No worker data available</p>
           )}
         </div>
+      </div>
+
+      {/* Financial Audit */}
+      <div className="mt-8">
+        <FinancialAudit adminKey={adminKey} />
       </div>
 
       <div className="mt-6 text-gray-500 text-sm">
