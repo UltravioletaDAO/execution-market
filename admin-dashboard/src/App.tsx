@@ -1,102 +1,29 @@
 import { Routes, Route, Link, useLocation } from 'react-router-dom'
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
+import { useState, lazy, Suspense } from 'react'
 import Settings from './pages/Settings'
 import Tasks from './pages/Tasks'
 import Analytics from './pages/Analytics'
 import Payments from './pages/Payments'
 import Users from './pages/Users'
 import AuditLog from './pages/AuditLog'
-import { PhantomTasksBadge } from './components/PhantomTasks'
-import { AuthError } from './lib/api'
 
-const Health = lazy(() => import('./pages/Health'))
-
-const API_BASE = import.meta.env.VITE_API_URL || 'https://api.execution.market'
+const Integrations = lazy(() => import('./pages/Integrations'))
 
 const navItems = [
-  { path: '/', label: 'Analytics' },
-  { path: '/tasks', label: 'Tasks', badge: 'phantom' as const },
-  { path: '/payments', label: 'Payments' },
-  { path: '/users', label: 'Users' },
-  { path: '/settings', label: 'Settings' },
-  { path: '/audit', label: 'Audit Log' },
-  { path: '/health', label: 'Health' },
+  { path: '/', label: 'Analytics', icon: '📊' },
+  { path: '/tasks', label: 'Tasks', icon: '📋' },
+  { path: '/payments', label: 'Payments', icon: '💰' },
+  { path: '/users', label: 'Users', icon: '👥' },
+  { path: '/settings', label: 'Settings', icon: '⚙️' },
+  { path: '/audit', label: 'Audit Log', icon: '📜' },
+  { path: '/integrations', label: 'Integrations', icon: '🔗' },
 ]
 
-/**
- * Verify an admin key against the backend.
- * Returns true if the key is valid, false otherwise.
- */
-async function verifyAdminKey(key: string): Promise<boolean> {
-  try {
-    const response = await fetch(`${API_BASE}/api/v1/admin/verify`, {
-      headers: { 'X-Admin-Key': key },
-    })
-    return response.ok
-  } catch {
-    // Network error — treat as invalid so user can re-authenticate
-    return false
-  }
-}
-
 function App() {
-  // Lazy initializers read sessionStorage synchronously on first render
-  const [adminKey, setAdminKey] = useState<string>(
-    () => sessionStorage.getItem('adminKey') || '',
-  )
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
-  const [isVerifying, setIsVerifying] = useState<boolean>(
-    () => !!sessionStorage.getItem('adminKey'),
-  )
+  const [adminKey, setAdminKey] = useState('')
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loginError, setLoginError] = useState('')
   const location = useLocation()
-
-  /** Clear auth state and sessionStorage. */
-  const handleLogout = useCallback(() => {
-    setIsAuthenticated(false)
-    setAdminKey('')
-    setLoginError('')
-    sessionStorage.removeItem('adminKey')
-  }, [])
-
-  // On mount: if we have a stored key, verify it is still valid
-  useEffect(() => {
-    const storedKey = sessionStorage.getItem('adminKey')
-    if (!storedKey) {
-      setIsVerifying(false)
-      return
-    }
-
-    let cancelled = false
-    verifyAdminKey(storedKey).then((valid) => {
-      if (cancelled) return
-      if (valid) {
-        setAdminKey(storedKey)
-        setIsAuthenticated(true)
-      } else {
-        // Stored key is stale or invalid — force re-login
-        handleLogout()
-      }
-      setIsVerifying(false)
-    })
-
-    return () => {
-      cancelled = true
-    }
-  }, [handleLogout])
-
-  // Global listener: auto-logout on AuthError (401/403) from any child page.
-  // Child pages use react-query which may swallow errors, so we also listen for
-  // unhandled rejections that carry an AuthError.
-  useEffect(() => {
-    const onUnhandled = (event: PromiseRejectionEvent) => {
-      if (event.reason instanceof AuthError) {
-        handleLogout()
-      }
-    }
-    window.addEventListener('unhandledrejection', onUnhandled)
-    return () => window.removeEventListener('unhandledrejection', onUnhandled)
-  }, [handleLogout])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -107,9 +34,14 @@ function App() {
       return
     }
 
+    // Verify the admin key with the backend using header auth
     try {
-      const valid = await verifyAdminKey(adminKey)
-      if (valid) {
+      const API_BASE = import.meta.env.VITE_API_URL || 'https://api.execution.market'
+      const response = await fetch(`${API_BASE}/api/v1/admin/verify`, {
+        headers: { 'X-Admin-Key': adminKey },
+      })
+
+      if (response.ok) {
         setIsAuthenticated(true)
         sessionStorage.setItem('adminKey', adminKey)
       } else {
@@ -120,17 +52,20 @@ function App() {
     }
   }
 
-  // Show spinner while verifying a stored session
-  if (isVerifying) {
-    return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-em-500 mx-auto mb-4" />
-          <p className="text-gray-400 text-sm">Verifying session...</p>
-        </div>
-      </div>
-    )
+  const handleLogout = () => {
+    setIsAuthenticated(false)
+    setAdminKey('')
+    sessionStorage.removeItem('adminKey')
   }
+
+  // Check session storage on mount
+  useState(() => {
+    const storedKey = sessionStorage.getItem('adminKey')
+    if (storedKey) {
+      setAdminKey(storedKey)
+      setIsAuthenticated(true)
+    }
+  })
 
   if (!isAuthenticated) {
     return (
@@ -198,14 +133,12 @@ function App() {
             <Link
               key={item.path}
               to={item.path}
-              className={`flex items-center justify-between px-6 py-3 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors ${
+              className={`flex items-center px-6 py-3 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors ${
                 location.pathname === item.path ? 'bg-gray-700 text-white border-l-4 border-em-500' : ''
               }`}
             >
-              <span>{item.label}</span>
-              {'badge' in item && item.badge === 'phantom' && isAuthenticated && (
-                <PhantomTasksBadge adminKey={adminKey} />
-              )}
+              <span className="mr-3 text-lg">{item.icon}</span>
+              {item.label}
             </Link>
           ))}
         </nav>
@@ -234,14 +167,7 @@ function App() {
           <Route path="/users" element={<Users adminKey={adminKey} />} />
           <Route path="/settings" element={<Settings adminKey={adminKey} />} />
           <Route path="/audit" element={<AuditLog adminKey={adminKey} />} />
-          <Route
-            path="/health"
-            element={
-              <Suspense fallback={<div className="text-gray-400">Loading health dashboard...</div>}>
-                <Health adminKey={adminKey} />
-              </Suspense>
-            }
-          />
+          <Route path="/integrations" element={<Suspense fallback={<div className="text-gray-400">Loading...</div>}><Integrations adminKey={adminKey} /></Suspense>} />
         </Routes>
       </main>
     </div>
