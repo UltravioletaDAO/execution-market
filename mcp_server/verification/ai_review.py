@@ -46,6 +46,10 @@ class VerificationResult:
     task_specific_checks: dict
     provider: str = "unknown"
     model: str = "unknown"
+    raw_prompt: str = ""
+    raw_response: str = ""
+    input_tokens: int = 0
+    output_tokens: int = 0
 
 
 class AIVerifier:
@@ -82,7 +86,13 @@ class AIVerifier:
         return self._provider is not None and self._provider.is_available()
 
     async def verify_evidence(
-        self, task: dict, evidence: dict, photo_urls: List[str]
+        self,
+        task: dict,
+        evidence: dict,
+        photo_urls: List[str],
+        *,
+        exif_context: str = "",
+        rekognition_context: str = "",
     ) -> VerificationResult:
         """
         Verify evidence against task requirements.
@@ -91,6 +101,8 @@ class AIVerifier:
             task: Task object with title, description, evidence_required
             evidence: Submitted evidence (GPS, timestamp, notes)
             photo_urls: List of photo URLs to analyze
+            exif_context: Pre-extracted EXIF metadata summary (optional)
+            rekognition_context: AWS Rekognition labels/text (optional)
 
         Returns:
             VerificationResult with decision and explanation
@@ -124,8 +136,19 @@ class AIVerifier:
                 task_specific_checks={},
             )
 
-        # Build prompt
-        prompt = self._build_verification_prompt(task, evidence)
+        # Build prompt using PHOTINT prompt library
+        from .prompts import get_prompt_library
+
+        prompt_lib = get_prompt_library()
+        category = task.get("task_type", task.get("category", "general"))
+        prompt_result = prompt_lib.get_prompt(
+            category=category,
+            task=task,
+            evidence=evidence,
+            exif_context=exif_context,
+            rekognition_context=rekognition_context,
+        )
+        prompt = prompt_result.text
 
         try:
             response = await self._provider.analyze(
@@ -140,13 +163,19 @@ class AIVerifier:
             result = self._parse_response(response.text)
             result.provider = response.provider
             result.model = response.model
+            result.raw_prompt = prompt
+            result.raw_response = response.text
+            result.input_tokens = response.usage.get("input_tokens", 0)
+            result.output_tokens = response.usage.get("output_tokens", 0)
 
             logger.info(
-                "AI verification via %s/%s: decision=%s confidence=%.2f",
+                "AI verification via %s/%s: decision=%s confidence=%.2f tokens=%d+%d",
                 response.provider,
                 response.model,
                 result.decision.value,
                 result.confidence,
+                result.input_tokens,
+                result.output_tokens,
             )
 
             return result
@@ -160,138 +189,8 @@ class AIVerifier:
                 issues=["AI verification error"],
                 task_specific_checks={},
                 provider=self.provider_name,
+                raw_prompt=prompt,
             )
-
-    def _build_verification_prompt(self, task: dict, evidence: dict) -> str:
-        """Build the verification prompt."""
-        task_type = task.get("task_type", task.get("category", "general"))
-        prompt_template = self._get_prompt_for_task_type(task_type)
-
-        return f"""You are a task verification system for Execution Market, a platform where humans complete physical tasks for AI agents.
-
-## Task Details
-- **Title**: {task.get("title", "Unknown")}
-- **Type**: {task_type}
-- **Description**: {task.get("instructions", task.get("description", "No description"))}
-
-## Evidence Requirements
-{self._format_requirements(task.get("evidence_schema", task.get("evidence_required", {})))}
-
-## Submitted Evidence Metadata
-- GPS: {evidence.get("gps", "Not provided")}
-- Timestamp: {evidence.get("timestamp", "Not provided")}
-- Notes: {evidence.get("notes", "None")}
-
-## Your Task
-Analyze the submitted photo(s) and determine if the task was completed correctly.
-
-{prompt_template}
-
-## Response Format
-Respond with a JSON object:
-```json
-{{
-  "decision": "approved" | "rejected" | "needs_human",
-  "confidence": 0.0-1.0,
-  "explanation": "Brief explanation for the decision",
-  "issues": ["List of any issues found"],
-  "task_checks": {{
-    "photo_matches_description": true/false,
-    "location_appears_correct": true/false,
-    "quality_acceptable": true/false,
-    "no_fraud_indicators": true/false
-  }}
-}}
-```
-
-Be strict but fair. If something is slightly off but clearly a good-faith attempt, approve with notes. Only reject for clear failures or fraud indicators."""
-
-    def _get_prompt_for_task_type(self, task_type: str) -> str:
-        """Get specialized prompt additions for task type."""
-        prompts = {
-            "store_verification": """
-## Store Verification Specific Checks
-- Is a storefront/business visible?
-- Is the store name/sign legible?
-- Does it match the requested store?
-- Is it clearly the exterior (not a photo of a photo)?
-- Are operating hours or open/closed signs visible?
-""",
-            "photo_verification": """
-## Photo Verification Specific Checks
-- Is the subject clearly visible?
-- Is the photo taken at the requested location?
-- Is the lighting adequate to verify details?
-- Is this a real photo (not screenshot/edited)?
-- Does the photo contain the required elements?
-""",
-            "physical_presence": """
-## Presence Verification Specific Checks
-- Is the person clearly present at location?
-- Are required elements visible (landmarks, signs)?
-- Is this a live photo (not from gallery)?
-- Does the environment match the expected location?
-""",
-            "delivery": """
-## Delivery Verification Specific Checks
-- Is the package/item visible?
-- Is the delivery location visible (door, address)?
-- Is there proof of delivery (doorstep, hand-off)?
-- Is the condition of the item acceptable?
-""",
-            "knowledge_access": """
-## Knowledge/Document Verification Specific Checks
-- Is the requested information clearly visible?
-- Is the document/source authentic?
-- Is the text readable?
-- Does it answer the task's question?
-""",
-            "human_authority": """
-## Authority Verification Specific Checks
-- Is the signature/stamp/seal visible?
-- Is the document official/authentic?
-- Are the required fields completed?
-- Is the authority/person identifiable?
-""",
-        }
-
-        return prompts.get(
-            task_type,
-            """
-## General Checks
-- Does the photo match the task description?
-- Is the photo authentic (not manipulated)?
-- Is sufficient detail visible to verify completion?
-- Are there any red flags or fraud indicators?
-""",
-        )
-
-    def _format_requirements(self, requirements: dict) -> str:
-        """Format evidence requirements for prompt."""
-        if not requirements:
-            return "- No specific requirements listed"
-
-        lines = []
-        if isinstance(requirements, dict):
-            required = requirements.get("required", [])
-            optional = requirements.get("optional", [])
-            if required:
-                for item in required:
-                    if isinstance(item, str):
-                        lines.append(f"- {item.replace('_', ' ').title()} (required)")
-                    elif isinstance(item, dict):
-                        lines.append(
-                            f"- {item.get('type', 'Unknown').replace('_', ' ').title()} (required)"
-                        )
-            if optional:
-                for item in optional:
-                    if isinstance(item, str):
-                        lines.append(f"- {item.replace('_', ' ').title()} (optional)")
-        elif isinstance(requirements, list):
-            for item in requirements:
-                lines.append(f"- {item.replace('_', ' ').title()}")
-
-        return "\n".join(lines) if lines else "- General photo evidence"
 
     async def _download_image(self, url: str) -> bytes:
         """Download image from URL."""
@@ -312,7 +211,11 @@ Be strict but fair. If something is slightly off but clearly a good-faith attemp
         return "image/jpeg"
 
     def _parse_response(self, response_text: str) -> VerificationResult:
-        """Parse AI response into VerificationResult."""
+        """Parse AI response into VerificationResult.
+
+        Handles both PHOTINT schema (with 'forensic' field) and
+        legacy schema (flat task_checks only) for backward compatibility.
+        """
         try:
             json_start = response_text.find("{")
             json_end = response_text.rfind("}") + 1
@@ -329,6 +232,12 @@ Be strict but fair. If something is slightly off but clearly a good-faith attemp
                 "needs_human": VerificationDecision.NEEDS_HUMAN,
             }
 
+            # Merge forensic analysis into task_specific_checks for storage
+            task_checks = data.get("task_checks", {})
+            forensic = data.get("forensic", {})
+            if forensic:
+                task_checks["_forensic"] = forensic
+
             return VerificationResult(
                 decision=decision_map.get(
                     data.get("decision"), VerificationDecision.NEEDS_HUMAN
@@ -336,7 +245,7 @@ Be strict but fair. If something is slightly off but clearly a good-faith attemp
                 confidence=float(data.get("confidence", 0.5)),
                 explanation=data.get("explanation", "No explanation provided"),
                 issues=data.get("issues", []),
-                task_specific_checks=data.get("task_checks", {}),
+                task_specific_checks=task_checks,
             )
 
         except Exception as e:

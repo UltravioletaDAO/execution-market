@@ -364,6 +364,63 @@ def get_provider(
     )
 
 
+# ---------------------------------------------------------------------------
+# Tier-based model selection
+# ---------------------------------------------------------------------------
+
+# Default models per tier — (provider, model_id)
+TIER_MODELS = {
+    "tier_1": [
+        ("gemini", "gemini-2.5-flash"),
+        ("openai", "gpt-4o-mini"),
+        ("anthropic", "claude-haiku-4-5-20251001"),
+    ],
+    "tier_2": [
+        ("anthropic", "claude-sonnet-4-20250514"),
+        ("openai", "gpt-4o"),
+        ("gemini", "gemini-2.5-pro"),
+    ],
+    "tier_3": [
+        ("anthropic", "claude-opus-4-20250514"),
+        ("bedrock", "anthropic.claude-opus-4-20250514-v1:0"),
+    ],
+}
+
+
+def get_provider_for_tier(
+    tier: str,
+    exclude_providers: Optional[List[str]] = None,
+) -> Optional[VerificationProvider]:
+    """
+    Get the best available provider for a verification tier.
+
+    Tries each model in the tier's preference order, returning the
+    first one with valid credentials. Returns None if no provider
+    is available for this tier.
+
+    Args:
+        tier: "tier_1", "tier_2", or "tier_3"
+        exclude_providers: Provider names to skip (for consensus/diversity)
+    """
+    exclude = set(exclude_providers or [])
+    candidates = TIER_MODELS.get(tier, TIER_MODELS["tier_2"])
+
+    for provider_name, model_id in candidates:
+        if provider_name in exclude:
+            continue
+        if provider_name not in PROVIDERS:
+            continue
+        try:
+            provider = PROVIDERS[provider_name](model=model_id)
+            if provider.is_available():
+                logger.info("Tier %s: using %s/%s", tier, provider_name, model_id)
+                return provider
+        except Exception:
+            continue
+
+    return None
+
+
 def list_available_providers() -> List[dict]:
     """List all providers and their availability status."""
     result = []

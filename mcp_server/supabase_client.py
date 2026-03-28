@@ -537,6 +537,152 @@ async def update_submission_ai_verification(
         )
 
 
+async def log_verification_inference(
+    submission_id: str,
+    task_id: str,
+    check_name: str,
+    tier: str,
+    provider: str,
+    model: str,
+    prompt_version: str,
+    prompt_hash: str,
+    prompt_text: str,
+    response_text: str,
+    parsed_decision: Optional[str] = None,
+    parsed_confidence: Optional[float] = None,
+    parsed_issues: Optional[List] = None,
+    input_tokens: Optional[int] = None,
+    output_tokens: Optional[int] = None,
+    latency_ms: Optional[int] = None,
+    estimated_cost_usd: Optional[float] = None,
+    task_category: Optional[str] = None,
+    evidence_types: Optional[List[str]] = None,
+    photo_count: Optional[int] = None,
+    commitment_hash: Optional[str] = None,
+    metadata: Optional[Dict[str, Any]] = None,
+) -> Optional[str]:
+    """
+    Log a verification inference to the audit trail.
+
+    Returns the inference ID if successful, None on failure.
+    Non-blocking: logs errors but never raises.
+    """
+    client = get_client()
+    try:
+        row = {
+            "submission_id": submission_id,
+            "task_id": task_id,
+            "check_name": check_name,
+            "tier": tier,
+            "provider": provider,
+            "model": model,
+            "prompt_version": prompt_version,
+            "prompt_hash": prompt_hash,
+            "prompt_text": prompt_text,
+            "response_text": response_text,
+            "parsed_decision": parsed_decision,
+            "parsed_confidence": float(parsed_confidence)
+            if parsed_confidence is not None
+            else None,
+            "parsed_issues": parsed_issues or [],
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "latency_ms": latency_ms,
+            "estimated_cost_usd": float(estimated_cost_usd)
+            if estimated_cost_usd is not None
+            else None,
+            "task_category": task_category,
+            "evidence_types": evidence_types,
+            "photo_count": photo_count,
+            "commitment_hash": commitment_hash,
+            "metadata": metadata or {},
+        }
+        # Remove None values to let DB defaults apply
+        row = {k: v for k, v in row.items() if v is not None}
+
+        result = client.table("verification_inferences").insert(row).execute()
+        if result.data:
+            return result.data[0].get("id")
+        return None
+    except Exception as e:
+        logger.warning(
+            "Failed to log verification inference for submission %s: %s",
+            submission_id,
+            e,
+        )
+        return None
+
+
+async def get_inferences_for_submission(
+    submission_id: str,
+) -> List[Dict[str, Any]]:
+    """
+    Get all verification inferences for a submission.
+
+    Returns list of inference records ordered by creation time.
+    """
+    client = get_client()
+    try:
+        result = (
+            client.table("verification_inferences")
+            .select("*")
+            .eq("submission_id", submission_id)
+            .order("created_at", desc=False)
+            .execute()
+        )
+        return result.data or []
+    except Exception as e:
+        logger.warning(
+            "Failed to get inferences for submission %s: %s",
+            submission_id,
+            e,
+        )
+        return []
+
+
+async def update_inference_agent_feedback(
+    submission_id: str,
+    agent_decision: str,
+    agent_notes: Optional[str] = None,
+) -> int:
+    """
+    Update all inferences for a submission with agent's actual decision.
+
+    Sets agent_agreed based on whether AI decision matches agent decision.
+    Returns count of updated rows.
+    """
+    client = get_client()
+    try:
+        # Get all inferences for this submission
+        inferences = await get_inferences_for_submission(submission_id)
+        updated = 0
+        for inf in inferences:
+            ai_decision = inf.get("parsed_decision")
+            # Map agent verdict to comparable decision
+            agent_comparable = (
+                "approved" if agent_decision in ("accepted", "approved") else "rejected"
+            )
+            agreed = ai_decision == agent_comparable if ai_decision else None
+
+            client.table("verification_inferences").update(
+                {
+                    "agent_agreed": agreed,
+                    "agent_decision": agent_decision,
+                    "agent_notes": agent_notes,
+                }
+            ).eq("id", inf["id"]).execute()
+            updated += 1
+
+        return updated
+    except Exception as e:
+        logger.warning(
+            "Failed to update inference feedback for submission %s: %s",
+            submission_id,
+            e,
+        )
+        return 0
+
+
 async def auto_approve_submission(
     submission_id: str,
     score: float,

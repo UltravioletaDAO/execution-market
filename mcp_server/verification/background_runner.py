@@ -13,8 +13,6 @@ import logging
 import os
 from typing import Any, Dict, List, Optional, Tuple
 
-from web3 import Web3
-
 import supabase_client as db
 from .pipeline import CheckResult, merge_phase_b
 from .image_downloader import (
@@ -89,7 +87,9 @@ async def run_phase_b_verification(
 
         # 3. Run 5 checks concurrently
         check_tasks = [
-            _run_ai_semantic_check(task, evidence, photo_urls),
+            _run_ai_semantic_check(
+                task, evidence, photo_urls, submission_id, temp_paths
+            ),
             _run_tampering_check(temp_paths),
             _run_genai_detection_check(temp_paths),
             _run_photo_source_check(temp_paths, task.get("category", "")),
@@ -205,15 +205,200 @@ async def _run_ai_semantic_check(
     task: Dict[str, Any],
     evidence: Dict[str, Any],
     photo_urls: List[str],
+    submission_id: str = "",
+    temp_paths: Optional[List[str]] = None,
 ) -> CheckResult:
-    """Run AI vision verification on evidence images."""
+    """
+    Run AI vision verification with tiered model routing.
+
+    Flow:
+    1. Extract EXIF metadata from downloaded images
+    2. Run AWS Rekognition (if enabled) for labels/text/moderation
+    3. Route to appropriate tier via ModelRouter
+    4. Run verification, escalate if uncertain
+    5. Log each inference to audit trail
+    """
     try:
         from .ai_review import AIVerifier, VerificationDecision
+        from .exif_extractor import extract_exif
+        from .inference_logger import (
+            InferenceRecord,
+            InferenceTimer,
+            compute_commitment_hash,
+            get_inference_logger,
+        )
+        from .model_router import select_tier, should_escalate
+        from .prompts import get_prompt_library
+        from .providers import get_provider_for_tier
+        from .providers_aws import analyze_with_rekognition
 
-        provider_name = os.environ.get("AI_VERIFICATION_PROVIDER", "gemini")
-        verifier = AIVerifier(provider_name=provider_name)
+        # --- Step 1: Extract EXIF ---
+        exif_context = ""
+        exif_metadata = {}
+        has_exif = True
+        if temp_paths:
+            try:
+                exif_data = extract_exif(temp_paths[0])
+                exif_context = exif_data.to_prompt_context()
+                has_exif = exif_data.has_exif
+                exif_metadata = {
+                    "camera": f"{exif_data.camera_make or ''} {exif_data.camera_model or ''}".strip(),
+                    "gps": f"{exif_data.gps_latitude},{exif_data.gps_longitude}"
+                    if exif_data.gps_latitude
+                    else None,
+                    "has_exif": exif_data.has_exif,
+                    "metadata_stripped": exif_data.metadata_stripped,
+                    "has_editing_software": exif_data.has_editing_software,
+                    "container": exif_data.container_type,
+                    "resolution": f"{exif_data.width}x{exif_data.height}"
+                    if exif_data.width
+                    else None,
+                    "megapixels": exif_data.megapixels,
+                }
+                logger.info(
+                    "EXIF extracted for %s: has_exif=%s stripped=%s editing=%s",
+                    submission_id,
+                    exif_data.has_exif,
+                    exif_data.metadata_stripped,
+                    exif_data.has_editing_software,
+                )
+            except Exception as e:
+                logger.warning("EXIF extraction failed for %s: %s", submission_id, e)
 
-        if not verifier.is_available:
+        # --- Step 2: AWS Rekognition (if enabled, fire-and-forget) ---
+        rekognition_context = ""
+        if temp_paths:
+            try:
+                with open(temp_paths[0], "rb") as f:
+                    image_bytes = f.read()
+                rekog_result = await analyze_with_rekognition(image_bytes)
+                rekognition_context = rekog_result.to_prompt_context()
+                if rekog_result.available:
+                    exif_metadata["rekognition"] = {
+                        "labels": len(rekog_result.labels),
+                        "text_detected": len(rekog_result.text_detections),
+                        "moderation_flags": rekog_result.has_moderation_flags,
+                        "faces": rekog_result.face_count,
+                    }
+            except Exception as e:
+                logger.debug("Rekognition skipped for %s: %s", submission_id, e)
+
+        # --- Step 3: Route to tier ---
+        category = task.get("category", "general")
+        bounty = float(task.get("bounty", task.get("bounty_amount", 0)) or 0)
+
+        selection = select_tier(
+            bounty_usd=bounty,
+            category=category,
+            has_exif=has_exif,
+            photo_count=len(photo_urls[:VERIFICATION_AI_MAX_IMAGES]),
+        )
+        current_tier = selection.tier
+        logger.info(
+            "Model routing for %s: %s — %s",
+            submission_id,
+            current_tier,
+            selection.reason,
+        )
+
+        # --- Step 4: Run verification (with escalation) ---
+        inference_logger = get_inference_logger()
+        prompt_lib = get_prompt_library()
+        pv = (
+            prompt_lib.get_prompt(category, task, evidence).version
+            if prompt_lib.has_category(category)
+            else f"photint-v1.0-{category}"
+        )
+
+        final_result = None
+        final_tier = current_tier
+        tiers_tried = []
+
+        for _attempt in range(3):  # Max 3 escalation attempts
+            provider = get_provider_for_tier(current_tier)
+            if not provider:
+                # Fallback: try default provider
+                provider_name = os.environ.get("AI_VERIFICATION_PROVIDER", "gemini")
+                verifier = AIVerifier(provider_name=provider_name)
+                if not verifier.is_available:
+                    break
+            else:
+                verifier = AIVerifier(provider=provider)
+
+            timer = InferenceTimer()
+            with timer:
+                result = await verifier.verify_evidence(
+                    task=task,
+                    evidence=evidence,
+                    photo_urls=photo_urls[:VERIFICATION_AI_MAX_IMAGES],
+                    exif_context=exif_context,
+                    rekognition_context=rekognition_context,
+                )
+
+            tiers_tried.append(current_tier)
+
+            # Log this inference
+            if submission_id:
+                commitment_hash = compute_commitment_hash(
+                    task.get("id", ""),
+                    result.raw_response or result.explanation or "",
+                )
+                await inference_logger.log(
+                    InferenceRecord(
+                        submission_id=submission_id,
+                        task_id=task.get("id", ""),
+                        check_name="ai_semantic",
+                        tier=current_tier,
+                        provider=result.provider,
+                        model=result.model,
+                        prompt_version=pv,
+                        prompt_text=result.raw_prompt,
+                        response_text=result.raw_response,
+                        parsed_decision=result.decision.value,
+                        parsed_confidence=result.confidence,
+                        parsed_issues=result.issues,
+                        input_tokens=result.input_tokens,
+                        output_tokens=result.output_tokens,
+                        latency_ms=timer.latency_ms,
+                        task_category=category,
+                        evidence_types=list(evidence.keys()) if evidence else [],
+                        photo_count=len(photo_urls[:VERIFICATION_AI_MAX_IMAGES]),
+                        commitment_hash=commitment_hash,
+                        metadata={
+                            "exif": exif_metadata,
+                            "routing_reason": selection.reason,
+                            "tiers_tried": tiers_tried,
+                        },
+                    )
+                )
+
+            final_result = result
+            final_tier = current_tier
+
+            # Check if we should escalate
+            score_map = {
+                VerificationDecision.APPROVED: 1.0,
+                VerificationDecision.REJECTED: 0.0,
+                VerificationDecision.NEEDS_HUMAN: 0.5,
+            }
+            score = score_map.get(result.decision, 0.5)
+
+            next_tier = should_escalate(current_tier, score, result.confidence)
+            if next_tier is None:
+                break  # Confident result, no escalation needed
+
+            logger.info(
+                "Escalating %s from %s to %s (score=%.2f, confidence=%.2f)",
+                submission_id,
+                current_tier,
+                next_tier,
+                score,
+                result.confidence,
+            )
+            current_tier = next_tier
+
+        # --- Step 5: Build final CheckResult ---
+        if final_result is None:
             return CheckResult(
                 name="ai_semantic",
                 passed=True,
@@ -222,38 +407,33 @@ async def _run_ai_semantic_check(
                 details={"provider": "none"},
             )
 
-        result = await verifier.verify_evidence(
-            task=task,
-            evidence=evidence,
-            photo_urls=photo_urls[:VERIFICATION_AI_MAX_IMAGES],
-        )
-
-        # Map decision to score
         score_map = {
             VerificationDecision.APPROVED: 1.0,
             VerificationDecision.REJECTED: 0.0,
             VerificationDecision.NEEDS_HUMAN: 0.5,
         }
-        score = score_map.get(result.decision, 0.5)
+        score = score_map.get(final_result.decision, 0.5)
 
-        # Compute commitment hash for auditability
-        prompt_text = f"task:{task.get('id', '')}"
-        response_text = result.explanation or ""
-        raw_hex = Web3.keccak(text=f"{prompt_text}|{response_text}").hex()
-        commitment_hash = raw_hex if raw_hex.startswith("0x") else f"0x{raw_hex}"
+        commitment_hash = compute_commitment_hash(
+            task.get("id", ""),
+            final_result.raw_response or final_result.explanation or "",
+        )
 
         return CheckResult(
             name="ai_semantic",
-            passed=result.decision == VerificationDecision.APPROVED,
+            passed=final_result.decision == VerificationDecision.APPROVED,
             score=score,
-            reason=result.explanation,
+            reason=final_result.explanation,
             details={
-                "decision": result.decision.value,
-                "confidence": result.confidence,
-                "issues": result.issues,
-                "provider": result.provider,
-                "model": result.model,
+                "decision": final_result.decision.value,
+                "confidence": final_result.confidence,
+                "issues": final_result.issues,
+                "provider": final_result.provider,
+                "model": final_result.model,
                 "commitment_hash": commitment_hash,
+                "tier": final_tier,
+                "tiers_tried": tiers_tried,
+                "routing_reason": selection.reason,
             },
         )
 
