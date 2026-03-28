@@ -199,7 +199,7 @@ const CHAIN_CONFIGS: Record<string, ChainConfig> = {
     protocolFeeConfig: "0xf62788834C99B2E85a6891C0b46D1EB996f8f596",
     usdcTvlLimit: "0x0000000000000000000000000000000000000000" as Address, // SKALE has no TVL limit
     tokenCollector: "0x9A12A116a44636F55c9e135189A1321Abcfe2f30",
-    payerCondition: "0x0000000000000000000000000000000000000000" as Address, // Uses facilitator condition
+    payerCondition: "0x808bB293AE1473A38Dd4017afa3db941924fD0F3",
   },
 };
 
