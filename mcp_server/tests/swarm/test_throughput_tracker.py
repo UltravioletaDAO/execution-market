@@ -16,6 +16,10 @@ Categories:
     - Edge cases and boundary conditions
 """
 
+import time
+import math
+import pytest
+
 from mcp_server.swarm.throughput_tracker import (
     ThroughputTracker,
     AlertLevel,
@@ -25,7 +29,6 @@ from mcp_server.swarm.throughput_tracker import (
 
 
 # ─── Basic Metric Recording ────────────────────────────────────────────
-
 
 class TestBasicRecording:
     """Tests basic event recording and counting."""
@@ -84,7 +87,6 @@ class TestBasicRecording:
 
 
 # ─── Quality Statistics ──────────────────────────────────────────────────
-
 
 class TestQualityStats:
     """Tests quality score statistical computation."""
@@ -153,7 +155,6 @@ class TestQualityStats:
 
 # ─── Burn Rate ───────────────────────────────────────────────────────────
 
-
 class TestBurnRate:
     """Tests budget burn rate calculation."""
 
@@ -188,7 +189,6 @@ class TestBurnRate:
 
 
 # ─── Agent Health ────────────────────────────────────────────────────────
-
 
 class TestAgentHealth:
     """Tests agent health tracking and summary."""
@@ -234,7 +234,6 @@ class TestAgentHealth:
 
 
 # ─── Alert Evaluation ────────────────────────────────────────────────────
-
 
 class TestAlertEvaluation:
     """Tests alert threshold evaluation."""
@@ -374,9 +373,7 @@ class TestAlertEvaluation:
 
     def test_has_any_alert_false(self):
         """has_any_alert returns False when all OK (zero baseline)."""
-        tt = ThroughputTracker(
-            baseline_tasks_per_hour=0.0, projected_daily_spend_usd=0.0
-        )
+        tt = ThroughputTracker(baseline_tasks_per_hour=0.0, projected_daily_spend_usd=0.0)
         assert not tt.has_any_alert(AlertLevel.WARNING)
 
     def test_custom_thresholds(self):
@@ -395,7 +392,6 @@ class TestAlertEvaluation:
 
 
 # ─── Snapshot and Trend ──────────────────────────────────────────────────
-
 
 class TestSnapshotAndTrend:
     """Tests snapshot capture and trend analysis."""
@@ -489,7 +485,6 @@ class TestSnapshotAndTrend:
 
 
 # ─── Edge Cases ──────────────────────────────────────────────────────────
-
 
 class TestEdgeCases:
     """Tests boundary conditions and edge cases."""

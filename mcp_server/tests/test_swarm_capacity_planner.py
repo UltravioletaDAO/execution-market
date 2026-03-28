@@ -18,12 +18,24 @@ Tests cover:
     8. Edge cases (empty inputs, single worker, perfect balance)
 """
 
+import pytest
+from dataclasses import asdict
+
 from mcp_server.swarm.capacity_planner import (
     CapacityPlanner,
     SkillDemand,
+    ConcentrationReport,
     CapacityEstimate,
+    RecruitmentTarget,
     WorkloadEntry,
+    MIN_DEMAND_THRESHOLD,
+    MAX_HEALTHY_CONCENTRATION,
     TARGET_UTILIZATION_LOW,
+    TARGET_UTILIZATION_HIGH,
+    DEFAULT_TASKS_PER_WORKER_PER_DAY,
+    URGENCY_CRITICAL,
+    URGENCY_HIGH,
+    URGENCY_MEDIUM,
 )
 
 
@@ -44,13 +56,11 @@ def _agents(count=5, skills=None):
     }
     for i in range(count):
         agent_skills = default_skills.get(i, {"general": 0.5})
-        agents.append(
-            {
-                "agent_id": i,
-                "wallet": f"0x{i:040x}",
-                "skills": {s: {"confidence": q} for s, q in agent_skills.items()},
-            }
-        )
+        agents.append({
+            "agent_id": i,
+            "wallet": f"0x{i:040x}",
+            "skills": {s: {"confidence": q} for s, q in agent_skills.items()},
+        })
     return agents
 
 
@@ -73,14 +83,12 @@ def _tasks(specs=None):
             cat, worker = spec
         else:
             cat, worker = spec, None
-        tasks.append(
-            {
-                "id": f"task-{i}",
-                "category": cat,
-                "assigned_worker": worker,
-                "title": f"Test {cat} task",
-            }
-        )
+        tasks.append({
+            "id": f"task-{i}",
+            "category": cat,
+            "assigned_worker": worker,
+            "title": f"Test {cat} task",
+        })
     return tasks
 
 
@@ -92,47 +100,31 @@ def _tasks(specs=None):
 class TestSkillDemand:
     def test_critical_severity(self):
         sd = SkillDemand(
-            skill="video",
-            demand_count=5,
-            supply_count=0,
-            gap=5,
-            coverage_ratio=0.0,
-            avg_quality=0.0,
+            skill="video", demand_count=5, supply_count=0,
+            gap=5, coverage_ratio=0.0, avg_quality=0.0,
         )
         assert sd.severity == "critical"
         assert sd.is_critical is True
 
     def test_high_severity(self):
         sd = SkillDemand(
-            skill="photo",
-            demand_count=10,
-            supply_count=3,
-            gap=7,
-            coverage_ratio=0.3,
-            avg_quality=0.7,
+            skill="photo", demand_count=10, supply_count=3,
+            gap=7, coverage_ratio=0.3, avg_quality=0.7,
         )
         assert sd.severity == "high"
         assert sd.is_critical is False
 
     def test_medium_severity(self):
         sd = SkillDemand(
-            skill="photo",
-            demand_count=10,
-            supply_count=8,
-            gap=2,
-            coverage_ratio=0.8,
-            avg_quality=0.7,
+            skill="photo", demand_count=10, supply_count=8,
+            gap=2, coverage_ratio=0.8, avg_quality=0.7,
         )
         assert sd.severity == "medium"
 
     def test_healthy_severity(self):
         sd = SkillDemand(
-            skill="photo",
-            demand_count=5,
-            supply_count=10,
-            gap=0,
-            coverage_ratio=2.0,
-            avg_quality=0.9,
+            skill="photo", demand_count=5, supply_count=10,
+            gap=0, coverage_ratio=2.0, avg_quality=0.9,
         )
         assert sd.severity == "healthy"
         assert sd.is_critical is False
@@ -141,23 +133,15 @@ class TestSkillDemand:
 class TestCapacityEstimate:
     def test_surplus(self):
         ce = CapacityEstimate(
-            current_capacity_daily=30.0,
-            projected_demand_daily=5.0,
-            utilization=0.167,
-            headroom=25.0,
-            workers_needed=0,
-            status="surplus",
+            current_capacity_daily=30.0, projected_demand_daily=5.0,
+            utilization=0.167, headroom=25.0, workers_needed=0, status="surplus",
         )
         assert ce.status == "surplus"
 
     def test_shortage(self):
         ce = CapacityEstimate(
-            current_capacity_daily=10.0,
-            projected_demand_daily=15.0,
-            utilization=1.5,
-            headroom=-5.0,
-            workers_needed=2,
-            status="shortage",
+            current_capacity_daily=10.0, projected_demand_daily=15.0,
+            utilization=1.5, headroom=-5.0, workers_needed=2, status="shortage",
         )
         assert ce.workers_needed == 2
 
@@ -165,21 +149,15 @@ class TestCapacityEstimate:
 class TestWorkloadEntry:
     def test_overloaded_flag(self):
         we = WorkloadEntry(
-            wallet="0x1",
-            task_count=10,
-            share=0.6,
-            is_overloaded=True,
-            is_underutilized=False,
+            wallet="0x1", task_count=10, share=0.6,
+            is_overloaded=True, is_underutilized=False,
         )
         assert we.is_overloaded
 
     def test_underutilized_flag(self):
         we = WorkloadEntry(
-            wallet="0x2",
-            task_count=1,
-            share=0.02,
-            is_overloaded=False,
-            is_underutilized=True,
+            wallet="0x2", task_count=1, share=0.02,
+            is_overloaded=False, is_underutilized=True,
         )
         assert we.is_underutilized
 
@@ -192,17 +170,12 @@ class TestWorkloadEntry:
 class TestSkillGapAnalysis:
     def test_basic_gap_detection(self):
         planner = CapacityPlanner()
-        agents = _agents(
-            3,
-            {
-                0: {"photo": 0.8},
-                1: {"delivery": 0.9},
-                2: {"photo": 0.7},
-            },
-        )
-        tasks = _tasks(
-            [("photo", None), ("photo", None), ("video", None), ("delivery", None)]
-        )
+        agents = _agents(3, {
+            0: {"photo": 0.8},
+            1: {"delivery": 0.9},
+            2: {"photo": 0.7},
+        })
+        tasks = _tasks([("photo", None), ("photo", None), ("video", None), ("delivery", None)])
 
         result = planner.analyze_skill_gaps(agents, tasks)
 
@@ -214,14 +187,11 @@ class TestSkillGapAnalysis:
 
     def test_full_coverage(self):
         planner = CapacityPlanner()
-        agents = _agents(
-            3,
-            {
-                0: {"photo": 0.9, "delivery": 0.8},
-                1: {"photo": 0.7, "delivery": 0.9},
-                2: {"photo": 0.8},
-            },
-        )
+        agents = _agents(3, {
+            0: {"photo": 0.9, "delivery": 0.8},
+            1: {"photo": 0.7, "delivery": 0.9},
+            2: {"photo": 0.8},
+        })
         # Use titles that won't trigger keyword extraction of extra skills
         tasks = [
             {"category": "photo", "title": "Take a pic"},
@@ -251,14 +221,12 @@ class TestSkillGapAnalysis:
 
     def test_skill_quality_extraction(self):
         planner = CapacityPlanner()
-        agents = [
-            {
-                "skills": {
-                    "photo": {"confidence": 0.9, "level": "EXPERT"},
-                    "delivery": {"confidence": 0.3},
-                }
+        agents = [{
+            "skills": {
+                "photo": {"confidence": 0.9, "level": "EXPERT"},
+                "delivery": {"confidence": 0.3},
             }
-        ]
+        }]
         tasks = _tasks([("photo", None)])
 
         result = planner.analyze_skill_gaps(agents, tasks)
@@ -296,9 +264,7 @@ class TestSkillGapAnalysis:
 
     def test_required_skills_dict(self):
         planner = CapacityPlanner()
-        tasks = [
-            {"required_skills": {"photo": True, "video": True}, "category": "media"}
-        ]
+        tasks = [{"required_skills": {"photo": True, "video": True}, "category": "media"}]
         agents = []
 
         result = planner.analyze_skill_gaps(agents, tasks)
@@ -309,14 +275,10 @@ class TestSkillGapAnalysis:
     def test_severity_sorting(self):
         planner = CapacityPlanner()
         agents = [{"skills": {"photo": 0.8}}]
-        tasks = _tasks(
-            [
-                ("video", None),
-                ("video", None),
-                ("video", None),
-                ("photo", None),
-            ]
-        )
+        tasks = _tasks([
+            ("video", None), ("video", None), ("video", None),
+            ("photo", None),
+        ])
 
         result = planner.analyze_skill_gaps(agents, tasks)
         # Critical (video) should come before healthy (photo)
@@ -436,14 +398,10 @@ class TestConcentrationRisk:
 
     def test_single_worker_critical(self):
         planner = CapacityPlanner()
-        tasks = _tasks(
-            [
-                ("photo", "0x001"),
-                ("delivery", "0x001"),
-                ("photo", "0x001"),
-                ("verify", "0x001"),
-            ]
-        )
+        tasks = _tasks([
+            ("photo", "0x001"), ("delivery", "0x001"),
+            ("photo", "0x001"), ("verify", "0x001"),
+        ])
 
         result = planner.concentration_risk(_agents(3), tasks)
         assert result.top_worker_share == 1.0
@@ -452,15 +410,11 @@ class TestConcentrationRisk:
 
     def test_two_workers_high_concentration(self):
         planner = CapacityPlanner()
-        tasks = _tasks(
-            [
-                ("photo", "0x001"),
-                ("delivery", "0x001"),
-                ("photo", "0x001"),
-                ("verify", "0x001"),
-                ("survey", "0x002"),
-            ]
-        )
+        tasks = _tasks([
+            ("photo", "0x001"), ("delivery", "0x001"),
+            ("photo", "0x001"), ("verify", "0x001"),
+            ("survey", "0x002"),
+        ])
 
         result = planner.concentration_risk(_agents(5), tasks)
         assert result.top_worker_share == 0.8
@@ -468,15 +422,11 @@ class TestConcentrationRisk:
 
     def test_balanced_distribution(self):
         planner = CapacityPlanner()
-        tasks = _tasks(
-            [
-                ("photo", "0x001"),
-                ("delivery", "0x002"),
-                ("photo", "0x003"),
-                ("verify", "0x004"),
-                ("survey", "0x005"),
-            ]
-        )
+        tasks = _tasks([
+            ("photo", "0x001"), ("delivery", "0x002"),
+            ("photo", "0x003"), ("verify", "0x004"),
+            ("survey", "0x005"),
+        ])
 
         result = planner.concentration_risk(_agents(5), tasks)
         assert result.top_worker_share == 0.2
@@ -492,20 +442,13 @@ class TestConcentrationRisk:
     def test_hhi_balanced(self):
         planner = CapacityPlanner()
         # 5 workers, each 2 tasks: shares = [0.2]*5, HHI = 5 * 0.04 = 0.2
-        tasks = _tasks(
-            [
-                ("a", "0x001"),
-                ("b", "0x001"),
-                ("c", "0x002"),
-                ("d", "0x002"),
-                ("e", "0x003"),
-                ("f", "0x003"),
-                ("g", "0x004"),
-                ("h", "0x004"),
-                ("i", "0x005"),
-                ("j", "0x005"),
-            ]
-        )
+        tasks = _tasks([
+            ("a", "0x001"), ("b", "0x001"),
+            ("c", "0x002"), ("d", "0x002"),
+            ("e", "0x003"), ("f", "0x003"),
+            ("g", "0x004"), ("h", "0x004"),
+            ("i", "0x005"), ("j", "0x005"),
+        ])
         result = planner.concentration_risk(_agents(5), tasks)
         assert abs(result.herfindahl_index - 0.2) < 0.01
 
@@ -546,14 +489,10 @@ class TestConcentrationRisk:
 class TestWorkloadBalance:
     def test_balanced_distribution(self):
         planner = CapacityPlanner()
-        tasks = _tasks(
-            [
-                ("a", "0x001"),
-                ("b", "0x002"),
-                ("c", "0x003"),
-                ("d", "0x004"),
-            ]
-        )
+        tasks = _tasks([
+            ("a", "0x001"), ("b", "0x002"),
+            ("c", "0x003"), ("d", "0x004"),
+        ])
 
         result = planner.workload_balance(_agents(4), tasks)
         assert result["active_workers"] == 4
@@ -561,17 +500,11 @@ class TestWorkloadBalance:
 
     def test_unbalanced_distribution(self):
         planner = CapacityPlanner()
-        tasks = _tasks(
-            [
-                ("a", "0x001"),
-                ("b", "0x001"),
-                ("c", "0x001"),
-                ("d", "0x001"),
-                ("e", "0x001"),
-                ("f", "0x001"),
-                ("g", "0x002"),
-            ]
-        )
+        tasks = _tasks([
+            ("a", "0x001"), ("b", "0x001"), ("c", "0x001"),
+            ("d", "0x001"), ("e", "0x001"), ("f", "0x001"),
+            ("g", "0x002"),
+        ])
 
         result = planner.workload_balance(_agents(5), tasks)
         assert result["overloaded_count"] >= 1
@@ -594,13 +527,10 @@ class TestWorkloadBalance:
 
     def test_categories_tracked(self):
         planner = CapacityPlanner()
-        tasks = _tasks(
-            [
-                ("photo", "0x001"),
-                ("delivery", "0x001"),
-                ("photo", "0x002"),
-            ]
-        )
+        tasks = _tasks([
+            ("photo", "0x001"), ("delivery", "0x001"),
+            ("photo", "0x002"),
+        ])
 
         result = planner.workload_balance(_agents(3), tasks)
         workers = result["workers"]
@@ -624,14 +554,10 @@ class TestWorkloadBalance:
 
     def test_workers_sorted_by_count(self):
         planner = CapacityPlanner()
-        tasks = _tasks(
-            [
-                ("a", "0x002"),
-                ("b", "0x002"),
-                ("c", "0x002"),
-                ("d", "0x001"),
-            ]
-        )
+        tasks = _tasks([
+            ("a", "0x002"), ("b", "0x002"), ("c", "0x002"),
+            ("d", "0x001"),
+        ])
 
         result = planner.workload_balance(_agents(3), tasks)
         workers = result["workers"]
@@ -677,7 +603,9 @@ class TestRecruitmentPlan:
     def test_healthy_pool_no_targets(self):
         planner = CapacityPlanner()
         agents = _agents(10, {i: {"photo": 0.8, "delivery": 0.9} for i in range(10)})
-        tasks = _tasks([("photo", f"0x{i:03x}") for i in range(10)])
+        tasks = _tasks([
+            ("photo", f"0x{i:03x}") for i in range(10)
+        ])
 
         plan = planner.recruitment_plan(agents, tasks, projected_daily_tasks=5.0)
         assert plan["critical_count"] == 0
@@ -690,10 +618,7 @@ class TestRecruitmentPlan:
 
         plan = planner.recruitment_plan(agents, tasks, projected_daily_tasks=20.0)
         if len(plan["targets"]) >= 2:
-            assert (
-                plan["targets"][0]["urgency_score"]
-                >= plan["targets"][1]["urgency_score"]
-            )
+            assert plan["targets"][0]["urgency_score"] >= plan["targets"][1]["urgency_score"]
 
     def test_empty_inputs(self):
         planner = CapacityPlanner()
@@ -746,7 +671,9 @@ class TestFullReport:
         planner = CapacityPlanner()
         # 10 agents with good skill coverage, balanced workload
         agents = _agents(10, {i: {"photo": 0.8, "delivery": 0.9} for i in range(10)})
-        tasks = _tasks([("photo", f"0x{i:03x}") for i in range(10)])
+        tasks = _tasks([
+            ("photo", f"0x{i:03x}") for i in range(10)
+        ])
 
         report = planner.full_report(agents, tasks, projected_daily_tasks=5.0)
         assert report["health_score"] >= 50
@@ -827,10 +754,8 @@ class TestEdgeCases:
     def test_very_large_pool(self):
         planner = CapacityPlanner()
         agents = [{"skills": {"photo": 0.5}} for _ in range(100)]
-        tasks = [
-            {"category": "photo", "assigned_worker": f"0x{i:040x}", "title": "t"}
-            for i in range(50)
-        ]
+        tasks = [{"category": "photo", "assigned_worker": f"0x{i:040x}", "title": "t"}
+                 for i in range(50)]
 
         report = planner.full_report(agents, tasks)
         assert report["health_score"] > 0

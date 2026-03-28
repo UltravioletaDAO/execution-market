@@ -6,14 +6,18 @@ and snapshot capabilities of the diagnostics layer.
 """
 
 import time
+import pytest
 
 from mcp_server.swarm.diagnostics import (
     SwarmDiagnostics,
     HealthStatus,
     TrendDirection,
     SubsystemHealth,
+    SystemHealthReport,
     PerformanceTrend,
     Alert,
+    AlertDigest,
+    DiagnosticSnapshot,
 )
 
 
@@ -21,15 +25,12 @@ from mcp_server.swarm.diagnostics import (
 # Health Check Registration and Execution
 # ──────────────────────────────────────────────────────────────
 
-
 class TestHealthCheckRegistration:
     """Tests for registering and managing health checks."""
 
     def test_register_health_check(self):
         diag = SwarmDiagnostics()
-        diag.register_health_check(
-            "test", lambda: SubsystemHealth(name="test", status=HealthStatus.HEALTHY)
-        )
+        diag.register_health_check("test", lambda: SubsystemHealth(name="test", status=HealthStatus.HEALTHY))
         assert "test" in diag.registered_checks
 
     def test_unregister_health_check(self):
@@ -45,20 +46,16 @@ class TestHealthCheckRegistration:
     def test_multiple_registrations(self):
         diag = SwarmDiagnostics()
         for i in range(5):
-            diag.register_health_check(
-                f"sub_{i}",
-                lambda: SubsystemHealth(name="sub", status=HealthStatus.HEALTHY),
-            )
+            diag.register_health_check(f"sub_{i}",
+                lambda: SubsystemHealth(name="sub", status=HealthStatus.HEALTHY))
         assert len(diag.registered_checks) == 5
 
     def test_overwrite_registration(self):
         diag = SwarmDiagnostics()
-        diag.register_health_check(
-            "test", lambda: SubsystemHealth(name="test", status=HealthStatus.HEALTHY)
-        )
-        diag.register_health_check(
-            "test", lambda: SubsystemHealth(name="test", status=HealthStatus.CRITICAL)
-        )
+        diag.register_health_check("test",
+            lambda: SubsystemHealth(name="test", status=HealthStatus.HEALTHY))
+        diag.register_health_check("test",
+            lambda: SubsystemHealth(name="test", status=HealthStatus.CRITICAL))
         report = diag.run_health_check()
         assert report.subsystems[0].status == HealthStatus.CRITICAL
 
@@ -75,53 +72,43 @@ class TestHealthCheckExecution:
     def test_all_healthy(self):
         diag = SwarmDiagnostics()
         for i in range(3):
-            diag.register_health_check(
-                f"sub_{i}",
-                lambda: SubsystemHealth(name="", status=HealthStatus.HEALTHY),
-            )
+            diag.register_health_check(f"sub_{i}",
+                lambda: SubsystemHealth(name="", status=HealthStatus.HEALTHY))
         report = diag.run_health_check()
         assert report.overall_status == HealthStatus.HEALTHY
         assert report.healthy_count == 3
 
     def test_one_degraded_degrades_overall(self):
         diag = SwarmDiagnostics()
-        diag.register_health_check(
-            "healthy", lambda: SubsystemHealth(name="h", status=HealthStatus.HEALTHY)
-        )
-        diag.register_health_check(
-            "degraded", lambda: SubsystemHealth(name="d", status=HealthStatus.DEGRADED)
-        )
+        diag.register_health_check("healthy",
+            lambda: SubsystemHealth(name="h", status=HealthStatus.HEALTHY))
+        diag.register_health_check("degraded",
+            lambda: SubsystemHealth(name="d", status=HealthStatus.DEGRADED))
         report = diag.run_health_check()
         assert report.overall_status == HealthStatus.DEGRADED
 
     def test_one_critical_makes_overall_critical(self):
         diag = SwarmDiagnostics()
-        diag.register_health_check(
-            "healthy", lambda: SubsystemHealth(name="h", status=HealthStatus.HEALTHY)
-        )
-        diag.register_health_check(
-            "critical", lambda: SubsystemHealth(name="c", status=HealthStatus.CRITICAL)
-        )
+        diag.register_health_check("healthy",
+            lambda: SubsystemHealth(name="h", status=HealthStatus.HEALTHY))
+        diag.register_health_check("critical",
+            lambda: SubsystemHealth(name="c", status=HealthStatus.CRITICAL))
         report = diag.run_health_check()
         assert report.overall_status == HealthStatus.CRITICAL
 
     def test_critical_beats_degraded(self):
         diag = SwarmDiagnostics()
-        diag.register_health_check(
-            "degraded", lambda: SubsystemHealth(name="d", status=HealthStatus.DEGRADED)
-        )
-        diag.register_health_check(
-            "critical", lambda: SubsystemHealth(name="c", status=HealthStatus.CRITICAL)
-        )
+        diag.register_health_check("degraded",
+            lambda: SubsystemHealth(name="d", status=HealthStatus.DEGRADED))
+        diag.register_health_check("critical",
+            lambda: SubsystemHealth(name="c", status=HealthStatus.CRITICAL))
         report = diag.run_health_check()
         assert report.overall_status == HealthStatus.CRITICAL
 
     def test_failing_health_check_returns_unknown(self):
         diag = SwarmDiagnostics()
-
         def broken():
             raise RuntimeError("boom")
-
         diag.register_health_check("broken", broken)
         report = diag.run_health_check()
         assert report.subsystems[0].status == HealthStatus.UNKNOWN
@@ -130,32 +117,27 @@ class TestHealthCheckExecution:
 
     def test_mixed_healthy_and_unknown(self):
         diag = SwarmDiagnostics()
-        diag.register_health_check(
-            "healthy", lambda: SubsystemHealth(name="h", status=HealthStatus.HEALTHY)
-        )
-        diag.register_health_check(
-            "unknown", lambda: SubsystemHealth(name="u", status=HealthStatus.UNKNOWN)
-        )
+        diag.register_health_check("healthy",
+            lambda: SubsystemHealth(name="h", status=HealthStatus.HEALTHY))
+        diag.register_health_check("unknown",
+            lambda: SubsystemHealth(name="u", status=HealthStatus.UNKNOWN))
         report = diag.run_health_check()
         # Mix of healthy + unknown → healthy (unknown is not degradation)
         assert report.overall_status == HealthStatus.HEALTHY
 
     def test_all_unknown(self):
         diag = SwarmDiagnostics()
-        diag.register_health_check(
-            "u1", lambda: SubsystemHealth(name="u", status=HealthStatus.UNKNOWN)
-        )
-        diag.register_health_check(
-            "u2", lambda: SubsystemHealth(name="u", status=HealthStatus.UNKNOWN)
-        )
+        diag.register_health_check("u1",
+            lambda: SubsystemHealth(name="u", status=HealthStatus.UNKNOWN))
+        diag.register_health_check("u2",
+            lambda: SubsystemHealth(name="u", status=HealthStatus.UNKNOWN))
         report = diag.run_health_check()
         assert report.overall_status == HealthStatus.UNKNOWN
 
     def test_health_check_increments_counter(self):
         diag = SwarmDiagnostics()
-        diag.register_health_check(
-            "test", lambda: SubsystemHealth(name="t", status=HealthStatus.HEALTHY)
-        )
+        diag.register_health_check("test",
+            lambda: SubsystemHealth(name="t", status=HealthStatus.HEALTHY))
         diag.run_health_check()
         diag.run_health_check()
         diag.run_health_check()
@@ -163,20 +145,17 @@ class TestHealthCheckExecution:
 
     def test_report_duration_measured(self):
         diag = SwarmDiagnostics()
-        diag.register_health_check(
-            "test", lambda: SubsystemHealth(name="t", status=HealthStatus.HEALTHY)
-        )
+        diag.register_health_check("test",
+            lambda: SubsystemHealth(name="t", status=HealthStatus.HEALTHY))
         report = diag.run_health_check()
         assert report.duration_ms >= 0
 
     def test_report_summary_text(self):
         diag = SwarmDiagnostics()
-        diag.register_health_check(
-            "a", lambda: SubsystemHealth(name="a", status=HealthStatus.HEALTHY)
-        )
-        diag.register_health_check(
-            "b", lambda: SubsystemHealth(name="b", status=HealthStatus.DEGRADED)
-        )
+        diag.register_health_check("a",
+            lambda: SubsystemHealth(name="a", status=HealthStatus.HEALTHY))
+        diag.register_health_check("b",
+            lambda: SubsystemHealth(name="b", status=HealthStatus.DEGRADED))
         report = diag.run_health_check()
         assert "2 subsystems" in report.summary
         assert "1 healthy" in report.summary
@@ -184,9 +163,8 @@ class TestHealthCheckExecution:
 
     def test_report_to_dict(self):
         diag = SwarmDiagnostics()
-        diag.register_health_check(
-            "test", lambda: SubsystemHealth(name="t", status=HealthStatus.HEALTHY)
-        )
+        diag.register_health_check("test",
+            lambda: SubsystemHealth(name="t", status=HealthStatus.HEALTHY))
         report = diag.run_health_check()
         d = report.to_dict()
         assert "overall_status" in d
@@ -198,7 +176,6 @@ class TestHealthCheckExecution:
 # ──────────────────────────────────────────────────────────────
 # Metrics Recording
 # ──────────────────────────────────────────────────────────────
-
 
 class TestMetricsRecording:
     """Tests for recording and retrieving metrics."""
@@ -277,7 +254,6 @@ class TestMetricsRecording:
 # Trend Analysis
 # ──────────────────────────────────────────────────────────────
 
-
 class TestTrendAnalysis:
     """Tests for trend computation."""
 
@@ -317,9 +293,8 @@ class TestTrendAnalysis:
         diag = SwarmDiagnostics()
         now = time.time()
         for i in range(10):
-            diag.record_metric(
-                "x", 50.0 + (i % 2) * 0.5, timestamp=now - 7200 + i * 800
-            )
+            diag.record_metric("x", 50.0 + (i % 2) * 0.5,
+                timestamp=now - 7200 + i * 800)
         trend = diag.compute_trend("x", window_seconds=3600)
         assert trend.direction == TrendDirection.STABLE
 
@@ -351,7 +326,6 @@ class TestTrendAnalysis:
 # Alerts
 # ──────────────────────────────────────────────────────────────
 
-
 class TestAlerts:
     """Tests for alert management."""
 
@@ -381,10 +355,8 @@ class TestAlerts:
 
     def test_alert_callback_error_isolation(self):
         diag = SwarmDiagnostics()
-
         def bad_callback(a):
             raise ValueError("oops")
-
         diag.register_alert_callback(bad_callback)
         # Should not raise
         diag.raise_alert(Alert(source="test", level="warning", message="x"))
@@ -392,9 +364,7 @@ class TestAlerts:
     def test_alert_deque_bounded(self):
         diag = SwarmDiagnostics()
         for i in range(diag.MAX_ALERTS + 100):
-            diag.raise_alert(
-                Alert(source="test", level="warning", message=f"alert {i}")
-            )
+            diag.raise_alert(Alert(source="test", level="warning", message=f"alert {i}"))
         digest = diag.get_alert_digest(limit=diag.MAX_ALERTS + 100)
         assert len(digest.alerts) <= diag.MAX_ALERTS
 
@@ -408,57 +378,39 @@ class TestAlerts:
     def test_threshold_check_warning(self):
         diag = SwarmDiagnostics()
         diag.record_metric("cpu", 75.0)
-        alert = diag.check_thresholds(
-            "cpu", warning_threshold=70.0, critical_threshold=90.0
-        )
+        alert = diag.check_thresholds("cpu", warning_threshold=70.0, critical_threshold=90.0)
         assert alert is not None
         assert alert.level == "warning"
 
     def test_threshold_check_critical(self):
         diag = SwarmDiagnostics()
         diag.record_metric("cpu", 95.0)
-        alert = diag.check_thresholds(
-            "cpu", warning_threshold=70.0, critical_threshold=90.0
-        )
+        alert = diag.check_thresholds("cpu", warning_threshold=70.0, critical_threshold=90.0)
         assert alert is not None
         assert alert.level == "critical"
 
     def test_threshold_check_ok(self):
         diag = SwarmDiagnostics()
         diag.record_metric("cpu", 50.0)
-        alert = diag.check_thresholds(
-            "cpu", warning_threshold=70.0, critical_threshold=90.0
-        )
+        alert = diag.check_thresholds("cpu", warning_threshold=70.0, critical_threshold=90.0)
         assert alert is None
 
     def test_threshold_check_below_mode(self):
         diag = SwarmDiagnostics()
         diag.record_metric("throughput", 5.0)
-        alert = diag.check_thresholds(
-            "throughput",
-            warning_threshold=20.0,
-            critical_threshold=10.0,
-            comparison="below",
-        )
+        alert = diag.check_thresholds("throughput",
+            warning_threshold=20.0, critical_threshold=10.0, comparison="below")
         assert alert is not None
         assert alert.level == "critical"
 
     def test_threshold_no_data(self):
         diag = SwarmDiagnostics()
-        alert = diag.check_thresholds(
-            "missing", warning_threshold=50.0, critical_threshold=90.0
-        )
+        alert = diag.check_thresholds("missing", warning_threshold=50.0, critical_threshold=90.0)
         assert alert is None
 
     def test_alert_to_dict(self):
-        alert = Alert(
-            source="test",
-            level="warning",
-            message="msg",
-            metric_name="cpu",
-            metric_value=75.0,
-            threshold=70.0,
-        )
+        alert = Alert(source="test", level="warning", message="msg",
+            metric_name="cpu", metric_value=75.0, threshold=70.0)
         d = alert.to_dict()
         assert d["source"] == "test"
         assert d["level"] == "warning"
@@ -469,15 +421,13 @@ class TestAlerts:
 # Snapshots
 # ──────────────────────────────────────────────────────────────
 
-
 class TestSnapshots:
     """Tests for diagnostic snapshots."""
 
     def test_take_snapshot(self):
         diag = SwarmDiagnostics()
-        diag.register_health_check(
-            "test", lambda: SubsystemHealth(name="t", status=HealthStatus.HEALTHY)
-        )
+        diag.register_health_check("test",
+            lambda: SubsystemHealth(name="t", status=HealthStatus.HEALTHY))
         diag.record_metric("x", 42.0)
         snapshot = diag.take_snapshot()
         assert snapshot.health.overall_status == HealthStatus.HEALTHY
@@ -513,9 +463,8 @@ class TestSnapshots:
 
     def test_snapshot_history_retrieval(self):
         diag = SwarmDiagnostics()
-        diag.register_health_check(
-            "test", lambda: SubsystemHealth(name="t", status=HealthStatus.HEALTHY)
-        )
+        diag.register_health_check("test",
+            lambda: SubsystemHealth(name="t", status=HealthStatus.HEALTHY))
         for i in range(5):
             diag.take_snapshot()
         history = diag.get_snapshot_history(limit=3)
@@ -524,9 +473,8 @@ class TestSnapshots:
 
     def test_snapshot_to_dict(self):
         diag = SwarmDiagnostics()
-        diag.register_health_check(
-            "test", lambda: SubsystemHealth(name="t", status=HealthStatus.HEALTHY)
-        )
+        diag.register_health_check("test",
+            lambda: SubsystemHealth(name="t", status=HealthStatus.HEALTHY))
         snapshot = diag.take_snapshot()
         d = snapshot.to_dict()
         assert "health" in d
@@ -539,7 +487,6 @@ class TestSnapshots:
 # Pre-built Health Checks
 # ──────────────────────────────────────────────────────────────
 
-
 class TestPrebuiltChecks:
     """Tests for factory-created health checks."""
 
@@ -547,8 +494,7 @@ class TestPrebuiltChecks:
         diag = SwarmDiagnostics()
         diag.record_metric("success_rate", 0.95)
         check = SwarmDiagnostics.create_metric_health_check(
-            diag, "success_rate", healthy_min=0.8, degraded_min=0.5, label="success"
-        )
+            diag, "success_rate", healthy_min=0.8, degraded_min=0.5, label="success")
         result = check()
         assert result.status == HealthStatus.HEALTHY
 
@@ -556,8 +502,7 @@ class TestPrebuiltChecks:
         diag = SwarmDiagnostics()
         diag.record_metric("success_rate", 0.6)
         check = SwarmDiagnostics.create_metric_health_check(
-            diag, "success_rate", healthy_min=0.8, degraded_min=0.5
-        )
+            diag, "success_rate", healthy_min=0.8, degraded_min=0.5)
         result = check()
         assert result.status == HealthStatus.DEGRADED
 
@@ -565,16 +510,14 @@ class TestPrebuiltChecks:
         diag = SwarmDiagnostics()
         diag.record_metric("success_rate", 0.3)
         check = SwarmDiagnostics.create_metric_health_check(
-            diag, "success_rate", healthy_min=0.8, degraded_min=0.5
-        )
+            diag, "success_rate", healthy_min=0.8, degraded_min=0.5)
         result = check()
         assert result.status == HealthStatus.CRITICAL
 
     def test_metric_health_check_no_data(self):
         diag = SwarmDiagnostics()
         check = SwarmDiagnostics.create_metric_health_check(
-            diag, "missing", healthy_min=0.8, degraded_min=0.5
-        )
+            diag, "missing", healthy_min=0.8, degraded_min=0.5)
         result = check()
         assert result.status == HealthStatus.UNKNOWN
 
@@ -582,7 +525,6 @@ class TestPrebuiltChecks:
 # ──────────────────────────────────────────────────────────────
 # Status
 # ──────────────────────────────────────────────────────────────
-
 
 class TestStatus:
     """Tests for quick status overview."""
@@ -596,9 +538,8 @@ class TestStatus:
 
     def test_status_after_activity(self):
         diag = SwarmDiagnostics()
-        diag.register_health_check(
-            "test", lambda: SubsystemHealth(name="t", status=HealthStatus.HEALTHY)
-        )
+        diag.register_health_check("test",
+            lambda: SubsystemHealth(name="t", status=HealthStatus.HEALTHY))
         diag.record_metric("x", 1.0)
         diag.raise_alert(Alert(source="t", level="warning", message="w"))
         diag.run_health_check()
@@ -613,7 +554,6 @@ class TestStatus:
 # ──────────────────────────────────────────────────────────────
 # Integration: Multi-Subsystem Scenario
 # ──────────────────────────────────────────────────────────────
-
 
 class TestIntegrationScenario:
     """End-to-end integration testing with multiple subsystems."""
@@ -631,30 +571,20 @@ class TestIntegrationScenario:
             ("throughput", HealthStatus.HEALTHY),
         ]:
             st = status  # closure capture
-            diag.register_health_check(
-                name, lambda s=st: SubsystemHealth(name="", status=s)
-            )
+            diag.register_health_check(name,
+                lambda s=st: SubsystemHealth(name="", status=s))
 
         # Record metrics
         now = time.time()
         for i in range(20):
-            diag.record_metric(
-                "tasks_per_hour", 40.0 + i * 0.5, timestamp=now - 3600 + i * 180
-            )
-            diag.record_metric(
-                "success_rate", 0.85 + i * 0.005, timestamp=now - 3600 + i * 180
-            )
+            diag.record_metric("tasks_per_hour", 40.0 + i * 0.5,
+                timestamp=now - 3600 + i * 180)
+            diag.record_metric("success_rate", 0.85 + i * 0.005,
+                timestamp=now - 3600 + i * 180)
 
         # Raise some alerts
-        diag.raise_alert(
-            Alert(
-                source="lifecycle",
-                level="warning",
-                message="Agent degraded",
-                metric_name="agent_health",
-                metric_value=0.6,
-            )
-        )
+        diag.raise_alert(Alert(source="lifecycle", level="warning",
+            message="Agent degraded", metric_name="agent_health", metric_value=0.6))
 
         # Take snapshot
         snapshot = diag.take_snapshot()
@@ -669,22 +599,15 @@ class TestIntegrationScenario:
         """10 subsystems with various health states."""
         diag = SwarmDiagnostics()
         states = [
-            HealthStatus.HEALTHY,
-            HealthStatus.HEALTHY,
-            HealthStatus.HEALTHY,
-            HealthStatus.HEALTHY,
-            HealthStatus.HEALTHY,
-            HealthStatus.DEGRADED,
-            HealthStatus.DEGRADED,
-            HealthStatus.HEALTHY,
-            HealthStatus.HEALTHY,
+            HealthStatus.HEALTHY, HealthStatus.HEALTHY, HealthStatus.HEALTHY,
+            HealthStatus.HEALTHY, HealthStatus.HEALTHY, HealthStatus.DEGRADED,
+            HealthStatus.DEGRADED, HealthStatus.HEALTHY, HealthStatus.HEALTHY,
             HealthStatus.HEALTHY,
         ]
         for i, st in enumerate(states):
             s = st
-            diag.register_health_check(
-                f"sub_{i}", lambda s=s: SubsystemHealth(name="", status=s)
-            )
+            diag.register_health_check(f"sub_{i}",
+                lambda s=s: SubsystemHealth(name="", status=s))
 
         report = diag.run_health_check()
         assert report.overall_status == HealthStatus.DEGRADED
@@ -701,11 +624,9 @@ class TestIntegrationScenario:
 
         # Create metric-based health checks
         tp_check = SwarmDiagnostics.create_metric_health_check(
-            diag, "throughput", healthy_min=30.0, degraded_min=15.0, label="throughput"
-        )
+            diag, "throughput", healthy_min=30.0, degraded_min=15.0, label="throughput")
         er_check = SwarmDiagnostics.create_metric_health_check(
-            diag, "error_rate", healthy_min=0.0, degraded_min=0.0, label="error_rate"
-        )
+            diag, "error_rate", healthy_min=0.0, degraded_min=0.0, label="error_rate")
 
         diag.register_health_check("throughput", tp_check)
         diag.register_health_check("error_rate", er_check)
@@ -717,9 +638,8 @@ class TestIntegrationScenario:
     def test_rapid_check_cycles(self):
         """50 rapid health check cycles should all succeed."""
         diag = SwarmDiagnostics()
-        diag.register_health_check(
-            "fast", lambda: SubsystemHealth(name="f", status=HealthStatus.HEALTHY)
-        )
+        diag.register_health_check("fast",
+            lambda: SubsystemHealth(name="f", status=HealthStatus.HEALTHY))
         for _ in range(50):
             report = diag.run_health_check()
             assert report.overall_status == HealthStatus.HEALTHY

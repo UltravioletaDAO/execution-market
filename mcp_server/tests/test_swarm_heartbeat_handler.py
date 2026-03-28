@@ -9,9 +9,11 @@ Tests cover:
     4. Edge cases (empty state, error handling)
 """
 
+import json
 import os
 import tempfile
-from unittest.mock import MagicMock
+import pytest
+from unittest.mock import MagicMock, patch
 
 from mcp_server.swarm.heartbeat_handler import (
     HeartbeatReport,
@@ -131,19 +133,10 @@ class TestHeartbeatReport:
         report = HeartbeatReport()
         d = report.to_dict()
         expected_keys = {
-            "timestamp",
-            "duration_ms",
-            "new_tasks",
-            "tasks_routed",
-            "tasks_completed",
-            "tasks_failed",
-            "agents_active",
-            "agents_degraded",
-            "em_api_healthy",
-            "autojob_available",
-            "errors",
-            "skill_dna_updates",
-            "bounty_earned_usd",
+            "timestamp", "duration_ms", "new_tasks", "tasks_routed",
+            "tasks_completed", "tasks_failed", "agents_active",
+            "agents_degraded", "em_api_healthy", "autojob_available",
+            "errors", "skill_dna_updates", "bounty_earned_usd",
         }
         assert set(d.keys()) == expected_keys
 
@@ -252,10 +245,7 @@ class TestSwarmHeartbeatHandler:
         coord.em_client = MagicMock()
         coord.em_client.get_health.return_value = {"status": "healthy"}
         coord.ingest_from_api.return_value = 3  # 3 new tasks
-        coord.run_health_checks.return_value = {
-            "agents": {"healthy": 2, "degraded": 0},
-            "systems": {},
-        }
+        coord.run_health_checks.return_value = {"agents": {"healthy": 2, "degraded": 0}, "systems": {}}
         coord.get_metrics.return_value = MagicMock(bounty_earned=0)
         handler._coordinator = coord
 

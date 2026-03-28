@@ -29,8 +29,9 @@ import time
 import math
 from collections import deque
 from dataclasses import dataclass, field
+from datetime import datetime, timezone, timedelta
 from enum import Enum
-from typing import Callable
+from typing import Optional, Callable, Any
 
 logger = logging.getLogger("em.swarm.diagnostics")
 
@@ -38,7 +39,6 @@ logger = logging.getLogger("em.swarm.diagnostics")
 # ──────────────────────────────────────────────────────────────
 # Types
 # ──────────────────────────────────────────────────────────────
-
 
 class HealthStatus(str, Enum):
     HEALTHY = "healthy"
@@ -57,7 +57,6 @@ class TrendDirection(str, Enum):
 @dataclass
 class SubsystemHealth:
     """Health report for one subsystem."""
-
     name: str
     status: HealthStatus = HealthStatus.UNKNOWN
     message: str = ""
@@ -81,7 +80,6 @@ class SubsystemHealth:
 @dataclass
 class SystemHealthReport:
     """Unified health report across all subsystems."""
-
     overall_status: HealthStatus = HealthStatus.UNKNOWN
     subsystems: list[SubsystemHealth] = field(default_factory=list)
     summary: str = ""
@@ -124,7 +122,6 @@ class SystemHealthReport:
 @dataclass
 class PerformanceTrend:
     """Multi-signal performance trend over time."""
-
     signal_name: str
     direction: TrendDirection = TrendDirection.INSUFFICIENT_DATA
     current_value: float = 0.0
@@ -148,7 +145,6 @@ class PerformanceTrend:
 @dataclass
 class Alert:
     """A single alert from any subsystem."""
-
     source: str
     level: str  # "warning" or "critical"
     message: str
@@ -172,7 +168,6 @@ class Alert:
 @dataclass
 class AlertDigest:
     """Aggregated alerts from all subsystems."""
-
     alerts: list[Alert] = field(default_factory=list)
     total_warnings: int = 0
     total_criticals: int = 0
@@ -191,7 +186,6 @@ class AlertDigest:
 @dataclass
 class DiagnosticSnapshot:
     """Full system state for debugging."""
-
     health: SystemHealthReport = field(default_factory=SystemHealthReport)
     trends: list[PerformanceTrend] = field(default_factory=list)
     alerts: AlertDigest = field(default_factory=AlertDigest)
@@ -211,7 +205,6 @@ class DiagnosticSnapshot:
 # ──────────────────────────────────────────────────────────────
 # Diagnostics Engine
 # ──────────────────────────────────────────────────────────────
-
 
 class SwarmDiagnostics:
     """
@@ -298,9 +291,7 @@ class SwarmDiagnostics:
 
         return report
 
-    def _compute_overall_status(
-        self, subsystems: list[SubsystemHealth]
-    ) -> HealthStatus:
+    def _compute_overall_status(self, subsystems: list[SubsystemHealth]) -> HealthStatus:
         """Determine overall status from subsystem statuses."""
         if not subsystems:
             return HealthStatus.UNKNOWN
@@ -341,18 +332,14 @@ class SwarmDiagnostics:
     # Metrics Recording
     # ──────────────────────────────────────────────────────────
 
-    def record_metric(
-        self, name: str, value: float, timestamp: float | None = None
-    ) -> None:
+    def record_metric(self, name: str, value: float, timestamp: float | None = None) -> None:
         """Record a metric data point."""
         ts = timestamp or time.time()
         if name not in self._metrics:
             self._metrics[name] = deque(maxlen=self.MAX_METRICS_HISTORY)
         self._metrics[name].append((ts, value))
 
-    def get_metric_history(
-        self, name: str, limit: int = 100
-    ) -> list[tuple[float, float]]:
+    def get_metric_history(self, name: str, limit: int = 100) -> list[tuple[float, float]]:
         """Get recent metric history as (timestamp, value) pairs."""
         if name not in self._metrics:
             return []
@@ -425,8 +412,7 @@ class SwarmDiagnostics:
             trend.previous_value = sum(v for _, v in previous) / len(previous)
             if trend.previous_value != 0:
                 trend.change_pct = (
-                    (trend.current_value - trend.previous_value)
-                    / abs(trend.previous_value)
+                    (trend.current_value - trend.previous_value) / abs(trend.previous_value)
                 ) * 100
             elif trend.current_value != 0:
                 trend.change_pct = 100.0
@@ -465,9 +451,7 @@ class SwarmDiagnostics:
 
         return trend
 
-    def compute_all_trends(
-        self, window_seconds: float = 3600.0
-    ) -> list[PerformanceTrend]:
+    def compute_all_trends(self, window_seconds: float = 3600.0) -> list[PerformanceTrend]:
         """Compute trends for all recorded metrics."""
         return [self.compute_trend(name, window_seconds) for name in self._metrics]
 
@@ -498,11 +482,8 @@ class SwarmDiagnostics:
         )
 
     def check_thresholds(
-        self,
-        name: str,
-        warning_threshold: float,
-        critical_threshold: float,
-        comparison: str = "above",
+        self, name: str, warning_threshold: float, critical_threshold: float,
+        comparison: str = "above"
     ) -> Alert | None:
         """Check a metric against thresholds and raise alert if violated."""
         history = self.get_metric_history(name, limit=1)
@@ -597,7 +578,6 @@ class SwarmDiagnostics:
         Create a health check function based on a metric value.
         healthy_min >= value → healthy, degraded_min >= value → degraded, else critical.
         """
-
         def check() -> SubsystemHealth:
             history = diagnostics.get_metric_history(metric_name, limit=1)
             if not history:

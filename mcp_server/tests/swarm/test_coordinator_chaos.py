@@ -24,9 +24,14 @@ from mcp_server.swarm.coordinator import (
     SwarmCoordinator,
     EMApiClient,
     CoordinatorEvent,
+    EventRecord,
+    QueuedTask,
+    SwarmMetrics,
 )
 from mcp_server.swarm.reputation_bridge import (
     ReputationBridge,
+    OnChainReputation,
+    InternalReputation,
 )
 from mcp_server.swarm.lifecycle_manager import (
     LifecycleManager,
@@ -37,8 +42,10 @@ from mcp_server.swarm.lifecycle_manager import (
 )
 from mcp_server.swarm.orchestrator import (
     SwarmOrchestrator,
+    TaskRequest,
     TaskPriority,
     Assignment,
+    RoutingFailure,
     RoutingStrategy,
 )
 from mcp_server.swarm.autojob_client import (
@@ -157,9 +164,7 @@ class TestRegistrationStorm:
         """Batch register with some invalid entries — good ones still register."""
         coord = _make_coordinator(0)
         # First register agent 1 normally
-        coord.register_agent(
-            agent_id=1, name="Agent-1", wallet_address="0x" + "0" * 39 + "1"
-        )
+        coord.register_agent(agent_id=1, name="Agent-1", wallet_address="0x" + "0" * 39 + "1")
 
         # Batch includes duplicate (agent_id=1) + valid ones
         agents = [
@@ -228,9 +233,7 @@ class TestTaskFlood:
             task_id="dup-1", title="Duplicate", categories=["b"], bounty_usd=10.0
         )
         assert t1.task_id == t2.task_id
-        assert (
-            len([t for t in coord_5._task_queue.values() if t.task_id == "dup-1"]) == 1
-        )
+        assert len([t for t in coord_5._task_queue.values() if t.task_id == "dup-1"]) == 1
 
     def test_task_priority_ordering(self, coord_50):
         """Critical tasks get processed before low-priority ones."""
@@ -269,7 +272,9 @@ class TestTaskFlood:
     def test_task_ingestion_counter_accuracy(self, coord_5):
         """Ingestion counter matches actual tasks ingested."""
         for i in range(100):
-            coord_5.ingest_task(task_id=f"count-{i}", title=f"T{i}", categories=["a"])
+            coord_5.ingest_task(
+                task_id=f"count-{i}", title=f"T{i}", categories=["a"]
+            )
         assert coord_5._total_ingested == 100
 
 
@@ -290,7 +295,9 @@ class TestLifecycleChaos:
             )
 
         results = coord_50.process_task_queue(max_tasks=50)
-        assigned_ids = [r.task_id for r in results if isinstance(r, Assignment)]
+        assigned_ids = [
+            r.task_id for r in results if isinstance(r, Assignment)
+        ]
 
         completed = 0
         for tid in assigned_ids:
@@ -362,9 +369,7 @@ class TestLifecycleChaos:
         task.status = "pending"
         results2 = coord_5.process_task_queue(max_tasks=1)
         # Should not be processed (attempts >= max_attempts)
-        pending_exhaust = [
-            r for r in results2 if hasattr(r, "task_id") and r.task_id == "exhaust"
-        ]
+        pending_exhaust = [r for r in results2 if hasattr(r, "task_id") and r.task_id == "exhaust"]
         assert len(pending_exhaust) == 0
 
     def test_bounty_accumulation_across_completions(self, coord_50):
@@ -436,7 +441,7 @@ class TestBudgetCascade:
             except BudgetExceededError:
                 pass
 
-        coord.run_health_checks()
+        report = coord.run_health_checks()
         budget_warnings = coord.get_events(event_type=CoordinatorEvent.BUDGET_WARNING)
         assert len(budget_warnings) >= 1
 
@@ -450,7 +455,7 @@ class TestEventStorm:
     def test_event_deque_caps_at_1000(self, coord_50):
         """Events are capped at 1000 (deque maxlen)."""
         # Each registration emits an event, so 50 already exist
-        len(coord_50._events)
+        initial = len(coord_50._events)
 
         # Flood with tasks — each ingest emits an event
         for i in range(1100):
@@ -475,7 +480,9 @@ class TestEventStorm:
 
         # Should not raise despite hook throwing
         for i in range(10):
-            coord_5.ingest_task(task_id=f"hook-{i}", title=f"H{i}", categories=["a"])
+            coord_5.ingest_task(
+                task_id=f"hook-{i}", title=f"H{i}", categories=["a"]
+            )
 
         assert crash_count["n"] == 10  # Hook was called every time
         assert len(coord_5._task_queue) == 10  # Tasks still ingested
@@ -484,18 +491,9 @@ class TestEventStorm:
         """Multiple hooks on same event all fire."""
         counters = {"a": 0, "b": 0, "c": 0}
 
-        coord_5.on_event(
-            CoordinatorEvent.TASK_INGESTED,
-            lambda e: counters.__setitem__("a", counters["a"] + 1),
-        )
-        coord_5.on_event(
-            CoordinatorEvent.TASK_INGESTED,
-            lambda e: counters.__setitem__("b", counters["b"] + 1),
-        )
-        coord_5.on_event(
-            CoordinatorEvent.TASK_INGESTED,
-            lambda e: counters.__setitem__("c", counters["c"] + 1),
-        )
+        coord_5.on_event(CoordinatorEvent.TASK_INGESTED, lambda e: counters.__setitem__("a", counters["a"] + 1))
+        coord_5.on_event(CoordinatorEvent.TASK_INGESTED, lambda e: counters.__setitem__("b", counters["b"] + 1))
+        coord_5.on_event(CoordinatorEvent.TASK_INGESTED, lambda e: counters.__setitem__("c", counters["c"] + 1))
 
         coord_5.ingest_task(task_id="multi", title="Multi", categories=["a"])
 
@@ -549,16 +547,12 @@ class TestHealthCheckChaos:
         """All 50 agents degraded simultaneously."""
         for agent_id in range(1, 51):
             try:
-                coord_50.lifecycle.transition(
-                    agent_id, AgentState.DEGRADED, "chaos test"
-                )
+                coord_50.lifecycle.transition(agent_id, AgentState.DEGRADED, "chaos test")
             except LifecycleError:
                 # May need intermediate states
                 try:
                     coord_50.lifecycle.transition(agent_id, AgentState.IDLE, "reset")
-                    coord_50.lifecycle.transition(
-                        agent_id, AgentState.DEGRADED, "chaos"
-                    )
+                    coord_50.lifecycle.transition(agent_id, AgentState.DEGRADED, "chaos")
                 except LifecycleError:
                     pass
 
@@ -730,9 +724,9 @@ class TestCleanupChaos:
             task_id="pending-1", title="Pending", categories=["a"], bounty_usd=5.0
         )
         # Backdate it
-        coord_5._task_queue["pending-1"].ingested_at = datetime.now(
-            timezone.utc
-        ) - timedelta(hours=48)
+        coord_5._task_queue["pending-1"].ingested_at = (
+            datetime.now(timezone.utc) - timedelta(hours=48)
+        )
 
         removed = coord_5.cleanup_completed(older_than_hours=24.0)
         assert removed == 0
@@ -741,7 +735,9 @@ class TestCleanupChaos:
     def test_reset_metrics_clears_everything(self, coord_5):
         """reset_metrics truly zeroes all counters."""
         for i in range(10):
-            coord_5.ingest_task(task_id=f"rst-{i}", title=f"R{i}", categories=["a"])
+            coord_5.ingest_task(
+                task_id=f"rst-{i}", title=f"R{i}", categories=["a"]
+            )
         coord_5.process_task_queue(max_tasks=10)
 
         coord_5.reset_metrics()
@@ -857,25 +853,18 @@ class TestRoutingStrategyChaos:
         """Switch strategy between process_task_queue calls."""
         for i in range(30):
             coord_50.ingest_task(
-                task_id=f"sw-{i}",
-                title=f"SW {i}",
-                categories=["general"],
-                bounty_usd=5.0,
+                task_id=f"sw-{i}", title=f"SW {i}", categories=["general"], bounty_usd=5.0
             )
 
         # First batch: BEST_FIT
-        r1 = coord_50.process_task_queue(
-            strategy=RoutingStrategy.BEST_FIT, max_tasks=10
-        )
+        r1 = coord_50.process_task_queue(strategy=RoutingStrategy.BEST_FIT, max_tasks=10)
         # Complete assigned tasks to free agents
         for r in r1:
             if isinstance(r, Assignment):
                 coord_50.complete_task(r.task_id)
 
         # Second batch: ROUND_ROBIN
-        r2 = coord_50.process_task_queue(
-            strategy=RoutingStrategy.ROUND_ROBIN, max_tasks=10
-        )
+        r2 = coord_50.process_task_queue(strategy=RoutingStrategy.ROUND_ROBIN, max_tasks=10)
 
         # Both should produce results
         a1 = sum(1 for r in r1 if isinstance(r, Assignment))
@@ -895,9 +884,7 @@ class TestReputationChaos:
         # Give agents category scores
         for agent_id in range(1, 51):
             if agent_id in coord_50.orchestrator._internal:
-                coord_50.orchestrator._internal[agent_id].category_scores["general"] = (
-                    50
-                )
+                coord_50.orchestrator._internal[agent_id].category_scores["general"] = 50
 
         for i in range(50):
             coord_50.ingest_task(
@@ -928,7 +915,7 @@ class TestReputationChaos:
         results = coord_5.process_task_queue(max_tasks=1)
 
         if results and isinstance(results[0], Assignment):
-            results[0].agent_id
+            agent_id = results[0].agent_id
             coord_5.fail_task("fail-rep", error="test failure")
 
             fail_events = coord_5.get_events(event_type=CoordinatorEvent.TASK_FAILED)

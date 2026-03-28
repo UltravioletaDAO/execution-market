@@ -14,10 +14,13 @@ Tests cover:
 """
 
 import time
+import pytest
 
 from mcp_server.swarm.metrics_collector import (
     MetricsCollector,
     MetricEvent,
+    MAX_EVENTS_PER_CATEGORY,
+    RECENT_WINDOW_SECONDS,
 )
 
 
@@ -470,7 +473,7 @@ class TestAlerts:
         # Route 5 tasks, only 1 to available worker
         mc.record_routing("t1", "0x001", 85.0, available_now=True)
         for i in range(4):
-            mc.record_routing(f"t{i + 2}", "0x002", 70.0, available_now=False)
+            mc.record_routing(f"t{i+2}", "0x002", 70.0, available_now=False)
 
         alerts = mc.check_alerts()
         avail_alerts = [a for a in alerts if a["type"] == "low_availability_routing"]

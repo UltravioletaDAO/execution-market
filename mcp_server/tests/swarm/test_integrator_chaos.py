@@ -18,10 +18,12 @@ tests (test_integrator_cross_component.py) by verifying the system doesn't
 break under stress, only degrades gracefully.
 """
 
+import time
+import threading
 import pytest
 
-from swarm.integrator import SwarmIntegrator, SwarmMode
-from swarm.event_bus import EventBus
+from swarm.integrator import SwarmIntegrator, SwarmMode, CycleResult, ComponentStatus
+from swarm.event_bus import EventBus, Event
 
 
 # ─── Spy Components ──────────────────────────────────────────────
@@ -257,7 +259,9 @@ class TestFailureIsolation:
         assert "dashboard" in result.phases_completed
         assert dashboard.refresh_count == 1
 
-    def test_dashboard_failure_still_completes_cycle(self, full_integrator, dashboard):
+    def test_dashboard_failure_still_completes_cycle(
+        self, full_integrator, dashboard
+    ):
         dashboard.should_fail = True
         result = full_integrator.run_cycle()
         assert "dashboard" in result.phases_failed
@@ -301,7 +305,9 @@ class TestFailureIsolation:
 class TestComponentFlapping:
     """Components recovering from failure should restore health."""
 
-    def test_coordinator_recovers_after_failure(self, full_integrator, coordinator):
+    def test_coordinator_recovers_after_failure(
+        self, full_integrator, coordinator
+    ):
         # Fail first cycle
         coordinator.should_fail = True
         r1 = full_integrator.run_cycle()
@@ -315,7 +321,9 @@ class TestComponentFlapping:
         # Note: health doesn't auto-restore because _mark_unhealthy was called
         # This is actually a finding — flapping detection vs auto-recovery
 
-    def test_alternating_failures_tracked(self, full_integrator, coordinator):
+    def test_alternating_failures_tracked(
+        self, full_integrator, coordinator
+    ):
         """Flapping component: fail, succeed, fail, succeed."""
         results = []
         for i in range(6):
@@ -329,7 +337,9 @@ class TestComponentFlapping:
             else:
                 assert "ingest" in r.phases_completed
 
-    def test_multiple_component_flapping(self, full_integrator, coordinator, scheduler):
+    def test_multiple_component_flapping(
+        self, full_integrator, coordinator, scheduler
+    ):
         """Two components flapping out of phase."""
         coordinator.should_fail = True
         scheduler.should_fail = False
@@ -489,12 +499,7 @@ class TestModeTransitions:
 
     def test_rapid_mode_switching(self, full_integrator):
         """Switching modes rapidly shouldn't corrupt state."""
-        modes = [
-            SwarmMode.PASSIVE,
-            SwarmMode.SEMI_AUTO,
-            SwarmMode.FULL_AUTO,
-            SwarmMode.DISABLED,
-        ]
+        modes = [SwarmMode.PASSIVE, SwarmMode.SEMI_AUTO, SwarmMode.FULL_AUTO, SwarmMode.DISABLED]
         for _ in range(25):
             for mode in modes:
                 full_integrator.set_mode(mode)
@@ -693,7 +698,7 @@ class TestHookErrors:
             raise TypeError("Assignment hook failed")
 
         full_integrator.on("on_assignment", bad_hook)
-        full_integrator.run_cycle()
+        r1 = full_integrator.run_cycle()
         r2 = full_integrator.run_cycle()
         assert r2.cycle_number == 2
 
@@ -744,7 +749,9 @@ class TestHealthUnderStress:
         assert health["cycles"]["completed"] == 50
         assert health["status"] == "healthy"
 
-    def test_summary_compact_after_failures(self, full_integrator, coordinator):
+    def test_summary_compact_after_failures(
+        self, full_integrator, coordinator
+    ):
         coordinator.should_fail = True
         for _ in range(3):
             full_integrator.run_cycle()
@@ -755,7 +762,9 @@ class TestHealthUnderStress:
         assert summary["cycles"] == 3
         assert summary["last_cycle"] is not None
 
-    def test_wiring_diagram_reflects_unhealthy(self, full_integrator, coordinator):
+    def test_wiring_diagram_reflects_unhealthy(
+        self, full_integrator, coordinator
+    ):
         coordinator.should_fail = True
         full_integrator.run_cycle()
 
@@ -839,7 +848,9 @@ class TestStressPatterns:
         assert full_integrator._consecutive_errors == 0
         assert full_integrator.is_healthy()
 
-    def test_alternating_success_failure_100_cycles(self, full_integrator, coordinator):
+    def test_alternating_success_failure_100_cycles(
+        self, full_integrator, coordinator
+    ):
         """100 cycles alternating between success and failure."""
         for i in range(100):
             coordinator.should_fail = i % 2 == 0

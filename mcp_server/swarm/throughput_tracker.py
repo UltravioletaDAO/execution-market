@@ -19,7 +19,7 @@ import time
 import math
 from collections import deque
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from enum import Enum
 from typing import Optional, Callable
 
@@ -35,32 +35,30 @@ class AlertLevel(Enum):
 @dataclass
 class AlertThresholds:
     """Configurable alert thresholds for each signal."""
-
     # Throughput: percentage of baseline
-    throughput_warning_pct: float = 50.0  # <50% of baseline = warning
+    throughput_warning_pct: float = 50.0   # <50% of baseline = warning
     throughput_critical_pct: float = 25.0  # <25% of baseline = critical
 
     # Routing efficiency
-    routing_warning_pct: float = 80.0  # <80% first-attempt = warning
-    routing_critical_pct: float = 60.0  # <60% first-attempt = critical
+    routing_warning_pct: float = 80.0      # <80% first-attempt = warning
+    routing_critical_pct: float = 60.0     # <60% first-attempt = critical
 
     # Quality distribution
-    quality_warning_mean: float = 0.6  # Mean <0.6 = warning
-    quality_critical_mean: float = 0.5  # Mean <0.5 = critical
+    quality_warning_mean: float = 0.6      # Mean <0.6 = warning
+    quality_critical_mean: float = 0.5     # Mean <0.5 = critical
 
     # Budget burn rate: percentage over projected
-    burn_warning_pct: float = 150.0  # >150% of projected = warning
-    burn_critical_pct: float = 200.0  # >200% of projected = critical
+    burn_warning_pct: float = 150.0        # >150% of projected = warning
+    burn_critical_pct: float = 200.0       # >200% of projected = critical
 
     # Agent health: percentage degraded
-    health_warning_pct: float = 20.0  # >20% degraded = warning
-    health_critical_pct: float = 30.0  # >30% degraded = critical
+    health_warning_pct: float = 20.0       # >20% degraded = warning
+    health_critical_pct: float = 30.0      # >30% degraded = critical
 
 
 @dataclass
 class ThroughputSnapshot:
     """Point-in-time throughput metrics."""
-
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     tasks_per_hour: float = 0.0
     routing_efficiency: float = 1.0
@@ -207,16 +205,8 @@ class ThroughputTracker:
         mean = sum(scores) / len(scores)
         sorted_scores = sorted(scores)
         n = len(sorted_scores)
-        median = (
-            sorted_scores[n // 2]
-            if n % 2 == 1
-            else (sorted_scores[n // 2 - 1] + sorted_scores[n // 2]) / 2
-        )
-        variance = (
-            sum((s - mean) ** 2 for s in scores) / len(scores)
-            if len(scores) > 1
-            else 0.0
-        )
+        median = sorted_scores[n // 2] if n % 2 == 1 else (sorted_scores[n // 2 - 1] + sorted_scores[n // 2]) / 2
+        variance = sum((s - mean) ** 2 for s in scores) / len(scores) if len(scores) > 1 else 0.0
         std = math.sqrt(variance)
 
         return {
@@ -353,9 +343,7 @@ class ThroughputTracker:
 
         return snap
 
-    def get_trend(
-        self, metric: str = "tasks_per_hour", last_n: int = 10
-    ) -> list[float]:
+    def get_trend(self, metric: str = "tasks_per_hour", last_n: int = 10) -> list[float]:
         """Get recent trend for a metric from snapshot history."""
         snapshots = list(self._snapshot_history)[-last_n:]
         return [getattr(s, metric, 0.0) for s in snapshots]

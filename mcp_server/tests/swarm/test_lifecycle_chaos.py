@@ -17,10 +17,12 @@ These verify the lifecycle manager doesn't corrupt state under pressure.
 """
 
 import pytest
+from datetime import datetime, timezone, timedelta
 
 from swarm.lifecycle_manager import (
     LifecycleManager,
     AgentState,
+    AgentRecord,
     BudgetConfig,
     LifecycleError,
     BudgetExceededError,
@@ -242,10 +244,7 @@ def _navigate_to_state(lm, agent_id, target_state):
         AgentState.IDLE: [AgentState.IDLE],
         AgentState.ACTIVE: [AgentState.IDLE, AgentState.ACTIVE],
         AgentState.WORKING: [AgentState.IDLE, AgentState.ACTIVE],  # + assign_task
-        AgentState.COOLDOWN: [
-            AgentState.IDLE,
-            AgentState.ACTIVE,
-        ],  # + assign + complete
+        AgentState.COOLDOWN: [AgentState.IDLE, AgentState.ACTIVE],  # + assign + complete
         AgentState.DEGRADED: [AgentState.IDLE, AgentState.DEGRADED],
         AgentState.SUSPENDED: [AgentState.IDLE, AgentState.SUSPENDED],
     }
@@ -314,9 +313,7 @@ class TestBudgetStress:
         for _ in range(1000):
             lm.record_spend(1, 0.009)
 
-        assert lm._agents[1].budget_state.daily_spent_usd == pytest.approx(
-            9.0, abs=0.01
-        )
+        assert lm._agents[1].budget_state.daily_spent_usd == pytest.approx(9.0, abs=0.01)
 
     def test_budget_status_accuracy(self, lm):
         """Budget status reports correct percentages."""

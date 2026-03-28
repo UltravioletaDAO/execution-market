@@ -17,6 +17,7 @@ These are the "what if production goes sideways?" tests.
 """
 
 import pytest
+from datetime import datetime, timezone, timedelta
 
 from swarm.orchestrator import (
     SwarmOrchestrator,
@@ -30,6 +31,7 @@ from swarm.reputation_bridge import (
     ReputationBridge,
     OnChainReputation,
     InternalReputation,
+    CompositeScore,
 )
 from swarm.lifecycle_manager import LifecycleManager, AgentState
 
@@ -194,9 +196,7 @@ class TestTaskFlood:
             for j in range(5):
                 tid = f"t{batch * 5 + j}"
                 result = orch.route_task(make_task(tid))
-                assert isinstance(result, Assignment), (
-                    f"Failed at batch {batch}, task {j}: {result.reason}"
-                )
+                assert isinstance(result, Assignment), f"Failed at batch {batch}, task {j}: {result.reason}"
                 tasks_this_batch.append(tid)
 
             # Complete all tasks in batch
@@ -291,7 +291,7 @@ class TestReputationEdgeCases:
     def test_agent_with_zero_seals(self, lifecycle, bridge, orch):
         """Agent with zero reputation should still route if above threshold."""
         make_agent(lifecycle, bridge, orch, 1, seals=0, quality=0.0)
-
+        
         task = make_task("t1")
         result = orch.route_task(task)
         # Zero rep likely below min_score_threshold (15.0)
@@ -321,12 +321,8 @@ class TestReputationEdgeCases:
         # Now boost agent 1's reputation way up
         orch.register_reputation(
             1,
-            OnChainReputation(
-                agent_id=1, wallet_address="0x01", total_seals=100, positive_seals=100
-            ),
-            InternalReputation(
-                agent_id=1, bayesian_score=0.99, total_tasks=200, successful_tasks=198
-            ),
+            OnChainReputation(agent_id=1, wallet_address="0x01", total_seals=100, positive_seals=100),
+            InternalReputation(agent_id=1, bayesian_score=0.99, total_tasks=200, successful_tasks=198),
         )
 
         r2 = orch.route_task(make_task("t2"))
@@ -392,7 +388,7 @@ class TestCompleteFailEdgeCases:
         """Completing the same task twice should return None on second call."""
         make_agent(lifecycle, bridge, orch, 1, seals=10, quality=0.8)
         orch.route_task(make_task("t1"))
-
+        
         assert orch.complete_task("t1") == 1
         assert orch.complete_task("t1") is None  # Already completed
 
@@ -433,7 +429,7 @@ class TestPreferenceConflicts:
     def test_preferred_agent_overrides_best_fit(self, lifecycle, bridge, orch):
         """Preferred agents should be selected even if not highest scoring."""
         make_agent(lifecycle, bridge, orch, 1, seals=100, quality=1.0)  # Best
-        make_agent(lifecycle, bridge, orch, 2, seals=5, quality=0.5)  # Weaker
+        make_agent(lifecycle, bridge, orch, 2, seals=5, quality=0.5)    # Weaker
 
         task = make_task("t1", preferred_agent_ids=[2])
         result = orch.route_task(task)

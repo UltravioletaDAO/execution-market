@@ -1,6 +1,7 @@
 """Background job that reconciles DB escrow state vs on-chain balances."""
 
 import asyncio
+import json
 import logging
 import os
 
@@ -24,7 +25,7 @@ async def reconcile_escrows() -> dict:
         # Get all active escrows (deposited or pending)
         result = (
             client.table("escrows")
-            .select("id, task_id, status, total_amount_usdc, chain_id, funding_tx")
+            .select("id, task_id, status, amount, network, metadata")
             .in_("status", ["deposited", "pending", "locked"])
             .execute()
         )
@@ -40,14 +41,24 @@ async def reconcile_escrows() -> dict:
         for escrow in escrows:
             task_id = escrow.get("task_id", "?")
             db_status = escrow.get("status", "unknown")
-            db_amount = float(escrow.get("total_amount_usdc") or 0)
-            chain_id = escrow.get("chain_id", 8453)
+            db_amount = float(escrow.get("amount") or 0)
+            network = escrow.get("network", "base")
+
+            # For now, just verify DB consistency:
+            # - deposited escrows should have amount > 0
+            # - metadata should have tx_hash
+            meta = escrow.get("metadata") or {}
+            if isinstance(meta, str):
+                try:
+                    meta = json.loads(meta)
+                except Exception:
+                    meta = {}
 
             issues = []
             if db_status == "deposited" and db_amount <= 0:
                 issues.append("deposited_but_zero_amount")
-            if db_status == "deposited" and not escrow.get("funding_tx"):
-                issues.append("deposited_but_no_funding_tx")
+            if db_status == "deposited" and not meta.get("agent_settle_tx"):
+                issues.append("deposited_but_no_tx_hash")
 
             if issues:
                 failed += 1
@@ -59,7 +70,7 @@ async def reconcile_escrows() -> dict:
                     task_id=task_id,
                     db_status=db_status,
                     db_amount=db_amount,
-                    chain_id=chain_id,
+                    network=network,
                     issues=issues,
                     severity="WARNING",
                 )

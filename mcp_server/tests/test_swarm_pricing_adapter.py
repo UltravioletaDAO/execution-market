@@ -15,6 +15,7 @@ Tests cover:
 
 import time
 import pytest
+from unittest.mock import patch, MagicMock
 
 from mcp_server.swarm.pricing_adapter import (
     PricingAdapter,
@@ -73,9 +74,7 @@ class TestMarketDemandSnapshot:
         assert ms.is_stale(3600) is False
 
     def test_to_dict(self):
-        ms = MarketDemandSnapshot(
-            category="research", demand_score=0.8, trend="growing"
-        )
+        ms = MarketDemandSnapshot(category="research", demand_score=0.8, trend="growing")
         d = ms.to_dict()
         assert d["category"] == "research"
         assert d["demand_score"] == 0.8
@@ -92,10 +91,7 @@ class TestGetTaskPricing:
         adapter = PricingAdapter()
         pricing = adapter.get_task_pricing("physical_verification")
         assert pricing.source == "default"
-        assert (
-            pricing.recommended_usd
-            == DEFAULT_PRICING["physical_verification"]["median"]
-        )
+        assert pricing.recommended_usd == DEFAULT_PRICING["physical_verification"]["median"]
 
     def test_unknown_category_uses_general(self):
         adapter = PricingAdapter()
@@ -105,10 +101,8 @@ class TestGetTaskPricing:
     def test_cache_hit(self):
         adapter = PricingAdapter()
         cached = PricingSnapshot(
-            category="photo",
-            recommended_usd=4.0,
-            fetched_at=time.time(),
-            source="api",
+            category="photo", recommended_usd=4.0,
+            fetched_at=time.time(), source="api",
         )
         adapter._pricing_cache["photo"] = cached
 
@@ -120,10 +114,8 @@ class TestGetTaskPricing:
     def test_stale_cache_triggers_fetch(self):
         adapter = PricingAdapter()
         old = PricingSnapshot(
-            category="photo",
-            recommended_usd=4.0,
-            fetched_at=time.time() - 7200,
-            source="api",
+            category="photo", recommended_usd=4.0,
+            fetched_at=time.time() - 7200, source="api",
         )
         adapter._pricing_cache["photo"] = old
 
@@ -167,10 +159,8 @@ class TestGetMarketDemand:
     def test_cache_hit(self):
         adapter = PricingAdapter()
         cached = MarketDemandSnapshot(
-            category="delivery",
-            demand_score=0.8,
-            fetched_at=time.time(),
-            source="api",
+            category="delivery", demand_score=0.8,
+            fetched_at=time.time(), source="api",
         )
         adapter._demand_cache["delivery"] = cached
 

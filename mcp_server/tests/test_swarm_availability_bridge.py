@@ -12,13 +12,20 @@ Tests cover:
     7. Edge cases (no data, empty pool, zero activity)
 """
 
+import pytest
 from datetime import datetime, timezone, timedelta
 from dataclasses import asdict
 
 from mcp_server.swarm.availability_bridge import (
     AvailabilityBridge,
+    TimeWeightedCandidate,
     ScheduleRecommendation,
+    PoolCoverage,
     DEFAULT_AVAILABILITY_WEIGHT,
+    MAX_DELAY_HOURS,
+    MIN_PREDICTION_CONFIDENCE,
+    FAST_RESPONSE_THRESHOLD,
+    SLOW_RESPONSE_THRESHOLD,
 )
 
 UTC = timezone.utc
@@ -38,9 +45,7 @@ def _hourly_dist(peak_hour=14, peak_val=0.95):
     return dist
 
 
-def _avail_data(
-    tz_offset=0.0, peak_hour=14, response_min=20.0, reliability=0.8, data_points=20
-):
+def _avail_data(tz_offset=0.0, peak_hour=14, response_min=20.0, reliability=0.8, data_points=20):
     """Standard availability profile."""
     return {
         "timezone_offset_hours": tz_offset,
@@ -56,15 +61,9 @@ def _avail_data(
 def _bridge_with_workers():
     """Bridge with 3 workers in different timezones."""
     bridge = AvailabilityBridge()
-    bridge.register_availability(
-        "0x001", _avail_data(tz_offset=-5.0, peak_hour=14)
-    )  # EST worker
-    bridge.register_availability(
-        "0x002", _avail_data(tz_offset=1.0, peak_hour=10)
-    )  # CET worker
-    bridge.register_availability(
-        "0x003", _avail_data(tz_offset=8.0, peak_hour=10)
-    )  # Asia worker
+    bridge.register_availability("0x001", _avail_data(tz_offset=-5.0, peak_hour=14))   # EST worker
+    bridge.register_availability("0x002", _avail_data(tz_offset=1.0, peak_hour=10))    # CET worker
+    bridge.register_availability("0x003", _avail_data(tz_offset=8.0, peak_hour=10))    # Asia worker
     return bridge
 
 
@@ -81,13 +80,11 @@ class TestRegistration:
 
     def test_batch_registration(self):
         bridge = AvailabilityBridge()
-        bridge.register_batch(
-            {
-                "0x001": _avail_data(),
-                "0x002": _avail_data(),
-                "0x003": _avail_data(),
-            }
-        )
+        bridge.register_batch({
+            "0x001": _avail_data(),
+            "0x002": _avail_data(),
+            "0x003": _avail_data(),
+        })
         assert bridge.get_registered_count() == 3
 
     def test_overwrite_registration(self):
@@ -166,15 +163,12 @@ class TestTimeWeightedRanking:
         dist[2] = 0.95
         dist[1] = 0.3
         dist[3] = 0.3
-        bridge.register_availability(
-            "0x001",
-            {
-                "timezone_offset_hours": 0.0,
-                "hourly_distribution": dist,
-                "reliability_score": 0.9,
-                "total_data_points": 30,
-            },
-        )
+        bridge.register_availability("0x001", {
+            "timezone_offset_hours": 0.0,
+            "hourly_distribution": dist,
+            "reliability_score": 0.9,
+            "total_data_points": 30,
+        })
         candidates = [{"wallet": "0x001", "score": 80.0}]
 
         # At noon — far from peak
@@ -290,15 +284,12 @@ class TestPoolCoverage:
         dist = [0.0] * 24
         for h in range(12, 17):
             dist[h] = 0.8
-        bridge.register_availability(
-            "0x001",
-            {
-                "timezone_offset_hours": 0.0,
-                "hourly_distribution": dist,
-                "reliability_score": 0.8,
-                "total_data_points": 20,
-            },
-        )
+        bridge.register_availability("0x001", {
+            "timezone_offset_hours": 0.0,
+            "hourly_distribution": dist,
+            "reliability_score": 0.8,
+            "total_data_points": 20,
+        })
 
         coverage = bridge.pool_coverage(["0x001"])
         assert len(coverage.dead_zones) > 0
@@ -373,10 +364,7 @@ class TestDeadlineAwareRouting:
 
         result = bridge.deadline_aware_route(task, candidates, now=now)
         assert result["urgency"] == "critical"
-        assert result["strategy"] in (
-            "fastest_available",
-            "best_skill_despite_unavailability",
-        )
+        assert result["strategy"] in ("fastest_available", "best_skill_despite_unavailability")
 
     def test_expires_at_format(self):
         bridge = AvailabilityBridge()

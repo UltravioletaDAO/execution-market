@@ -123,36 +123,24 @@ class TestRetentionSnapshot:
     def test_tenure_bonus_increases_score(self):
         """Longer tenure → higher stability."""
         short = RetentionSnapshot(
-            wallet="0xShort",
-            churn_probability=0.3,
-            risk_level="at_risk",
-            tenure_days=10,
-            fetched_at=time.time(),
+            wallet="0xShort", churn_probability=0.3,
+            risk_level="at_risk", tenure_days=10, fetched_at=time.time(),
         )
         long = RetentionSnapshot(
-            wallet="0xLong",
-            churn_probability=0.3,
-            risk_level="at_risk",
-            tenure_days=180,
-            fetched_at=time.time(),
+            wallet="0xLong", churn_probability=0.3,
+            risk_level="at_risk", tenure_days=180, fetched_at=time.time(),
         )
         assert long.stability_score > short.stability_score
 
     def test_tenure_bonus_capped(self):
         """Tenure bonus maxes at 10 (1 year ≈ 365 days)."""
         one_year = RetentionSnapshot(
-            wallet="0x1Y",
-            churn_probability=0.3,
-            risk_level="at_risk",
-            tenure_days=365,
-            fetched_at=time.time(),
+            wallet="0x1Y", churn_probability=0.3,
+            risk_level="at_risk", tenure_days=365, fetched_at=time.time(),
         )
         ten_years = RetentionSnapshot(
-            wallet="0x10Y",
-            churn_probability=0.3,
-            risk_level="at_risk",
-            tenure_days=3650,
-            fetched_at=time.time(),
+            wallet="0x10Y", churn_probability=0.3,
+            risk_level="at_risk", tenure_days=3650, fetched_at=time.time(),
         )
         # Both should have the same tenure bonus (capped at 10)
         assert one_year.stability_score == pytest.approx(
@@ -161,16 +149,11 @@ class TestRetentionSnapshot:
 
     def test_risk_level_ordering(self):
         """stable > at_risk > high_risk > critical for same churn."""
-
         def make(risk):
             return RetentionSnapshot(
-                wallet="0xTest",
-                churn_probability=0.3,
-                risk_level=risk,
-                tenure_days=30,
-                fetched_at=time.time(),
+                wallet="0xTest", churn_probability=0.3,
+                risk_level=risk, tenure_days=30, fetched_at=time.time(),
             )
-
         assert make("stable").stability_score > make("at_risk").stability_score
         assert make("at_risk").stability_score > make("high_risk").stability_score
         assert make("high_risk").stability_score > make("critical").stability_score
@@ -178,18 +161,12 @@ class TestRetentionSnapshot:
     def test_unknown_risk_level(self):
         """Unknown risk level uses 0 adjustment (same as at_risk)."""
         at_risk = RetentionSnapshot(
-            wallet="0xTest",
-            risk_level="at_risk",
-            churn_probability=0.3,
-            tenure_days=30,
-            fetched_at=time.time(),
+            wallet="0xTest", risk_level="at_risk",
+            churn_probability=0.3, tenure_days=30, fetched_at=time.time(),
         )
         unknown = RetentionSnapshot(
-            wallet="0xTest",
-            risk_level="something_new",
-            churn_probability=0.3,
-            tenure_days=30,
-            fetched_at=time.time(),
+            wallet="0xTest", risk_level="something_new",
+            churn_probability=0.3, tenure_days=30, fetched_at=time.time(),
         )
         assert at_risk.stability_score == unknown.stability_score
 
@@ -378,17 +355,13 @@ class TestRetentionScorer:
     def test_scorer_different_workers(self, adapter):
         """Different workers with different retention data → different scores."""
         adapter._cache["0xgood"] = RetentionSnapshot(
-            wallet="0xGood",
-            churn_probability=0.05,
-            risk_level="stable",
-            tenure_days=200,
+            wallet="0xGood", churn_probability=0.05,
+            risk_level="stable", tenure_days=200,
             fetched_at=time.time(),
         )
         adapter._cache["0xbad"] = RetentionSnapshot(
-            wallet="0xBad",
-            churn_probability=0.9,
-            risk_level="critical",
-            tenure_days=5,
+            wallet="0xBad", churn_probability=0.9,
+            risk_level="critical", tenure_days=5,
             fetched_at=time.time(),
         )
 

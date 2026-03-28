@@ -12,6 +12,8 @@ Tests cover:
 """
 
 import time
+import pytest
+from unittest.mock import patch, MagicMock
 
 from mcp_server.swarm.affinity_adapter import (
     AffinityAdapter,
@@ -31,24 +33,16 @@ from mcp_server.swarm.affinity_adapter import (
 class TestAffinityScore:
     def test_basic(self):
         score = AffinityScore(
-            worker_id="0x001",
-            category="photo",
-            score=85.0,
-            confidence=0.9,
-            style="specialist",
-            is_sweet_spot=True,
+            worker_id="0x001", category="photo", score=85.0,
+            confidence=0.9, style="specialist", is_sweet_spot=True,
         )
         assert score.score == 85.0
         assert score.is_sweet_spot is True
 
     def test_neutral(self):
         score = AffinityScore(
-            worker_id="0x001",
-            category="photo",
-            score=50.0,
-            confidence=0.0,
-            style="generalist",
-            is_sweet_spot=False,
+            worker_id="0x001", category="photo", score=50.0,
+            confidence=0.0, style="generalist", is_sweet_spot=False,
         )
         assert score.confidence == 0.0
 
@@ -61,16 +55,10 @@ class TestAffinityBatchResult:
 
     def test_with_scores(self):
         result = AffinityBatchResult(
-            scores={
-                "0x001": AffinityScore(
-                    worker_id="0x001",
-                    category="photo",
-                    score=80.0,
-                    confidence=0.8,
-                    style="specialist",
-                    is_sweet_spot=True,
-                )
-            },
+            scores={"0x001": AffinityScore(
+                worker_id="0x001", category="photo", score=80.0,
+                confidence=0.8, style="specialist", is_sweet_spot=True,
+            )},
             category="photo",
             latency_ms=15.0,
         )
@@ -162,14 +150,11 @@ class TestAffinityAdapterScoring:
 
     def test_cached_profile(self):
         adapter = AffinityAdapter()
-        adapter.cache.put(
-            "0x001",
-            {
-                "affinities": {"photo": {"score": 0.85, "confidence": 0.9}},
-                "dominant_style": "specialist",
-                "sweet_spot": "photo",
-            },
-        )
+        adapter.cache.put("0x001", {
+            "affinities": {"photo": {"score": 0.85, "confidence": 0.9}},
+            "dominant_style": "specialist",
+            "sweet_spot": "photo",
+        })
 
         score = adapter.score_worker("0x001", "photo")
         assert score.score > 80  # 0.85 * 100 * 1.1 (sweet spot bonus)
@@ -191,13 +176,10 @@ class TestAffinityAdapterScoring:
 
     def test_category_not_in_profile(self):
         adapter = AffinityAdapter()
-        adapter.cache.put(
-            "0x001",
-            {
-                "affinities": {"photo": {"score": 0.9}},
-                "dominant_style": "specialist",
-            },
-        )
+        adapter.cache.put("0x001", {
+            "affinities": {"photo": {"score": 0.9}},
+            "dominant_style": "specialist",
+        })
 
         score = adapter.score_worker("0x001", "delivery")
         assert score.score == 50.0
@@ -205,14 +187,11 @@ class TestAffinityAdapterScoring:
 
     def test_sweet_spot_bonus(self):
         adapter = AffinityAdapter()
-        adapter.cache.put(
-            "0x001",
-            {
-                "affinities": {"photo": {"score": 0.8, "confidence": 0.8}},
-                "sweet_spot": "photo",
-                "dominant_style": "specialist",
-            },
-        )
+        adapter.cache.put("0x001", {
+            "affinities": {"photo": {"score": 0.8, "confidence": 0.8}},
+            "sweet_spot": "photo",
+            "dominant_style": "specialist",
+        })
 
         score = adapter.score_worker("0x001", "photo")
         # 0.8 * 100 * 1.1 = 88.0 (with sweet spot)
@@ -220,14 +199,11 @@ class TestAffinityAdapterScoring:
 
     def test_no_sweet_spot_bonus_low_confidence(self):
         adapter = AffinityAdapter()
-        adapter.cache.put(
-            "0x001",
-            {
-                "affinities": {"photo": {"score": 0.8, "confidence": 0.3}},
-                "sweet_spot": "photo",
-                "dominant_style": "specialist",
-            },
-        )
+        adapter.cache.put("0x001", {
+            "affinities": {"photo": {"score": 0.8, "confidence": 0.3}},
+            "sweet_spot": "photo",
+            "dominant_style": "specialist",
+        })
 
         score = adapter.score_worker("0x001", "photo")
         # Confidence 0.3 < 0.5 → no sweet spot bonus
@@ -235,13 +211,10 @@ class TestAffinityAdapterScoring:
 
     def test_score_clamped_at_100(self):
         adapter = AffinityAdapter()
-        adapter.cache.put(
-            "0x001",
-            {
-                "affinities": {"photo": {"score": 0.99, "confidence": 0.9}},
-                "sweet_spot": "photo",
-            },
-        )
+        adapter.cache.put("0x001", {
+            "affinities": {"photo": {"score": 0.99, "confidence": 0.9}},
+            "sweet_spot": "photo",
+        })
 
         score = adapter.score_worker("0x001", "photo")
         assert score.score <= 100.0
@@ -251,13 +224,10 @@ class TestAffinityAdapterBatch:
     def test_batch_scoring(self):
         adapter = AffinityAdapter()
         for i in range(3):
-            adapter.cache.put(
-                f"0x{i:03x}",
-                {
-                    "affinities": {"photo": {"score": 0.5 + i * 0.1}},
-                    "dominant_style": "generalist",
-                },
-            )
+            adapter.cache.put(f"0x{i:03x}", {
+                "affinities": {"photo": {"score": 0.5 + i * 0.1}},
+                "dominant_style": "generalist",
+            })
 
         result = adapter.score_batch(["0x000", "0x001", "0x002"], "photo")
         assert len(result.scores) == 3
@@ -318,13 +288,10 @@ class TestMakeAffinityScorer:
 
     def test_with_cached_data(self):
         adapter = AffinityAdapter()
-        adapter.cache.put(
-            "0x001",
-            {
-                "affinities": {"photo": {"score": 0.9, "confidence": 0.8}},
-                "dominant_style": "specialist",
-            },
-        )
+        adapter.cache.put("0x001", {
+            "affinities": {"photo": {"score": 0.9, "confidence": 0.8}},
+            "dominant_style": "specialist",
+        })
         scorer = make_affinity_scorer(adapter)
 
         score = scorer(

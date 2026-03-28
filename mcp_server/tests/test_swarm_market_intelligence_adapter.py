@@ -12,6 +12,7 @@ Tests cover:
 """
 
 import time
+import pytest
 
 from mcp_server.swarm.market_intelligence_adapter import (
     MarketIntelligenceAdapter,
@@ -20,6 +21,7 @@ from mcp_server.swarm.market_intelligence_adapter import (
     SupplyGapSnapshot,
     make_market_scorer,
     FRESH_TTL,
+    STALE_TTL,
 )
 
 
@@ -167,9 +169,7 @@ class TestMarketIntelligenceAdapter:
     def test_cache_hit(self):
         adapter = MarketIntelligenceAdapter()
         cached = MarketSnapshot(
-            category="photo",
-            demand_score=0.8,
-            confidence=0.7,
+            category="photo", demand_score=0.8, confidence=0.7,
             fetched_at=time.time(),
         )
         adapter._market_cache["photo"] = cached
@@ -182,8 +182,7 @@ class TestMarketIntelligenceAdapter:
     def test_stale_cache_used_on_api_failure(self):
         adapter = MarketIntelligenceAdapter()
         stale = MarketSnapshot(
-            category="photo",
-            demand_score=0.7,
+            category="photo", demand_score=0.7,
             fetched_at=time.time() - FRESH_TTL - 1,  # Past fresh TTL
         )
         adapter._market_cache["photo"] = stale
@@ -220,9 +219,7 @@ class TestMarketIntelligenceAdapter:
     def test_timing_cache(self):
         adapter = MarketIntelligenceAdapter()
         cached = TimingSnapshot(
-            category="photo",
-            best_hour_utc=10,
-            best_day="friday",
+            category="photo", best_hour_utc=10, best_day="friday",
             fetched_at=time.time(),
         )
         adapter._timing_cache["photo"] = cached
@@ -322,9 +319,7 @@ class TestMakeMarketScorer:
         """Market intelligence is task-level, not worker-level."""
         adapter = MarketIntelligenceAdapter()
         adapter._market_cache["photo"] = MarketSnapshot(
-            category="photo",
-            completion_rate=0.7,
-            fetched_at=time.time(),
+            category="photo", completion_rate=0.7, fetched_at=time.time(),
         )
         scorer = make_market_scorer(adapter)
 

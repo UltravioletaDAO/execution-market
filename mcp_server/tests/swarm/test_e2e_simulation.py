@@ -21,23 +21,29 @@ Test Categories:
 """
 
 import time
+import pytest
 from collections import Counter
 from datetime import datetime, timezone, timedelta
+from unittest.mock import MagicMock, patch
 
 from mcp_server.swarm.coordinator import (
     SwarmCoordinator,
     CoordinatorEvent,
+    QueuedTask,
 )
 from mcp_server.swarm.orchestrator import (
     SwarmOrchestrator,
+    TaskRequest,
     TaskPriority,
     RoutingStrategy,
     Assignment,
+    RoutingFailure,
 )
 from mcp_server.swarm.lifecycle_manager import (
     LifecycleManager,
     AgentState,
     BudgetConfig,
+    LifecycleError,
 )
 
 
@@ -46,20 +52,24 @@ def recover_agents(coordinator):
     for agent_id, record in coordinator.lifecycle.agents.items():
         if record.state == AgentState.COOLDOWN:
             coordinator.lifecycle.transition(agent_id, AgentState.IDLE, "test recovery")
-            coordinator.lifecycle.transition(
-                agent_id, AgentState.ACTIVE, "test recovery"
-            )
-
-
+            coordinator.lifecycle.transition(agent_id, AgentState.ACTIVE, "test recovery")
 from mcp_server.swarm.reputation_bridge import (
     ReputationBridge,
     OnChainReputation,
     InternalReputation,
 )
+from mcp_server.swarm.event_bus import EventBus
+from mcp_server.swarm.feedback_pipeline import FeedbackPipeline
+from mcp_server.swarm.decision_bridge import DecisionBridge
+from mcp_server.swarm.routing_optimizer import RoutingOptimizer
+from mcp_server.swarm.scheduler import SwarmScheduler
+from mcp_server.swarm.analytics import SwarmAnalytics
+from mcp_server.swarm.dashboard import SwarmDashboard
+from mcp_server.swarm.metrics_collector import MetricsCollector
+from mcp_server.swarm.autojob_client import AutoJobClient
 
 
 # ─── Helpers ─────────────────────────────────────────────────────────────
-
 
 def make_coordinator(num_agents=5, budget_daily=50.0, budget_monthly=500.0):
     """Create a fully-wired coordinator with N agents."""
@@ -114,7 +124,6 @@ def make_task_data(task_id, bounty=5.0, categories=None, priority=TaskPriority.N
 
 
 # ─── Single Task Lifecycle ───────────────────────────────────────────────
-
 
 class TestSingleTaskLifecycle:
     """Tests a single task through the complete pipeline."""
@@ -205,7 +214,6 @@ class TestSingleTaskLifecycle:
 
 # ─── Multi-Task Concurrent Routing ──────────────────────────────────────
 
-
 class TestMultiTaskRouting:
     """Tests multiple tasks flowing through the pipeline simultaneously."""
 
@@ -254,13 +262,13 @@ class TestMultiTaskRouting:
         coord.ingest_task(**make_task_data(3, priority=TaskPriority.HIGH))
 
         results = coord.process_task_queue(max_tasks=2)
-        [r for r in results if isinstance(r, Assignment)]
+        assignments = [r for r in results if isinstance(r, Assignment)]
 
         # Critical and HIGH should be routed first
-        [coord._task_queue[f"task-{i}"].status for i in [1, 2, 3]]
+        assigned_ids = [coord._task_queue[f"task-{i}"].status for i in [1, 2, 3]]
         assert coord._task_queue["task-2"].status == "assigned"  # CRITICAL
         assert coord._task_queue["task-3"].status == "assigned"  # HIGH
-        assert coord._task_queue["task-1"].status == "pending"  # LOW (still waiting)
+        assert coord._task_queue["task-1"].status == "pending"   # LOW (still waiting)
 
     def test_round_robin_fairness(self):
         """ROUND_ROBIN distributes tasks evenly across agents over multiple rounds."""
@@ -308,7 +316,6 @@ class TestMultiTaskRouting:
 
 
 # ─── Budget Lifecycle ────────────────────────────────────────────────────
-
 
 class TestBudgetLifecycle:
     """Tests budget consumption across multiple task completions."""
@@ -361,7 +368,6 @@ class TestBudgetLifecycle:
 
 
 # ─── Reputation Evolution ────────────────────────────────────────────────
-
 
 class TestReputationEvolution:
     """Tests that reputation scores change as tasks complete."""
@@ -490,7 +496,6 @@ class TestReputationEvolution:
 
 # ─── Dashboard Accuracy ─────────────────────────────────────────────────
 
-
 class TestDashboardAccuracy:
     """Tests that the dashboard reflects actual system state."""
 
@@ -562,7 +567,6 @@ class TestDashboardAccuracy:
 
 
 # ─── Event Flow ──────────────────────────────────────────────────────────
-
 
 class TestEventFlow:
     """Tests event propagation across the full pipeline."""
@@ -641,7 +645,6 @@ class TestEventFlow:
 
 # ─── Health Check Integration ────────────────────────────────────────────
 
-
 class TestHealthCheckIntegration:
     """Tests health checks in the context of full pipeline operation."""
 
@@ -694,7 +697,6 @@ class TestHealthCheckIntegration:
 
 # ─── Metrics Consistency ─────────────────────────────────────────────────
 
-
 class TestMetricsConsistency:
     """Tests that metrics remain consistent under various scenarios."""
 
@@ -728,7 +730,7 @@ class TestMetricsConsistency:
             coord.ingest_task(**make_task_data(i))
 
         results = coord.process_task_queue(max_tasks=5)
-        sum(1 for r in results if isinstance(r, Assignment))
+        assignments = sum(1 for r in results if isinstance(r, Assignment))
 
         metrics = coord.get_metrics()
         if metrics.tasks_ingested > 0 and coord._routing_attempts > 0:
@@ -771,7 +773,6 @@ class TestMetricsConsistency:
 
 
 # ─── Pipeline Stress ─────────────────────────────────────────────────────
-
 
 class TestPipelineStress:
     """Stress tests for the full pipeline."""
