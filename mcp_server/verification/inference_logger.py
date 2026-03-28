@@ -24,16 +24,21 @@ logger = logging.getLogger(__name__)
 
 COST_PER_1M_TOKENS: Dict[str, Dict[str, float]] = {
     # (provider, model) -> {"input": $/1M, "output": $/1M}
+    # Gemini
     "gemini:gemini-2.5-flash": {"input": 0.15, "output": 0.60},
     "gemini:gemini-2.5-pro": {"input": 1.25, "output": 5.00},
-    "anthropic:claude-haiku-4-5": {"input": 0.80, "output": 4.00},
+    # Anthropic — Claude 4.5/4.6
     "anthropic:claude-haiku-4-5-20251001": {"input": 0.80, "output": 4.00},
+    "anthropic:claude-sonnet-4-6-20250627": {"input": 3.00, "output": 15.00},
     "anthropic:claude-sonnet-4-20250514": {"input": 3.00, "output": 15.00},
+    "anthropic:claude-opus-4-6-20250627": {"input": 15.00, "output": 75.00},
     "anthropic:claude-opus-4-20250514": {"input": 15.00, "output": 75.00},
+    # OpenAI
     "openai:gpt-4o": {"input": 2.50, "output": 10.00},
     "openai:gpt-4o-mini": {"input": 0.15, "output": 0.60},
-    "bedrock:anthropic.claude-sonnet-4-20250514-v1:0": {"input": 3.00, "output": 15.00},
-    "bedrock:anthropic.claude-opus-4-20250514-v1:0": {"input": 15.00, "output": 75.00},
+    # Bedrock
+    "bedrock:anthropic.claude-sonnet-4-6-v1:0": {"input": 3.00, "output": 15.00},
+    "bedrock:anthropic.claude-opus-4-6-v1:0": {"input": 15.00, "output": 75.00},
 }
 
 # Fallback cost for unknown models

@@ -85,7 +85,7 @@ class AnthropicProvider(VerificationProvider):
     def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
         self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
         self.model_id = model or os.environ.get(
-            "AI_VERIFICATION_MODEL", "claude-sonnet-4-20250514"
+            "AI_VERIFICATION_MODEL", "claude-sonnet-4-6-20250627"
         )
 
     @property
@@ -194,7 +194,7 @@ class BedrockProvider(VerificationProvider):
     def __init__(self, region: Optional[str] = None, model: Optional[str] = None):
         self.region = region or os.environ.get("AWS_BEDROCK_REGION", "us-east-2")
         self.model_id = model or os.environ.get(
-            "AI_VERIFICATION_MODEL", "anthropic.claude-sonnet-4-20250514-v1:0"
+            "AI_VERIFICATION_MODEL", "anthropic.claude-sonnet-4-6-v1:0"
         )
 
     @property
@@ -372,17 +372,17 @@ def get_provider(
 TIER_MODELS = {
     "tier_1": [
         ("gemini", "gemini-2.5-flash"),
-        ("openai", "gpt-4o-mini"),
+        ("openai", "gpt-4o"),
         ("anthropic", "claude-haiku-4-5-20251001"),
     ],
     "tier_2": [
-        ("anthropic", "claude-sonnet-4-20250514"),
+        ("anthropic", "claude-sonnet-4-6-20250627"),
         ("openai", "gpt-4o"),
         ("gemini", "gemini-2.5-pro"),
     ],
     "tier_3": [
-        ("anthropic", "claude-opus-4-20250514"),
-        ("bedrock", "anthropic.claude-opus-4-20250514-v1:0"),
+        ("anthropic", "claude-opus-4-6-20250627"),
+        ("bedrock", "anthropic.claude-opus-4-6-v1:0"),
     ],
 }
 

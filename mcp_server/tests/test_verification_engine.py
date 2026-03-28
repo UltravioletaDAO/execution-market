@@ -37,8 +37,8 @@ class TestEstimateCost:
     def test_claude_sonnet_cost(self):
         from verification.inference_logger import estimate_cost
 
-        # anthropic:claude-sonnet-4-20250514: input $3.00/1M, output $15.00/1M
-        cost = estimate_cost("anthropic", "claude-sonnet-4-20250514", 2_000, 1_000)
+        # anthropic:claude-sonnet-4-6-20250627: input $3.00/1M, output $15.00/1M
+        cost = estimate_cost("anthropic", "claude-sonnet-4-6-20250627", 2_000, 1_000)
         expected = (2_000 * 3.00 + 1_000 * 15.00) / 1_000_000
         assert cost == round(expected, 6)
 
@@ -53,8 +53,8 @@ class TestEstimateCost:
     def test_claude_opus_cost(self):
         from verification.inference_logger import estimate_cost
 
-        # anthropic:claude-opus-4-20250514: input $15.00/1M, output $75.00/1M
-        cost = estimate_cost("anthropic", "claude-opus-4-20250514", 10_000, 5_000)
+        # anthropic:claude-opus-4-6-20250627: input $15.00/1M, output $75.00/1M
+        cost = estimate_cost("anthropic", "claude-opus-4-6-20250627", 10_000, 5_000)
         expected = (10_000 * 15.00 + 5_000 * 75.00) / 1_000_000
         assert cost == round(expected, 6)
 
@@ -132,7 +132,7 @@ class TestInferenceRecord:
             check_name="ai_semantic",
             tier="tier_2",
             provider="anthropic",
-            model="claude-sonnet-4-20250514",
+            model="claude-sonnet-4-6-20250627",
             prompt_version="photint-v1.0-physical_presence",
             prompt_text="Analyze this photo.",
             response_text='{"decision": "approve"}',
