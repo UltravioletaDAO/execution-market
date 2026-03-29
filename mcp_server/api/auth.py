@@ -506,16 +506,25 @@ async def _resolve_erc8004_identity(wallet_address: str, chain_id: int) -> dict:
     Cross-reference a wallet address with ERC-8004 identity.
 
     Returns dict with agent_id, registered, etc.
-    Falls back to wallet address as agent_id if identity lookup fails.
+    Timeout at 5s to avoid blocking the auth flow.
     """
+    import asyncio as _aio
+
     try:
         from integrations.erc8004.identity import check_worker_identity
 
-        result = await check_worker_identity(wallet_address)
+        result = await _aio.wait_for(
+            check_worker_identity(wallet_address),
+            timeout=5.0,
+        )
         return {
             "registered": result.status.value == "registered",
             "agent_id": result.agent_id,
         }
+    except _aio.TimeoutError:
+        logger.warning(
+            "ERC-8004 identity lookup timed out (5s) for %s", wallet_address[:10]
+        )
     except ImportError:
         logger.debug("ERC-8004 identity module not available")
     except Exception as e:
