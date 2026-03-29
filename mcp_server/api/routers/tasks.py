@@ -578,16 +578,30 @@ async def create_task(
                 )
 
                 if is_wallet:
-                    # Check on-chain identity on the task's network via RPC
+                    # Check on-chain identity on the task's network via RPC.
+                    # Timeout at 8s to avoid blocking task creation (the
+                    # facilitator owner lookup can take 10-15s on SKALE).
+                    import asyncio as _aio
+
                     from integrations.erc8004.identity import (
                         check_worker_identity,
                         register_worker_gasless,
                     )
 
-                    onchain = await check_worker_identity(
-                        agent_wallet, network=task_network
-                    )
-                    if onchain.agent_id:
+                    try:
+                        onchain = await _aio.wait_for(
+                            check_worker_identity(agent_wallet, network=task_network),
+                            timeout=8.0,
+                        )
+                    except _aio.TimeoutError:
+                        logger.warning(
+                            "Identity check timed out (8s) for %s on %s — "
+                            "proceeding without identity",
+                            agent_wallet[:10],
+                            task_network,
+                        )
+                        onchain = None
+                    if onchain and onchain.agent_id:
                         erc8004_identity = {
                             "registered": True,
                             "agent_id": onchain.agent_id,
@@ -600,7 +614,7 @@ async def create_task(
                             task_network,
                             onchain.agent_id,
                         )
-                    elif onchain.status.value == "registered":
+                    elif onchain and onchain.status.value == "registered":
                         # Wallet has an NFT (balanceOf > 0) but tokenOfOwnerByIndex
                         # failed (SKALE doesn't support ERC-721 Enumerable).
                         # Do NOT re-register — that creates duplicate NFTs.
