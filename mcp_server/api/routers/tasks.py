@@ -680,9 +680,12 @@ async def create_task(
                     "[Task] Geocoding failed for '%s': %s", request.location_hint, e
                 )
 
-        # Create task
+        # Create task — use wallet address as agent_id (cross-chain consistent).
+        # auth.agent_id may be a numeric Base agent ID (e.g. "37500") resolved
+        # during ERC-8128 auth, but wallet_address is the same on every chain.
+        task_agent_id = getattr(auth, "wallet_address", None) or auth.agent_id
         task = await db.create_task(
-            agent_id=auth.agent_id,
+            agent_id=task_agent_id,
             title=request.title,
             instructions=request.instructions,
             category=request.category.value,
