@@ -164,6 +164,8 @@ class SwarmIntegrator:
         self._expiry_analyzer = None
         self._config_manager = None
         self._analytics = None
+        self._verification_adapter = None
+        self._decision_synthesizer = None
 
         # State
         self._started = False
@@ -242,6 +244,37 @@ class SwarmIntegrator:
         """Register the Analytics module."""
         self._analytics = analytics
         self._register_component("analytics", analytics)
+        return self
+
+    def set_decision_synthesizer(self, synthesizer) -> "SwarmIntegrator":
+        """Register the DecisionSynthesizer."""
+        self._decision_synthesizer = synthesizer
+        self._register_component("decision_synthesizer", synthesizer)
+        return self
+
+    def set_verification_adapter(self, adapter) -> "SwarmIntegrator":
+        """
+        Register the VerificationAdapter (PHOTINT evidence quality).
+
+        If a DecisionSynthesizer is already registered, automatically
+        wires the adapter as Signal #13 (verification_quality).
+        """
+        self._verification_adapter = adapter
+        self._register_component("verification_adapter", adapter)
+
+        # Auto-wire into DecisionSynthesizer if available
+        if self._decision_synthesizer is not None:
+            try:
+                from .decision_synthesizer import SignalType
+                self._decision_synthesizer.register_signal(
+                    SignalType.VERIFICATION_QUALITY,
+                    adapter.score,
+                )
+                logger.info(
+                    "VerificationAdapter wired into DecisionSynthesizer as Signal #13"
+                )
+            except Exception as e:
+                logger.warning(f"Failed to wire VerificationAdapter: {e}")
         return self
 
     def _register_component(self, name: str, component) -> None:
@@ -837,6 +870,8 @@ class SwarmIntegrator:
             "expiry_analyzer": integrator.set_expiry_analyzer,
             "config_manager": integrator.set_config_manager,
             "analytics": integrator.set_analytics,
+            "decision_synthesizer": integrator.set_decision_synthesizer,
+            "verification_adapter": integrator.set_verification_adapter,
         }
 
         for name, instance in components.items():

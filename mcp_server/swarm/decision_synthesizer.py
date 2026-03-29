@@ -81,6 +81,9 @@ class SignalType(str, Enum):
         "market_intelligence"  # Category supply/demand/timing (AutoJob)
     )
     AFFINITY = "affinity"  # Worker-task preference matching (AutoJob)
+    VERIFICATION_QUALITY = (
+        "verification_quality"  # Evidence quality from PHOTINT (Signal #13)
+    )
 
 
 class DecisionOutcome(str, Enum):
@@ -228,13 +231,14 @@ class SignalProvider:
 # ──────────────────────────────────────────────────────────────
 
 DEFAULT_WEIGHTS = {
-    SignalType.SKILL_MATCH: 0.30,  # Most important: can they do it?
-    SignalType.REPUTATION: 0.20,  # Have they done well before?
-    SignalType.RELIABILITY: 0.15,  # Do they finish on time?
+    SignalType.SKILL_MATCH: 0.28,  # Most important: can they do it?
+    SignalType.REPUTATION: 0.18,  # Have they done well before?
+    SignalType.RELIABILITY: 0.14,  # Do they finish on time?
     SignalType.AVAILABILITY: 0.10,  # Are they online now?
-    SignalType.SPEED: 0.08,  # How fast do they respond?
-    SignalType.SPECIALIZATION: 0.07,  # Category expertise
-    SignalType.RECENCY: 0.05,  # Recent activity
+    SignalType.VERIFICATION_QUALITY: 0.08,  # Evidence quality from PHOTINT (#13)
+    SignalType.SPEED: 0.07,  # How fast do they respond?
+    SignalType.SPECIALIZATION: 0.06,  # Category expertise
+    SignalType.RECENCY: 0.04,  # Recent activity
     SignalType.CAPACITY: 0.03,  # Not overloaded
     SignalType.COST: 0.02,  # Budget efficiency
     SignalType.SOURCE_QUALITY: 0.00,  # Task source (not about candidate)
