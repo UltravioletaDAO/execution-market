@@ -565,64 +565,86 @@ async def create_task(
             )
 
         erc8004_identity: Optional[Dict[str, Any]] = None
-        if ERC8004_IDENTITY_AVAILABLE and verify_agent_identity is not None:
+        if ERC8004_IDENTITY_AVAILABLE:
             try:
                 task_network = request.payment_network or "base"
-                erc8004_identity = await verify_agent_identity(
-                    auth.agent_id,
-                    network=task_network,
+                # Use wallet_address (not auth.agent_id which may be a numeric
+                # Base agent ID like "37500" instead of an actual 0x address).
+                agent_wallet = getattr(auth, "wallet_address", None) or auth.agent_id
+                is_wallet = (
+                    isinstance(agent_wallet, str)
+                    and agent_wallet.startswith("0x")
+                    and len(agent_wallet) == 42
                 )
-                if erc8004_identity and erc8004_identity.get("registered"):
-                    logger.info(
-                        "ERC-8004 identity verified for agent %s on %s: agent_id=%s, owner=%s",
-                        auth.agent_id,
-                        task_network,
-                        erc8004_identity.get("agent_id"),
-                        erc8004_identity.get("owner"),
-                    )
-                else:
-                    # Auto-register agent on the task's network (gasless)
-                    logger.info(
-                        "ERC-8004 identity NOT found for agent %s on %s — "
-                        "attempting gasless auto-registration",
-                        auth.agent_id,
-                        task_network,
-                    )
-                    try:
-                        from integrations.erc8004.identity import (
-                            register_worker_gasless,
-                        )
 
-                        reg = await register_worker_gasless(
-                            wallet_address=auth.agent_id,
-                            network=task_network,
-                        )
-                        if reg.agent_id:
-                            erc8004_identity = {
-                                "registered": True,
-                                "agent_id": reg.agent_id,
-                                "owner": auth.agent_id,
-                                "network": task_network,
-                            }
-                            logger.info(
-                                "Auto-registered agent %s on %s: agent_id=%s",
-                                auth.agent_id,
-                                task_network,
-                                reg.agent_id,
-                            )
-                        else:
-                            logger.warning(
-                                "Auto-registration returned no agent_id for %s on %s",
-                                auth.agent_id,
-                                task_network,
-                            )
-                    except Exception as reg_err:
-                        logger.warning(
-                            "Auto-registration failed for agent %s on %s: %s",
-                            auth.agent_id,
+                if is_wallet:
+                    # Check on-chain identity on the task's network via RPC
+                    from integrations.erc8004.identity import (
+                        check_worker_identity,
+                        register_worker_gasless,
+                    )
+
+                    onchain = await check_worker_identity(
+                        agent_wallet, network=task_network
+                    )
+                    if onchain.agent_id:
+                        erc8004_identity = {
+                            "registered": True,
+                            "agent_id": onchain.agent_id,
+                            "owner": agent_wallet,
+                            "network": task_network,
+                        }
+                        logger.info(
+                            "ERC-8004 identity verified for %s on %s: agent_id=%s",
+                            agent_wallet[:10],
                             task_network,
-                            reg_err,
+                            onchain.agent_id,
                         )
+                    else:
+                        # Auto-register agent on the task's network (gasless)
+                        logger.info(
+                            "ERC-8004 identity NOT found for %s on %s — "
+                            "auto-registering gaslessly",
+                            agent_wallet[:10],
+                            task_network,
+                        )
+                        try:
+                            reg = await register_worker_gasless(
+                                wallet_address=agent_wallet,
+                                network=task_network,
+                            )
+                            if reg.agent_id:
+                                erc8004_identity = {
+                                    "registered": True,
+                                    "agent_id": reg.agent_id,
+                                    "owner": agent_wallet,
+                                    "network": task_network,
+                                }
+                                logger.info(
+                                    "Auto-registered %s on %s: agent_id=%s",
+                                    agent_wallet[:10],
+                                    task_network,
+                                    reg.agent_id,
+                                )
+                            else:
+                                logger.warning(
+                                    "Auto-registration returned no agent_id "
+                                    "for %s on %s",
+                                    agent_wallet[:10],
+                                    task_network,
+                                )
+                        except Exception as reg_err:
+                            logger.warning(
+                                "Auto-registration failed for %s on %s: %s",
+                                agent_wallet[:10],
+                                task_network,
+                                reg_err,
+                            )
+                elif verify_agent_identity is not None:
+                    # Numeric agent ID — use facilitator lookup
+                    erc8004_identity = await verify_agent_identity(
+                        auth.agent_id, network=task_network
+                    )
             except Exception as e:
                 logger.warning(
                     "ERC-8004 identity check failed for agent %s: %s",
