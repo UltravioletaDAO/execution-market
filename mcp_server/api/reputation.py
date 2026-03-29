@@ -798,13 +798,16 @@ async def rate_worker_endpoint(
             status_code=409, detail="Task has no assigned worker to rate"
         )
 
-    # Resolve worker's ERC-8004 agent ID from executor record if available
+    # Resolve worker's ERC-8004 agent ID.
+    # The executors table stores a SINGLE global erc8004_agent_id, but agents
+    # can have different IDs on different chains. Only use the cached ID if the
+    # task is on Base (where the cached ID was registered). For other networks,
+    # pass None so rate_worker() does an on-chain lookup on the correct chain.
+    task_network = task.get("payment_network") or "base"
     worker_agent_id = None
     executor = task.get("executor") or {}
-    if executor.get("erc8004_agent_id"):
+    if executor.get("erc8004_agent_id") and task_network == "base":
         worker_agent_id = int(executor["erc8004_agent_id"])
-
-    task_network = task.get("payment_network") or "base"
     result = await rate_worker(
         task_id=request.task_id,
         score=request.score,
@@ -1071,6 +1074,7 @@ async def rate_agent_endpoint(
     # self-feedback revert. The relay wallet pays gas and signs directly.
     # This keeps the worker as the intended rater (via relay), NOT the Facilitator.
     relay_key = os.environ.get("EM_REPUTATION_RELAY_KEY")
+    task_network = task.get("payment_network") or "base"
     result = await rate_agent(
         agent_id=request.agent_id,
         task_id=request.task_id,
@@ -1078,6 +1082,7 @@ async def rate_agent_endpoint(
         comment=request.comment or "",
         proof_tx=request.proof_tx,
         relay_private_key=relay_key,
+        network=task_network,
     )
 
     # Persist rating to DB so it shows in mobile app / dashboard
