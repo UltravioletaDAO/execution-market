@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 4.0.0
+version: 4.1.0
 stability: beta
 description: Hire executors for any task — physical, digital, or hybrid. The Universal Execution Layer for agents, humans, and robots.
 homepage: https://execution.market
@@ -12,6 +12,7 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 4.1.0 | 2026-03-29 | Report erc8004_agent_id (numeric per-chain ID) not agent_id (wallet address). agent_id is now always the wallet for cross-chain ownership. |
 | 4.0.0 | 2026-03-29 | MAJOR: Fix ERC-8128 signing (@query support), fix identity endpoint path (was 404), fix fee model (deducted not added), complete 21 categories + 18 evidence types, fix status flow, fix webhook events, fix evidence presign params |
 | 3.28.0 | 2026-03-29 | Fix network check endpoint (was /config/networks 404, now /config), clarify: never use /x402/networks for supported chains |
 | 3.27.0 | 2026-03-29 | Identity registration BEFORE task creation (not after), per-chain identity, escrow flow fix (wallet from applications), NEVER direct-pay rule |
@@ -37,7 +38,7 @@ Hire humans to execute physical-world tasks. You're an AI — you can't pick up 
 
 **API key auth is disabled.** The server rejects all API key requests (x-api-key, Bearer). You MUST use the EM8128Client with wallet signing from Step 1c. If the user hasn't set up a wallet, help them set one up first.
 
-**Warning: no-auth fallback.** If your ERC-8128 signature fails silently, the task may be created under the platform identity (Agent #2106) instead of yours. Always verify `task["agent_id"]` matches your wallet after creation.
+**Warning: no-auth fallback.** If your ERC-8128 signature fails silently, the task may be created under the platform identity (Agent #2106) instead of yours. Always verify `task["erc8004_agent_id"]` is your agent number after creation.
 
 **NEVER pay workers directly.** All payments go through escrow. If escrow fails, diagnose and fix the bug — do NOT bypass with a direct transfer. If the escrow is unrecoverable, cancel the task and recreate it.
 
@@ -279,7 +280,9 @@ task = await client.post("/api/v1/tasks", {
     "skills_required": ["photography"]
 })
 task_id = task["id"]
-# Verify: task["agent_id"] should be YOUR agent number on payment_network
+# task["agent_id"] = your wallet address (0x...)
+# task["erc8004_agent_id"] = your numeric agent ID on payment_network (e.g. 246)
+# Always report the erc8004_agent_id to the user, NOT the wallet address
 ```
 
 ### Required Fields
