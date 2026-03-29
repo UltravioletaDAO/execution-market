@@ -384,37 +384,26 @@ async def check_worker_identity(
         except Exception as e:
             logger.debug("tokenOfOwnerByIndex unavailable (non-enumerable): %s", e)
 
-        # 2b. Fallback: use facilitator's owner lookup endpoint (v1.41.1+).
+        # 2b. Fallback: SDK get_identity_by_owner (facilitator v1.41.1+).
         #     Works on all chains including SKALE (no Enumerable needed).
         if agent_id is None:
             try:
-                from .facilitator_client import _to_facilitator_network, FACILITATOR_URL
+                from .facilitator_client import _sdk_client, _to_facilitator_network
 
                 fac_net = _to_facilitator_network(network)
-                url = f"{FACILITATOR_URL}/identity/{fac_net}/owner/{wallet_address}"
-                async with httpx.AsyncClient(timeout=10) as c:
-                    resp = await c.get(url)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    agent_id = data.get("agentId")
-                    if agent_id is not None:
-                        agent_id = int(agent_id)
-                        logger.info(
-                            "Resolved agent_id=%d via facilitator owner lookup "
-                            "for %s on %s",
-                            agent_id,
-                            wallet_address[:10],
-                            network,
-                        )
-                else:
-                    logger.debug(
-                        "Facilitator owner lookup returned %d for %s on %s",
-                        resp.status_code,
+                owner_result = await _sdk_client.get_identity_by_owner(
+                    fac_net, wallet_address
+                )
+                if owner_result and owner_result.agent_id is not None:
+                    agent_id = int(owner_result.agent_id)
+                    logger.info(
+                        "Resolved agent_id=%d via SDK owner lookup for %s on %s",
+                        agent_id,
                         wallet_address[:10],
                         network,
                     )
             except Exception as fac_err:
-                logger.debug("Facilitator owner lookup failed: %s", fac_err)
+                logger.debug("SDK owner lookup failed: %s", fac_err)
 
         return WorkerIdentityResult(
             status=WorkerIdentityStatus.REGISTERED,
