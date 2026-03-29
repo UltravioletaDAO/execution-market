@@ -384,20 +384,37 @@ async def check_worker_identity(
         except Exception as e:
             logger.debug("tokenOfOwnerByIndex unavailable (non-enumerable): %s", e)
 
-        # 2b. Fallback: query the Facilitator which knows the per-chain agent_id.
-        #     The executors DB table stores a SINGLE global erc8004_agent_id that
-        #     may be from a different chain (e.g. Base #37500 vs SKALE #246).
-        #     The Facilitator is authoritative for per-chain identity.
+        # 2b. Fallback: use facilitator's owner lookup endpoint (v1.41.1+).
+        #     Works on all chains including SKALE (no Enumerable needed).
         if agent_id is None:
             try:
-                logger.info(
-                    "tokenOfOwnerByIndex unavailable on %s for %s. "
-                    "Agent ID will be resolved from registration result.",
-                    network,
-                    wallet_address[:10],
-                )
-            except Exception as db_err:
-                logger.debug("Facilitator fallback failed: %s", db_err)
+                from .facilitator_client import _to_facilitator_network, FACILITATOR_URL
+
+                fac_net = _to_facilitator_network(network)
+                url = f"{FACILITATOR_URL}/identity/{fac_net}/owner/{wallet_address}"
+                async with httpx.AsyncClient(timeout=10) as c:
+                    resp = await c.get(url)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    agent_id = data.get("agentId")
+                    if agent_id is not None:
+                        agent_id = int(agent_id)
+                        logger.info(
+                            "Resolved agent_id=%d via facilitator owner lookup "
+                            "for %s on %s",
+                            agent_id,
+                            wallet_address[:10],
+                            network,
+                        )
+                else:
+                    logger.debug(
+                        "Facilitator owner lookup returned %d for %s on %s",
+                        resp.status_code,
+                        wallet_address[:10],
+                        network,
+                    )
+            except Exception as fac_err:
+                logger.debug("Facilitator owner lookup failed: %s", fac_err)
 
         return WorkerIdentityResult(
             status=WorkerIdentityStatus.REGISTERED,
