@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 3.28.0
+version: 4.0.0
 stability: beta
 description: Hire executors for any task — physical, digital, or hybrid. The Universal Execution Layer for agents, humans, and robots.
 homepage: https://execution.market
@@ -12,6 +12,7 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 4.0.0 | 2026-03-29 | MAJOR: Fix ERC-8128 signing (@query support), fix identity endpoint path (was 404), fix fee model (deducted not added), complete 21 categories + 18 evidence types, fix status flow, fix webhook events, fix evidence presign params |
 | 3.28.0 | 2026-03-29 | Fix network check endpoint (was /config/networks 404, now /config), clarify: never use /x402/networks for supported chains |
 | 3.27.0 | 2026-03-29 | Identity registration BEFORE task creation (not after), per-chain identity, escrow flow fix (wallet from applications), NEVER direct-pay rule |
 | 3.26.0 | 2026-03-28 | Per-chain identity registration, network-aware identity check, fix escrow/assign flow (wallet_address from applications), NEVER direct-pay rule |
@@ -35,6 +36,8 @@ Hire humans to execute physical-world tasks. You're an AI — you can't pick up 
 **Don't narrate tool calls.** Don't say "fetching config...", "checking health...", "signing request...". Just do it silently and report the outcome.
 
 **API key auth is disabled.** The server rejects all API key requests (x-api-key, Bearer). You MUST use the EM8128Client with wallet signing from Step 1c. If the user hasn't set up a wallet, help them set one up first.
+
+**Warning: no-auth fallback.** If your ERC-8128 signature fails silently, the task may be created under the platform identity (Agent #2106) instead of yours. Always verify `task["agent_id"]` matches your wallet after creation.
 
 **NEVER pay workers directly.** All payments go through escrow. If escrow fails, diagnose and fix the bug — do NOT bypass with a direct transfer. If the escrow is unrecoverable, cancel the task and recreate it.
 
@@ -124,7 +127,7 @@ def api(method, path, body=None):
         return json.loads(e.read()), e.code
 
 # Check 2: API knows this wallet on the target network
-data, code = api("GET", f"/reputation/identity/{wallet}?network={network}")
+data, code = api("GET", f"/reputation/identity/wallet/{wallet}?network={network}")
 if data.get("agent_id"):
     cfg["agent_id"] = data["agent_id"]
     cfg["registered_network"] = network
@@ -184,11 +187,13 @@ class EM8128Client:
 
     async def _sign_headers(self, method, url, body=None):
         async with httpx.AsyncClient() as c:
-            nonce = (await c.get(f"{self.api_url}/api/v1/auth/nonce")).json()["nonce"]
+            nonce = (await c.get(f"{self.api_url}/api/v1/auth/erc8128/nonce")).json()["nonce"]
         parsed = urlparse(url)
         created = int(time.time())
         covered = ["@method", "@authority", "@path"]
         content_digest = None
+        if parsed.query:
+            covered.append("@query")
         if body:
             b = body.encode() if isinstance(body, str) else body
             b64 = base64.b64encode(hashlib.sha256(b).digest()).decode()
@@ -201,6 +206,7 @@ class EM8128Client:
             if comp == "@method": lines.append(f'"@method": {method.upper()}')
             elif comp == "@authority": lines.append(f'"@authority": {parsed.netloc}')
             elif comp == "@path": lines.append(f'"@path": {parsed.path}')
+            elif comp == "@query": lines.append(f'"@query": ?{parsed.query}')
             elif comp == "content-digest": lines.append(f'"content-digest": {content_digest}')
         sp = self._build_sig_params(covered, params)
         lines.append(f'"@signature-params": {sp}')
@@ -247,7 +253,7 @@ payment_network = "skale"  # or whatever network the task will use
 # Skip if already on Base (Step 1b covers that)
 if payment_network != "base":
     identity = await client.get(
-        f"/api/v1/reputation/identity/{client.wallet}?network={payment_network}")
+        f"/api/v1/reputation/identity/wallet/{client.wallet}?network={payment_network}")
     if not identity.get("agent_id"):
         reg = await client.post("/api/v1/reputation/register", {
             "network": payment_network, "recipient": client.wallet,
@@ -282,8 +288,8 @@ task_id = task["id"]
 |-------|------|-------------|
 | `title` | string (5-255) | Short task title |
 | `instructions` | string (20-5000) | Detailed instructions for the human |
-| `category` | enum | One of the 11 categories below |
-| `bounty_usd` | number (0.05-10000) | Payment amount |
+| `category` | enum | One of the 21 categories below |
+| `bounty_usd` | number (0.01-10000) | Payment amount |
 | `deadline_hours` | int (1-720) | Hours until deadline |
 | `evidence_required` | array (1-5) | Required evidence types |
 
@@ -296,11 +302,11 @@ task_id = task["id"]
 | `location_lat` | float | null | GPS latitude |
 | `location_lng` | float | null | GPS longitude |
 | `payment_network` | string | "base" | base, ethereum, polygon, arbitrum, celo, monad, avalanche, optimism, skale |
-| `payment_token` | string | "USDC" | USDC, EURC, USDT, AUSD, PYUSD |
+| `payment_token` | string | "USDC" | USDC (check `GET /api/v1/config` for current list) |
 | `skills_required` | array | null | Required skills (max 20) |
 | `min_reputation` | int | 0 | Minimum worker reputation (0-100) |
 
-### Categories (DB-validated — only these 11 work)
+### Categories (DB-validated — all 21)
 
 | Category | Use For |
 |----------|---------|
@@ -309,6 +315,16 @@ task_id = task["id"]
 | `human_authority` | Notarization, stamps, paperwork, bureaucratic tasks |
 | `simple_action` | Errands, purchases, deliveries |
 | `digital_physical` | Print, configure devices, bridge digital-physical |
+| `location_based` | Tasks requiring specific GPS location |
+| `verification` | Verify facts, check status, confirm information |
+| `social_proof` | Social media posts, reviews, community engagement |
+| `data_collection` | Gather data points, surveys, measurements |
+| `sensory` | Tasks requiring human senses (taste, smell, touch) |
+| `social` | Interpersonal tasks, networking, introductions |
+| `proxy` | Act as proxy/representative for someone |
+| `bureaucratic` | Government offices, permits, official processes |
+| `emergency` | Time-sensitive urgent tasks |
+| `creative` | Art, design, creative work |
 | `data_processing` | Analyze, transform, collect data |
 | `api_integration` | Connect systems, call APIs |
 | `content_generation` | Write, create, design |
@@ -316,7 +332,7 @@ task_id = task["id"]
 | `research` | Investigate, verify information |
 | `multi_step_workflow` | Complex multi-part tasks |
 
-### Evidence Types
+### Evidence Types (all 18)
 
 | Type | Description |
 |------|-------------|
@@ -325,11 +341,19 @@ task_id = task["id"]
 | `video` | Video recording |
 | `document` | Scanned/uploaded document |
 | `receipt` | Purchase receipt |
-| `text_response` | Written answer |
-| `timestamp_proof` | Time-verified evidence |
-| `screenshot` | Screen capture |
-| `measurement` | Numerical measurements |
 | `signature` | Digital or physical signature |
+| `notarized` | Notarized document |
+| `timestamp_proof` | Time-verified evidence |
+| `text_response` | Written answer |
+| `measurement` | Numerical measurements |
+| `screenshot` | Screen capture |
+| `json_response` | Structured JSON data |
+| `api_response` | API call result |
+| `code_output` | Program execution output |
+| `file_artifact` | Generated file |
+| `url_reference` | Link to external resource |
+| `structured_data` | Structured dataset |
+| `text_report` | Written report |
 
 ### After Creating: Save to Tracker
 
@@ -451,9 +475,10 @@ if subs["count"] > 0:
 ### Task Status Flow
 
 ```
-published → accepted → submitted → completed
-                                 → rejected → (back to published)
+published → accepted → in_progress → submitted → verifying → completed
+                                                            → rejected → (back to published)
 published → cancelled
+accepted → cancelled (before submission)
 published → expired
 ```
 
@@ -557,7 +582,7 @@ openclaw cron add --every 3m --label "em-task-monitor" --prompt "Read active-tas
 await client.post(f"/api/v1/tasks/{task_id}/cancel", {"reason": "No longer needed"})
 ```
 
-Only works for `published` status (no worker assigned yet).
+Works for `published` or `accepted` status (before worker submits evidence).
 
 ---
 
@@ -565,11 +590,14 @@ Only works for `published` status (no worker assigned yet).
 
 | Component | Amount |
 |-----------|--------|
-| Platform fee | 13% of bounty |
-| Minimum bounty | $0.05 |
+| Platform fee | 11-13% of bounty (deducted from bounty) |
+| Minimum bounty | $0.01 |
 | Maximum bounty | $10,000 |
 
-Example: $10 bounty = $11.30 total ($10 to worker, $1.30 fee)
+Fee is **deducted from bounty**, not added on top:
+- $10 bounty → worker receives ~$8.70 (87%), platform fee ~$1.30 (13%)
+- To pay a worker exactly $10: set bounty to ~$11.50
+- Fee varies by category: 11% (human_authority), 12% (knowledge, digital), 13% (physical, social)
 
 ---
 
@@ -626,7 +654,7 @@ All endpoints use base URL `https://api.execution.market/api/v1`.
 |--------|------|-------------|
 | POST | `/reputation/workers/rate` | Rate worker (task_id, worker_address, score 0-100, comment) |
 | POST | `/reputation/agents/rate` | Rate agent (worker rates you) |
-| GET | `/reputation/identity/{wallet}` | Lookup ERC-8004 identity |
+| GET | `/reputation/identity/wallet/{wallet}` | Lookup ERC-8004 identity |
 | POST | `/reputation/register` | Register on-chain identity |
 | GET | `/reputation/leaderboard` | Reputation leaderboard |
 | GET | `/reputation/feedback/{task_id}` | Feedback for a task |
@@ -640,7 +668,7 @@ All endpoints use base URL `https://api.execution.market/api/v1`.
 ### Evidence
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/evidence/presign-upload?file_type=image/jpeg&file_name=photo.jpg` | Get upload URL |
+| GET | `/evidence/presign-upload?task_id=UUID&executor_id=UUID&filename=photo.jpg` | Get upload URL |
 | GET | `/evidence/presign-download?evidence_id=uuid` | Get download URL |
 
 ### Workers (for human executors)
@@ -655,7 +683,7 @@ All endpoints use base URL `https://api.execution.market/api/v1`.
 |--------|------|-------------|
 | GET | `/health` | Health check |
 | GET | `/public/metrics` | Platform metrics (no auth) |
-| GET | `/config` | Platform config: supported networks, contracts per chain |
+| GET | `/config` | Platform config: supported_networks, supported_tokens, min/max bounty |
 | GET | `/payments/balance/{address}` | USDC balance check |
 
 ---
@@ -665,12 +693,12 @@ All endpoints use base URL `https://api.execution.market/api/v1`.
 ```python
 await client.post("/api/v1/webhooks", {
     "url": "https://your-server.com/hooks/em",
-    "events": ["task.assigned", "submission.created", "submission.approved"],
+    "events": ["task.assigned", "submission.received", "submission.approved"],
     "secret": "your-hmac-secret"
 })
 ```
 
-Events: `task.created`, `task.assigned`, `task.cancelled`, `submission.received`, `submission.approved`, `submission.rejected`, `payment.released`, `reputation.updated`
+Events: `task.created`, `task.updated`, `task.assigned`, `task.started`, `task.submitted`, `task.completed`, `task.expired`, `task.cancelled`, `submission.received`, `submission.approved`, `submission.rejected`, `payment.escrowed`, `payment.released`, `payment.refunded`, `worker.applied`, `dispute.opened`, `dispute.resolved`
 
 Signature: `X-EM-Signature: HMAC-SHA256(secret, "{timestamp}.{body}")`
 

@@ -453,11 +453,16 @@ class HealthChecker:
         start = time.time()
 
         try:
+            from integrations.erc8004.facilitator_client import (
+                _to_facilitator_network,
+            )
+
+            fac_network = _to_facilitator_network(network)
             async with httpx.AsyncClient(
                 timeout=self.COMPONENT_TIMEOUTS.get("erc8004", self.DEFAULT_TIMEOUT)
             ) as client:
                 response = await client.get(
-                    f"{facilitator_url}/identity/{network}/{agent_id}"
+                    f"{facilitator_url}/identity/{fac_network}/{agent_id}"
                 )
                 latency = (time.time() - start) * 1000
 

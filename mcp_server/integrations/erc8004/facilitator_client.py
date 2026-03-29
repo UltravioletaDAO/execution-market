@@ -35,6 +35,22 @@ logger = logging.getLogger(__name__)
 
 
 # =============================================================================
+# Network name translation: EM internal names -> Facilitator API names
+# =============================================================================
+
+# The Ultravioleta Facilitator uses different names for some networks.
+# For example, the facilitator expects "skale-base" while EM uses "skale".
+_FACILITATOR_NETWORK_MAP: Dict[str, str] = {
+    "skale": "skale-base",
+}
+
+
+def _to_facilitator_network(network: str) -> str:
+    """Translate EM internal network name to facilitator-compatible name."""
+    return _FACILITATOR_NETWORK_MAP.get(network, network)
+
+
+# =============================================================================
 # Configuration
 # =============================================================================
 
@@ -246,8 +262,9 @@ class ERC8004FacilitatorClient:
         client = await self._get_client()
 
         try:
+            fac_network = _to_facilitator_network(self.network)
             response = await client.get(
-                f"{self.facilitator_url}/identity/{self.network}/{agent_id}"
+                f"{self.facilitator_url}/identity/{fac_network}/{agent_id}"
             )
 
             if response.status_code == 404:
@@ -311,9 +328,10 @@ class ERC8004FacilitatorClient:
 
         client = await self._get_client()
 
+        fac_network = _to_facilitator_network(network)
         request_body: Dict[str, Any] = {
             "x402Version": 1,
-            "network": network,
+            "network": fac_network,
             "agentUri": agent_uri,
         }
         if metadata:
@@ -393,11 +411,12 @@ class ERC8004FacilitatorClient:
             dict with agentId, key, valueHex, valueUtf8, network — or None
         """
         net = network or self.network
+        fac_net = _to_facilitator_network(net)
         client = await self._get_client()
 
         try:
             response = await client.get(
-                f"{self.facilitator_url}/identity/{net}/{agent_id}/metadata/{key}"
+                f"{self.facilitator_url}/identity/{fac_net}/{agent_id}/metadata/{key}"
             )
             if response.status_code != 200:
                 return None
@@ -409,11 +428,12 @@ class ERC8004FacilitatorClient:
     async def get_total_supply(self, network: Optional[str] = None) -> Optional[int]:
         """Get total number of registered agents on a network."""
         net = network or self.network
+        fac_net = _to_facilitator_network(net)
         client = await self._get_client()
 
         try:
             response = await client.get(
-                f"{self.facilitator_url}/identity/{net}/total-supply"
+                f"{self.facilitator_url}/identity/{fac_net}/total-supply"
             )
             if response.status_code != 200:
                 return None
@@ -457,8 +477,9 @@ class ERC8004FacilitatorClient:
             if include_feedback:
                 params["includeFeedback"] = "true"
 
+            fac_network = _to_facilitator_network(self.network)
             response = await client.get(
-                f"{self.facilitator_url}/reputation/{self.network}/{agent_id}",
+                f"{self.facilitator_url}/reputation/{fac_network}/{agent_id}",
                 params=params,
             )
 
@@ -526,9 +547,10 @@ class ERC8004FacilitatorClient:
         client = await self._get_client()
 
         try:
+            fac_network = _to_facilitator_network(self.network)
             request_body = {
                 "x402Version": 1,
-                "network": self.network,
+                "network": fac_network,
                 "feedback": {
                     "agentId": agent_id,
                     "value": value,
@@ -605,9 +627,10 @@ class ERC8004FacilitatorClient:
         client = await self._get_client()
 
         try:
+            fac_network = _to_facilitator_network(self.network)
             request_body = {
                 "x402Version": 1,
-                "network": self.network,
+                "network": fac_network,
                 "agentId": agent_id,
                 "feedbackIndex": feedback_index,
             }
@@ -671,9 +694,10 @@ class ERC8004FacilitatorClient:
         client = await self._get_client()
 
         try:
+            fac_network = _to_facilitator_network(self.network)
             request_body = {
                 "x402Version": 1,
-                "network": self.network,
+                "network": fac_network,
                 "agentId": agent_id,
                 "clientAddress": {"Evm": client_address},
                 "feedbackIndex": feedback_index,
