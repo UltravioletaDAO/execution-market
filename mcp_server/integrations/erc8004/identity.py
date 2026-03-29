@@ -452,30 +452,20 @@ async def check_worker_identity(
         except Exception as e:
             logger.debug("tokenOfOwnerByIndex unavailable (non-enumerable): %s", e)
 
-        # 2b. Fallback: look up agent_id from executors table if on-chain
-        #     enumeration is not available (contract doesn't support ERC-721 Enumerable)
+        # 2b. Fallback: query the Facilitator which knows the per-chain agent_id.
+        #     The executors DB table stores a SINGLE global erc8004_agent_id that
+        #     may be from a different chain (e.g. Base #37500 vs SKALE #246).
+        #     The Facilitator is authoritative for per-chain identity.
         if agent_id is None:
             try:
-                import supabase_client as _db
-
-                addr_lower = wallet_address.lower()
-                db_result = (
-                    _db.get_client()
-                    .table("executors")
-                    .select("erc8004_agent_id")
-                    .ilike("wallet_address", addr_lower)
-                    .limit(1)
-                    .execute()
+                logger.info(
+                    "tokenOfOwnerByIndex unavailable on %s for %s. "
+                    "Agent ID will be resolved from registration result.",
+                    network,
+                    wallet_address[:10],
                 )
-                if db_result.data and db_result.data[0].get("erc8004_agent_id"):
-                    agent_id = int(db_result.data[0]["erc8004_agent_id"])
-                    logger.debug(
-                        "Resolved agent_id=%d from DB for wallet %s (on-chain enumeration unavailable)",
-                        agent_id,
-                        wallet_address[:10],
-                    )
             except Exception as db_err:
-                logger.debug("DB fallback for agent_id failed: %s", db_err)
+                logger.debug("Facilitator fallback failed: %s", db_err)
 
         result = WorkerIdentityResult(
             status=WorkerIdentityStatus.REGISTERED,
