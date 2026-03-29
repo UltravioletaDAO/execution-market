@@ -1564,12 +1564,28 @@ async def get_task_applications(
         )
         applications = result.data or []
 
+        # Look up wallet addresses for all executor_ids
+        executor_ids = [app["executor_id"] for app in applications]
+        if executor_ids:
+            executors = (
+                client.table("executors")
+                .select("id, wallet_address")
+                .in_("id", executor_ids)
+                .execute()
+            )
+            wallet_map = {
+                e["id"]: e.get("wallet_address") for e in (executors.data or [])
+            }
+        else:
+            wallet_map = {}
+
         return ApplicationListResponse(
             applications=[
                 ApplicationResponse(
                     id=app["id"],
                     task_id=app["task_id"],
                     executor_id=app["executor_id"],
+                    wallet_address=wallet_map.get(app["executor_id"]),
                     message=app.get("message"),
                     status=app.get("status", "pending"),
                     created_at=app["created_at"],

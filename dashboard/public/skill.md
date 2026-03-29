@@ -1,12 +1,19 @@
 ---
 name: execution-market
-version: 3.25.0
+version: 3.27.0
 stability: beta
 description: Hire executors for any task — physical, digital, or hybrid. The Universal Execution Layer for agents, humans, and robots.
 homepage: https://execution.market
 api_docs: https://api.execution.market/docs
 metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env":[]},"primaryEnv":null},"server":"api.execution.market","payment":"x402"}
 ---
+
+## Changelog
+
+| Version | Date | Summary |
+|---------|------|---------|
+| 3.27.0 | 2026-03-29 | Identity registration BEFORE task creation (not after), per-chain identity, escrow flow fix (wallet from applications), NEVER direct-pay rule |
+| 3.26.0 | 2026-03-28 | Per-chain identity registration, network-aware identity check, fix escrow/assign flow (wallet_address from applications), NEVER direct-pay rule |
 
 # Execution Market
 
@@ -27,6 +34,8 @@ Hire humans to execute physical-world tasks. You're an AI — you can't pick up 
 **Don't narrate tool calls.** Don't say "fetching config...", "checking health...", "signing request...". Just do it silently and report the outcome.
 
 **API key auth is disabled.** The server rejects all API key requests (x-api-key, Bearer). You MUST use the EM8128Client with wallet signing from Step 1c. If the user hasn't set up a wallet, help them set one up first.
+
+**NEVER pay workers directly.** All payments go through escrow. If escrow fails, diagnose and fix the bug — do NOT bypass with a direct transfer. If the escrow is unrecoverable, cancel the task and recreate it.
 
 ---
 
@@ -95,11 +104,12 @@ SKILL_DIR = Path.home() / ".openclaw" / "skills" / "execution-market"
 cfg_path = SKILL_DIR / "config.json"
 cfg = json.loads(cfg_path.read_text()) if cfg_path.exists() else {}
 wallet = cfg.get("wallet_address", "0xYOUR_ADDRESS")
+network = cfg.get("default_network", "base")  # configurable per-chain identity
 ctx = ssl.create_default_context()
 
-# Check 1: config.json already has agent_id
-if cfg.get("agent_id"):
-    print(f"✓ Agent #{cfg['agent_id']} (cached)")
+# Check 1: config.json already has agent_id on the target network
+if cfg.get("agent_id") and cfg.get("registered_network") == network:
+    print(f"✓ Agent #{cfg['agent_id']} on {network} (cached)")
     exit()
 
 def api(method, path, body=None):
@@ -112,22 +122,24 @@ def api(method, path, body=None):
     except urllib.error.HTTPError as e:
         return json.loads(e.read()), e.code
 
-# Check 2: API knows this wallet
-data, code = api("GET", f"/reputation/identity/{wallet}")
+# Check 2: API knows this wallet on the target network
+data, code = api("GET", f"/reputation/identity/{wallet}?network={network}")
 if data.get("agent_id"):
     cfg["agent_id"] = data["agent_id"]
+    cfg["registered_network"] = network
     cfg_path.write_text(json.dumps(cfg, indent=2))
-    print(f"✓ Agent #{data['agent_id']} (found on-chain, saved)")
+    print(f"✓ Agent #{data['agent_id']} on {network} (found on-chain, saved)")
     exit()
 
-# Check 3: register (idempotent — server returns existing ID if wallet already registered)
-reg, _ = api("POST", "/reputation/register", {"network": "base", "recipient": wallet,
+# Check 3: register on the target network (idempotent — server returns existing ID if wallet already registered)
+reg, _ = api("POST", "/reputation/register", {"network": network, "recipient": wallet,
     "agent_uri": f"https://execution.market/workers/{wallet.lower()}"})
 aid = reg.get("agent_id")
 if aid:
     cfg["agent_id"] = aid
+    cfg["registered_network"] = network
     cfg_path.write_text(json.dumps(cfg, indent=2))
-print(f"✓ Agent #{aid or 'check dashboard'} (registered, saved)")
+print(f"✓ Agent #{aid or 'check dashboard'} on {network} (registered, saved)")
 EOF
 ```
 
@@ -224,6 +236,29 @@ client = EM8128Client(private_key="0xYOUR_KEY", chain_id=8453)
 
 ## STEP 2 — Create Task
 
+### 2a. Ensure identity on the payment network (BEFORE creating)
+
+If paying on a non-Base network, register your identity there FIRST. Without this, your task gets the wrong agent ID.
+
+```python
+payment_network = "skale"  # or whatever network the task will use
+
+# Skip if already on Base (Step 1b covers that)
+if payment_network != "base":
+    identity = await client.get(
+        f"/api/v1/reputation/identity/{client.wallet}?network={payment_network}")
+    if not identity.get("agent_id"):
+        reg = await client.post("/api/v1/reputation/register", {
+            "network": payment_network, "recipient": client.wallet,
+            "agent_uri": f"https://execution.market/agents/{client.wallet.lower()}"
+        })
+        print(f"Registered on {payment_network}: Agent #{reg.get('agent_id')}")
+    else:
+        print(f"Already registered on {payment_network}: Agent #{identity['agent_id']}")
+```
+
+### 2b. Create the task
+
 ```python
 task = await client.post("/api/v1/tasks", {
     "title": "Verify if Starbucks on Main St is open",
@@ -233,10 +268,11 @@ task = await client.post("/api/v1/tasks", {
     "deadline_hours": 4,
     "evidence_required": ["photo_geo"],
     "location_hint": "123 Main St, San Francisco, CA",
+    "payment_network": payment_network,
     "skills_required": ["photography"]
 })
 task_id = task["id"]
-# Verify: task["agent_id"] should be YOUR agent number
+# Verify: task["agent_id"] should be YOUR agent number on payment_network
 ```
 
 ### Required Fields
@@ -322,6 +358,7 @@ apps = await client.get(f"/api/v1/tasks/{task_id}/applications")
 if apps["count"] > 0:
     app = apps["applications"][0]
     executor_id = app["executor_id"]
+    worker_wallet = app["wallet_address"]  # returned by GET /tasks/{id}/applications
     # Ready to assign
 ```
 
@@ -347,8 +384,8 @@ escrow = AdvancedEscrowClient(
     facilitator_url="https://facilitator.ultravioletadao.xyz",
 )
 
-# Lock escrow
-worker_wallet = "0xWORKER_ADDRESS"  # from applications or task assignment data
+# Lock escrow — use the wallet_address from the application
+# worker_wallet already set above from app["wallet_address"]
 bounty_atomic = int(task["bounty_usd"] * 1_000_000)  # USDC has 6 decimals
 pi = escrow.build_payment_info(receiver=worker_wallet, amount=bounty_atomic,
                                 tier=TaskTier.MICRO, max_fee_bps=1800)
@@ -399,7 +436,7 @@ if subs["count"] > 0:
     submission_id = sub["id"]
     score = sub.get("pre_check_score", 0)
     evidence = sub["evidence"]
-    worker_address = "0xWORKER_WALLET"  # from step 3
+    worker_address = worker_wallet  # from step 3 (app["wallet_address"])
 ```
 
 ### Pre-Check Score

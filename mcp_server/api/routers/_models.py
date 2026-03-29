@@ -474,6 +474,9 @@ class ApplicationResponse(BaseModel):
     id: str = Field(..., description="Application UUID")
     task_id: str = Field(..., description="Task UUID")
     executor_id: str = Field(..., description="Worker/executor UUID")
+    wallet_address: Optional[str] = Field(
+        None, description="Worker wallet address (from executors table)"
+    )
     message: Optional[str] = Field(None, description="Application message from worker")
     status: str = Field(
         ..., description="Application status (pending, accepted, rejected)"
