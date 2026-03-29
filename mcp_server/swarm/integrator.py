@@ -169,6 +169,7 @@ class SwarmIntegrator:
         self._coordinator_pipeline = None
         self._signal_harness = None
         self._fleet_manager = None
+        self._fleet_lifecycle_bridge = None
 
         # State
         self._started = False
@@ -271,6 +272,35 @@ class SwarmIntegrator:
         """Register the FleetManager (agent fleet lifecycle)."""
         self._fleet_manager = fleet_manager
         self._register_component("fleet_manager", fleet_manager)
+        return self
+
+    def set_fleet_lifecycle_bridge(self, bridge) -> "SwarmIntegrator":
+        """
+        Register the FleetLifecycleBridge (Module #54).
+
+        If both FleetManager and LifecycleManager (via Coordinator) are
+        available, auto-wires the bridge to both components.
+        """
+        self._fleet_lifecycle_bridge = bridge
+        self._register_component("fleet_lifecycle_bridge", bridge)
+
+        # Auto-wire to fleet_manager if available
+        if self._fleet_manager is not None:
+            try:
+                bridge.set_fleet_manager(self._fleet_manager)
+                logger.info("FleetLifecycleBridge wired to FleetManager")
+            except Exception as e:
+                logger.warning(f"Failed to wire bridge to FleetManager: {e}")
+
+        # Auto-wire to lifecycle_manager via coordinator
+        if self._coordinator is not None:
+            try:
+                if hasattr(self._coordinator, "lifecycle"):
+                    bridge.set_lifecycle_manager(self._coordinator.lifecycle)
+                    logger.info("FleetLifecycleBridge wired to LifecycleManager")
+            except Exception as e:
+                logger.warning(f"Failed to wire bridge to LifecycleManager: {e}")
+
         return self
 
     def set_verification_adapter(self, adapter) -> "SwarmIntegrator":
@@ -896,6 +926,7 @@ class SwarmIntegrator:
             "coordinator_pipeline": integrator.set_coordinator_pipeline,
             "signal_harness": integrator.set_signal_harness,
             "fleet_manager": integrator.set_fleet_manager,
+            "fleet_lifecycle_bridge": integrator.set_fleet_lifecycle_bridge,
         }
 
         for name, instance in components.items():
