@@ -3,7 +3,7 @@ ERC-8004 Identity Verification & Worker Registration
 
 Two responsibilities:
 
-1. **Agent identity verification** (existing) -- cached lookup by numeric agent ID
+1. **Agent identity verification** (existing) -- fresh lookup by numeric agent ID
    via the Ultravioleta Facilitator for task-creation validation.
 
 2. **Worker identity check & registration** (new) -- on-chain ``balanceOf`` via
@@ -25,7 +25,6 @@ Usage::
 
 import os
 import logging
-import time
 from dataclasses import dataclass, asdict
 from enum import Enum
 from typing import Any, Dict, Optional
@@ -33,41 +32,6 @@ from typing import Any, Dict, Optional
 import httpx
 
 logger = logging.getLogger(__name__)
-
-# ---------------------------------------------------------------------------
-# Cache configuration
-# ---------------------------------------------------------------------------
-
-_CACHE_TTL_SECONDS = 300  # 5 minutes
-_identity_cache: Dict[str, Dict[str, Any]] = {}
-_identity_cache_timestamps: Dict[str, float] = {}
-
-
-def _cache_key(agent_id_or_wallet: str, network: str) -> str:
-    return f"{network}:{agent_id_or_wallet.lower()}"
-
-
-def _get_cached(key: str) -> Optional[Dict[str, Any]]:
-    ts = _identity_cache_timestamps.get(key)
-    if ts is not None and (time.time() - ts) < _CACHE_TTL_SECONDS:
-        return _identity_cache.get(key)
-    # Evict stale entry
-    _identity_cache.pop(key, None)
-    _identity_cache_timestamps.pop(key, None)
-    return None
-
-
-def _set_cached(key: str, value: Dict[str, Any]) -> None:
-    _identity_cache[key] = value
-    _identity_cache_timestamps[key] = time.time()
-
-
-def clear_identity_cache() -> int:
-    """Clear the identity verification cache.  Returns number of entries removed."""
-    count = len(_identity_cache)
-    _identity_cache.clear()
-    _identity_cache_timestamps.clear()
-    return count
 
 
 # ---------------------------------------------------------------------------
@@ -98,8 +62,7 @@ async def verify_agent_identity(
          cannot currently be resolved via the Facilitator, so we return
          ``registered=False``.
 
-    The result is cached for ``_CACHE_TTL_SECONDS`` (5 min) to avoid
-    redundant network calls.
+    Always performs a fresh lookup -- no caching.
 
     Parameters
     ----------
@@ -119,16 +82,6 @@ async def verify_agent_identity(
         - ``name`` (str | None)
         - ``network`` (str | None)
     """
-    key = _cache_key(agent_id_or_wallet, network)
-    cached = _get_cached(key)
-    if cached is not None:
-        logger.debug(
-            "ERC-8004 identity cache hit: key=%s registered=%s",
-            key,
-            cached.get("registered"),
-        )
-        return cached
-
     # ---- Try numeric agent ID path ------------------------------------------
     try:
         numeric_id = int(agent_id_or_wallet)
@@ -136,9 +89,7 @@ async def verify_agent_identity(
         numeric_id = None
 
     if numeric_id is not None:
-        result = await _lookup_by_agent_id(numeric_id, network)
-        _set_cached(key, result)
-        return result
+        return await _lookup_by_agent_id(numeric_id, network)
 
     # ---- Non-numeric identifier -- cannot resolve via facilitator -----------
     logger.info(
@@ -147,9 +98,7 @@ async def verify_agent_identity(
         agent_id_or_wallet,
         network,
     )
-    result = dict(_NOT_REGISTERED, network=network)
-    _set_cached(key, result)
-    return result
+    return dict(_NOT_REGISTERED, network=network)
 
 
 # ---------------------------------------------------------------------------
@@ -406,21 +355,6 @@ async def check_worker_identity(
     chain_id = net_cfg.get("chain_id", _get_chain_id())
     rpc_url = get_rpc_url(network)
 
-    # Check cache first
-    cache_key = _cache_key(f"worker:{wallet_address}", network)
-    cached = _get_cached(cache_key)
-    if cached is not None and "worker_identity" in cached:
-        wi = cached["worker_identity"]
-        return WorkerIdentityResult(
-            status=WorkerIdentityStatus(wi["status"]),
-            agent_id=wi.get("agent_id"),
-            wallet_address=wi.get("wallet_address"),
-            network=wi.get("network", network),
-            chain_id=wi.get("chain_id", chain_id),
-            registry_address=wi.get("registry_address"),
-            error=wi.get("error"),
-        )
-
     try:
         # 1. balanceOf(wallet)
         calldata = SELECTOR_BALANCE_OF + _encode_address(wallet_address)
@@ -428,15 +362,13 @@ async def check_worker_identity(
         balance = int(raw, 16) if raw and raw != "0x" else 0
 
         if balance == 0:
-            result = WorkerIdentityResult(
+            return WorkerIdentityResult(
                 status=WorkerIdentityStatus.NOT_REGISTERED,
                 wallet_address=wallet_address.lower(),
                 network=network,
                 chain_id=chain_id,
                 registry_address=registry,
             )
-            _set_cached(cache_key, {"worker_identity": result.to_dict()})
-            return result
 
         # 2. Retrieve token ID via tokenOfOwnerByIndex(address, 0)
         #    NOTE: The ERC-8004 contract may NOT implement ERC-721 Enumerable,
@@ -467,7 +399,7 @@ async def check_worker_identity(
             except Exception as db_err:
                 logger.debug("Facilitator fallback failed: %s", db_err)
 
-        result = WorkerIdentityResult(
+        return WorkerIdentityResult(
             status=WorkerIdentityStatus.REGISTERED,
             agent_id=agent_id,
             wallet_address=wallet_address.lower(),
@@ -475,8 +407,6 @@ async def check_worker_identity(
             chain_id=chain_id,
             registry_address=registry,
         )
-        _set_cached(cache_key, {"worker_identity": result.to_dict()})
-        return result
 
     except Exception as e:
         logger.error("Worker identity check failed for %s: %s", wallet_address, e)
@@ -554,12 +484,6 @@ async def register_worker_gasless(
             network,
             result.get("transaction"),
         )
-
-        # Invalidate cache
-        for net in (network, "base", "base-mainnet"):
-            key = _cache_key(f"worker:{wallet_address}", net)
-            _identity_cache.pop(key, None)
-            _identity_cache_timestamps.pop(key, None)
 
         from .facilitator_client import ERC8004_CONTRACTS
 
@@ -670,14 +594,8 @@ async def confirm_worker_registration(
     """
     Re-check on-chain state after a registration tx to confirm success.
 
-    Invalidates the cache for this wallet so the fresh state is returned.
+    Always performs a fresh on-chain lookup.
     """
-    # Invalidate cache
-    for network_hint in ("base", "ethereum-sepolia"):
-        key = _cache_key(f"worker:{wallet_address}", network_hint)
-        _identity_cache.pop(key, None)
-        _identity_cache_timestamps.pop(key, None)
-
     if tx_hash:
         logger.info(
             "Confirming worker registration: wallet=%s tx=%s",

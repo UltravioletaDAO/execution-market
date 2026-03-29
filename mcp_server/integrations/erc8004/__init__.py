@@ -54,10 +54,9 @@ from .facilitator_client import (
 # Direct on-chain reputation (bypasses Facilitator)
 from .direct_reputation import give_feedback_direct
 
-# Identity verification (non-blocking, cached) & worker registration
+# Identity verification (non-blocking, always fresh) & worker registration
 from .identity import (
     verify_agent_identity,
-    clear_identity_cache,
     # Worker identity check & registration
     check_worker_identity,
     register_worker_gasless,
@@ -106,7 +105,6 @@ __all__ = [
     "give_feedback_direct",
     # Identity verification
     "verify_agent_identity",
-    "clear_identity_cache",
     # Worker identity
     "check_worker_identity",
     "register_worker_gasless",
