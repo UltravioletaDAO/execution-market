@@ -600,8 +600,26 @@ async def create_task(
                             task_network,
                             onchain.agent_id,
                         )
+                    elif onchain.status.value == "registered":
+                        # Wallet has an NFT (balanceOf > 0) but tokenOfOwnerByIndex
+                        # failed (SKALE doesn't support ERC-721 Enumerable).
+                        # Do NOT re-register — that creates duplicate NFTs.
+                        # The erc8004_agent_id will be None on this task, which is
+                        # acceptable — the dashboard can resolve it from the wallet.
+                        logger.info(
+                            "ERC-8004 identity EXISTS for %s on %s but token ID "
+                            "unavailable (no Enumerable). Skipping re-registration.",
+                            agent_wallet[:10],
+                            task_network,
+                        )
+                        erc8004_identity = {
+                            "registered": True,
+                            "agent_id": None,
+                            "owner": agent_wallet,
+                            "network": task_network,
+                        }
                     else:
-                        # Auto-register agent on the task's network (gasless)
+                        # Wallet has NO NFT — register for the first time
                         logger.info(
                             "ERC-8004 identity NOT found for %s on %s — "
                             "auto-registering gaslessly",
