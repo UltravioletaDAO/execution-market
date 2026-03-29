@@ -166,6 +166,8 @@ class SwarmIntegrator:
         self._analytics = None
         self._verification_adapter = None
         self._decision_synthesizer = None
+        self._coordinator_pipeline = None
+        self._signal_harness = None
 
         # State
         self._started = False
@@ -244,6 +246,18 @@ class SwarmIntegrator:
         """Register the Analytics module."""
         self._analytics = analytics
         self._register_component("analytics", analytics)
+        return self
+
+    def set_coordinator_pipeline(self, pipeline) -> "SwarmIntegrator":
+        """Register the CoordinatorPipeline (instrumented routing)."""
+        self._coordinator_pipeline = pipeline
+        self._register_component("coordinator_pipeline", pipeline)
+        return self
+
+    def set_signal_harness(self, harness) -> "SwarmIntegrator":
+        """Register the SignalHarness."""
+        self._signal_harness = harness
+        self._register_component("signal_harness", harness)
         return self
 
     def set_decision_synthesizer(self, synthesizer) -> "SwarmIntegrator":
@@ -872,6 +886,8 @@ class SwarmIntegrator:
             "analytics": integrator.set_analytics,
             "decision_synthesizer": integrator.set_decision_synthesizer,
             "verification_adapter": integrator.set_verification_adapter,
+            "coordinator_pipeline": integrator.set_coordinator_pipeline,
+            "signal_harness": integrator.set_signal_harness,
         }
 
         for name, instance in components.items():
