@@ -19,6 +19,7 @@ from typing import Optional, Dict, Any, List, Union
 from dataclasses import dataclass, field
 
 from uvd_x402_sdk.erc8004 import Erc8004Client as _SdkErc8004Client
+from uvd_x402_sdk.networks import normalize_network as _normalize_network
 
 from integrations.erc8004.feedback_store import FEEDBACK_PUBLIC_URL
 from integrations.x402.sdk_client import NETWORK_CONFIG as _PAYMENT_NETWORKS
@@ -27,19 +28,16 @@ logger = logging.getLogger(__name__)
 
 
 # =============================================================================
-# Network name translation: EM internal names -> Facilitator API names
+# Network name normalization (SDK v0.19.3+)
 # =============================================================================
-
-# The Ultravioleta Facilitator uses different names for some networks.
-# For example, the facilitator expects "skale-base" while EM uses "skale".
-_FACILITATOR_NETWORK_MAP: Dict[str, str] = {
-    "skale": "skale-base",
-}
+# The SDK's normalize_network() handles aliases:
+#   "skale" -> "skale-base", "skale-testnet" -> "skale-base-sepolia", etc.
+# This replaces the old manual _FACILITATOR_NETWORK_MAP.
 
 
 def _to_facilitator_network(network: str) -> str:
-    """Translate EM internal network name to facilitator-compatible name."""
-    return _FACILITATOR_NETWORK_MAP.get(network, network)
+    """Normalize EM internal network name to facilitator-compatible name."""
+    return _normalize_network(network)
 
 
 # =============================================================================
