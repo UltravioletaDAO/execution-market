@@ -152,12 +152,8 @@ async def test_submitted_timeout_permanent_failure_expires_task(monkeypatch):
     assert handled is False
     settle_mock.assert_not_awaited()
     auto_approve_mock.assert_not_awaited()
-    # Metadata should be updated with payment_permanently_failed flag
-    update_calls = [c for c in client.tasks_mock.calls if c[0] == "update"]
-    assert len(update_calls) == 1
-    meta = update_calls[0][1][0]["metadata"]
-    assert meta["payment_permanently_failed"] is True
-    assert meta["payment_failure_reason"] == "missing_payment_header"
+    # No metadata update (tasks table has no metadata column) — the code
+    # just logs and returns False to fall through to normal expiration.
 
 
 @pytest.mark.asyncio

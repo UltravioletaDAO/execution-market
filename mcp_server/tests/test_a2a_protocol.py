@@ -542,7 +542,7 @@ class TestA2AJSONRPCRouter:
 
     @pytest.fixture
     def client(self):
-        """Create a test client for the A2A router."""
+        """Create a test client for the A2A router with auth headers."""
         from fastapi import FastAPI
         from fastapi.testclient import TestClient
         from a2a.jsonrpc_router import router
@@ -550,7 +550,10 @@ class TestA2AJSONRPCRouter:
         app = FastAPI()
         app.include_router(router)
         try:
-            return TestClient(app)
+            c = TestClient(app)
+            # A2A endpoint requires authentication — set a default agent identity
+            c.headers["X-ERC8004-Agent-Id"] = "test-agent-9999"
+            return c
         except TypeError:
             pytest.skip("httpx/starlette TestClient incompatibility")
 
@@ -566,7 +569,10 @@ class TestA2AJSONRPCRouter:
         resp = client.post(
             "/a2a/v1",
             content="not json",
-            headers={"Content-Type": "application/json"},
+            headers={
+                "Content-Type": "application/json",
+                "X-ERC8004-Agent-Id": "test-agent-9999",
+            },
         )
         assert resp.status_code == 200
         data = resp.json()
