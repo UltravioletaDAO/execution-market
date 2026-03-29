@@ -168,6 +168,7 @@ class SwarmIntegrator:
         self._decision_synthesizer = None
         self._coordinator_pipeline = None
         self._signal_harness = None
+        self._fleet_manager = None
 
         # State
         self._started = False
@@ -264,6 +265,12 @@ class SwarmIntegrator:
         """Register the DecisionSynthesizer."""
         self._decision_synthesizer = synthesizer
         self._register_component("decision_synthesizer", synthesizer)
+        return self
+
+    def set_fleet_manager(self, fleet_manager) -> "SwarmIntegrator":
+        """Register the FleetManager (agent fleet lifecycle)."""
+        self._fleet_manager = fleet_manager
+        self._register_component("fleet_manager", fleet_manager)
         return self
 
     def set_verification_adapter(self, adapter) -> "SwarmIntegrator":
@@ -888,6 +895,7 @@ class SwarmIntegrator:
             "verification_adapter": integrator.set_verification_adapter,
             "coordinator_pipeline": integrator.set_coordinator_pipeline,
             "signal_harness": integrator.set_signal_harness,
+            "fleet_manager": integrator.set_fleet_manager,
         }
 
         for name, instance in components.items():
