@@ -20,13 +20,22 @@ from .reputation import ReputationManager
 
 # Via Facilitator (PRODUCTION - use this!)
 from .facilitator_client import (
-    # Client
+    # Backward-compatible shim
     ERC8004FacilitatorClient,
     get_facilitator_client,
     # Types
     AgentIdentity,
     FeedbackResult,
     ReputationSummary,
+    # SDK-backed module-level functions (preferred)
+    get_identity,
+    register_agent,
+    get_reputation,
+    submit_feedback,
+    revoke_feedback,
+    respond_to_feedback,
+    get_identity_metadata,
+    get_total_supply,
     # EM functions
     get_em_reputation,
     get_em_identity,
@@ -74,6 +83,14 @@ __all__ = [
     "AgentIdentity",
     "FeedbackResult",
     "ReputationSummary",
+    "get_identity",
+    "register_agent",
+    "get_reputation",
+    "submit_feedback",
+    "revoke_feedback",
+    "respond_to_feedback",
+    "get_identity_metadata",
+    "get_total_supply",
     "get_em_reputation",
     "get_em_identity",
     "rate_worker",

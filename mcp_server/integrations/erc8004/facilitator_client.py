@@ -1,20 +1,12 @@
 """
 ERC-8004 Facilitator Client
 
-Uses the Ultravioleta DAO Facilitator for ERC-8004 operations.
-This is the production-ready approach - no direct on-chain calls needed.
+Thin wrapper around the SDK's ``Erc8004Client`` for ERC-8004 operations.
+The SDK handles HTTP transport, serialisation, and model validation;
+this module adds EM-specific helpers (rate_worker, rate_agent, cross-chain
+reputation, network translation).
 
 Facilitator: https://facilitator.ultravioletadao.xyz
-
-Endpoints:
-- GET  /identity/{network}/{agentId}     - Get agent identity
-- GET  /identity/{network}/{agentId}/metadata/{key} - Get agent metadata
-- GET  /identity/{network}/total-supply  - Total registered agents
-- POST /register                         - Gasless agent registration
-- GET  /reputation/{network}/{agentId}   - Get reputation summary
-- POST /feedback                         - Submit feedback
-- POST /feedback/revoke                  - Revoke feedback
-- POST /feedback/response                - Agent responds to feedback
 
 ERC-8004 networks are auto-derived from sdk_client.py NETWORK_CONFIG (single source of truth).
 All mainnets use the same CREATE2-deployed contracts at deterministic addresses.
@@ -26,7 +18,7 @@ import logging
 from typing import Optional, Dict, Any, List, Union
 from dataclasses import dataclass, field
 
-import httpx
+from uvd_x402_sdk.erc8004 import Erc8004Client as _SdkErc8004Client
 
 from integrations.erc8004.feedback_store import FEEDBACK_PUBLIC_URL
 from integrations.x402.sdk_client import NETWORK_CONFIG as _PAYMENT_NETWORKS
@@ -64,24 +56,20 @@ ERC8004_NETWORK = os.environ.get("ERC8004_NETWORK", "base")
 # Execution Market Agent ID
 EM_AGENT_ID = int(os.environ.get("EM_AGENT_ID", "469"))
 
-# Contract addresses — CREATE2 deterministic deployment (same address on all mainnets/testnets)
+# Contract addresses — CREATE2 deterministic deployment (same address on all mainnets)
 _MAINNET_IDENTITY = "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432"
 _MAINNET_REPUTATION = "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63"
-_TESTNET_IDENTITY = "0x8004A818BFB912233c491871b3d84c89A494BD9e"
-_TESTNET_REPUTATION = "0x8004B663056A597Dffe9eCcC1965A193B7388713"
-_TESTNET_VALIDATION = "0x8004Cb1BF31DAf7788923b405b754f57acEB4272"
-
-_TESTNET_SUFFIXES = ("-sepolia", "-amoy", "-fuji")
 
 # --- Auto-derive ERC-8004 contracts from payment NETWORK_CONFIG ---
 # All payment-network mainnets have ERC-8004 (CREATE2 same-address deployment).
-# Testnets use different registry addresses and are listed explicitly below.
 ERC8004_CONTRACTS: Dict[str, Dict[str, Any]] = {}
+
+_TESTNET_SUFFIXES = ("-sepolia", "-amoy", "-fuji")
 
 # Mainnets: auto-generated from sdk_client.py
 for _net, _cfg in _PAYMENT_NETWORKS.items():
     if _net.endswith(_TESTNET_SUFFIXES):
-        continue  # Testnets handled below
+        continue  # Skip testnets
     # Solana (SVM) uses different on-chain programs, not EVM registries
     if _net == "solana":
         ERC8004_CONTRACTS["solana"] = {
@@ -104,23 +92,7 @@ ERC8004_CONTRACTS["bsc"] = {
     "chain_id": 56,
 }
 
-# Testnets: different CREATE2 registries, listed explicitly
-for _testnet, _chain_id in [
-    ("ethereum-sepolia", 11155111),
-    ("base-sepolia", 84532),
-    ("polygon-amoy", 80002),
-    ("arbitrum-sepolia", 421614),
-    ("celo-sepolia", 44787),
-    ("avalanche-fuji", 43113),
-]:
-    ERC8004_CONTRACTS[_testnet] = {
-        "identity_registry": _TESTNET_IDENTITY,
-        "reputation_registry": _TESTNET_REPUTATION,
-        "validation_registry": _TESTNET_VALIDATION,
-        "chain_id": _chain_id,
-    }
-
-# Alias: "base-mainnet" → "base" (SDK uses "base-mainnet", facilitator uses "base")
+# Alias: "base-mainnet" -> "base" (SDK uses "base-mainnet", facilitator uses "base")
 ERC8004_CONTRACTS["base-mainnet"] = ERC8004_CONTRACTS["base"]
 
 # All supported network names
@@ -177,35 +149,280 @@ class ReputationSummary:
 
 
 # =============================================================================
-# Facilitator Client
+# SDK singleton — replaces the old ERC8004FacilitatorClient class
+# =============================================================================
+
+_sdk_client = _SdkErc8004Client(base_url=FACILITATOR_URL)
+
+
+def _fac_net(network: str) -> str:
+    """Shorthand: translate EM network name to facilitator name."""
+    return _to_facilitator_network(network)
+
+
+# =============================================================================
+# Module-level async functions (thin SDK wrappers)
+# =============================================================================
+
+
+async def get_identity(
+    agent_id: int, network: str = ERC8004_NETWORK
+) -> Optional[AgentIdentity]:
+    """Get agent identity from ERC-8004 Identity Registry via SDK."""
+    try:
+        result = await _sdk_client.get_identity(_fac_net(network), agent_id)
+        if not result or not result.agent_id:
+            return None
+        return AgentIdentity(
+            agent_id=result.agent_id,
+            owner=result.owner or "",
+            agent_uri=result.agent_uri or "",
+            agent_wallet=getattr(result, "agent_wallet", None),
+            network=getattr(result, "network", network),
+            name=getattr(result, "name", None),
+            description=getattr(result, "description", None),
+            image=getattr(result, "image", None),
+            services=getattr(result, "services", []),
+        )
+    except Exception as e:
+        logger.error(
+            "Failed to get identity for agent %d on %s: %s", agent_id, network, e
+        )
+        return None
+
+
+async def register_agent(
+    network: str,
+    agent_uri: str,
+    metadata: Optional[List[Dict[str, str]]] = None,
+    recipient: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Register a new agent on the ERC-8004 Identity Registry (gasless) via SDK."""
+    if network not in ERC8004_CONTRACTS:
+        return {
+            "success": False,
+            "error": f"Unsupported network: {network}. Supported: {ERC8004_SUPPORTED_NETWORKS}",
+        }
+    try:
+        result = await _sdk_client.register_agent(
+            network=_fac_net(network),
+            agent_uri=agent_uri,
+            metadata=metadata,
+            recipient=recipient,
+        )
+        agent_id = getattr(result, "agent_id", None)
+        tx = getattr(result, "transaction", None)
+        transfer_tx = getattr(result, "transfer_transaction", None)
+        owner = getattr(result, "owner", None)
+
+        logger.info(
+            "Agent registered: agentId=%s, network=%s, tx=%s",
+            agent_id,
+            network,
+            tx,
+        )
+
+        return {
+            "success": True,
+            "agentId": agent_id,
+            "transaction": tx,
+            "transferTransaction": transfer_tx,
+            "owner": owner,
+            "network": network,
+        }
+    except Exception as e:
+        error_msg = str(e)
+        # Treat "already registered" as idempotent success
+        if any(s in error_msg.lower() for s in ("already", "duplicate", "exists")):
+            logger.info(
+                "Registration idempotent for %s on %s: %s",
+                agent_uri[:30] if agent_uri else "unknown",
+                network,
+                error_msg,
+            )
+            return {
+                "success": True,
+                "idempotent": True,
+                "network": network,
+                "error": None,
+            }
+        logger.error("Agent registration failed on %s: %s", network, e)
+        return {"success": False, "error": error_msg, "network": network}
+
+
+async def get_reputation(
+    agent_id: int,
+    network: str = ERC8004_NETWORK,
+    tag1: str = "",
+    tag2: str = "",
+    include_feedback: bool = False,
+) -> Optional[ReputationSummary]:
+    """Get reputation summary for an agent via SDK."""
+    try:
+        result = await _sdk_client.get_reputation(
+            _fac_net(network),
+            agent_id,
+            tag1=tag1 or None,
+            tag2=tag2 or None,
+            include_feedback=include_feedback,
+        )
+        if not result:
+            return None
+        summary = getattr(result, "summary", result)
+        return ReputationSummary(
+            agent_id=getattr(summary, "agent_id", agent_id),
+            count=getattr(summary, "count", 0),
+            summary_value=getattr(summary, "summary_value", 0),
+            summary_value_decimals=getattr(summary, "summary_value_decimals", 0),
+            network=getattr(result, "network", network),
+        )
+    except Exception as e:
+        logger.error(
+            "Failed to get reputation for agent %d on %s: %s", agent_id, network, e
+        )
+        return None
+
+
+async def submit_feedback(
+    agent_id: int,
+    value: int,
+    network: str = ERC8004_NETWORK,
+    value_decimals: int = 0,
+    tag1: str = "",
+    tag2: str = "",
+    endpoint: str = "",
+    feedback_uri: str = "",
+    feedback_hash: Optional[str] = None,
+    proof: Optional[Dict[str, Any]] = None,
+) -> FeedbackResult:
+    """Submit reputation feedback via SDK."""
+    if not isinstance(agent_id, int) or agent_id <= 0:
+        return FeedbackResult(
+            success=False,
+            error=f"agent_id must be a positive integer, got {agent_id}",
+            network=network,
+        )
+    try:
+        result = await _sdk_client.submit_feedback(
+            network=_fac_net(network),
+            agent_id=agent_id,
+            value=value,
+            value_decimals=value_decimals,
+            tag1=tag1,
+            tag2=tag2,
+            endpoint=endpoint,
+            feedback_uri=feedback_uri,
+            feedback_hash=feedback_hash,
+            proof=proof,
+        )
+        tx_hash = getattr(result, "transaction", None)
+        return FeedbackResult(
+            success=getattr(result, "success", True),
+            transaction_hash=tx_hash,
+            feedback_index=getattr(result, "feedback_index", None),
+            network=getattr(result, "network", network),
+        )
+    except Exception as e:
+        logger.error("Failed to submit feedback: %s", e)
+        return FeedbackResult(success=False, error=str(e), network=network)
+
+
+async def revoke_feedback(
+    agent_id: int,
+    feedback_index: int,
+    network: str = ERC8004_NETWORK,
+) -> FeedbackResult:
+    """Revoke previously submitted feedback via SDK."""
+    try:
+        result = await _sdk_client.revoke_feedback(
+            network=_fac_net(network),
+            agent_id=agent_id,
+            feedback_index=feedback_index,
+        )
+        tx_hash = getattr(result, "transaction", None)
+        return FeedbackResult(
+            success=getattr(result, "success", True),
+            transaction_hash=tx_hash,
+            feedback_index=feedback_index,
+            network=getattr(result, "network", network),
+        )
+    except Exception as e:
+        logger.error("Failed to revoke feedback: %s", e)
+        return FeedbackResult(success=False, error=str(e), network=network)
+
+
+async def respond_to_feedback(
+    agent_id: int,
+    feedback_index: int,
+    response_text: str,
+    network: str = ERC8004_NETWORK,
+    response_uri: Optional[str] = None,
+) -> FeedbackResult:
+    """Respond to feedback as the agent owner via SDK."""
+    try:
+        result = await _sdk_client.append_response(
+            network=_fac_net(network),
+            agent_id=agent_id,
+            feedback_index=feedback_index,
+            response_text=response_text,
+            response_uri=response_uri,
+        )
+        tx_hash = getattr(result, "transaction", None)
+        return FeedbackResult(
+            success=getattr(result, "success", True),
+            transaction_hash=tx_hash,
+            feedback_index=feedback_index,
+            network=getattr(result, "network", network),
+        )
+    except Exception as e:
+        logger.error("Failed to respond to feedback: %s", e)
+        return FeedbackResult(success=False, error=str(e), network=network)
+
+
+async def get_identity_metadata(
+    agent_id: int,
+    key: str,
+    network: str = ERC8004_NETWORK,
+) -> Optional[Dict[str, Any]]:
+    """Read a metadata key from an agent's ERC-8004 identity via SDK."""
+    try:
+        result = await _sdk_client.get_identity_metadata(
+            _fac_net(network), agent_id, key
+        )
+        if not result:
+            return None
+        return {
+            "agentId": getattr(result, "agent_id", agent_id),
+            "key": getattr(result, "key", key),
+            "valueHex": getattr(result, "value_hex", None),
+            "valueUtf8": getattr(result, "value_utf8", None),
+            "network": getattr(result, "network", network),
+        }
+    except Exception as e:
+        logger.error("Failed to get identity metadata: %s", e)
+        return None
+
+
+async def get_total_supply(network: str = ERC8004_NETWORK) -> Optional[int]:
+    """Get total number of registered agents on a network via SDK."""
+    try:
+        result = await _sdk_client.get_identity_total_supply(_fac_net(network))
+        if not result:
+            return None
+        return getattr(result, "total_supply", None)
+    except Exception as e:
+        logger.error("Failed to get total supply: %s", e)
+        return None
+
+
+# =============================================================================
+# Backward-compatible shim — callers that instantiate ERC8004FacilitatorClient
+# or call get_facilitator_client() keep working without changes.
 # =============================================================================
 
 
 class ERC8004FacilitatorClient:
-    """
-    ERC-8004 client that uses the Facilitator for on-chain operations.
-
-    This is the production approach - the Facilitator handles:
-    - Gas fees
-    - Transaction signing
-    - Network management
-
-    Usage:
-        client = ERC8004FacilitatorClient()
-
-        # Get agent identity
-        identity = await client.get_identity(agent_id=469)
-
-        # Submit feedback (agents/workers can rate each other)
-        result = await client.submit_feedback(
-            agent_id=469,
-            value=85,
-            tag1="quality",
-        )
-
-        # Get reputation
-        reputation = await client.get_reputation(agent_id=469)
-    """
+    """Thin compatibility wrapper.  Delegates to module-level SDK functions."""
 
     def __init__(
         self,
@@ -216,88 +433,21 @@ class ERC8004FacilitatorClient:
         self.facilitator_url = facilitator_url or FACILITATOR_URL
         self.network = network
         self.timeout = timeout
-        self._client: Optional[httpx.AsyncClient] = None
 
-        logger.info(
-            "ERC8004FacilitatorClient initialized: facilitator=%s, network=%s",
-            self.facilitator_url,
-            self.network,
-        )
-
-    async def _get_client(self) -> httpx.AsyncClient:
-        """Get or create async HTTP client."""
-        if self._client is None or self._client.is_closed:
-            self._client = httpx.AsyncClient(
-                timeout=httpx.Timeout(self.timeout),
-                headers={"Content-Type": "application/json"},
-            )
-        return self._client
-
-    async def close(self) -> None:
-        """Close HTTP client."""
-        if self._client:
-            await self._client.aclose()
-            self._client = None
+    async def close(self) -> None:  # noqa: D401
+        """No-op — the SDK manages its own transport."""
 
     async def __aenter__(self) -> "ERC8004FacilitatorClient":
         return self
 
     async def __aexit__(self, *args) -> None:
-        await self.close()
+        pass
 
-    # =========================================================================
-    # Identity Operations
-    # =========================================================================
-
+    # -- Identity --
     async def get_identity(self, agent_id: int) -> Optional[AgentIdentity]:
-        """
-        Get agent identity from ERC-8004 Identity Registry.
+        return await get_identity(agent_id, network=self.network)
 
-        Args:
-            agent_id: The agent's token ID
-
-        Returns:
-            AgentIdentity or None if not found
-        """
-        client = await self._get_client()
-
-        try:
-            fac_network = _to_facilitator_network(self.network)
-            response = await client.get(
-                f"{self.facilitator_url}/identity/{fac_network}/{agent_id}"
-            )
-
-            if response.status_code == 404:
-                return None
-
-            if response.status_code != 200:
-                logger.error(
-                    "Failed to get identity for agent %d: %s", agent_id, response.text
-                )
-                return None
-
-            data = response.json()
-
-            return AgentIdentity(
-                agent_id=data.get("agentId", agent_id),
-                owner=data.get("owner", ""),
-                agent_uri=data.get("agentUri", ""),
-                agent_wallet=data.get("agentWallet"),
-                network=data.get("network", self.network),
-                name=data.get("name"),
-                description=data.get("description"),
-                image=data.get("image"),
-                services=data.get("services", []),
-            )
-
-        except Exception as e:
-            logger.error("Failed to get identity for agent %d: %s", agent_id, e)
-            return None
-
-    # =========================================================================
-    # Registration (Gasless — Facilitator pays gas)
-    # =========================================================================
-
+    # -- Registration --
     async def register_agent(
         self,
         network: str,
@@ -305,148 +455,14 @@ class ERC8004FacilitatorClient:
         metadata: Optional[List[Dict[str, str]]] = None,
         recipient: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """
-        Register a new agent on the ERC-8004 Identity Registry (gasless).
+        return await register_agent(
+            network=network,
+            agent_uri=agent_uri,
+            metadata=metadata,
+            recipient=recipient,
+        )
 
-        The facilitator pays all gas fees. If recipient is specified, the minted
-        NFT is transferred to that address after registration.
-
-        Args:
-            network: ERC-8004 network (e.g. "base-mainnet", "ethereum", "polygon")
-            agent_uri: URI to agent registration file (IPFS or HTTPS)
-            metadata: Optional key-value pairs [{"key": "name", "value": "My Agent"}]
-            recipient: Optional address to receive the NFT after minting
-
-        Returns:
-            dict with success, agentId, transaction, transferTransaction, owner, network
-        """
-        if network not in ERC8004_CONTRACTS:
-            return {
-                "success": False,
-                "error": f"Unsupported network: {network}. Supported: {ERC8004_SUPPORTED_NETWORKS}",
-            }
-
-        client = await self._get_client()
-
-        fac_network = _to_facilitator_network(network)
-        request_body: Dict[str, Any] = {
-            "x402Version": 1,
-            "network": fac_network,
-            "agentUri": agent_uri,
-        }
-        if metadata:
-            request_body["metadata"] = metadata
-        if recipient:
-            request_body["recipient"] = recipient
-
-        try:
-            response = await client.post(
-                f"{self.facilitator_url}/register",
-                json=request_body,
-            )
-
-            data = response.json()
-
-            if response.status_code != 200 or not data.get("success"):
-                error_msg = data.get("error", f"HTTP {response.status_code}")
-                # Treat "already registered" as idempotent success
-                if any(
-                    s in error_msg.lower() for s in ("already", "duplicate", "exists")
-                ):
-                    logger.info(
-                        "Registration idempotent for %s on %s: %s",
-                        agent_uri[:30] if agent_uri else "unknown",
-                        network,
-                        error_msg,
-                    )
-                    return {
-                        "success": True,
-                        "idempotent": True,
-                        "network": network,
-                        "agentId": data.get("agent_id") or data.get("agentId"),
-                        "error": None,
-                    }
-                logger.error("Agent registration failed: %s", data)
-                return {
-                    "success": False,
-                    "error": error_msg,
-                    "network": network,
-                }
-
-            logger.info(
-                "Agent registered: agentId=%s, network=%s, tx=%s",
-                data.get("agentId"),
-                data.get("network"),
-                data.get("transaction"),
-            )
-
-            return {
-                "success": True,
-                "agentId": data.get("agentId"),
-                "transaction": data.get("transaction"),
-                "transferTransaction": data.get("transferTransaction"),
-                "owner": data.get("owner"),
-                "network": data.get("network", network),
-            }
-
-        except Exception as e:
-            logger.error("Agent registration failed: %s", e)
-            return {"success": False, "error": str(e), "network": network}
-
-    async def get_identity_metadata(
-        self,
-        agent_id: int,
-        key: str,
-        network: Optional[str] = None,
-    ) -> Optional[Dict[str, Any]]:
-        """
-        Read a metadata key from an agent's ERC-8004 identity.
-
-        Args:
-            agent_id: The agent's token ID
-            key: Metadata key to read
-            network: Network to query (defaults to self.network)
-
-        Returns:
-            dict with agentId, key, valueHex, valueUtf8, network — or None
-        """
-        net = network or self.network
-        fac_net = _to_facilitator_network(net)
-        client = await self._get_client()
-
-        try:
-            response = await client.get(
-                f"{self.facilitator_url}/identity/{fac_net}/{agent_id}/metadata/{key}"
-            )
-            if response.status_code != 200:
-                return None
-            return response.json()
-        except Exception as e:
-            logger.error("Failed to get identity metadata: %s", e)
-            return None
-
-    async def get_total_supply(self, network: Optional[str] = None) -> Optional[int]:
-        """Get total number of registered agents on a network."""
-        net = network or self.network
-        fac_net = _to_facilitator_network(net)
-        client = await self._get_client()
-
-        try:
-            response = await client.get(
-                f"{self.facilitator_url}/identity/{fac_net}/total-supply"
-            )
-            if response.status_code != 200:
-                return None
-            data = response.json()
-            return data.get("totalSupply")
-        except Exception as e:
-            logger.error("Failed to get total supply: %s", e)
-            return None
-
-    # =========================================================================
-    # Reputation Operations
-    # =========================================================================
-
+    # -- Reputation --
     async def get_reputation(
         self,
         agent_id: int,
@@ -454,59 +470,15 @@ class ERC8004FacilitatorClient:
         tag2: str = "",
         include_feedback: bool = False,
     ) -> Optional[ReputationSummary]:
-        """
-        Get reputation summary for an agent.
+        return await get_reputation(
+            agent_id,
+            network=self.network,
+            tag1=tag1,
+            tag2=tag2,
+            include_feedback=include_feedback,
+        )
 
-        Args:
-            agent_id: The agent's token ID
-            tag1: Filter by primary tag
-            tag2: Filter by secondary tag
-            include_feedback: Include individual feedback entries
-
-        Returns:
-            ReputationSummary or None
-        """
-        client = await self._get_client()
-
-        try:
-            params = {}
-            if tag1:
-                params["tag1"] = tag1
-            if tag2:
-                params["tag2"] = tag2
-            if include_feedback:
-                params["includeFeedback"] = "true"
-
-            fac_network = _to_facilitator_network(self.network)
-            response = await client.get(
-                f"{self.facilitator_url}/reputation/{fac_network}/{agent_id}",
-                params=params,
-            )
-
-            if response.status_code == 404:
-                return None
-
-            if response.status_code != 200:
-                logger.error(
-                    "Failed to get reputation for agent %d: %s", agent_id, response.text
-                )
-                return None
-
-            data = response.json()
-            summary = data.get("summary", data)
-
-            return ReputationSummary(
-                agent_id=data.get("agentId", agent_id),
-                count=summary.get("count", 0),
-                summary_value=summary.get("summaryValue", 0),
-                summary_value_decimals=summary.get("summaryValueDecimals", 0),
-                network=data.get("network", self.network),
-            )
-
-        except Exception as e:
-            logger.error("Failed to get reputation for agent %d: %s", agent_id, e)
-            return None
-
+    # -- Feedback --
     async def submit_feedback(
         self,
         agent_id: int,
@@ -519,156 +491,27 @@ class ERC8004FacilitatorClient:
         feedback_hash: Optional[str] = None,
         proof: Optional[Dict[str, Any]] = None,
     ) -> FeedbackResult:
-        """
-        Submit reputation feedback for an agent.
-
-        Args:
-            agent_id: The agent's token ID
-            value: Feedback value (0-100 for decimals=0)
-            value_decimals: Decimal places for value
-            tag1: Primary tag (e.g., "quality", "speed", "communication")
-            tag2: Secondary tag
-            endpoint: Service endpoint that was used
-            feedback_uri: URI to off-chain feedback file (IPFS preferred)
-            feedback_hash: Keccak256 hash of feedback content
-            proof: Proof of payment (for verified feedback)
-
-        Returns:
-            FeedbackResult with transaction details
-        """
-        # Validate agent_id before making network call
-        if not isinstance(agent_id, int) or agent_id <= 0:
-            return FeedbackResult(
-                success=False,
-                error=f"agent_id must be a positive integer, got {agent_id}",
-                network=self.network,
-            )
-
-        client = await self._get_client()
-
-        try:
-            fac_network = _to_facilitator_network(self.network)
-            request_body = {
-                "x402Version": 1,
-                "network": fac_network,
-                "feedback": {
-                    "agentId": agent_id,
-                    "value": value,
-                    "valueDecimals": value_decimals,
-                    "tag1": tag1,
-                    "tag2": tag2,
-                    "endpoint": endpoint,
-                    "feedbackUri": feedback_uri,
-                },
-            }
-
-            if feedback_hash:
-                request_body["feedback"]["feedbackHash"] = feedback_hash
-
-            if proof:
-                request_body["feedback"]["proof"] = proof
-
-            response = await client.post(
-                f"{self.facilitator_url}/feedback",
-                json=request_body,
-            )
-
-            data = response.json()
-
-            if response.status_code != 200 or not data.get("success"):
-                return FeedbackResult(
-                    success=False,
-                    error=data.get("error", f"HTTP {response.status_code}"),
-                    network=self.network,
-                )
-
-            tx_hash = None
-            if "transaction" in data:
-                tx = data["transaction"]
-                if isinstance(tx, dict) and "Evm" in tx:
-                    tx_hash = (
-                        "0x" + "".join(f"{b:02x}" for b in tx["Evm"])
-                        if isinstance(tx["Evm"], list)
-                        else tx["Evm"]
-                    )
-                elif isinstance(tx, str):
-                    tx_hash = tx
-
-            return FeedbackResult(
-                success=True,
-                transaction_hash=tx_hash,
-                feedback_index=data.get("feedbackIndex"),
-                network=data.get("network", self.network),
-            )
-
-        except Exception as e:
-            logger.error("Failed to submit feedback: %s", e)
-            return FeedbackResult(
-                success=False,
-                error=str(e),
-                network=self.network,
-            )
+        return await submit_feedback(
+            agent_id=agent_id,
+            value=value,
+            network=self.network,
+            value_decimals=value_decimals,
+            tag1=tag1,
+            tag2=tag2,
+            endpoint=endpoint,
+            feedback_uri=feedback_uri,
+            feedback_hash=feedback_hash,
+            proof=proof,
+        )
 
     async def revoke_feedback(
-        self,
-        agent_id: int,
-        feedback_index: int,
+        self, agent_id: int, feedback_index: int
     ) -> FeedbackResult:
-        """
-        Revoke previously submitted feedback.
-
-        Args:
-            agent_id: The agent's token ID
-            feedback_index: Index of feedback to revoke
-
-        Returns:
-            FeedbackResult
-        """
-        client = await self._get_client()
-
-        try:
-            fac_network = _to_facilitator_network(self.network)
-            request_body = {
-                "x402Version": 1,
-                "network": fac_network,
-                "agentId": agent_id,
-                "feedbackIndex": feedback_index,
-            }
-
-            response = await client.post(
-                f"{self.facilitator_url}/feedback/revoke",
-                json=request_body,
-            )
-
-            data = response.json()
-
-            if response.status_code != 200 or not data.get("success"):
-                return FeedbackResult(
-                    success=False,
-                    error=data.get("error", f"HTTP {response.status_code}"),
-                    network=self.network,
-                )
-
-            tx_hash = None
-            if "transaction" in data:
-                tx = data["transaction"]
-                if isinstance(tx, dict) and "Evm" in tx:
-                    tx_hash = tx["Evm"]
-
-            return FeedbackResult(
-                success=True,
-                transaction_hash=tx_hash,
-                feedback_index=feedback_index,
-                network=self.network,
-            )
-
-        except Exception as e:
-            logger.error("Failed to revoke feedback: %s", e)
-            return FeedbackResult(
-                success=False,
-                error=str(e),
-                network=self.network,
-            )
+        return await revoke_feedback(
+            agent_id=agent_id,
+            feedback_index=feedback_index,
+            network=self.network,
+        )
 
     async def respond_to_feedback(
         self,
@@ -678,90 +521,49 @@ class ERC8004FacilitatorClient:
         response_uri: str,
         response_hash: Optional[str] = None,
     ) -> FeedbackResult:
-        """
-        Respond to feedback as the agent owner.
+        return await respond_to_feedback(
+            agent_id=agent_id,
+            feedback_index=feedback_index,
+            response_text=response_uri,
+            network=self.network,
+            response_uri=response_uri,
+        )
 
-        Args:
-            agent_id: The agent's token ID
-            client_address: Address of client who left feedback
-            feedback_index: Index of feedback to respond to
-            response_uri: URI to response content (IPFS preferred)
-            response_hash: Keccak256 hash of response content
+    async def get_identity_metadata(
+        self, agent_id: int, key: str, network: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        return await get_identity_metadata(
+            agent_id, key, network=network or self.network
+        )
 
-        Returns:
-            FeedbackResult
-        """
-        client = await self._get_client()
+    async def get_total_supply(self, network: Optional[str] = None) -> Optional[int]:
+        return await get_total_supply(network=network or self.network)
 
-        try:
-            fac_network = _to_facilitator_network(self.network)
-            request_body = {
-                "x402Version": 1,
-                "network": fac_network,
-                "agentId": agent_id,
-                "clientAddress": {"Evm": client_address},
-                "feedbackIndex": feedback_index,
-                "responseUri": response_uri,
-            }
-
-            if response_hash:
-                request_body["responseHash"] = response_hash
-
-            response = await client.post(
-                f"{self.facilitator_url}/feedback/response",
-                json=request_body,
-            )
-
-            data = response.json()
-
-            if response.status_code != 200 or not data.get("success"):
-                return FeedbackResult(
-                    success=False,
-                    error=data.get("error", f"HTTP {response.status_code}"),
-                    network=self.network,
-                )
-
-            return FeedbackResult(
-                success=True,
-                transaction_hash=data.get("transaction", {}).get("Evm"),
-                feedback_index=feedback_index,
-                network=self.network,
-            )
-
-        except Exception as e:
-            logger.error("Failed to respond to feedback: %s", e)
-            return FeedbackResult(
-                success=False,
-                error=str(e),
-                network=self.network,
-            )
-
-
-# =============================================================================
-# Execution Market-Specific Functions
-# =============================================================================
 
 _default_client: Optional[ERC8004FacilitatorClient] = None
 
 
 def get_facilitator_client() -> ERC8004FacilitatorClient:
-    """Get or create the default ERC8004FacilitatorClient instance."""
+    """Get or create the default ERC8004FacilitatorClient shim."""
     global _default_client
     if _default_client is None:
         _default_client = ERC8004FacilitatorClient()
     return _default_client
 
 
+# =============================================================================
+# Execution Market-Specific Functions
+# =============================================================================
+
+
 async def get_em_reputation() -> Optional[ReputationSummary]:
     """Get Execution Market's reputation as an agent."""
-    client = get_facilitator_client()
-    return await client.get_reputation(EM_AGENT_ID)
+    return await get_reputation(EM_AGENT_ID)
 
 
 async def get_em_identity() -> Optional[AgentIdentity]:
     """Get Execution Market's identity from the registry."""
-    client = get_facilitator_client()
-    return await client.get_identity(EM_AGENT_ID)
+    return await get_identity(EM_AGENT_ID)
 
 
 async def rate_worker(
@@ -918,7 +720,7 @@ async def rate_worker(
         feedback_uri=feedback_uri,
         feedback_hash=feedback_hash,
         network=network,
-        # private_key=None → defaults to WALLET_PRIVATE_KEY (platform wallet)
+        # private_key=None -> defaults to WALLET_PRIVATE_KEY (platform wallet)
     )
 
 
@@ -945,7 +747,7 @@ async def rate_agent(
     This enables fully autonomous agent rating in the KK V2 swarm flow.
 
     If relay_private_key is NOT provided, returns pending_worker_signature=True
-    — the actual on-chain TX must be signed by the worker's wallet directly
+    -- the actual on-chain TX must be signed by the worker's wallet directly
     via the dashboard (trustless, original behavior).
 
     Args:
@@ -1027,14 +829,12 @@ async def rate_agent(
 
 async def get_agent_info(agent_id: int) -> Optional[AgentIdentity]:
     """Get any agent's identity."""
-    client = get_facilitator_client()
-    return await client.get_identity(agent_id)
+    return await get_identity(agent_id)
 
 
 async def get_agent_reputation(agent_id: int) -> Optional[ReputationSummary]:
     """Get any agent's reputation."""
-    client = get_facilitator_client()
-    return await client.get_reputation(agent_id)
+    return await get_reputation(agent_id)
 
 
 # =============================================================================
@@ -1120,10 +920,10 @@ async def get_cross_chain_reputation(
 
     Algorithm:
     1. For each enabled EVM chain (parallel, 5s timeout per chain):
-       - check_worker_identity(wallet, network=net) → balance + agent_id(s)
+       - check_worker_identity(wallet, network=net) -> balance + agent_id(s)
     2. For chains where balance > 0:
        - Get all agent_ids via tokenOfOwnerByIndex
-       - Facilitator GET /reputation/{network}/{agent_id} → scores
+       - SDK GET /reputation/{network}/{agent_id} -> scores
     3. Per-chain average = mean of all scores on that chain
     4. Skip chains with 0 reviews (identity but no feedback)
     5. Final score = mean of per-chain averages (equal weight per chain)
@@ -1178,12 +978,11 @@ async def get_cross_chain_reputation(
 
     async def _get_chain_reputation(net: str, agent_ids: List[int]):
         """Get all reputation scores for a list of agent_ids on one chain."""
-        client = ERC8004FacilitatorClient(network=net)
         scores: List[float] = []
         for aid in agent_ids:
             try:
                 rep = await asyncio.wait_for(
-                    client.get_reputation(aid),
+                    get_reputation(aid, network=net),
                     timeout=5.0,
                 )
                 if rep and rep.count > 0:

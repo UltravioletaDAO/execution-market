@@ -46,7 +46,10 @@ _LEAF_STUBS = {
         "register_worker_gasless": None,
         "update_executor_identity": None,
     },
-    "integrations.erc8004.feedback_store": {"persist_and_hash_feedback": None},
+    "integrations.erc8004.feedback_store": {
+        "persist_and_hash_feedback": None,
+        "FEEDBACK_PUBLIC_URL": "https://cdn.test.com",
+    },
     "integrations.x402.sdk_client": {
         "NETWORK_CONFIG": {
             "base": {

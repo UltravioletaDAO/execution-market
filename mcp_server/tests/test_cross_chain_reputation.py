@@ -169,7 +169,7 @@ class TestCrossChainReputationAggregation:
             mock_identity,
         ):
             with patch.object(
-                _fc_mod.ERC8004FacilitatorClient,
+                _fc_mod,
                 "get_reputation",
                 new_callable=AsyncMock,
                 return_value=mock_rep,
@@ -188,20 +188,20 @@ class TestCrossChainReputationAggregation:
 
     @pytest.mark.asyncio
     async def test_two_chains_equal_weight(self):
-        """Two chains → final = average of per-chain averages."""
+        """Two chains -> final = average of per-chain averages."""
 
         async def mock_check_identity(wallet, network="base"):
             if network in ("base", "polygon"):
                 return _registered(2106, network)
             return _not_registered(network)
 
-        async def mock_get_rep(self, agent_id, **kwargs):
+        async def mock_get_rep(agent_id, network="base", **kwargs):
             # Base: score 90, Polygon: score 70
-            if self.network == "base":
+            if network == "base":
                 return ReputationSummary(
                     agent_id=2106, count=1, summary_value=90, network="base"
                 )
-            elif self.network == "polygon":
+            elif network == "polygon":
                 return ReputationSummary(
                     agent_id=2106, count=1, summary_value=70, network="polygon"
                 )
@@ -212,9 +212,9 @@ class TestCrossChainReputationAggregation:
             side_effect=mock_check_identity,
         ):
             with patch.object(
-                _fc_mod.ERC8004FacilitatorClient,
+                _fc_mod,
                 "get_reputation",
-                mock_get_rep,
+                side_effect=mock_get_rep,
             ):
                 result = await get_cross_chain_reputation(
                     "0x1234567890123456789012345678901234567890",
@@ -235,12 +235,12 @@ class TestCrossChainReputationAggregation:
                 return _registered(2106, network)
             return _not_registered(network)
 
-        async def mock_get_rep(self, agent_id, **kwargs):
-            if self.network == "base":
+        async def mock_get_rep(agent_id, network="base", **kwargs):
+            if network == "base":
                 return ReputationSummary(
                     agent_id=2106, count=3, summary_value=90, network="base"
                 )
-            elif self.network == "polygon":
+            elif network == "polygon":
                 # 0 reviews = count is 0
                 return ReputationSummary(
                     agent_id=2106, count=0, summary_value=0, network="polygon"
@@ -252,9 +252,9 @@ class TestCrossChainReputationAggregation:
             side_effect=mock_check_identity,
         ):
             with patch.object(
-                _fc_mod.ERC8004FacilitatorClient,
+                _fc_mod,
                 "get_reputation",
-                mock_get_rep,
+                side_effect=mock_get_rep,
             ):
                 result = await get_cross_chain_reputation(
                     "0x1234567890123456789012345678901234567890",
@@ -308,7 +308,7 @@ class TestCrossChainReputationAggregation:
             side_effect=mock_check_identity,
         ):
             with patch.object(
-                _fc_mod.ERC8004FacilitatorClient,
+                _fc_mod,
                 "get_reputation",
                 new_callable=AsyncMock,
                 return_value=mock_rep,
@@ -340,7 +340,7 @@ class TestCrossChainReputationAggregation:
             side_effect=mock_check_identity,
         ):
             with patch.object(
-                _fc_mod.ERC8004FacilitatorClient,
+                _fc_mod,
                 "get_reputation",
                 new_callable=AsyncMock,
                 return_value=mock_rep,
