@@ -420,7 +420,9 @@ async def verify_agent_owns_task(agent_id: str, task_id: str) -> bool:
         if not task:
             return False
 
-        return task.get("agent_id") == agent_id
+        # Compare case-insensitively — agent_id may be wallet (0x...) or legacy numeric
+        task_agent = (task.get("agent_id") or "").lower()
+        return task_agent == agent_id.lower()
 
     except Exception as e:
         logger.error("Error verifying task ownership: %s", str(e))
@@ -449,7 +451,8 @@ async def verify_agent_owns_submission(agent_id: str, submission_id: str) -> boo
         if not task:
             return False
 
-        return task.get("agent_id") == agent_id
+        task_agent = (task.get("agent_id") or "").lower()
+        return task_agent == agent_id.lower()
 
     except Exception as e:
         logger.error("Error verifying submission ownership: %s", str(e))
@@ -554,10 +557,12 @@ async def verify_agent_auth(request: Request) -> AgentAuth:
                     result.address, result.chain_id
                 )
 
-                agent_id = str(identity.get("agent_id") or result.address)
-
+                # Always use wallet address as agent_id for ERC-8128 auth.
+                # The numeric ERC-8004 token ID (e.g. 37500 on Base, 246 on SKALE)
+                # is stored in erc8004_agent_id — it's per-chain and NOT suitable
+                # as the universal agent identifier. Wallet address is chain-invariant.
                 return AgentAuth(
-                    agent_id=agent_id,
+                    agent_id=result.address,
                     wallet_address=result.address,
                     auth_method="erc8128",
                     chain_id=result.chain_id,

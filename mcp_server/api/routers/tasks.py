@@ -2177,7 +2177,9 @@ async def get_task_chat_history(
         raise HTTPException(status_code=404, detail="Task not found")
 
     task = task_result.data[0]
-    if task.get("agent_id") != auth.agent_id:
+    task_agent = (task.get("agent_id") or "").lower()
+    auth_wallet = (getattr(auth, "wallet_address", None) or auth.agent_id).lower()
+    if task_agent != auth.agent_id.lower() and task_agent != auth_wallet:
         raise HTTPException(
             status_code=403, detail="Only the task publisher can view chat history"
         )

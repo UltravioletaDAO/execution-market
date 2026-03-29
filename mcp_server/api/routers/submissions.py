@@ -506,33 +506,30 @@ async def reject_submission(
             task = submission.get("task") or {}
             executor = submission.get("executor") or {}
 
-            agent_id_for_feedback = auth.agent_id
-            try:
-                agent_id_int = int(agent_id_for_feedback)
-                from integrations.erc8004.identity import verify_agent_identity
+            # Use erc8004_agent_id (per-chain numeric ID) for feedback,
+            # not auth.agent_id (which is always a wallet address now).
+            agent_id_for_feedback = getattr(auth, "erc8004_agent_id", None)
+            if agent_id_for_feedback is not None:
+                try:
+                    from integrations.erc8004.identity import verify_agent_identity
 
-                agent_check = await verify_agent_identity(
-                    str(agent_id_int),
-                    network=task.get("payment_network", "base"),
-                )
-                if not agent_check.get("registered"):
-                    logger.warning(
-                        "Rejection feedback skip: agent %s not found on-chain",
-                        agent_id_for_feedback,
+                    agent_check = await verify_agent_identity(
+                        str(agent_id_for_feedback),
+                        network=task.get("payment_network", "base"),
                     )
-                    # Don't block rejection — just skip the side effect
+                    if not agent_check.get("registered"):
+                        logger.warning(
+                            "Rejection feedback skip: agent %d not found on-chain",
+                            agent_id_for_feedback,
+                        )
+                        agent_id_for_feedback = None
+                except Exception as vc_err:
+                    logger.warning(
+                        "Rejection feedback skip: identity check failed for agent %s: %s",
+                        agent_id_for_feedback,
+                        vc_err,
+                    )
                     agent_id_for_feedback = None
-            except (ValueError, TypeError):
-                logger.warning(
-                    "Rejection feedback skip: agent_id %s not numeric",
-                    auth.agent_id,
-                )
-                agent_id_for_feedback = None
-            except Exception as vc_err:
-                logger.warning(
-                    "Rejection feedback: on-chain check failed (proceeding): %s",
-                    vc_err,
-                )
 
             if agent_id_for_feedback is not None:
                 try:

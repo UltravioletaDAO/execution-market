@@ -270,15 +270,23 @@ On-chain reputation feedback recorded in the ERC-8004 Reputation Registry."""
             if task_status in ("published", "cancelled", "expired"):
                 return f"Error: Task in status '{task_status}' cannot be rated"
 
-            # Resolve agent's ERC-8004 ID
-            agent_id_raw = task.get("agent_id", "")
-            try:
-                agent_id_int = int(agent_id_raw)
-            except (ValueError, TypeError):
-                return (
-                    f"Error: Agent ID '{agent_id_raw}' is not a numeric "
-                    "ERC-8004 agent ID. Cannot submit on-chain feedback."
-                )
+            # Resolve agent's ERC-8004 ID — prefer per-chain erc8004_agent_id
+            # (task.agent_id is now a wallet address, not a numeric ID)
+            agent_id_int = task.get("erc8004_agent_id")
+            if agent_id_int is not None:
+                try:
+                    agent_id_int = int(agent_id_int)
+                except (ValueError, TypeError):
+                    agent_id_int = None
+            if agent_id_int is None:
+                # Fallback: try agent_id field (legacy tasks may have numeric ID)
+                try:
+                    agent_id_int = int(task.get("agent_id", ""))
+                except (ValueError, TypeError):
+                    return (
+                        "Error: Task has no numeric ERC-8004 agent ID. "
+                        "Cannot submit on-chain feedback."
+                    )
 
             # Get payment tx for proof
             proof_tx = None
