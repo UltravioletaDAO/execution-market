@@ -804,6 +804,7 @@ async def rate_worker_endpoint(
     if executor.get("erc8004_agent_id"):
         worker_agent_id = int(executor["erc8004_agent_id"])
 
+    task_network = task.get("payment_network") or "base"
     result = await rate_worker(
         task_id=request.task_id,
         score=request.score,
@@ -811,6 +812,7 @@ async def rate_worker_endpoint(
         comment=request.comment or "",
         proof_tx=request.proof_tx,
         worker_agent_id=worker_agent_id,
+        network=task_network,
     )
 
     logger.info(

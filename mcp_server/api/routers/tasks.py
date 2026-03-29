@@ -581,13 +581,48 @@ async def create_task(
                         erc8004_identity.get("owner"),
                     )
                 else:
-                    logger.warning(
-                        "ERC-8004 identity NOT registered for agent %s (network=%s). "
-                        "EM_REQUIRE_ERC8004=%s",
+                    # Auto-register agent on the task's network (gasless)
+                    logger.info(
+                        "ERC-8004 identity NOT found for agent %s on %s — "
+                        "attempting gasless auto-registration",
                         auth.agent_id,
                         task_network,
-                        _require_erc8004,
                     )
+                    try:
+                        from integrations.erc8004.identity import (
+                            register_worker_gasless,
+                        )
+
+                        reg = await register_worker_gasless(
+                            wallet_address=auth.agent_id,
+                            network=task_network,
+                        )
+                        if reg.agent_id:
+                            erc8004_identity = {
+                                "registered": True,
+                                "agent_id": reg.agent_id,
+                                "owner": auth.agent_id,
+                                "network": task_network,
+                            }
+                            logger.info(
+                                "Auto-registered agent %s on %s: agent_id=%s",
+                                auth.agent_id,
+                                task_network,
+                                reg.agent_id,
+                            )
+                        else:
+                            logger.warning(
+                                "Auto-registration returned no agent_id for %s on %s",
+                                auth.agent_id,
+                                task_network,
+                            )
+                    except Exception as reg_err:
+                        logger.warning(
+                            "Auto-registration failed for agent %s on %s: %s",
+                            auth.agent_id,
+                            task_network,
+                            reg_err,
+                        )
             except Exception as e:
                 logger.warning(
                     "ERC-8004 identity check failed for agent %s: %s",
