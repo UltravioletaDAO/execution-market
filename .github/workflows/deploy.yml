@@ -21,6 +21,7 @@ env:
   CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.DASHBOARD_CLOUDFRONT_ID }}
   BASE_URL: https://execution.market
   API_URL: https://api.execution.market
+  TF_DIR: infrastructure/terraform
 
 jobs:
   # ── Change Detection ─────────────────────────────────────────────
@@ -30,6 +31,7 @@ jobs:
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
+      infra: ${{ steps.filter.outputs.infra }}
     steps:
       - uses: actions/checkout@v6
       - uses: dorny/paths-filter@v4
@@ -41,13 +43,17 @@ jobs:
               - 'Dockerfile.mcp_server'
             frontend:
               - 'dashboard/**'
+            infra:
+              - 'infrastructure/terraform/**'
 
-  # ── Build & Push Backend (Docker → ECR → ECS) ───────────────────
+  # ── Build & Push Backend (Docker → ECR) ──────────────────────────
   build-and-push-backend:
     name: Build & Push Backend
     runs-on: ubuntu-latest
     needs: detect-changes
     if: needs.detect-changes.outputs.backend == 'true'
+    outputs:
+      image: ${{ steps.image-tag.outputs.image }}
     steps:
       - uses: actions/checkout@v6
 
@@ -78,6 +84,69 @@ jobs:
           cache-to: type=gha,mode=max
           platforms: linux/amd64
 
+      - name: Output image tag
+        id: image-tag
+        run: echo "image=${{ env.ECR_REGISTRY }}/${{ env.MCP_SERVER_ECR_REPO }}:${{ github.sha }}" >> "$GITHUB_OUTPUT"
+
+  # ── Terraform Apply (when infrastructure/ changed) ───────────────
+  terraform-apply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    needs: [detect-changes, build-and-push-backend]
+    # Run when infra changed. always() prevents auto-skip when
+    # build-and-push-backend is skipped (no backend code changes).
+    if: >-
+      always()
+      && needs.detect-changes.outputs.infra == 'true'
+      && needs.detect-changes.result == 'success'
+      && needs.build-and-push-backend.result != 'failure'
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '~> 1.7'
+
+      - name: Terraform Init
+        working-directory: ${{ env.TF_DIR }}
+        run: |
+          terraform init -input=false \
+            -backend-config="key=${{ secrets.TF_STATE_KEY }}"
+
+      - name: Terraform Plan
+        working-directory: ${{ env.TF_DIR }}
+        run: |
+          TF_VARS="-var=enable_evidence_pipeline=true"
+
+          # If a new backend image was built, tell Terraform to use it
+          if [ -n "$IMAGE_TAG" ]; then
+            TF_VARS="$TF_VARS -var=mcp_server_image=$IMAGE_TAG"
+          fi
+
+          terraform plan -input=false -no-color $TF_VARS \
+            -out=tfplan 2>&1 | tee /tmp/plan-output.txt
+        env:
+          IMAGE_TAG: ${{ needs.build-and-push-backend.outputs.image }}
+
+      - name: Show plan in summary
+        run: |
+          echo "## Terraform Plan" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -80 /tmp/plan-output.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Terraform Apply
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform apply -input=false -auto-approve tfplan
+
   # ── Build & Deploy Frontend (Vite → S3 → CloudFront) ────────────
   deploy-frontend:
     name: Build & Deploy Frontend
@@ -90,7 +159,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Set up Node.js 20
+      - name: Set up Node.js 22
         uses: actions/setup-node@v6
         with:
           node-version: '22'
@@ -170,8 +239,14 @@ jobs:
   deploy-backend:
     name: Deploy Backend
     runs-on: ubuntu-latest
-    needs: [detect-changes, build-and-push-backend]
-    if: needs.detect-changes.outputs.backend == 'true'
+    needs: [detect-changes, build-and-push-backend, terraform-apply]
+    # Run when backend OR infra changed (and upstream didn't fail).
+    if: >-
+      always()
+      && needs.detect-changes.result == 'success'
+      && (needs.detect-changes.outputs.backend == 'true' || needs.detect-changes.outputs.infra == 'true')
+      && needs.build-and-push-backend.result != 'failure'
+      && needs.terraform-apply.result != 'failure'
     environment:
       name: ${{ github.ref == 'refs/heads/production' && 'production' || 'staging' }}
       url: ${{ env.API_URL }}
@@ -185,13 +260,29 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+      # ── Path A: Terraform applied — just force new deployment ────
+      - name: Force new ECS deployment (post-Terraform)
+        if: needs.detect-changes.outputs.infra == 'true'
+        run: |
+          echo "Terraform applied infrastructure changes."
+          echo "Forcing new ECS deployment to pick up updated task definition..."
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ env.MCP_SERVER_SERVICE }} \
+            --force-new-deployment \
+            --query 'service.deployments[0].{status:status,desired:desiredCount,running:runningCount}' \
+            --output table
+
+      # ── Path B: No infra changes — image-only fast deploy ────────
       - name: Download task definition
+        if: needs.detect-changes.outputs.infra != 'true'
         run: |
           aws ecs describe-task-definition \
             --task-definition ${{ env.MCP_SERVER_SERVICE }} \
             --query taskDefinition > task-def.json
 
       - name: Update task definition
+        if: needs.detect-changes.outputs.infra != 'true'
         id: task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
@@ -202,6 +293,7 @@ jobs:
             EM_BASE_URL=${{ env.API_URL }}
 
       - name: Deploy to ECS
+        if: needs.detect-changes.outputs.infra != 'true'
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
           task-definition: ${{ steps.task-def.outputs.task-definition }}
@@ -209,6 +301,15 @@ jobs:
           cluster: ${{ env.ECS_CLUSTER }}
           wait-for-service-stability: true
           wait-for-minutes: 15
+
+      # ── Wait for stability (terraform path) ─────────────────────
+      - name: Wait for service stability
+        if: needs.detect-changes.outputs.infra == 'true'
+        run: |
+          echo "Waiting for ECS service to stabilize..."
+          aws ecs wait services-stable \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.MCP_SERVER_SERVICE }}
 
       - name: Health check
         run: |
@@ -224,7 +325,7 @@ jobs:
   notify:
     name: Notify on Failure
     runs-on: ubuntu-latest
-    needs: [deploy-backend, deploy-frontend]
+    needs: [deploy-backend, deploy-frontend, terraform-apply]
     if: failure()
     steps:
       - name: Send failure notification

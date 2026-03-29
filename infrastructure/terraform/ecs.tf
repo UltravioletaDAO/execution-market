@@ -117,7 +117,7 @@ resource "aws_iam_role_policy" "ecs_task_s3" {
 # Port 8000 only — MCP server. Port 80 removed (dashboard now served via S3+CloudFront).
 resource "aws_security_group" "ecs" {
   name        = "${local.name_prefix}-ecs-sg"
-  description = "Security group for ECS tasks (MCP server on 8000)"
+  description = "Security group for ECS tasks"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -187,6 +187,11 @@ resource "aws_ecs_task_definition" "mcp_server" {
         { name = "EVIDENCE_PUBLIC_BASE_URL", value = var.enable_evidence_pipeline ? "https://${aws_cloudfront_distribution.evidence[0].domain_name}" : "https://${local.evidence_bucket_name}.s3.amazonaws.com" },
         { name = "EM_FEEDBACK_BASE_URL", value = "https://execution.market" },
         { name = "ERC8128_NONCE_STORE", value = "dynamodb" },
+        { name = "EM_REQUIRE_ERC8004", value = "true" },
+        { name = "EM_REQUIRE_ERC8004_WORKER", value = "true" },
+        { name = "VERIFICATION_AI_ENABLED", value = "true" },
+        { name = "AI_VERIFICATION_PROVIDER", value = "anthropic" },
+        { name = "VERIFICATION_AUTO_APPROVE", value = "true" },
       ]
 
       secrets = [
@@ -307,12 +312,6 @@ resource "aws_ecs_service" "mcp_server" {
     capacity_provider = "FARGATE"
     weight            = 1
     base              = 1
-  }
-
-  capacity_provider_strategy {
-    capacity_provider = "FARGATE_SPOT"
-    weight            = 3
-    base              = 0
   }
 
   network_configuration {

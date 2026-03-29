@@ -9,6 +9,21 @@ When code changes in `mcp_server/` need to go to production. Use after committin
 - Code committed to `main` branch
 - `MSYS_NO_PATHCONV=1` prefix on ALL aws commands (Git Bash Windows path bug)
 
+## CRITICAL: Never Modify Task Definition Env Vars Manually
+
+**ABSOLUTE RULE: NEVER register a new ECS task definition to add/change/remove environment variables.**
+
+Environment variables are owned by Terraform (`infrastructure/terraform/ecs.tf`). If you need to add or change an env var:
+
+1. Edit `infrastructure/terraform/ecs.tf` (the `environment` block in `aws_ecs_task_definition.mcp_server`)
+2. Commit the change
+3. Push to `main` — CI/CD will run `terraform apply` automatically
+4. Or run terraform apply locally (see "Terraform Apply" section below)
+
+**Why**: Manual task definition updates create "shadow" revisions that diverge from Terraform state. The next deploy inherits the shadow revision, and Terraform changes (like adding SKALE to `EM_ENABLED_NETWORKS`) get silently lost. This caused the SKALE outage on 2026-03-28 (rev 337).
+
+**The ONLY thing this skill should change in task definitions is the Docker image tag.**
+
 ## Step 1: Build Docker Image
 
 ```bash
@@ -43,6 +58,8 @@ MSYS_NO_PATHCONV=1 aws ecs update-service \
   --output json
 ```
 
+**This is safe** — it re-uses the existing task definition and just pulls the `:latest` image. No env vars are touched.
+
 ## Step 5: Verify (wait ~90s)
 
 ```bash
@@ -53,6 +70,29 @@ curl -s https://api.execution.market/api/v1/health | python -m json.tool
 
 # Verify new code is active (check OpenAPI for new endpoints, etc.)
 curl -s https://api.execution.market/openapi.json | python -c "import json,sys; d=json.load(sys.stdin); print(f'{len(d[\"paths\"])} endpoints registered')"
+```
+
+## Terraform Apply (for env var / infra changes)
+
+When you need to change environment variables, CPU/memory, secrets, or other infrastructure:
+
+1. **Edit Terraform** — modify `infrastructure/terraform/ecs.tf`
+2. **Plan** (verify changes):
+```bash
+cd infrastructure/terraform
+MSYS_NO_PATHCONV=1 terraform init -backend-config="key=em/terraform.tfstate"
+MSYS_NO_PATHCONV=1 terraform plan -var="enable_evidence_pipeline=true"
+```
+3. **Apply** (after user confirms):
+```bash
+MSYS_NO_PATHCONV=1 terraform apply -var="enable_evidence_pipeline=true"
+```
+4. **Force deploy** to pick up changes:
+```bash
+MSYS_NO_PATHCONV=1 aws ecs update-service \
+  --cluster em-production-cluster \
+  --service em-production-mcp-server \
+  --force-new-deployment --region us-east-2
 ```
 
 ## CRITICAL: Task Definition Must Use :latest
@@ -67,41 +107,7 @@ MSYS_NO_PATHCONV=1 aws ecs describe-task-definition \
   --query 'taskDefinition.containerDefinitions[0].image' --output text
 ```
 
-If it shows a SHA tag instead of `:latest`, register a new revision:
-
-```bash
-# Get current container defs
-MSYS_NO_PATHCONV=1 aws ecs describe-task-definition \
-  --task-definition em-production-mcp-server \
-  --region us-east-2 --output json > taskdef.json
-
-# Fix image to :latest in Python
-python -c "
-import json
-with open('taskdef.json') as f:
-    td = json.load(f)['taskDefinition']
-cd = td['containerDefinitions'][0]
-cd['image'] = '<YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-2.amazonaws.com/em-production-mcp-server:latest'
-with open('container-defs.json', 'w') as f:
-    json.dump([cd], f)
-"
-
-# Register new revision
-MSYS_NO_PATHCONV=1 aws ecs register-task-definition \
-  --family em-production-mcp-server \
-  --container-definitions "$(cat container-defs.json)" \
-  --task-role-arn "arn:aws:iam::<YOUR_AWS_ACCOUNT_ID>:role/em-production-ecs-task" \
-  --execution-role-arn "arn:aws:iam::<YOUR_AWS_ACCOUNT_ID>:role/em-production-ecs-execution" \
-  --network-mode awsvpc --requires-compatibilities FARGATE \
-  --cpu 256 --memory 512 --region us-east-2
-
-# Deploy with new revision
-MSYS_NO_PATHCONV=1 aws ecs update-service \
-  --cluster em-production-cluster \
-  --service em-production-mcp-server \
-  --task-definition "em-production-mcp-server:NEW_REV" \
-  --force-new-deployment --region us-east-2
-```
+If it shows a SHA tag instead of `:latest`, the simplest fix is to push `:latest` to ECR and force deploy (Steps 1-4 above). Do NOT register a new task definition manually.
 
 ## Quick Reference
 
@@ -112,7 +118,7 @@ MSYS_NO_PATHCONV=1 aws ecs update-service \
 | Cluster | `em-production-cluster` |
 | Service | `em-production-mcp-server` |
 | ECR Repo | `em-production-mcp-server` |
-| Task Def Rev | 150 (`:latest`, 14 secrets) |
+| TF State Key | `em/terraform.tfstate` |
 | Health URL | `https://api.execution.market/api/v1/health` |
 | Docs URL | `https://api.execution.market/docs` |
 
