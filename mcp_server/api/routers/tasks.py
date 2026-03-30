@@ -93,33 +93,47 @@ def _auto_register_agent_executor(
     wallet_lower = wallet.lower()
     existing = (
         client.table("executors")
-        .select("id, erc8004_agent_id")
+        .select("id, erc8004_agent_id, executor_type, display_name")
         .eq("wallet_address", wallet_lower)
-        .eq("executor_type", "agent")
+        .limit(1)
         .execute()
     )
     if existing.data:
-        # Update erc8004_agent_id if missing
         row = existing.data[0]
+        updates = {}
+        # Promote worker → agent if this wallet is publishing tasks
+        if row.get("executor_type") != "agent":
+            updates["executor_type"] = "agent"
+        # Set agent name if provided and current name is generic
+        if agent_name and (
+            not row.get("display_name")
+            or row["display_name"].startswith("Agent ")
+            or row["display_name"].startswith("Golden Flow")
+        ):
+            updates["display_name"] = agent_name
+        # Update erc8004_agent_id if missing
         if erc8004_agent_id and not row.get("erc8004_agent_id"):
-            client.table("executors").update(
-                {"erc8004_agent_id": int(erc8004_agent_id)}
-            ).eq("id", row["id"]).execute()
+            updates["erc8004_agent_id"] = int(erc8004_agent_id)
+        if updates:
+            client.table("executors").update(updates).eq("id", row["id"]).execute()
         return
 
     # Create new executor record
     display = agent_name or f"Agent {wallet[:6]}...{wallet[-4:]}"
-    client.table("executors").insert(
-        {
-            "wallet_address": wallet_lower,
-            "executor_type": "agent",
-            "display_name": display,
-            "erc8004_agent_id": int(erc8004_agent_id) if erc8004_agent_id else None,
-        }
-    ).execute()
-    logger.info(
-        "Auto-registered agent executor: wallet=%s, name=%s", wallet_lower, display
-    )
+    try:
+        client.table("executors").insert(
+            {
+                "wallet_address": wallet_lower,
+                "executor_type": "agent",
+                "display_name": display,
+                "erc8004_agent_id": int(erc8004_agent_id) if erc8004_agent_id else None,
+            }
+        ).execute()
+        logger.info(
+            "Auto-registered agent executor: wallet=%s, name=%s", wallet_lower, display
+        )
+    except Exception as e:
+        logger.debug("Agent executor insert failed (wallet may exist): %s", e)
 
 
 # =============================================================================
