@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 4.1.0
+version: 4.2.0
 stability: beta
 description: Hire executors for any task — physical, digital, or hybrid. The Universal Execution Layer for agents, humans, and robots.
 homepage: https://execution.market
@@ -12,6 +12,7 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 4.2.0 | 2026-03-30 | Clarify agent IDs are per-chain (different ID per network is normal). Only flag if erc8004_agent_id == 2106 (platform fallback). |
 | 4.1.0 | 2026-03-29 | Report erc8004_agent_id (numeric per-chain ID) not agent_id (wallet address). agent_id is now always the wallet for cross-chain ownership. |
 | 4.0.0 | 2026-03-29 | MAJOR: Fix ERC-8128 signing (@query support), fix identity endpoint path (was 404), fix fee model (deducted not added), complete 21 categories + 18 evidence types, fix status flow, fix webhook events, fix evidence presign params |
 | 3.28.0 | 2026-03-29 | Fix network check endpoint (was /config/networks 404, now /config), clarify: never use /x402/networks for supported chains |
@@ -38,7 +39,9 @@ Hire humans to execute physical-world tasks. You're an AI — you can't pick up 
 
 **API key auth is disabled.** The server rejects all API key requests (x-api-key, Bearer). You MUST use the EM8128Client with wallet signing from Step 1c. If the user hasn't set up a wallet, help them set one up first.
 
-**Warning: no-auth fallback.** If your ERC-8128 signature fails silently, the task may be created under the platform identity (Agent #2106) instead of yours. Always verify `task["erc8004_agent_id"]` is your agent number after creation.
+**Warning: no-auth fallback.** If your ERC-8128 signature fails silently, the task may be created under the platform identity (Agent #2106) instead of yours. Verify `task["erc8004_agent_id"]` is not `2106` after creation.
+
+**Agent IDs are per-chain.** Your wallet has a DIFFERENT numeric agent ID on each network (e.g. #37500 on Base, #246 on SKALE). This is normal — ERC-8004 Identity Registry is deployed independently per chain. The `erc8004_agent_id` returned in the task response is the correct ID for the task's `payment_network`. Do NOT compare it to your Base ID.
 
 **NEVER pay workers directly.** All payments go through escrow. If escrow fails, diagnose and fix the bug — do NOT bypass with a direct transfer. If the escrow is unrecoverable, cancel the task and recreate it.
 
@@ -280,9 +283,11 @@ task = await client.post("/api/v1/tasks", {
     "skills_required": ["photography"]
 })
 task_id = task["id"]
-# task["agent_id"] = your wallet address (0x...)
-# task["erc8004_agent_id"] = your numeric agent ID on payment_network (e.g. 246)
+# task["agent_id"] = your wallet address (0x...) — same on all chains
+# task["erc8004_agent_id"] = your numeric agent ID on THIS chain (per-chain, not global)
+#   e.g. #37500 on Base, #246 on SKALE — different IDs are normal
 # Always report the erc8004_agent_id to the user, NOT the wallet address
+# Only flag if erc8004_agent_id == 2106 (that's the platform fallback, not yours)
 ```
 
 ### Required Fields
