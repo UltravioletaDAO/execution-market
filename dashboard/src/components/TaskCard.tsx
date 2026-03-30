@@ -57,6 +57,11 @@ export const TaskCard = memo(function TaskCard({ task, onClick }: TaskCardProps)
   // Format deadline
   const deadlineText = formatTimeRemaining(task.deadline)
 
+  // Format creation date (YYYY-MM-DD HH:MM)
+  const createdDate = task.created_at
+    ? new Date(task.created_at).toISOString().slice(0, 16).replace('T', ' ')
+    : ''
+
   // Format bounty
   const bountyText = formatCurrency(task.bounty_usd)
 
@@ -156,6 +161,11 @@ export const TaskCard = memo(function TaskCard({ task, onClick }: TaskCardProps)
           </svg>
           <span>{deadlineText}</span>
         </div>
+        {createdDate && (
+          <span className="text-xs text-gray-400 dark:text-gray-500" title="Created at">
+            {createdDate}
+          </span>
+        )}
       </div>
 
       {/* Location badge */}
