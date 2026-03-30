@@ -175,6 +175,7 @@ class SwarmIntegrator:
         self._chain_router = None
         self._task_validator = None
         self._batch_scheduler = None
+        self._pipeline_optimizer = None
 
         # State
         self._started = False
@@ -464,6 +465,30 @@ class SwarmIntegrator:
                     )
             except Exception as e:
                 logger.warning(f"Failed to wire BatchScheduler into CoordinatorPipeline: {e}")
+
+        return self
+
+    def set_pipeline_optimizer(self, optimizer) -> "SwarmIntegrator":
+        """
+        Register the PipelineOptimizer (Module #60).
+
+        Monitors the 7-stage routing pipeline, detects bottlenecks,
+        tracks trends, computes correlations, and generates optimization
+        suggestions. Wires into CoordinatorPipeline if available.
+        """
+        self._pipeline_optimizer = optimizer
+        self._register_component("pipeline_optimizer", optimizer)
+
+        # Auto-wire into CoordinatorPipeline if available
+        if self._coordinator_pipeline is not None:
+            try:
+                if hasattr(self._coordinator_pipeline, "set_pipeline_optimizer"):
+                    self._coordinator_pipeline.set_pipeline_optimizer(optimizer)
+                    logger.info(
+                        "PipelineOptimizer wired into CoordinatorPipeline"
+                    )
+            except Exception as e:
+                logger.warning(f"Failed to wire PipelineOptimizer into CoordinatorPipeline: {e}")
 
         return self
 
@@ -1037,6 +1062,13 @@ class SwarmIntegrator:
             if self._coordinator_pipeline:
                 lines.append("       ↳ wired to CoordinatorPipeline")
 
+        # Optimization Layer
+        if self._pipeline_optimizer:
+            lines.append("\n  Optimization Layer:")
+            lines.append("    📊 PipelineOptimizer (#60) — bottleneck detection & tuning")
+            if self._coordinator_pipeline:
+                lines.append("       ↳ wired to CoordinatorPipeline")
+
         # Chain Intelligence Stack
         if self._network_registry or self._identity_resolver or self._chain_router:
             lines.append("\n  Chain Intelligence Stack:")
@@ -1127,6 +1159,7 @@ class SwarmIntegrator:
             "chain_router": integrator.set_chain_router,
             "task_validator": integrator.set_task_validator,
             "batch_scheduler": integrator.set_batch_scheduler,
+            "pipeline_optimizer": integrator.set_pipeline_optimizer,
         }
 
         for name, instance in components.items():
