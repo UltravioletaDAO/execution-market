@@ -820,13 +820,28 @@ async def update_submission(
                 reason="Task completed successfully",
             )
 
-        # If rejected, return task to in_progress so worker can resubmit
-        # Guard: only roll back if the task is in a submittable state;
-        # never resurrect cancelled/expired/completed tasks.
+        # If rejected, decide based on severity (passed via notes prefix or separate field):
+        # - minor rejection: worker can resubmit → in_progress (same worker)
+        # - major rejection: task returns to pool → published (clear executor)
         elif verdict == "rejected":
             current_status = task.get("status", "")
+            rejection_notes = notes or ""
+            is_major = rejection_notes.startswith("[MAJOR]")
+
             if current_status in ("submitted", "verifying", "in_progress"):
-                await update_task(task["id"], {"status": "in_progress"})
+                if is_major:
+                    # Major: return task to public pool for new workers
+                    await update_task(
+                        task["id"],
+                        {
+                            "status": "published",
+                            "executor_id": None,
+                            "assigned_at": None,
+                        },
+                    )
+                else:
+                    # Minor: same worker can resubmit
+                    await update_task(task["id"], {"status": "in_progress"})
 
         return result.data[0]
 

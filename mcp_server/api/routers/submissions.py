@@ -433,12 +433,17 @@ async def reject_submission(
                 detail="Major rejection reputation_score must be 0-50",
             )
 
-    # Update submission
+    # Update submission — prefix notes with [MAJOR] so update_submission
+    # knows to return the task to the public pool (published) vs keeping
+    # the same worker (in_progress for minor rejections).
+    rejection_notes = (
+        f"[MAJOR] {request.notes}" if request.severity == "major" else request.notes
+    )
     await db.update_submission(
         submission_id=submission_id,
         agent_id=auth.agent_id,
         verdict="rejected",
-        notes=request.notes,
+        notes=rejection_notes,
     )
 
     logger.info(
