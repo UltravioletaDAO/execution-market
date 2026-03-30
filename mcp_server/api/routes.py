@@ -23,6 +23,7 @@ from .routers.relay import router as relay_router
 from .routers.moderation import router as moderation_router
 from .routers.account import router as account_router
 from .routers.legal import router as legal_router
+from .routers.audit_grid import router as audit_grid_router
 
 # ---------------------------------------------------------------------------
 # Aggregated router — imported by api/__init__.py as ``api_router``
@@ -40,6 +41,7 @@ router.include_router(relay_router)
 router.include_router(moderation_router)
 router.include_router(account_router)
 router.include_router(legal_router)
+router.include_router(audit_grid_router)
 
 # ---------------------------------------------------------------------------
 # Backward-compatible re-exports used by tests and jobs

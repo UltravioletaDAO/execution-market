@@ -75,6 +75,8 @@ EXPECTED_ROUTES = {
     "/api/v1/skills",
     # Mobile config
     "/api/v1/config/mobile",
+    # Audit grid
+    "/api/v1/tasks/audit-grid",
     # User blocking
     "/api/v1/users/block",
     "/api/v1/users/block/{blocked_user_id}",

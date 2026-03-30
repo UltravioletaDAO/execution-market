@@ -35,6 +35,7 @@ const PublisherReviewSubmission = lazy(() => import('./pages/publisher/ReviewSub
 const RatingsHistory = lazy(() => import('./pages/RatingsHistory').then(m => ({ default: m.RatingsHistory })))
 const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })))
 const Messages = lazy(() => import('./pages/Messages').then(m => ({ default: m.Messages })))
+const AuditGrid = lazy(() => import('./pages/AuditGrid').then(m => ({ default: m.AuditGrid })))
 
 // Legal pages (public, required for App Store / Google Play)
 const PrivacyPolicy = lazy(() => import('./pages/legal/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })))
@@ -185,6 +186,14 @@ function AppRoutes() {
         <Route path="/agents/directory" element={<AgentDirectory />} />
         <Route path="/trading" element={<TradingLeaderboard />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
+        <Route
+          path="/audit"
+          element={
+            <AuthGuard>
+              <AuditGrid />
+            </AuthGuard>
+          }
+        />
         <Route
           path="/publisher/dashboard"
           element={

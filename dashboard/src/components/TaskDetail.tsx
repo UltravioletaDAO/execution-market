@@ -318,6 +318,11 @@ export function TaskDetail({
                   {task.payment_token}{task.payment_network ? ` on ${getNetworkDisplayName(task.payment_network)}` : ''}
                 </div>
               )}
+              {task.skill_version && (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono bg-indigo-50 text-indigo-600 border border-indigo-200 mt-1">
+                  skill v{task.skill_version}
+                </span>
+              )}
             </div>
           </div>
         </div>

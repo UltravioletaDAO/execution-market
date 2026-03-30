@@ -91,6 +91,11 @@ class CreateTaskRequest(BaseModel):
         description="Skills required to complete this task (max 20 items, 50 chars each)",
         max_length=20,
     )
+    skill_version: Optional[str] = Field(
+        default=None,
+        description="Version of the skill.md file used to create this task (semver, e.g. '4.1.0')",
+        max_length=20,
+    )
 
     @field_validator("skills_required")
     @classmethod
@@ -180,6 +185,10 @@ class TaskResponse(BaseModel):
     escrow_status: Optional[str] = Field(
         None,
         description="Current escrow status from the escrows table (e.g. pending_assignment, deposited, funded, locked, released, refunded)",
+    )
+    skill_version: Optional[str] = Field(
+        None,
+        description="Version of skill.md used when this task was created",
     )
 
 

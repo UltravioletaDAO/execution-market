@@ -59,6 +59,9 @@ class WebSocketEventType(str, Enum):
     NOTIFICATION_NEW = "NotificationNew"
     NOTIFICATION_READ = "NotificationRead"
 
+    # Audit events
+    CHECKPOINT_UPDATED = "CheckpointUpdated"
+
     # System events
     CONNECTED = "Connected"
     DISCONNECTED = "Disconnected"

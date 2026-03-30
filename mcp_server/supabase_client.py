@@ -156,6 +156,7 @@ async def create_task(
     location_lat: Optional[float] = None,
     location_lng: Optional[float] = None,
     location_radius_km: Optional[float] = None,
+    skill_version: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Create a new task in the database."""
     client = get_client()
@@ -189,6 +190,8 @@ async def create_task(
         task_data["location_lng"] = location_lng
     if location_radius_km is not None:
         task_data["location_radius_km"] = location_radius_km
+    if skill_version:
+        task_data["skill_version"] = skill_version
 
     result = client.table("tasks").insert(task_data).execute()
 

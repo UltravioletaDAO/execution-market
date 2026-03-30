@@ -48,6 +48,7 @@ export function AppHeader() {
   const menuLinks = [
     ...(isAuthenticated ? [
       { label: t('nav.ratings', 'Ratings'), href: '/ratings' },
+      { label: t('nav.audit', 'Audit'), href: '/audit' },
     ] : []),
     { label: t('nav.leaderboard', 'Leaderboard'), href: '/leaderboard' },
     { label: t('nav.agentDirectory', 'Agent Directory'), href: '/agents/directory' },

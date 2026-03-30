@@ -212,6 +212,11 @@ class PublishTaskInput(BaseModel):
             "dispute_resolution (high-value $50+)"
         ),
     )
+    skill_version: Optional[str] = Field(
+        default=None,
+        description="Version of the skill.md file used to create this task (semver, e.g. '4.1.0')",
+        max_length=20,
+    )
 
     @field_validator("evidence_required")
     @classmethod

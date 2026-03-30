@@ -117,6 +117,7 @@ function makeTask(overrides: Partial<Task> = {}): Task {
     erc8004_agent_id: null,
     agent_name: null,
     skills_required: null,
+    skill_version: null,
     ...overrides,
   }
 }

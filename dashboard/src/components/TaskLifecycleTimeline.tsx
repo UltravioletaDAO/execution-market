@@ -263,9 +263,16 @@ export function TaskLifecycleTimeline({ task, submissions, payment, paymentLoadi
 
   return (
     <section>
-      <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">
-        {t('taskLifecycle.title', 'Task Lifecycle')}
-      </h2>
+      <div className="flex items-center gap-3 mb-3">
+        <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide">
+          {t('taskLifecycle.title', 'Task Lifecycle')}
+        </h2>
+        {task.skill_version && (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono bg-indigo-50 text-indigo-700 border border-indigo-200">
+            skill v{task.skill_version}
+          </span>
+        )}
+      </div>
       <div className="bg-gray-50 rounded-lg p-4">
         <div className="relative">
           {steps.map((step, index) => {

@@ -341,6 +341,20 @@ async def approve_submission(
             side_fx_err,
         )
 
+    # Lifecycle checkpoints: approved + payment released
+    try:
+        from audit.checkpoint_updater import mark_approved, mark_payment_released
+
+        await mark_approved(task.get("id", ""))
+        await mark_payment_released(
+            task.get("id", ""),
+            tx_hash=release_tx,
+            worker_amount=settlement.get("worker_net_usdc"),
+            fee_amount=settlement.get("platform_fee_usdc"),
+        )
+    except Exception:
+        pass  # Non-blocking
+
     task_network = task.get("payment_network") or "base"
     response_data = {
         "submission_id": submission_id,

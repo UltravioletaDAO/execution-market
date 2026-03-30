@@ -736,6 +736,7 @@ async def create_task(
             location_lat=location_lat,
             location_lng=location_lng,
             location_radius_km=location_radius_km,
+            skill_version=request.skill_version,
         )
 
         # ---- Persist ERC-8004 identity on the task record ---------------
@@ -1285,6 +1286,39 @@ async def create_task(
         except Exception as e:
             logger.warning("Auto-register agent executor failed (non-blocking): %s", e)
 
+        # ── Lifecycle Checkpoints ──────────────────────────────────
+        try:
+            from audit.checkpoint_updater import (
+                init_checkpoint,
+                mark_auth_erc8128,
+                mark_identity_erc8004,
+                mark_balance_checked,
+                mark_payment_auth,
+                mark_escrow_locked,
+            )
+
+            await init_checkpoint(
+                task["id"],
+                skill_version=request.skill_version,
+                network=request.payment_network,
+                token=request.payment_token,
+                bounty_usdc=request.bounty_usd,
+            )
+            if getattr(auth, "auth_method", None) == "erc8128":
+                await mark_auth_erc8128(task["id"])
+            if erc8004_identity and erc8004_identity.get("registered"):
+                await mark_identity_erc8004(
+                    task["id"], erc8004_identity.get("agent_id")
+                )
+            if payment_result and payment_result.success:
+                await mark_balance_checked(task["id"], float(payment_result.amount_usd))
+            if x_payment_auth:
+                await mark_payment_auth(task["id"])
+            if task.get("escrow_tx"):
+                await mark_escrow_locked(task["id"], task.get("escrow_tx"))
+        except Exception as e:
+            logger.warning("Checkpoint init failed (non-blocking): %s", e)
+
         # Event Bus publish — task.created
         try:
             from events import get_event_bus, EMEvent, EventSource
@@ -1337,6 +1371,7 @@ async def create_task(
             target_executor_type=task.get("target_executor_type"),
             agent_name=resolved_agent_name,
             skills_required=task.get("required_capabilities"),
+            skill_version=task.get("skill_version"),
         )
 
     except HTTPException:
@@ -1601,6 +1636,7 @@ async def get_task(
         skills_required=task.get("required_capabilities"),
         payment_tx=resolved_payment_tx,
         escrow_status=task.get("escrow_status"),
+        skill_version=task.get("skill_version"),
     )
 
 
@@ -2289,6 +2325,7 @@ async def list_tasks(
                 payment_token=task.get("payment_token", "USDC"),
                 escrow_tx=task.get("escrow_tx"),
                 refund_tx=task.get("refund_tx"),
+                skill_version=task.get("skill_version"),
             )
         )
 
@@ -2688,6 +2725,17 @@ async def cancel_task(
             refund_tx=(refund_info or {}).get("tx_hash"),
             refund_amount=float(task.get("bounty_usd", 0)),
         )
+
+        # Lifecycle checkpoint: cancelled + optional refund
+        try:
+            from audit.checkpoint_updater import mark_cancelled, mark_refunded
+
+            await mark_cancelled(task_id)
+            _refund_tx = (refund_info or {}).get("tx_hash")
+            if _refund_tx or (refund_info or {}).get("status") == "refunded":
+                await mark_refunded(task_id, _refund_tx)
+        except Exception:
+            pass  # Non-blocking
 
         response_data = {"task_id": task_id, "reason": reason}
         if refund_info:
@@ -3429,6 +3477,22 @@ async def assign_task_to_worker(
                         f"Got: {final_escrow_tx!r}"
                     ),
                 )
+
+        # Lifecycle checkpoint: worker assigned + escrow locked
+        try:
+            from audit.checkpoint_updater import (
+                mark_worker_assigned,
+                mark_escrow_locked,
+            )
+
+            await mark_worker_assigned(
+                task_id, worker_id=request.executor_id, has_erc8004=False
+            )
+            _esc_tx = escrow_data.get("escrow_tx") if escrow_data else None
+            if _esc_tx:
+                await mark_escrow_locked(task_id, _esc_tx)
+        except Exception:
+            pass  # Non-blocking
 
         response_data = {
             "task_id": task_id,

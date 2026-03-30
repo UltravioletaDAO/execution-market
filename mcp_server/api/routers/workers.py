@@ -415,6 +415,14 @@ async def submit_work(
             evidence_count=len(evidence),
         )
 
+        # Lifecycle checkpoint: evidence submitted
+        try:
+            from audit.checkpoint_updater import mark_evidence_submitted
+
+            await mark_evidence_submitted(task_id, evidence_count=len(evidence))
+        except Exception:
+            pass  # Non-blocking
+
         # --- Automated evidence verification (non-blocking) ---
         verification_result = None
         try:

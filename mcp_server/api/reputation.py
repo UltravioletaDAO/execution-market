@@ -877,6 +877,14 @@ async def rate_worker_endpoint(
             },
         )
 
+        # Lifecycle checkpoint: agent rated worker
+        try:
+            from audit.checkpoint_updater import mark_reputation
+
+            await mark_reputation(request.task_id, "agent_to_worker")
+        except Exception:
+            pass  # Non-blocking
+
     # Persist to ratings table so mobile/dashboard can display it
     if result.success:
         executor_id = (task.get("executor") or {}).get("id")
@@ -1359,6 +1367,14 @@ async def confirm_feedback_endpoint(
             "worker_signed": True,
         },
     )
+
+    # Lifecycle checkpoint: worker rated agent
+    try:
+        from audit.checkpoint_updater import mark_reputation
+
+        await mark_reputation(request.task_id, "worker_to_agent")
+    except Exception:
+        pass  # Non-blocking
 
     # Persist worker→agent rating to ratings table for mobile/dashboard display
     try:

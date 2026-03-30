@@ -285,6 +285,7 @@ def register_core_tools(
                 location_lat=_loc_lat,
                 location_lng=_loc_lng,
                 location_radius_km=_loc_radius,
+                skill_version=params.skill_version,
             )
 
             # Payment authorization via dispatcher
@@ -405,6 +406,20 @@ def register_core_tools(
                 logger.warning(
                     "Auto-register agent executor failed (non-blocking): %s", e
                 )
+
+            # Lifecycle checkpoint: task created via MCP
+            try:
+                from audit.checkpoint_updater import init_checkpoint
+
+                await init_checkpoint(
+                    task["id"],
+                    skill_version=params.skill_version,
+                    network=params.payment_network or "base",
+                    token=params.payment_token or "USDC",
+                    bounty_usdc=params.bounty_usd,
+                )
+            except Exception:
+                pass  # Non-blocking
 
             # Dispatch webhook
             await _dispatch_task_webhook("task_created", task, params.agent_id)
