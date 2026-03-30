@@ -62,11 +62,24 @@ export function useAgentCard(walletAddress?: string | null) {
 
       try {
         // Fetch executor profile
-        const { data: executor, error: execError } = await supabase
+        // Prefer agent record over worker record for the same wallet.
+        // A wallet may have both (agent publishes tasks, worker completes them).
+        const { data: agentExec } = await supabase
           .from('executors')
           .select('wallet_address, display_name, avatar_url, bio, agent_type, erc8004_agent_id, reputation_score, tasks_completed, tasks_disputed, avg_rating, skills, created_at')
           .eq('wallet_address', wallet)
+          .eq('executor_type', 'agent')
           .single()
+
+        const executor = agentExec || (await supabase
+          .from('executors')
+          .select('wallet_address, display_name, avatar_url, bio, agent_type, erc8004_agent_id, reputation_score, tasks_completed, tasks_disputed, avg_rating, skills, created_at')
+          .eq('wallet_address', wallet)
+          .limit(1)
+          .single()
+        ).data
+
+        const execError = executor ? null : new Error('not found')
 
         if (execError) {
           // Try matching by ID in case walletAddress is actually an executor ID
