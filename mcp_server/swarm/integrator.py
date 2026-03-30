@@ -170,6 +170,9 @@ class SwarmIntegrator:
         self._signal_harness = None
         self._fleet_manager = None
         self._fleet_lifecycle_bridge = None
+        self._network_registry = None
+        self._identity_resolver = None
+        self._chain_router = None
 
         # State
         self._started = False
@@ -300,6 +303,92 @@ class SwarmIntegrator:
                     logger.info("FleetLifecycleBridge wired to LifecycleManager")
             except Exception as e:
                 logger.warning(f"Failed to wire bridge to LifecycleManager: {e}")
+
+        return self
+
+    def set_network_registry(self, registry) -> "SwarmIntegrator":
+        """
+        Register the NetworkRegistry (Module #56).
+
+        Provides centralized multi-chain configuration: chain features,
+        gas profiles, token addresses, and network status. If a ChainRouter
+        is already registered, auto-wires the registry into it.
+        """
+        self._network_registry = registry
+        self._register_component("network_registry", registry)
+
+        # Auto-wire into ChainRouter if available
+        if self._chain_router is not None:
+            try:
+                if hasattr(self._chain_router, "set_registry"):
+                    self._chain_router.set_registry(registry)
+                    logger.info("NetworkRegistry wired into ChainRouter")
+            except Exception as e:
+                logger.warning(f"Failed to wire NetworkRegistry into ChainRouter: {e}")
+
+        return self
+
+    def set_identity_resolver(self, resolver) -> "SwarmIntegrator":
+        """
+        Register the IdentityResolver (Module #55).
+
+        Resolves wallet addresses to agent identities across multiple chains
+        via ERC-8004 Identity Registry. Used by ChainRouter for worker
+        alignment and by CoordinatorPipeline for agent identification.
+        """
+        self._identity_resolver = resolver
+        self._register_component("identity_resolver", resolver)
+
+        # Auto-wire into ChainRouter if available
+        if self._chain_router is not None:
+            try:
+                if hasattr(self._chain_router, "set_identity_resolver"):
+                    self._chain_router.set_identity_resolver(resolver)
+                    logger.info("IdentityResolver wired into ChainRouter")
+            except Exception as e:
+                logger.warning(f"Failed to wire IdentityResolver into ChainRouter: {e}")
+
+        return self
+
+    def set_chain_router(self, router) -> "SwarmIntegrator":
+        """
+        Register the ChainRouter (Module #57).
+
+        Provides intelligent multi-chain task routing with 5 strategies:
+        COST_OPTIMAL, SPEED_OPTIMAL, FEATURE_MATCH, WORKER_ALIGNED, BALANCED.
+
+        Auto-wires NetworkRegistry and IdentityResolver if already registered.
+        Also wires into CoordinatorPipeline as a pre-routing step.
+        """
+        self._chain_router = router
+        self._register_component("chain_router", router)
+
+        # Auto-wire NetworkRegistry if available
+        if self._network_registry is not None:
+            try:
+                if hasattr(router, "set_registry"):
+                    router.set_registry(self._network_registry)
+                    logger.info("ChainRouter wired to NetworkRegistry")
+            except Exception as e:
+                logger.warning(f"Failed to wire ChainRouter to NetworkRegistry: {e}")
+
+        # Auto-wire IdentityResolver if available
+        if self._identity_resolver is not None:
+            try:
+                if hasattr(router, "set_identity_resolver"):
+                    router.set_identity_resolver(self._identity_resolver)
+                    logger.info("ChainRouter wired to IdentityResolver")
+            except Exception as e:
+                logger.warning(f"Failed to wire ChainRouter to IdentityResolver: {e}")
+
+        # Auto-wire into CoordinatorPipeline as pre-routing step
+        if self._coordinator_pipeline is not None:
+            try:
+                if hasattr(self._coordinator_pipeline, "set_chain_router"):
+                    self._coordinator_pipeline.set_chain_router(router)
+                    logger.info("ChainRouter wired into CoordinatorPipeline")
+            except Exception as e:
+                logger.warning(f"Failed to wire ChainRouter into CoordinatorPipeline: {e}")
 
         return self
 
@@ -438,6 +527,32 @@ class SwarmIntegrator:
             except Exception as e:
                 logger.error(f"Failed to wire ExpiryAnalyzer: {e}")
                 self._mark_unhealthy("expiry_analyzer", str(e))
+
+        # Wire chain router for chain.routed events
+        if self._chain_router:
+            try:
+                from .event_bus import TASK_ASSIGNED
+
+                def on_task_assigned_chain(event):
+                    """Record chain routing result when a task is assigned."""
+                    try:
+                        task_data = event.data or {}
+                        chain = task_data.get("chain")
+                        if chain and hasattr(self._chain_router, "record_success"):
+                            self._chain_router.record_success(
+                                chain,
+                                task_data.get("task_id", "unknown"),
+                                success=True,
+                            )
+                    except Exception as e:
+                        logger.error(f"Chain router event error: {e}")
+
+                sub = bus.on(TASK_ASSIGNED, on_task_assigned_chain, source="chain_router")
+                subscriptions.append(sub)
+                logger.info("Wired: EventBus → ChainRouter")
+            except Exception as e:
+                logger.error(f"Failed to wire ChainRouter: {e}")
+                self._mark_unhealthy("chain_router", str(e))
 
         self._event_handlers = subscriptions
         logger.info(
@@ -855,6 +970,22 @@ class SwarmIntegrator:
                 lines.append("    * → Analytics.record_event")
             if self._expiry_analyzer:
                 lines.append("    task.expired → ExpiryAnalyzer.record_expiry")
+            if self._chain_router:
+                lines.append("    task.assigned → ChainRouter.record_success")
+
+        # Chain Intelligence Stack
+        if self._network_registry or self._identity_resolver or self._chain_router:
+            lines.append("\n  Chain Intelligence Stack:")
+            if self._network_registry:
+                lines.append("    📡 NetworkRegistry (#56) — chain config & features")
+            if self._identity_resolver:
+                lines.append("    🔍 IdentityResolver (#55) — wallet → agent identity")
+            if self._chain_router:
+                lines.append("    🔀 ChainRouter (#57) — task → chain routing")
+                if self._network_registry:
+                    lines.append("       ↳ wired to NetworkRegistry")
+                if self._identity_resolver:
+                    lines.append("       ↳ wired to IdentityResolver")
 
         return "\n".join(lines)
 
@@ -927,6 +1058,9 @@ class SwarmIntegrator:
             "signal_harness": integrator.set_signal_harness,
             "fleet_manager": integrator.set_fleet_manager,
             "fleet_lifecycle_bridge": integrator.set_fleet_lifecycle_bridge,
+            "network_registry": integrator.set_network_registry,
+            "identity_resolver": integrator.set_identity_resolver,
+            "chain_router": integrator.set_chain_router,
         }
 
         for name, instance in components.items():

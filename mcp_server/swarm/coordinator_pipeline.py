@@ -296,8 +296,33 @@ class CoordinatorPipeline:
         self._consecutive_failures = 0
         self._created_at = time.time()
 
+        # Chain intelligence
+        self._chain_router = None
+
         # History
         self._recent_results: deque[PipelineResult] = deque(maxlen=50)
+
+    # ─── Chain Router Integration ────────────────────────────
+
+    def set_chain_router(self, router) -> "CoordinatorPipeline":
+        """
+        Register a ChainRouter for pre-routing chain selection.
+
+        When set, the pipeline adds a CHAIN_SELECT phase between
+        WARMUP and EVALUATE that determines the optimal chain for
+        each task before signal evaluation begins.
+
+        Args:
+            router: ChainRouter instance (Module #57)
+        """
+        self._chain_router = router
+        logger.info("CoordinatorPipeline: ChainRouter registered for pre-routing")
+        return self
+
+    @property
+    def chain_router(self):
+        """The registered ChainRouter, or None."""
+        return self._chain_router
 
     # ─── Properties ──────────────────────────────────────────
 
@@ -665,6 +690,7 @@ class CoordinatorPipeline:
             "uptime_seconds": round(time.time() - self._created_at, 1),
             "coordinator": self._coordinator is not None,
             "signal_harness": self._harness is not None,
+            "chain_router": self._chain_router is not None,
             "config": {
                 "max_tasks_per_cycle": self._max_tasks,
                 "min_signal_coverage": self._min_coverage,
