@@ -299,6 +299,9 @@ class CoordinatorPipeline:
         # Chain intelligence
         self._chain_router = None
 
+        # Pre-routing validation
+        self._task_validator = None
+
         # History
         self._recent_results: deque[PipelineResult] = deque(maxlen=50)
 
@@ -323,6 +326,27 @@ class CoordinatorPipeline:
     def chain_router(self):
         """The registered ChainRouter, or None."""
         return self._chain_router
+
+    # ─── Task Validator Integration ──────────────────────────
+
+    def set_task_validator(self, validator) -> "CoordinatorPipeline":
+        """
+        Register a TaskValidator for pre-routing validation.
+
+        When set, the pipeline validates tasks before signal evaluation.
+        Invalid tasks are rejected early, saving compute on routing.
+
+        Args:
+            validator: TaskValidator instance (Module #58)
+        """
+        self._task_validator = validator
+        logger.info("CoordinatorPipeline: TaskValidator registered for pre-routing validation")
+        return self
+
+    @property
+    def task_validator(self):
+        """The registered TaskValidator, or None."""
+        return self._task_validator
 
     # ─── Properties ──────────────────────────────────────────
 
@@ -691,6 +715,7 @@ class CoordinatorPipeline:
             "coordinator": self._coordinator is not None,
             "signal_harness": self._harness is not None,
             "chain_router": self._chain_router is not None,
+            "task_validator": self._task_validator is not None,
             "config": {
                 "max_tasks_per_cycle": self._max_tasks,
                 "min_signal_coverage": self._min_coverage,

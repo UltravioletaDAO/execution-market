@@ -173,6 +173,7 @@ class SwarmIntegrator:
         self._network_registry = None
         self._identity_resolver = None
         self._chain_router = None
+        self._task_validator = None
 
         # State
         self._started = False
@@ -415,6 +416,30 @@ class SwarmIntegrator:
                 )
             except Exception as e:
                 logger.warning(f"Failed to wire VerificationAdapter: {e}")
+        return self
+
+    def set_task_validator(self, validator) -> "SwarmIntegrator":
+        """
+        Register the TaskValidator (Module #58).
+
+        Pre-routing validation pipeline. If a CoordinatorPipeline is
+        already registered, automatically wires the validator as the
+        pre-routing gate.
+        """
+        self._task_validator = validator
+        self._register_component("task_validator", validator)
+
+        # Auto-wire into CoordinatorPipeline if available
+        if self._coordinator_pipeline is not None:
+            try:
+                if hasattr(self._coordinator_pipeline, "set_task_validator"):
+                    self._coordinator_pipeline.set_task_validator(validator)
+                    logger.info(
+                        "TaskValidator wired into CoordinatorPipeline as pre-routing gate"
+                    )
+            except Exception as e:
+                logger.warning(f"Failed to wire TaskValidator into CoordinatorPipeline: {e}")
+
         return self
 
     def _register_component(self, name: str, component) -> None:
@@ -973,6 +998,13 @@ class SwarmIntegrator:
             if self._chain_router:
                 lines.append("    task.assigned → ChainRouter.record_success")
 
+        # Validation Layer
+        if self._task_validator:
+            lines.append("\n  Validation Layer:")
+            lines.append("    🛡️ TaskValidator (#58) — pre-routing task validation")
+            if self._coordinator_pipeline:
+                lines.append("       ↳ wired to CoordinatorPipeline")
+
         # Chain Intelligence Stack
         if self._network_registry or self._identity_resolver or self._chain_router:
             lines.append("\n  Chain Intelligence Stack:")
@@ -1061,6 +1093,7 @@ class SwarmIntegrator:
             "network_registry": integrator.set_network_registry,
             "identity_resolver": integrator.set_identity_resolver,
             "chain_router": integrator.set_chain_router,
+            "task_validator": integrator.set_task_validator,
         }
 
         for name, instance in components.items():
