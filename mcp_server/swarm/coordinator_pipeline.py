@@ -302,6 +302,9 @@ class CoordinatorPipeline:
         # Pre-routing validation
         self._task_validator = None
 
+        # Batch scheduling
+        self._batch_scheduler = None
+
         # History
         self._recent_results: deque[PipelineResult] = deque(maxlen=50)
 
@@ -347,6 +350,27 @@ class CoordinatorPipeline:
     def task_validator(self):
         """The registered TaskValidator, or None."""
         return self._task_validator
+
+    # ─── Batch Scheduler Integration ─────────────────────────
+
+    def set_batch_scheduler(self, scheduler) -> "CoordinatorPipeline":
+        """
+        Register a BatchScheduler for multi-task batch planning.
+
+        When set, the pipeline groups tasks into optimized batches
+        before routing, reducing chain-switch overhead and gas costs.
+
+        Args:
+            scheduler: BatchScheduler instance (Module #59)
+        """
+        self._batch_scheduler = scheduler
+        logger.info("CoordinatorPipeline: BatchScheduler registered for batch planning")
+        return self
+
+    @property
+    def batch_scheduler(self):
+        """The registered BatchScheduler, or None."""
+        return self._batch_scheduler
 
     # ─── Properties ──────────────────────────────────────────
 
@@ -716,6 +740,7 @@ class CoordinatorPipeline:
             "signal_harness": self._harness is not None,
             "chain_router": self._chain_router is not None,
             "task_validator": self._task_validator is not None,
+            "batch_scheduler": self._batch_scheduler is not None,
             "config": {
                 "max_tasks_per_cycle": self._max_tasks,
                 "min_signal_coverage": self._min_coverage,
