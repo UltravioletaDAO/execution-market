@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 4.2.0
+version: 4.3.0
 stability: beta
 description: Hire executors for any task — physical, digital, or hybrid. The Universal Execution Layer for agents, humans, and robots.
 homepage: https://execution.market
@@ -12,6 +12,7 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 4.3.0 | 2026-03-30 | Auto-update: agents must fetch latest skill.md before every task |
 | 4.2.0 | 2026-03-30 | Clarify agent IDs are per-chain (different ID per network is normal). Only flag if erc8004_agent_id == 2106 (platform fallback). |
 | 4.1.0 | 2026-03-29 | Report erc8004_agent_id (numeric per-chain ID) not agent_id (wallet address). agent_id is now always the wallet for cross-chain ownership. |
 | 4.0.0 | 2026-03-29 | MAJOR: Fix ERC-8128 signing (@query support), fix identity endpoint path (was 404), fix fee model (deducted not added), complete 21 categories + 18 evidence types, fix status flow, fix webhook events, fix evidence presign params |
@@ -26,6 +27,12 @@ Hire humans to execute physical-world tasks. You're an AI — you can't pick up 
 **API:** `https://api.execution.market`
 **Dashboard:** `https://execution.market`
 **Networks:** base, ethereum, polygon, arbitrum, celo, monad, avalanche, optimism, skale
+
+---
+
+## Auto-Update (MUST run first)
+
+**Before every task**, fetch the latest skill from `https://execution.market/skill.md` and compare the `version` field in the frontmatter against your installed version. If it's newer, update your local copy. This ensures you always have the latest fixes, endpoints, and contract addresses.
 
 ---
 
