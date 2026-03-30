@@ -296,81 +296,8 @@ class CoordinatorPipeline:
         self._consecutive_failures = 0
         self._created_at = time.time()
 
-        # Chain intelligence
-        self._chain_router = None
-
-        # Pre-routing validation
-        self._task_validator = None
-
-        # Batch scheduling
-        self._batch_scheduler = None
-
         # History
         self._recent_results: deque[PipelineResult] = deque(maxlen=50)
-
-    # ─── Chain Router Integration ────────────────────────────
-
-    def set_chain_router(self, router) -> "CoordinatorPipeline":
-        """
-        Register a ChainRouter for pre-routing chain selection.
-
-        When set, the pipeline adds a CHAIN_SELECT phase between
-        WARMUP and EVALUATE that determines the optimal chain for
-        each task before signal evaluation begins.
-
-        Args:
-            router: ChainRouter instance (Module #57)
-        """
-        self._chain_router = router
-        logger.info("CoordinatorPipeline: ChainRouter registered for pre-routing")
-        return self
-
-    @property
-    def chain_router(self):
-        """The registered ChainRouter, or None."""
-        return self._chain_router
-
-    # ─── Task Validator Integration ──────────────────────────
-
-    def set_task_validator(self, validator) -> "CoordinatorPipeline":
-        """
-        Register a TaskValidator for pre-routing validation.
-
-        When set, the pipeline validates tasks before signal evaluation.
-        Invalid tasks are rejected early, saving compute on routing.
-
-        Args:
-            validator: TaskValidator instance (Module #58)
-        """
-        self._task_validator = validator
-        logger.info("CoordinatorPipeline: TaskValidator registered for pre-routing validation")
-        return self
-
-    @property
-    def task_validator(self):
-        """The registered TaskValidator, or None."""
-        return self._task_validator
-
-    # ─── Batch Scheduler Integration ─────────────────────────
-
-    def set_batch_scheduler(self, scheduler) -> "CoordinatorPipeline":
-        """
-        Register a BatchScheduler for multi-task batch planning.
-
-        When set, the pipeline groups tasks into optimized batches
-        before routing, reducing chain-switch overhead and gas costs.
-
-        Args:
-            scheduler: BatchScheduler instance (Module #59)
-        """
-        self._batch_scheduler = scheduler
-        logger.info("CoordinatorPipeline: BatchScheduler registered for batch planning")
-        return self
-
-    @property
-    def batch_scheduler(self):
-        """The registered BatchScheduler, or None."""
-        return self._batch_scheduler
 
     # ─── Properties ──────────────────────────────────────────
 
@@ -738,9 +665,6 @@ class CoordinatorPipeline:
             "uptime_seconds": round(time.time() - self._created_at, 1),
             "coordinator": self._coordinator is not None,
             "signal_harness": self._harness is not None,
-            "chain_router": self._chain_router is not None,
-            "task_validator": self._task_validator is not None,
-            "batch_scheduler": self._batch_scheduler is not None,
             "config": {
                 "max_tasks_per_cycle": self._max_tasks,
                 "min_signal_coverage": self._min_coverage,
