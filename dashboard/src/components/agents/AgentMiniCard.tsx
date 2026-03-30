@@ -20,6 +20,8 @@ interface AgentMiniCardBaseProps {
   className?: string
   /** Whether clicking navigates to profile */
   clickable?: boolean
+  /** Override the erc8004_agent_id displayed (per-chain task ID takes priority over global executor ID) */
+  erc8004AgentIdOverride?: number | string | null
 }
 
 interface AgentMiniCardByWallet extends AgentMiniCardBaseProps {
@@ -138,8 +140,8 @@ export const AgentMiniCard = memo(function AgentMiniCard(props: AgentMiniCardPro
           <span className="text-xs flex-shrink-0" title={t(AGENT_TYPE_LABEL_KEY[agentType], agentType)}>
             {AGENT_TYPE_EMOJI[agentType]}
           </span>
-          {data.erc8004_agent_id != null && (
-            <AgentIdentityBadge agentId={data.erc8004_agent_id} compact />
+          {(props.erc8004AgentIdOverride ?? data.erc8004_agent_id) != null && (
+            <AgentIdentityBadge agentId={Number(props.erc8004AgentIdOverride ?? data.erc8004_agent_id)} compact />
           )}
         </div>
         <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">

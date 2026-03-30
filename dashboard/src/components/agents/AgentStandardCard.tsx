@@ -11,6 +11,7 @@ import { cn, truncateAddress, formatDate } from '../../lib/utils'
 import { useAgentCard, preloadAgentCard } from '../../hooks/useAgentCard'
 import { getReputationTier, getTierColor } from '../../hooks/useAgentReputation'
 import { AgentAvatar } from './AgentAvatar'
+import { AgentIdentityBadge } from './AgentIdentityBadge'
 import { Skeleton, SkeletonText } from '../ui/Skeleton'
 import type { Executor, AgentType } from '../../types/database'
 
@@ -19,6 +20,8 @@ interface AgentStandardCardBaseProps {
   label?: string
   /** Additional CSS classes */
   className?: string
+  /** Override the erc8004_agent_id displayed (per-chain task ID takes priority over global executor ID) */
+  erc8004AgentIdOverride?: number | string | null
 }
 
 interface AgentStandardCardByWallet extends AgentStandardCardBaseProps {
@@ -138,6 +141,9 @@ export const AgentStandardCard = memo(function AgentStandardCard(props: AgentSta
             >
               {AGENT_TYPE_EMOJI[agentType]}
             </span>
+            {(props.erc8004AgentIdOverride ?? data.erc8004_agent_id) != null && (
+              <AgentIdentityBadge agentId={Number(props.erc8004AgentIdOverride ?? data.erc8004_agent_id)} compact />
+            )}
           </div>
 
           {/* Reputation tier + rating */}

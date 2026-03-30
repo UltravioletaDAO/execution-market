@@ -208,7 +208,7 @@ export const TaskCard = memo(function TaskCard({ task, onClick }: TaskCardProps)
 
       {/* Task poster */}
       <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-        <AgentMiniCard walletAddress={task.agent_id} clickable={false} />
+        <AgentMiniCard walletAddress={task.agent_id} clickable={false} erc8004AgentIdOverride={task.erc8004_agent_id} />
       </div>
     </article>
   )

@@ -464,6 +464,7 @@ export function TaskDetail({
           <AgentStandardCard
             walletAddress={task.agent_id}
             label={t('tasks.postedBy', 'Posted by')}
+            erc8004AgentIdOverride={task.erc8004_agent_id}
           />
         </section>
 
