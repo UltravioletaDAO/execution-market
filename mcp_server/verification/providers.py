@@ -85,7 +85,7 @@ class AnthropicProvider(VerificationProvider):
     def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
         self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
         self.model_id = model or os.environ.get(
-            "AI_VERIFICATION_MODEL", "claude-sonnet-4-6-20250627"
+            "AI_VERIFICATION_MODEL", "claude-sonnet-4-6"
         )
 
     @property
@@ -376,12 +376,12 @@ TIER_MODELS = {
         ("anthropic", "claude-haiku-4-5-20251001"),
     ],
     "tier_2": [
-        ("anthropic", "claude-sonnet-4-6-20250627"),
+        ("anthropic", "claude-sonnet-4-6"),
         ("openai", "gpt-4o"),
         ("gemini", "gemini-2.5-pro"),
     ],
     "tier_3": [
-        ("anthropic", "claude-opus-4-6-20250627"),
+        ("anthropic", "claude-opus-4-6"),
         ("bedrock", "anthropic.claude-opus-4-6-v1:0"),
     ],
 }
