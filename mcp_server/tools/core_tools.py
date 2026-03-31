@@ -709,6 +709,26 @@ The task is now visible to human executors. Use `em_get_task` with the task ID t
             if params.verdict.value == "accepted" and payment_info and executor_id:
                 await _notify_payment_released(payment_info, task, executor_id)
 
+            # ── Lifecycle Checkpoints (non-blocking) ──
+            if task and params.verdict.value == "accepted":
+                try:
+                    from audit.checkpoint_updater import (
+                        mark_approved,
+                        mark_payment_released,
+                    )
+
+                    await mark_approved(task["id"])
+                    if payment_info and payment_info.get("success"):
+                        await mark_payment_released(
+                            task["id"],
+                            tx_hash=payment_info.get("tx_hash"),
+                            worker_amount=payment_info.get("net_to_worker")
+                            or payment_info.get("amount"),
+                            fee_amount=payment_info.get("platform_fee"),
+                        )
+                except Exception:
+                    pass  # Non-blocking
+
             verdict_display = {
                 "accepted": "APPROVED",
                 "disputed": "DISPUTED",
@@ -871,6 +891,18 @@ The task has been marked as completed and the executor will receive payment."""
                     )
             except Exception as e:
                 logger.warning("Could not refund payment via PaymentDispatcher: %s", e)
+
+            # ── Lifecycle Checkpoints (non-blocking) ──
+            try:
+                from audit.checkpoint_updater import mark_cancelled, mark_refunded
+
+                await mark_cancelled(params.task_id)
+                if refund_info and refund_info.get("success"):
+                    await mark_refunded(
+                        params.task_id, tx_hash=refund_info.get("tx_hash")
+                    )
+            except Exception:
+                pass  # Non-blocking
 
             # Dispatch webhook
             await _dispatch_task_webhook("task_cancelled", task, params.agent_id)

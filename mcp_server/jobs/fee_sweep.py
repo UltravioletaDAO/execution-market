@@ -78,6 +78,33 @@ async def run_fee_sweep_loop() -> None:
                             network,
                             tx_hash,
                         )
+                        # Mark fee distribution for tasks on this network
+                        try:
+                            from audit.checkpoint_updater import (
+                                mark_fees_distributed,
+                            )
+
+                            # Fee sweep is network-wide, not per-task.
+                            # Mark all completed tasks on this network that
+                            # have payment_released=True but fees_distributed=False
+                            import supabase_client as sdb
+
+                            sdb_client = sdb.get_client()
+                            pending = (
+                                sdb_client.table("task_lifecycle_checkpoints")
+                                .select("task_id")
+                                .eq("payment_released", True)
+                                .eq("fees_distributed", False)
+                                .eq("network", network)
+                                .limit(100)
+                                .execute()
+                            )
+                            for row in pending.data or []:
+                                await mark_fees_distributed(
+                                    row["task_id"], tx_hash=tx_hash
+                                )
+                        except Exception as ckpt_err:
+                            logger.debug("[fee-sweep] checkpoint update: %s", ckpt_err)
                     else:
                         skipped += 1
                 except Exception as e:

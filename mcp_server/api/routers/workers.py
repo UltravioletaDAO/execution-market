@@ -449,6 +449,15 @@ async def submit_work(
                     verification_result.score,
                 )
 
+                # Lifecycle checkpoint: AI verification complete
+                try:
+                    from audit.checkpoint_updater import mark_ai_verified
+
+                    verdict = "passed" if verification_result.passed else "failed"
+                    await mark_ai_verified(task_id, verdict=verdict)
+                except Exception:
+                    pass  # Non-blocking
+
                 # Launch Phase B (async, non-blocking)
                 asyncio.create_task(
                     run_phase_b_verification(

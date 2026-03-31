@@ -708,6 +708,33 @@ Check your wallet balance and pre-authorization, then try again."""
 
 Use `em_check_submission` to monitor for submitted work."""
 
+            # ── Lifecycle Checkpoints (non-blocking) ──
+            try:
+                from audit.checkpoint_updater import (
+                    mark_worker_assigned,
+                    mark_escrow_locked,
+                )
+
+                has_erc8004 = (
+                    bool(
+                        executor_data.data
+                        and executor_data.data.get("erc8004_agent_id")
+                    )
+                    if executor_data and executor_data.data
+                    else False
+                )
+                await mark_worker_assigned(
+                    params.task_id,
+                    worker_id=params.executor_id,
+                    has_erc8004=has_erc8004,
+                )
+                if escrow_section:
+                    escrow_tx_val = task_data.get("escrow_tx")
+                    if escrow_tx_val:
+                        await mark_escrow_locked(params.task_id, escrow_tx_val)
+            except Exception:
+                pass  # Non-blocking
+
             logger.info(
                 f"Task {params.task_id} assigned to worker {params.executor_id}"
             )
@@ -820,6 +847,19 @@ No tasks were created. Fix errors and retry."""
                         )
                     )
                     total_created_bounty += task_def.bounty_usd
+
+                    # Lifecycle checkpoint (non-blocking)
+                    try:
+                        from audit.checkpoint_updater import init_checkpoint
+
+                        await init_checkpoint(
+                            task["id"],
+                            network=task.get("payment_network", "base"),
+                            token=params.payment_token or "USDC",
+                            bounty_usdc=task_def.bounty_usd,
+                        )
+                    except Exception:
+                        pass
 
                 except Exception as e:
                     error_result = BatchTaskResult(

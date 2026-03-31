@@ -41,7 +41,7 @@ async def backfill():
             client.table("tasks")
             .select(
                 "id, status, agent_id, bounty_usd, created_at, "
-                "published_at, assigned_at, completed_at, "
+                "assigned_at, completed_at, "
                 "escrow_tx, escrow_created_at, refund_tx, "
                 "payment_network, payment_token, skill_version, "
                 "executor_id, erc8004_agent_id"
@@ -61,7 +61,7 @@ async def backfill():
             checkpoint = {
                 "task_id": tid,
                 "task_created": True,
-                "task_created_at": task.get("created_at") or task.get("published_at"),
+                "task_created_at": task.get("created_at"),
                 "network": task.get("payment_network"),
                 "token": task.get("payment_token"),
                 "bounty_usdc": task.get("bounty_usd"),
@@ -118,7 +118,11 @@ async def backfill():
                     elif et in ("escrow_authorize", "store_auth"):
                         checkpoint["payment_auth_signed"] = True
                         checkpoint["payment_auth_at"] = pe["created_at"]
-                    elif et in ("escrow_release", "disburse_worker", "settle_worker_direct"):
+                    elif et in (
+                        "escrow_release",
+                        "disburse_worker",
+                        "settle_worker_direct",
+                    ):
                         checkpoint["payment_released"] = True
                         checkpoint["payment_released_at"] = pe["created_at"]
                         if pe.get("tx_hash"):
@@ -160,7 +164,9 @@ async def backfill():
                     checkpoint["evidence_submitted_at"] = subs[0].get("submitted_at")
                     checkpoint["evidence_count"] = len(subs)
                     # Check if AI verified
-                    verdicts = [s.get("agent_verdict") for s in subs if s.get("agent_verdict")]
+                    verdicts = [
+                        s.get("agent_verdict") for s in subs if s.get("agent_verdict")
+                    ]
                     if verdicts:
                         checkpoint["ai_verified"] = True
                         checkpoint["ai_verdict"] = verdicts[-1]
