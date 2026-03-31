@@ -217,27 +217,39 @@ def _run_gps_check(
     task: Dict[str, Any],
     category: str,
 ) -> Optional[CheckResult]:
-    """Verify GPS proximity for location-based tasks."""
+    """Verify GPS proximity for location-based tasks.
+
+    Handles four cases:
+    1. Task has coords + evidence has GPS -> proximity check
+    2. Task has coords + evidence has no GPS -> fail (physical) or pass (non-physical)
+    3. Task has NO coords + evidence has GPS -> partial pass (score 0.7)
+    4. Task has NO coords + evidence has no GPS -> fail (physical) or skip (non-physical)
+    """
     task_lat = task.get("location_lat")
     task_lng = task.get("location_lng")
 
-    # Skip if task has no coordinates
-    if task_lat is None or task_lng is None:
-        return None
-
     # Extract GPS from evidence
     photo_lat, photo_lng = _extract_gps_from_evidence(evidence)
+    logger.info(
+        "[AUDIT] _run_gps_check photo_gps=%s task_gps=%s",
+        "present" if photo_lat is not None else "absent",
+        "present" if task_lat is not None else "absent",
+    )
 
-    if photo_lat is None or photo_lng is None:
-        # No GPS in evidence
-        if category in PHYSICAL_CATEGORIES:
-            return CheckResult(
-                name="gps",
-                passed=False,
-                score=0.0,
-                reason="No GPS coordinates found in evidence for physical task",
-            )
+    # Case: task has reference coords — do proximity check
+    if task_lat is not None and task_lng is not None:
+        if photo_lat is not None and photo_lng is not None:
+            # Fall through to proximity logic below
+            pass
         else:
+            # No GPS in evidence but task has coords
+            if category in PHYSICAL_CATEGORIES:
+                return CheckResult(
+                    name="gps",
+                    passed=False,
+                    score=0.0,
+                    reason="No GPS coordinates found in evidence for physical task",
+                )
             # Non-physical task, GPS is optional
             return CheckResult(
                 name="gps",
@@ -245,6 +257,27 @@ def _run_gps_check(
                 score=0.7,
                 reason="GPS not required for this task category",
             )
+    else:
+        # Case: task has NO reference coords
+        if photo_lat is not None and photo_lng is not None:
+            # Evidence has GPS even though task doesn't require specific location
+            return CheckResult(
+                name="gps",
+                passed=True,
+                score=0.7,
+                reason="GPS coordinates present in evidence (no task reference location to compare)",
+            )
+
+        # No GPS anywhere
+        if category in PHYSICAL_CATEGORIES:
+            return CheckResult(
+                name="gps",
+                passed=False,
+                score=0.0,
+                reason="No GPS coordinates found in evidence for physical task",
+            )
+
+        return None  # non-physical, no GPS needed
 
     # Distance threshold: use task-specific radius if set, otherwise category defaults
     task_radius_km = task.get("location_radius_km")
@@ -294,6 +327,11 @@ def _run_gps_check(
 
 def _extract_gps_from_evidence(evidence: Dict[str, Any]) -> tuple:
     """Extract GPS coordinates from evidence dict (multiple locations to check)."""
+
+    def _found(path: str, lat: float, lng: float) -> tuple:
+        logger.info("[AUDIT] _extract_gps FOUND path=%s", path)
+        return lat, lng
+
     # Check direct GPS field
     gps = evidence.get("gps") or evidence.get("location") or evidence.get("coordinates")
     if isinstance(gps, dict):
@@ -301,7 +339,7 @@ def _extract_gps_from_evidence(evidence: Dict[str, Any]) -> tuple:
         lng = gps.get("lng") or gps.get("longitude") or gps.get("lon")
         if lat is not None and lng is not None:
             try:
-                return float(lat), float(lng)
+                return _found("direct_gps", float(lat), float(lng))
             except (TypeError, ValueError):
                 pass
 
@@ -312,7 +350,7 @@ def _extract_gps_from_evidence(evidence: Dict[str, Any]) -> tuple:
         lng = photo_geo.get("lng") or photo_geo.get("longitude") or photo_geo.get("lon")
         if lat is not None and lng is not None:
             try:
-                return float(lat), float(lng)
+                return _found("photo_geo_direct", float(lat), float(lng))
             except (TypeError, ValueError):
                 pass
         # Check nested metadata (direct coords or nested .gps object)
@@ -321,17 +359,19 @@ def _extract_gps_from_evidence(evidence: Dict[str, Any]) -> tuple:
         lng = metadata.get("lng") or metadata.get("longitude") or metadata.get("lon")
         if lat is not None and lng is not None:
             try:
-                return float(lat), float(lng)
+                return _found("photo_geo_metadata", float(lat), float(lng))
             except (TypeError, ValueError):
                 pass
         # Frontend sends evidence[type].metadata.gps = {latitude, longitude, accuracy}
         meta_gps = metadata.get("gps")
         if isinstance(meta_gps, dict):
             lat = meta_gps.get("lat") or meta_gps.get("latitude")
-            lng = meta_gps.get("lng") or meta_gps.get("longitude") or meta_gps.get("lon")
+            lng = (
+                meta_gps.get("lng") or meta_gps.get("longitude") or meta_gps.get("lon")
+            )
             if lat is not None and lng is not None:
                 try:
-                    return float(lat), float(lng)
+                    return _found("photo_geo_metadata_gps", float(lat), float(lng))
                 except (TypeError, ValueError):
                     pass
 
@@ -350,7 +390,7 @@ def _extract_gps_from_evidence(evidence: Dict[str, Any]) -> tuple:
                 )
                 if lat is not None and lng is not None:
                     try:
-                        return float(lat), float(lng)
+                        return _found(f"nested_{key}_gps", float(lat), float(lng))
                     except (TypeError, ValueError):
                         pass
             # Web dashboard: evidence[type].metadata.gps = {latitude, longitude}
@@ -366,7 +406,9 @@ def _extract_gps_from_evidence(evidence: Dict[str, Any]) -> tuple:
                     )
                     if lat is not None and lng is not None:
                         try:
-                            return float(lat), float(lng)
+                            return _found(
+                                f"nested_{key}_metadata_gps", float(lat), float(lng)
+                            )
                         except (TypeError, ValueError):
                             pass
 
@@ -379,7 +421,7 @@ def _extract_gps_from_evidence(evidence: Dict[str, Any]) -> tuple:
             lng = loc.get("lng") or loc.get("longitude") or loc.get("lon")
             if lat is not None and lng is not None:
                 try:
-                    return float(lat), float(lng)
+                    return _found("forensic", float(lat), float(lng))
                 except (TypeError, ValueError):
                     pass
 
@@ -393,10 +435,18 @@ def _extract_gps_from_evidence(evidence: Dict[str, Any]) -> tuple:
             lng = dm_gps.get("lng") or dm_gps.get("longitude") or dm_gps.get("lon")
             if lat is not None and lng is not None:
                 try:
-                    return float(lat), float(lng)
+                    return _found("device_metadata", float(lat), float(lng))
                 except (TypeError, ValueError):
                     pass
 
+    # Debug: log which paths were checked and none had GPS
+    logger.info(
+        "[AUDIT] _extract_gps evidence_keys=%s photo_geo_keys=%s no_gps_found=true",
+        list(evidence.keys()),
+        list((evidence.get("photo_geo") or {}).keys())
+        if isinstance(evidence.get("photo_geo"), dict)
+        else "not_dict",
+    )
     return None, None
 
 

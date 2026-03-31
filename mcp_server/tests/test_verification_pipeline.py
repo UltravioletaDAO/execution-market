@@ -295,13 +295,49 @@ class TestSchemaCheck:
 
 
 class TestGPSCheck:
-    def test_no_task_coords_returns_none(self):
+    def test_no_task_coords_with_evidence_gps_partial_pass(self):
+        """Task has no coords but evidence has GPS -> partial pass (score 0.7)."""
         result = _run_gps_check(
             evidence={"gps": {"lat": 4.711, "lng": -74.072}},
             task={"location_lat": None, "location_lng": None},
             category="physical_presence",
         )
+        assert result is not None
+        assert result.passed is True
+        assert result.score == 0.7
+        assert "no task reference location" in result.reason
+
+    def test_no_task_coords_no_evidence_gps_physical_fails(self):
+        """Task has no coords AND evidence has no GPS for physical task -> fail."""
+        result = _run_gps_check(
+            evidence={"photo": "url"},
+            task={"location_lat": None, "location_lng": None},
+            category="physical_presence",
+        )
+        assert result is not None
+        assert result.passed is False
+        assert result.score == 0.0
+        assert "No GPS coordinates found" in result.reason
+
+    def test_no_task_coords_no_evidence_gps_nonphysical_skips(self):
+        """Task has no coords AND evidence has no GPS for non-physical task -> None (skip)."""
+        result = _run_gps_check(
+            evidence={"photo": "url"},
+            task={"location_lat": None, "location_lng": None},
+            category="knowledge_access",
+        )
         assert result is None
+
+    def test_no_task_coords_with_evidence_gps_nonphysical_partial_pass(self):
+        """Non-physical task has no coords but evidence has GPS -> partial pass."""
+        result = _run_gps_check(
+            evidence={"gps": {"lat": 4.711, "lng": -74.072}},
+            task={"location_lat": None, "location_lng": None},
+            category="knowledge_access",
+        )
+        assert result is not None
+        assert result.passed is True
+        assert result.score == 0.7
 
     def test_physical_task_no_evidence_gps_fails(self):
         result = _run_gps_check(
@@ -567,8 +603,8 @@ class TestVerificationPipeline:
         assert result.score < 0.8
 
     @pytest.mark.asyncio
-    async def test_physical_task_without_gps_gets_warning(self):
-        """Physical task without task coords generates a warning."""
+    async def test_physical_task_no_coords_no_evidence_gps_fails_check(self):
+        """Physical task without task coords and no GPS in evidence -> GPS check fails."""
         task = _make_task(
             category="physical_presence",
             location_lat=None,
@@ -577,7 +613,33 @@ class TestVerificationPipeline:
         submission = _make_submission()
 
         result = await run_verification_pipeline(submission, task)
-        assert any("GPS check skipped" in w for w in result.warnings)
+        gps_check = next((c for c in result.checks if c.name == "gps"), None)
+        assert gps_check is not None
+        assert gps_check.passed is False
+        assert gps_check.score == 0.0
+        assert "No GPS coordinates found" in gps_check.reason
+
+    @pytest.mark.asyncio
+    async def test_physical_task_no_coords_with_evidence_gps_partial_pass(self):
+        """Physical task without task coords but evidence has GPS -> partial pass."""
+        task = _make_task(
+            category="physical_presence",
+            location_lat=None,
+            location_lng=None,
+        )
+        submission = _make_submission(
+            evidence={
+                "photo": "url",
+                "gps": {"lat": 4.711, "lng": -74.072},
+            }
+        )
+
+        result = await run_verification_pipeline(submission, task)
+        gps_check = next((c for c in result.checks if c.name == "gps"), None)
+        assert gps_check is not None
+        assert gps_check.passed is True
+        assert gps_check.score == 0.7
+        assert "no task reference location" in gps_check.reason
 
     @pytest.mark.asyncio
     async def test_physical_task_with_gps_match(self):

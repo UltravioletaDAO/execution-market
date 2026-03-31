@@ -158,7 +158,10 @@ async def get_my_submission(
     response_model=SuccessResponse,
     responses={
         200: {"description": "Submission details retrieved"},
-        403: {"model": ErrorResponse, "description": "Not authorized to view this submission"},
+        403: {
+            "model": ErrorResponse,
+            "description": "Not authorized to view this submission",
+        },
         404: {"model": ErrorResponse, "description": "Submission not found"},
     },
     summary="Get Submission Detail",
@@ -463,6 +466,22 @@ async def submit_work(
         evidence = dict(request.evidence)
         if request.device_metadata:
             evidence["device_metadata"] = request.device_metadata
+
+        # GPS debug: log evidence structure (never log actual coordinates)
+        _gps_keys = []
+        for ek, ev in evidence.items():
+            if isinstance(ev, dict):
+                if "gps" in ev:
+                    _gps_keys.append(f"{ek}.gps")
+                meta = ev.get("metadata")
+                if isinstance(meta, dict):
+                    if "gps" in meta:
+                        _gps_keys.append(f"{ek}.metadata.gps")
+        logger.info(
+            "[AUDIT] submit_work GPS_DEBUG evidence_keys=%s gps_found=%s",
+            list(evidence.keys()),
+            _gps_keys or "none",
+        )
 
         result = await db.submit_work(
             task_id=task_id,
