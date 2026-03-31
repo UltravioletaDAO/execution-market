@@ -12,6 +12,7 @@ import { cn, truncateAddress } from '../../lib/utils'
 import { useAgentCard, preloadAgentCard } from '../../hooks/useAgentCard'
 import { AgentAvatar } from './AgentAvatar'
 import { AgentIdentityBadge } from './AgentIdentityBadge'
+import { XBadge } from './XBadge'
 import { Skeleton } from '../ui/Skeleton'
 import type { Executor, AgentType } from '../../types/database'
 
@@ -22,6 +23,8 @@ interface AgentMiniCardBaseProps {
   clickable?: boolean
   /** Override the erc8004_agent_id displayed (per-chain task ID takes priority over global executor ID) */
   erc8004AgentIdOverride?: number | string | null
+  /** Fallback display name from task.agent_name (used when executor record has no display_name) */
+  agentName?: string | null
 }
 
 interface AgentMiniCardByWallet extends AgentMiniCardBaseProps {
@@ -63,7 +66,7 @@ function AgentMiniCardSkeleton({ className }: { className?: string }) {
 }
 
 export const AgentMiniCard = memo(function AgentMiniCard(props: AgentMiniCardProps) {
-  const { className, clickable = true } = props
+  const { className, clickable = true, agentName } = props
   const { t } = useTranslation()
   const navigate = useNavigate()
 
@@ -110,7 +113,7 @@ export const AgentMiniCard = memo(function AgentMiniCard(props: AgentMiniCardPro
   }
 
   const agentType = data.agent_type ?? 'human'
-  const displayName = data.display_name || truncateAddress(data.wallet_address)
+  const displayName = data.display_name || agentName || truncateAddress(data.wallet_address)
 
   return (
     <div
@@ -142,6 +145,9 @@ export const AgentMiniCard = memo(function AgentMiniCard(props: AgentMiniCardPro
           </span>
           {(props.erc8004AgentIdOverride ?? data.erc8004_agent_id) != null && (
             <AgentIdentityBadge agentId={Number(props.erc8004AgentIdOverride ?? data.erc8004_agent_id)} compact />
+          )}
+          {data.social_links?.x && (
+            <XBadge handle={data.social_links.x.handle} verified={data.social_links.x.verified} size="sm" />
           )}
         </div>
         <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">

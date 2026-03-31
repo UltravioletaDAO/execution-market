@@ -126,6 +126,46 @@ export function Settings() {
         </div>
       </section>
 
+      {/* Social Accounts */}
+      <section className="mb-8">
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+          {t('settings.socialAccounts', 'Social Accounts')}
+        </h2>
+        <div className="bg-white border border-gray-200 rounded-xl p-4">
+          {executor?.social_links?.x ? (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <svg className="w-5 h-5 text-gray-700" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                </svg>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">
+                    {executor.social_links.x.handle}
+                  </p>
+                  {executor.social_links.x.verified && (
+                    <p className="text-xs text-green-600">
+                      {t('settings.verified', 'Verified via OAuth')}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <a
+                href={`https://x.com/${executor.social_links.x.handle.replace(/^@/, '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-blue-600 hover:text-blue-700"
+              >
+                {t('settings.viewProfile', 'View')}
+              </a>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500">
+              {t('settings.noSocialLinked', 'No social accounts linked. Log in with X to link your account.')}
+            </p>
+          )}
+        </div>
+      </section>
+
       {/* Account Section */}
       <section className="mb-8">
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">

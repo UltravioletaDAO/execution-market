@@ -316,7 +316,14 @@
       "signatureRejected": "Signature rejected. Please sign the message to continue."
     },
     "manualWalletDesc": "Enter your wallet address to continue",
-    "emailPassword": "Email & Password"
+    "emailPassword": "Email & Password",
+    "social": {
+      "xLinked": "X account linked",
+      "xVerified": "Verified on X",
+      "linkX": "Link X Account",
+      "unlinkX": "Unlink X Account",
+      "loginWithX": "Log in with X"
+    }
   },
   "tasks": {
     "title": "Available Tasks",

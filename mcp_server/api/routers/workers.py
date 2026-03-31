@@ -20,6 +20,7 @@ from ._models import (
     WorkerRegisterRequest,
     WorkerApplicationRequest,
     WorkerSubmissionRequest,
+    UpdateSocialLinksRequest,
     SuccessResponse,
     ErrorResponse,
 )
@@ -700,3 +701,91 @@ async def get_payment_events(
         "count": len(events),
         "earning_count": earning_count,
     }
+
+
+# ---------------------------------------------------------------------------
+# Social Links
+# ---------------------------------------------------------------------------
+
+import re
+
+_X_HANDLE_RE = re.compile(r"^@[A-Za-z0-9_]{1,15}$")
+
+
+@router.put(
+    "/workers/social-links",
+    response_model=SuccessResponse,
+    responses={
+        200: {"description": "Social link updated"},
+        400: {"model": ErrorResponse, "description": "Invalid handle"},
+        401: {"model": ErrorResponse, "description": "Not authenticated"},
+    },
+    summary="Update Social Links",
+    description="Add or update a social platform link on the worker profile.",
+    tags=["Workers"],
+)
+async def update_social_links(
+    raw_request: Request,
+    request: UpdateSocialLinksRequest,
+    worker_auth: Optional[WorkerAuth] = Depends(verify_worker_auth),
+) -> SuccessResponse:
+    """Add or update a social link (e.g. X/Twitter handle) on executor profile."""
+    if not worker_auth or not worker_auth.executor_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    executor_id = worker_auth.executor_id
+    platform = request.platform.lower()
+    handle = request.handle.strip()
+
+    # Platform-specific validation
+    if platform == "x":
+        if not _X_HANDLE_RE.match(handle):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid X handle. Must be @username (1-15 alphanumeric/underscore chars).",
+            )
+
+    try:
+        client = db.get_client()
+        from datetime import datetime, timezone
+
+        # Fetch current social_links
+        existing = (
+            client.table("executors")
+            .select("social_links")
+            .eq("id", executor_id)
+            .limit(1)
+            .execute()
+        )
+        if not existing.data:
+            raise HTTPException(status_code=404, detail="Executor not found")
+
+        social_links = existing.data[0].get("social_links") or {}
+        social_links[platform] = {
+            "handle": handle,
+            "verified": False,
+            "linked_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+        client.table("executors").update({"social_links": social_links}).eq(
+            "id", executor_id
+        ).execute()
+
+        logger.info(
+            "Social link updated: executor=%s, platform=%s, handle=%s",
+            executor_id[:8],
+            platform,
+            handle,
+        )
+
+        return SuccessResponse(
+            message=f"Social link for {platform} updated",
+            data={"platform": platform, "handle": handle},
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Error updating social links: %s", e)
+        raise HTTPException(
+            status_code=500, detail="Internal error while updating social links"
+        )

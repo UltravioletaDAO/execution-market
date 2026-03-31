@@ -315,7 +315,14 @@
       "signatureRejected": "Assinatura rejeitada. Por favor assine a mensagem para continuar."
     },
     "manualWalletDesc": "Digite o endereco da sua carteira para continuar",
-    "emailPassword": "Email e Senha"
+    "emailPassword": "Email e Senha",
+    "social": {
+      "xLinked": "Conta X vinculada",
+      "xVerified": "Verificado no X",
+      "linkX": "Vincular conta X",
+      "unlinkX": "Desvincular conta X",
+      "loginWithX": "Entrar com X"
+    }
   },
   "tasks": {
     "title": "Tarefas Disponiveis",

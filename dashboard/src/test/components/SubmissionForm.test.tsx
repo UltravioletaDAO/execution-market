@@ -148,6 +148,7 @@ function makeExecutor(overrides: Partial<Executor> = {}): Executor {
     erc8004_agent_id: null,
     agent_type: 'human',
     networks_active: [],
+    social_links: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     last_active_at: null,

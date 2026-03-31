@@ -316,6 +316,13 @@
       "walletConnectionFailed": "Error al conectar wallet",
       "notAuthenticated": "No autenticado",
       "signatureRejected": "Firma rechazada. Por favor firma el mensaje para continuar."
+    },
+    "social": {
+      "xLinked": "Cuenta X vinculada",
+      "xVerified": "Verificado en X",
+      "linkX": "Vincular cuenta X",
+      "unlinkX": "Desvincular cuenta X",
+      "loginWithX": "Iniciar sesion con X"
     }
   },
   "wallet": {

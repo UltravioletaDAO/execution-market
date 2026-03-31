@@ -705,20 +705,28 @@ def _resolve_mcp_payment_header(
     return escrow_tx
 
 
-def _auto_register_agent_executor_mcp(wallet: str):
+def _auto_register_agent_executor_mcp(wallet: str, agent_name: str = None):
     """Auto-register an agent as executor in the directory (non-blocking)."""
     wallet_lower = wallet.lower()
     try:
         existing = (
             db.client.table("executors")
-            .select("id")
+            .select("id, display_name")
             .eq("wallet_address", wallet_lower)
             .eq("executor_type", "agent")
             .execute()
         )
         if existing.data:
+            # Update display_name if agent_name is provided and current name is auto-generated
+            row = existing.data[0]
+            if agent_name and (
+                not row.get("display_name") or row["display_name"].startswith("Agent ")
+            ):
+                db.client.table("executors").update({"display_name": agent_name}).eq(
+                    "id", row["id"]
+                ).execute()
             return
-        display = (
+        display = agent_name or (
             f"Agent {wallet[:6]}...{wallet[-4:]}"
             if len(wallet) >= 10
             else f"Agent {wallet}"

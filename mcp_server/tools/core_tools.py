@@ -179,11 +179,11 @@ def register_core_tools(
         except Exception:
             return escrow_tx
 
-    def _auto_register_agent_executor_mcp(wallet: str):
+    def _auto_register_agent_executor_mcp(wallet: str, agent_name: str = None):
         try:
             import server as srv
 
-            srv._auto_register_agent_executor_mcp(wallet)
+            srv._auto_register_agent_executor_mcp(wallet, agent_name=agent_name)
         except Exception as e:
             logger.debug("Auto-register skipped: %s", e)
 
@@ -401,7 +401,9 @@ def register_core_tools(
 
             # Auto-register agent in executor directory
             try:
-                _auto_register_agent_executor_mcp(params.agent_id)
+                _auto_register_agent_executor_mcp(
+                    params.agent_id, agent_name=params.agent_name
+                )
             except Exception as e:
                 logger.warning(
                     "Auto-register agent executor failed (non-blocking): %s", e

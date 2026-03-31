@@ -217,6 +217,11 @@ class PublishTaskInput(BaseModel):
         description="Version of the skill.md file used to create this task (semver, e.g. '4.1.0')",
         max_length=20,
     )
+    agent_name: Optional[str] = Field(
+        default=None,
+        description="Display name for the publishing agent. Shown on task cards in the dashboard.",
+        max_length=100,
+    )
 
     @field_validator("evidence_required")
     @classmethod

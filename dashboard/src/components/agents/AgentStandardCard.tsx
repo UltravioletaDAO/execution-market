@@ -12,6 +12,7 @@ import { useAgentCard, preloadAgentCard } from '../../hooks/useAgentCard'
 import { getReputationTier, getTierColor } from '../../hooks/useAgentReputation'
 import { AgentAvatar } from './AgentAvatar'
 import { AgentIdentityBadge } from './AgentIdentityBadge'
+import { XBadge } from './XBadge'
 import { Skeleton, SkeletonText } from '../ui/Skeleton'
 import type { Executor, AgentType } from '../../types/database'
 
@@ -22,6 +23,8 @@ interface AgentStandardCardBaseProps {
   className?: string
   /** Override the erc8004_agent_id displayed (per-chain task ID takes priority over global executor ID) */
   erc8004AgentIdOverride?: number | string | null
+  /** Fallback display name from task.agent_name (used when executor record has no display_name) */
+  agentName?: string | null
 }
 
 interface AgentStandardCardByWallet extends AgentStandardCardBaseProps {
@@ -69,7 +72,7 @@ function AgentStandardCardSkeleton({ label, className }: { label?: string; class
 }
 
 export const AgentStandardCard = memo(function AgentStandardCard(props: AgentStandardCardProps) {
-  const { label, className } = props
+  const { label, className, agentName } = props
   const { t } = useTranslation()
   const navigate = useNavigate()
 
@@ -108,7 +111,7 @@ export const AgentStandardCard = memo(function AgentStandardCard(props: AgentSta
   }
 
   const agentType = data.agent_type ?? 'human'
-  const displayName = data.display_name || truncateAddress(data.wallet_address)
+  const displayName = data.display_name || agentName || truncateAddress(data.wallet_address)
   const tier = getReputationTier(data.reputation_score)
   const tierColor = getTierColor(tier)
 
@@ -143,6 +146,9 @@ export const AgentStandardCard = memo(function AgentStandardCard(props: AgentSta
             </span>
             {(props.erc8004AgentIdOverride ?? data.erc8004_agent_id) != null && (
               <AgentIdentityBadge agentId={Number(props.erc8004AgentIdOverride ?? data.erc8004_agent_id)} compact />
+            )}
+            {data.social_links?.x && (
+              <XBadge handle={data.social_links.x.handle} verified={data.social_links.x.verified} size="md" />
             )}
           </div>
 

@@ -64,6 +64,17 @@ export interface Location {
 export type AgentType = 'human' | 'ai' | 'organization'
 
 // Database row types (what you get from SELECT)
+export interface SocialLinkX {
+  handle: string
+  verified?: boolean
+  user_id?: string
+  linked_at?: string
+}
+
+export interface SocialLinks {
+  x?: SocialLinkX
+}
+
 export interface Executor {
   id: string
   user_id: string | null
@@ -90,6 +101,7 @@ export interface Executor {
   agent_type: AgentType
   networks_active: string[]
   preferred_language?: string | null
+  social_links?: SocialLinks | null
   created_at: string
   updated_at: string
   last_active_at: string | null

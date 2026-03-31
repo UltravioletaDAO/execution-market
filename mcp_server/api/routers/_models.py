@@ -394,6 +394,37 @@ class WorkerSubmissionRequest(BaseModel):
 
 
 # =============================================================================
+# SOCIAL LINKS
+# =============================================================================
+
+
+class SocialLink(BaseModel):
+    """A single social platform link."""
+
+    handle: str
+    verified: bool = False
+    user_id: Optional[str] = None
+    linked_at: Optional[str] = None
+
+
+class UpdateSocialLinksRequest(BaseModel):
+    """Request to add or update a social link on executor profile."""
+
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    platform: str = Field(
+        ...,
+        description="Social platform (e.g., 'x', 'github')",
+        pattern=r"^[a-z]{1,20}$",
+    )
+    handle: str = Field(
+        ...,
+        description="Handle on the platform (e.g., '@username')",
+        max_length=50,
+    )
+
+
+# =============================================================================
 # ANALYTICS & CONFIG
 # =============================================================================
 

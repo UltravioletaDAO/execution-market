@@ -1295,7 +1295,8 @@ async def create_task(
                 erc8004_agent_id=erc8004_identity.get("agent_id")
                 if erc8004_identity and erc8004_identity.get("registered")
                 else None,
-                agent_name=erc8004_identity.get("name") if erc8004_identity else None,
+                agent_name=(erc8004_identity.get("name") if erc8004_identity else None)
+                or request.agent_name,
             )
         except Exception as e:
             logger.warning("Auto-register agent executor failed (non-blocking): %s", e)

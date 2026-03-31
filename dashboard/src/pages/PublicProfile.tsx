@@ -12,6 +12,7 @@ import { supabase } from '../lib/supabase'
 import { useAgentCard } from '../hooks/useAgentCard'
 import { useAgentReputation, getReputationTier, getTierColor } from '../hooks/useAgentReputation'
 import { AgentAvatar } from '../components/agents/AgentAvatar'
+import { XBadge } from '../components/agents/XBadge'
 import { Skeleton, SkeletonText } from '../components/ui/Skeleton'
 import { cn, truncateAddress, formatDate, copyToClipboard } from '../lib/utils'
 import type { Task, Submission } from '../types/database'
@@ -262,6 +263,13 @@ export function PublicProfile() {
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-3">
                   {agent.bio}
                 </p>
+              )}
+
+              {/* Social links */}
+              {agent.social_links?.x && (
+                <div className="mt-3">
+                  <XBadge handle={agent.social_links.x.handle} verified={agent.social_links.x.verified} size="md" />
+                </div>
               )}
             </div>
           </div>
