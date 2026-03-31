@@ -188,10 +188,7 @@ export function GPSCapture({
     onPositionChange(null)
   }, [onError, onPositionChange, t, handleSuccess])
 
-  // Detect mobile (iOS Safari / Android) for GPS strategy
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
-
-  // Get current position — on mobile, try low accuracy first for faster fix
+  // Get current position — quick low-accuracy fix first, then upgrade
   const getCurrentPosition = useCallback(() => {
     if (!isSupported) {
       setError(t('gps.notSupported', 'Geolocalizacion no soportada'))
@@ -202,11 +199,11 @@ export function GPSCapture({
     setIsLoading(true)
     setError(null)
 
-    if (isMobile && highAccuracy) {
-      // Mobile strategy: get a quick low-accuracy fix first, then upgrade
+    if (highAccuracy) {
+      // Quick low-accuracy fix first (IP/WiFi ~2s), then upgrade to high accuracy.
+      // Works on all platforms: mobile gets GPS upgrade, desktop gets instant IP fix.
       navigator.geolocation.getCurrentPosition(
         (quickPos) => {
-          // Got a quick fix — report it, then try high accuracy
           handleSuccess(quickPos)
           navigator.geolocation.getCurrentPosition(
             handleSuccess,
@@ -215,16 +212,16 @@ export function GPSCapture({
           )
         },
         handleError,
-        { enableHighAccuracy: false, timeout, maximumAge: maxAge }
+        { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
       )
     } else {
       navigator.geolocation.getCurrentPosition(
         handleSuccess,
         handleError,
-        { enableHighAccuracy: highAccuracy, timeout, maximumAge: maxAge }
+        { enableHighAccuracy: false, timeout, maximumAge: maxAge }
       )
     }
-  }, [isSupported, handleSuccess, handleError, highAccuracy, timeout, maxAge, isMobile, t])
+  }, [isSupported, handleSuccess, handleError, highAccuracy, timeout, maxAge, t])
 
   // Watch position mode
   useEffect(() => {
@@ -232,6 +229,15 @@ export function GPSCapture({
 
     setIsLoading(true)
 
+    // Quick low-accuracy fix first (IP/WiFi) — shows position in <2s on desktop
+    // instead of waiting 30s for high-accuracy GPS that doesn't exist on PCs.
+    navigator.geolocation.getCurrentPosition(
+      handleSuccess,
+      () => { /* quick fix failed — watchPosition below will handle it */ },
+      { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
+    )
+
+    // Then watch with high accuracy for continuous updates (upgrades the quick fix)
     watchIdRef.current = navigator.geolocation.watchPosition(
       handleSuccess,
       handleError,
