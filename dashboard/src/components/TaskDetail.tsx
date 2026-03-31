@@ -102,6 +102,48 @@ function formatBounty(amount: number): string {
   }).format(amount)
 }
 
+/* --- GPS coordinate protection (PII in stream) --- */
+const GPS_KEYS = new Set(['latitude', 'longitude', 'lat', 'lng', 'lon'])
+
+function isGpsObject(obj: Record<string, unknown>): boolean {
+  return Object.keys(obj).some(k => GPS_KEYS.has(k))
+}
+
+function isGpsKey(key: string): boolean {
+  return GPS_KEYS.has(key) || key === 'gps' || key === 'position'
+}
+
+function containsGpsJson(s: string): boolean {
+  return /\b(latitude|longitude|lat|lng|lon)\b/.test(s)
+}
+
+function GpsToggle({ data }: { data: Record<string, unknown> }) {
+  const [show, setShow] = useState(false)
+  const { t } = useTranslation()
+  if (!show) {
+    return (
+      <button type="button" onClick={() => setShow(true)} className="text-blue-600 hover:underline text-xs flex items-center gap-1">
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+        </svg>
+        {t('gps.showCoordinates', 'Show coordinates')}
+      </button>
+    )
+  }
+  return (
+    <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs">
+      {Object.entries(data).map(([k, v]) => (
+        <span key={k} className="contents">
+          <span className="text-gray-400">{k}</span>
+          <span className="text-gray-600">{typeof v === 'number' ? String(Math.round(v * 1000000) / 1000000) : String(v ?? '')}</span>
+        </span>
+      ))}
+    </div>
+  )
+}
+/* --- end GPS coordinate protection --- */
+
 /** Resolve evidence file URL — handles Supabase storage paths and full URLs */
 function resolveEvidenceUrl(fileUrl: string): string {
   if (!fileUrl) return ''
@@ -465,6 +507,7 @@ export function TaskDetail({
             walletAddress={task.agent_id}
             label={t('tasks.postedBy', 'Posted by')}
             erc8004AgentIdOverride={task.erc8004_agent_id}
+            agentName={task.agent_name}
           />
         </section>
 
@@ -627,7 +670,17 @@ export function TaskDetail({
                                             {Object.entries(obj).map(([nk, nv]) => {
                                               if (nk === 'device' || nk === 'source') return null
                                               if (typeof nv === 'object' && nv !== null) {
-                                                return Object.entries(nv as Record<string, unknown>).map(([gk, gv]) => (
+                                                const nested = nv as Record<string, unknown>
+                                                // GPS objects hidden behind toggle
+                                                if (isGpsKey(nk) || isGpsObject(nested)) {
+                                                  return (
+                                                    <span key={nk} className="contents col-span-2">
+                                                      <span className="text-gray-400">{nk.replace(/_/g, ' ')}</span>
+                                                      <GpsToggle data={nested} />
+                                                    </span>
+                                                  )
+                                                }
+                                                return Object.entries(nested).map(([gk, gv]) => (
                                                   <span key={`${nk}.${gk}`} className="contents">
                                                     <span className="text-gray-400">{gk.replace(/_/g, ' ')}</span>
                                                     <span className="text-gray-600 truncate">
@@ -635,6 +688,10 @@ export function TaskDetail({
                                                     </span>
                                                   </span>
                                                 ))
+                                              }
+                                              // Scalar GPS keys hidden behind toggle
+                                              if (GPS_KEYS.has(nk)) {
+                                                return null // will be picked up by parent GpsToggle if applicable
                                               }
                                               return (
                                                 <span key={nk} className="contents">
@@ -648,22 +705,62 @@ export function TaskDetail({
                                       )
                                     }
 
+                                    // GPS object: entire section behind toggle
+                                    if (isGpsKey(mk) || isGpsObject(obj)) {
+                                      return (
+                                        <div key={mk} className="bg-white rounded p-2 border border-gray-100">
+                                          <span className="text-xs font-medium text-gray-500 uppercase">{mk.replace(/_/g, ' ')}</span>
+                                          <div className="mt-1">
+                                            <GpsToggle data={obj} />
+                                          </div>
+                                        </div>
+                                      )
+                                    }
+
                                     return (
                                       <div key={mk} className="bg-white rounded p-2 border border-gray-100">
                                         <span className="text-xs font-medium text-gray-500 uppercase">{mk.replace(/_/g, ' ')}</span>
                                         <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 mt-1 text-xs">
-                                          {Object.entries(obj).map(([nk, nv]) => (
-                                            <span key={nk} className="contents">
-                                              <span className="text-gray-400">{nk.replace(/_/g, ' ')}</span>
-                                              <span className="text-gray-600 truncate">
-                                                {typeof nv === 'boolean' ? (nv ? t('common.yes', 'Yes') : t('common.no', 'No'))
-                                                  : typeof nv === 'number' ? (nk.includes('score') ? `${Math.round(nv * 100)}%` : String(nv))
-                                                  : typeof nv === 'string' && nv.length > 32 ? `${nv.slice(0, 32)}...`
-                                                  : typeof nv === 'object' && nv !== null ? JSON.stringify(nv)
-                                                  : String(nv ?? '')}
+                                          {Object.entries(obj).map(([nk, nv]) => {
+                                            // Nested GPS object inside a generic metadata section
+                                            if (typeof nv === 'object' && nv !== null) {
+                                              const nestedObj = nv as Record<string, unknown>
+                                              if (isGpsKey(nk) || isGpsObject(nestedObj)) {
+                                                return (
+                                                  <span key={nk} className="contents col-span-2">
+                                                    <span className="text-gray-400">{nk.replace(/_/g, ' ')}</span>
+                                                    <GpsToggle data={nestedObj} />
+                                                  </span>
+                                                )
+                                              }
+                                              const jsonStr = JSON.stringify(nv)
+                                              if (containsGpsJson(jsonStr)) {
+                                                return (
+                                                  <span key={nk} className="contents col-span-2">
+                                                    <span className="text-gray-400">{nk.replace(/_/g, ' ')}</span>
+                                                    <GpsToggle data={nestedObj} />
+                                                  </span>
+                                                )
+                                              }
+                                              return (
+                                                <span key={nk} className="contents">
+                                                  <span className="text-gray-400">{nk.replace(/_/g, ' ')}</span>
+                                                  <span className="text-gray-600 truncate">{jsonStr}</span>
+                                                </span>
+                                              )
+                                            }
+                                            return (
+                                              <span key={nk} className="contents">
+                                                <span className="text-gray-400">{nk.replace(/_/g, ' ')}</span>
+                                                <span className="text-gray-600 truncate">
+                                                  {typeof nv === 'boolean' ? (nv ? t('common.yes', 'Yes') : t('common.no', 'No'))
+                                                    : typeof nv === 'number' ? (nk.includes('score') ? `${Math.round(nv * 100)}%` : String(nv))
+                                                    : typeof nv === 'string' && nv.length > 32 ? `${nv.slice(0, 32)}...`
+                                                    : String(nv ?? '')}
+                                                </span>
                                               </span>
-                                            </span>
-                                          ))}
+                                            )
+                                          })}
                                         </div>
                                       </div>
                                     )
@@ -697,6 +794,27 @@ export function TaskDetail({
 
                         // Plain text or other value
                         if (ev !== null && ev !== undefined) {
+                          // Object with GPS data — render behind toggle
+                          if (typeof ev === 'object') {
+                            const evObj = ev as Record<string, unknown>
+                            if (isGpsKey(key) || isGpsObject(evObj) || containsGpsJson(JSON.stringify(ev))) {
+                              return (
+                                <div key={key}>
+                                  <span className="text-xs font-semibold text-gray-600 uppercase">{key.replace(/_/g, ' ')}</span>
+                                  <div className="mt-1"><GpsToggle data={evObj} /></div>
+                                </div>
+                              )
+                            }
+                          }
+                          // String that contains GPS JSON
+                          if (typeof ev === 'string' && containsGpsJson(ev)) {
+                            return (
+                              <div key={key}>
+                                <span className="text-xs font-semibold text-gray-600 uppercase">{key.replace(/_/g, ' ')}</span>
+                                <p className="text-sm text-gray-500 mt-1">[GPS data hidden]</p>
+                              </div>
+                            )
+                          }
                           return (
                             <div key={key}>
                               <span className="text-xs font-semibold text-gray-600 uppercase">{key.replace(/_/g, ' ')}</span>

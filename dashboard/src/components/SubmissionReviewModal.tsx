@@ -34,6 +34,34 @@ interface AutoCheckDetails {
 }
 
 // --------------------------------------------------------------------------
+// GPS Badge — hides coordinates behind a toggle (PII protection for streams)
+// --------------------------------------------------------------------------
+
+function GpsBadge({ gps }: { gps: { latitude?: number; lat?: number; longitude?: number; lng?: number } }) {
+  const [show, setShow] = useState(false)
+  const lat = Number(gps.latitude || gps.lat)
+  const lng = Number(gps.longitude || gps.lng)
+  return (
+    <button
+      type="button"
+      onClick={() => setShow(!show)}
+      className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full transition-colors ${show ? 'bg-blue-50 text-blue-700' : 'bg-green-50 text-green-700 hover:bg-green-100'}`}
+    >
+      {show ? (
+        <>GPS: {lat.toFixed(4)}, {lng.toFixed(4)}</>
+      ) : (
+        <>
+          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+          </svg>
+          GPS: Captured
+        </>
+      )}
+    </button>
+  )
+}
+
+// --------------------------------------------------------------------------
 // Component
 // --------------------------------------------------------------------------
 
@@ -272,11 +300,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                         {/* Metadata badges */}
                         {ev?.metadata && (
                           <div className="flex flex-wrap gap-1.5 mt-2">
-                            {ev.metadata.gps && (
-                              <span className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">
-                                GPS: {Number(ev.metadata.gps.latitude || ev.metadata.gps.lat).toFixed(4)}, {Number(ev.metadata.gps.longitude || ev.metadata.gps.lng).toFixed(4)}
-                              </span>
-                            )}
+                            {ev.metadata.gps && <GpsBadge gps={ev.metadata.gps} />}
                             {ev.metadata.captureTimestamp && (
                               <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
                                 {new Date(ev.metadata.captureTimestamp).toLocaleString()}

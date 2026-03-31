@@ -9,6 +9,22 @@ import { getH2ATask, getH2ASubmissions, approveH2ASubmission } from '../../servi
 
 const FEE_PCT = 0.13
 
+const GPS_KEYS = new Set(['latitude', 'longitude', 'lat', 'lng', 'lon'])
+
+function redactGps(obj: unknown): unknown {
+  if (typeof obj !== 'object' || obj === null) return obj
+  if (Array.isArray(obj)) return obj.map(redactGps)
+  const result: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(obj)) {
+    if (GPS_KEYS.has(key.toLowerCase()) && typeof value === 'number') {
+      result[key] = '[hidden]'
+    } else {
+      result[key] = redactGps(value)
+    }
+  }
+  return result
+}
+
 export function ReviewSubmission() {
   const navigate = useNavigate()
   const { taskId } = useParams<{ taskId: string }>()
@@ -20,6 +36,7 @@ export function ReviewSubmission() {
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [showRawCoords, setShowRawCoords] = useState(false)
 
   const loadData = useCallback(async () => {
     if (!taskId) return
@@ -83,9 +100,19 @@ export function ReviewSubmission() {
               <div key={sub.id} className="bg-gray-50 rounded-lg border p-4">
                 <h4 className="font-medium mb-3">📦 Entrega del Agente</h4>
                 {Object.keys(sub.evidence || {}).length > 0 && (
-                  <pre className="bg-gray-900 text-green-400 p-3 rounded-lg text-xs overflow-auto max-h-96 mb-3">
-                    {JSON.stringify(sub.evidence, null, 2)}
-                  </pre>
+                  <div className="mb-3">
+                    <div className="flex justify-end mb-1">
+                      <button
+                        onClick={() => setShowRawCoords(prev => !prev)}
+                        className="text-xs text-gray-400 hover:text-gray-200 bg-gray-800 px-2 py-1 rounded"
+                      >
+                        {showRawCoords ? 'Ocultar coordenadas' : 'Mostrar coordenadas'}
+                      </button>
+                    </div>
+                    <pre className="bg-gray-900 text-green-400 p-3 rounded-lg text-xs overflow-auto max-h-96">
+                      {JSON.stringify(showRawCoords ? sub.evidence : redactGps(sub.evidence), null, 2)}
+                    </pre>
+                  </div>
                 )}
                 {sub.evidence_files?.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-3">
