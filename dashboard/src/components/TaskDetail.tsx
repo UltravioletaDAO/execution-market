@@ -11,6 +11,8 @@ import { NetworkBadge } from './ui/NetworkBadge'
 import { useAgentReputation, getReputationTier, getTierColor } from '../hooks/useAgentReputation'
 import { AgentStandardCard } from './agents/AgentStandardCard'
 import { EvidenceVerificationPanel } from './EvidenceVerificationPanel'
+import { AIAnalysisDetails } from './AIAnalysisDetails'
+import type { AIAnalysisResult } from './AIAnalysisDetails'
 import { TaskLifecycleTimeline } from './TaskLifecycleTimeline'
 import { TaskRatings } from './TaskRatings'
 import { EvidenceModal } from './EvidenceModal'
@@ -854,8 +856,16 @@ export function TaskDetail({
 
                   {/* Auto-check verification results */}
                   {sub.auto_check_details && (
-                    <div className="mt-3">
+                    <div className="mt-3 space-y-3">
                       <EvidenceVerificationPanel details={sub.auto_check_details} />
+                      {(() => {
+                        const details = sub.auto_check_details as { checks?: Array<{ name: string; details?: Record<string, unknown> }> } | null
+                        const checks = details?.checks
+                        const aiCheck = Array.isArray(checks) ? checks.find((c) => c.name === 'ai_semantic') : undefined
+                        // Prefer sub-level ai_verification_result if it exists as a separate column, otherwise use check entry
+                        const aiResult = aiCheck as unknown as AIAnalysisResult | undefined
+                        return aiResult ? <AIAnalysisDetails result={aiResult} /> : null
+                      })()}
                     </div>
                   )}
 

@@ -19,6 +19,8 @@ import {
 } from './evidence/EvidenceUpload'
 import { GeofenceAlert } from './GeofenceAlert'
 import { EvidenceVerificationPanel } from './EvidenceVerificationPanel'
+import { AIAnalysisDetails } from './AIAnalysisDetails'
+import type { AIAnalysisResult } from './AIAnalysisDetails'
 import { supabase } from '../lib/supabase'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
@@ -742,8 +744,13 @@ export function SubmissionForm({
 
         {/* Verification panel — always show when available */}
         {verificationDetails && (
-          <div className="border-t border-gray-200 p-4">
+          <div className="border-t border-gray-200 p-4 space-y-3">
             <EvidenceVerificationPanel details={verificationDetails} />
+            {(() => {
+              const checks = (verificationDetails as { checks?: Array<{ name: string; details?: Record<string, unknown> }> }).checks
+              const aiCheck = Array.isArray(checks) ? checks.find((c) => c.name === 'ai_semantic') : undefined
+              return aiCheck ? <AIAnalysisDetails result={aiCheck as unknown as AIAnalysisResult} /> : null
+            })()}
           </div>
         )}
       </div>

@@ -153,6 +153,79 @@ async def get_my_submission(
     )
 
 
+@router.get(
+    "/submissions/{submission_id}",
+    response_model=SuccessResponse,
+    responses={
+        200: {"description": "Submission details retrieved"},
+        403: {"model": ErrorResponse, "description": "Not authorized to view this submission"},
+        404: {"model": ErrorResponse, "description": "Submission not found"},
+    },
+    summary="Get Submission Detail",
+    description=(
+        "Get a submission's full details including AI verification results. "
+        "Workers use this to poll for Phase B verification updates after submitting evidence."
+    ),
+    tags=["Workers", "Submissions"],
+)
+async def get_submission_detail(
+    raw_request: Request,
+    submission_id: str = Path(
+        ..., description="UUID of the submission", pattern=UUID_PATTERN
+    ),
+    worker_auth: Optional[WorkerAuth] = Depends(verify_worker_auth),
+) -> SuccessResponse:
+    """Get a submission's details including async AI verification results.
+
+    After submitting evidence, Phase A verification runs synchronously and is
+    returned in the submit response.  Phase B runs asynchronously and updates
+    the ``ai_verification_result`` column in the database.  Workers call this
+    endpoint to retrieve the latest verification state.
+    """
+    # Fetch submission by ID (uses supabase_client.get_submission which joins
+    # task and executor data via .select("*, task:tasks(*), executor:executors(...)"))
+    submission = await db.get_submission(submission_id)
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission not found")
+
+    # Auth: verify caller is the executor who submitted this work.
+    # If worker_auth is present, the executor_id must match the submission's.
+    sub_executor_id = submission.get("executor_id")
+    if worker_auth and worker_auth.executor_id:
+        if worker_auth.executor_id != sub_executor_id:
+            raise HTTPException(
+                status_code=403,
+                detail="You are not authorized to view this submission",
+            )
+    else:
+        # Soft auth: log warning but allow (matches body-fallback pattern)
+        logger.warning(
+            "SECURITY_AUDIT action=submission_detail.no_auth submission_id=%s path=%s",
+            submission_id[:8],
+            raw_request.url.path,
+        )
+
+    return SuccessResponse(
+        message="Submission retrieved",
+        data={
+            "id": submission.get("id"),
+            "task_id": submission.get("task_id"),
+            "executor_id": sub_executor_id,
+            "status": submission.get("agent_verdict"),
+            "evidence": submission.get("evidence"),
+            "notes": submission.get("notes"),
+            "auto_check_passed": submission.get("auto_check_passed"),
+            "auto_check_details": submission.get("auto_check_details"),
+            "ai_verification_result": submission.get("ai_verification_result"),
+            "submitted_at": submission.get("submitted_at")
+            or submission.get("created_at"),
+            "verified_at": submission.get("verified_at")
+            or submission.get("updated_at"),
+            "payment_tx": submission.get("payment_tx"),
+        },
+    )
+
+
 @router.post(
     "/tasks/{task_id}/apply",
     response_model=SuccessResponse,

@@ -109,6 +109,7 @@ async def get_submissions(
                 )
                 if sub.get("verified_at")
                 else None,
+                ai_verification_result=sub.get("ai_verification_result"),
             )
         )
 

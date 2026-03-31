@@ -233,6 +233,10 @@ class SubmissionResponse(BaseModel):
     verified_at: Optional[datetime] = Field(
         None, description="Timestamp when submission was verified"
     )
+    ai_verification_result: Optional[Dict] = Field(
+        None,
+        description="AI verification analysis from Phase B (contains explanation, decision, confidence, task_specific_checks). Null until async AI verification completes.",
+    )
 
 
 class SubmissionListResponse(BaseModel):
