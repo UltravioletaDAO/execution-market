@@ -259,6 +259,7 @@ async def apply_to_task(
     # Controlled by EM_REQUIRE_ERC8004_WORKER env var (default: false).
     # When true: worker must have on-chain identity to apply. If not registered,
     # we auto-register gaslessly (Facilitator pays). Fails only if no wallet.
+    # Identity is created on the SAME chain as the task's payment_network.
     import os
 
     _require_worker_erc8004 = (
@@ -271,68 +272,91 @@ async def apply_to_task(
                 register_worker_gasless,
             )
 
-            executor_stats = await db.get_executor_stats(executor_id)
-            worker_wallet = (executor_stats or {}).get("wallet_address")
+            # Resolve the task's payment network so worker identity is created
+            # on the correct chain (not hardcoded to Base).
+            task_data = await db.get_task(task_id)
+            task_network = (task_data or {}).get("payment_network", "base")
 
-            if not worker_wallet:
-                raise HTTPException(
-                    status_code=403,
-                    detail={
-                        "error": "wallet_required",
-                        "message": (
-                            "You need a connected wallet to apply for tasks. "
-                            "Connect your wallet in the Execution Market dashboard."
-                        ),
-                    },
-                )
+            # Validate the network is supported for ERC-8004
+            from integrations.erc8004.facilitator_client import ERC8004_CONTRACTS
 
-            # Guard 1: DB check — fast path (avoid unnecessary on-chain calls)
-            _db_executor = (
-                db.get_client()
-                .table("executors")
-                .select("erc8004_agent_id")
-                .eq("id", executor_id)
-                .limit(1)
-                .execute()
-            )
-            _db_agent_id = (
-                _db_executor.data[0].get("erc8004_agent_id")
-                if _db_executor.data
-                else None
-            )
-            if _db_agent_id:
-                logger.info(
-                    "Worker %s already has erc8004_agent_id=%s (DB), skipping registration",
-                    executor_id,
-                    _db_agent_id,
+            if task_network not in ERC8004_CONTRACTS:
+                logger.warning(
+                    "Task %s payment_network=%s not supported for ERC-8004 identity "
+                    "(supported: %s). Skipping worker identity check.",
+                    task_id,
+                    task_network,
+                    list(ERC8004_CONTRACTS.keys()),
                 )
-                identity = None  # skip on-chain check + registration
             else:
-                # Guard 2: On-chain check
-                identity = await check_worker_identity(worker_wallet)
+                executor_stats = await db.get_executor_stats(executor_id)
+                worker_wallet = (executor_stats or {}).get("wallet_address")
 
-            if identity is not None and not identity.agent_id:
-                logger.info(
-                    "Worker %s has no ERC-8004 identity — auto-registering gaslessly",
-                    executor_id,
-                )
-                reg = await register_worker_gasless(worker_wallet)
-                if not reg.agent_id:
+                if not worker_wallet:
                     raise HTTPException(
                         status_code=403,
                         detail={
-                            "error": "identity_registration_failed",
+                            "error": "wallet_required",
                             "message": (
-                                "Could not register your on-chain identity. "
-                                "Please try again or contact support."
+                                "You need a connected wallet to apply for tasks. "
+                                "Connect your wallet in the Execution Market dashboard."
                             ),
                         },
                     )
-                logger.info(
-                    "Worker %s auto-registered on ERC-8004: agent_id=%s",
-                    executor_id,
-                    reg.agent_id,
+
+                # Guard 1: DB check — fast path (avoid unnecessary on-chain calls)
+                _db_executor = (
+                    db.get_client()
+                    .table("executors")
+                    .select("erc8004_agent_id")
+                    .eq("id", executor_id)
+                    .limit(1)
+                    .execute()
                 )
+                _db_agent_id = (
+                    _db_executor.data[0].get("erc8004_agent_id")
+                    if _db_executor.data
+                    else None
+                )
+                if _db_agent_id:
+                    logger.info(
+                        "Worker %s already has erc8004_agent_id=%s (DB), skipping registration",
+                        executor_id,
+                        _db_agent_id,
+                    )
+                    identity = None  # skip on-chain check + registration
+                else:
+                    # Guard 2: On-chain check on the task's payment network
+                    identity = await check_worker_identity(
+                        worker_wallet, network=task_network
+                    )
+
+                if identity is not None and not identity.agent_id:
+                    logger.info(
+                        "Worker %s has no ERC-8004 identity on %s — auto-registering gaslessly",
+                        executor_id,
+                        task_network,
+                    )
+                    reg = await register_worker_gasless(
+                        worker_wallet, network=task_network
+                    )
+                    if not reg.agent_id:
+                        raise HTTPException(
+                            status_code=403,
+                            detail={
+                                "error": "identity_registration_failed",
+                                "message": (
+                                    "Could not register your on-chain identity. "
+                                    "Please try again or contact support."
+                                ),
+                            },
+                        )
+                    logger.info(
+                        "Worker %s auto-registered on ERC-8004: agent_id=%s, network=%s",
+                        executor_id,
+                        reg.agent_id,
+                        task_network,
+                    )
         except HTTPException:
             raise
         except Exception as e:

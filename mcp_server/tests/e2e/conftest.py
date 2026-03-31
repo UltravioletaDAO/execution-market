@@ -669,7 +669,7 @@ class MockSupabaseClient:
             # Update worker reputation
             executor = self._executors.get(sub["executor_id"])
             if executor:
-                executor["reputation_score"] = executor.get("reputation_score", 0) + 10
+                executor["reputation_score"] = min(100, executor.get("reputation_score", 0) + 10)
                 executor["tasks_completed"] = executor.get("tasks_completed", 0) + 1
                 executor["active_tasks_count"] = max(
                     0, executor.get("active_tasks_count", 1) - 1

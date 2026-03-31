@@ -7,6 +7,7 @@ Contains payment, escrow, reputation, and utility helpers.
 
 import logging
 import json
+import os
 import re
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -1106,12 +1107,17 @@ async def _ws2_auto_rate_agent(
         from integrations.erc8004.facilitator_client import rate_agent
 
         task_network = task.get("payment_network", "base")
+        # Use relay wallet to avoid self-feedback revert when platform wallet
+        # owns Agent #2106.  The REST endpoint (reputation.py) already reads
+        # EM_REPUTATION_RELAY_KEY -- the auto-rate path must do the same.
+        relay_key = os.environ.get("EM_REPUTATION_RELAY_KEY")
         feedback_result = await rate_agent(
             agent_id=agent_erc8004_id,
             task_id=task_id or "",
             score=score,
             proof_tx=release_tx,
             network=task_network,
+            relay_private_key=relay_key,
         )
 
         if feedback_result.success:

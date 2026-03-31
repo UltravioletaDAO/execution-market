@@ -269,7 +269,7 @@ class ReputationBridge:
         internal_score = internal.bayesian_score * 100
 
         # Blend: internal data is richer, but on-chain is tamper-proof
-        return on_chain_score * 0.4 + internal_score * 0.6
+        return min(100.0, max(0.0, on_chain_score * 0.4 + internal_score * 0.6))
 
     def _compute_reliability_score(self, internal: InternalReputation) -> float:
         """

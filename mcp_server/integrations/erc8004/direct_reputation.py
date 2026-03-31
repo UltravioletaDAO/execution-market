@@ -70,6 +70,18 @@ GIVE_FEEDBACK_ABI = [
     }
 ]
 
+# ERC-721 ownerOf — used for pre-flight self-feedback detection
+_IDENTITY_REGISTRY_ADDRESS = "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432"
+_OWNER_OF_ABI = [
+    {
+        "inputs": [{"name": "tokenId", "type": "uint256"}],
+        "name": "ownerOf",
+        "outputs": [{"name": "", "type": "address"}],
+        "stateMutability": "view",
+        "type": "function",
+    }
+]
+
 # Network config — reuse from identity.py
 BASE_CHAIN_ID = 8453
 BASE_RPC_URL = os.environ.get("BASE_RPC_URL", "https://mainnet.base.org")
@@ -168,6 +180,41 @@ async def give_feedback_direct(
     contracts = _get_erc8004_contracts()
     net_cfg = contracts.get(target_network, {})
     chain_id = net_cfg.get("chain_id", BASE_CHAIN_ID)
+
+    # ---- Pre-flight: detect self-feedback before spending gas ----
+    # The ReputationRegistry reverts when msg.sender == ownerOf(agentId).
+    # Catching this early gives a clear error and avoids wasting gas.
+    try:
+        w3_preflight = _get_web3(target_network)
+        sender_address = w3_preflight.eth.account.from_key(pk).address
+        identity_contract = w3_preflight.eth.contract(
+            address=Web3.to_checksum_address(_IDENTITY_REGISTRY_ADDRESS),
+            abi=_OWNER_OF_ABI,
+        )
+        agent_owner = identity_contract.functions.ownerOf(agent_id).call()
+        if sender_address.lower() == agent_owner.lower():
+            err_msg = (
+                f"Self-feedback detected: sender {sender_address} is the owner of "
+                f"agent #{agent_id} on {target_network}. The ReputationRegistry reverts "
+                f"when msg.sender == ownerOf(agentId). "
+                f"To fix: set EM_REPUTATION_RELAY_KEY to a separate wallet that does "
+                f"not own any agent NFTs."
+            )
+            logger.error(err_msg)
+            return FeedbackResult(
+                success=False,
+                error=err_msg,
+                network=target_network,
+            )
+    except Exception as preflight_err:
+        # Non-blocking: if ownerOf call fails (e.g. agent doesn't exist on
+        # this chain, or RPC issue), let the TX attempt proceed and fail
+        # with a more specific on-chain error.
+        logger.debug(
+            "Self-feedback preflight check could not complete on %s: %s",
+            target_network,
+            preflight_err,
+        )
 
     def _send_tx():
         w3 = _get_web3(target_network)

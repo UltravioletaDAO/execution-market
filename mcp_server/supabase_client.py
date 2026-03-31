@@ -872,7 +872,7 @@ async def _update_executor_reputation(
         return
 
     current_score = executor.data.get("reputation_score", 0)
-    new_score = max(0, current_score + delta)
+    new_score = min(100, max(0, current_score + delta))
 
     # Update score
     client.table("executors").update({"reputation_score": new_score}).eq(

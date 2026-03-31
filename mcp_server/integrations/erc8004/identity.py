@@ -596,20 +596,22 @@ async def build_worker_registration_tx(
 async def confirm_worker_registration(
     wallet_address: str,
     tx_hash: Optional[str] = None,
+    network: str = "base",
 ) -> WorkerIdentityResult:
     """
     Re-check on-chain state after a registration tx to confirm success.
 
-    Always performs a fresh on-chain lookup.
+    Always performs a fresh on-chain lookup on the specified network.
     """
     if tx_hash:
         logger.info(
-            "Confirming worker registration: wallet=%s tx=%s",
+            "Confirming worker registration: wallet=%s tx=%s network=%s",
             wallet_address,
             tx_hash,
+            network,
         )
 
-    return await check_worker_identity(wallet_address)
+    return await check_worker_identity(wallet_address, network=network)
 
 
 # ---------------------------------------------------------------------------
