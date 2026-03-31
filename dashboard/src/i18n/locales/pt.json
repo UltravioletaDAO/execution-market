@@ -1451,7 +1451,9 @@
     "waitMessage": "Isso pode levar alguns segundos",
     "showCoordinates": "Mostrar coordenadas",
     "hideCoordinates": "Ocultar coordenadas",
-    "locationAcquired": "Localizacao obtida"
+    "locationAcquired": "Localizacao obtida",
+    "gpsCaptured": "GPS: Capturado",
+    "gpsDataHidden": "[Dados GPS ocultos]"
   },
   "payment": {
     "awaitingEscrow": "Aguardando deposito em escrow",
@@ -1817,8 +1819,19 @@
     "ctaExploreDocs": "Explorar API Docs",
     "ctaGitHub": "Ver no GitHub"
   },
+  "aiAnalysis": {
+    "approved": "Aprovado",
+    "needsReview": "Requer revisao",
+    "rejected": "Rejeitado",
+    "confidence": "confianca",
+    "analysis": "Analise",
+    "issues": "Problemas",
+    "viewAnalysis": "Ver analise"
+  },
   "autoCheck": {
     "title": "Verificacao automatica",
+    "passed": "Verificacao automatica: Aprovada",
+    "needsReview": "Verificacao automatica: Requer revisao",
     "phaseBPending": "Verificacao por IA em andamento. Os resultados serao atualizados automaticamente.",
     "phaseComplete": "Verificacao concluida",
     "phasePartial": "Verificacao parcial — IA pendente",

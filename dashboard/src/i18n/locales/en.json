@@ -1499,7 +1499,9 @@
     "waitMessage": "This may take a few seconds",
     "showCoordinates": "Show coordinates",
     "hideCoordinates": "Hide coordinates",
-    "locationAcquired": "Location acquired"
+    "locationAcquired": "Location acquired",
+    "gpsCaptured": "GPS: Captured",
+    "gpsDataHidden": "[GPS data hidden]"
   },
   "payment": {
     "awaitingEscrow": "Awaiting escrow deposit",
@@ -1864,6 +1866,15 @@
     "ctaRequestKey": "Request API Key",
     "ctaExploreDocs": "Explore API Docs",
     "ctaGitHub": "View on GitHub"
+  },
+  "aiAnalysis": {
+    "approved": "Approved",
+    "needsReview": "Needs Review",
+    "rejected": "Rejected",
+    "confidence": "confidence",
+    "analysis": "Analysis",
+    "issues": "Issues",
+    "viewAnalysis": "View analysis"
   },
   "autoCheck": {
     "title": "Automatic verification",

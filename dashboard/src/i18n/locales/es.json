@@ -901,7 +901,9 @@
     "waitMessage": "Esto puede tomar unos segundos",
     "showCoordinates": "Mostrar coordenadas",
     "hideCoordinates": "Ocultar coordenadas",
-    "locationAcquired": "Ubicacion obtenida"
+    "locationAcquired": "Ubicacion obtenida",
+    "gpsCaptured": "GPS: Capturado",
+    "gpsDataHidden": "[Datos GPS ocultos]"
   },
   "verification": {
     "title": "Verificacion de Evidencia",
@@ -1864,6 +1866,15 @@
     "ctaRequestKey": "Solicitar API Key",
     "ctaExploreDocs": "Explorar API Docs",
     "ctaGitHub": "Ver en GitHub"
+  },
+  "aiAnalysis": {
+    "approved": "Aprobado",
+    "needsReview": "Requiere revision",
+    "rejected": "Rechazado",
+    "confidence": "confianza",
+    "analysis": "Analisis",
+    "issues": "Problemas",
+    "viewAnalysis": "Ver analisis"
   },
   "autoCheck": {
     "title": "Verificacion automatica",
