@@ -43,6 +43,27 @@ VERIFICATION_AI_MAX_IMAGES = int(os.environ.get("VERIFICATION_AI_MAX_IMAGES", "2
 TIER_WEIGHTS = {"tier_1": 1.0, "tier_2": 2.0, "tier_3": 3.0, "tier_4": 4.0}
 
 
+async def _report_phase_b_error(submission_id: str, error_msg: str) -> None:
+    """Write Phase B error to submission so dashboard can display it."""
+    try:
+        current = await db.get_submission(submission_id)
+        existing = (current or {}).get("auto_check_details") or {}
+        await db.update_submission_auto_check(
+            submission_id=submission_id,
+            auto_check_passed=existing.get("passed", False),
+            auto_check_details={
+                **existing,
+                "phase_b_status": "error",
+                "phase_b_error": error_msg,
+            },
+        )
+        logger.error("[AUDIT] Phase B error for %s: %s", submission_id, error_msg)
+    except Exception as e:
+        logger.error(
+            "[AUDIT] Failed to report Phase B error for %s: %s", submission_id, e
+        )
+
+
 async def run_phase_b_verification(
     submission_id: str,
     submission: Dict[str, Any],
@@ -63,6 +84,10 @@ async def run_phase_b_verification(
     """
     if not VERIFICATION_AI_ENABLED:
         logger.info("Phase B verification disabled (VERIFICATION_AI_ENABLED=false)")
+        await _report_phase_b_error(
+            submission_id,
+            "AI verification disabled (VERIFICATION_AI_ENABLED=false)",
+        )
         return
 
     temp_paths: List[str] = []
@@ -75,6 +100,9 @@ async def run_phase_b_verification(
             logger.info(
                 "Phase B skipped for %s: no photo URLs in evidence", submission_id
             )
+            await _report_phase_b_error(
+                submission_id, "No photo URLs found in evidence"
+            )
             return
 
         # 2. Download to temp
@@ -84,6 +112,10 @@ async def run_phase_b_verification(
         if not downloaded:
             logger.warning(
                 "Phase B skipped for %s: no images downloaded", submission_id
+            )
+            await _report_phase_b_error(
+                submission_id,
+                "Could not download evidence images for analysis",
             )
             return
 
@@ -134,6 +166,10 @@ async def run_phase_b_verification(
 
         if not phase_b_checks:
             logger.warning("No Phase B checks succeeded for %s", submission_id)
+            await _report_phase_b_error(
+                submission_id,
+                "All AI verification checks failed — no provider available or all checks errored",
+            )
             return
 
         # 4. Fetch current auto_check_details and merge
@@ -195,6 +231,9 @@ async def run_phase_b_verification(
             submission_id,
             e,
             exc_info=True,
+        )
+        await _report_phase_b_error(
+            submission_id, f"Unexpected error: {str(e)[:200]}"
         )
     finally:
         cleanup_temp_files(temp_paths)

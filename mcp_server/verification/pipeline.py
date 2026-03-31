@@ -439,6 +439,36 @@ def _extract_gps_from_evidence(evidence: Dict[str, Any]) -> tuple:
                 except (TypeError, ValueError):
                     pass
 
+    # Catch-all: check ALL remaining evidence keys for nested gps or metadata.gps
+    checked_keys = {"gps", "location", "coordinates", "photo_geo",
+                    "forensic_metadata", "device_info", "device_metadata",
+                    "photo", "screenshot", "document", "receipt", "video"}
+    for key, item in evidence.items():
+        if key in checked_keys or not isinstance(item, dict):
+            continue
+        # Check item.gps
+        nested_gps = item.get("gps")
+        if isinstance(nested_gps, dict):
+            lat = nested_gps.get("lat") or nested_gps.get("latitude")
+            lng = nested_gps.get("lng") or nested_gps.get("longitude") or nested_gps.get("lon")
+            if lat is not None and lng is not None:
+                try:
+                    return _found(f"catchall_{key}_gps", float(lat), float(lng))
+                except (TypeError, ValueError):
+                    pass
+        # Check item.metadata.gps
+        item_meta = item.get("metadata")
+        if isinstance(item_meta, dict):
+            meta_gps = item_meta.get("gps")
+            if isinstance(meta_gps, dict):
+                lat = meta_gps.get("lat") or meta_gps.get("latitude")
+                lng = meta_gps.get("lng") or meta_gps.get("longitude") or meta_gps.get("lon")
+                if lat is not None and lng is not None:
+                    try:
+                        return _found(f"catchall_{key}_metadata_gps", float(lat), float(lng))
+                    except (TypeError, ValueError):
+                        pass
+
     # Debug: log which paths were checked and none had GPS
     logger.info(
         "[AUDIT] _extract_gps evidence_keys=%s photo_geo_keys=%s no_gps_found=true",

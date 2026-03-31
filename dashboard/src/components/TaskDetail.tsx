@@ -580,11 +580,20 @@ export function TaskDetail({
                         const ev = value as Record<string, unknown> | string | null
                         // Evidence object with fileUrl (e.g. {type, fileUrl, filename, metadata})
                         if (ev && typeof ev === 'object' && 'fileUrl' in ev) {
-                          const fileUrl = resolveEvidenceUrl(String(ev.fileUrl || ''))
+                          const rawUrl = String((ev as Record<string, unknown>).fileUrl || (ev as Record<string, unknown>).url || '')
                           const filename = String(ev.filename || '')
                           const evType = String(ev.type || key)
                           const metadata = ev.metadata as Record<string, unknown> | undefined
-                          const isImage = fileUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) || evType === 'screenshot' || evType === 'photo' || evType === 'photo_geo'
+                          // Fallback: try metadata.storagePath if fileUrl is empty
+                          const storagePath = metadata?.storagePath || metadata?.storage_path || metadata?.path
+                          const fileUrl = rawUrl
+                            ? resolveEvidenceUrl(rawUrl)
+                            : (storagePath ? resolveEvidenceUrl(String(storagePath)) : '')
+                          // More robust image detection — check mimeType first, then extension, then evidence type
+                          const evMimeType = String((ev as Record<string, unknown>).mimeType || '')
+                          const isImage = evMimeType.startsWith('image/') ||
+                            (fileUrl && /\.(jpg|jpeg|png|gif|webp)$/i.test(fileUrl)) ||
+                            ['photo', 'photo_geo', 'screenshot'].includes(evType)
 
                           return (
                             <div key={key}>
@@ -600,8 +609,29 @@ export function TaskDetail({
                                     src={fileUrl}
                                     alt={filename || evType}
                                     className="rounded-lg max-h-72 w-full object-contain border border-gray-200 bg-white"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement
+                                      target.style.display = 'none'
+                                      const fallback = target.nextElementSibling
+                                      if (fallback) (fallback as HTMLElement).style.display = 'flex'
+                                    }}
                                   />
+                                  {/* Fallback for broken images */}
+                                  <div className="hidden w-full h-32 bg-gray-100 rounded items-center justify-center">
+                                    <div className="text-center">
+                                      <span className="text-xs text-gray-400 block">{t('evidence.imageLoadError', 'Could not load image')}</span>
+                                      <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline mt-1 block">
+                                        {t('evidence.downloadDirect', 'Download directly')}
+                                      </a>
+                                    </div>
+                                  </div>
                                 </button>
+                              )}
+                              {/* Placeholder when image is detected but no URL available */}
+                              {isImage && !fileUrl && (
+                                <div className="w-full h-32 bg-gray-100 rounded flex items-center justify-center mt-2">
+                                  <span className="text-xs text-gray-400">{t('evidence.imageNotAvailable', 'Image not available')}</span>
+                                </div>
                               )}
                               {/* Non-image file link */}
                               {!isImage && fileUrl && (
