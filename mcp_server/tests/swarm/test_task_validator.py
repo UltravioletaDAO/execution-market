@@ -1088,7 +1088,7 @@ class TestEdgeCases(unittest.TestCase):
     def test_none_bounty_with_required_fields_disabled(self):
         """If required_fields is disabled, bounty=None shouldn't crash bounty_minimum."""
         self.v.disable_rule(ValidationRuleId.REQUIRED_FIELDS.value)
-        result = self.v.validate({"title": "t", "description": "d"})
+        self.v.validate({"title": "t", "description": "d"})
         # bounty_minimum should handle None bounty gracefully
         self.assertTrue(True)  # No crash is success
 

@@ -512,7 +512,7 @@ class TestCooldownSync:
         lm = make_lifecycle_mock()
         bridge = FleetLifecycleBridge(lifecycle_manager=lm, fleet_manager=fm)
 
-        event = bridge.sync_cooldown_expired(2106)
+        bridge.sync_cooldown_expired(2106)
         # Should still try lifecycle
         lm.check_cooldown_expiry.assert_called_once()
 

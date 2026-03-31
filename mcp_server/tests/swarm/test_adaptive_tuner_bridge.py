@@ -381,7 +381,7 @@ class TestWeightOptimization:
             r["category"] = "special"
         bridge.sync_from_supabase(rows)
 
-        weights = bridge.suggest_weights(category="special")
+        bridge.suggest_weights(category="special")
         assert "special" in bridge._category_weights
 
     def test_get_recommendations(self):

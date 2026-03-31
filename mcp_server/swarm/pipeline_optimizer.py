@@ -273,7 +273,7 @@ class PipelineReport:
                     "avg_throughput": round(v.avg_throughput, 2),
                     "latency_share": round(v.latency_share, 3),
                 }
-                for k, v in v.items()
+                for k, v in self.stage_profiles.items()
             }
             if isinstance(self.stage_profiles, dict)
             and all(isinstance(v, dict) for v in self.stage_profiles.values())

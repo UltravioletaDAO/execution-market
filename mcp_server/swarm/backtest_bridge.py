@@ -639,7 +639,7 @@ class BacktestBridge:
     def load(self, path: str) -> None:
         """Load state from JSON."""
         with open(path) as f:
-            data = json.load(f)
+            json.load(f)
         # History is for audit; data comes from tuner bridge / supabase
         self._results_history = []
 
