@@ -18,6 +18,8 @@ import {
   type UploadedEvidence,
 } from './evidence/EvidenceUpload'
 import { GeofenceAlert } from './GeofenceAlert'
+import { EvidenceVerificationPanel } from './EvidenceVerificationPanel'
+import { supabase } from '../lib/supabase'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.execution.market'
@@ -120,8 +122,11 @@ export function SubmissionForm({
   const [pollingStatus, setPollingStatus] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isOutsideGeofence, setIsOutsideGeofence] = useState(false)
+  const [verificationDetails, setVerificationDetails] = useState<Record<string, unknown> | null>(null)
+  const [submissionId, setSubmissionId] = useState<string | null>(null)
   const fileInputRefs = useRef<Map<string, HTMLInputElement>>(new Map())
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const phaseBPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const allRequired = task.evidence_schema.required
   const allOptional = task.evidence_schema.optional || []
@@ -169,6 +174,54 @@ export function SubmissionForm({
       }
     }
   }, [submitted, task.id])
+
+  // Phase B polling: fetch submission auto_check_details until phase === 'AB' (max 60s)
+  useEffect(() => {
+    if (!submitted || !submissionId) return
+
+    let iterations = 0
+    const MAX_ITERATIONS = 12 // 12 * 5s = 60s
+
+    phaseBPollRef.current = setInterval(async () => {
+      iterations++
+      try {
+        const { data } = await supabase
+          .from('submissions')
+          .select('auto_check_details')
+          .eq('id', submissionId)
+          .single()
+
+        if (data?.auto_check_details) {
+          const details = data.auto_check_details as Record<string, unknown>
+          // Always update with latest details (Phase A or AB)
+          setVerificationDetails(details)
+
+          // Stop polling when Phase B is complete
+          if (details.phase === 'AB') {
+            if (phaseBPollRef.current) {
+              clearInterval(phaseBPollRef.current)
+              phaseBPollRef.current = null
+            }
+          }
+        }
+      } catch {
+        // Silently retry on next interval
+      }
+
+      // Stop after max iterations to avoid infinite polling
+      if (iterations >= MAX_ITERATIONS && phaseBPollRef.current) {
+        clearInterval(phaseBPollRef.current)
+        phaseBPollRef.current = null
+      }
+    }, 5000)
+
+    return () => {
+      if (phaseBPollRef.current) {
+        clearInterval(phaseBPollRef.current)
+        phaseBPollRef.current = null
+      }
+    }
+  }, [submitted, submissionId])
 
   // Parse task location hint into coordinates if available
   const taskLocation = (() => {
@@ -414,6 +467,8 @@ export function SubmissionForm({
       })
 
       setSubmitted(true)
+      setSubmissionId(result.submission.id)
+      setVerificationDetails(result.verification as Record<string, unknown> | null)
       onSubmit?.(result.verification)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('submission.submitError'))
@@ -666,10 +721,9 @@ export function SubmissionForm({
             </>
           ) : (
             <>
-              <div className="w-16 h-16 mx-auto rounded-full bg-blue-100 flex items-center justify-center">
-                <svg className="w-8 h-8 text-blue-600 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              <div className="w-16 h-16 mx-auto rounded-full bg-green-100 flex items-center justify-center">
+                <svg className="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
               <h3 className="text-lg font-semibold text-gray-900">
@@ -685,6 +739,13 @@ export function SubmissionForm({
             </>
           )}
         </div>
+
+        {/* Verification panel — always show when available */}
+        {verificationDetails && (
+          <div className="border-t border-gray-200 p-4">
+            <EvidenceVerificationPanel details={verificationDetails} />
+          </div>
+        )}
       </div>
     )
   }

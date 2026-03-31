@@ -111,14 +111,32 @@ export function EvidenceVerificationPanel({ details }: EvidenceVerificationPanel
         </div>
       )}
 
-      {/* Phase B pending notice */}
-      {verification.phase_b_status === 'pending' && (
-        <p className="text-xs text-blue-600 mt-2">
-          {t(
-            'autoCheck.phaseBPending',
-            'AI verification in progress. Results will update automatically.',
-          )}
-        </p>
+      {/* Phase indicator */}
+      {verification.phase_b_status === 'pending' && verification.phase !== 'AB' && (
+        <div className="flex items-center gap-2 mt-3 p-2 bg-blue-50 rounded-lg">
+          <svg className="w-4 h-4 text-blue-500 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <div>
+            <span className="text-xs font-medium text-blue-700">
+              {t('autoCheck.phaseAComplete', 'Phase A complete')}
+            </span>
+            <span className="text-xs text-blue-500 ml-1">
+              — {t('autoCheck.phaseBPending', 'AI verification in progress. Results will update automatically.')}
+            </span>
+          </div>
+        </div>
+      )}
+      {verification.phase === 'AB' && (
+        <div className="flex items-center gap-2 mt-3 p-2 bg-green-50 rounded-lg">
+          <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+          </svg>
+          <span className="text-xs font-medium text-green-700">
+            {t('autoCheck.verificationComplete', 'Verification complete')}
+          </span>
+        </div>
       )}
     </div>
   )
