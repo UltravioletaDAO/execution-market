@@ -113,7 +113,7 @@
         "description": "Pagamentos nativos da internet. Agentes pagam tarefas via HTTP — sem checkout, sem redirecionamento, sem intermediarios."
       },
       "erc8004": {
-        "standard": "Registro de Identidade",
+        "standard": "Registro de Identidade e Reputação",
         "description": "Uma identidade on-chain para humanos, agentes de IA e robos. Reputacao portavel em toda a web aberta."
       },
       "x402r": {
