@@ -16,12 +16,8 @@ Coverage:
 
 from __future__ import annotations
 
-import math
-import statistics
-from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -34,12 +30,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from swarm.workload_bridge import (
     WorkloadBridge,
     WorkloadConfig,
-    DemandForecast,
-    CapacityGap,
     DemandSpike,
     WorkloadRoutingSignal,
     DEFAULT_CATEGORIES,
-    MIN_TASKS_FOR_FORECAST,
     MIN_TASKS_FOR_SEASONAL,
 )
 
@@ -49,6 +42,7 @@ UTC = timezone.utc
 # ──────────────────────────────────────────────────────────────────────
 # Fixtures
 # ──────────────────────────────────────────────────────────────────────
+
 
 def make_row(
     task_id: str = "task_001",
@@ -85,17 +79,21 @@ def make_history(
     for i in range(n):
         hours_ago = spread_hours * (n - i) / n
         cat = categories[i % len(categories)]
-        rows.append(make_row(
-            task_id=f"task_{i:04d}",
-            hours_ago=hours_ago,
-            category=cat,
-            bounty=3.0 + (i % 5),
-            now=now,
-        ))
+        rows.append(
+            make_row(
+                task_id=f"task_{i:04d}",
+                hours_ago=hours_ago,
+                category=cat,
+                bounty=3.0 + (i % 5),
+                now=now,
+            )
+        )
     return rows
 
 
-def make_seasonal_history(weeks: int = 3, tasks_per_day: int = 5, now: datetime = None) -> List[Dict]:
+def make_seasonal_history(
+    weeks: int = 3, tasks_per_day: int = 5, now: datetime = None
+) -> List[Dict]:
     if now is None:
         now = datetime(2026, 3, 31, 12, 0, 0, tzinfo=UTC)
     rows = []
@@ -108,13 +106,15 @@ def make_seasonal_history(weeks: int = 3, tasks_per_day: int = 5, now: datetime 
                 hours_ago = (weeks - week) * 168 + (6 - day) * 24 + (24 - t * 3)
                 hour_offset = 9 + (t * 2) % 8
                 hours_ago = hours_ago - 12 + hour_offset
-                rows.append(make_row(
-                    task_id=f"seasonal_{task_id:04d}",
-                    hours_ago=max(0.1, hours_ago),
-                    category=categories[task_id % len(categories)],
-                    bounty=2.0 + (task_id % 8),
-                    now=now,
-                ))
+                rows.append(
+                    make_row(
+                        task_id=f"seasonal_{task_id:04d}",
+                        hours_ago=max(0.1, hours_ago),
+                        category=categories[task_id % len(categories)],
+                        bounty=2.0 + (task_id % 8),
+                        now=now,
+                    )
+                )
                 task_id += 1
     return rows
 
@@ -143,6 +143,7 @@ def seasonal_bridge():
 # ──────────────────────────────────────────────────────────────────────
 # 1. Initialization & Configuration
 # ──────────────────────────────────────────────────────────────────────
+
 
 class TestInitialization:
     def test_default_config(self, bridge):
@@ -176,6 +177,7 @@ class TestInitialization:
 # ──────────────────────────────────────────────────────────────────────
 # 2. Row Ingestion & Parsing
 # ──────────────────────────────────────────────────────────────────────
+
 
 class TestIngestion:
     def test_ingest_empty(self, bridge):
@@ -211,7 +213,11 @@ class TestIngestion:
         assert bridge.ingest_rows([{"id": "no_date"}]) == 0
 
     def test_z_suffix_handled(self, bridge):
-        row = {"id": "z_test", "created_at": "2026-03-30T10:00:00Z", "category": "delivery"}
+        row = {
+            "id": "z_test",
+            "created_at": "2026-03-30T10:00:00Z",
+            "category": "delivery",
+        }
         assert bridge.ingest_rows([row]) == 1
 
     def test_unknown_category_becomes_other(self, bridge):
@@ -240,6 +246,7 @@ class TestIngestion:
 # ──────────────────────────────────────────────────────────────────────
 # 3. Demand Forecasting
 # ──────────────────────────────────────────────────────────────────────
+
 
 class TestDemandForecast:
     def test_insufficient_data(self, bridge):
@@ -296,6 +303,7 @@ class TestDemandForecast:
 # 4. Capacity Gap Analysis
 # ──────────────────────────────────────────────────────────────────────
 
+
 class TestCapacityGap:
     def test_surplus(self, loaded_bridge):
         now = datetime(2026, 3, 31, 12, 0, 0, tzinfo=UTC)
@@ -340,6 +348,7 @@ class TestCapacityGap:
 # 5. Spike Detection
 # ──────────────────────────────────────────────────────────────────────
 
+
 class TestSpikeDetection:
     def test_no_spikes_normal(self, loaded_bridge):
         now = datetime(2026, 3, 31, 12, 0, 0, tzinfo=UTC)
@@ -382,12 +391,18 @@ class TestSpikeDetection:
 # 6. Routing Signal (Signal #15)
 # ──────────────────────────────────────────────────────────────────────
 
+
 class TestRoutingSignal:
     def test_basic_signal(self, loaded_bridge):
         now = datetime(2026, 3, 31, 12, 0, 0, tzinfo=UTC)
         signal = loaded_bridge.routing_signal(available_workers=10, now=now)
         assert isinstance(signal, WorkloadRoutingSignal)
-        assert signal.demand_trend in ("accelerating", "steady", "decelerating", "insufficient_data")
+        assert signal.demand_trend in (
+            "accelerating",
+            "steady",
+            "decelerating",
+            "insufficient_data",
+        )
 
     def test_signal_fields(self, loaded_bridge):
         now = datetime(2026, 3, 31, 12, 0, 0, tzinfo=UTC)
@@ -408,7 +423,9 @@ class TestRoutingSignal:
         few = loaded_bridge.routing_signal(available_workers=0, now=now)
         many = loaded_bridge.routing_signal(available_workers=100, now=now)
         levels = {"low": 0, "moderate": 1, "high": 2, "critical": 3}
-        assert levels.get(few.pricing_pressure, 0) >= levels.get(many.pricing_pressure, 0)
+        assert levels.get(few.pricing_pressure, 0) >= levels.get(
+            many.pricing_pressure, 0
+        )
 
     def test_signal_insufficient_data(self, bridge):
         bridge.ingest_rows(make_history(3))
@@ -425,6 +442,7 @@ class TestRoutingSignal:
 # ──────────────────────────────────────────────────────────────────────
 # 7. Health & Diagnostics
 # ──────────────────────────────────────────────────────────────────────
+
 
 class TestHealth:
     def test_empty_health(self, bridge):
@@ -453,6 +471,7 @@ class TestHealth:
 # 8. Seasonal Patterns
 # ──────────────────────────────────────────────────────────────────────
 
+
 class TestSeasonalPatterns:
     def test_insufficient_data(self, bridge):
         bridge.ingest_rows(make_history(5))
@@ -474,6 +493,7 @@ class TestSeasonalPatterns:
 # 9. Trend Detection
 # ──────────────────────────────────────────────────────────────────────
 
+
 class TestTrendDetection:
     def test_insufficient_data(self, bridge):
         bridge.ingest_rows(make_history(3))
@@ -485,10 +505,14 @@ class TestTrendDetection:
         now = datetime(2026, 3, 31, 12, 0, 0, tzinfo=UTC)
         rows = []
         for d in range(7):
-            rows.append(make_row(task_id=f"slow_{d}", hours_ago=24*(14-d), now=now))
+            rows.append(make_row(task_id=f"slow_{d}", hours_ago=24 * (14 - d), now=now))
         for d in range(7):
             for t in range(5):
-                rows.append(make_row(task_id=f"fast_{d}_{t}", hours_ago=24*(7-d)+t*2, now=now))
+                rows.append(
+                    make_row(
+                        task_id=f"fast_{d}_{t}", hours_ago=24 * (7 - d) + t * 2, now=now
+                    )
+                )
         bridge.ingest_rows(rows)
         f = bridge.demand_forecast(now=now)
         assert f.trend == "accelerating"
@@ -498,9 +522,15 @@ class TestTrendDetection:
         rows = []
         for d in range(7):
             for t in range(5):
-                rows.append(make_row(task_id=f"fast_{d}_{t}", hours_ago=24*(14-d)+t*2, now=now))
+                rows.append(
+                    make_row(
+                        task_id=f"fast_{d}_{t}",
+                        hours_ago=24 * (14 - d) + t * 2,
+                        now=now,
+                    )
+                )
         for d in range(7):
-            rows.append(make_row(task_id=f"slow_{d}", hours_ago=24*(7-d), now=now))
+            rows.append(make_row(task_id=f"slow_{d}", hours_ago=24 * (7 - d), now=now))
         bridge.ingest_rows(rows)
         f = bridge.demand_forecast(now=now)
         assert f.trend == "decelerating"
@@ -510,7 +540,11 @@ class TestTrendDetection:
         rows = []
         for d in range(14):
             for t in range(3):
-                rows.append(make_row(task_id=f"s_{d}_{t}", hours_ago=24*(14-d)+t*4, now=now))
+                rows.append(
+                    make_row(
+                        task_id=f"s_{d}_{t}", hours_ago=24 * (14 - d) + t * 4, now=now
+                    )
+                )
         bridge.ingest_rows(rows)
         f = bridge.demand_forecast(now=now)
         assert f.trend == "steady"
@@ -519,6 +553,7 @@ class TestTrendDetection:
 # ──────────────────────────────────────────────────────────────────────
 # 10. Edge Cases
 # ──────────────────────────────────────────────────────────────────────
+
 
 class TestEdgeCases:
     def test_single_task(self, bridge):
@@ -533,7 +568,10 @@ class TestEdgeCases:
         assert f.predicted_tasks == 0.0
 
     def test_all_same_category(self, bridge):
-        rows = [make_row(task_id=f"same_{i}", hours_ago=i*2, category="delivery") for i in range(20)]
+        rows = [
+            make_row(task_id=f"same_{i}", hours_ago=i * 2, category="delivery")
+            for i in range(20)
+        ]
         bridge.ingest_rows(rows)
         now = datetime(2026, 3, 31, 12, 0, 0, tzinfo=UTC)
         f = bridge.demand_forecast(now=now)
@@ -554,6 +592,7 @@ class TestEdgeCases:
 # ──────────────────────────────────────────────────────────────────────
 # Async Sync (mocked)
 # ──────────────────────────────────────────────────────────────────────
+
 
 class TestAsyncSync:
     @pytest.mark.asyncio

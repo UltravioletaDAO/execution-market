@@ -21,7 +21,7 @@ sys.path.insert(
 
 from mcp_server.swarm.task_validator import TaskValidator
 from mcp_server.swarm.coordinator_pipeline import CoordinatorPipeline
-from mcp_server.swarm.integrator import SwarmIntegrator, SwarmMode
+from mcp_server.swarm.integrator import SwarmIntegrator
 
 
 class TestIntegratorRegistration(unittest.TestCase):

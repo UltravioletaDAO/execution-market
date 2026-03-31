@@ -498,9 +498,7 @@ async def _run_ai_semantic_check(
                         rekognition_context=rekognition_context,
                     )
             except Exception as e:
-                logger.warning(
-                    "[AUDIT] Tier %s failed: %s", current_tier, str(e)[:100]
-                )
+                logger.warning("[AUDIT] Tier %s failed: %s", current_tier, str(e)[:100])
                 # Don't include failed tier in consensus — try next
                 next_tier = should_escalate(current_tier, 0.0, 0.0)
                 if next_tier is None or tier_exceeds(next_tier, selection.max_tier):
@@ -570,9 +568,7 @@ async def _run_ai_semantic_check(
             final_score = tier_results[0][1]
             final_result = tier_results[0][3]
         else:
-            total_w = sum(
-                TIER_WEIGHTS.get(t, 1.0) for t, _, _, _ in tier_results
-            )
+            total_w = sum(TIER_WEIGHTS.get(t, 1.0) for t, _, _, _ in tier_results)
             final_score = (
                 sum(TIER_WEIGHTS.get(t, 1.0) * s for t, s, _, _ in tier_results)
                 / total_w
@@ -621,9 +617,7 @@ async def _run_ai_semantic_check(
                 "provider": final_result.provider,
                 "model": final_result.model,
                 "tiers_tried": tiers_tried,
-                "tier_scores": {
-                    t: round(s, 4) for t, s, _, _ in tier_results
-                },
+                "tier_scores": {t: round(s, 4) for t, s, _, _ in tier_results},
                 "consensus_type": consensus_type,
                 "start_tier": selection.start_tier,
                 "max_tier": selection.max_tier,

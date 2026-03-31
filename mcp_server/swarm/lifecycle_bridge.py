@@ -18,7 +18,7 @@ intelligence as Signal #14 without direct AutoJob dependency.
 Usage:
     bridge = LifecycleBridge()
     await bridge.sync()  # Pull latest checkpoints
-    
+
     signal = bridge.worker_signal("worker_uuid")
     profile = bridge.agent_profile("agent_id")
     funnel = bridge.completion_funnel()
@@ -56,6 +56,7 @@ LIFECYCLE_STAGES = [
 @dataclass
 class LifecycleConfig:
     """Configuration for the LifecycleBridge."""
+
     sync_interval_seconds: int = 300  # 5 minutes
     max_checkpoints: int = 5000
     cache_ttl_seconds: int = 60
@@ -67,6 +68,7 @@ class LifecycleConfig:
 @dataclass
 class WorkerSignal:
     """Lifecycle-based routing signal for a worker."""
+
     worker_id: str
     tasks_assigned: int
     evidence_rate: float  # 0-1
@@ -88,7 +90,8 @@ class WorkerSignal:
             "approval_rate": round(self.approval_rate, 4),
             "avg_evidence_minutes": (
                 round(self.avg_evidence_minutes, 1)
-                if self.avg_evidence_minutes is not None else None
+                if self.avg_evidence_minutes is not None
+                else None
             ),
             "has_erc8004": self.has_erc8004,
             "reputation_engagement": round(self.reputation_engagement, 4),
@@ -102,6 +105,7 @@ class WorkerSignal:
 @dataclass
 class AgentProfile:
     """Lifecycle profile for a task-creating agent."""
+
     agent_id: str
     total_tasks: int
     completion_rate: float
@@ -120,7 +124,8 @@ class AgentProfile:
             "full_lifecycle_rate": round(self.full_lifecycle_rate, 4),
             "avg_time_to_payment_hours": (
                 round(self.avg_time_to_payment_hours, 2)
-                if self.avg_time_to_payment_hours else None
+                if self.avg_time_to_payment_hours
+                else None
             ),
             "weakest_stage": self.weakest_stage,
             "reputation_rate": round(self.reputation_rate, 4),
@@ -131,6 +136,7 @@ class AgentProfile:
 @dataclass
 class FunnelStep:
     """One step in the completion funnel."""
+
     stage: str
     reached_count: int
     total_tasks: int
@@ -184,6 +190,7 @@ class LifecycleBridge:
 
         try:
             import supabase_client as db
+
             client = db.get_client()
 
             result = (
@@ -242,8 +249,7 @@ class LifecycleBridge:
 
         # Build from checkpoints
         worker_cps = [
-            cp for cp in self._checkpoints
-            if cp.get("worker_id") == worker_id
+            cp for cp in self._checkpoints if cp.get("worker_id") == worker_id
         ]
 
         if not worker_cps:
@@ -278,8 +284,7 @@ class LifecycleBridge:
                 )
 
         avg_evidence = (
-            sum(evidence_times) / len(evidence_times)
-            if evidence_times else None
+            sum(evidence_times) / len(evidence_times) if evidence_times else None
         )
 
         has_8004 = any(cp.get("worker_erc8004") for cp in worker_cps)
@@ -358,8 +363,7 @@ class LifecycleBridge:
             return cached
 
         agent_cps = [
-            cp for cp in self._checkpoints
-            if cp.get("agent_id_resolved") == agent_id
+            cp for cp in self._checkpoints if cp.get("agent_id_resolved") == agent_id
         ]
 
         if not agent_cps:
@@ -375,14 +379,9 @@ class LifecycleBridge:
             created = self._parse_ts(cp.get("task_created_at"))
             paid = self._parse_ts(cp.get("payment_released_at"))
             if created and paid and paid > created:
-                payment_hours.append(
-                    (paid - created).total_seconds() / 3600.0
-                )
+                payment_hours.append((paid - created).total_seconds() / 3600.0)
 
-        avg_payment = (
-            sum(payment_hours) / len(payment_hours)
-            if payment_hours else None
-        )
+        avg_payment = sum(payment_hours) / len(payment_hours) if payment_hours else None
 
         # Weakest stage (highest dropoff)
         weakest = None
@@ -402,16 +401,19 @@ class LifecycleBridge:
 
         # Reputation rate
         both_rated = sum(
-            1 for cp in agent_cps
+            1
+            for cp in agent_cps
             if cp.get("agent_rated_worker") and cp.get("worker_rated_agent")
         )
 
         # Skill versions
-        versions = sorted(set(
-            cp.get("skill_version", "unknown")
-            for cp in agent_cps
-            if cp.get("skill_version")
-        ))
+        versions = sorted(
+            set(
+                cp.get("skill_version", "unknown")
+                for cp in agent_cps
+                if cp.get("skill_version")
+            )
+        )
 
         profile = AgentProfile(
             agent_id=agent_id,
@@ -459,14 +461,16 @@ class LifecycleBridge:
             cumulative = reached / total if total > 0 else 0.0
             dropoff = 1.0 - conversion
 
-            funnel.append(FunnelStep(
-                stage=stage,
-                reached_count=reached,
-                total_tasks=total,
-                conversion_rate=conversion,
-                cumulative_rate=cumulative,
-                dropoff_rate=dropoff,
-            ))
+            funnel.append(
+                FunnelStep(
+                    stage=stage,
+                    reached_count=reached,
+                    total_tasks=total,
+                    conversion_rate=conversion,
+                    cumulative_rate=cumulative,
+                    dropoff_rate=dropoff,
+                )
+            )
             prev_count = reached
 
         return funnel
@@ -493,9 +497,7 @@ class LifecycleBridge:
             if cp.get("agent_id_resolved")
         )
         workers = set(
-            cp.get("worker_id")
-            for cp in self._checkpoints
-            if cp.get("worker_id")
+            cp.get("worker_id") for cp in self._checkpoints if cp.get("worker_id")
         )
         versions = set(
             cp.get("skill_version")
@@ -539,17 +541,21 @@ class LifecycleBridge:
         return {
             "status": status,
             "checkpoints": len(self._checkpoints),
-            "last_sync_ago_seconds": round(sync_age, 0) if self._last_sync > 0 else None,
+            "last_sync_ago_seconds": round(sync_age, 0)
+            if self._last_sync > 0
+            else None,
             "cache_hit_rate": self._cache_hit_rate(),
         }
 
     def _cache_hit_rate(self) -> float:
         """Estimate cache utilization."""
         total_cached = len(self._worker_cache) + len(self._agent_cache)
-        total_unique = len(set(
-            cp.get("worker_id") or cp.get("agent_id_resolved")
-            for cp in self._checkpoints
-        ))
+        total_unique = len(
+            set(
+                cp.get("worker_id") or cp.get("agent_id_resolved")
+                for cp in self._checkpoints
+            )
+        )
         return total_cached / total_unique if total_unique > 0 else 0.0
 
     # ── Helpers ──────────────────────────────────────────────────

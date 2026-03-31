@@ -24,7 +24,7 @@ Integration:
 Usage:
     registry = NetworkRegistry.with_defaults()
     router = ChainRouter(registry)
-    
+
     decision = router.route_task(
         task_value_usd=5.00,
         required_features=["escrow", "payments"],
@@ -42,7 +42,7 @@ import time
 from collections import deque
 from dataclasses import dataclass, field, asdict
 from enum import Enum
-from typing import Optional, Dict, List, Set, Tuple, Any
+from typing import Optional, Dict, List, Any
 
 logger = logging.getLogger("em.swarm.chain_router")
 
@@ -52,15 +52,17 @@ logger = logging.getLogger("em.swarm.chain_router")
 
 class RoutingStrategy(str, Enum):
     """Strategy for chain selection."""
-    COST_OPTIMAL = "cost_optimal"      # Minimize gas costs
-    SPEED_OPTIMAL = "speed_optimal"    # Minimize confirmation time
-    FEATURE_MATCH = "feature_match"    # Maximize feature availability
+
+    COST_OPTIMAL = "cost_optimal"  # Minimize gas costs
+    SPEED_OPTIMAL = "speed_optimal"  # Minimize confirmation time
+    FEATURE_MATCH = "feature_match"  # Maximize feature availability
     WORKER_ALIGNED = "worker_aligned"  # Match worker chain preferences
-    BALANCED = "balanced"              # Weighted combination (default)
+    BALANCED = "balanced"  # Weighted combination (default)
 
 
 class ChainStatus(str, Enum):
     """Simplified chain status for routing decisions."""
+
     ACTIVE = "active"
     DEGRADED = "degraded"
     DISABLED = "disabled"
@@ -69,6 +71,7 @@ class ChainStatus(str, Enum):
 @dataclass
 class ChainProfile:
     """Chain profile used by the router (abstracted from NetworkRegistry)."""
+
     name: str
     chain_key: str
     chain_id: Optional[int] = None
@@ -80,20 +83,23 @@ class ChainProfile:
     supports_reputation: bool = True
     supports_identity: bool = True
     explorer_url: Optional[str] = None
-    
+
     @property
     def feature_count(self) -> int:
-        return sum([
-            self.supports_escrow,
-            self.supports_payments,
-            self.supports_reputation,
-            self.supports_identity,
-        ])
+        return sum(
+            [
+                self.supports_escrow,
+                self.supports_payments,
+                self.supports_reputation,
+                self.supports_identity,
+            ]
+        )
 
 
 @dataclass
 class RoutingDecision:
     """Result of a chain routing decision."""
+
     chain: str
     chain_name: str
     chain_id: Optional[int]
@@ -115,19 +121,20 @@ class RoutingDecision:
 @dataclass
 class ChainSuccessRecord:
     """Tracks task success rate on a specific chain."""
+
     chain: str
     total_tasks: int = 0
     completed_tasks: int = 0
     failed_tasks: int = 0
     avg_completion_time_seconds: float = 0.0
     total_gas_spent_usd: float = 0.0
-    
+
     @property
     def success_rate(self) -> float:
         if self.total_tasks == 0:
             return 0.0
         return self.completed_tasks / self.total_tasks
-    
+
     @property
     def avg_gas_per_task_usd(self) -> float:
         if self.total_tasks == 0:
@@ -138,6 +145,7 @@ class ChainSuccessRecord:
 @dataclass
 class RoutingStats:
     """Aggregate routing statistics."""
+
     total_decisions: int = 0
     decisions_per_chain: Dict[str, int] = field(default_factory=dict)
     total_gas_saved_usd: float = 0.0
@@ -154,32 +162,32 @@ class RoutingStats:
 @dataclass
 class ChainRouterConfig:
     """Configuration for the ChainRouter."""
-    
+
     # Default strategy
     default_strategy: RoutingStrategy = RoutingStrategy.BALANCED
-    
+
     # Weight distribution for balanced strategy
     cost_weight: float = 0.40
     speed_weight: float = 0.15
     feature_weight: float = 0.15
     history_weight: float = 0.15
     preference_weight: float = 0.15
-    
+
     # Default chain (when all else fails)
     default_chain: str = "base"
-    
+
     # Micro-task threshold
     micro_task_threshold_usd: float = 1.00
-    
+
     # Maximum acceptable gas ratio
     max_gas_ratio: float = 0.10
-    
+
     # Degraded chain penalty (score multiplier)
     degraded_penalty: float = 0.5
-    
+
     # History window for success tracking
     history_window: int = 200
-    
+
     # Platform fee rate (for economics calculation)
     platform_fee_rate: float = 0.13
 
@@ -190,7 +198,7 @@ class ChainRouterConfig:
 class ChainRouter:
     """
     Intelligent multi-chain task routing.
-    
+
     Selects the optimal blockchain for task deployment based on
     economics, features, worker preferences, and historical data.
     """
@@ -217,40 +225,67 @@ class ChainRouter:
         """Create router with default chain profiles for all EM networks."""
         chains = {
             "base": ChainProfile(
-                name="Base", chain_key="base", chain_id=8453,
-                gas_per_task_usd=0.006, confirmation_time_seconds=2.0,
+                name="Base",
+                chain_key="base",
+                chain_id=8453,
+                gas_per_task_usd=0.006,
+                confirmation_time_seconds=2.0,
             ),
             "ethereum": ChainProfile(
-                name="Ethereum", chain_key="ethereum", chain_id=1,
-                gas_per_task_usd=1.60, confirmation_time_seconds=15.0,
+                name="Ethereum",
+                chain_key="ethereum",
+                chain_id=1,
+                gas_per_task_usd=1.60,
+                confirmation_time_seconds=15.0,
             ),
             "polygon": ChainProfile(
-                name="Polygon", chain_key="polygon", chain_id=137,
-                gas_per_task_usd=0.025, confirmation_time_seconds=5.0,
+                name="Polygon",
+                chain_key="polygon",
+                chain_id=137,
+                gas_per_task_usd=0.025,
+                confirmation_time_seconds=5.0,
             ),
             "arbitrum": ChainProfile(
-                name="Arbitrum", chain_key="arbitrum", chain_id=42161,
-                gas_per_task_usd=0.008, confirmation_time_seconds=2.0,
+                name="Arbitrum",
+                chain_key="arbitrum",
+                chain_id=42161,
+                gas_per_task_usd=0.008,
+                confirmation_time_seconds=2.0,
             ),
             "optimism": ChainProfile(
-                name="Optimism", chain_key="optimism", chain_id=10,
-                gas_per_task_usd=0.008, confirmation_time_seconds=2.0,
+                name="Optimism",
+                chain_key="optimism",
+                chain_id=10,
+                gas_per_task_usd=0.008,
+                confirmation_time_seconds=2.0,
             ),
             "avalanche": ChainProfile(
-                name="Avalanche", chain_key="avalanche", chain_id=43114,
-                gas_per_task_usd=0.014, confirmation_time_seconds=3.0,
+                name="Avalanche",
+                chain_key="avalanche",
+                chain_id=43114,
+                gas_per_task_usd=0.014,
+                confirmation_time_seconds=3.0,
             ),
             "celo": ChainProfile(
-                name="Celo", chain_key="celo", chain_id=42220,
-                gas_per_task_usd=0.0016, confirmation_time_seconds=5.0,
+                name="Celo",
+                chain_key="celo",
+                chain_id=42220,
+                gas_per_task_usd=0.0016,
+                confirmation_time_seconds=5.0,
             ),
             "monad": ChainProfile(
-                name="Monad", chain_key="monad", chain_id=None,
-                gas_per_task_usd=0.001, confirmation_time_seconds=1.0,
+                name="Monad",
+                chain_key="monad",
+                chain_id=None,
+                gas_per_task_usd=0.001,
+                confirmation_time_seconds=1.0,
             ),
             "skale": ChainProfile(
-                name="SKALE", chain_key="skale", chain_id=None,
-                gas_per_task_usd=0.0, confirmation_time_seconds=3.0,
+                name="SKALE",
+                chain_key="skale",
+                chain_id=None,
+                gas_per_task_usd=0.0,
+                confirmation_time_seconds=3.0,
             ),
         }
         return cls(config=config, chains=chains)
@@ -267,34 +302,39 @@ class ChainRouter:
     ) -> RoutingDecision:
         """
         Route a task to the optimal chain.
-        
+
         Returns a RoutingDecision with the selected chain, score,
         reasoning, and alternatives.
         """
         start_time = time.time()
         strategy = strategy or self._config.default_strategy
         required_features = required_features or []
-        
+
         # Step 1: Filter eligible chains
         eligible = self._filter_eligible(required_features)
         if not eligible:
-            eligible = [k for k, v in self._chains.items() 
-                       if v.status != ChainStatus.DISABLED]
+            eligible = [
+                k for k, v in self._chains.items() if v.status != ChainStatus.DISABLED
+            ]
         if not eligible:
             eligible = list(self._chains.keys())
-        
+
         # Step 2: Score each chain
         scored = []
         for chain_key in eligible:
             profile = self._chains[chain_key]
             score = self._score_chain(
-                chain_key, profile, task_value_usd,
-                strategy, preferred_chain, worker_wallets,
+                chain_key,
+                profile,
+                task_value_usd,
+                strategy,
+                preferred_chain,
+                worker_wallets,
             )
             scored.append((chain_key, profile, score))
-        
+
         scored.sort(key=lambda x: x[2], reverse=True)
-        
+
         if not scored:
             # Fallback to default chain
             default = self._chains.get(self._config.default_chain)
@@ -312,44 +352,48 @@ class ChainRouter:
                     reasoning="No chains available — using default",
                 )
             scored = [(self._config.default_chain, default, 0.0)]
-        
+
         best_key, best_profile, best_score = scored[0]
-        
+
         # Calculate gas savings vs default (ethereum)
         default_gas = self._chains.get(
             "ethereum", ChainProfile(name="", chain_key="", gas_per_task_usd=0.0)
         ).gas_per_task_usd
         gas_savings = max(0, default_gas - best_profile.gas_per_task_usd)
-        
+
         # Build alternatives
         alternatives = []
         for key, profile, score in scored[1:4]:
-            alternatives.append({
-                "chain": key,
-                "chain_name": profile.name,
-                "score": round(score, 2),
-                "gas_cost_usd": round(profile.gas_per_task_usd, 6),
-            })
-        
+            alternatives.append(
+                {
+                    "chain": key,
+                    "chain_name": profile.name,
+                    "score": round(score, 2),
+                    "gas_cost_usd": round(profile.gas_per_task_usd, 6),
+                }
+            )
+
         # Warnings
-        warnings = self._generate_warnings(
-            best_key, best_profile, task_value_usd
-        )
-        
+        warnings = self._generate_warnings(best_key, best_profile, task_value_usd)
+
         # Reasoning
         reasoning = self._build_reasoning(
             best_key, best_profile, task_value_usd, strategy
         )
-        
+
         # Metadata
-        gas_ratio = (best_profile.gas_per_task_usd / task_value_usd * 100) if task_value_usd > 0 else 0.0
+        gas_ratio = (
+            (best_profile.gas_per_task_usd / task_value_usd * 100)
+            if task_value_usd > 0
+            else 0.0
+        )
         metadata = {
             "gas_ratio_percent": round(gas_ratio, 4),
             "is_micro_task": task_value_usd < self._config.micro_task_threshold_usd,
             "eligible_chains": len(eligible),
             "scored_chains": len(scored),
         }
-        
+
         decision = RoutingDecision(
             chain=best_key,
             chain_name=best_profile.name,
@@ -364,10 +408,10 @@ class ChainRouter:
             warnings=warnings,
             metadata=metadata,
         )
-        
+
         # Track decision
         self._record_decision(decision, time.time() - start_time)
-        
+
         return decision
 
     # ─── Strategy-Specific Routing ───────────────────────────
@@ -380,7 +424,8 @@ class ChainRouter:
         )
 
     def route_high_value_task(
-        self, task_value_usd: float,
+        self,
+        task_value_usd: float,
         required_features: Optional[List[str]] = None,
     ) -> RoutingDecision:
         """Specialized routing for high-value tasks (>$100)."""
@@ -397,7 +442,7 @@ class ChainRouter:
     ) -> Dict:
         """
         Route a batch of tasks, optimizing for total gas cost.
-        
+
         Returns a recommendation to use one chain for all tasks
         (batch efficiency) or split across chains if beneficial.
         """
@@ -408,9 +453,9 @@ class ChainRouter:
                 "total_gas_usd": 0.0,
                 "decisions": [],
             }
-        
+
         total_value = sum(task_values)
-        
+
         # Score each chain for the batch
         chain_scores = {}
         for chain_key, profile in self._chains.items():
@@ -423,7 +468,7 @@ class ChainRouter:
                 "gas_ratio": round(gas_ratio, 4),
                 "per_task_gas": round(profile.gas_per_task_usd, 6),
             }
-        
+
         # Find optimal
         if chain_scores:
             optimal = min(chain_scores.items(), key=lambda x: x[1]["total_gas_usd"])
@@ -432,10 +477,10 @@ class ChainRouter:
         else:
             optimal_chain = self._config.default_chain
             optimal_gas = 0.0
-        
+
         # Savings vs Ethereum
         eth_gas = chain_scores.get("ethereum", {}).get("total_gas_usd", 0.0)
-        
+
         return {
             "task_count": len(task_values),
             "total_value_usd": round(total_value, 4),
@@ -514,11 +559,11 @@ class ChainRouter:
         """Record a task outcome for chain success rate tracking."""
         if chain not in self._success_records:
             self._success_records[chain] = ChainSuccessRecord(chain=chain)
-        
+
         record = self._success_records[chain]
         record.total_tasks += 1
         record.total_gas_spent_usd += gas_spent_usd
-        
+
         if completed:
             record.completed_tasks += 1
             # Update rolling average completion time
@@ -573,15 +618,19 @@ class ChainRouter:
     def health_check(self) -> Dict:
         """Quick health status."""
         active = self.active_chains()
-        degraded = [k for k, v in self._chains.items() if v.status == ChainStatus.DEGRADED]
-        disabled = [k for k, v in self._chains.items() if v.status == ChainStatus.DISABLED]
-        
+        degraded = [
+            k for k, v in self._chains.items() if v.status == ChainStatus.DEGRADED
+        ]
+        disabled = [
+            k for k, v in self._chains.items() if v.status == ChainStatus.DISABLED
+        ]
+
         status = "healthy"
         if len(degraded) > 0:
             status = "degraded"
         if len(active) == 0:
             status = "critical"
-        
+
         return {
             "status": status,
             "active": active,
@@ -594,6 +643,7 @@ class ChainRouter:
     def save(self, path: str) -> None:
         """Save state to JSON."""
         import json
+
         data = {
             "version": 1,
             "chains": {
@@ -630,9 +680,10 @@ class ChainRouter:
     def load(self, path: str) -> None:
         """Load state from JSON."""
         import json
+
         with open(path) as f:
             data = json.load(f)
-        
+
         if "chains" in data:
             for key, cfg in data["chains"].items():
                 self._chains[key] = ChainProfile(
@@ -647,7 +698,7 @@ class ChainRouter:
                     supports_reputation=cfg.get("supports_reputation", True),
                     supports_identity=cfg.get("supports_identity", True),
                 )
-        
+
         if "success_records" in data:
             for key, rec in data["success_records"].items():
                 self._success_records[key] = ChainSuccessRecord(
@@ -655,13 +706,15 @@ class ChainRouter:
                     total_tasks=rec.get("total_tasks", 0),
                     completed_tasks=rec.get("completed_tasks", 0),
                     failed_tasks=rec.get("failed_tasks", 0),
-                    avg_completion_time_seconds=rec.get("avg_completion_time_seconds", 0),
+                    avg_completion_time_seconds=rec.get(
+                        "avg_completion_time_seconds", 0
+                    ),
                     total_gas_spent_usd=rec.get("total_gas_spent_usd", 0),
                 )
-        
+
         if "worker_preferences" in data:
             self._worker_preferences = dict(data["worker_preferences"])
-        
+
         if "stats" in data:
             stats = data["stats"]
             self._stats.total_decisions = stats.get("total_decisions", 0)
@@ -676,7 +729,7 @@ class ChainRouter:
         for key, profile in self._chains.items():
             if profile.status == ChainStatus.DISABLED:
                 continue
-            
+
             # Feature checks
             if "escrow" in required_features and not profile.supports_escrow:
                 continue
@@ -686,7 +739,7 @@ class ChainRouter:
                 continue
             if "identity" in required_features and not profile.supports_identity:
                 continue
-            
+
             result.append(key)
         return result
 
@@ -700,7 +753,7 @@ class ChainRouter:
         worker_wallets: Optional[List[str]],
     ) -> float:
         """Score a chain based on the selected strategy."""
-        
+
         if strategy == RoutingStrategy.COST_OPTIMAL:
             return self._score_cost_optimal(chain_key, profile, task_value)
         elif strategy == RoutingStrategy.SPEED_OPTIMAL:
@@ -708,13 +761,14 @@ class ChainRouter:
         elif strategy == RoutingStrategy.FEATURE_MATCH:
             return self._score_feature_match(profile)
         elif strategy == RoutingStrategy.WORKER_ALIGNED:
-            return self._score_worker_aligned(
-                chain_key, profile, worker_wallets or []
-            )
+            return self._score_worker_aligned(chain_key, profile, worker_wallets or [])
         else:  # BALANCED
             return self._score_balanced(
-                chain_key, profile, task_value,
-                preferred, worker_wallets,
+                chain_key,
+                profile,
+                task_value,
+                preferred,
+                worker_wallets,
             )
 
     def _score_cost_optimal(
@@ -723,14 +777,14 @@ class ChainRouter:
         """Score purely on gas cost efficiency."""
         if task_value <= 0:
             return 100.0 if profile.gas_per_task_usd == 0 else 50.0
-        
+
         gas_ratio = profile.gas_per_task_usd / task_value
         score = max(0, 100 * (1 - gas_ratio * 10))
-        
+
         # Degraded penalty
         if profile.status == ChainStatus.DEGRADED:
             score *= self._config.degraded_penalty
-        
+
         return round(score, 2)
 
     def _score_speed_optimal(self, profile: ChainProfile) -> float:
@@ -738,19 +792,19 @@ class ChainRouter:
         # Lower confirmation time = higher score
         # Max score at 1s, drops to 0 at 30s
         score = max(0, 100 * (1 - profile.confirmation_time_seconds / 30))
-        
+
         if profile.status == ChainStatus.DEGRADED:
             score *= self._config.degraded_penalty
-        
+
         return round(score, 2)
 
     def _score_feature_match(self, profile: ChainProfile) -> float:
         """Score on feature completeness."""
         score = profile.feature_count * 25  # 25 per feature, max 100
-        
+
         if profile.status == ChainStatus.DEGRADED:
             score *= self._config.degraded_penalty
-        
+
         return round(score, 2)
 
     def _score_worker_aligned(
@@ -762,17 +816,16 @@ class ChainRouter:
         """Score based on worker chain preferences."""
         if not worker_wallets:
             return 50.0  # Neutral
-        
+
         matches = sum(
-            1 for w in worker_wallets
-            if self._worker_preferences.get(w) == chain_key
+            1 for w in worker_wallets if self._worker_preferences.get(w) == chain_key
         )
         match_ratio = matches / len(worker_wallets)
         score = match_ratio * 100
-        
+
         if profile.status == ChainStatus.DEGRADED:
             score *= self._config.degraded_penalty
-        
+
         return round(score, 2)
 
     def _score_balanced(
@@ -785,23 +838,23 @@ class ChainRouter:
     ) -> float:
         """Balanced scoring across all dimensions."""
         cfg = self._config
-        
+
         # Cost component
         cost_score = self._score_cost_optimal(chain_key, profile, task_value)
-        
+
         # Speed component
         speed_score = self._score_speed_optimal(profile)
-        
+
         # Feature component
         feature_score = self._score_feature_match(profile)
-        
+
         # History component
         record = self._success_records.get(chain_key)
         if record and record.total_tasks > 0:
             history_score = record.success_rate * 100
         else:
             history_score = 50.0  # Neutral for unknown chains
-        
+
         # Preference component
         pref_score = 50.0  # Default neutral
         if preferred and chain_key == preferred:
@@ -810,7 +863,7 @@ class ChainRouter:
             consensus = self.worker_consensus_chain(worker_wallets)
             if consensus == chain_key:
                 pref_score = 80.0
-        
+
         total = (
             cost_score * cfg.cost_weight
             + speed_score * cfg.speed_weight
@@ -818,11 +871,11 @@ class ChainRouter:
             + history_score * cfg.history_weight
             + pref_score * cfg.preference_weight
         )
-        
+
         # Degraded penalty (applied on top of component penalties)
         if profile.status == ChainStatus.DEGRADED:
             total *= self._config.degraded_penalty
-        
+
         return round(total, 2)
 
     def _generate_warnings(
@@ -833,10 +886,10 @@ class ChainRouter:
     ) -> List[str]:
         """Generate warnings for a routing decision."""
         warnings = []
-        
+
         if profile.status == ChainStatus.DEGRADED:
             warnings.append(f"{profile.name} is currently degraded — monitor closely")
-        
+
         if task_value > 0:
             gas_ratio = profile.gas_per_task_usd / task_value
             if gas_ratio > self._config.max_gas_ratio:
@@ -844,17 +897,17 @@ class ChainRouter:
                     f"Gas cost ({gas_ratio * 100:.1f}%) exceeds "
                     f"target ({self._config.max_gas_ratio * 100:.0f}%)"
                 )
-        
+
         if task_value < self._config.micro_task_threshold_usd:
             if profile.gas_per_task_usd > 0:
                 warnings.append("Micro-task with non-zero gas — consider free chains")
-        
+
         record = self._success_records.get(chain_key)
         if record and record.total_tasks >= 5 and record.success_rate < 0.8:
             warnings.append(
                 f"Low success rate on {profile.name}: {record.success_rate:.0%}"
             )
-        
+
         return warnings
 
     def _build_reasoning(
@@ -866,7 +919,7 @@ class ChainRouter:
     ) -> str:
         """Build human-readable reasoning."""
         parts = [f"{profile.name} selected"]
-        
+
         if strategy == RoutingStrategy.COST_OPTIMAL:
             parts.append("cost-optimized")
         elif strategy == RoutingStrategy.SPEED_OPTIMAL:
@@ -877,19 +930,19 @@ class ChainRouter:
             parts.append("worker-preferred")
         else:
             parts.append("balanced scoring")
-        
+
         if profile.gas_per_task_usd == 0:
             parts.append("zero gas")
         elif task_value > 0:
             pct = profile.gas_per_task_usd / task_value * 100
             parts.append(f"gas {pct:.2f}%")
-        
+
         return " — ".join(parts)
 
     def _record_decision(self, decision: RoutingDecision, elapsed: float) -> None:
         """Record a routing decision in history and stats."""
         self._decision_history.append(decision)
-        
+
         self._stats.total_decisions += 1
         chain = decision.chain
         self._stats.decisions_per_chain[chain] = (
@@ -899,7 +952,7 @@ class ChainRouter:
         self._stats.strategy_distribution[decision.strategy] = (
             self._stats.strategy_distribution.get(decision.strategy, 0) + 1
         )
-        
+
         # Rolling average decision time
         elapsed_ms = elapsed * 1000
         n = self._stats.total_decisions

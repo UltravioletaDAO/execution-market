@@ -20,13 +20,13 @@ from __future__ import annotations
 import json
 import os
 import tempfile
-import time
 
 import pytest
 
 # Adjust import path for test discovery
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "mcp_server" / "swarm"))
 
 from swarm.chain_router import (
@@ -65,16 +65,24 @@ def minimal_router():
     """Router with only 3 chains."""
     chains = {
         "base": ChainProfile(
-            name="Base", chain_key="base", chain_id=8453,
-            gas_per_task_usd=0.006, confirmation_time_seconds=2.0,
+            name="Base",
+            chain_key="base",
+            chain_id=8453,
+            gas_per_task_usd=0.006,
+            confirmation_time_seconds=2.0,
         ),
         "ethereum": ChainProfile(
-            name="Ethereum", chain_key="ethereum", chain_id=1,
-            gas_per_task_usd=1.60, confirmation_time_seconds=15.0,
+            name="Ethereum",
+            chain_key="ethereum",
+            chain_id=1,
+            gas_per_task_usd=1.60,
+            confirmation_time_seconds=15.0,
         ),
         "skale": ChainProfile(
-            name="SKALE", chain_key="skale",
-            gas_per_task_usd=0.0, confirmation_time_seconds=3.0,
+            name="SKALE",
+            chain_key="skale",
+            gas_per_task_usd=0.0,
+            confirmation_time_seconds=3.0,
         ),
     }
     return ChainRouter(chains=chains)
@@ -138,9 +146,7 @@ class TestBasicRouting:
         assert decision.metadata["is_micro_task"]
 
     def test_preferred_chain(self, router):
-        decision = router.route_task(
-            task_value_usd=10.00, preferred_chain="arbitrum"
-        )
+        decision = router.route_task(task_value_usd=10.00, preferred_chain="arbitrum")
         # Preferred chain should be selected or at least considered
         assert decision.chain == "arbitrum" or any(
             a["chain"] == "arbitrum" for a in decision.alternatives
@@ -295,8 +301,10 @@ class TestChainManagement:
 
     def test_register_chain(self, router):
         new = ChainProfile(
-            name="TestChain", chain_key="testchain",
-            chain_id=99999, gas_per_task_usd=0.001,
+            name="TestChain",
+            chain_key="testchain",
+            chain_id=99999,
+            gas_per_task_usd=0.001,
         )
         router.register_chain("testchain", new)
         assert "testchain" in router.list_chains()
@@ -353,7 +361,7 @@ class TestWorkerPreferences:
         router.set_worker_preference("0x1", "base")
         router.set_worker_preference("0x2", "base")
         router.set_worker_preference("0x3", "polygon")
-        
+
         consensus = router.worker_consensus_chain(["0x1", "0x2", "0x3"])
         assert consensus == "base"
 
@@ -379,8 +387,9 @@ class TestSuccessTracking:
     """Tests for task outcome recording and success rates."""
 
     def test_record_completed_task(self, router):
-        router.record_task_outcome("base", completed=True, 
-                                   completion_time_seconds=120, gas_spent_usd=0.005)
+        router.record_task_outcome(
+            "base", completed=True, completion_time_seconds=120, gas_spent_usd=0.005
+        )
         rate = router.chain_success_rate("base")
         assert rate == 1.0
 
@@ -403,7 +412,7 @@ class TestSuccessTracking:
     def test_success_records(self, router):
         router.record_task_outcome("base", completed=True, gas_spent_usd=0.005)
         router.record_task_outcome("ethereum", completed=False)
-        
+
         records = router.chain_success_records()
         assert "base" in records
         assert "ethereum" in records
@@ -413,14 +422,16 @@ class TestSuccessTracking:
     def test_avg_gas_per_task(self, router):
         router.record_task_outcome("base", completed=True, gas_spent_usd=0.004)
         router.record_task_outcome("base", completed=True, gas_spent_usd=0.006)
-        
+
         records = router.chain_success_records()
-        assert records["base"]["avg_gas_per_task_usd"] == pytest.approx(0.005, abs=0.001)
+        assert records["base"]["avg_gas_per_task_usd"] == pytest.approx(
+            0.005, abs=0.001
+        )
 
     def test_rolling_avg_completion_time(self, router):
         router.record_task_outcome("base", completed=True, completion_time_seconds=100)
         router.record_task_outcome("base", completed=True, completion_time_seconds=200)
-        
+
         records = router.chain_success_records()
         # Rolling average: 100 * 0.9 + 200 * 0.1 = 110
         assert records["base"]["avg_completion_seconds"] == pytest.approx(110, abs=1)
@@ -433,7 +444,7 @@ class TestSuccessTracking:
         # Make base succeed
         for _ in range(10):
             router.record_task_outcome("base", completed=True)
-        
+
         decision = router.route_task(task_value_usd=5.00)
         assert decision.chain != "ethereum"
 
@@ -449,23 +460,33 @@ class TestWarnings:
     def test_degraded_chain_warning(self, router):
         router.set_chain_status("base", ChainStatus.DEGRADED)
         # Force routing to base
-        minimal = ChainRouter(chains={
-            "base": ChainProfile(
-                name="Base", chain_key="base", chain_id=8453,
-                gas_per_task_usd=0.006, confirmation_time_seconds=2.0,
-                status=ChainStatus.DEGRADED,
-            ),
-        })
+        minimal = ChainRouter(
+            chains={
+                "base": ChainProfile(
+                    name="Base",
+                    chain_key="base",
+                    chain_id=8453,
+                    gas_per_task_usd=0.006,
+                    confirmation_time_seconds=2.0,
+                    status=ChainStatus.DEGRADED,
+                ),
+            }
+        )
         decision = minimal.route_task(task_value_usd=5.00)
         assert any("degraded" in w.lower() for w in decision.warnings)
 
     def test_high_gas_warning(self):
-        eth_only = ChainRouter(chains={
-            "ethereum": ChainProfile(
-                name="Ethereum", chain_key="ethereum", chain_id=1,
-                gas_per_task_usd=1.60, confirmation_time_seconds=15.0,
-            ),
-        })
+        eth_only = ChainRouter(
+            chains={
+                "ethereum": ChainProfile(
+                    name="Ethereum",
+                    chain_key="ethereum",
+                    chain_id=1,
+                    gas_per_task_usd=1.60,
+                    confirmation_time_seconds=15.0,
+                ),
+            }
+        )
         decision = eth_only.route_task(task_value_usd=0.50)
         assert any("gas" in w.lower() for w in decision.warnings)
 
@@ -474,13 +495,17 @@ class TestWarnings:
             router.record_task_outcome("base", completed=False)
         for _ in range(2):
             router.record_task_outcome("base", completed=True)
-        
+
         # Force routing to base
-        base_only = ChainRouter(chains={
-            "base": ChainProfile(
-                name="Base", chain_key="base", gas_per_task_usd=0.006,
-            ),
-        })
+        base_only = ChainRouter(
+            chains={
+                "base": ChainProfile(
+                    name="Base",
+                    chain_key="base",
+                    gas_per_task_usd=0.006,
+                ),
+            }
+        )
         for _ in range(10):
             base_only.record_task_outcome("base", completed=False)
         decision = base_only.route_task(task_value_usd=5.00)
@@ -488,12 +513,16 @@ class TestWarnings:
         assert any("success rate" in w.lower() for w in decision.warnings)
 
     def test_micro_task_with_gas_warning(self):
-        poly_only = ChainRouter(chains={
-            "polygon": ChainProfile(
-                name="Polygon", chain_key="polygon",
-                gas_per_task_usd=0.025, confirmation_time_seconds=5.0,
-            ),
-        })
+        poly_only = ChainRouter(
+            chains={
+                "polygon": ChainProfile(
+                    name="Polygon",
+                    chain_key="polygon",
+                    gas_per_task_usd=0.025,
+                    confirmation_time_seconds=5.0,
+                ),
+            }
+        )
         decision = poly_only.route_task(task_value_usd=0.50)
         # $0.50 task with $0.025 gas = 5% → micro-task warning
         assert any("micro" in w.lower() for w in decision.warnings)
@@ -521,12 +550,15 @@ class TestHealthCheck:
         assert "base" in health["degraded"]
 
     def test_critical_status(self):
-        router = ChainRouter(chains={
-            "base": ChainProfile(
-                name="Base", chain_key="base",
-                status=ChainStatus.DISABLED,
-            ),
-        })
+        router = ChainRouter(
+            chains={
+                "base": ChainProfile(
+                    name="Base",
+                    chain_key="base",
+                    status=ChainStatus.DISABLED,
+                ),
+            }
+        )
         health = router.health_check()
         assert health["status"] == "critical"
 
@@ -553,7 +585,7 @@ class TestDiagnostics:
     def test_diagnostics_after_routing(self, router):
         router.route_task(task_value_usd=5.00)
         router.route_task(task_value_usd=10.00)
-        
+
         diag = router.diagnostics()
         assert diag["total_decisions"] == 2
         assert len(diag["decisions_per_chain"]) > 0
@@ -562,7 +594,7 @@ class TestDiagnostics:
     def test_strategy_distribution(self, router):
         router.route_task(task_value_usd=5.00, strategy=RoutingStrategy.COST_OPTIMAL)
         router.route_task(task_value_usd=5.00, strategy=RoutingStrategy.SPEED_OPTIMAL)
-        
+
         diag = router.diagnostics()
         assert "cost_optimal" in diag["strategy_distribution"]
         assert "speed_optimal" in diag["strategy_distribution"]
@@ -584,18 +616,16 @@ class TestPersistence:
         router.set_worker_preference("0xAAA", "base")
         router.record_task_outcome("base", completed=True, gas_spent_usd=0.005)
         router.route_task(task_value_usd=5.00)
-        
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as f:
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             path = f.name
-        
+
         try:
             router.save(path)
-            
+
             loaded = ChainRouter()
             loaded.load(path)
-            
+
             assert "base" in loaded.list_chains()
             assert loaded.get_worker_preference("0xAAA") == "base"
             assert loaded.diagnostics()["total_decisions"] == 1
@@ -603,11 +633,9 @@ class TestPersistence:
             os.unlink(path)
 
     def test_save_creates_valid_json(self, router):
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             path = f.name
-        
+
         try:
             router.save(path)
             with open(path) as f:
@@ -621,12 +649,10 @@ class TestPersistence:
 
     def test_load_preserves_chain_status(self, router):
         router.set_chain_status("base", ChainStatus.DEGRADED)
-        
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as f:
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             path = f.name
-        
+
         try:
             router.save(path)
             loaded = ChainRouter()
@@ -638,12 +664,10 @@ class TestPersistence:
     def test_load_preserves_success_records(self, router):
         for _ in range(5):
             router.record_task_outcome("base", completed=True)
-        
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as f:
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             path = f.name
-        
+
         try:
             router.save(path)
             loaded = ChainRouter()
@@ -666,11 +690,11 @@ class TestDegradedChains:
         """Degraded chain should have lower score."""
         # Route normally
         normal = router.route_task(task_value_usd=5.00)
-        
+
         # Degrade the selected chain
         router.set_chain_status(normal.chain, ChainStatus.DEGRADED)
         degraded = router.route_task(task_value_usd=5.00)
-        
+
         # Should pick a different chain (or same with lower score)
         # The key assertion: degraded chains get penalized
         assert isinstance(degraded, RoutingDecision)
@@ -728,23 +752,31 @@ class TestEdgeCases:
 
     def test_chain_profile_feature_count(self):
         full = ChainProfile(
-            name="Full", chain_key="full",
-            supports_escrow=True, supports_payments=True,
-            supports_reputation=True, supports_identity=True,
+            name="Full",
+            chain_key="full",
+            supports_escrow=True,
+            supports_payments=True,
+            supports_reputation=True,
+            supports_identity=True,
         )
         assert full.feature_count == 4
-        
+
         minimal = ChainProfile(
-            name="Min", chain_key="min",
-            supports_escrow=False, supports_payments=True,
-            supports_reputation=False, supports_identity=False,
+            name="Min",
+            chain_key="min",
+            supports_escrow=False,
+            supports_payments=True,
+            supports_reputation=False,
+            supports_identity=False,
         )
         assert minimal.feature_count == 1
 
     def test_success_record_properties(self):
         record = ChainSuccessRecord(
-            chain="base", total_tasks=10,
-            completed_tasks=8, failed_tasks=2,
+            chain="base",
+            total_tasks=10,
+            completed_tasks=8,
+            failed_tasks=2,
             total_gas_spent_usd=0.05,
         )
         assert record.success_rate == 0.8

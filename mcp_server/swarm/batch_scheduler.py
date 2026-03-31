@@ -58,13 +58,12 @@ Usage:
 """
 
 import logging
-import math
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Optional
+from typing import Optional
 
 logger = logging.getLogger("em.swarm.batch_scheduler")
 
@@ -356,7 +355,11 @@ class BatchScheduler:
         elif effective_strategy == BatchStrategy.HYBRID:
             batches, unbatched, rationale = self._plan_hybrid()
         else:
-            batches, unbatched, rationale = [self._make_single_batch(self._tasks)], [], "Fallback: single batch"
+            batches, unbatched, rationale = (
+                [self._make_single_batch(self._tasks)],
+                [],
+                "Fallback: single batch",
+            )
 
         # Assign priorities
         for batch in batches:
@@ -382,8 +385,8 @@ class BatchScheduler:
         self._stats["strategy_usage"][effective_strategy.value] += 1
 
         total_plans = self._stats["plans_generated"]
-        self._stats["avg_batch_size"] = (
-            self._stats["total_tasks_batched"] / max(self._stats["total_batches_created"], 1)
+        self._stats["avg_batch_size"] = self._stats["total_tasks_batched"] / max(
+            self._stats["total_batches_created"], 1
         )
         prev_avg = self._stats["avg_planning_time_ms"]
         self._stats["avg_planning_time_ms"] = (
@@ -391,14 +394,16 @@ class BatchScheduler:
         ) / total_plans
 
         # Record in history
-        self._plan_history.append({
-            "timestamp": time.time(),
-            "strategy": effective_strategy.value,
-            "tasks": plan.total_tasks,
-            "batches": plan.batch_count,
-            "efficiency": plan.efficiency,
-            "planning_time_ms": elapsed_ms,
-        })
+        self._plan_history.append(
+            {
+                "timestamp": time.time(),
+                "strategy": effective_strategy.value,
+                "tasks": plan.total_tasks,
+                "batches": plan.batch_count,
+                "efficiency": plan.efficiency,
+                "planning_time_ms": elapsed_ms,
+            }
+        )
 
         # Trim history to 100 entries
         if len(self._plan_history) > 100:
@@ -554,9 +559,7 @@ class BatchScheduler:
                     unbatched.extend(chunk)
 
         tiers_used = len(tier_order)
-        tier_summary = ", ".join(
-            f"{t}: {len(groups[t])}" for t in tier_order
-        )
+        tier_summary = ", ".join(f"{t}: {len(groups[t])}" for t in tier_order)
         rationale = (
             f"Grouped {len(self._tasks)} tasks across {tiers_used} bounty tiers. "
             f"{tier_summary}."
@@ -822,9 +825,7 @@ class BatchScheduler:
         self._plan_history = state.get("plan_history", [])
 
         if "bounty_tiers" in state:
-            self._bounty_tiers = {
-                k: tuple(v) for k, v in state["bounty_tiers"].items()
-            }
+            self._bounty_tiers = {k: tuple(v) for k, v in state["bounty_tiers"].items()}
         if "hybrid_weights" in state:
             self._hybrid_weights = state["hybrid_weights"]
 
@@ -845,9 +846,7 @@ class BatchScheduler:
             return self._strategy
 
         chains = set(t.chain for t in self._tasks)
-        skills = set(
-            t.skills[0].lower() for t in self._tasks if t.skills
-        )
+        skills = set(t.skills[0].lower() for t in self._tasks if t.skills)
         deadlines = sum(1 for t in self._tasks if t.deadline)
 
         chain_diversity = len(chains) / max(len(self._tasks), 1)
@@ -880,9 +879,7 @@ class BatchScheduler:
         # Assumptions: individual routing costs ~50ms per task
         # Batch routing costs ~50ms + 5ms per additional task
         individual_cost_ms = plan.total_tasks * 50.0
-        batch_cost_ms = sum(
-            50.0 + (b.size - 1) * 5.0 for b in plan.batches
-        )
+        batch_cost_ms = sum(50.0 + (b.size - 1) * 5.0 for b in plan.batches)
 
         saved_ms = max(0, individual_cost_ms - batch_cost_ms)
         pct_saved = saved_ms / max(individual_cost_ms, 1.0) * 100.0

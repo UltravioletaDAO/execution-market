@@ -5,8 +5,6 @@ Integration Tests for BatchScheduler (Module #59)
 Tests wiring into SwarmIntegrator and CoordinatorPipeline.
 """
 
-import pytest
-
 from mcp_server.swarm.batch_scheduler import BatchScheduler, BatchStrategy
 from mcp_server.swarm.integrator import SwarmIntegrator, SwarmMode
 

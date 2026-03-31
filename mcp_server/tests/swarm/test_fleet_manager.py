@@ -16,7 +16,6 @@ Test coverage:
 """
 
 import time
-import pytest
 from datetime import datetime, timezone
 
 from mcp_server.swarm.fleet_manager import (
@@ -29,7 +28,6 @@ from mcp_server.swarm.fleet_manager import (
     CandidateScore,
     FleetSnapshot,
     LoadBalanceStrategy,
-    TaskLoad,
     CAPABILITY_SCORES,
 )
 
@@ -144,14 +142,18 @@ class TestAgentRegistration:
 
     def test_list_agents_by_capability(self):
         fleet = FleetManager()
-        fleet.register_agent(make_agent(
-            agent_id=1,
-            capabilities={"delivery": CapabilityLevel.EXPERT},
-        ))
-        fleet.register_agent(make_agent(
-            agent_id=2,
-            capabilities={"research": CapabilityLevel.COMPETENT},
-        ))
+        fleet.register_agent(
+            make_agent(
+                agent_id=1,
+                capabilities={"delivery": CapabilityLevel.EXPERT},
+            )
+        )
+        fleet.register_agent(
+            make_agent(
+                agent_id=2,
+                capabilities={"research": CapabilityLevel.COMPETENT},
+            )
+        )
         delivery_agents = fleet.list_agents(capability="delivery")
         assert len(delivery_agents) == 1
         assert delivery_agents[0].agent_id == 1
@@ -186,20 +188,24 @@ class TestCapabilityManagement:
 
     def test_update_capability_level(self):
         fleet = FleetManager()
-        fleet.register_agent(make_agent(
-            agent_id=1,
-            capabilities={"delivery": CapabilityLevel.NOVICE},
-        ))
+        fleet.register_agent(
+            make_agent(
+                agent_id=1,
+                capabilities={"delivery": CapabilityLevel.NOVICE},
+            )
+        )
         fleet.add_capability(1, "delivery", CapabilityLevel.SPECIALIST)
         agent = fleet.get_agent(1)
         assert agent.capabilities["delivery"].level == CapabilityLevel.SPECIALIST
 
     def test_remove_capability(self):
         fleet = FleetManager()
-        fleet.register_agent(make_agent(
-            agent_id=1,
-            capabilities={"delivery": CapabilityLevel.COMPETENT},
-        ))
+        fleet.register_agent(
+            make_agent(
+                agent_id=1,
+                capabilities={"delivery": CapabilityLevel.COMPETENT},
+            )
+        )
         assert fleet.remove_capability(1, "delivery")
         agent = fleet.get_agent(1)
         assert "delivery" not in agent.capabilities
@@ -211,14 +217,18 @@ class TestCapabilityManagement:
 
     def test_capability_matrix(self):
         fleet = FleetManager()
-        fleet.register_agent(make_agent(
-            agent_id=1,
-            capabilities={"delivery": CapabilityLevel.EXPERT},
-        ))
-        fleet.register_agent(make_agent(
-            agent_id=2,
-            capabilities={"delivery": CapabilityLevel.NOVICE},
-        ))
+        fleet.register_agent(
+            make_agent(
+                agent_id=1,
+                capabilities={"delivery": CapabilityLevel.EXPERT},
+            )
+        )
+        fleet.register_agent(
+            make_agent(
+                agent_id=2,
+                capabilities={"delivery": CapabilityLevel.NOVICE},
+            )
+        )
         matrix = fleet.get_capability_matrix()
         assert "delivery" in matrix
         assert len(matrix["delivery"]) == 2
@@ -380,10 +390,12 @@ class TestTaskLoadTracking:
 
     def test_record_completion_with_capability(self):
         fleet = FleetManager()
-        fleet.register_agent(make_agent(
-            agent_id=1,
-            capabilities={"delivery": CapabilityLevel.COMPETENT},
-        ))
+        fleet.register_agent(
+            make_agent(
+                agent_id=1,
+                capabilities={"delivery": CapabilityLevel.COMPETENT},
+            )
+        )
         fleet.record_task_assigned(1)
         fleet.record_task_completed(1, capability_name="delivery", duration_s=120.0)
         cap = fleet.get_agent(1).capabilities["delivery"]
@@ -419,81 +431,103 @@ class TestLoadBalancing:
 
     def test_find_capable_agents_basic(self):
         fleet = FleetManager()
-        fleet.register_agent(make_agent(
-            agent_id=1,
-            capabilities={"delivery": CapabilityLevel.EXPERT},
-        ))
-        fleet.register_agent(make_agent(
-            agent_id=2,
-            capabilities={"research": CapabilityLevel.COMPETENT},
-        ))
+        fleet.register_agent(
+            make_agent(
+                agent_id=1,
+                capabilities={"delivery": CapabilityLevel.EXPERT},
+            )
+        )
+        fleet.register_agent(
+            make_agent(
+                agent_id=2,
+                capabilities={"research": CapabilityLevel.COMPETENT},
+            )
+        )
         candidates = fleet.find_capable_agents("delivery")
         assert len(candidates) == 1
         assert candidates[0].agent_id == 1
 
     def test_find_capable_agents_with_fitness_threshold(self):
         fleet = FleetManager()
-        fleet.register_agent(make_agent(
-            agent_id=1,
-            capabilities={"delivery": CapabilityLevel.NOVICE},
-        ))
-        fleet.register_agent(make_agent(
-            agent_id=2,
-            capabilities={"delivery": CapabilityLevel.EXPERT},
-        ))
+        fleet.register_agent(
+            make_agent(
+                agent_id=1,
+                capabilities={"delivery": CapabilityLevel.NOVICE},
+            )
+        )
+        fleet.register_agent(
+            make_agent(
+                agent_id=2,
+                capabilities={"delivery": CapabilityLevel.EXPERT},
+            )
+        )
         candidates = fleet.find_capable_agents("delivery", min_fitness=0.5)
         assert len(candidates) == 1
         assert candidates[0].agent_id == 2
 
     def test_find_capable_agents_excludes_unavailable(self):
         fleet = FleetManager()
-        fleet.register_agent(make_agent(
-            agent_id=1,
-            capabilities={"delivery": CapabilityLevel.EXPERT},
-            status=AgentStatus.OFFLINE,
-        ))
-        fleet.register_agent(make_agent(
-            agent_id=2,
-            capabilities={"delivery": CapabilityLevel.COMPETENT},
-        ))
+        fleet.register_agent(
+            make_agent(
+                agent_id=1,
+                capabilities={"delivery": CapabilityLevel.EXPERT},
+                status=AgentStatus.OFFLINE,
+            )
+        )
+        fleet.register_agent(
+            make_agent(
+                agent_id=2,
+                capabilities={"delivery": CapabilityLevel.COMPETENT},
+            )
+        )
         candidates = fleet.find_capable_agents("delivery")
         assert len(candidates) == 1
         assert candidates[0].agent_id == 2
 
     def test_find_capable_includes_unavailable_when_flagged(self):
         fleet = FleetManager()
-        fleet.register_agent(make_agent(
-            agent_id=1,
-            capabilities={"delivery": CapabilityLevel.EXPERT},
-            status=AgentStatus.OFFLINE,
-        ))
+        fleet.register_agent(
+            make_agent(
+                agent_id=1,
+                capabilities={"delivery": CapabilityLevel.EXPERT},
+                status=AgentStatus.OFFLINE,
+            )
+        )
         candidates = fleet.find_capable_agents("delivery", available_only=False)
         assert len(candidates) == 1
 
     def test_select_agent_weighted(self):
         fleet = FleetManager(default_strategy=LoadBalanceStrategy.WEIGHTED)
-        fleet.register_agent(make_agent(
-            agent_id=1,
-            capabilities={"delivery": CapabilityLevel.EXPERT},
-        ))
-        fleet.register_agent(make_agent(
-            agent_id=2,
-            capabilities={"delivery": CapabilityLevel.NOVICE},
-        ))
+        fleet.register_agent(
+            make_agent(
+                agent_id=1,
+                capabilities={"delivery": CapabilityLevel.EXPERT},
+            )
+        )
+        fleet.register_agent(
+            make_agent(
+                agent_id=2,
+                capabilities={"delivery": CapabilityLevel.NOVICE},
+            )
+        )
         result = fleet.select_agent("delivery")
         assert result is not None
         assert result.agent_id == 1  # Expert wins
 
     def test_select_agent_round_robin(self):
         fleet = FleetManager(default_strategy=LoadBalanceStrategy.ROUND_ROBIN)
-        fleet.register_agent(make_agent(
-            agent_id=1,
-            capabilities={"delivery": CapabilityLevel.COMPETENT},
-        ))
-        fleet.register_agent(make_agent(
-            agent_id=2,
-            capabilities={"delivery": CapabilityLevel.COMPETENT},
-        ))
+        fleet.register_agent(
+            make_agent(
+                agent_id=1,
+                capabilities={"delivery": CapabilityLevel.COMPETENT},
+            )
+        )
+        fleet.register_agent(
+            make_agent(
+                agent_id=2,
+                capabilities={"delivery": CapabilityLevel.COMPETENT},
+            )
+        )
         first = fleet.select_agent("delivery")
         second = fleet.select_agent("delivery")
         # Should rotate
@@ -503,16 +537,20 @@ class TestLoadBalancing:
 
     def test_select_agent_least_loaded(self):
         fleet = FleetManager(default_strategy=LoadBalanceStrategy.LEAST_LOADED)
-        fleet.register_agent(make_agent(
-            agent_id=1,
-            capabilities={"delivery": CapabilityLevel.COMPETENT},
-            max_concurrent=5,
-        ))
-        fleet.register_agent(make_agent(
-            agent_id=2,
-            capabilities={"delivery": CapabilityLevel.COMPETENT},
-            max_concurrent=5,
-        ))
+        fleet.register_agent(
+            make_agent(
+                agent_id=1,
+                capabilities={"delivery": CapabilityLevel.COMPETENT},
+                max_concurrent=5,
+            )
+        )
+        fleet.register_agent(
+            make_agent(
+                agent_id=2,
+                capabilities={"delivery": CapabilityLevel.COMPETENT},
+                max_concurrent=5,
+            )
+        )
         # Load up agent 1
         fleet.record_task_assigned(1)
         fleet.record_task_assigned(1)
@@ -522,29 +560,35 @@ class TestLoadBalancing:
 
     def test_select_agent_best_fit(self):
         fleet = FleetManager(default_strategy=LoadBalanceStrategy.BEST_FIT)
-        fleet.register_agent(make_agent(
-            agent_id=1,
-            capabilities={"delivery": CapabilityLevel.SPECIALIST},
-        ))
+        fleet.register_agent(
+            make_agent(
+                agent_id=1,
+                capabilities={"delivery": CapabilityLevel.SPECIALIST},
+            )
+        )
         result = fleet.select_agent("delivery")
         assert result is not None
         assert result.agent_id == 1
 
     def test_select_agent_no_candidates(self):
         fleet = FleetManager()
-        fleet.register_agent(make_agent(
-            agent_id=1,
-            capabilities={"research": CapabilityLevel.COMPETENT},
-        ))
+        fleet.register_agent(
+            make_agent(
+                agent_id=1,
+                capabilities={"research": CapabilityLevel.COMPETENT},
+            )
+        )
         result = fleet.select_agent("delivery")
         assert result is None
 
     def test_candidate_score_structure(self):
         fleet = FleetManager()
-        fleet.register_agent(make_agent(
-            agent_id=1,
-            capabilities={"delivery": CapabilityLevel.EXPERT},
-        ))
+        fleet.register_agent(
+            make_agent(
+                agent_id=1,
+                capabilities={"delivery": CapabilityLevel.EXPERT},
+            )
+        )
         candidates = fleet.find_capable_agents("delivery")
         assert len(candidates) == 1
         score = candidates[0]
@@ -692,17 +736,21 @@ class TestPersistence:
 
     def test_save_and_load_roundtrip(self):
         fleet = FleetManager(default_strategy=LoadBalanceStrategy.BEST_FIT)
-        fleet.register_agent(make_agent(
-            agent_id=1,
-            name="Alpha",
-            capabilities={"delivery": CapabilityLevel.EXPERT},
-            tags={"vip"},
-        ))
-        fleet.register_agent(make_agent(
-            agent_id=2,
-            name="Beta",
-            capabilities={"research": CapabilityLevel.NOVICE},
-        ))
+        fleet.register_agent(
+            make_agent(
+                agent_id=1,
+                name="Alpha",
+                capabilities={"delivery": CapabilityLevel.EXPERT},
+                tags={"vip"},
+            )
+        )
+        fleet.register_agent(
+            make_agent(
+                agent_id=2,
+                name="Beta",
+                capabilities={"research": CapabilityLevel.NOVICE},
+            )
+        )
         fleet.record_task_assigned(1)
         fleet.record_task_completed(1)
 
@@ -729,13 +777,15 @@ class TestPersistence:
 
     def test_load_preserves_capabilities(self):
         fleet = FleetManager()
-        fleet.register_agent(make_agent(
-            agent_id=1,
-            capabilities={
-                "delivery": CapabilityLevel.SPECIALIST,
-                "photography": CapabilityLevel.PROFICIENT,
-            },
-        ))
+        fleet.register_agent(
+            make_agent(
+                agent_id=1,
+                capabilities={
+                    "delivery": CapabilityLevel.SPECIALIST,
+                    "photography": CapabilityLevel.PROFICIENT,
+                },
+            )
+        )
         data = fleet.save()
         loaded = FleetManager.load(data)
         agent = loaded.get_agent(1)
@@ -801,30 +851,36 @@ class TestEdgeCases:
 
     def test_suspended_agent_not_available(self):
         fleet = FleetManager()
-        fleet.register_agent(make_agent(
-            agent_id=1,
-            capabilities={"delivery": CapabilityLevel.SPECIALIST},
-            status=AgentStatus.SUSPENDED,
-        ))
+        fleet.register_agent(
+            make_agent(
+                agent_id=1,
+                capabilities={"delivery": CapabilityLevel.SPECIALIST},
+                status=AgentStatus.SUSPENDED,
+            )
+        )
         candidates = fleet.find_capable_agents("delivery")
         assert len(candidates) == 0
 
     def test_case_insensitive_capability_lookup(self):
         fleet = FleetManager()
-        fleet.register_agent(make_agent(
-            agent_id=1,
-            capabilities={"Delivery": CapabilityLevel.EXPERT},
-        ))
+        fleet.register_agent(
+            make_agent(
+                agent_id=1,
+                capabilities={"Delivery": CapabilityLevel.EXPERT},
+            )
+        )
         candidates = fleet.find_capable_agents("delivery")
         assert len(candidates) == 1
 
     def test_index_cleanup_on_deregister(self):
         fleet = FleetManager()
-        fleet.register_agent(make_agent(
-            agent_id=1,
-            capabilities={"delivery": CapabilityLevel.EXPERT},
-            tags={"vip"},
-        ))
+        fleet.register_agent(
+            make_agent(
+                agent_id=1,
+                capabilities={"delivery": CapabilityLevel.EXPERT},
+                tags={"vip"},
+            )
+        )
         fleet.deregister_agent(1)
         assert fleet.list_agents(capability="delivery") == []
         assert fleet.list_agents(tag="vip") == []
@@ -833,11 +889,13 @@ class TestEdgeCases:
         """Ensure FleetManager handles 100+ agents without issues."""
         fleet = FleetManager()
         for i in range(100):
-            fleet.register_agent(make_agent(
-                agent_id=i,
-                name=f"Agent-{i}",
-                capabilities={"delivery": CapabilityLevel.COMPETENT},
-            ))
+            fleet.register_agent(
+                make_agent(
+                    agent_id=i,
+                    name=f"Agent-{i}",
+                    capabilities={"delivery": CapabilityLevel.COMPETENT},
+                )
+            )
         assert fleet.agent_count() == 100
         candidates = fleet.find_capable_agents("delivery", limit=10)
         assert len(candidates) == 10

@@ -6,14 +6,12 @@ Comprehensive tests covering all batching strategies, priority
 computation, persistence, metrics, and edge cases.
 """
 
-import time
 from datetime import datetime, timedelta, timezone
 
 import pytest
 
 from mcp_server.swarm.batch_scheduler import (
     Batch,
-    BatchPlan,
     BatchPriority,
     BatchScheduler,
     BatchStrategy,
@@ -136,13 +134,15 @@ class TestChainStrategy:
 
     def test_multiple_chains_multiple_batches(self):
         scheduler = BatchScheduler(strategy=BatchStrategy.CHAIN)
-        scheduler.add_tasks([
-            _task("t1", chain="base"),
-            _task("t2", chain="base"),
-            _task("t3", chain="polygon"),
-            _task("t4", chain="ethereum"),
-            _task("t5", chain="polygon"),
-        ])
+        scheduler.add_tasks(
+            [
+                _task("t1", chain="base"),
+                _task("t2", chain="base"),
+                _task("t3", chain="polygon"),
+                _task("t4", chain="ethereum"),
+                _task("t5", chain="polygon"),
+            ]
+        )
         plan = scheduler.plan()
         assert plan.batch_count == 3
         chains = {b.chain for b in plan.batches}
@@ -151,7 +151,7 @@ class TestChainStrategy:
     def test_chain_batch_sizes(self):
         scheduler = BatchScheduler(strategy=BatchStrategy.CHAIN)
         scheduler.add_tasks([_task(f"t{i}", chain="base") for i in range(3)])
-        scheduler.add_tasks([_task(f"t{i+3}", chain="polygon") for i in range(7)])
+        scheduler.add_tasks([_task(f"t{i + 3}", chain="polygon") for i in range(7)])
         plan = scheduler.plan()
         sizes = {b.chain: b.size for b in plan.batches}
         assert sizes["base"] == 3
@@ -175,12 +175,14 @@ class TestChainStrategy:
 class TestSkillStrategy:
     def test_skill_grouping(self):
         scheduler = BatchScheduler(strategy=BatchStrategy.SKILL)
-        scheduler.add_tasks([
-            _task("t1", skills=["photography"]),
-            _task("t2", skills=["photography"]),
-            _task("t3", skills=["delivery"]),
-            _task("t4", skills=["coding"]),
-        ])
+        scheduler.add_tasks(
+            [
+                _task("t1", skills=["photography"]),
+                _task("t2", skills=["photography"]),
+                _task("t3", skills=["delivery"]),
+                _task("t4", skills=["coding"]),
+            ]
+        )
         plan = scheduler.plan()
         clusters = {b.skill_cluster for b in plan.batches}
         assert "photography" in clusters
@@ -189,30 +191,36 @@ class TestSkillStrategy:
 
     def test_no_skills_grouped_as_unspecified(self):
         scheduler = BatchScheduler(strategy=BatchStrategy.SKILL)
-        scheduler.add_tasks([
-            _task("t1", skills=[]),
-            _task("t2", skills=[]),
-        ])
+        scheduler.add_tasks(
+            [
+                _task("t1", skills=[]),
+                _task("t2", skills=[]),
+            ]
+        )
         plan = scheduler.plan()
         assert plan.batch_count == 1
         assert plan.batches[0].skill_cluster == "unspecified"
 
     def test_primary_skill_used(self):
         scheduler = BatchScheduler(strategy=BatchStrategy.SKILL)
-        scheduler.add_tasks([
-            _task("t1", skills=["photography", "editing"]),
-            _task("t2", skills=["photography", "writing"]),
-        ])
+        scheduler.add_tasks(
+            [
+                _task("t1", skills=["photography", "editing"]),
+                _task("t2", skills=["photography", "writing"]),
+            ]
+        )
         plan = scheduler.plan()
         assert plan.batch_count == 1
         assert plan.batches[0].skill_cluster == "photography"
 
     def test_case_insensitive_skills(self):
         scheduler = BatchScheduler(strategy=BatchStrategy.SKILL)
-        scheduler.add_tasks([
-            _task("t1", skills=["Photography"]),
-            _task("t2", skills=["PHOTOGRAPHY"]),
-        ])
+        scheduler.add_tasks(
+            [
+                _task("t1", skills=["Photography"]),
+                _task("t2", skills=["PHOTOGRAPHY"]),
+            ]
+        )
         plan = scheduler.plan()
         assert plan.batch_count == 1
 
@@ -225,63 +233,77 @@ class TestSkillStrategy:
 class TestDeadlineStrategy:
     def test_overdue_tasks(self):
         scheduler = BatchScheduler(strategy=BatchStrategy.DEADLINE)
-        scheduler.add_tasks([
-            _task("t1", deadline=_past(2)),
-            _task("t2", deadline=_past(1)),
-        ])
+        scheduler.add_tasks(
+            [
+                _task("t1", deadline=_past(2)),
+                _task("t2", deadline=_past(1)),
+            ]
+        )
         plan = scheduler.plan()
         assert plan.batch_count == 1
         assert plan.batches[0].deadline_tier == "overdue"
 
     def test_critical_tier(self):
         scheduler = BatchScheduler(strategy=BatchStrategy.DEADLINE)
-        scheduler.add_tasks([
-            _task("t1", deadline=_future(0.5)),  # 30 min from now
-        ])
+        scheduler.add_tasks(
+            [
+                _task("t1", deadline=_future(0.5)),  # 30 min from now
+            ]
+        )
         plan = scheduler.plan()
         assert plan.batches[0].deadline_tier == "critical"
 
     def test_urgent_tier(self):
         scheduler = BatchScheduler(strategy=BatchStrategy.DEADLINE)
-        scheduler.add_tasks([
-            _task("t1", deadline=_future(3)),  # 3h from now
-        ])
+        scheduler.add_tasks(
+            [
+                _task("t1", deadline=_future(3)),  # 3h from now
+            ]
+        )
         plan = scheduler.plan()
         assert plan.batches[0].deadline_tier == "urgent"
 
     def test_standard_tier(self):
         scheduler = BatchScheduler(strategy=BatchStrategy.DEADLINE)
-        scheduler.add_tasks([
-            _task("t1", deadline=_future(12)),
-        ])
+        scheduler.add_tasks(
+            [
+                _task("t1", deadline=_future(12)),
+            ]
+        )
         plan = scheduler.plan()
         assert plan.batches[0].deadline_tier == "standard"
 
     def test_relaxed_tier(self):
         scheduler = BatchScheduler(strategy=BatchStrategy.DEADLINE)
-        scheduler.add_tasks([
-            _task("t1", deadline=_future(48)),
-        ])
+        scheduler.add_tasks(
+            [
+                _task("t1", deadline=_future(48)),
+            ]
+        )
         plan = scheduler.plan()
         assert plan.batches[0].deadline_tier == "relaxed"
 
     def test_no_deadline_tasks(self):
         scheduler = BatchScheduler(strategy=BatchStrategy.DEADLINE)
-        scheduler.add_tasks([
-            _task("t1"),
-            _task("t2"),
-        ])
+        scheduler.add_tasks(
+            [
+                _task("t1"),
+                _task("t2"),
+            ]
+        )
         plan = scheduler.plan()
         assert plan.batches[0].deadline_tier == "none"
 
     def test_mixed_deadline_tiers(self):
         scheduler = BatchScheduler(strategy=BatchStrategy.DEADLINE)
-        scheduler.add_tasks([
-            _task("t1", deadline=_past(1)),
-            _task("t2", deadline=_future(0.5)),
-            _task("t3", deadline=_future(12)),
-            _task("t4"),
-        ])
+        scheduler.add_tasks(
+            [
+                _task("t1", deadline=_past(1)),
+                _task("t2", deadline=_future(0.5)),
+                _task("t3", deadline=_future(12)),
+                _task("t4"),
+            ]
+        )
         plan = scheduler.plan()
         tiers = [b.deadline_tier for b in plan.batches]
         assert "overdue" in tiers
@@ -289,10 +311,12 @@ class TestDeadlineStrategy:
 
     def test_overdue_first_in_ordering(self):
         scheduler = BatchScheduler(strategy=BatchStrategy.DEADLINE)
-        scheduler.add_tasks([
-            _task("t1", deadline=_future(48)),
-            _task("t2", deadline=_past(1)),
-        ])
+        scheduler.add_tasks(
+            [
+                _task("t1", deadline=_future(48)),
+                _task("t2", deadline=_past(1)),
+            ]
+        )
         plan = scheduler.plan()
         # After priority computation, overdue should rank higher
         assert plan.batches[0].deadline_tier == "overdue"
@@ -306,22 +330,26 @@ class TestDeadlineStrategy:
 class TestBountyStrategy:
     def test_bounty_tiers(self):
         scheduler = BatchScheduler(strategy=BatchStrategy.BOUNTY)
-        scheduler.add_tasks([
-            _task("t1", bounty=0.50),   # micro
-            _task("t2", bounty=5.00),   # small
-            _task("t3", bounty=50.00),  # medium
-            _task("t4", bounty=500.00), # large
-        ])
+        scheduler.add_tasks(
+            [
+                _task("t1", bounty=0.50),  # micro
+                _task("t2", bounty=5.00),  # small
+                _task("t3", bounty=50.00),  # medium
+                _task("t4", bounty=500.00),  # large
+            ]
+        )
         plan = scheduler.plan()
         tiers = {b.bounty_tier for b in plan.batches}
         assert tiers == {"micro", "small", "medium", "large"}
 
     def test_large_first_ordering(self):
         scheduler = BatchScheduler(strategy=BatchStrategy.BOUNTY)
-        scheduler.add_tasks([
-            _task("t1", bounty=0.50),
-            _task("t2", bounty=500.00),
-        ])
+        scheduler.add_tasks(
+            [
+                _task("t1", bounty=0.50),
+                _task("t2", bounty=500.00),
+            ]
+        )
         plan = scheduler.plan()
         # Large bounty should have higher priority
         assert plan.batches[0].bounty_tier == "large"
@@ -334,10 +362,12 @@ class TestBountyStrategy:
         scheduler = BatchScheduler(
             strategy=BatchStrategy.BOUNTY, bounty_tiers=custom_tiers
         )
-        scheduler.add_tasks([
-            _task("t1", bounty=2.0),
-            _task("t2", bounty=10.0),
-        ])
+        scheduler.add_tasks(
+            [
+                _task("t1", bounty=2.0),
+                _task("t2", bounty=10.0),
+            ]
+        )
         plan = scheduler.plan()
         tiers = {b.bounty_tier for b in plan.batches}
         assert tiers == {"tiny", "big"}
@@ -351,22 +381,26 @@ class TestBountyStrategy:
 class TestHybridStrategy:
     def test_chain_then_skill_grouping(self):
         scheduler = BatchScheduler(strategy=BatchStrategy.HYBRID)
-        scheduler.add_tasks([
-            _task("t1", chain="base", skills=["photography"]),
-            _task("t2", chain="base", skills=["photography"]),
-            _task("t3", chain="base", skills=["delivery"]),
-            _task("t4", chain="polygon", skills=["photography"]),
-        ])
+        scheduler.add_tasks(
+            [
+                _task("t1", chain="base", skills=["photography"]),
+                _task("t2", chain="base", skills=["photography"]),
+                _task("t3", chain="base", skills=["delivery"]),
+                _task("t4", chain="polygon", skills=["photography"]),
+            ]
+        )
         plan = scheduler.plan()
         # Should create separate batches for base/photography, base/delivery, polygon/photography
         assert plan.batch_count >= 3
 
     def test_urgent_separated_from_normal(self):
         scheduler = BatchScheduler(strategy=BatchStrategy.HYBRID)
-        scheduler.add_tasks([
-            _task("t1", chain="base", skills=["photo"], deadline=_future(0.5)),
-            _task("t2", chain="base", skills=["photo"], deadline=_future(48)),
-        ])
+        scheduler.add_tasks(
+            [
+                _task("t1", chain="base", skills=["photo"], deadline=_future(0.5)),
+                _task("t2", chain="base", skills=["photo"], deadline=_future(48)),
+            ]
+        )
         plan = scheduler.plan()
         # Urgent and normal should be in separate batches
         assert plan.batch_count == 2
@@ -386,11 +420,13 @@ class TestHybridStrategy:
 
     def test_mixed_batch_created_for_singles(self):
         scheduler = BatchScheduler(strategy=BatchStrategy.HYBRID, min_batch_size=2)
-        scheduler.add_tasks([
-            _task("t1", chain="base"),
-            _task("t2", chain="polygon"),
-            _task("t3", chain="ethereum"),
-        ])
+        scheduler.add_tasks(
+            [
+                _task("t1", chain="base"),
+                _task("t2", chain="polygon"),
+                _task("t3", chain="ethereum"),
+            ]
+        )
         plan = scheduler.plan()
         # Single-chain tasks may be grouped into mixed batch
         assert plan.batched_tasks + len(plan.unbatched) == 3
@@ -428,10 +464,12 @@ class TestPriorityComputation:
 
     def test_priority_ordering(self):
         scheduler = BatchScheduler(strategy=BatchStrategy.CHAIN)
-        scheduler.add_tasks([
-            _task("t1", chain="base", bounty=0.10),
-            _task("t2", chain="polygon", bounty=200.0),
-        ])
+        scheduler.add_tasks(
+            [
+                _task("t1", chain="base", bounty=0.10),
+                _task("t2", chain="polygon", bounty=200.0),
+            ]
+        )
         plan = scheduler.plan()
         # High bounty batch should come first
         assert plan.batches[0].total_bounty > plan.batches[1].total_bounty
@@ -532,11 +570,13 @@ class TestMetrics:
 
     def test_avg_batch_size(self):
         scheduler = BatchScheduler(strategy=BatchStrategy.CHAIN)
-        scheduler.add_tasks([
-            _task("t1", chain="base"),
-            _task("t2", chain="base"),
-            _task("t3", chain="polygon"),
-        ])
+        scheduler.add_tasks(
+            [
+                _task("t1", chain="base"),
+                _task("t2", chain="base"),
+                _task("t3", chain="polygon"),
+            ]
+        )
         scheduler.plan()
         m = scheduler.metrics()
         assert m["avg_batch_size"] == pytest.approx(1.5, abs=0.01)
@@ -628,11 +668,13 @@ class TestStrategySuggestion:
 
     def test_suggest_chain_for_diverse_chains(self):
         scheduler = BatchScheduler()
-        scheduler.add_tasks([
-            _task("t1", chain="base"),
-            _task("t2", chain="polygon"),
-            _task("t3", chain="ethereum"),
-        ])
+        scheduler.add_tasks(
+            [
+                _task("t1", chain="base"),
+                _task("t2", chain="polygon"),
+                _task("t3", chain="ethereum"),
+            ]
+        )
         suggestion = scheduler.suggest_strategy()
         assert suggestion in (BatchStrategy.CHAIN, BatchStrategy.HYBRID)
 
@@ -640,26 +682,30 @@ class TestStrategySuggestion:
         scheduler = BatchScheduler()
         # All same chain (base), diverse skills → should suggest SKILL
         # Need > 4 tasks so chain_diversity = 1/N <= 0.25
-        scheduler.add_tasks([
-            _task("t1", chain="base", skills=["photography"]),
-            _task("t2", chain="base", skills=["delivery"]),
-            _task("t3", chain="base", skills=["coding"]),
-            _task("t4", chain="base", skills=["writing"]),
-            _task("t5", chain="base", skills=["testing"]),
-        ])
+        scheduler.add_tasks(
+            [
+                _task("t1", chain="base", skills=["photography"]),
+                _task("t2", chain="base", skills=["delivery"]),
+                _task("t3", chain="base", skills=["coding"]),
+                _task("t4", chain="base", skills=["writing"]),
+                _task("t5", chain="base", skills=["testing"]),
+            ]
+        )
         suggestion = scheduler.suggest_strategy()
         assert suggestion == BatchStrategy.SKILL
 
     def test_suggest_deadline_when_many_have_deadlines(self):
         scheduler = BatchScheduler()
         # All same chain, no skills, but all have deadlines → DEADLINE
-        scheduler.add_tasks([
-            _task("t1", chain="base", deadline=_future(1)),
-            _task("t2", chain="base", deadline=_future(2)),
-            _task("t3", chain="base", deadline=_future(6)),
-            _task("t4", chain="base", deadline=_future(12)),
-            _task("t5", chain="base", deadline=_future(24)),
-        ])
+        scheduler.add_tasks(
+            [
+                _task("t1", chain="base", deadline=_future(1)),
+                _task("t2", chain="base", deadline=_future(2)),
+                _task("t3", chain="base", deadline=_future(6)),
+                _task("t4", chain="base", deadline=_future(12)),
+                _task("t5", chain="base", deadline=_future(24)),
+            ]
+        )
         suggestion = scheduler.suggest_strategy()
         assert suggestion == BatchStrategy.DEADLINE
 
@@ -689,11 +735,13 @@ class TestSavingsEstimation:
 
     def test_chain_switches_saved(self):
         scheduler = BatchScheduler(strategy=BatchStrategy.CHAIN)
-        scheduler.add_tasks([
-            _task("t1", chain="base"),
-            _task("t2", chain="base"),
-            _task("t3", chain="polygon"),
-        ])
+        scheduler.add_tasks(
+            [
+                _task("t1", chain="base"),
+                _task("t2", chain="base"),
+                _task("t3", chain="polygon"),
+            ]
+        )
         plan = scheduler.plan()
         savings = scheduler.estimate_savings(plan)
         assert savings["chain_switches_saved"] >= 0
@@ -723,10 +771,12 @@ class TestEdgeCases:
 
     def test_min_batch_size_filter(self):
         scheduler = BatchScheduler(strategy=BatchStrategy.CHAIN, min_batch_size=3)
-        scheduler.add_tasks([
-            _task("t1", chain="base"),
-            _task("t2", chain="polygon"),
-        ])
+        scheduler.add_tasks(
+            [
+                _task("t1", chain="base"),
+                _task("t2", chain="polygon"),
+            ]
+        )
         plan = scheduler.plan()
         # Both tasks are in single-element chain groups, below min_batch_size
         assert plan.batched_tasks == 0
@@ -747,7 +797,9 @@ class TestEdgeCases:
 
     def test_plan_strategy_override(self):
         scheduler = BatchScheduler(strategy=BatchStrategy.CHAIN)
-        scheduler.add_tasks([_task("t1", skills=["photo"]), _task("t2", skills=["photo"])])
+        scheduler.add_tasks(
+            [_task("t1", skills=["photo"]), _task("t2", skills=["photo"])]
+        )
         plan = scheduler.plan(strategy=BatchStrategy.SKILL)
         assert plan.strategy == BatchStrategy.SKILL
 
@@ -760,10 +812,12 @@ class TestEdgeCases:
 
     def test_large_task_volume(self):
         scheduler = BatchScheduler(strategy=BatchStrategy.CHAIN, max_batch_size=100)
-        scheduler.add_tasks([
-            _task(f"t{i}", chain=["base", "polygon", "ethereum"][i % 3])
-            for i in range(300)
-        ])
+        scheduler.add_tasks(
+            [
+                _task(f"t{i}", chain=["base", "polygon", "ethereum"][i % 3])
+                for i in range(300)
+            ]
+        )
         plan = scheduler.plan()
         assert plan.total_tasks == 300
         assert plan.batched_tasks == 300

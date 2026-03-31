@@ -17,9 +17,6 @@ Validates bidirectional sync between FleetManager and LifecycleManager.
 10. Reconciliation
 """
 
-import time
-import pytest
-from datetime import datetime, timezone, timedelta
 from unittest.mock import MagicMock, patch, PropertyMock
 
 from mcp_server.swarm.fleet_lifecycle_bridge import (
@@ -245,8 +242,13 @@ class TestLifecycleToFleetSync:
     def test_all_mappings_covered(self):
         """Every lifecycle state has a fleet mapping."""
         expected_states = {
-            "initializing", "idle", "active", "working",
-            "cooldown", "degraded", "suspended",
+            "initializing",
+            "idle",
+            "active",
+            "working",
+            "cooldown",
+            "degraded",
+            "suspended",
         }
         assert set(LIFECYCLE_TO_FLEET_STATUS.keys()) == expected_states
 
@@ -263,9 +265,13 @@ class TestFleetToLifecycleSync:
 
         # Patch VALID_TRANSITIONS in lifecycle_manager module (where it's imported from)
         from mcp_server.swarm.lifecycle_manager import AgentState as LCState
-        with patch("mcp_server.swarm.lifecycle_manager.VALID_TRANSITIONS", {
-            record.state: {LCState.DEGRADED},
-        }):
+
+        with patch(
+            "mcp_server.swarm.lifecycle_manager.VALID_TRANSITIONS",
+            {
+                record.state: {LCState.DEGRADED},
+            },
+        ):
             bridge = FleetLifecycleBridge(lifecycle_manager=lm)
             event = bridge.sync_heartbeat_timeout(2106)
             # It will attempt the transition
@@ -293,7 +299,14 @@ class TestFleetToLifecycleSync:
 
     def test_reverse_mapping_complete(self):
         """Every fleet status has a lifecycle mapping."""
-        expected_statuses = {"active", "busy", "idle", "offline", "suspended", "cooldown"}
+        expected_statuses = {
+            "active",
+            "busy",
+            "idle",
+            "offline",
+            "suspended",
+            "cooldown",
+        }
         assert set(FLEET_TO_LIFECYCLE_STATE.keys()) == expected_statuses
 
 
@@ -373,7 +386,9 @@ class TestTaskCompletion:
         fm = make_fleet_mock()
         bridge = FleetLifecycleBridge(lifecycle_manager=lm, fleet_manager=fm)
 
-        event = bridge.sync_task_completed(2106, "task-001", success=True, cost_usd=0.50)
+        event = bridge.sync_task_completed(
+            2106, "task-001", success=True, cost_usd=0.50
+        )
         assert event.success
         lm.complete_task.assert_called_once_with(2106, "task-001", cost_usd=0.50)
         fm.record_task_completed.assert_called_once_with(2106, success=True)

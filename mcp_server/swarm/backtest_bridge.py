@@ -33,7 +33,6 @@ import statistics
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -43,18 +42,39 @@ logger = logging.getLogger(__name__)
 VERSION = "1.0.0"
 
 SIGNAL_NAMES = [
-    "skill", "reputation", "reliability", "recency",
-    "lifecycle", "workload", "availability", "chain_cost",
-    "quality_gate", "decomposition", "affinity", "retention",
-    "competitive", "credential", "performance",
+    "skill",
+    "reputation",
+    "reliability",
+    "recency",
+    "lifecycle",
+    "workload",
+    "availability",
+    "chain_cost",
+    "quality_gate",
+    "decomposition",
+    "affinity",
+    "retention",
+    "competitive",
+    "credential",
+    "performance",
 ]
 
 DEFAULT_WEIGHTS: dict[str, float] = {
-    "skill": 0.45, "reputation": 0.25, "reliability": 0.20, "recency": 0.10,
-    "lifecycle": 0.15, "workload": 0.10, "availability": 0.10,
-    "chain_cost": 0.08, "quality_gate": 0.12, "decomposition": 0.05,
-    "affinity": 0.08, "retention": 0.06, "competitive": 0.05,
-    "credential": 0.07, "performance": 0.10,
+    "skill": 0.45,
+    "reputation": 0.25,
+    "reliability": 0.20,
+    "recency": 0.10,
+    "lifecycle": 0.15,
+    "workload": 0.10,
+    "availability": 0.10,
+    "chain_cost": 0.08,
+    "quality_gate": 0.12,
+    "decomposition": 0.05,
+    "affinity": 0.08,
+    "retention": 0.06,
+    "competitive": 0.05,
+    "credential": 0.07,
+    "performance": 0.10,
 }
 
 DEFAULT_TRAIN_RATIO = 0.7
@@ -84,9 +104,11 @@ OUTCOME_SCORES = {
 
 # ── Data Types ─────────────────────────────────────────────────────────
 
+
 @dataclass
 class DecisionRecord:
     """A routing decision with signal scores."""
+
     task_id: str
     worker_id: str
     category: str
@@ -122,6 +144,7 @@ class DecisionRecord:
 @dataclass
 class OutcomeRecord:
     """A task outcome."""
+
     task_id: str
     outcome: str  # success, partial, failure, abandoned, timeout
     timestamp: float
@@ -164,6 +187,7 @@ class OutcomeRecord:
 @dataclass
 class ConfigResult:
     """Results for one weight configuration."""
+
     config_name: str
     weights: dict[str, float]
     total_decisions: int = 0
@@ -194,7 +218,9 @@ class ConfigResult:
             "rank_changes": self.rank_changes,
             "better_picks": self.better_picks,
             "worse_picks": self.worse_picks,
-            "improvement_ratio": round(self.improvement_ratio, 4) if self.improvement_ratio != float("inf") else "inf",
+            "improvement_ratio": round(self.improvement_ratio, 4)
+            if self.improvement_ratio != float("inf")
+            else "inf",
             "category_metrics": self.category_metrics,
         }
 
@@ -202,6 +228,7 @@ class ConfigResult:
 @dataclass
 class PairwiseComparison:
     """Statistical comparison between two configs."""
+
     config_a: str
     config_b: str
     paired_decisions: int
@@ -229,6 +256,7 @@ class PairwiseComparison:
 @dataclass
 class OverfitResult:
     """Train/test split analysis."""
+
     config_name: str
     train_score: float
     test_score: float
@@ -254,6 +282,7 @@ class OverfitResult:
 @dataclass
 class BacktestResult:
     """Complete backtest output."""
+
     timestamp: float
     duration_ms: float
     matched_pairs: int
@@ -271,12 +300,13 @@ class BacktestResult:
         ]
         ranked = sorted(
             self.config_results.values(),
-            key=lambda c: c.mean_outcome_score, reverse=True,
+            key=lambda c: c.mean_outcome_score,
+            reverse=True,
         )
         for i, cfg in enumerate(ranked):
             marker = " ★" if cfg.config_name == self.best_config else ""
             lines.append(
-                f"  {i+1}. {cfg.config_name}{marker}: "
+                f"  {i + 1}. {cfg.config_name}{marker}: "
                 f"outcome={cfg.mean_outcome_score:.3f} "
                 f"success={cfg.success_rate:.1%}"
             )
@@ -299,6 +329,7 @@ class BacktestResult:
 
 
 # ── Core Bridge ────────────────────────────────────────────────────────
+
 
 class BacktestBridge:
     """
@@ -381,12 +412,17 @@ class BacktestBridge:
         """
         try:
             # Read completed tasks with routing decisions
-            result = supabase_client.table("tasks").select(
-                "id, status, category, created_at, completed_at, worker_wallet, "
-                "evidence_count, approval_count"
-            ).in_(
-                "status", ["completed", "approved", "failed", "expired"]
-            ).order("created_at", desc=True).limit(500).execute()
+            result = (
+                supabase_client.table("tasks")
+                .select(
+                    "id, status, category, created_at, completed_at, worker_wallet, "
+                    "evidence_count, approval_count"
+                )
+                .in_("status", ["completed", "approved", "failed", "expired"])
+                .order("created_at", desc=True)
+                .limit(500)
+                .execute()
+            )
 
             if not result.data:
                 return 0
@@ -522,13 +558,17 @@ class BacktestBridge:
             ablated_score = self._mean_replayed_outcome(ablated, pairs)
             importance = base_score - ablated_score
 
-            results.append({
-                "signal": signal,
-                "base_score": round(base_score, 4),
-                "ablated_score": round(ablated_score, 4),
-                "importance": round(importance, 4),
-                "impact_pct": round(importance / base_score * 100, 2) if base_score > 0 else 0.0,
-            })
+            results.append(
+                {
+                    "signal": signal,
+                    "base_score": round(base_score, 4),
+                    "ablated_score": round(ablated_score, 4),
+                    "importance": round(importance, 4),
+                    "impact_pct": round(importance / base_score * 100, 2)
+                    if base_score > 0
+                    else 0.0,
+                }
+            )
 
         results.sort(key=lambda r: r["importance"], reverse=True)
         return results
@@ -591,9 +631,7 @@ class BacktestBridge:
             "decisions_count": len(self._decisions),
             "outcomes_count": len(self._outcomes),
             "matched_pairs": self.matched_count,
-            "results_history": [
-                r.to_dict() for r in self._results_history[-50:]
-            ],
+            "results_history": [r.to_dict() for r in self._results_history[-50:]],
         }
         with open(path, "w") as f:
             json.dump(data, f, indent=2, default=str)
@@ -614,7 +652,9 @@ class BacktestBridge:
             "matched_pairs": self.matched_count,
             "categories": list(set(d.category for d in self._decisions)),
             "results_history_length": len(self._results_history),
-            "last_best_config": self._results_history[-1].best_config if self._results_history else None,
+            "last_best_config": self._results_history[-1].best_config
+            if self._results_history
+            else None,
         }
 
     # ── Internal Methods ──────────────────────────────────────────
@@ -651,10 +691,7 @@ class BacktestBridge:
         if len(task_decisions) <= 1:
             return decision.rank
 
-        scored = [
-            (d.worker_id, self._rescore(d, weights))
-            for d in task_decisions
-        ]
+        scored = [(d.worker_id, self._rescore(d, weights)) for d in task_decisions]
         scored.sort(key=lambda x: x[1], reverse=True)
 
         for rank, (wid, _) in enumerate(scored, 1):
@@ -707,7 +744,9 @@ class BacktestBridge:
                 "mean_outcome": round(statistics.mean(scores), 4),
                 "success_rate": round(
                     sum(1 for s in scores if s >= 0.8) / len(scores), 4
-                ) if scores else 0.0,
+                )
+                if scores
+                else 0.0,
             }
 
         return ConfigResult(
@@ -735,8 +774,10 @@ class BacktestBridge:
         for i in range(len(names)):
             for j in range(i + 1, len(names)):
                 comp = self._paired_test(
-                    names[i], config_results[names[i]].weights,
-                    names[j], config_results[names[j]].weights,
+                    names[i],
+                    config_results[names[i]].weights,
+                    names[j],
+                    config_results[names[j]].weights,
                     pairs,
                 )
                 if comp:
@@ -745,8 +786,10 @@ class BacktestBridge:
 
     def _paired_test(
         self,
-        name_a: str, weights_a: dict,
-        name_b: str, weights_b: dict,
+        name_a: str,
+        weights_a: dict,
+        name_b: str,
+        weights_b: dict,
         pairs: list[tuple[DecisionRecord, OutcomeRecord]],
     ) -> PairwiseComparison | None:
         """Paired t-test between two weight configs."""
@@ -777,10 +820,14 @@ class BacktestBridge:
         confidence = min(99.9, 100 * (1 - math.exp(-0.5 * t_stat * t_stat)))
 
         return PairwiseComparison(
-            config_a=name_a, config_b=name_b,
-            paired_decisions=n, mean_diff=mean_diff,
-            std_diff=std_diff, t_statistic=t_stat,
-            significant=significant, direction=direction,
+            config_a=name_a,
+            config_b=name_b,
+            paired_decisions=n,
+            mean_diff=mean_diff,
+            std_diff=std_diff,
+            t_statistic=t_stat,
+            significant=significant,
+            direction=direction,
             confidence_pct=confidence,
         )
 
@@ -794,8 +841,10 @@ class BacktestBridge:
         sorted_pairs = sorted(pairs, key=lambda p: p[0].timestamp)
         split_idx = int(len(sorted_pairs) * train_ratio)
 
-        if split_idx < MIN_PAIRS_FOR_SIGNIFICANCE or \
-           len(sorted_pairs) - split_idx < MIN_PAIRS_FOR_SIGNIFICANCE:
+        if (
+            split_idx < MIN_PAIRS_FOR_SIGNIFICANCE
+            or len(sorted_pairs) - split_idx < MIN_PAIRS_FOR_SIGNIFICANCE
+        ):
             return []
 
         train = sorted_pairs[:split_idx]
@@ -808,13 +857,18 @@ class BacktestBridge:
             gap = train_score - test_score
             ratio = gap / train_score if train_score > 0 else 0.0
 
-            results.append(OverfitResult(
-                config_name=name,
-                train_score=train_score, test_score=test_score,
-                train_size=len(train), test_size=len(test),
-                overfit_gap=gap, overfit_ratio=ratio,
-                likely_overfit=ratio > 0.20,
-            ))
+            results.append(
+                OverfitResult(
+                    config_name=name,
+                    train_score=train_score,
+                    test_score=test_score,
+                    train_size=len(train),
+                    test_size=len(test),
+                    overfit_gap=gap,
+                    overfit_ratio=ratio,
+                    likely_overfit=ratio > 0.20,
+                )
+            )
         return results
 
     def _mean_replayed_outcome(
@@ -841,8 +895,7 @@ class BacktestBridge:
             return mean_o
 
         covariance = statistics.mean(
-            (r - mean_r) * (o - mean_o)
-            for r, o in zip(replayed_scores, outcome_scores)
+            (r - mean_r) * (o - mean_o) for r, o in zip(replayed_scores, outcome_scores)
         )
         correlation = covariance / (std_r * std_o)
         return mean_o + 0.1 * max(0, correlation)
@@ -870,10 +923,12 @@ class BacktestBridge:
                         break
 
             sig_wins = sum(
-                1 for p in pairwise
-                if p.significant and (
-                    (p.direction == "b_better" and p.config_b == name) or
-                    (p.direction == "a_better" and p.config_a == name)
+                1
+                for p in pairwise
+                if p.significant
+                and (
+                    (p.direction == "b_better" and p.config_b == name)
+                    or (p.direction == "a_better" and p.config_a == name)
                 )
             )
 

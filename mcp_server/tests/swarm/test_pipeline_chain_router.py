@@ -13,11 +13,9 @@ Covers:
 
 from unittest.mock import MagicMock
 
-import pytest
 
 from mcp_server.swarm.coordinator_pipeline import (
     CoordinatorPipeline,
-    PipelinePhase,
     PipelineResult,
 )
 

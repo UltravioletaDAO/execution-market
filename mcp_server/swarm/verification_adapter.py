@@ -41,13 +41,12 @@ Usage:
 """
 
 import logging
-import math
 import statistics
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 logger = logging.getLogger("em.swarm.verification_adapter")
 
@@ -58,12 +57,14 @@ UTC = timezone.utc
 # Trust Tiers
 # ──────────────────────────────────────────────────────────────
 
+
 class VerificationTrust(str, Enum):
     """Worker trust level from verification history."""
-    UNKNOWN = "unknown"          # No history
-    LOW = "low"                  # High rejection / low quality
-    STANDARD = "standard"        # Normal workflow
-    HIGH = "high"                # Consistently clean
+
+    UNKNOWN = "unknown"  # No history
+    LOW = "low"  # High rejection / low quality
+    STANDARD = "standard"  # Normal workflow
+    HIGH = "high"  # Consistently clean
     EXCEPTIONAL = "exceptional"  # Perfect record
 
 
@@ -71,15 +72,17 @@ class VerificationTrust(str, Enum):
 # Data Types
 # ──────────────────────────────────────────────────────────────
 
+
 @dataclass
 class VerificationInference:
     """A single PHOTINT inference record."""
+
     submission_id: str = ""
     task_id: str = ""
     worker_id: str = ""
     tier: str = "tier_1"
-    score: float = 0.0             # 0-1 from PHOTINT
-    decision: str = "pending"      # approved, rejected, needs_human
+    score: float = 0.0  # 0-1 from PHOTINT
+    decision: str = "pending"  # approved, rejected, needs_human
     category: str = "general"
     bounty_usd: float = 0.0
     has_exif: bool = False
@@ -89,12 +92,13 @@ class VerificationInference:
     was_escalated: bool = False
     consensus_used: bool = False
     consensus_agreed: bool = False
-    timestamp: float = 0.0        # Unix epoch
+    timestamp: float = 0.0  # Unix epoch
 
 
 @dataclass
 class WorkerVerificationState:
     """Aggregated verification metrics for a worker."""
+
     worker_id: str = ""
     total_inferences: int = 0
     avg_score: float = 0.0
@@ -114,11 +118,11 @@ class WorkerVerificationState:
 # ──────────────────────────────────────────────────────────────
 
 # How we translate verification metrics to 0-100 score
-QUALITY_WEIGHT = 0.40       # Raw PHOTINT score → 40%
-APPROVAL_WEIGHT = 0.25      # Approval rate → 25%
-EXIF_WEIGHT = 0.15          # EXIF compliance → 15%
-ESCALATION_WEIGHT = 0.10    # Inverse escalation rate → 10%
-TREND_WEIGHT = 0.10         # Trend bonus/penalty → 10%
+QUALITY_WEIGHT = 0.40  # Raw PHOTINT score → 40%
+APPROVAL_WEIGHT = 0.25  # Approval rate → 25%
+EXIF_WEIGHT = 0.15  # EXIF compliance → 15%
+ESCALATION_WEIGHT = 0.10  # Inverse escalation rate → 10%
+TREND_WEIGHT = 0.10  # Trend bonus/penalty → 10%
 
 # Trust tier thresholds
 TRUST_THRESHOLDS = {
@@ -130,14 +134,18 @@ TRUST_THRESHOLDS = {
 
 # Category importance for physical tasks
 PHYSICAL_CATEGORIES = {
-    "physical_verification", "physical_presence",
-    "location_based", "emergency", "human_authority",
+    "physical_verification",
+    "physical_presence",
+    "location_based",
+    "emergency",
+    "human_authority",
 }
 
 
 # ──────────────────────────────────────────────────────────────
 # VerificationAdapter
 # ──────────────────────────────────────────────────────────────
+
 
 class VerificationAdapter:
     """
@@ -274,9 +282,7 @@ class VerificationAdapter:
             if r.score > 0:
                 by_cat[r.category].append(r.score)
         state.category_scores = {
-            cat: round(statistics.mean(sc), 3)
-            for cat, sc in by_cat.items()
-            if sc
+            cat: round(statistics.mean(sc), 3) for cat, sc in by_cat.items() if sc
         }
 
         # Trust tier
@@ -439,7 +445,9 @@ class VerificationAdapter:
             "total_workers": len(all_states),
             "total_inferences": sum(s.total_inferences for s in all_states),
             "trust_distribution": dict(trust_dist),
-            "avg_quality": round(statistics.mean(quality_scores), 3) if quality_scores else 0.0,
+            "avg_quality": round(statistics.mean(quality_scores), 3)
+            if quality_scores
+            else 0.0,
             "avg_approval_rate": round(
                 statistics.mean(s.approval_rate for s in all_states), 3
             ),

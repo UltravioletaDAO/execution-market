@@ -17,15 +17,12 @@ Covers:
     - Component names listing includes chain modules
 """
 
-import time
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock
 
-import pytest
 
 from mcp_server.swarm.integrator import (
     SwarmIntegrator,
     SwarmMode,
-    ComponentStatus,
 )
 from mcp_server.swarm.event_bus import EventBus
 
@@ -479,10 +476,14 @@ class TestEventBusChainRouterWiring:
 
         # Emit a task.assigned event with chain info
         from mcp_server.swarm.event_bus import TASK_ASSIGNED
-        bus.emit(TASK_ASSIGNED, {
-            "chain": "base",
-            "task_id": "task_123",
-        })
+
+        bus.emit(
+            TASK_ASSIGNED,
+            {
+                "chain": "base",
+                "task_id": "task_123",
+            },
+        )
 
         router.record_success.assert_called_once_with("base", "task_123", success=True)
 
@@ -496,6 +497,7 @@ class TestEventBusChainRouterWiring:
         integrator.wire()
 
         from mcp_server.swarm.event_bus import TASK_ASSIGNED
+
         bus.emit(TASK_ASSIGNED, {"task_id": "task_456"})
 
         router.record_success.assert_not_called()
@@ -577,6 +579,7 @@ class TestChainIntelligenceGracefulDegradation:
         integrator.wire()
 
         from mcp_server.swarm.event_bus import TASK_ASSIGNED
+
         # Should not raise
         bus.emit(TASK_ASSIGNED, {"chain": "base", "task_id": "task_err"})
 

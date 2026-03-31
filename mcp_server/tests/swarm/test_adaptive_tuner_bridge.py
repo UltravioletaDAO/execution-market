@@ -5,11 +5,11 @@ from __future__ import annotations
 import json
 import os
 import tempfile
-import time
 
 import pytest
 
 import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../swarm"))
 
 from adaptive_tuner_bridge import (
@@ -30,6 +30,7 @@ from adaptive_tuner_bridge import (
 
 # ── Helpers ────────────────────────────────────────────────────────────
 
+
 def make_decision(
     task_id: str = "task_1",
     worker_id: str = "0xW1",
@@ -42,7 +43,8 @@ def make_decision(
         "task_id": task_id,
         "worker_id": worker_id,
         "category": category,
-        "signal_scores": signal_scores or {"skill": 0.8, "reputation": 0.7, "reliability": 0.9},
+        "signal_scores": signal_scores
+        or {"skill": 0.8, "reputation": 0.7, "reliability": 0.9},
         "final_score": final_score,
     }
 
@@ -77,30 +79,39 @@ def generate_correlated_data(n: int) -> tuple[list[dict], list[dict]]:
         scores["skill"] = 0.8 if is_success else 0.2
         scores["reputation"] = 0.6 if is_success else 0.4
 
-        decisions.append({
-            "task_id": f"t_{i}",
-            "worker_id": f"0xW{i}",
-            "category": "physical",
-            "signal_scores": scores,
-            "final_score": sum(scores.values()) / len(scores),
-        })
-        rows.append(make_supabase_row(
-            task_id=f"t_{i}",
-            status="completed" if is_success else "failed",
-            pre_check_score=85.0 if is_success else 20.0,
-        ))
+        decisions.append(
+            {
+                "task_id": f"t_{i}",
+                "worker_id": f"0xW{i}",
+                "category": "physical",
+                "signal_scores": scores,
+                "final_score": sum(scores.values()) / len(scores),
+            }
+        )
+        rows.append(
+            make_supabase_row(
+                task_id=f"t_{i}",
+                status="completed" if is_success else "failed",
+                pre_check_score=85.0 if is_success else 20.0,
+            )
+        )
     return decisions, rows
 
 
 # ── Test Classes ───────────────────────────────────────────────────────
+
 
 class TestDataTypes:
     """Test data type constructors and serialization."""
 
     def test_decision_record_to_dict(self):
         rec = DecisionRecord(
-            task_id="t1", worker_id="w1", category="test",
-            timestamp=1.0, signal_scores={"skill": 0.8}, final_score=0.75,
+            task_id="t1",
+            worker_id="w1",
+            category="test",
+            timestamp=1.0,
+            signal_scores={"skill": 0.8},
+            final_score=0.75,
         )
         d = rec.to_dict()
         assert d["task_id"] == "t1"
@@ -113,8 +124,10 @@ class TestDataTypes:
 
     def test_outcome_record_to_dict(self):
         rec = OutcomeRecord(
-            task_id="t1", outcome=OutcomeType.SUCCESS,
-            timestamp=1.0, quality_score=0.9,
+            task_id="t1",
+            outcome=OutcomeType.SUCCESS,
+            timestamp=1.0,
+            quality_score=0.9,
         )
         d = rec.to_dict()
         assert d["outcome"] == "success"
@@ -130,8 +143,9 @@ class TestDataTypes:
         assert rec.outcome == OutcomeType.FAILURE
 
     def test_outcome_score_success(self):
-        rec = OutcomeRecord(task_id="t1", outcome=OutcomeType.SUCCESS,
-                           timestamp=1.0, quality_score=0.9)
+        rec = OutcomeRecord(
+            task_id="t1", outcome=OutcomeType.SUCCESS, timestamp=1.0, quality_score=0.9
+        )
         assert rec.outcome_score == pytest.approx(0.95)
 
     def test_outcome_score_failure(self):
@@ -139,15 +153,21 @@ class TestDataTypes:
         assert rec.outcome_score == 0.0
 
     def test_signal_stats_to_dict(self):
-        stats = SignalStats(signal="skill", correlation=0.8, separation=0.4,
-                           sample_count=50, confidence=0.5)
+        stats = SignalStats(
+            signal="skill",
+            correlation=0.8,
+            separation=0.4,
+            sample_count=50,
+            confidence=0.5,
+        )
         d = stats.to_dict()
         assert d["signal"] == "skill"
         assert d["correlation"] == 0.8
 
     def test_weight_recommendation_to_dict(self):
-        rec = WeightRecommendation(signal="skill", current=0.45,
-                                   suggested=0.48, delta=0.03, reason="test")
+        rec = WeightRecommendation(
+            signal="skill", current=0.45, suggested=0.48, delta=0.03, reason="test"
+        )
         d = rec.to_dict()
         assert d["delta"] == 0.03
 
@@ -467,22 +487,26 @@ class TestDiagnostics:
 
     def test_outcome_distribution(self):
         bridge = AdaptiveTunerBridge()
-        bridge.sync_from_supabase([
-            make_supabase_row(task_id="t1", status="completed"),
-            make_supabase_row(task_id="t2", status="failed"),
-            make_supabase_row(task_id="t3", status="completed"),
-        ])
+        bridge.sync_from_supabase(
+            [
+                make_supabase_row(task_id="t1", status="completed"),
+                make_supabase_row(task_id="t2", status="failed"),
+                make_supabase_row(task_id="t3", status="completed"),
+            ]
+        )
         dist = bridge.outcome_distribution()
         assert dist["success"] == 2
         assert dist["failure"] == 1
 
     def test_success_rate(self):
         bridge = AdaptiveTunerBridge()
-        bridge.sync_from_supabase([
-            make_supabase_row(task_id="t1", status="completed"),
-            make_supabase_row(task_id="t2", status="completed"),
-            make_supabase_row(task_id="t3", status="failed"),
-        ])
+        bridge.sync_from_supabase(
+            [
+                make_supabase_row(task_id="t1", status="completed"),
+                make_supabase_row(task_id="t2", status="completed"),
+                make_supabase_row(task_id="t3", status="failed"),
+            ]
+        )
         assert bridge.success_rate() == pytest.approx(2 / 3)
 
     def test_success_rate_empty(self):
@@ -576,6 +600,9 @@ class TestEdgeCases:
         assert AdaptiveTunerBridge._compute_hours({}) == 0.0
 
     def test_compute_hours_bad_timestamps(self):
-        assert AdaptiveTunerBridge._compute_hours(
-            {"created_at": "bad", "completed_at": "also bad"}
-        ) == 0.0
+        assert (
+            AdaptiveTunerBridge._compute_hours(
+                {"created_at": "bad", "completed_at": "also bad"}
+            )
+            == 0.0
+        )

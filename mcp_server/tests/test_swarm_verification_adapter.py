@@ -14,19 +14,13 @@ Validates:
 import sys
 import os
 import unittest
-from unittest.mock import patch
 
 # Add parent to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from swarm.verification_adapter import (
     VerificationAdapter,
-    VerificationInference,
     VerificationTrust,
-    WorkerVerificationState,
-    QUALITY_WEIGHT,
-    APPROVAL_WEIGHT,
-    PHYSICAL_CATEGORIES,
 )
 
 
@@ -55,7 +49,9 @@ def _make_inference(**overrides) -> dict:
 def _make_inferences(count: int, **overrides) -> list:
     """Create N inference dicts."""
     return [
-        _make_inference(submission_id=f"sub_{i:03d}", task_id=f"task_{i:03d}", **overrides)
+        _make_inference(
+            submission_id=f"sub_{i:03d}", task_id=f"task_{i:03d}", **overrides
+        )
         for i in range(count)
     ]
 
@@ -134,18 +130,26 @@ class TestStateComputation(unittest.TestCase):
 
     def test_approval_rate(self):
         for i in range(7):
-            self.adapter.ingest_inference("0xW", _make_inference(decision="approved", score=0.8))
+            self.adapter.ingest_inference(
+                "0xW", _make_inference(decision="approved", score=0.8)
+            )
         for i in range(3):
-            self.adapter.ingest_inference("0xW", _make_inference(decision="rejected", score=0.3))
+            self.adapter.ingest_inference(
+                "0xW", _make_inference(decision="rejected", score=0.3)
+            )
         state = self.adapter.get_state("0xW")
         self.assertAlmostEqual(state.approval_rate, 0.7)
         self.assertEqual(state.total_inferences, 10)
 
     def test_escalation_rate(self):
         for i in range(8):
-            self.adapter.ingest_inference("0xW", _make_inference(was_escalated=False, score=0.8))
+            self.adapter.ingest_inference(
+                "0xW", _make_inference(was_escalated=False, score=0.8)
+            )
         for i in range(2):
-            self.adapter.ingest_inference("0xW", _make_inference(was_escalated=True, score=0.6))
+            self.adapter.ingest_inference(
+                "0xW", _make_inference(was_escalated=True, score=0.6)
+            )
         state = self.adapter.get_state("0xW")
         self.assertAlmostEqual(state.escalation_rate, 0.2)
 
@@ -160,7 +164,9 @@ class TestStateComputation(unittest.TestCase):
     def test_camera_rate(self):
         for i in range(10):
             source = "camera" if i < 6 else "screenshot"
-            self.adapter.ingest_inference("0xW", _make_inference(photo_source=source, score=0.8))
+            self.adapter.ingest_inference(
+                "0xW", _make_inference(photo_source=source, score=0.8)
+            )
         state = self.adapter.get_state("0xW")
         self.assertAlmostEqual(state.camera_rate, 0.6)
 
@@ -176,11 +182,15 @@ class TestStateComputation(unittest.TestCase):
         state = self.adapter.get_state("0xW")
         self.assertIn("physical_verification", state.category_scores)
         self.assertIn("bureaucratic", state.category_scores)
-        self.assertAlmostEqual(state.category_scores["physical_verification"], 0.9, places=2)
+        self.assertAlmostEqual(
+            state.category_scores["physical_verification"], 0.9, places=2
+        )
 
     def test_avg_cost(self):
         for i in range(5):
-            self.adapter.ingest_inference("0xW", _make_inference(cost_usd=0.002, score=0.8))
+            self.adapter.ingest_inference(
+                "0xW", _make_inference(cost_usd=0.002, score=0.8)
+            )
         state = self.adapter.get_state("0xW")
         self.assertAlmostEqual(state.avg_cost, 0.002, places=4)
 
@@ -205,7 +215,9 @@ class TestTrustClassification(unittest.TestCase):
 
     def test_low_trust(self):
         for i in range(5):
-            self.adapter.ingest_inference("0xW", _make_inference(score=0.3, was_escalated=True))
+            self.adapter.ingest_inference(
+                "0xW", _make_inference(score=0.3, was_escalated=True)
+            )
         state = self.adapter.get_state("0xW")
         self.assertEqual(state.trust, VerificationTrust.LOW)
 
@@ -237,10 +249,11 @@ class TestTrustClassification(unittest.TestCase):
         """High escalation prevents exceptional classification."""
         for i in range(20):
             self.adapter.ingest_inference(
-                "0xW", _make_inference(
+                "0xW",
+                _make_inference(
                     score=0.97,
                     was_escalated=(i < 5),  # 25% escalation
-                )
+                ),
             )
         state = self.adapter.get_state("0xW")
         self.assertNotEqual(state.trust, VerificationTrust.EXCEPTIONAL)
@@ -264,10 +277,10 @@ class TestScoring(unittest.TestCase):
     def test_high_quality_high_score(self):
         for i in range(10):
             self.adapter.ingest_inference(
-                "0xW", _make_inference(
-                    score=0.95, decision="approved",
-                    has_exif=True, was_escalated=False
-                )
+                "0xW",
+                _make_inference(
+                    score=0.95, decision="approved", has_exif=True, was_escalated=False
+                ),
             )
         score = self.adapter.score("0xW")
         self.assertGreater(score, 80.0)
@@ -275,10 +288,10 @@ class TestScoring(unittest.TestCase):
     def test_low_quality_low_score(self):
         for i in range(5):
             self.adapter.ingest_inference(
-                "0xW", _make_inference(
-                    score=0.3, decision="rejected",
-                    has_exif=False, was_escalated=True
-                )
+                "0xW",
+                _make_inference(
+                    score=0.3, decision="rejected", has_exif=False, was_escalated=True
+                ),
             )
         score = self.adapter.score("0xW")
         self.assertLess(score, 40.0)
@@ -453,7 +466,9 @@ class TestDiagnostics(unittest.TestCase):
 
     def test_full_diagnostics(self):
         for i in range(10):
-            self.adapter.ingest_inference("0xW", _make_inference(score=0.85, cost_usd=0.002))
+            self.adapter.ingest_inference(
+                "0xW", _make_inference(score=0.85, cost_usd=0.002)
+            )
 
         diag = self.adapter.diagnose()
         self.assertEqual(diag["fleet_metrics"]["total_workers"], 1)

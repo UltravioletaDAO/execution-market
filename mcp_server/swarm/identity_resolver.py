@@ -43,19 +43,19 @@ Key Design Decisions:
 
 Usage:
     resolver = IdentityResolver(default_timeout_seconds=5.0)
-    
+
     # Resolve wallet to identity
     identity = resolver.resolve("0xABC...", chain="base")
     # → ResolvedIdentity(wallet="0xABC...", agent_id=2106, chain="base", ...)
-    
+
     # Bulk resolve for routing
     identities = resolver.resolve_batch(["0xA...", "0xB..."], chain="skale")
-    
+
     # Cache management
     resolver.invalidate("0xABC...", chain="base")
     resolver.invalidate_chain("skale")  # Flush all SKALE cache
     resolver.clear_cache()
-    
+
     # Diagnostics
     stats = resolver.cache_stats()
     log = resolver.resolution_log(limit=20)
@@ -75,10 +75,19 @@ logger = logging.getLogger("em.swarm.identity_resolver")
 # ─── Constants ────────────────────────────────────────────────
 
 # Supported networks (matches EM_ENABLED_NETWORKS)
-SUPPORTED_NETWORKS = frozenset({
-    "base", "ethereum", "polygon", "arbitrum",
-    "celo", "monad", "avalanche", "optimism", "skale",
-})
+SUPPORTED_NETWORKS = frozenset(
+    {
+        "base",
+        "ethereum",
+        "polygon",
+        "arbitrum",
+        "celo",
+        "monad",
+        "avalanche",
+        "optimism",
+        "skale",
+    }
+)
 
 DEFAULT_TTL_SECONDS = 300  # 5 minutes
 DEFAULT_TIMEOUT_SECONDS = 5.0
@@ -91,6 +100,7 @@ MAX_LOG_SIZE = 500
 
 class ResolutionMethod(str, Enum):
     """How the identity was resolved."""
+
     CACHE = "cache"
     FACILITATOR = "facilitator"
     FALLBACK = "fallback"  # Wallet address used as identity
@@ -99,6 +109,7 @@ class ResolutionMethod(str, Enum):
 
 class ResolutionOutcome(str, Enum):
     """Outcome of a resolution attempt."""
+
     HIT = "hit"  # Found registered identity
     MISS = "miss"  # Not registered, using fallback
     TIMEOUT = "timeout"  # Lookup timed out
@@ -108,6 +119,7 @@ class ResolutionOutcome(str, Enum):
 @dataclass(frozen=True)
 class ResolvedIdentity:
     """Result of identity resolution."""
+
     wallet: str
     chain: str
     agent_id: Optional[int]  # Numeric ERC-8004 token ID (None if unregistered)
@@ -147,6 +159,7 @@ class ResolvedIdentity:
 @dataclass
 class ResolutionLogEntry:
     """Audit trail entry for a resolution attempt."""
+
     wallet: str
     chain: str
     method: ResolutionMethod
@@ -171,6 +184,7 @@ class ResolutionLogEntry:
 @dataclass
 class CacheStats:
     """Cache performance statistics."""
+
     total_entries: int
     entries_by_chain: Dict[str, int]
     hits: int
@@ -199,7 +213,7 @@ class CacheStats:
 class IdentityResolver:
     """
     Multi-chain identity resolution with caching and audit trail.
-    
+
     Resolves wallet addresses to ERC-8004 agent identities, handling:
     - Per-chain cache isolation (Base identity ≠ SKALE identity)
     - Configurable timeouts (never blocks routing)
@@ -295,8 +309,12 @@ class IdentityResolver:
             # Log OUTSIDE the lock to avoid deadlock
             if cached is not None:
                 self._log_resolution(
-                    wallet, chain, ResolutionMethod.CACHE,
-                    ResolutionOutcome.HIT, cached.agent_id, 0.0,
+                    wallet,
+                    chain,
+                    ResolutionMethod.CACHE,
+                    ResolutionOutcome.HIT,
+                    cached.agent_id,
+                    0.0,
                 )
                 return cached
 
@@ -308,10 +326,16 @@ class IdentityResolver:
 
             if result is None:
                 # Timeout or error — use fallback with ERROR method
-                identity = self._make_fallback(wallet, chain, method=ResolutionMethod.ERROR)
+                identity = self._make_fallback(
+                    wallet, chain, method=ResolutionMethod.ERROR
+                )
                 self._log_resolution(
-                    wallet, chain, ResolutionMethod.ERROR,
-                    ResolutionOutcome.TIMEOUT, None, duration_ms,
+                    wallet,
+                    chain,
+                    ResolutionMethod.ERROR,
+                    ResolutionOutcome.TIMEOUT,
+                    None,
+                    duration_ms,
                     error="lookup returned None",
                 )
             elif result.get("registered"):
@@ -319,7 +343,9 @@ class IdentityResolver:
                     wallet=wallet,
                     chain=chain,
                     agent_id=result.get("agent_id"),
-                    display_id=str(result["agent_id"]) if result.get("agent_id") else wallet,
+                    display_id=str(result["agent_id"])
+                    if result.get("agent_id")
+                    else wallet,
                     registered=True,
                     method=ResolutionMethod.FACILITATOR,
                     resolved_at=time.time(),
@@ -329,28 +355,42 @@ class IdentityResolver:
                     name=result.get("name"),
                 )
                 self._log_resolution(
-                    wallet, chain, ResolutionMethod.FACILITATOR,
-                    ResolutionOutcome.HIT, result.get("agent_id"), duration_ms,
+                    wallet,
+                    chain,
+                    ResolutionMethod.FACILITATOR,
+                    ResolutionOutcome.HIT,
+                    result.get("agent_id"),
+                    duration_ms,
                 )
             else:
                 # Not registered on this chain
                 identity = self._make_fallback(wallet, chain)
                 self._log_resolution(
-                    wallet, chain, ResolutionMethod.FALLBACK,
-                    ResolutionOutcome.MISS, None, duration_ms,
+                    wallet,
+                    chain,
+                    ResolutionMethod.FALLBACK,
+                    ResolutionOutcome.MISS,
+                    None,
+                    duration_ms,
                 )
 
         except Exception as exc:
             duration_ms = (time.time() - start) * 1000
             identity = self._make_fallback(wallet, chain, method=ResolutionMethod.ERROR)
             self._log_resolution(
-                wallet, chain, ResolutionMethod.ERROR,
-                ResolutionOutcome.ERROR, None, duration_ms,
+                wallet,
+                chain,
+                ResolutionMethod.ERROR,
+                ResolutionOutcome.ERROR,
+                None,
+                duration_ms,
                 error=str(exc)[:200],
             )
             logger.warning(
                 "Identity resolution error: wallet=%s chain=%s: %s",
-                wallet[:10], chain, exc,
+                wallet[:10],
+                chain,
+                exc,
             )
 
         # 3. Cache the result
@@ -374,7 +414,9 @@ class IdentityResolver:
         results = {}
         for wallet in wallets:
             results[wallet.lower().strip()] = self.resolve(
-                wallet, chain, timeout_seconds,
+                wallet,
+                chain,
+                timeout_seconds,
             )
         return results
 
@@ -395,9 +437,7 @@ class IdentityResolver:
         chain = chain.lower().strip()
         count = 0
         with self._lock:
-            keys_to_remove = [
-                k for k in self._cache if k.endswith(f":{chain}")
-            ]
+            keys_to_remove = [k for k in self._cache if k.endswith(f":{chain}")]
             for k in keys_to_remove:
                 del self._cache[k]
                 count += 1
@@ -409,9 +449,7 @@ class IdentityResolver:
         wallet = wallet.lower().strip()
         count = 0
         with self._lock:
-            keys_to_remove = [
-                k for k in self._cache if k.startswith(f"{wallet}:")
-            ]
+            keys_to_remove = [k for k in self._cache if k.startswith(f"{wallet}:")]
             for k in keys_to_remove:
                 del self._cache[k]
                 count += 1
@@ -516,15 +554,15 @@ class IdentityResolver:
 
         total_resolutions = len(all_entries)
         error_count = sum(
-            1 for e in all_entries
+            1
+            for e in all_entries
             if e.outcome in (ResolutionOutcome.ERROR, ResolutionOutcome.TIMEOUT)
         )
         error_rate = error_count / total_resolutions if total_resolutions > 0 else 0.0
 
         # Average resolution time (non-cache)
         non_cache = [
-            e.duration_ms for e in all_entries
-            if e.method != ResolutionMethod.CACHE
+            e.duration_ms for e in all_entries if e.method != ResolutionMethod.CACHE
         ]
         avg_duration = sum(non_cache) / len(non_cache) if non_cache else 0.0
 
@@ -544,7 +582,8 @@ class IdentityResolver:
             recent = list(self._log)[-10:] if self._log else []
 
         recent_errors = sum(
-            1 for e in recent
+            1
+            for e in recent
             if e.outcome in (ResolutionOutcome.ERROR, ResolutionOutcome.TIMEOUT)
         )
 
@@ -649,7 +688,8 @@ class IdentityResolver:
         # LRU eviction: remove oldest entry if at capacity
         if len(self._cache) >= self._max_cache and key not in self._cache:
             oldest_key = min(
-                self._cache, key=lambda k: self._cache[k].resolved_at,
+                self._cache,
+                key=lambda k: self._cache[k].resolved_at,
             )
             del self._cache[oldest_key]
             self._evictions += 1

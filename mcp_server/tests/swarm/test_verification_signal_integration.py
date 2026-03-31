@@ -21,15 +21,12 @@ import time
 from mcp_server.swarm.decision_synthesizer import (
     DecisionSynthesizer,
     SignalType,
-    SignalValue,
     DecisionOutcome,
-    ConfidenceLevel,
     DEFAULT_WEIGHTS,
 )
 from mcp_server.swarm.verification_adapter import (
     VerificationAdapter,
     VerificationTrust,
-    VerificationInference,
 )
 from mcp_server.swarm.integrator import (
     SwarmIntegrator,
@@ -53,69 +50,81 @@ def adapter_with_data():
 
     # Worker A: Exceptional quality (25 clean submissions)
     for i in range(25):
-        a.ingest_inference("0xExceptional", {
-            "submission_id": f"sub_ex_{i}",
-            "task_id": f"task_{i}",
+        a.ingest_inference(
+            "0xExceptional",
+            {
+                "submission_id": f"sub_ex_{i}",
+                "task_id": f"task_{i}",
+                "tier": "tier_1",
+                "score": 0.92 + (i % 5) * 0.01,
+                "decision": "approved",
+                "category": "physical_verification",
+                "has_exif": True,
+                "has_gps": True,
+                "photo_source": "camera",
+                "cost_usd": 0.002,
+                "was_escalated": False,
+                "consensus_used": False,
+                "timestamp": time.time() - (25 - i) * 3600,
+            },
+        )
+
+    # Worker B: Standard quality (10 mixed submissions)
+    for i in range(10):
+        a.ingest_inference(
+            "0xStandard",
+            {
+                "submission_id": f"sub_st_{i}",
+                "task_id": f"task_{100 + i}",
+                "tier": "tier_1" if i % 3 != 0 else "tier_2",
+                "score": 0.65 + (i % 3) * 0.05,
+                "decision": "approved" if i % 4 != 3 else "rejected",
+                "category": "physical_verification",
+                "has_exif": i % 2 == 0,
+                "has_gps": i % 3 == 0,
+                "photo_source": "camera" if i % 2 == 0 else "screenshot",
+                "cost_usd": 0.005,
+                "was_escalated": i % 3 == 0,
+                "timestamp": time.time() - (10 - i) * 3600,
+            },
+        )
+
+    # Worker C: Low quality (8 poor submissions)
+    for i in range(8):
+        a.ingest_inference(
+            "0xLow",
+            {
+                "submission_id": f"sub_lo_{i}",
+                "task_id": f"task_{200 + i}",
+                "tier": "tier_2",
+                "score": 0.30 + (i % 3) * 0.05,
+                "decision": "rejected" if i % 2 == 0 else "approved",
+                "category": "physical_verification",
+                "has_exif": False,
+                "has_gps": False,
+                "photo_source": "screenshot",
+                "cost_usd": 0.01,
+                "was_escalated": True,
+                "timestamp": time.time() - (8 - i) * 3600,
+            },
+        )
+
+    # Worker D: Unknown (only 1 submission, below min_inferences)
+    a.ingest_inference(
+        "0xUnknown",
+        {
+            "submission_id": "sub_un_0",
+            "task_id": "task_300",
             "tier": "tier_1",
-            "score": 0.92 + (i % 5) * 0.01,
+            "score": 0.80,
             "decision": "approved",
             "category": "physical_verification",
             "has_exif": True,
             "has_gps": True,
             "photo_source": "camera",
             "cost_usd": 0.002,
-            "was_escalated": False,
-            "consensus_used": False,
-            "timestamp": time.time() - (25 - i) * 3600,
-        })
-
-    # Worker B: Standard quality (10 mixed submissions)
-    for i in range(10):
-        a.ingest_inference("0xStandard", {
-            "submission_id": f"sub_st_{i}",
-            "task_id": f"task_{100 + i}",
-            "tier": "tier_1" if i % 3 != 0 else "tier_2",
-            "score": 0.65 + (i % 3) * 0.05,
-            "decision": "approved" if i % 4 != 3 else "rejected",
-            "category": "physical_verification",
-            "has_exif": i % 2 == 0,
-            "has_gps": i % 3 == 0,
-            "photo_source": "camera" if i % 2 == 0 else "screenshot",
-            "cost_usd": 0.005,
-            "was_escalated": i % 3 == 0,
-            "timestamp": time.time() - (10 - i) * 3600,
-        })
-
-    # Worker C: Low quality (8 poor submissions)
-    for i in range(8):
-        a.ingest_inference("0xLow", {
-            "submission_id": f"sub_lo_{i}",
-            "task_id": f"task_{200 + i}",
-            "tier": "tier_2",
-            "score": 0.30 + (i % 3) * 0.05,
-            "decision": "rejected" if i % 2 == 0 else "approved",
-            "category": "physical_verification",
-            "has_exif": False,
-            "has_gps": False,
-            "photo_source": "screenshot",
-            "cost_usd": 0.01,
-            "was_escalated": True,
-            "timestamp": time.time() - (8 - i) * 3600,
-        })
-
-    # Worker D: Unknown (only 1 submission, below min_inferences)
-    a.ingest_inference("0xUnknown", {
-        "submission_id": "sub_un_0",
-        "task_id": "task_300",
-        "tier": "tier_1",
-        "score": 0.80,
-        "decision": "approved",
-        "category": "physical_verification",
-        "has_exif": True,
-        "has_gps": True,
-        "photo_source": "camera",
-        "cost_usd": 0.002,
-    })
+        },
+    )
 
     return a
 
@@ -185,7 +194,9 @@ class TestSignalRegistration:
 class TestScoreFlow:
     """Verification scores flow correctly through DecisionSynthesizer."""
 
-    def test_adapter_scores_reach_synthesizer(self, adapter_with_data, task, candidates):
+    def test_adapter_scores_reach_synthesizer(
+        self, adapter_with_data, task, candidates
+    ):
         """Scores from adapter.score() reach DecisionSynthesizer's synthesis."""
         synth = DecisionSynthesizer()
 
@@ -199,7 +210,9 @@ class TestScoreFlow:
         assert decision is not None
         assert len(decision.rankings) == len(candidates)
 
-    def test_exceptional_worker_scores_highest(self, adapter_with_data, task, candidates):
+    def test_exceptional_worker_scores_highest(
+        self, adapter_with_data, task, candidates
+    ):
         """With only verification signal, exceptional worker ranks #1."""
         synth = DecisionSynthesizer()
         synth.register_signal(
@@ -211,7 +224,9 @@ class TestScoreFlow:
         # Best candidate should be exceptional (highest verification quality)
         assert decision.rankings[0].candidate_id == "0xExceptional"
 
-    def test_low_worker_scores_lower_than_standard(self, adapter_with_data, task, candidates):
+    def test_low_worker_scores_lower_than_standard(
+        self, adapter_with_data, task, candidates
+    ):
         """Low-quality worker ranks below standard-quality."""
         synth = DecisionSynthesizer()
         synth.register_signal(
@@ -243,7 +258,9 @@ class TestScoreFlow:
 class TestMultiSignalIntegration:
     """Verification signal works alongside other signals."""
 
-    def test_verification_changes_ranking_order(self, adapter_with_data, task, candidates):
+    def test_verification_changes_ranking_order(
+        self, adapter_with_data, task, candidates
+    ):
         """Adding verification signal can change relative rankings."""
         # Synth with only skill_match (everyone equal skills)
         synth_without = DecisionSynthesizer()
@@ -285,7 +302,9 @@ class TestMultiSignalIntegration:
             f"Verification should increase score spread: with={spread_with}, without={spread_without}"
         )
 
-    def test_verification_boosts_exceptional_worker(self, adapter_with_data, task, candidates):
+    def test_verification_boosts_exceptional_worker(
+        self, adapter_with_data, task, candidates
+    ):
         """Exceptional verification quality boosts composite score."""
         synth = DecisionSynthesizer()
 
@@ -300,10 +319,7 @@ class TestMultiSignalIntegration:
         decision = synth.synthesize(task, candidates)
 
         # Find exceptional and low worker scores
-        score_map = {
-            r.candidate_id: r.composite_score
-            for r in decision.rankings
-        }
+        score_map = {r.candidate_id: r.composite_score for r in decision.rankings}
 
         assert score_map["0xExceptional"] > score_map["0xLow"]
         # The gap should be meaningful (verification is 8% weight)
@@ -397,23 +413,29 @@ class TestCategorySpecificScoring:
 
         # Worker good at physical, bad at bureaucratic
         for i in range(5):
-            adapter.ingest_inference("0xPhysical", {
-                "score": 0.95,
-                "decision": "approved",
-                "category": "physical_verification",
-                "has_exif": True,
-                "has_gps": True,
-                "photo_source": "camera",
-            })
+            adapter.ingest_inference(
+                "0xPhysical",
+                {
+                    "score": 0.95,
+                    "decision": "approved",
+                    "category": "physical_verification",
+                    "has_exif": True,
+                    "has_gps": True,
+                    "photo_source": "camera",
+                },
+            )
         for i in range(5):
-            adapter.ingest_inference("0xPhysical", {
-                "score": 0.40,
-                "decision": "rejected",
-                "category": "bureaucratic",
-                "has_exif": False,
-                "has_gps": False,
-                "photo_source": "screenshot",
-            })
+            adapter.ingest_inference(
+                "0xPhysical",
+                {
+                    "score": 0.40,
+                    "decision": "rejected",
+                    "category": "bureaucratic",
+                    "has_exif": False,
+                    "has_gps": False,
+                    "photo_source": "screenshot",
+                },
+            )
 
         physical_task = {"category": "physical_verification"}
         bureau_task = {"category": "bureaucratic"}
@@ -431,30 +453,54 @@ class TestCategorySpecificScoring:
 
         # Worker A: expert in physical
         for i in range(5):
-            adapter.ingest_inference("0xPhysExpert", {
-                "score": 0.95, "decision": "approved",
-                "category": "physical_verification",
-                "has_exif": True, "has_gps": True, "photo_source": "camera",
-            })
+            adapter.ingest_inference(
+                "0xPhysExpert",
+                {
+                    "score": 0.95,
+                    "decision": "approved",
+                    "category": "physical_verification",
+                    "has_exif": True,
+                    "has_gps": True,
+                    "photo_source": "camera",
+                },
+            )
 
         # Worker B: expert in bureaucratic
         for i in range(5):
-            adapter.ingest_inference("0xBureauExpert", {
-                "score": 0.95, "decision": "approved",
-                "category": "bureaucratic",
-                "has_exif": True, "has_gps": False, "photo_source": "camera",
-            })
+            adapter.ingest_inference(
+                "0xBureauExpert",
+                {
+                    "score": 0.95,
+                    "decision": "approved",
+                    "category": "bureaucratic",
+                    "has_exif": True,
+                    "has_gps": False,
+                    "photo_source": "camera",
+                },
+            )
             # Give both some general submissions too
-            adapter.ingest_inference("0xPhysExpert", {
-                "score": 0.55, "decision": "approved",
-                "category": "bureaucratic",
-                "has_exif": False, "has_gps": False, "photo_source": "screenshot",
-            })
-            adapter.ingest_inference("0xBureauExpert", {
-                "score": 0.55, "decision": "approved",
-                "category": "physical_verification",
-                "has_exif": False, "has_gps": False, "photo_source": "screenshot",
-            })
+            adapter.ingest_inference(
+                "0xPhysExpert",
+                {
+                    "score": 0.55,
+                    "decision": "approved",
+                    "category": "bureaucratic",
+                    "has_exif": False,
+                    "has_gps": False,
+                    "photo_source": "screenshot",
+                },
+            )
+            adapter.ingest_inference(
+                "0xBureauExpert",
+                {
+                    "score": 0.55,
+                    "decision": "approved",
+                    "category": "physical_verification",
+                    "has_exif": False,
+                    "has_gps": False,
+                    "photo_source": "screenshot",
+                },
+            )
 
         synth = DecisionSynthesizer()
         synth.register_signal(
@@ -673,9 +719,7 @@ class TestWeightSensitivity:
 
         # 0xLow should still win because skill_match (28%) >> verification (8%)
         top = decision.rankings[0].candidate_id
-        assert top == "0xLow", (
-            f"Skill-match dominant signal should win, got {top}"
-        )
+        assert top == "0xLow", f"Skill-match dominant signal should win, got {top}"
 
     def test_verification_breaks_ties(self, adapter_with_data, task, candidates):
         """When other signals are equal, verification breaks the tie."""
@@ -722,8 +766,11 @@ class TestRegressionSafety:
     def test_original_signal_weights_redistributed(self):
         """Original signals still sum properly with verification added."""
         # Core signals (excluding verification)
-        core_signals = {k: v for k, v in DEFAULT_WEIGHTS.items()
-                       if k != SignalType.VERIFICATION_QUALITY}
+        core_signals = {
+            k: v
+            for k, v in DEFAULT_WEIGHTS.items()
+            if k != SignalType.VERIFICATION_QUALITY
+        }
         core_sum = sum(core_signals.values())
         # Core should be 92% (leaving 8% for verification)
         assert abs(core_sum - 0.92) < 0.001

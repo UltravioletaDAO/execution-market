@@ -15,10 +15,8 @@ Comprehensive test coverage for multi-chain identity resolution:
 
 import time
 import threading
-import pytest
 
 import importlib
-import sys
 import os
 
 # Direct import to avoid swarm/__init__.py pulling in Python 3.10+ modules
@@ -165,6 +163,7 @@ class TestCacheBehavior:
 
     def test_cache_hit(self):
         calls = []
+
         def tracking_lookup(w, c):
             calls.append((w, c))
             return {"registered": True, "agent_id": 1}
@@ -181,6 +180,7 @@ class TestCacheBehavior:
     def test_cache_miss_different_chain(self):
         """Cache is per (wallet, chain) — different chain = cache miss."""
         calls = []
+
         def tracking_lookup(w, c):
             calls.append((w, c))
             return {"registered": True, "agent_id": 1}
@@ -193,6 +193,7 @@ class TestCacheBehavior:
 
     def test_cache_ttl_expiry(self):
         calls = []
+
         def tracking_lookup(w, c):
             calls.append(1)
             return {"registered": True, "agent_id": 1}
@@ -209,6 +210,7 @@ class TestCacheBehavior:
 
     def test_skip_cache(self):
         calls = []
+
         def tracking_lookup(w, c):
             calls.append(1)
             return {"registered": True, "agent_id": 1}
@@ -253,6 +255,7 @@ class TestCacheBehavior:
     def test_cache_stores_unregistered(self):
         """Unregistered results are also cached (prevents repeated lookups)."""
         calls = []
+
         def tracking_lookup(w, c):
             calls.append(1)
             return {"registered": False}
@@ -323,7 +326,8 @@ class TestBatchResolution:
     def test_resolve_batch(self):
         resolver = IdentityResolver(lookup_fn=_mock_lookup_registered)
         results = resolver.resolve_batch(
-            ["0xA", "0xB", "0xC"], chain="base",
+            ["0xA", "0xB", "0xC"],
+            chain="base",
         )
 
         assert len(results) == 3
@@ -339,7 +343,8 @@ class TestBatchResolution:
         """Some registered, some not."""
         resolver = IdentityResolver(lookup_fn=_mock_lookup_mixed)
         results = resolver.resolve_batch(
-            ["0xA", "0xB"], chain="base",
+            ["0xA", "0xB"],
+            chain="base",
         )
 
         assert len(results) == 2
@@ -350,7 +355,8 @@ class TestBatchResolution:
     def test_resolve_batch_different_chain(self):
         resolver = IdentityResolver(lookup_fn=_mock_lookup_mixed)
         results = resolver.resolve_batch(
-            ["0xA", "0xB"], chain="polygon",
+            ["0xA", "0xB"],
+            chain="polygon",
         )
 
         # _mock_lookup_mixed returns unregistered for non-base chains
@@ -379,6 +385,7 @@ class TestMultiChainUtilities:
     def test_get_all_identities_only_cached(self):
         """Does NOT trigger fresh lookups."""
         calls = []
+
         def tracking_lookup(w, c):
             calls.append(1)
             return {"registered": True, "agent_id": 1}
@@ -574,25 +581,40 @@ class TestResolvedIdentity:
 
     def test_expired_before_ttl(self):
         identity = ResolvedIdentity(
-            wallet="0xa", chain="base", agent_id=1, display_id="1",
-            registered=True, method=ResolutionMethod.FACILITATOR,
-            resolved_at=time.time(), ttl_seconds=300,
+            wallet="0xa",
+            chain="base",
+            agent_id=1,
+            display_id="1",
+            registered=True,
+            method=ResolutionMethod.FACILITATOR,
+            resolved_at=time.time(),
+            ttl_seconds=300,
         )
         assert identity.expired is False
 
     def test_expired_after_ttl(self):
         identity = ResolvedIdentity(
-            wallet="0xa", chain="base", agent_id=1, display_id="1",
-            registered=True, method=ResolutionMethod.FACILITATOR,
-            resolved_at=time.time() - 301, ttl_seconds=300,
+            wallet="0xa",
+            chain="base",
+            agent_id=1,
+            display_id="1",
+            registered=True,
+            method=ResolutionMethod.FACILITATOR,
+            resolved_at=time.time() - 301,
+            ttl_seconds=300,
         )
         assert identity.expired is True
 
     def test_to_dict(self):
         identity = ResolvedIdentity(
-            wallet="0xa", chain="base", agent_id=42, display_id="42",
-            registered=True, method=ResolutionMethod.FACILITATOR,
-            resolved_at=time.time(), metadata_uri="https://example.com",
+            wallet="0xa",
+            chain="base",
+            agent_id=42,
+            display_id="42",
+            registered=True,
+            method=ResolutionMethod.FACILITATOR,
+            resolved_at=time.time(),
+            metadata_uri="https://example.com",
             name="TestAgent",
         )
         d = identity.to_dict()
@@ -606,8 +628,12 @@ class TestResolvedIdentity:
 
     def test_age_seconds(self):
         identity = ResolvedIdentity(
-            wallet="0xa", chain="base", agent_id=1, display_id="1",
-            registered=True, method=ResolutionMethod.FACILITATOR,
+            wallet="0xa",
+            chain="base",
+            agent_id=1,
+            display_id="1",
+            registered=True,
+            method=ResolutionMethod.FACILITATOR,
             resolved_at=time.time() - 10,
         )
         assert identity.age_seconds >= 10
@@ -688,6 +714,7 @@ class TestEdgeCases:
 
     def test_lookup_returning_partial_data(self):
         """Lookup returns dict without agent_id."""
+
         def partial_lookup(w, c):
             return {"registered": True}  # No agent_id
 
@@ -720,6 +747,7 @@ class TestSKALEScenarios:
     def test_cache_doesnt_leak_across_chains(self):
         """After resolving on Base, SKALE resolution must NOT use Base cache."""
         calls = []
+
         def tracking_lookup(w, c):
             calls.append((w, c))
             if c == "base":
@@ -751,6 +779,7 @@ class TestSKALEScenarios:
     def test_timeout_doesnt_corrupt_cache(self):
         """After a timeout, subsequent successful lookup should cache correctly."""
         attempt = [0]
+
         def flaky_lookup(w, c):
             attempt[0] += 1
             if attempt[0] == 1:
@@ -771,7 +800,9 @@ class TestSKALEScenarios:
     def test_wallet_address_as_display_id_for_unregistered(self):
         """Unregistered wallets use wallet address as display_id."""
         resolver = IdentityResolver(lookup_fn=_mock_lookup_unregistered)
-        identity = resolver.resolve("0xD3868E1eD738CED6945A574a7c769433BeD5d474", chain="skale")
+        identity = resolver.resolve(
+            "0xD3868E1eD738CED6945A574a7c769433BeD5d474", chain="skale"
+        )
 
         assert identity.display_id == "0xd3868e1ed738ced6945a574a7c769433bed5d474"
         assert identity.agent_id is None

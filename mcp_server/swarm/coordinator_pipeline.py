@@ -466,7 +466,9 @@ class CoordinatorPipeline:
 
     def _is_assignment(self, r) -> bool:
         """Check if a routing result is an assignment (duck-typed)."""
-        return hasattr(r, "agent_id") and hasattr(r, "score") and hasattr(r, "agent_name")
+        return (
+            hasattr(r, "agent_id") and hasattr(r, "score") and hasattr(r, "agent_name")
+        )
 
     def _is_failure(self, r) -> bool:
         """Check if a routing result is a failure (duck-typed)."""
@@ -510,7 +512,9 @@ class CoordinatorPipeline:
                     agent_name=r.agent_name,
                     score=r.score,
                     signal_snapshot=snapshot,
-                    routing_time_ms=r.routing_time_ms if hasattr(r, "routing_time_ms") else 0.0,
+                    routing_time_ms=r.routing_time_ms
+                    if hasattr(r, "routing_time_ms")
+                    else 0.0,
                     explanation=self._explain_assignment(r) if self._explain else "",
                     timestamp=datetime.now(timezone.utc).isoformat(),
                 )
@@ -556,9 +560,7 @@ class CoordinatorPipeline:
         self._assignment_rates.append(result.assignment_rate)
 
         if self._harness and result.harness_status:
-            self._signal_coverages.append(
-                result.harness_status.get("coverage", 0.0)
-            )
+            self._signal_coverages.append(result.harness_status.get("coverage", 0.0))
 
         if result.success:
             self._consecutive_failures = 0
@@ -628,8 +630,8 @@ class CoordinatorPipeline:
         )
 
         if self._cycle_durations:
-            m.avg_cycle_duration_ms = (
-                sum(self._cycle_durations) / len(self._cycle_durations)
+            m.avg_cycle_duration_ms = sum(self._cycle_durations) / len(
+                self._cycle_durations
             )
 
         if self._assignment_rates:
@@ -639,8 +641,8 @@ class CoordinatorPipeline:
             m.worst_assignment_rate = min(rates)
 
         if self._signal_coverages:
-            m.avg_signal_coverage = (
-                sum(self._signal_coverages) / len(self._signal_coverages)
+            m.avg_signal_coverage = sum(self._signal_coverages) / len(
+                self._signal_coverages
             )
 
         return m

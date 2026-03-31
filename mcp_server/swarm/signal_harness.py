@@ -36,7 +36,7 @@ import logging
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Callable, Optional
+from typing import Callable, Optional
 
 from .decision_synthesizer import (
     DecisionSynthesizer,
@@ -139,6 +139,7 @@ class SignalHarness:
 
     def connect_reputation(self, bridge) -> "SignalHarness":
         """Connect ReputationBridge as REPUTATION signal."""
+
         def scorer(task, candidate):
             wallet = candidate.get("wallet", "")
             if not wallet:
@@ -146,15 +147,14 @@ class SignalHarness:
             score = bridge.get_composite_score(wallet)
             return score * 100  # Normalize to 0-100
 
-        wrapped = self._wrap_scorer(
-            SignalType.REPUTATION, "ReputationBridge", scorer
-        )
+        wrapped = self._wrap_scorer(SignalType.REPUTATION, "ReputationBridge", scorer)
         self.synthesizer.register_signal(SignalType.REPUTATION, wrapped)
         logger.info("Connected REPUTATION signal from ReputationBridge")
         return self
 
     def connect_availability(self, bridge) -> "SignalHarness":
         """Connect AvailabilityBridge as AVAILABILITY signal."""
+
         def scorer(task, candidate):
             agent_id = candidate.get("id", candidate.get("agent_id", ""))
             prob = bridge.predict_availability(agent_id)
@@ -169,6 +169,7 @@ class SignalHarness:
 
     def connect_verification(self, adapter) -> "SignalHarness":
         """Connect VerificationAdapter as VERIFICATION_QUALITY signal (#13)."""
+
         def scorer(task, candidate):
             worker_id = candidate.get("id", candidate.get("wallet", ""))
             return adapter.score(worker_id, task)
@@ -176,46 +177,41 @@ class SignalHarness:
         wrapped = self._wrap_scorer(
             SignalType.VERIFICATION_QUALITY, "VerificationAdapter", scorer
         )
-        self.synthesizer.register_signal(
-            SignalType.VERIFICATION_QUALITY, wrapped
-        )
+        self.synthesizer.register_signal(SignalType.VERIFICATION_QUALITY, wrapped)
         logger.info("Connected VERIFICATION_QUALITY signal from VerificationAdapter")
         return self
 
     def connect_skill_match(self, matcher) -> "SignalHarness":
         """Connect a skill matching function as SKILL_MATCH signal."""
+
         def scorer(task, candidate):
             return matcher.match_score(task, candidate) * 100
 
-        wrapped = self._wrap_scorer(
-            SignalType.SKILL_MATCH, "SkillMatcher", scorer
-        )
+        wrapped = self._wrap_scorer(SignalType.SKILL_MATCH, "SkillMatcher", scorer)
         self.synthesizer.register_signal(SignalType.SKILL_MATCH, wrapped)
         logger.info("Connected SKILL_MATCH signal from SkillMatcher")
         return self
 
     def connect_reliability(self, source) -> "SignalHarness":
         """Connect reliability scoring as RELIABILITY signal."""
+
         def scorer(task, candidate):
             agent_id = candidate.get("id", candidate.get("agent_id", ""))
             return source.get_reliability_score(agent_id)
 
-        wrapped = self._wrap_scorer(
-            SignalType.RELIABILITY, "ReliabilitySource", scorer
-        )
+        wrapped = self._wrap_scorer(SignalType.RELIABILITY, "ReliabilitySource", scorer)
         self.synthesizer.register_signal(SignalType.RELIABILITY, wrapped)
         logger.info("Connected RELIABILITY signal from ReliabilitySource")
         return self
 
     def connect_speed(self, source) -> "SignalHarness":
         """Connect speed scoring as SPEED signal."""
+
         def scorer(task, candidate):
             agent_id = candidate.get("id", candidate.get("agent_id", ""))
             return source.get_speed_score(agent_id)
 
-        wrapped = self._wrap_scorer(
-            SignalType.SPEED, "SpeedSource", scorer
-        )
+        wrapped = self._wrap_scorer(SignalType.SPEED, "SpeedSource", scorer)
         self.synthesizer.register_signal(SignalType.SPEED, wrapped)
         logger.info("Connected SPEED signal from SpeedSource")
         return self
@@ -298,9 +294,7 @@ class SignalHarness:
         return {
             "connected": self.connected_count,
             "available": self.total_available,
-            "coverage": round(
-                self.connected_count / max(1, len(DEFAULT_WEIGHTS)), 3
-            ),
+            "coverage": round(self.connected_count / max(1, len(DEFAULT_WEIGHTS)), 3),
             "total_calls": total_calls,
             "total_errors": total_errors,
             "uptime_seconds": round(time.time() - self._created_at, 1),

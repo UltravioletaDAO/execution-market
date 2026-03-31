@@ -32,15 +32,15 @@ Architecture:
 
 Usage:
     registry = NetworkRegistry.with_defaults()
-    
+
     # Query network info
     base = registry.get("base")
     print(base.gas_profile)  # "low"
-    
+
     # Feature queries
     chains = registry.chains_with_feature("payments")
     usdc = registry.get_token_address("base", "USDC")
-    
+
     # Validation
     registry.validate_chain("skale")  # True
     registry.validate_chain("bitcoin")  # False
@@ -50,7 +50,7 @@ import logging
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional, Dict, List, Set
+from typing import Optional, Dict, List
 
 logger = logging.getLogger("em.swarm.network_registry")
 
@@ -60,6 +60,7 @@ logger = logging.getLogger("em.swarm.network_registry")
 
 class ChainType(str, Enum):
     """Blockchain virtual machine type."""
+
     EVM = "evm"
     SVM = "svm"  # Solana
     MOVE = "move"  # Aptos/Sui
@@ -67,6 +68,7 @@ class ChainType(str, Enum):
 
 class GasProfile(str, Enum):
     """Relative gas cost category."""
+
     FREE = "free"  # SKALE (zero gas)
     ULTRA_LOW = "ultra_low"  # L2s under $0.001
     LOW = "low"  # Base, Arbitrum, Optimism
@@ -76,6 +78,7 @@ class GasProfile(str, Enum):
 
 class NetworkStatus(str, Enum):
     """Network operational status."""
+
     ACTIVE = "active"
     DEGRADED = "degraded"
     MAINTENANCE = "maintenance"
@@ -85,6 +88,7 @@ class NetworkStatus(str, Enum):
 @dataclass
 class TokenInfo:
     """Token configuration on a specific chain."""
+
     symbol: str
     address: str
     decimals: int = 6  # USDC default
@@ -94,28 +98,29 @@ class TokenInfo:
 @dataclass
 class NetworkInfo:
     """Complete configuration for a blockchain network."""
+
     name: str
     chain_id: Optional[int]
     chain_type: ChainType
     gas_profile: GasProfile
     status: NetworkStatus = NetworkStatus.ACTIVE
-    
+
     # Feature flags
     supports_payments: bool = True
     supports_identity: bool = True  # ERC-8004
     supports_reputation: bool = True
     supports_escrow: bool = True
-    
+
     # Explorer and RPC
     explorer_url: Optional[str] = None
-    
+
     # Tokens
     tokens: Dict[str, TokenInfo] = field(default_factory=dict)
-    
+
     # Performance characteristics
     avg_block_time_seconds: float = 2.0
     avg_confirmation_time_seconds: float = 5.0
-    
+
     # Network-specific notes
     notes: Optional[str] = None
 
@@ -146,7 +151,7 @@ class NetworkInfo:
 class NetworkRegistry:
     """
     Centralized network configuration for the swarm.
-    
+
     All swarm components query this instead of maintaining their own
     chain-specific logic.
     """
@@ -194,8 +199,7 @@ class NetworkRegistry:
     def active_networks(self) -> List[NetworkInfo]:
         """Get all active (non-disabled) networks."""
         return [
-            n for n in self._networks.values()
-            if n.status != NetworkStatus.DISABLED
+            n for n in self._networks.values() if n.status != NetworkStatus.DISABLED
         ]
 
     # ─── Feature Queries ──────────────────────────────────────
@@ -212,19 +216,24 @@ class NetworkRegistry:
         if not check:
             return []
         return [
-            name for name, info in self._networks.items()
+            name
+            for name, info in self._networks.items()
             if check(info) and info.status == NetworkStatus.ACTIVE
         ]
 
     def chains_by_gas(self, max_profile: GasProfile = GasProfile.LOW) -> List[str]:
         """Get chains at or below a gas cost threshold."""
         profile_order = [
-            GasProfile.FREE, GasProfile.ULTRA_LOW,
-            GasProfile.LOW, GasProfile.MEDIUM, GasProfile.HIGH,
+            GasProfile.FREE,
+            GasProfile.ULTRA_LOW,
+            GasProfile.LOW,
+            GasProfile.MEDIUM,
+            GasProfile.HIGH,
         ]
         max_idx = profile_order.index(max_profile)
         return [
-            name for name, info in self._networks.items()
+            name
+            for name, info in self._networks.items()
             if profile_order.index(info.gas_profile) <= max_idx
             and info.status == NetworkStatus.ACTIVE
         ]
@@ -232,9 +241,9 @@ class NetworkRegistry:
     def evm_chains(self) -> List[str]:
         """Get all EVM-compatible chains."""
         return [
-            name for name, info in self._networks.items()
-            if info.chain_type == ChainType.EVM
-            and info.status == NetworkStatus.ACTIVE
+            name
+            for name, info in self._networks.items()
+            if info.chain_type == ChainType.EVM and info.status == NetworkStatus.ACTIVE
         ]
 
     # ─── Token Queries ────────────────────────────────────────
@@ -251,9 +260,9 @@ class NetworkRegistry:
         """Get all chains that have a specific token."""
         symbol = symbol.upper()
         return [
-            name for name, info in self._networks.items()
-            if symbol in info.tokens
-            and info.status == NetworkStatus.ACTIVE
+            name
+            for name, info in self._networks.items()
+            if symbol in info.tokens and info.status == NetworkStatus.ACTIVE
         ]
 
     # ─── Status Management ────────────────────────────────────
@@ -311,12 +320,10 @@ class NetworkRegistry:
     def health(self) -> dict:
         """Quick health check for SwarmIntegrator compatibility."""
         active = sum(
-            1 for n in self._networks.values()
-            if n.status == NetworkStatus.ACTIVE
+            1 for n in self._networks.values() if n.status == NetworkStatus.ACTIVE
         )
         degraded = sum(
-            1 for n in self._networks.values()
-            if n.status == NetworkStatus.DEGRADED
+            1 for n in self._networks.values() if n.status == NetworkStatus.DEGRADED
         )
         return {
             "healthy": active > 0,
@@ -342,114 +349,132 @@ class NetworkRegistry:
         USDC_CELO = "0xcebA9300f2b948710d2653dD7B07f33A8B32118C"
 
         # ── Base ──
-        registry.register(NetworkInfo(
-            name="base",
-            chain_id=8453,
-            chain_type=ChainType.EVM,
-            gas_profile=GasProfile.LOW,
-            explorer_url="https://basescan.org",
-            tokens={"USDC": TokenInfo("USDC", USDC_BASE)},
-            avg_block_time_seconds=2.0,
-            avg_confirmation_time_seconds=5.0,
-            notes="Primary EM network. ERC-8004 + payments + reputation.",
-        ))
+        registry.register(
+            NetworkInfo(
+                name="base",
+                chain_id=8453,
+                chain_type=ChainType.EVM,
+                gas_profile=GasProfile.LOW,
+                explorer_url="https://basescan.org",
+                tokens={"USDC": TokenInfo("USDC", USDC_BASE)},
+                avg_block_time_seconds=2.0,
+                avg_confirmation_time_seconds=5.0,
+                notes="Primary EM network. ERC-8004 + payments + reputation.",
+            )
+        )
 
         # ── Ethereum ──
-        registry.register(NetworkInfo(
-            name="ethereum",
-            chain_id=1,
-            chain_type=ChainType.EVM,
-            gas_profile=GasProfile.HIGH,
-            explorer_url="https://etherscan.io",
-            tokens={"USDC": TokenInfo("USDC", USDC_ETH)},
-            avg_block_time_seconds=12.0,
-            avg_confirmation_time_seconds=60.0,
-            notes="Mainnet. High gas. Used for high-value transactions.",
-        ))
+        registry.register(
+            NetworkInfo(
+                name="ethereum",
+                chain_id=1,
+                chain_type=ChainType.EVM,
+                gas_profile=GasProfile.HIGH,
+                explorer_url="https://etherscan.io",
+                tokens={"USDC": TokenInfo("USDC", USDC_ETH)},
+                avg_block_time_seconds=12.0,
+                avg_confirmation_time_seconds=60.0,
+                notes="Mainnet. High gas. Used for high-value transactions.",
+            )
+        )
 
         # ── Polygon ──
-        registry.register(NetworkInfo(
-            name="polygon",
-            chain_id=137,
-            chain_type=ChainType.EVM,
-            gas_profile=GasProfile.MEDIUM,
-            explorer_url="https://polygonscan.com",
-            tokens={"USDC": TokenInfo("USDC", USDC_POLYGON)},
-            avg_block_time_seconds=2.0,
-            avg_confirmation_time_seconds=10.0,
-        ))
+        registry.register(
+            NetworkInfo(
+                name="polygon",
+                chain_id=137,
+                chain_type=ChainType.EVM,
+                gas_profile=GasProfile.MEDIUM,
+                explorer_url="https://polygonscan.com",
+                tokens={"USDC": TokenInfo("USDC", USDC_POLYGON)},
+                avg_block_time_seconds=2.0,
+                avg_confirmation_time_seconds=10.0,
+            )
+        )
 
         # ── Arbitrum ──
-        registry.register(NetworkInfo(
-            name="arbitrum",
-            chain_id=42161,
-            chain_type=ChainType.EVM,
-            gas_profile=GasProfile.LOW,
-            explorer_url="https://arbiscan.io",
-            tokens={"USDC": TokenInfo("USDC", USDC_ARBITRUM)},
-            avg_block_time_seconds=0.25,
-            avg_confirmation_time_seconds=2.0,
-        ))
+        registry.register(
+            NetworkInfo(
+                name="arbitrum",
+                chain_id=42161,
+                chain_type=ChainType.EVM,
+                gas_profile=GasProfile.LOW,
+                explorer_url="https://arbiscan.io",
+                tokens={"USDC": TokenInfo("USDC", USDC_ARBITRUM)},
+                avg_block_time_seconds=0.25,
+                avg_confirmation_time_seconds=2.0,
+            )
+        )
 
         # ── Optimism ──
-        registry.register(NetworkInfo(
-            name="optimism",
-            chain_id=10,
-            chain_type=ChainType.EVM,
-            gas_profile=GasProfile.LOW,
-            explorer_url="https://optimistic.etherscan.io",
-            tokens={"USDC": TokenInfo("USDC", USDC_OPTIMISM)},
-            avg_block_time_seconds=2.0,
-            avg_confirmation_time_seconds=5.0,
-        ))
+        registry.register(
+            NetworkInfo(
+                name="optimism",
+                chain_id=10,
+                chain_type=ChainType.EVM,
+                gas_profile=GasProfile.LOW,
+                explorer_url="https://optimistic.etherscan.io",
+                tokens={"USDC": TokenInfo("USDC", USDC_OPTIMISM)},
+                avg_block_time_seconds=2.0,
+                avg_confirmation_time_seconds=5.0,
+            )
+        )
 
         # ── Avalanche ──
-        registry.register(NetworkInfo(
-            name="avalanche",
-            chain_id=43114,
-            chain_type=ChainType.EVM,
-            gas_profile=GasProfile.LOW,
-            explorer_url="https://snowtrace.io",
-            tokens={"USDC": TokenInfo("USDC", USDC_AVALANCHE)},
-            avg_block_time_seconds=2.0,
-            avg_confirmation_time_seconds=5.0,
-        ))
+        registry.register(
+            NetworkInfo(
+                name="avalanche",
+                chain_id=43114,
+                chain_type=ChainType.EVM,
+                gas_profile=GasProfile.LOW,
+                explorer_url="https://snowtrace.io",
+                tokens={"USDC": TokenInfo("USDC", USDC_AVALANCHE)},
+                avg_block_time_seconds=2.0,
+                avg_confirmation_time_seconds=5.0,
+            )
+        )
 
         # ── Celo ──
-        registry.register(NetworkInfo(
-            name="celo",
-            chain_id=42220,
-            chain_type=ChainType.EVM,
-            gas_profile=GasProfile.ULTRA_LOW,
-            explorer_url="https://celoscan.io",
-            tokens={"USDC": TokenInfo("USDC", USDC_CELO)},
-            avg_block_time_seconds=5.0,
-            avg_confirmation_time_seconds=15.0,
-        ))
+        registry.register(
+            NetworkInfo(
+                name="celo",
+                chain_id=42220,
+                chain_type=ChainType.EVM,
+                gas_profile=GasProfile.ULTRA_LOW,
+                explorer_url="https://celoscan.io",
+                tokens={"USDC": TokenInfo("USDC", USDC_CELO)},
+                avg_block_time_seconds=5.0,
+                avg_confirmation_time_seconds=15.0,
+            )
+        )
 
         # ── SKALE ──
-        registry.register(NetworkInfo(
-            name="skale",
-            chain_id=1564830818,  # SKALE Europa
-            chain_type=ChainType.EVM,
-            gas_profile=GasProfile.FREE,
-            explorer_url="https://elated-tan-skat.explorer.mainnet.skalenodes.com",
-            supports_escrow=True,
-            avg_block_time_seconds=1.0,
-            avg_confirmation_time_seconds=3.0,
-            notes="Zero gas fees. Good for high-frequency micro-tasks.",
-        ))
+        registry.register(
+            NetworkInfo(
+                name="skale",
+                chain_id=1564830818,  # SKALE Europa
+                chain_type=ChainType.EVM,
+                gas_profile=GasProfile.FREE,
+                explorer_url="https://elated-tan-skat.explorer.mainnet.skalenodes.com",
+                supports_escrow=True,
+                avg_block_time_seconds=1.0,
+                avg_confirmation_time_seconds=3.0,
+                notes="Zero gas fees. Good for high-frequency micro-tasks.",
+            )
+        )
 
         # ── Monad (placeholder — not yet mainnet) ──
-        registry.register(NetworkInfo(
-            name="monad",
-            chain_id=None,  # TBD
-            chain_type=ChainType.EVM,
-            gas_profile=GasProfile.ULTRA_LOW,
-            status=NetworkStatus.DISABLED,  # Not yet live
-            supports_payments=False,
-            notes="Pending mainnet launch. describe-net contracts deployed on testnet.",
-        ))
+        registry.register(
+            NetworkInfo(
+                name="monad",
+                chain_id=None,  # TBD
+                chain_type=ChainType.EVM,
+                gas_profile=GasProfile.ULTRA_LOW,
+                status=NetworkStatus.DISABLED,  # Not yet live
+                supports_payments=False,
+                notes="Pending mainnet launch. describe-net contracts deployed on testnet.",
+            )
+        )
 
         # ── Aliases ──
         registry.register_alias("eth", "ethereum")

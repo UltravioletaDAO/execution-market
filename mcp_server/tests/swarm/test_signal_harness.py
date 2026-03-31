@@ -8,11 +8,9 @@ health summary, graceful degradation, and custom signals.
 """
 
 import pytest
-import time
 
-from mcp_server.swarm.signal_harness import SignalHarness, ConnectedSignal
+from mcp_server.swarm.signal_harness import SignalHarness
 from mcp_server.swarm.decision_synthesizer import (
-    DecisionSynthesizer,
     SignalType,
     DecisionOutcome,
     DEFAULT_WEIGHTS,
@@ -151,8 +149,7 @@ class TestConnection:
 
     def test_fluent_chaining(self, harness):
         result = (
-            harness
-            .connect_reputation(MockReputationBridge())
+            harness.connect_reputation(MockReputationBridge())
             .connect_availability(MockAvailabilityBridge())
             .connect_verification(VerificationAdapter())
         )
@@ -227,11 +224,17 @@ class TestScoring:
         adapter = VerificationAdapter(min_inferences_for_signal=1)
         # Give agent_3 great verification history
         for i in range(5):
-            adapter.ingest_inference("agent_3", {
-                "score": 0.95, "decision": "approved",
-                "category": "physical_verification",
-                "has_exif": True, "has_gps": True, "photo_source": "camera",
-            })
+            adapter.ingest_inference(
+                "agent_3",
+                {
+                    "score": 0.95,
+                    "decision": "approved",
+                    "category": "physical_verification",
+                    "has_exif": True,
+                    "has_gps": True,
+                    "photo_source": "camera",
+                },
+            )
 
         harness.connect_skill_match(
             MockSkillMatcher({"agent_1": 0.7, "agent_2": 0.7, "agent_3": 0.7})
@@ -467,11 +470,17 @@ class TestVerificationIntegration:
 
         # Agent_3 has excellent verification history
         for i in range(5):
-            adapter.ingest_inference("agent_3", {
-                "score": 0.95, "decision": "approved",
-                "category": "physical_verification",
-                "has_exif": True, "has_gps": True, "photo_source": "camera",
-            })
+            adapter.ingest_inference(
+                "agent_3",
+                {
+                    "score": 0.95,
+                    "decision": "approved",
+                    "category": "physical_verification",
+                    "has_exif": True,
+                    "has_gps": True,
+                    "photo_source": "camera",
+                },
+            )
 
         harness.connect_verification(adapter)
 

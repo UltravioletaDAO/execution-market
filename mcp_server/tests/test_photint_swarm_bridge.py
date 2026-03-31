@@ -14,20 +14,15 @@ Validates that:
 7. Cross-chain reputation integrates with verification tier selection
 """
 
-import hashlib
-from unittest.mock import AsyncMock, MagicMock, patch
-
 import pytest
 
 from swarm.evidence_parser import (
     EvidenceParser,
-    EvidenceQuality,
     SkillDimension,
 )
 from verification.model_router import (
     HIGH_STAKES_CATEGORIES,
     LOW_STAKES_CATEGORIES,
-    ModelSelection,
     select_tier,
     should_escalate,
 )
@@ -140,7 +135,12 @@ class TestSwarmCategoryToPhotintMapping:
     def test_prompt_library_digital_fallback(self):
         """Digital categories should use the fallback prompt."""
         lib = PromptLibrary()
-        for cat in ["data_processing", "api_integration", "content_generation", "code_execution"]:
+        for cat in [
+            "data_processing",
+            "api_integration",
+            "content_generation",
+            "code_execution",
+        ]:
             result = lib.get_prompt(
                 category=cat,
                 task={"title": "Digital task"},
@@ -169,13 +169,11 @@ class TestInferenceCostEstimation:
     def test_tier_1_models_cheapest(self):
         """Tier 1 models (Flash/Haiku/Mini) should be cheapest."""
         tier_1_keys = [
-            k for k in COST_PER_1M_TOKENS
+            k
+            for k in COST_PER_1M_TOKENS
             if any(m in k for m in ["flash", "mini", "haiku"])
         ]
-        tier_3_keys = [
-            k for k in COST_PER_1M_TOKENS
-            if "opus" in k
-        ]
+        tier_3_keys = [k for k in COST_PER_1M_TOKENS if "opus" in k]
         if tier_1_keys and tier_3_keys:
             max_tier_1 = max(COST_PER_1M_TOKENS[k]["output"] for k in tier_1_keys)
             min_tier_3 = min(COST_PER_1M_TOKENS[k]["output"] for k in tier_3_keys)
@@ -207,7 +205,9 @@ class TestInferenceCostEstimation:
         """Unknown models should use the default (Sonnet-level) rate."""
         cost_unknown = estimate_cost("unknown", "mystery-model", 1000, 500)
         cost_sonnet = estimate_cost("anthropic", "claude-sonnet-4-20250514", 1000, 500)
-        assert cost_unknown == cost_sonnet, "Unknown model should match default (Sonnet) rates"
+        assert cost_unknown == cost_sonnet, (
+            "Unknown model should match default (Sonnet) rates"
+        )
 
     def test_zero_tokens_zero_cost(self):
         """Zero tokens should produce zero cost."""
@@ -339,16 +339,34 @@ class TestPromptLibraryCompleteness:
     def test_all_21_categories_render(self):
         """All 21 registered categories should produce valid prompts."""
         categories = [
-            "physical_presence", "knowledge_access", "human_authority",
-            "simple_action", "digital_physical", "location_based",
-            "verification", "social_proof", "data_collection",
-            "sensory", "social", "proxy", "bureaucratic",
-            "emergency", "creative",
+            "physical_presence",
+            "knowledge_access",
+            "human_authority",
+            "simple_action",
+            "digital_physical",
+            "location_based",
+            "verification",
+            "social_proof",
+            "data_collection",
+            "sensory",
+            "social",
+            "proxy",
+            "bureaucratic",
+            "emergency",
+            "creative",
             # Digital fallback categories
-            "data_processing", "api_integration", "content_generation",
-            "code_execution", "research", "multi_step_workflow",
+            "data_processing",
+            "api_integration",
+            "content_generation",
+            "code_execution",
+            "research",
+            "multi_step_workflow",
         ]
-        task = {"title": "Test task", "description": "A test", "location": {"lat": 25.76, "lon": -80.19}}
+        task = {
+            "title": "Test task",
+            "description": "A test",
+            "location": {"lat": 25.76, "lon": -80.19},
+        }
         evidence = {"type": "photo", "url": "https://example.com/photo.jpg"}
 
         for cat in categories:
@@ -439,8 +457,10 @@ class TestInferenceRecordIntegrity:
             output_tokens=500,
         )
         cost = estimate_cost(
-            record.provider, record.model,
-            record.input_tokens, record.output_tokens,
+            record.provider,
+            record.model,
+            record.input_tokens,
+            record.output_tokens,
         )
         assert cost > 0
 
@@ -464,44 +484,49 @@ class TestEvidenceParserSkillExtraction:
 
     def test_photo_geo_extracts_physical_skills(self):
         """photo_geo evidence should signal physical execution + geo mobility."""
-        result = self.parser.parse_evidence([
-            {"type": "photo_geo", "url": "https://example.com/geo.jpg"}
-        ])
+        result = self.parser.parse_evidence(
+            [{"type": "photo_geo", "url": "https://example.com/geo.jpg"}]
+        )
         dims = [s.dimension for s in result.signals]
-        assert SkillDimension.GEO_MOBILITY in dims or SkillDimension.PHYSICAL_EXECUTION in dims
+        assert (
+            SkillDimension.GEO_MOBILITY in dims
+            or SkillDimension.PHYSICAL_EXECUTION in dims
+        )
 
     def test_text_response_extracts_communication(self):
         """text_response evidence should signal communication skill."""
-        result = self.parser.parse_evidence([
-            {"type": "text_response", "content": "Detailed report about the task..."}
-        ])
+        result = self.parser.parse_evidence(
+            [{"type": "text_response", "content": "Detailed report about the task..."}]
+        )
         dims = [s.dimension for s in result.signals]
         assert SkillDimension.COMMUNICATION in dims
 
     def test_notarized_extracts_verification(self):
         """Notarized evidence should signal verification skill."""
-        result = self.parser.parse_evidence([
-            {"type": "notarized", "url": "https://example.com/doc.pdf"}
-        ])
+        result = self.parser.parse_evidence(
+            [{"type": "notarized", "url": "https://example.com/doc.pdf"}]
+        )
         dims = [s.dimension for s in result.signals]
         assert SkillDimension.VERIFICATION_SKILL in dims
 
     def test_multiple_evidence_types_compound(self):
         """Multiple evidence types should produce compound skill signals."""
-        result = self.parser.parse_evidence([
-            {"type": "photo", "url": "https://example.com/photo.jpg"},
-            {"type": "receipt", "url": "https://example.com/receipt.jpg"},
-            {"type": "text_response", "content": "I bought the item at the store"},
-        ])
+        result = self.parser.parse_evidence(
+            [
+                {"type": "photo", "url": "https://example.com/photo.jpg"},
+                {"type": "receipt", "url": "https://example.com/receipt.jpg"},
+                {"type": "text_response", "content": "I bought the item at the store"},
+            ]
+        )
         dims = [s.dimension for s in result.signals]
         # Should have at least 2 different dimensions
         assert len(set(dims)) >= 2
 
     def test_screenshot_extracts_digital_proficiency(self):
         """Screenshot evidence should signal digital proficiency."""
-        result = self.parser.parse_evidence([
-            {"type": "screenshot", "url": "https://example.com/screen.png"}
-        ])
+        result = self.parser.parse_evidence(
+            [{"type": "screenshot", "url": "https://example.com/screen.png"}]
+        )
         dims = [s.dimension for s in result.signals]
         assert SkillDimension.DIGITAL_PROFICIENCY in dims
 
@@ -514,12 +539,15 @@ class TestEvidenceParserSkillExtraction:
 class TestCategoryTierAlignmentMatrix:
     """Comprehensive test of how task categories map to verification tiers (V3)."""
 
-    @pytest.mark.parametrize("category,min_start_tier", [
-        ("physical_presence", "tier_2"),
-        ("human_authority", "tier_2"),
-        ("bureaucratic", "tier_2"),
-        ("emergency", "tier_2"),
-    ])
+    @pytest.mark.parametrize(
+        "category,min_start_tier",
+        [
+            ("physical_presence", "tier_2"),
+            ("human_authority", "tier_2"),
+            ("bureaucratic", "tier_2"),
+            ("emergency", "tier_2"),
+        ],
+    )
     def test_high_stakes_min_start_tier(self, category, min_start_tier):
         """High-stakes categories should start at tier_2 minimum."""
         result = select_tier(bounty_usd=0.50, category=category)
@@ -585,6 +613,7 @@ class TestPromptVersionStability:
     def test_version_string_format(self):
         """Version should be 'photint-vX.Y-category'."""
         from verification.prompts.version import prompt_version
+
         v = prompt_version("physical_presence")
         parts = v.split("-")
         assert len(parts) == 3

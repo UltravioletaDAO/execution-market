@@ -391,7 +391,9 @@ class SwarmIntegrator:
                     self._coordinator_pipeline.set_chain_router(router)
                     logger.info("ChainRouter wired into CoordinatorPipeline")
             except Exception as e:
-                logger.warning(f"Failed to wire ChainRouter into CoordinatorPipeline: {e}")
+                logger.warning(
+                    f"Failed to wire ChainRouter into CoordinatorPipeline: {e}"
+                )
 
         return self
 
@@ -409,6 +411,7 @@ class SwarmIntegrator:
         if self._decision_synthesizer is not None:
             try:
                 from .decision_synthesizer import SignalType
+
                 self._decision_synthesizer.register_signal(
                     SignalType.VERIFICATION_QUALITY,
                     adapter.score,
@@ -440,7 +443,9 @@ class SwarmIntegrator:
                         "TaskValidator wired into CoordinatorPipeline as pre-routing gate"
                     )
             except Exception as e:
-                logger.warning(f"Failed to wire TaskValidator into CoordinatorPipeline: {e}")
+                logger.warning(
+                    f"Failed to wire TaskValidator into CoordinatorPipeline: {e}"
+                )
 
         return self
 
@@ -464,7 +469,9 @@ class SwarmIntegrator:
                         "BatchScheduler wired into CoordinatorPipeline as batch planner"
                     )
             except Exception as e:
-                logger.warning(f"Failed to wire BatchScheduler into CoordinatorPipeline: {e}")
+                logger.warning(
+                    f"Failed to wire BatchScheduler into CoordinatorPipeline: {e}"
+                )
 
         return self
 
@@ -484,11 +491,11 @@ class SwarmIntegrator:
             try:
                 if hasattr(self._coordinator_pipeline, "set_pipeline_optimizer"):
                     self._coordinator_pipeline.set_pipeline_optimizer(optimizer)
-                    logger.info(
-                        "PipelineOptimizer wired into CoordinatorPipeline"
-                    )
+                    logger.info("PipelineOptimizer wired into CoordinatorPipeline")
             except Exception as e:
-                logger.warning(f"Failed to wire PipelineOptimizer into CoordinatorPipeline: {e}")
+                logger.warning(
+                    f"Failed to wire PipelineOptimizer into CoordinatorPipeline: {e}"
+                )
 
         return self
 
@@ -622,7 +629,9 @@ class SwarmIntegrator:
                     except Exception as e:
                         logger.error(f"Chain router event error: {e}")
 
-                sub = bus.on(TASK_ASSIGNED, on_task_assigned_chain, source="chain_router")
+                sub = bus.on(
+                    TASK_ASSIGNED, on_task_assigned_chain, source="chain_router"
+                )
                 subscriptions.append(sub)
                 logger.info("Wired: EventBus → ChainRouter")
             except Exception as e:
@@ -1065,7 +1074,9 @@ class SwarmIntegrator:
         # Optimization Layer
         if self._pipeline_optimizer:
             lines.append("\n  Optimization Layer:")
-            lines.append("    📊 PipelineOptimizer (#60) — bottleneck detection & tuning")
+            lines.append(
+                "    📊 PipelineOptimizer (#60) — bottleneck detection & tuning"
+            )
             if self._coordinator_pipeline:
                 lines.append("       ↳ wired to CoordinatorPipeline")
 

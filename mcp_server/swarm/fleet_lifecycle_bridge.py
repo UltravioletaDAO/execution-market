@@ -61,7 +61,7 @@ import logging
 import time
 from collections import deque
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime
 from enum import Enum
 from typing import Optional
 
@@ -304,7 +304,9 @@ class FleetLifecycleBridge:
 
         Maps lifecycle states to fleet statuses and updates the fleet.
         """
-        new_state_str = new_state.value if hasattr(new_state, "value") else str(new_state)
+        new_state_str = (
+            new_state.value if hasattr(new_state, "value") else str(new_state)
+        )
         fleet_status = LIFECYCLE_TO_FLEET_STATUS.get(new_state_str)
 
         event = SyncEvent(
@@ -319,7 +321,9 @@ class FleetLifecycleBridge:
 
         if fleet_status is None:
             event.success = False
-            event.error = f"No fleet status mapping for lifecycle state: {new_state_str}"
+            event.error = (
+                f"No fleet status mapping for lifecycle state: {new_state_str}"
+            )
             self._record_event(event)
             return event
 
@@ -424,7 +428,9 @@ class FleetLifecycleBridge:
                 self._fleet.record_task_completed(agent_id, success=success)
             except Exception as e:
                 errors.append(f"fleet: {e}")
-                logger.warning(f"Fleet record_task_completed failed for {agent_id}: {e}")
+                logger.warning(
+                    f"Fleet record_task_completed failed for {agent_id}: {e}"
+                )
 
         if errors:
             event.success = False
@@ -535,7 +541,9 @@ class FleetLifecycleBridge:
         self._record_event(event)
         return event
 
-    def sync_cooldown_started(self, agent_id: int, duration_seconds: float = 300.0) -> SyncEvent:
+    def sync_cooldown_started(
+        self, agent_id: int, duration_seconds: float = 300.0
+    ) -> SyncEvent:
         """
         Handle cooldown start from LifecycleManager.
 
@@ -623,7 +631,11 @@ class FleetLifecycleBridge:
             event_type=SyncEventType.AGENT_REGISTERED,
             direction=SyncDirection.BIDIRECTIONAL,
             agent_id=agent_id,
-            details={"name": name, "capabilities": capabilities or [], "tags": tags or []},
+            details={
+                "name": name,
+                "capabilities": capabilities or [],
+                "tags": tags or [],
+            },
         )
 
         errors = []
@@ -651,14 +663,14 @@ class FleetLifecycleBridge:
                 self._fleet.register_agent(profile)
 
                 # Add capabilities
-                for cap in (capabilities or []):
+                for cap in capabilities or []:
                     try:
                         self._fleet.add_capability(agent_id, cap)
                     except Exception:
                         pass
 
                 # Add tags
-                for tag in (tags or []):
+                for tag in tags or []:
                     try:
                         self._fleet.add_tag(agent_id, tag)
                     except Exception:
@@ -709,19 +721,41 @@ class FleetLifecycleBridge:
             try:
                 agent = self._fleet.get_agent(agent_id)
                 if agent is not None:
-                    view.fleet_status = agent.status.value if hasattr(agent.status, "value") else str(agent.status)
-                    view.capabilities = [
-                        c.name for c in agent.capabilities
-                    ] if hasattr(agent, "capabilities") and agent.capabilities else []
-                    view.capability_scores = {
-                        c.name: c.score() for c in agent.capabilities
-                    } if hasattr(agent, "capabilities") and agent.capabilities else {}
+                    view.fleet_status = (
+                        agent.status.value
+                        if hasattr(agent.status, "value")
+                        else str(agent.status)
+                    )
+                    view.capabilities = (
+                        [c.name for c in agent.capabilities]
+                        if hasattr(agent, "capabilities") and agent.capabilities
+                        else []
+                    )
+                    view.capability_scores = (
+                        {c.name: c.score() for c in agent.capabilities}
+                        if hasattr(agent, "capabilities") and agent.capabilities
+                        else {}
+                    )
                     view.tags = list(agent.tags) if hasattr(agent, "tags") else []
-                    view.current_load = agent.current_load if hasattr(agent, "current_load") else 0
-                    view.max_concurrent = agent.max_concurrent_tasks if hasattr(agent, "max_concurrent_tasks") else 1
-                    view.utilization = agent.utilization if hasattr(agent, "utilization") else 0.0
-                    view.total_completed = agent.total_completed if hasattr(agent, "total_completed") else 0
-                    view.total_failed = agent.total_failed if hasattr(agent, "total_failed") else 0
+                    view.current_load = (
+                        agent.current_load if hasattr(agent, "current_load") else 0
+                    )
+                    view.max_concurrent = (
+                        agent.max_concurrent_tasks
+                        if hasattr(agent, "max_concurrent_tasks")
+                        else 1
+                    )
+                    view.utilization = (
+                        agent.utilization if hasattr(agent, "utilization") else 0.0
+                    )
+                    view.total_completed = (
+                        agent.total_completed
+                        if hasattr(agent, "total_completed")
+                        else 0
+                    )
+                    view.total_failed = (
+                        agent.total_failed if hasattr(agent, "total_failed") else 0
+                    )
                 else:
                     view.conflicts.append("fleet: agent not registered")
             except Exception as e:
@@ -820,9 +854,7 @@ class FleetLifecycleBridge:
                             report.sync_events.append(event)
                             self._conflict_count += 1
                     except Exception as e:
-                        logger.warning(
-                            f"Auto-resolve failed for agent {agent_id}: {e}"
-                        )
+                        logger.warning(f"Auto-resolve failed for agent {agent_id}: {e}")
 
         self._last_reconciliation = time.time()
         return report
@@ -832,10 +864,8 @@ class FleetLifecycleBridge:
     def health(self) -> dict:
         """Bridge health status."""
         return {
-            "healthy": self._error_count == 0 or (
-                self._sync_count > 0
-                and self._error_count / self._sync_count < 0.1
-            ),
+            "healthy": self._error_count == 0
+            or (self._sync_count > 0 and self._error_count / self._sync_count < 0.1),
             "lifecycle_connected": self._lifecycle is not None,
             "fleet_connected": self._fleet is not None,
             "sync_count": self._sync_count,

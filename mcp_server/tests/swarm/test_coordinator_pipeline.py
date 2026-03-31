@@ -13,10 +13,8 @@ Tests cover:
 8. Edge cases (empty queue, all failures, etc.)
 """
 
-import pytest
 import time
-from unittest.mock import MagicMock, patch
-from dataclasses import dataclass
+from unittest.mock import MagicMock
 
 from mcp_server.swarm.coordinator_pipeline import (
     CoordinatorPipeline,
@@ -381,9 +379,7 @@ class TestAuditTrail:
         """Audit trail includes signal snapshots when harness present."""
         coord = make_coordinator([MockAssignment()])
         harness = make_harness()
-        pipeline = CoordinatorPipeline(
-            coordinator=coord, signal_harness=harness
-        )
+        pipeline = CoordinatorPipeline(coordinator=coord, signal_harness=harness)
 
         result = pipeline.process()
 
@@ -395,9 +391,7 @@ class TestAuditTrail:
     def test_explain_decisions_flag(self):
         """Explanations generated when explain_decisions=True."""
         coord = make_coordinator([MockAssignment(agent_name="TestBot")])
-        pipeline = CoordinatorPipeline(
-            coordinator=coord, explain_decisions=True
-        )
+        pipeline = CoordinatorPipeline(coordinator=coord, explain_decisions=True)
 
         result = pipeline.process()
 
@@ -408,9 +402,7 @@ class TestAuditTrail:
     def test_no_explain_when_disabled(self):
         """No explanations when explain_decisions=False."""
         coord = make_coordinator([MockAssignment()])
-        pipeline = CoordinatorPipeline(
-            coordinator=coord, explain_decisions=False
-        )
+        pipeline = CoordinatorPipeline(coordinator=coord, explain_decisions=False)
 
         result = pipeline.process()
 
@@ -580,9 +572,7 @@ class TestSignalHarnessIntegration:
         """Pipeline captures harness status in result."""
         coord = make_coordinator([])
         harness = make_harness(connected=5)
-        pipeline = CoordinatorPipeline(
-            coordinator=coord, signal_harness=harness
-        )
+        pipeline = CoordinatorPipeline(coordinator=coord, signal_harness=harness)
 
         result = pipeline.process()
 
@@ -593,9 +583,7 @@ class TestSignalHarnessIntegration:
         """Degraded harness doesn't block pipeline (just warns)."""
         coord = make_coordinator([MockAssignment()])
         harness = make_harness(healthy=False)
-        pipeline = CoordinatorPipeline(
-            coordinator=coord, signal_harness=harness
-        )
+        pipeline = CoordinatorPipeline(coordinator=coord, signal_harness=harness)
 
         result = pipeline.process()
 
@@ -607,9 +595,7 @@ class TestSignalHarnessIntegration:
         """Signal coverage is tracked across cycles."""
         coord = make_coordinator([])
         harness = make_harness(coverage=0.5)
-        pipeline = CoordinatorPipeline(
-            coordinator=coord, signal_harness=harness
-        )
+        pipeline = CoordinatorPipeline(coordinator=coord, signal_harness=harness)
 
         pipeline.process()
         pipeline.process()
@@ -622,9 +608,7 @@ class TestSignalHarnessIntegration:
         assignment = MockAssignment()
         coord = make_coordinator([assignment])
         harness = make_harness(connected=3, available=13)
-        pipeline = CoordinatorPipeline(
-            coordinator=coord, signal_harness=harness
-        )
+        pipeline = CoordinatorPipeline(coordinator=coord, signal_harness=harness)
 
         result = pipeline.process()
 
@@ -760,9 +744,7 @@ class TestDiagnostics:
         """status() returns comprehensive dict."""
         coord = make_coordinator([])
         harness = make_harness()
-        pipeline = CoordinatorPipeline(
-            coordinator=coord, signal_harness=harness
-        )
+        pipeline = CoordinatorPipeline(coordinator=coord, signal_harness=harness)
 
         s = pipeline.status()
         assert s["running"] is True
@@ -783,9 +765,7 @@ class TestDiagnostics:
         """Health check reports healthy when all OK."""
         coord = make_coordinator([])
         harness = make_harness(healthy=True)
-        pipeline = CoordinatorPipeline(
-            coordinator=coord, signal_harness=harness
-        )
+        pipeline = CoordinatorPipeline(coordinator=coord, signal_harness=harness)
 
         health = pipeline.health_check()
         assert health["healthy"]
@@ -865,12 +845,16 @@ class TestEndToEndScenarios:
         assert len(result.audit_trail) == 5
 
         # Check assigned entries
-        assigned = [a for a in result.audit_trail if a.verdict == RoutingVerdict.ASSIGNED]
+        assigned = [
+            a for a in result.audit_trail if a.verdict == RoutingVerdict.ASSIGNED
+        ]
         assert len(assigned) == 3
         assert all(a.explanation != "" for a in assigned)
 
         # Check exhausted entries
-        exhausted = [a for a in result.audit_trail if a.verdict == RoutingVerdict.EXHAUSTED]
+        exhausted = [
+            a for a in result.audit_trail if a.verdict == RoutingVerdict.EXHAUSTED
+        ]
         assert len(exhausted) == 2
 
     def test_multi_cycle_production(self):
@@ -878,9 +862,9 @@ class TestEndToEndScenarios:
         pipeline = CoordinatorPipeline(explain_decisions=True)
 
         # Cycle 1: Heavy load
-        coord1 = make_coordinator([
-            MockAssignment(task_id=f"t{i}", agent_id=i) for i in range(10)
-        ])
+        coord1 = make_coordinator(
+            [MockAssignment(task_id=f"t{i}", agent_id=i) for i in range(10)]
+        )
         pipeline._coordinator = coord1
         r1 = pipeline.process()
         assert r1.tasks_assigned == 10
@@ -892,9 +876,9 @@ class TestEndToEndScenarios:
         assert r2.tasks_processed == 0
 
         # Cycle 3: All failures
-        coord3 = make_coordinator([
-            MockRoutingFailure(task_id=f"tf{i}") for i in range(5)
-        ])
+        coord3 = make_coordinator(
+            [MockRoutingFailure(task_id=f"tf{i}") for i in range(5)]
+        )
         pipeline._coordinator = coord3
         r3 = pipeline.process()
         assert r3.tasks_exhausted == 5
@@ -915,7 +899,12 @@ class TestEndToEndScenarios:
         harness = MagicMock()
         # health_summary works
         harness.health_summary.return_value = {"healthy": True, "connected": 1}
-        harness.status.return_value = {"connected": 1, "available": 13, "coverage": 0.08, "signals": {}}
+        harness.status.return_value = {
+            "connected": 1,
+            "available": 13,
+            "coverage": 0.08,
+            "signals": {},
+        }
 
         pipeline = CoordinatorPipeline(
             coordinator=coord,

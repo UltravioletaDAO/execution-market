@@ -433,13 +433,15 @@ class FleetManager:
                 agent = self._agents.get(aid)
                 if agent and cap_name in agent.capabilities:
                     cap = agent.capabilities[cap_name]
-                    matrix[cap_name].append({
-                        "agent_id": aid,
-                        "name": agent.name,
-                        "level": cap.level.value,
-                        "score": round(cap.score, 3),
-                        "tasks_completed": cap.tasks_completed,
-                    })
+                    matrix[cap_name].append(
+                        {
+                            "agent_id": aid,
+                            "name": agent.name,
+                            "level": cap.level.value,
+                            "score": round(cap.score, 3),
+                            "tasks_completed": cap.tasks_completed,
+                        }
+                    )
             # Sort by score descending
             matrix[cap_name].sort(key=lambda x: x["score"], reverse=True)
         return matrix
@@ -524,11 +526,13 @@ class FleetManager:
             self.set_status(agent_id, AgentStatus.BUSY)
 
         self._total_assignments += 1
-        self._assignment_history.append({
-            "agent_id": agent_id,
-            "timestamp": time.time(),
-            "type": "assigned",
-        })
+        self._assignment_history.append(
+            {
+                "agent_id": agent_id,
+                "timestamp": time.time(),
+                "type": "assigned",
+            }
+        )
 
         return True
 
@@ -562,18 +566,22 @@ class FleetManager:
                     )
             if not success:
                 total = cap.tasks_completed
-                cap.success_rate = (cap.success_rate * (total - 1) + (1.0 if success else 0.0)) / total
+                cap.success_rate = (
+                    cap.success_rate * (total - 1) + (1.0 if success else 0.0)
+                ) / total
 
         # Enter cooldown
         agent.enter_cooldown()
 
         self._total_completions += 1
-        self._assignment_history.append({
-            "agent_id": agent_id,
-            "timestamp": time.time(),
-            "type": "completed",
-            "success": success,
-        })
+        self._assignment_history.append(
+            {
+                "agent_id": agent_id,
+                "timestamp": time.time(),
+                "type": "completed",
+                "success": success,
+            }
+        )
 
         return True
 
@@ -622,24 +630,22 @@ class FleetManager:
             # Availability window score
             availability_score = 1.0
             if agent.availability:
-                availability_score = 1.0 if any(
-                    w.is_active_at(now) for w in agent.availability
-                ) else 0.0
+                availability_score = (
+                    1.0 if any(w.is_active_at(now) for w in agent.availability) else 0.0
+                )
 
             # Composite score (weighted blend)
-            composite = (
-                fitness * 0.50
-                + load_score * 0.30
-                + availability_score * 0.20
-            )
+            composite = fitness * 0.50 + load_score * 0.30 + availability_score * 0.20
 
-            candidates.append(CandidateScore(
-                agent_id=agent.agent_id,
-                fitness=fitness,
-                load_score=load_score,
-                availability_score=availability_score,
-                composite=composite,
-            ))
+            candidates.append(
+                CandidateScore(
+                    agent_id=agent.agent_id,
+                    fitness=fitness,
+                    load_score=load_score,
+                    availability_score=availability_score,
+                    composite=composite,
+                )
+            )
 
         # Sort by composite descending
         candidates.sort(key=lambda c: c.composite, reverse=True)
@@ -673,7 +679,8 @@ class FleetManager:
     def _select_round_robin(self, capability: str) -> Optional[CandidateScore]:
         """Round-robin selection among capable agents."""
         capable = [
-            a for a in self._agents.values()
+            a
+            for a in self._agents.values()
             if a.is_available and a.has_capability(capability)
         ]
         if not capable:
@@ -749,14 +756,14 @@ class FleetManager:
         """Get assignment/completion throughput stats."""
         now = time.time()
         recent = [
-            e for e in self._assignment_history
+            e
+            for e in self._assignment_history
             if now - e["timestamp"] < 3600  # Last hour
         ]
         assignments = sum(1 for e in recent if e["type"] == "assigned")
         completions = sum(1 for e in recent if e["type"] == "completed")
         successes = sum(
-            1 for e in recent
-            if e["type"] == "completed" and e.get("success", True)
+            1 for e in recent if e["type"] == "completed" and e.get("success", True)
         )
 
         return {
@@ -789,8 +796,10 @@ class FleetManager:
             "strategy": self._strategy.value,
             "throughput": self.throughput_stats(),
             "health_status": (
-                "healthy" if snapshot.active_agents > 0
-                else "degraded" if snapshot.total_agents > 0
+                "healthy"
+                if snapshot.active_agents > 0
+                else "degraded"
+                if snapshot.total_agents > 0
                 else "empty"
             ),
         }
@@ -825,12 +834,14 @@ class FleetManager:
             elif metric == "capability_score" and capability:
                 value = agent.get_capability_score(capability)
 
-            ranked.append({
-                "agent_id": agent.agent_id,
-                "name": agent.name,
-                "value": round(value, 3) if isinstance(value, float) else value,
-                "status": agent.status.value,
-            })
+            ranked.append(
+                {
+                    "agent_id": agent.agent_id,
+                    "name": agent.name,
+                    "value": round(value, 3) if isinstance(value, float) else value,
+                    "status": agent.status.value,
+                }
+            )
 
         ranked.sort(key=lambda r: r["value"], reverse=True)
         return ranked
@@ -841,27 +852,29 @@ class FleetManager:
         """Serialize fleet state for persistence."""
         agents_data = []
         for agent in self._agents.values():
-            agents_data.append({
-                "agent_id": agent.agent_id,
-                "name": agent.name,
-                "wallet_address": agent.wallet_address,
-                "capabilities": {
-                    name: {
-                        "level": cap.level.value,
-                        "tasks_completed": cap.tasks_completed,
-                        "avg_completion_time_s": cap.avg_completion_time_s,
-                        "success_rate": cap.success_rate,
-                    }
-                    for name, cap in agent.capabilities.items()
-                },
-                "tags": list(agent.tags),
-                "max_concurrent_tasks": agent.max_concurrent_tasks,
-                "status": agent.status.value,
-                "load": {
-                    "total_tasks_ever": agent.load.total_tasks_ever,
-                },
-                "metadata": agent.metadata,
-            })
+            agents_data.append(
+                {
+                    "agent_id": agent.agent_id,
+                    "name": agent.name,
+                    "wallet_address": agent.wallet_address,
+                    "capabilities": {
+                        name: {
+                            "level": cap.level.value,
+                            "tasks_completed": cap.tasks_completed,
+                            "avg_completion_time_s": cap.avg_completion_time_s,
+                            "success_rate": cap.success_rate,
+                        }
+                        for name, cap in agent.capabilities.items()
+                    },
+                    "tags": list(agent.tags),
+                    "max_concurrent_tasks": agent.max_concurrent_tasks,
+                    "status": agent.status.value,
+                    "load": {
+                        "total_tasks_ever": agent.load.total_tasks_ever,
+                    },
+                    "metadata": agent.metadata,
+                }
+            )
         return {
             "version": 1,
             "strategy": self._strategy.value,
@@ -875,9 +888,7 @@ class FleetManager:
     @classmethod
     def load(cls, data: dict) -> "FleetManager":
         """Deserialize fleet state."""
-        strategy = LoadBalanceStrategy(
-            data.get("strategy", "weighted")
-        )
+        strategy = LoadBalanceStrategy(data.get("strategy", "weighted"))
         fleet = cls(default_strategy=strategy)
 
         for agent_data in data.get("agents", []):
@@ -901,8 +912,8 @@ class FleetManager:
                 status=AgentStatus(agent_data.get("status", "active")),
                 metadata=agent_data.get("metadata", {}),
             )
-            profile.load.total_tasks_ever = (
-                agent_data.get("load", {}).get("total_tasks_ever", 0)
+            profile.load.total_tasks_ever = agent_data.get("load", {}).get(
+                "total_tasks_ever", 0
             )
 
             fleet.register_agent(profile)

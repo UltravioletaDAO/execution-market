@@ -2,10 +2,8 @@
 Integration tests for PipelineOptimizer (Module #60) with SwarmIntegrator.
 """
 
-import pytest
-
 from mcp_server.swarm.pipeline_optimizer import PipelineOptimizer
-from mcp_server.swarm.integrator import SwarmIntegrator, SwarmMode
+from mcp_server.swarm.integrator import SwarmIntegrator
 
 
 # ──────────────────────────────────────────────────────────────

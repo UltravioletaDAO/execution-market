@@ -37,14 +37,11 @@ sys.path.insert(
 
 from mcp_server.swarm.task_validator import (
     TaskValidator,
-    ValidationResult,
-    ValidationReport,
     ValidationFinding,
     ValidationSeverity,
     ValidationRuleId,
     ValidationRule,
     VALID_EVIDENCE_TYPES,
-    DEFAULT_ENABLED_NETWORKS,
 )
 
 
@@ -123,7 +120,8 @@ class TestRequiredFields(unittest.TestCase):
         result = self.v.validate({})
         self.assertFalse(result.passed)
         req_rejections = [
-            f for f in result.rejections
+            f
+            for f in result.rejections
             if f.rule_id == ValidationRuleId.REQUIRED_FIELDS.value
         ]
         self.assertEqual(len(req_rejections), 3)  # title, desc, bounty
@@ -139,7 +137,8 @@ class TestBountyValidation(unittest.TestCase):
         result = self.v.validate(_valid_task(bounty=10.00))
         # Only bounty-related findings should be absent
         bounty_rejections = [
-            f for f in result.rejections
+            f
+            for f in result.rejections
             if "bounty" in f.rule_id.lower() or "bounty" in f.message.lower()
         ]
         self.assertEqual(len(bounty_rejections), 0)
@@ -172,15 +171,15 @@ class TestBountyValidation(unittest.TestCase):
         """String "10.00" should be parseable."""
         result = self.v.validate(_valid_task(bounty="10.00"))
         bounty_rejections = [
-            f for f in result.rejections
-            if "bounty" in f.rule_id.lower()
+            f for f in result.rejections if "bounty" in f.rule_id.lower()
         ]
         self.assertEqual(len(bounty_rejections), 0)
 
     def test_exact_minimum_passes(self):
         result = self.v.validate(_valid_task(bounty=0.10))
         bounty_rejections = [
-            f for f in result.rejections
+            f
+            for f in result.rejections
             if f.rule_id == ValidationRuleId.BOUNTY_MINIMUM.value
         ]
         self.assertEqual(len(bounty_rejections), 0)
@@ -193,9 +192,12 @@ class TestDescriptionValidation(unittest.TestCase):
         self.v = TaskValidator(max_description_length=500)
 
     def test_normal_description_passes(self):
-        result = self.v.validate(_valid_task(description="A reasonable task description here"))
+        result = self.v.validate(
+            _valid_task(description="A reasonable task description here")
+        )
         desc_findings = [
-            f for f in result.findings
+            f
+            for f in result.findings
             if f.rule_id == ValidationRuleId.DESCRIPTION_LENGTH.value
         ]
         self.assertEqual(len(desc_findings), 0)
@@ -213,7 +215,8 @@ class TestDescriptionValidation(unittest.TestCase):
     def test_non_string_description_rejects(self):
         result = self.v.validate(_valid_task(description=12345))
         desc_rejections = [
-            f for f in result.rejections
+            f
+            for f in result.rejections
             if f.rule_id == ValidationRuleId.DESCRIPTION_LENGTH.value
         ]
         self.assertEqual(len(desc_rejections), 1)
@@ -226,22 +229,28 @@ class TestEvidenceTypes(unittest.TestCase):
         self.v = TaskValidator()
 
     def test_valid_evidence_types_pass(self):
-        result = self.v.validate(_valid_task(evidence_types=["photo", "video", "screenshot"]))
+        result = self.v.validate(
+            _valid_task(evidence_types=["photo", "video", "screenshot"])
+        )
         et_findings = [
-            f for f in result.findings
+            f
+            for f in result.findings
             if f.rule_id == ValidationRuleId.EVIDENCE_TYPES.value
         ]
         self.assertEqual(len(et_findings), 0)
 
     def test_invalid_evidence_type_rejects(self):
-        result = self.v.validate(_valid_task(evidence_types=["photo", "gps_coordinates"]))
+        result = self.v.validate(
+            _valid_task(evidence_types=["photo", "gps_coordinates"])
+        )
         self.assertFalse(result.passed)
         self.assertTrue(any("gps_coordinates" in f.message for f in result.rejections))
 
     def test_all_valid_types_pass(self):
         result = self.v.validate(_valid_task(evidence_types=list(VALID_EVIDENCE_TYPES)))
         et_rejections = [
-            f for f in result.rejections
+            f
+            for f in result.rejections
             if f.rule_id == ValidationRuleId.EVIDENCE_TYPES.value
         ]
         self.assertEqual(len(et_rejections), 0)
@@ -249,7 +258,8 @@ class TestEvidenceTypes(unittest.TestCase):
     def test_string_evidence_type_treated_as_list(self):
         result = self.v.validate(_valid_task(evidence_types="photo"))
         et_rejections = [
-            f for f in result.rejections
+            f
+            for f in result.rejections
             if f.rule_id == ValidationRuleId.EVIDENCE_TYPES.value
         ]
         self.assertEqual(len(et_rejections), 0)
@@ -268,7 +278,8 @@ class TestEvidenceTypes(unittest.TestCase):
         del task["evidence_types"]
         result = self.v.validate(task)
         et_rejections = [
-            f for f in result.rejections
+            f
+            for f in result.rejections
             if f.rule_id == ValidationRuleId.EVIDENCE_TYPES.value
         ]
         self.assertEqual(len(et_rejections), 0)
@@ -280,7 +291,8 @@ class TestEvidenceTypes(unittest.TestCase):
         task["evidence_required"] = ["photo"]
         result = self.v.validate(task)
         et_rejections = [
-            f for f in result.rejections
+            f
+            for f in result.rejections
             if f.rule_id == ValidationRuleId.EVIDENCE_TYPES.value
         ]
         self.assertEqual(len(et_rejections), 0)
@@ -296,8 +308,7 @@ class TestDeadlineValidation(unittest.TestCase):
         future = datetime.now(timezone.utc) + timedelta(days=7)
         result = self.v.validate(_valid_task(deadline=future.isoformat()))
         dl_rejections = [
-            f for f in result.rejections
-            if "deadline" in f.rule_id.lower()
+            f for f in result.rejections if "deadline" in f.rule_id.lower()
         ]
         self.assertEqual(len(dl_rejections), 0)
 
@@ -317,8 +328,7 @@ class TestDeadlineValidation(unittest.TestCase):
         future = time.time() + 86400 * 7
         result = self.v.validate(_valid_task(deadline=future))
         dl_rejections = [
-            f for f in result.rejections
-            if "deadline" in f.rule_id.lower()
+            f for f in result.rejections if "deadline" in f.rule_id.lower()
         ]
         self.assertEqual(len(dl_rejections), 0)
 
@@ -336,8 +346,7 @@ class TestDeadlineValidation(unittest.TestCase):
         del task["deadline"]
         result = self.v.validate(task)
         dl_rejections = [
-            f for f in result.rejections
-            if "deadline" in f.rule_id.lower()
+            f for f in result.rejections if "deadline" in f.rule_id.lower()
         ]
         self.assertEqual(len(dl_rejections), 0)
 
@@ -349,8 +358,7 @@ class TestDeadlineValidation(unittest.TestCase):
         task["expires_at"] = future.isoformat()
         result = self.v.validate(task)
         dl_rejections = [
-            f for f in result.rejections
-            if "deadline" in f.rule_id.lower()
+            f for f in result.rejections if "deadline" in f.rule_id.lower()
         ]
         self.assertEqual(len(dl_rejections), 0)
 
@@ -360,8 +368,7 @@ class TestDeadlineValidation(unittest.TestCase):
         deadline_str = future.strftime("%Y-%m-%dT%H:%M:%SZ")
         result = self.v.validate(_valid_task(deadline=deadline_str))
         dl_rejections = [
-            f for f in result.rejections
-            if "deadline" in f.rule_id.lower()
+            f for f in result.rejections if "deadline" in f.rule_id.lower()
         ]
         self.assertEqual(len(dl_rejections), 0)
 
@@ -375,7 +382,8 @@ class TestNetworkValidation(unittest.TestCase):
     def test_supported_network_passes(self):
         result = self.v.validate(_valid_task(network="base"))
         net_rejections = [
-            f for f in result.rejections
+            f
+            for f in result.rejections
             if f.rule_id == ValidationRuleId.NETWORK_SUPPORTED.value
         ]
         self.assertEqual(len(net_rejections), 0)
@@ -388,7 +396,8 @@ class TestNetworkValidation(unittest.TestCase):
     def test_case_insensitive(self):
         result = self.v.validate(_valid_task(network="Base"))
         net_rejections = [
-            f for f in result.rejections
+            f
+            for f in result.rejections
             if f.rule_id == ValidationRuleId.NETWORK_SUPPORTED.value
         ]
         self.assertEqual(len(net_rejections), 0)
@@ -399,7 +408,8 @@ class TestNetworkValidation(unittest.TestCase):
         del task["network"]
         result = self.v.validate(task)
         net_rejections = [
-            f for f in result.rejections
+            f
+            for f in result.rejections
             if f.rule_id == ValidationRuleId.NETWORK_SUPPORTED.value
         ]
         self.assertEqual(len(net_rejections), 0)
@@ -411,7 +421,8 @@ class TestNetworkValidation(unittest.TestCase):
         task["chain"] = "polygon"
         result = self.v.validate(task)
         net_rejections = [
-            f for f in result.rejections
+            f
+            for f in result.rejections
             if f.rule_id == ValidationRuleId.NETWORK_SUPPORTED.value
         ]
         self.assertEqual(len(net_rejections), 0)
@@ -428,9 +439,12 @@ class TestSkillValidation(unittest.TestCase):
         self.v = TaskValidator()
 
     def test_valid_skills_pass(self):
-        result = self.v.validate(_valid_task(required_skills=["photography", "gps-navigation"]))
+        result = self.v.validate(
+            _valid_task(required_skills=["photography", "gps-navigation"])
+        )
         skill_findings = [
-            f for f in result.findings
+            f
+            for f in result.findings
             if f.rule_id == ValidationRuleId.SKILL_PARSEABLE.value
         ]
         self.assertEqual(len(skill_findings), 0)
@@ -438,7 +452,8 @@ class TestSkillValidation(unittest.TestCase):
     def test_comma_separated_string(self):
         result = self.v.validate(_valid_task(required_skills="photography, editing"))
         skill_rejections = [
-            f for f in result.rejections
+            f
+            for f in result.rejections
             if f.rule_id == ValidationRuleId.SKILL_PARSEABLE.value
         ]
         self.assertEqual(len(skill_rejections), 0)
@@ -446,7 +461,8 @@ class TestSkillValidation(unittest.TestCase):
     def test_non_string_skill_rejects(self):
         result = self.v.validate(_valid_task(required_skills=[123, "valid"]))
         skill_rejections = [
-            f for f in result.rejections
+            f
+            for f in result.rejections
             if f.rule_id == ValidationRuleId.SKILL_PARSEABLE.value
         ]
         self.assertTrue(len(skill_rejections) > 0)
@@ -454,7 +470,8 @@ class TestSkillValidation(unittest.TestCase):
     def test_unusual_characters_warn(self):
         result = self.v.validate(_valid_task(required_skills=["ph🐍tography"]))
         skill_warnings = [
-            f for f in result.warnings
+            f
+            for f in result.warnings
             if f.rule_id == ValidationRuleId.SKILL_PARSEABLE.value
         ]
         self.assertTrue(len(skill_warnings) > 0)
@@ -462,7 +479,8 @@ class TestSkillValidation(unittest.TestCase):
     def test_empty_skill_warns(self):
         result = self.v.validate(_valid_task(required_skills=["", "valid"]))
         skill_warnings = [
-            f for f in result.warnings
+            f
+            for f in result.warnings
             if f.rule_id == ValidationRuleId.SKILL_PARSEABLE.value
         ]
         self.assertTrue(len(skill_warnings) > 0)
@@ -473,7 +491,8 @@ class TestSkillValidation(unittest.TestCase):
         del task["required_skills"]
         result = self.v.validate(task)
         skill_findings = [
-            f for f in result.findings
+            f
+            for f in result.findings
             if f.rule_id == ValidationRuleId.SKILL_PARSEABLE.value
         ]
         self.assertEqual(len(skill_findings), 0)
@@ -484,7 +503,8 @@ class TestSkillValidation(unittest.TestCase):
         task["skills"] = ["valid-skill"]
         result = self.v.validate(task)
         skill_rejections = [
-            f for f in result.rejections
+            f
+            for f in result.rejections
             if f.rule_id == ValidationRuleId.SKILL_PARSEABLE.value
         ]
         self.assertEqual(len(skill_rejections), 0)
@@ -503,7 +523,8 @@ class TestDuplicateDetection(unittest.TestCase):
     def test_first_task_always_passes(self):
         result = self.v.validate(_valid_task())
         dup_findings = [
-            f for f in result.findings
+            f
+            for f in result.findings
             if f.rule_id == ValidationRuleId.DUPLICATE_DETECTION.value
         ]
         self.assertEqual(len(dup_findings), 0)
@@ -515,18 +536,22 @@ class TestDuplicateDetection(unittest.TestCase):
         task2 = _valid_task(id="task-dup-2")
         result = self.v.validate(task2)
         dup_rejections = [
-            f for f in result.rejections
+            f
+            for f in result.rejections
             if f.rule_id == ValidationRuleId.DUPLICATE_DETECTION.value
         ]
         self.assertTrue(len(dup_rejections) > 0)
 
     def test_different_tasks_pass(self):
-        task1 = _valid_task(title="Task A", description="Completely different content A")
+        task1 = _valid_task(
+            title="Task A", description="Completely different content A"
+        )
         task2 = _valid_task(title="Task B", description="Totally unrelated content B")
         self.v.validate(task1)
         result = self.v.validate(task2)
         dup_rejections = [
-            f for f in result.rejections
+            f
+            for f in result.rejections
             if f.rule_id == ValidationRuleId.DUPLICATE_DETECTION.value
         ]
         self.assertEqual(len(dup_rejections), 0)
@@ -536,18 +561,19 @@ class TestDuplicateDetection(unittest.TestCase):
         task1 = _valid_task(
             id="task-fz-1",
             title="photograph miami skyline sunset brickell",
-            description="go to brickell and take photos of the skyline at sunset golden hour from the bridge"
+            description="go to brickell and take photos of the skyline at sunset golden hour from the bridge",
         )
         task2 = _valid_task(
             id="task-fz-2",
             title="photograph miami skyline sunset brickell",
-            description="go to brickell and take photos of the skyline at sunset golden hour from the park"
+            description="go to brickell and take photos of the skyline at sunset golden hour from the park",
         )
         self.v.validate(task1)
         result = self.v.validate(task2)
         # Should have either exact or fuzzy duplicate finding
         dup_findings = [
-            f for f in result.findings
+            f
+            for f in result.findings
             if f.rule_id == ValidationRuleId.DUPLICATE_DETECTION.value
         ]
         self.assertTrue(len(dup_findings) > 0)
@@ -558,7 +584,8 @@ class TestDuplicateDetection(unittest.TestCase):
         # Same task should pass now
         result = self.v.validate(_valid_task(id="task-c2"))
         dup_rejections = [
-            f for f in result.rejections
+            f
+            for f in result.rejections
             if f.rule_id == ValidationRuleId.DUPLICATE_DETECTION.value
         ]
         self.assertEqual(len(dup_rejections), 0)
@@ -567,11 +594,13 @@ class TestDuplicateDetection(unittest.TestCase):
         """Oldest entries get evicted from deque."""
         v = TaskValidator(duplicate_window=3)
         for i in range(5):
-            v.validate(_valid_task(
-                id=f"task-w-{i}",
-                title=f"Unique task number {i}",
-                description=f"This is a completely unique description for task {i}",
-            ))
+            v.validate(
+                _valid_task(
+                    id=f"task-w-{i}",
+                    title=f"Unique task number {i}",
+                    description=f"This is a completely unique description for task {i}",
+                )
+            )
         # The deque should only have 3 entries
         self.assertLessEqual(len(v._recent_fingerprints), 3)
 
@@ -583,7 +612,14 @@ class TestBatchValidation(unittest.TestCase):
         self.v = TaskValidator()
 
     def test_batch_all_valid(self):
-        tasks = [_valid_task(id=f"batch-{i}", title=f"Task {i}", description=f"Description for task {i} is unique") for i in range(5)]
+        tasks = [
+            _valid_task(
+                id=f"batch-{i}",
+                title=f"Task {i}",
+                description=f"Description for task {i} is unique",
+            )
+            for i in range(5)
+        ]
         report = self.v.validate_batch(tasks)
         self.assertEqual(report.total, 5)
         self.assertEqual(report.passed_count, 5)
@@ -592,9 +628,19 @@ class TestBatchValidation(unittest.TestCase):
 
     def test_batch_mixed_results(self):
         tasks = [
-            _valid_task(id="good-1", title="Good task one", description="A perfectly fine description for task one"),
-            _valid_task(id="bad-1", title="", description="Missing title task"),  # Missing title
-            _valid_task(id="good-2", title="Good task two", description="Another valid description for task two"),
+            _valid_task(
+                id="good-1",
+                title="Good task one",
+                description="A perfectly fine description for task one",
+            ),
+            _valid_task(
+                id="bad-1", title="", description="Missing title task"
+            ),  # Missing title
+            _valid_task(
+                id="good-2",
+                title="Good task two",
+                description="Another valid description for task two",
+            ),
         ]
         report = self.v.validate_batch(tasks)
         self.assertEqual(report.total, 3)
@@ -603,7 +649,11 @@ class TestBatchValidation(unittest.TestCase):
 
     def test_batch_report_properties(self):
         tasks = [
-            _valid_task(id="br-1", title="Report task one", description="Description for report task one"),
+            _valid_task(
+                id="br-1",
+                title="Report task one",
+                description="Description for report task one",
+            ),
             _valid_task(id="br-bad", bounty=-1),
         ]
         report = self.v.validate_batch(tasks)
@@ -612,7 +662,12 @@ class TestBatchValidation(unittest.TestCase):
         self.assertTrue(report.total_duration_ms >= 0)
 
     def test_batch_summary(self):
-        tasks = [_valid_task(id=f"sum-{i}", title=f"Summary task {i}", description=f"Unique desc {i}") for i in range(3)]
+        tasks = [
+            _valid_task(
+                id=f"sum-{i}", title=f"Summary task {i}", description=f"Unique desc {i}"
+            )
+            for i in range(3)
+        ]
         report = self.v.validate_batch(tasks)
         summary = report.summary()
         self.assertIn("3", summary)
@@ -624,7 +679,12 @@ class TestBatchValidation(unittest.TestCase):
         self.assertEqual(report.pass_rate, 0.0)
 
     def test_batch_to_dict(self):
-        tasks = [_valid_task(id=f"d-{i}", title=f"Dict task {i}", description=f"Dict desc {i}") for i in range(2)]
+        tasks = [
+            _valid_task(
+                id=f"d-{i}", title=f"Dict task {i}", description=f"Dict desc {i}"
+            )
+            for i in range(2)
+        ]
         report = self.v.validate_batch(tasks)
         d = report.to_dict()
         self.assertIn("total", d)
@@ -661,11 +721,13 @@ class TestRuleManagement(unittest.TestCase):
     def test_add_custom_rule(self):
         def custom_check(validator, task):
             if task.get("priority") == "URGENT":
-                return [ValidationFinding(
-                    rule_id="custom_priority",
-                    severity=ValidationSeverity.WARNING,
-                    message="URGENT priority — fast-track routing",
-                )]
+                return [
+                    ValidationFinding(
+                        rule_id="custom_priority",
+                        severity=ValidationSeverity.WARNING,
+                        message="URGENT priority — fast-track routing",
+                    )
+                ]
             return []
 
         rule = ValidationRule(
@@ -694,7 +756,8 @@ class TestRuleManagement(unittest.TestCase):
         self.v.disable_rule(ValidationRuleId.REQUIRED_FIELDS.value)
         result = self.v.validate({})  # Would normally fail required_fields
         req_rejections = [
-            f for f in result.rejections
+            f
+            for f in result.rejections
             if f.rule_id == ValidationRuleId.REQUIRED_FIELDS.value
         ]
         self.assertEqual(len(req_rejections), 0)
@@ -718,7 +781,13 @@ class TestMetrics(unittest.TestCase):
 
     def test_metrics_after_validation(self):
         self.v.validate(_valid_task())
-        self.v.validate(_valid_task(title="Another unique task", description="Unique description for another test", bounty=-1))
+        self.v.validate(
+            _valid_task(
+                title="Another unique task",
+                description="Unique description for another test",
+                bounty=-1,
+            )
+        )
         m = self.v.metrics()
         self.assertEqual(m["total_validated"], 2)
         self.assertEqual(m["total_passed"], 1)
@@ -726,14 +795,27 @@ class TestMetrics(unittest.TestCase):
 
     def test_pass_rate(self):
         for i in range(3):
-            self.v.validate(_valid_task(id=f"pr-{i}", title=f"Pass rate task {i}", description=f"Desc pr {i}"))
+            self.v.validate(
+                _valid_task(
+                    id=f"pr-{i}",
+                    title=f"Pass rate task {i}",
+                    description=f"Desc pr {i}",
+                )
+            )
         self.v.validate(_valid_task(id="pr-bad", title="Bad task", bounty=-1))
         m = self.v.metrics()
         self.assertEqual(m["pass_rate"], 0.75)
 
     def test_top_rejection_reasons(self):
         for i in range(5):
-            self.v.validate(_valid_task(id=f"tr-{i}", title=f"Top rejection {i}", description=f"Desc tr {i}", bounty=-1))
+            self.v.validate(
+                _valid_task(
+                    id=f"tr-{i}",
+                    title=f"Top rejection {i}",
+                    description=f"Desc tr {i}",
+                    bounty=-1,
+                )
+            )
         top = self.v.top_rejection_reasons(limit=3)
         self.assertTrue(len(top) > 0)
         # bounty_minimum should be top
@@ -761,7 +843,9 @@ class TestMetrics(unittest.TestCase):
 
     def test_validation_timing(self):
         self.v.validate(_valid_task())
-        result = self.v.validate(_valid_task(id="t2", title="Timing test", description="Desc timing"))
+        result = self.v.validate(
+            _valid_task(id="t2", title="Timing test", description="Desc timing")
+        )
         self.assertTrue(result.duration_ms >= 0)
 
     def test_result_to_dict(self):
@@ -820,7 +904,11 @@ class TestPersistence(unittest.TestCase):
 
     def test_load_restores_metrics(self):
         self.v.validate(_valid_task())
-        self.v.validate(_valid_task(id="p2", title="Persist test 2", description="Desc p2", bounty=-1))
+        self.v.validate(
+            _valid_task(
+                id="p2", title="Persist test 2", description="Desc p2", bounty=-1
+            )
+        )
         data = self.v.save()
         v2 = TaskValidator.load(data)
         self.assertEqual(v2._total_validated, 2)
@@ -889,11 +977,13 @@ class TestCustomRules(unittest.TestCase):
 
     def test_custom_rule_can_reject(self):
         def always_reject(validator, task):
-            return [ValidationFinding(
-                rule_id="always_reject",
-                severity=ValidationSeverity.REJECT,
-                message="Custom rejection",
-            )]
+            return [
+                ValidationFinding(
+                    rule_id="always_reject",
+                    severity=ValidationSeverity.REJECT,
+                    message="Custom rejection",
+                )
+            ]
 
         rule = ValidationRule(
             rule_id="always_reject",
@@ -919,20 +1009,21 @@ class TestCustomRules(unittest.TestCase):
         # Should not raise — exception is caught and becomes a warning
         result = self.v.validate(_valid_task())
         self.assertTrue(result.passed)  # Exception = warning, not rejection
-        broken_warnings = [
-            f for f in result.warnings if f.rule_id == "broken"
-        ]
+        broken_warnings = [f for f in result.warnings if f.rule_id == "broken"]
         self.assertTrue(len(broken_warnings) > 0)
 
     def test_custom_rule_with_validator_access(self):
         """Custom rules can access validator config."""
+
         def config_check(validator, task):
             if float(task.get("bounty", 0)) > validator.max_bounty / 2:
-                return [ValidationFinding(
-                    rule_id="half_max",
-                    severity=ValidationSeverity.WARNING,
-                    message=f"Bounty over half of max ({validator.max_bounty})",
-                )]
+                return [
+                    ValidationFinding(
+                        rule_id="half_max",
+                        severity=ValidationSeverity.WARNING,
+                        message=f"Bounty over half of max ({validator.max_bounty})",
+                    )
+                ]
             return []
 
         rule = ValidationRule(
@@ -984,11 +1075,13 @@ class TestEdgeCases(unittest.TestCase):
     def test_concurrent_validations_safe(self):
         """Validate many tasks sequentially — state stays consistent."""
         for i in range(50):
-            self.v.validate(_valid_task(
-                id=f"conc-{i}",
-                title=f"Concurrent task {i}",
-                description=f"Description for concurrent task {i}",
-            ))
+            self.v.validate(
+                _valid_task(
+                    id=f"conc-{i}",
+                    title=f"Concurrent task {i}",
+                    description=f"Description for concurrent task {i}",
+                )
+            )
         m = self.v.metrics()
         self.assertEqual(m["total_validated"], 50)
 

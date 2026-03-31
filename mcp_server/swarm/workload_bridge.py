@@ -30,7 +30,7 @@ import math
 import statistics
 import time
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -58,16 +58,26 @@ MIN_TASKS_FOR_SEASONAL = 14
 # Exponential moving average alpha
 EMA_ALPHA = 0.3
 
-DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+DAY_NAMES = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+]
 
 
 # ──────────────────────────────────────────────────────────────────────
 # Configuration
 # ──────────────────────────────────────────────────────────────────────
 
+
 @dataclass
 class WorkloadConfig:
     """Configuration for the WorkloadBridge."""
+
     sync_interval_seconds: int = 300  # 5 minutes
     max_tasks: int = 10000
     cache_ttl_seconds: int = 60
@@ -84,9 +94,11 @@ class WorkloadConfig:
 # Data Structures
 # ──────────────────────────────────────────────────────────────────────
 
+
 @dataclass
 class DemandForecast:
     """Predicted demand over a time horizon."""
+
     horizon_hours: float
     predicted_tasks: float
     confidence_low: float
@@ -102,10 +114,15 @@ class DemandForecast:
         return {
             "horizon_hours": self.horizon_hours,
             "predicted_tasks": round(self.predicted_tasks, 2),
-            "confidence_interval": [round(self.confidence_low, 2), round(self.confidence_high, 2)],
+            "confidence_interval": [
+                round(self.confidence_low, 2),
+                round(self.confidence_high, 2),
+            ],
             "peak_hour": self.peak_hour,
             "dominant_category": self.dominant_category,
-            "category_breakdown": {k: round(v, 2) for k, v in self.category_breakdown.items()},
+            "category_breakdown": {
+                k: round(v, 2) for k, v in self.category_breakdown.items()
+            },
             "trend": self.trend,
             "seasonal_factor": round(self.seasonal_factor, 3),
             "data_points_used": self.data_points_used,
@@ -115,6 +132,7 @@ class DemandForecast:
 @dataclass
 class CapacityGap:
     """Supply vs demand analysis."""
+
     predicted_demand: float
     available_workers: int
     surplus_or_deficit: float
@@ -140,6 +158,7 @@ class CapacityGap:
 @dataclass
 class DemandSpike:
     """Detected demand spike."""
+
     detected_at: datetime
     category: str
     current_rate: float
@@ -163,6 +182,7 @@ class DemandSpike:
 @dataclass
 class WorkloadRoutingSignal:
     """Routing intelligence output (Signal #15)."""
+
     demand_trend: str
     demand_level: str
     tasks_per_hour: float
@@ -192,6 +212,7 @@ class WorkloadRoutingSignal:
 @dataclass
 class _TaskEntry:
     """Internal minimal task representation."""
+
     task_id: str
     created_at: datetime
     category: str
@@ -202,6 +223,7 @@ class _TaskEntry:
 # ──────────────────────────────────────────────────────────────────────
 # WorkloadBridge
 # ──────────────────────────────────────────────────────────────────────
+
 
 class WorkloadBridge:
     """
@@ -221,8 +243,12 @@ class WorkloadBridge:
         self._tasks: List[_TaskEntry] = []
         self._hourly_counts: Dict[str, int] = defaultdict(int)
         self._daily_counts: Dict[str, int] = defaultdict(int)
-        self._category_hourly: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
-        self._category_daily: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
+        self._category_hourly: Dict[str, Dict[str, int]] = defaultdict(
+            lambda: defaultdict(int)
+        )
+        self._category_daily: Dict[str, Dict[str, int]] = defaultdict(
+            lambda: defaultdict(int)
+        )
 
         # State
         self._last_sync: Optional[float] = None
@@ -259,9 +285,12 @@ class WorkloadBridge:
 
         try:
             import supabase_client as db
+
             client = db.get_client()
 
-            cutoff = (datetime.now(UTC) - timedelta(days=self._config.lookback_days)).isoformat()
+            cutoff = (
+                datetime.now(UTC) - timedelta(days=self._config.lookback_days)
+            ).isoformat()
 
             resp = (
                 client.table("tasks")
@@ -279,7 +308,9 @@ class WorkloadBridge:
             self._sync_count += 1
             logger.info(
                 "WorkloadBridge sync #%d: %d tasks from last %d days",
-                self._sync_count, len(rows), self._config.lookback_days,
+                self._sync_count,
+                len(rows),
+                self._config.lookback_days,
             )
             return len(rows)
 
@@ -398,7 +429,11 @@ class WorkloadBridge:
 
         cat_breakdown = self._category_forecast(horizon_hours, now)
         peak_hour = self._find_peak_hour()
-        dominant = max(cat_breakdown.items(), key=lambda x: x[1])[0] if cat_breakdown else "other"
+        dominant = (
+            max(cat_breakdown.items(), key=lambda x: x[1])[0]
+            if cat_breakdown
+            else "other"
+        )
         trend = self._detect_trend()
 
         return DemandForecast(
@@ -566,8 +601,14 @@ class WorkloadBridge:
         spikes = self.detect_spikes(now=now)
         return [s.to_dict() for s in spikes]
 
-    def _check_spike(self, category: str, window_hours: float, now: datetime) -> Optional[DemandSpike]:
-        tasks = self._tasks if category == "all" else [t for t in self._tasks if t.category == category]
+    def _check_spike(
+        self, category: str, window_hours: float, now: datetime
+    ) -> Optional[DemandSpike]:
+        tasks = (
+            self._tasks
+            if category == "all"
+            else [t for t in self._tasks if t.category == category]
+        )
         if len(tasks) < MIN_TASKS_FOR_FORECAST:
             return None
 
@@ -768,7 +809,9 @@ class WorkloadBridge:
         mean = total / 24 if total > 0 else 1
         return {h: hour_counts.get(h, 0) / max(mean, 0.01) for h in range(24)}
 
-    def _category_forecast(self, horizon_hours: float, now: datetime) -> Dict[str, float]:
+    def _category_forecast(
+        self, horizon_hours: float, now: datetime
+    ) -> Dict[str, float]:
         breakdown = {}
         for cat in set(t.category for t in self._tasks):
             rate = self._ema_category_rate(cat)

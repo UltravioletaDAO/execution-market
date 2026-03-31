@@ -67,11 +67,11 @@ import logging
 import math
 import statistics
 import time
-from collections import defaultdict, deque
+from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 logger = logging.getLogger("em.swarm.pipeline_optimizer")
 
@@ -542,7 +542,9 @@ class PipelineOptimizer:
 
     # ── Querying ───────────────────────────────────────────────
 
-    def stage_records(self, stage: str, *, last: Optional[int] = None) -> List[StageRecord]:
+    def stage_records(
+        self, stage: str, *, last: Optional[int] = None
+    ) -> List[StageRecord]:
         """Get raw records for a stage."""
         stage_lower = stage.lower()
         records = list(self._records.get(stage_lower, []))
@@ -704,7 +706,9 @@ class PipelineOptimizer:
         total_out = sum(r.tasks_out for r in records)
         dropoff_rates = [r.dropoff_rate for r in records if r.tasks_in > 0]
         throughputs = [
-            r.throughput for r in records if r.duration_ms > 0 and r.throughput != float("inf")
+            r.throughput
+            for r in records
+            if r.duration_ms > 0 and r.throughput != float("inf")
         ]
 
         profile = StageProfile(
@@ -720,9 +724,7 @@ class PipelineOptimizer:
             std_dev_ms=statistics.stdev(durations) if n > 1 else 0.0,
             total_tasks_in=total_in,
             total_tasks_out=total_out,
-            avg_dropoff_rate=(
-                statistics.mean(dropoff_rates) if dropoff_rates else 0.0
-            ),
+            avg_dropoff_rate=(statistics.mean(dropoff_rates) if dropoff_rates else 0.0),
             avg_throughput=statistics.mean(throughputs) if throughputs else 0.0,
         )
         return profile
@@ -739,7 +741,9 @@ class PipelineOptimizer:
         lower = int(math.floor(idx))
         upper = min(lower + 1, n - 1)
         frac = idx - lower
-        return sorted_values[lower] + frac * (sorted_values[upper] - sorted_values[lower])
+        return sorted_values[lower] + frac * (
+            sorted_values[upper] - sorted_values[lower]
+        )
 
     # ── Internal: Bottleneck Detection ─────────────────────────
 
@@ -897,9 +901,7 @@ class PipelineOptimizer:
         return numerator / (denom_x * denom_y)
 
     @staticmethod
-    def _interpret_correlation(
-        coeff: float, stage_a: str, stage_b: str
-    ) -> str:
+    def _interpret_correlation(coeff: float, stage_a: str, stage_b: str) -> str:
         """Human-readable interpretation of correlation."""
         abs_coeff = abs(coeff)
         if abs_coeff < 0.3:
@@ -916,7 +918,9 @@ class PipelineOptimizer:
             direction = "negative"
             meaning = f"When {stage_a} slows, {stage_b} tends to speed up"
 
-        return f"{strength.capitalize()} {direction} correlation ({coeff:.2f}). {meaning}."
+        return (
+            f"{strength.capitalize()} {direction} correlation ({coeff:.2f}). {meaning}."
+        )
 
     # ── Internal: Suggestion Generation ────────────────────────
 
@@ -1076,7 +1080,9 @@ class PipelineOptimizer:
                 f"or batch assignment writes."
             ),
         }
-        return advice.get(stage, f"Stage {stage} is the bottleneck at {profile.mean_ms:.1f}ms avg.")
+        return advice.get(
+            stage, f"Stage {stage} is the bottleneck at {profile.mean_ms:.1f}ms avg."
+        )
 
     @staticmethod
     def _dropoff_advice(stage: str, profile: StageProfile) -> str:
@@ -1189,9 +1195,7 @@ class PipelineOptimizer:
 
         # Variance penalty: -5 per high-variance stage
         high_var = sum(
-            1
-            for p in profiles.values()
-            if p.count >= 5 and p.std_dev_ms > p.mean_ms
+            1 for p in profiles.values() if p.count >= 5 and p.std_dev_ms > p.mean_ms
         )
         score -= high_var * 5
 

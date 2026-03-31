@@ -17,7 +17,6 @@ Comprehensive test coverage for multi-chain network configuration:
 
 import importlib.util
 import os
-import pytest
 
 # Direct import to avoid swarm/__init__.py (Python 3.10+ syntax issues)
 _swarm_dir = os.path.join(os.path.dirname(__file__), "..", "swarm")
@@ -46,7 +45,9 @@ def _base_network():
         chain_type=ChainType.EVM,
         gas_profile=GasProfile.LOW,
         explorer_url="https://basescan.org",
-        tokens={"USDC": TokenInfo("USDC", "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913")},
+        tokens={
+            "USDC": TokenInfo("USDC", "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913")
+        },
     )
 
 
@@ -68,7 +69,9 @@ def _ethereum_network():
         chain_type=ChainType.EVM,
         gas_profile=GasProfile.HIGH,
         explorer_url="https://etherscan.io",
-        tokens={"USDC": TokenInfo("USDC", "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48")},
+        tokens={
+            "USDC": TokenInfo("USDC", "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48")
+        },
     )
 
 
@@ -103,8 +106,10 @@ class TestRegistration:
     def test_register_normalizes_name(self):
         reg = NetworkRegistry()
         net = NetworkInfo(
-            name="  Base  ", chain_id=8453,
-            chain_type=ChainType.EVM, gas_profile=GasProfile.LOW,
+            name="  Base  ",
+            chain_id=8453,
+            chain_type=ChainType.EVM,
+            gas_profile=GasProfile.LOW,
         )
         reg.register(net)
         assert reg.get("base") is not None
@@ -123,8 +128,10 @@ class TestRegistration:
         reg.register(_base_network())
 
         updated = NetworkInfo(
-            name="base", chain_id=8453,
-            chain_type=ChainType.EVM, gas_profile=GasProfile.ULTRA_LOW,
+            name="base",
+            chain_id=8453,
+            chain_type=ChainType.EVM,
+            gas_profile=GasProfile.ULTRA_LOW,
         )
         reg.register(updated)
 
@@ -201,8 +208,10 @@ class TestValidation:
     def test_validate_disabled_chain(self):
         reg = NetworkRegistry()
         net = NetworkInfo(
-            name="monad", chain_id=None,
-            chain_type=ChainType.EVM, gas_profile=GasProfile.LOW,
+            name="monad",
+            chain_id=None,
+            chain_type=ChainType.EVM,
+            gas_profile=GasProfile.LOW,
             status=NetworkStatus.DISABLED,
         )
         reg.register(net)
@@ -213,8 +222,10 @@ class TestValidation:
         """Degraded chains are still valid (usable but with warnings)."""
         reg = NetworkRegistry()
         net = NetworkInfo(
-            name="polygon", chain_id=137,
-            chain_type=ChainType.EVM, gas_profile=GasProfile.MEDIUM,
+            name="polygon",
+            chain_id=137,
+            chain_type=ChainType.EVM,
+            gas_profile=GasProfile.MEDIUM,
             status=NetworkStatus.DEGRADED,
         )
         reg.register(net)
@@ -239,8 +250,10 @@ class TestFeatureQueries:
         reg = NetworkRegistry()
         reg.register(_base_network())  # payments=True (default)
         net_no_pay = NetworkInfo(
-            name="testnet", chain_id=999,
-            chain_type=ChainType.EVM, gas_profile=GasProfile.FREE,
+            name="testnet",
+            chain_id=999,
+            chain_type=ChainType.EVM,
+            gas_profile=GasProfile.FREE,
             supports_payments=False,
         )
         reg.register(net_no_pay)
@@ -265,8 +278,10 @@ class TestFeatureQueries:
     def test_disabled_chains_excluded(self):
         reg = NetworkRegistry()
         net = NetworkInfo(
-            name="disabled", chain_id=0,
-            chain_type=ChainType.EVM, gas_profile=GasProfile.LOW,
+            name="disabled",
+            chain_id=0,
+            chain_type=ChainType.EVM,
+            gas_profile=GasProfile.LOW,
             status=NetworkStatus.DISABLED,
         )
         reg.register(net)
@@ -421,8 +436,10 @@ class TestExplorerURLs:
     def test_tx_url_no_explorer(self):
         reg = NetworkRegistry()
         net = NetworkInfo(
-            name="private", chain_id=999,
-            chain_type=ChainType.EVM, gas_profile=GasProfile.FREE,
+            name="private",
+            chain_id=999,
+            chain_type=ChainType.EVM,
+            gas_profile=GasProfile.FREE,
         )
         reg.register(net)
 
@@ -469,8 +486,10 @@ class TestDiagnostics:
         reg = NetworkRegistry()
         reg.register(_base_network())
         net = NetworkInfo(
-            name="polygon", chain_id=137,
-            chain_type=ChainType.EVM, gas_profile=GasProfile.MEDIUM,
+            name="polygon",
+            chain_id=137,
+            chain_type=ChainType.EVM,
+            gas_profile=GasProfile.MEDIUM,
             status=NetworkStatus.DEGRADED,
         )
         reg.register(net)

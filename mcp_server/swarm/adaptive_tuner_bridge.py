@@ -24,15 +24,13 @@ Key capabilities:
 
 from __future__ import annotations
 
-import hashlib
 import json
 import logging
 import math
 import statistics
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -42,18 +40,39 @@ logger = logging.getLogger(__name__)
 VERSION = "1.0.0"
 
 SIGNAL_NAMES = [
-    "skill", "reputation", "reliability", "recency",
-    "lifecycle", "workload", "availability", "chain_cost",
-    "quality_gate", "decomposition", "affinity", "retention",
-    "competitive", "credential", "performance",
+    "skill",
+    "reputation",
+    "reliability",
+    "recency",
+    "lifecycle",
+    "workload",
+    "availability",
+    "chain_cost",
+    "quality_gate",
+    "decomposition",
+    "affinity",
+    "retention",
+    "competitive",
+    "credential",
+    "performance",
 ]
 
 DEFAULT_WEIGHTS: dict[str, float] = {
-    "skill": 0.45, "reputation": 0.25, "reliability": 0.20, "recency": 0.10,
-    "lifecycle": 0.15, "workload": 0.10, "availability": 0.10,
-    "chain_cost": 0.08, "quality_gate": 0.12, "decomposition": 0.05,
-    "affinity": 0.08, "retention": 0.06, "competitive": 0.05,
-    "credential": 0.07, "performance": 0.10,
+    "skill": 0.45,
+    "reputation": 0.25,
+    "reliability": 0.20,
+    "recency": 0.10,
+    "lifecycle": 0.15,
+    "workload": 0.10,
+    "availability": 0.10,
+    "chain_cost": 0.08,
+    "quality_gate": 0.12,
+    "decomposition": 0.05,
+    "affinity": 0.08,
+    "retention": 0.06,
+    "competitive": 0.05,
+    "credential": 0.07,
+    "performance": 0.10,
 }
 
 MIN_WEIGHT = 0.01
@@ -82,9 +101,11 @@ OUTCOME_SCORES = {
 
 # ── Data Types ─────────────────────────────────────────────────────────
 
+
 @dataclass
 class DecisionRecord:
     """A routing decision recorded from the pipeline."""
+
     task_id: str
     worker_id: str
     category: str
@@ -117,6 +138,7 @@ class DecisionRecord:
 @dataclass
 class OutcomeRecord:
     """A task outcome from Supabase."""
+
     task_id: str
     outcome: OutcomeType
     timestamp: float
@@ -168,6 +190,7 @@ class OutcomeRecord:
 @dataclass
 class SignalStats:
     """Per-signal effectiveness stats."""
+
     signal: str
     correlation: float
     separation: float
@@ -187,6 +210,7 @@ class SignalStats:
 @dataclass
 class WeightRecommendation:
     """A weight change recommendation."""
+
     signal: str
     current: float
     suggested: float
@@ -206,6 +230,7 @@ class WeightRecommendation:
 @dataclass
 class BridgeConfig:
     """Configuration for the AdaptiveTunerBridge."""
+
     adaptation_rate: float = ADAPTATION_RATE
     min_samples: int = MIN_SAMPLES
     correlation_window: int = CORRELATION_WINDOW
@@ -233,10 +258,16 @@ class BridgeConfig:
     def from_dict(cls, d: dict) -> "BridgeConfig":
         cfg = cls()
         for key in [
-            "adaptation_rate", "min_samples", "correlation_window",
-            "min_weight", "max_weight", "enable_category_tuning",
-            "sync_interval_seconds", "lookback_days",
-            "max_decisions", "max_outcomes",
+            "adaptation_rate",
+            "min_samples",
+            "correlation_window",
+            "min_weight",
+            "max_weight",
+            "enable_category_tuning",
+            "sync_interval_seconds",
+            "lookback_days",
+            "max_decisions",
+            "max_outcomes",
         ]:
             if key in d:
                 setattr(cfg, key, d[key])
@@ -244,6 +275,7 @@ class BridgeConfig:
 
 
 # ── Main Bridge ────────────────────────────────────────────────────────
+
 
 class AdaptiveTunerBridge:
     """Server-side adaptive weight tuner for the routing pipeline.
@@ -337,7 +369,7 @@ class AdaptiveTunerBridge:
         # Trim outcomes if over limit
         if len(self._outcomes) > self.config.max_outcomes:
             oldest = sorted(self._outcomes, key=lambda k: self._outcomes[k].timestamp)
-            for k in oldest[:len(self._outcomes) - self.config.max_outcomes]:
+            for k in oldest[: len(self._outcomes) - self.config.max_outcomes]:
                 del self._outcomes[k]
 
         self._last_sync_ts = time.time()
@@ -345,7 +377,9 @@ class AdaptiveTunerBridge:
         self._last_sync_tasks = ingested
         self._metrics["syncs_completed"] += 1
 
-        logger.info(f"AdaptiveTunerBridge synced {ingested} outcomes from {len(rows)} rows")
+        logger.info(
+            f"AdaptiveTunerBridge synced {ingested} outcomes from {len(rows)} rows"
+        )
         return ingested
 
     @staticmethod
@@ -383,6 +417,7 @@ class AdaptiveTunerBridge:
             return 0.0
         try:
             from datetime import datetime
+
             if isinstance(created, str):
                 c = datetime.fromisoformat(created.replace("Z", "+00:00"))
             else:
@@ -420,7 +455,7 @@ class AdaptiveTunerBridge:
 
         # Trim
         if len(self._decisions) > self.config.max_decisions:
-            self._decisions = self._decisions[-self.config.max_decisions:]
+            self._decisions = self._decisions[-self.config.max_decisions :]
 
         # Try to pair
         outcome = self._outcomes.get(task_id)
@@ -451,7 +486,7 @@ class AdaptiveTunerBridge:
             pairs = [(d, o) for d, o in pairs if d.category == category]
 
         if len(pairs) > self.config.correlation_window:
-            pairs = pairs[-self.config.correlation_window:]
+            pairs = pairs[-self.config.correlation_window :]
 
         if len(pairs) < 3:
             return {}
@@ -544,7 +579,9 @@ class AdaptiveTunerBridge:
                 delta += stats.separation * self.config.adaptation_rate * 0.5
 
             delta *= stats.confidence
-            new_w = max(self.config.min_weight, min(self.config.max_weight, old_w + delta))
+            new_w = max(
+                self.config.min_weight, min(self.config.max_weight, old_w + delta)
+            )
             suggested[signal] = new_w
 
         # Normalize primary weights to ~1.0
@@ -601,10 +638,15 @@ class AdaptiveTunerBridge:
             else:
                 reason = "normalization"
 
-            results.append(WeightRecommendation(
-                signal=signal, current=old_w, suggested=new_w,
-                delta=delta, reason=reason,
-            ))
+            results.append(
+                WeightRecommendation(
+                    signal=signal,
+                    current=old_w,
+                    suggested=new_w,
+                    delta=delta,
+                    reason=reason,
+                )
+            )
         return results
 
     @property
@@ -626,7 +668,9 @@ class AdaptiveTunerBridge:
     def apply_weights(self, weights: dict[str, float]) -> None:
         for signal, w in weights.items():
             if signal in SIGNAL_NAMES:
-                self._weights[signal] = max(self.config.min_weight, min(self.config.max_weight, w))
+                self._weights[signal] = max(
+                    self.config.min_weight, min(self.config.max_weight, w)
+                )
 
     def reset_weights(self) -> None:
         self._weights = dict(DEFAULT_WEIGHTS)
@@ -638,7 +682,11 @@ class AdaptiveTunerBridge:
         """Health check for the bridge."""
         now = time.time()
         sync_age_s = now - self._last_sync_ts if self._last_sync_ts > 0 else -1
-        sync_stale = sync_age_s > self.config.sync_interval_seconds * 3 if sync_age_s >= 0 else True
+        sync_stale = (
+            sync_age_s > self.config.sync_interval_seconds * 3
+            if sync_age_s >= 0
+            else True
+        )
 
         return {
             "status": "healthy" if not sync_stale else "stale",
@@ -658,8 +706,18 @@ class AdaptiveTunerBridge:
         sorted_eff = sorted(
             effectiveness.values(), key=lambda e: e.correlation, reverse=True
         )
-        top = [{"signal": e.signal, "corr": round(e.correlation, 3)} for e in sorted_eff[:5]]
-        bottom = [{"signal": e.signal, "corr": round(e.correlation, 3)} for e in sorted_eff[-3:]] if sorted_eff else []
+        top = [
+            {"signal": e.signal, "corr": round(e.correlation, 3)}
+            for e in sorted_eff[:5]
+        ]
+        bottom = (
+            [
+                {"signal": e.signal, "corr": round(e.correlation, 3)}
+                for e in sorted_eff[-3:]
+            ]
+            if sorted_eff
+            else []
+        )
 
         return {
             "version": VERSION,
@@ -690,7 +748,9 @@ class AdaptiveTunerBridge:
     def success_rate(self) -> float:
         if not self._outcomes:
             return 0.0
-        successes = sum(1 for o in self._outcomes.values() if o.outcome == OutcomeType.SUCCESS)
+        successes = sum(
+            1 for o in self._outcomes.values() if o.outcome == OutcomeType.SUCCESS
+        )
         return successes / len(self._outcomes)
 
     def list_categories(self) -> list[str]:
@@ -709,7 +769,9 @@ class AdaptiveTunerBridge:
             "weights": dict(self._weights),
             "category_weights": {k: dict(v) for k, v in self._category_weights.items()},
             "decisions": [d.to_dict() for d in self._decisions[-500:]],
-            "outcomes": {k: v.to_dict() for k, v in list(self._outcomes.items())[-500:]},
+            "outcomes": {
+                k: v.to_dict() for k, v in list(self._outcomes.items())[-500:]
+            },
             "paired": [(d.to_dict(), o.to_dict()) for d, o in self._paired[-500:]],
             "metrics": dict(self._metrics),
             "saved_at": time.time(),
@@ -732,10 +794,12 @@ class AdaptiveTunerBridge:
         for tid, o_dict in state.get("outcomes", {}).items():
             bridge._outcomes[tid] = OutcomeRecord.from_dict(o_dict)
         for d_dict, o_dict in state.get("paired", []):
-            bridge._paired.append((
-                DecisionRecord.from_dict(d_dict),
-                OutcomeRecord.from_dict(o_dict),
-            ))
+            bridge._paired.append(
+                (
+                    DecisionRecord.from_dict(d_dict),
+                    OutcomeRecord.from_dict(o_dict),
+                )
+            )
 
         bridge._metrics = state.get("metrics", bridge._metrics)
         return bridge

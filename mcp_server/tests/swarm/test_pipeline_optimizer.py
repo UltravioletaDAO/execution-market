@@ -11,25 +11,19 @@ import json
 import os
 import random
 import tempfile
-import time
 
 import pytest
 
 from mcp_server.swarm.pipeline_optimizer import (
-    BOTTLENECK_THRESHOLD_PCT,
     DEFAULT_HISTORY_LIMIT,
-    DROPOFF_ALERT_PCT,
     PIPELINE_STAGES,
-    CorrelationResult,
     PipelineOptimizer,
     PipelineReport,
     PipelineStage,
-    StageProfile,
     StageRecord,
     Suggestion,
     SuggestionPriority,
     TrendDirection,
-    TrendResult,
 )
 
 
@@ -49,13 +43,27 @@ def populated_optimizer():
     """PipelineOptimizer with 100 records per stage."""
     opt = PipelineOptimizer()
     for i in range(100):
-        opt.record("batch", duration_ms=10 + random.random() * 5, tasks_in=50, tasks_out=8)
-        opt.record("validate", duration_ms=1 + random.random() * 0.5, tasks_in=8, tasks_out=7)
-        opt.record("chain", duration_ms=40 + random.random() * 10, tasks_in=7, tasks_out=7)
-        opt.record("score", duration_ms=100 + random.random() * 30, tasks_in=7, tasks_out=7)
-        opt.record("blend", duration_ms=5 + random.random() * 2, tasks_in=7, tasks_out=7)
-        opt.record("select", duration_ms=15 + random.random() * 5, tasks_in=7, tasks_out=6)
-        opt.record("route", duration_ms=8 + random.random() * 3, tasks_in=6, tasks_out=6)
+        opt.record(
+            "batch", duration_ms=10 + random.random() * 5, tasks_in=50, tasks_out=8
+        )
+        opt.record(
+            "validate", duration_ms=1 + random.random() * 0.5, tasks_in=8, tasks_out=7
+        )
+        opt.record(
+            "chain", duration_ms=40 + random.random() * 10, tasks_in=7, tasks_out=7
+        )
+        opt.record(
+            "score", duration_ms=100 + random.random() * 30, tasks_in=7, tasks_out=7
+        )
+        opt.record(
+            "blend", duration_ms=5 + random.random() * 2, tasks_in=7, tasks_out=7
+        )
+        opt.record(
+            "select", duration_ms=15 + random.random() * 5, tasks_in=7, tasks_out=6
+        )
+        opt.record(
+            "route", duration_ms=8 + random.random() * 3, tasks_in=6, tasks_out=6
+        )
     return opt
 
 
@@ -65,10 +73,14 @@ def degrading_optimizer():
     opt = PipelineOptimizer()
     # First 50: score is fast (~50ms)
     for i in range(50):
-        opt.record("score", duration_ms=50 + random.random() * 5, tasks_in=10, tasks_out=10)
+        opt.record(
+            "score", duration_ms=50 + random.random() * 5, tasks_in=10, tasks_out=10
+        )
     # Next 50: score is slow (~150ms — 3x slower)
     for i in range(50):
-        opt.record("score", duration_ms=150 + random.random() * 10, tasks_in=10, tasks_out=10)
+        opt.record(
+            "score", duration_ms=150 + random.random() * 10, tasks_in=10, tasks_out=10
+        )
     return opt
 
 
@@ -305,7 +317,9 @@ class TestTrends:
 
     def test_stable_trend(self, optimizer):
         for _ in range(100):
-            optimizer.record("batch", duration_ms=10 + random.random(), tasks_in=10, tasks_out=10)
+            optimizer.record(
+                "batch", duration_ms=10 + random.random(), tasks_in=10, tasks_out=10
+            )
         trend = optimizer.trend("batch")
         assert trend.direction == TrendDirection.STABLE
 
@@ -388,7 +402,9 @@ class TestSuggestions:
     def test_bottleneck_suggestion(self, populated_optimizer):
         suggestions = populated_optimizer.suggestions()
         # Should have at least one suggestion about score bottleneck
-        bottleneck_suggestions = [s for s in suggestions if "bottleneck" in s.title.lower()]
+        bottleneck_suggestions = [
+            s for s in suggestions if "bottleneck" in s.title.lower()
+        ]
         assert len(bottleneck_suggestions) >= 1
         assert bottleneck_suggestions[0].stage == "score"
 
@@ -396,7 +412,9 @@ class TestSuggestions:
         # Add other stages so analyze works
         for _ in range(100):
             for stage in ["batch", "validate", "chain", "blend", "select", "route"]:
-                degrading_optimizer.record(stage, duration_ms=5, tasks_in=10, tasks_out=10)
+                degrading_optimizer.record(
+                    stage, duration_ms=5, tasks_in=10, tasks_out=10
+                )
 
         suggestions = degrading_optimizer.suggestions()
         degradation = [s for s in suggestions if "degrading" in s.title.lower()]
@@ -405,7 +423,9 @@ class TestSuggestions:
 
     def test_dropoff_suggestion(self, optimizer):
         for _ in range(20):
-            optimizer.record("validate", duration_ms=1, tasks_in=100, tasks_out=50)  # 50% drop
+            optimizer.record(
+                "validate", duration_ms=1, tasks_in=100, tasks_out=50
+            )  # 50% drop
         suggestions = optimizer.suggestions()
         dropoff = [s for s in suggestions if "dropoff" in s.title.lower()]
         assert len(dropoff) >= 1
@@ -424,11 +444,15 @@ class TestSuggestions:
     def test_suggestion_priority_ordering(self, optimizer):
         # Create conditions for multiple suggestion types
         for _ in range(20):
-            optimizer.record("validate", duration_ms=1, tasks_in=100, tasks_out=20)  # High dropoff
+            optimizer.record(
+                "validate", duration_ms=1, tasks_in=100, tasks_out=20
+            )  # High dropoff
         for _ in range(50):
             optimizer.record("score", duration_ms=50, tasks_in=10, tasks_out=10)
         for _ in range(50):
-            optimizer.record("score", duration_ms=200, tasks_in=10, tasks_out=10)  # Degrading
+            optimizer.record(
+                "score", duration_ms=200, tasks_in=10, tasks_out=10
+            )  # Degrading
 
         suggestions = optimizer.suggestions()
         if len(suggestions) >= 2:
@@ -547,20 +571,30 @@ class TestHealthScore:
 
     def test_high_dropoff_penalized(self, optimizer):
         for _ in range(20):
-            optimizer.record("validate", duration_ms=1, tasks_in=100, tasks_out=30)  # 70% drop
-            optimizer.record("select", duration_ms=10, tasks_in=30, tasks_out=10)  # 67% drop
+            optimizer.record(
+                "validate", duration_ms=1, tasks_in=100, tasks_out=30
+            )  # 70% drop
+            optimizer.record(
+                "select", duration_ms=10, tasks_in=30, tasks_out=10
+            )  # 67% drop
         report = optimizer.analyze()
         assert report.health_score < 80  # Double dropoff penalty
 
     def test_health_bounded(self, optimizer):
         # Extreme conditions
         for _ in range(50):
-            optimizer.record("batch", duration_ms=1, tasks_in=100, tasks_out=0)  # 100% drop
+            optimizer.record(
+                "batch", duration_ms=1, tasks_in=100, tasks_out=0
+            )  # 100% drop
         for _ in range(50):
-            optimizer.record("batch", duration_ms=1000, tasks_in=100, tasks_out=0)  # Degrading too
+            optimizer.record(
+                "batch", duration_ms=1000, tasks_in=100, tasks_out=0
+            )  # Degrading too
         for _ in range(100):
             for stage in ["validate", "chain", "score", "blend", "select", "route"]:
-                optimizer.record(stage, duration_ms=10, tasks_in=10, tasks_out=1)  # Lots of drops
+                optimizer.record(
+                    stage, duration_ms=10, tasks_in=10, tasks_out=1
+                )  # Lots of drops
         report = optimizer.analyze()
         assert 0 <= report.health_score <= 100
 
@@ -579,7 +613,10 @@ class TestPersistence:
 
             loaded = PipelineOptimizer.load(path)
             assert loaded.record_count() == populated_optimizer.record_count()
-            assert loaded.metrics()["total_records"] == populated_optimizer.metrics()["total_records"]
+            assert (
+                loaded.metrics()["total_records"]
+                == populated_optimizer.metrics()["total_records"]
+            )
 
             # Profiles should be similar
             orig_profile = populated_optimizer.profile("score")
@@ -821,31 +858,62 @@ class TestIntegrationSimulation:
             tasks = random.randint(20, 100)
             # Batch: reduces task count
             batched = max(1, tasks // random.randint(4, 8))
-            optimizer.record("batch", duration_ms=tasks * 0.2, tasks_in=tasks, tasks_out=batched)
+            optimizer.record(
+                "batch", duration_ms=tasks * 0.2, tasks_in=tasks, tasks_out=batched
+            )
 
             # Validate: drops ~10%
             validated = max(1, int(batched * 0.9))
-            optimizer.record("validate", duration_ms=batched * 0.15, tasks_in=batched, tasks_out=validated)
+            optimizer.record(
+                "validate",
+                duration_ms=batched * 0.15,
+                tasks_in=batched,
+                tasks_out=validated,
+            )
 
             # Chain: no drop, but variable latency
-            optimizer.record("chain", duration_ms=validated * random.gauss(6, 2), tasks_in=validated, tasks_out=validated)
+            optimizer.record(
+                "chain",
+                duration_ms=validated * random.gauss(6, 2),
+                tasks_in=validated,
+                tasks_out=validated,
+            )
 
             # Score: slowest, no drop
-            optimizer.record("score", duration_ms=validated * random.gauss(15, 5), tasks_in=validated, tasks_out=validated)
+            optimizer.record(
+                "score",
+                duration_ms=validated * random.gauss(15, 5),
+                tasks_in=validated,
+                tasks_out=validated,
+            )
 
             # Blend: fast
-            optimizer.record("blend", duration_ms=validated * 0.5, tasks_in=validated, tasks_out=validated)
+            optimizer.record(
+                "blend",
+                duration_ms=validated * 0.5,
+                tasks_in=validated,
+                tasks_out=validated,
+            )
 
             # Select: drops ~5% (no available agents)
             selected = max(1, int(validated * 0.95))
-            optimizer.record("select", duration_ms=validated * 2, tasks_in=validated, tasks_out=selected)
+            optimizer.record(
+                "select",
+                duration_ms=validated * 2,
+                tasks_in=validated,
+                tasks_out=selected,
+            )
 
             # Route: final
             routed = selected
-            optimizer.record("route", duration_ms=selected * 1.2, tasks_in=selected, tasks_out=routed)
+            optimizer.record(
+                "route", duration_ms=selected * 1.2, tasks_in=selected, tasks_out=routed
+            )
 
             optimizer.record_pipeline_run(
-                total_duration_ms=tasks * 0.2 + batched * 0.15 + validated * (6 + 15 + 0.5 + 2 + 1.2),
+                total_duration_ms=tasks * 0.2
+                + batched * 0.15
+                + validated * (6 + 15 + 0.5 + 2 + 1.2),
                 tasks_submitted=tasks,
                 tasks_routed=routed,
             )

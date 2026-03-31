@@ -173,21 +173,15 @@ class ValidationResult:
     @property
     def passed(self) -> bool:
         """Task passed if no REJECT findings."""
-        return not any(
-            f.severity == ValidationSeverity.REJECT for f in self.findings
-        )
+        return not any(f.severity == ValidationSeverity.REJECT for f in self.findings)
 
     @property
     def warnings(self) -> list[ValidationFinding]:
-        return [
-            f for f in self.findings if f.severity == ValidationSeverity.WARNING
-        ]
+        return [f for f in self.findings if f.severity == ValidationSeverity.WARNING]
 
     @property
     def rejections(self) -> list[ValidationFinding]:
-        return [
-            f for f in self.findings if f.severity == ValidationSeverity.REJECT
-        ]
+        return [f for f in self.findings if f.severity == ValidationSeverity.REJECT]
 
     @property
     def reasons(self) -> list[str]:
@@ -285,7 +279,9 @@ class ValidationRule:
 # ──────────────────────────────────────────────────────────────
 
 
-def _check_required_fields(validator: "TaskValidator", task: dict) -> list[ValidationFinding]:
+def _check_required_fields(
+    validator: "TaskValidator", task: dict
+) -> list[ValidationFinding]:
     """Ensure required fields are present and non-empty."""
     findings = []
     required = ["title", "description", "bounty"]
@@ -314,7 +310,9 @@ def _check_required_fields(validator: "TaskValidator", task: dict) -> list[Valid
     return findings
 
 
-def _check_bounty_minimum(validator: "TaskValidator", task: dict) -> list[ValidationFinding]:
+def _check_bounty_minimum(
+    validator: "TaskValidator", task: dict
+) -> list[ValidationFinding]:
     """Ensure bounty meets minimum threshold."""
     findings = []
     bounty = task.get("bounty")
@@ -363,7 +361,9 @@ def _check_bounty_minimum(validator: "TaskValidator", task: dict) -> list[Valida
     return findings
 
 
-def _check_bounty_maximum(validator: "TaskValidator", task: dict) -> list[ValidationFinding]:
+def _check_bounty_maximum(
+    validator: "TaskValidator", task: dict
+) -> list[ValidationFinding]:
     """Ensure bounty doesn't exceed sanity ceiling."""
     findings = []
     bounty = task.get("bounty")
@@ -393,7 +393,9 @@ def _check_bounty_maximum(validator: "TaskValidator", task: dict) -> list[Valida
     return findings
 
 
-def _check_description_length(validator: "TaskValidator", task: dict) -> list[ValidationFinding]:
+def _check_description_length(
+    validator: "TaskValidator", task: dict
+) -> list[ValidationFinding]:
     """Ensure description is within reasonable bounds."""
     findings = []
     desc = task.get("description")
@@ -442,7 +444,9 @@ def _check_description_length(validator: "TaskValidator", task: dict) -> list[Va
     return findings
 
 
-def _check_evidence_types(validator: "TaskValidator", task: dict) -> list[ValidationFinding]:
+def _check_evidence_types(
+    validator: "TaskValidator", task: dict
+) -> list[ValidationFinding]:
     """Ensure evidence types are valid enum values."""
     findings = []
     evidence_types = task.get("evidence_types") or task.get("evidence_required")
@@ -489,7 +493,9 @@ def _check_evidence_types(validator: "TaskValidator", task: dict) -> list[Valida
     return findings
 
 
-def _check_deadline_future(validator: "TaskValidator", task: dict) -> list[ValidationFinding]:
+def _check_deadline_future(
+    validator: "TaskValidator", task: dict
+) -> list[ValidationFinding]:
     """Ensure deadline is in the future."""
     findings = []
     deadline = task.get("deadline") or task.get("expires_at")
@@ -542,7 +548,9 @@ def _check_deadline_future(validator: "TaskValidator", task: dict) -> list[Valid
     return findings
 
 
-def _check_deadline_reasonable(validator: "TaskValidator", task: dict) -> list[ValidationFinding]:
+def _check_deadline_reasonable(
+    validator: "TaskValidator", task: dict
+) -> list[ValidationFinding]:
     """Ensure deadline is within reasonable bounds."""
     findings = []
     deadline = task.get("deadline") or task.get("expires_at")
@@ -581,7 +589,9 @@ def _check_deadline_reasonable(validator: "TaskValidator", task: dict) -> list[V
     return findings
 
 
-def _check_network_supported(validator: "TaskValidator", task: dict) -> list[ValidationFinding]:
+def _check_network_supported(
+    validator: "TaskValidator", task: dict
+) -> list[ValidationFinding]:
     """Ensure requested network is in the supported set."""
     findings = []
     network = task.get("network") or task.get("chain")
@@ -617,7 +627,9 @@ def _check_network_supported(validator: "TaskValidator", task: dict) -> list[Val
     return findings
 
 
-def _check_skill_parseable(validator: "TaskValidator", task: dict) -> list[ValidationFinding]:
+def _check_skill_parseable(
+    validator: "TaskValidator", task: dict
+) -> list[ValidationFinding]:
     """Ensure required skills are parseable."""
     findings = []
     skills = task.get("required_skills") or task.get("skills")
@@ -673,7 +685,9 @@ def _check_skill_parseable(validator: "TaskValidator", task: dict) -> list[Valid
     return findings
 
 
-def _check_duplicate_detection(validator: "TaskValidator", task: dict) -> list[ValidationFinding]:
+def _check_duplicate_detection(
+    validator: "TaskValidator", task: dict
+) -> list[ValidationFinding]:
     """Detect near-duplicate tasks using content fingerprinting."""
     findings = []
 
@@ -922,7 +936,9 @@ class TaskValidator:
             raise ValueError(f"Rule '{rule.rule_id}' already registered")
         self._rules.append(rule)
         self._rules.sort(key=lambda r: r.order)
-        logger.info(f"TaskValidator: Added custom rule '{rule.rule_id}' (order={rule.order})")
+        logger.info(
+            f"TaskValidator: Added custom rule '{rule.rule_id}' (order={rule.order})"
+        )
         return self
 
     def remove_rule(self, rule_id: str) -> "TaskValidator":
@@ -1158,9 +1174,7 @@ class TaskValidator:
                 "duplicate_threshold": self.duplicate_threshold,
                 "fail_fast": self.fail_fast,
             },
-            "disabled_rules": [
-                r.rule_id for r in self._rules if not r.enabled
-            ],
+            "disabled_rules": [r.rule_id for r in self._rules if not r.enabled],
             "metrics": {
                 "total_validated": self._total_validated,
                 "total_passed": self._total_passed,
@@ -1184,7 +1198,9 @@ class TaskValidator:
             max_deadline_days=config.get(
                 "max_deadline_days", DEFAULT_MAX_DEADLINE_DAYS
             ),
-            enabled_networks=set(config.get("enabled_networks", DEFAULT_ENABLED_NETWORKS)),
+            enabled_networks=set(
+                config.get("enabled_networks", DEFAULT_ENABLED_NETWORKS)
+            ),
             duplicate_threshold=config.get(
                 "duplicate_threshold", DEFAULT_DUPLICATE_THRESHOLD
             ),

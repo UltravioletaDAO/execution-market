@@ -7,12 +7,11 @@ from __future__ import annotations
 
 import json
 import os
-import statistics
 import tempfile
 import time
-import pytest
 
 import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "swarm"))
 
 from backtest_bridge import (
@@ -20,17 +19,14 @@ from backtest_bridge import (
     DecisionRecord,
     OutcomeRecord,
     ConfigResult,
-    PairwiseComparison,
-    OverfitResult,
-    BacktestResult,
     DEFAULT_WEIGHTS,
     SIGNAL_NAMES,
-    MIN_PAIRS_FOR_SIGNIFICANCE,
     VERSION,
 )
 
 
 # ── Helpers ──────────────────────────────────────────────────────────
+
 
 def make_signal_scores(
     skill: float = 0.5,
@@ -100,7 +96,9 @@ def generate_dataset(
         d = make_decision(
             task_id=f"task_{i}",
             worker_id=f"worker_{i % 10}",
-            category=["physical_verification", "digital_task", "data_collection"][i % 3],
+            category=["physical_verification", "digital_task", "data_collection"][
+                i % 3
+            ],
             timestamp=base_time + i * 3600,
             signal_scores=scores,
         )
@@ -121,6 +119,7 @@ def generate_dataset(
 # ══════════════════════════════════════════════════════════════════════
 # Initialization
 # ══════════════════════════════════════════════════════════════════════
+
 
 class TestInit:
     def test_fresh_bridge(self):
@@ -144,6 +143,7 @@ class TestInit:
 # ══════════════════════════════════════════════════════════════════════
 # Data Loading
 # ══════════════════════════════════════════════════════════════════════
+
 
 class TestDataLoading:
     def test_load_decisions(self):
@@ -187,6 +187,7 @@ class TestDataLoading:
 # Core Backtest
 # ══════════════════════════════════════════════════════════════════════
 
+
 class TestCoreBacktest:
     def test_empty_run(self):
         bridge = BacktestBridge()
@@ -209,10 +210,12 @@ class TestCoreBacktest:
         bridge.load_decisions(decisions)
         bridge.load_outcomes(outcomes)
 
-        result = bridge.run(configs={
-            "default": DEFAULT_WEIGHTS,
-            "skill_heavy": {**DEFAULT_WEIGHTS, "skill": 0.60},
-        })
+        result = bridge.run(
+            configs={
+                "default": DEFAULT_WEIGHTS,
+                "skill_heavy": {**DEFAULT_WEIGHTS, "skill": 0.60},
+            }
+        )
         assert result.configs_tested == 2
         assert result.best_config in result.config_results
 
@@ -234,10 +237,12 @@ class TestCoreBacktest:
         bridge.load_decisions(decisions)
         bridge.load_outcomes(outcomes)
 
-        result = bridge.run(configs={
-            "a": DEFAULT_WEIGHTS,
-            "b": {**DEFAULT_WEIGHTS, "skill": 0.55},
-        })
+        result = bridge.run(
+            configs={
+                "a": DEFAULT_WEIGHTS,
+                "b": {**DEFAULT_WEIGHTS, "skill": 0.55},
+            }
+        )
         summary = result.summary()
         assert "Backtest" in summary
 
@@ -259,6 +264,7 @@ class TestCoreBacktest:
 # Pairwise Comparisons
 # ══════════════════════════════════════════════════════════════════════
 
+
 class TestPairwiseComparisons:
     def test_pairwise_generated(self):
         bridge = BacktestBridge()
@@ -266,10 +272,12 @@ class TestPairwiseComparisons:
         bridge.load_decisions(decisions)
         bridge.load_outcomes(outcomes)
 
-        result = bridge.run(configs={
-            "a": DEFAULT_WEIGHTS,
-            "b": {**DEFAULT_WEIGHTS, "skill": 0.55},
-        })
+        result = bridge.run(
+            configs={
+                "a": DEFAULT_WEIGHTS,
+                "b": {**DEFAULT_WEIGHTS, "skill": 0.55},
+            }
+        )
         assert len(result.pairwise) > 0
 
     def test_pairwise_min_samples(self):
@@ -278,10 +286,12 @@ class TestPairwiseComparisons:
         bridge.load_decisions(decisions)
         bridge.load_outcomes(outcomes)
 
-        result = bridge.run(configs={
-            "a": DEFAULT_WEIGHTS,
-            "b": {**DEFAULT_WEIGHTS, "skill": 0.55},
-        })
+        result = bridge.run(
+            configs={
+                "a": DEFAULT_WEIGHTS,
+                "b": {**DEFAULT_WEIGHTS, "skill": 0.55},
+            }
+        )
         assert len(result.pairwise) == 0
 
     def test_identical_configs(self):
@@ -290,10 +300,12 @@ class TestPairwiseComparisons:
         bridge.load_decisions(decisions)
         bridge.load_outcomes(outcomes)
 
-        result = bridge.run(configs={
-            "a": dict(DEFAULT_WEIGHTS),
-            "b": dict(DEFAULT_WEIGHTS),
-        })
+        result = bridge.run(
+            configs={
+                "a": dict(DEFAULT_WEIGHTS),
+                "b": dict(DEFAULT_WEIGHTS),
+            }
+        )
         for p in result.pairwise:
             assert abs(p.mean_diff) < 0.001
 
@@ -303,11 +315,13 @@ class TestPairwiseComparisons:
         bridge.load_decisions(decisions)
         bridge.load_outcomes(outcomes)
 
-        result = bridge.run(configs={
-            "a": DEFAULT_WEIGHTS,
-            "b": {**DEFAULT_WEIGHTS, "skill": 0.60},
-            "c": {**DEFAULT_WEIGHTS, "reputation": 0.50},
-        })
+        result = bridge.run(
+            configs={
+                "a": DEFAULT_WEIGHTS,
+                "b": {**DEFAULT_WEIGHTS, "skill": 0.60},
+                "c": {**DEFAULT_WEIGHTS, "reputation": 0.50},
+            }
+        )
         assert len(result.pairwise) == 3
 
     def test_pairwise_serialization(self):
@@ -316,10 +330,12 @@ class TestPairwiseComparisons:
         bridge.load_decisions(decisions)
         bridge.load_outcomes(outcomes)
 
-        result = bridge.run(configs={
-            "a": DEFAULT_WEIGHTS,
-            "b": {**DEFAULT_WEIGHTS, "skill": 0.60},
-        })
+        result = bridge.run(
+            configs={
+                "a": DEFAULT_WEIGHTS,
+                "b": {**DEFAULT_WEIGHTS, "skill": 0.60},
+            }
+        )
         for p in result.pairwise:
             d = p.to_dict()
             assert "significant" in d
@@ -329,6 +345,7 @@ class TestPairwiseComparisons:
 # ══════════════════════════════════════════════════════════════════════
 # Overfitting Detection
 # ══════════════════════════════════════════════════════════════════════
+
 
 class TestOverfitDetection:
     def test_overfit_needs_data(self):
@@ -374,6 +391,7 @@ class TestOverfitDetection:
 # Ablation Study
 # ══════════════════════════════════════════════════════════════════════
 
+
 class TestAblationStudy:
     def test_ablation_empty(self):
         bridge = BacktestBridge()
@@ -399,12 +417,13 @@ class TestAblationStudy:
 
         results = bridge.ablation_study()
         for i in range(len(results) - 1):
-            assert results[i]["importance"] >= results[i+1]["importance"]
+            assert results[i]["importance"] >= results[i + 1]["importance"]
 
 
 # ══════════════════════════════════════════════════════════════════════
 # Category Analysis
 # ══════════════════════════════════════════════════════════════════════
+
 
 class TestCategoryAnalysis:
     def test_best_per_category(self):
@@ -413,10 +432,12 @@ class TestCategoryAnalysis:
         bridge.load_decisions(decisions)
         bridge.load_outcomes(outcomes)
 
-        result = bridge.best_config_per_category(configs={
-            "default": DEFAULT_WEIGHTS,
-            "alt": {**DEFAULT_WEIGHTS, "skill": 0.55},
-        })
+        result = bridge.best_config_per_category(
+            configs={
+                "default": DEFAULT_WEIGHTS,
+                "alt": {**DEFAULT_WEIGHTS, "skill": 0.55},
+            }
+        )
         assert isinstance(result, dict)
 
     def test_category_metrics_in_result(self):
@@ -433,6 +454,7 @@ class TestCategoryAnalysis:
 # ══════════════════════════════════════════════════════════════════════
 # Data Structures
 # ══════════════════════════════════════════════════════════════════════
+
 
 class TestDataStructures:
     def test_decision_record_roundtrip(self):
@@ -457,15 +479,19 @@ class TestDataStructures:
 
     def test_config_result_improvement_ratio(self):
         cr = ConfigResult(
-            config_name="test", weights=DEFAULT_WEIGHTS,
-            better_picks=10, worse_picks=5,
+            config_name="test",
+            weights=DEFAULT_WEIGHTS,
+            better_picks=10,
+            worse_picks=5,
         )
         assert abs(cr.improvement_ratio - 2.0) < 0.001
 
     def test_config_result_no_worse(self):
         cr = ConfigResult(
-            config_name="test", weights=DEFAULT_WEIGHTS,
-            better_picks=5, worse_picks=0,
+            config_name="test",
+            weights=DEFAULT_WEIGHTS,
+            better_picks=5,
+            worse_picks=0,
         )
         assert cr.improvement_ratio == float("inf")
 
@@ -473,6 +499,7 @@ class TestDataStructures:
 # ══════════════════════════════════════════════════════════════════════
 # Persistence
 # ══════════════════════════════════════════════════════════════════════
+
 
 class TestPersistence:
     def test_save_empty(self):
@@ -509,6 +536,7 @@ class TestPersistence:
 # Health
 # ══════════════════════════════════════════════════════════════════════
 
+
 class TestHealth:
     def test_health_with_data(self):
         bridge = BacktestBridge()
@@ -526,6 +554,7 @@ class TestHealth:
 # Edge Cases
 # ══════════════════════════════════════════════════════════════════════
 
+
 class TestEdgeCases:
     def test_all_successes(self):
         bridge = BacktestBridge()
@@ -540,7 +569,9 @@ class TestEdgeCases:
         bridge = BacktestBridge()
         for i in range(20):
             bridge.add_decision(make_decision(task_id=f"t_{i}"))
-            bridge.add_outcome(make_outcome(task_id=f"t_{i}", outcome="failure", quality_score=0))
+            bridge.add_outcome(
+                make_outcome(task_id=f"t_{i}", outcome="failure", quality_score=0)
+            )
 
         result = bridge.run(configs={"default": DEFAULT_WEIGHTS})
         assert result.config_results["default"].success_rate == 0.0
@@ -586,6 +617,7 @@ class TestEdgeCases:
 # Stress Tests
 # ══════════════════════════════════════════════════════════════════════
 
+
 class TestStress:
     def test_large_dataset(self):
         bridge = BacktestBridge()
@@ -593,11 +625,13 @@ class TestStress:
         bridge.load_decisions(decisions)
         bridge.load_outcomes(outcomes)
 
-        result = bridge.run(configs={
-            "a": DEFAULT_WEIGHTS,
-            "b": {**DEFAULT_WEIGHTS, "skill": 0.55},
-            "c": {**DEFAULT_WEIGHTS, "reputation": 0.40},
-        })
+        result = bridge.run(
+            configs={
+                "a": DEFAULT_WEIGHTS,
+                "b": {**DEFAULT_WEIGHTS, "skill": 0.55},
+                "c": {**DEFAULT_WEIGHTS, "reputation": 0.40},
+            }
+        )
         assert result.matched_pairs == 500
         assert result.duration_ms < 5000
 
@@ -607,7 +641,9 @@ class TestStress:
         bridge.load_decisions(decisions)
         bridge.load_outcomes(outcomes)
 
-        configs = {f"c_{i}": {**DEFAULT_WEIGHTS, "skill": 0.1 + i * 0.05} for i in range(10)}
+        configs = {
+            f"c_{i}": {**DEFAULT_WEIGHTS, "skill": 0.1 + i * 0.05} for i in range(10)
+        }
         result = bridge.run(configs=configs)
         assert result.configs_tested == 10
         assert len(result.pairwise) == 45
@@ -616,6 +652,7 @@ class TestStress:
 # ══════════════════════════════════════════════════════════════════════
 # Results History
 # ══════════════════════════════════════════════════════════════════════
+
 
 class TestResultsHistory:
     def test_history_accumulates(self):

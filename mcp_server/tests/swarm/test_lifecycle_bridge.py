@@ -19,7 +19,6 @@ Tests for LifecycleBridge — Checkpoint-based routing intelligence.
 import time
 from datetime import datetime, timezone, timedelta
 
-import pytest
 
 # Handle Python 3.9 vs 3.11+
 try:
@@ -27,7 +26,6 @@ try:
 except ImportError:
     UTC = timezone.utc
 
-import sys
 import os
 import importlib
 
@@ -138,7 +136,9 @@ def make_partial_checkpoint(
     return cp
 
 
-def make_cancelled_checkpoint(task_id: str = "task_003", agent_id: str = "2106") -> dict:
+def make_cancelled_checkpoint(
+    task_id: str = "task_003", agent_id: str = "2106"
+) -> dict:
     return {
         "task_id": task_id,
         "agent_id_resolved": agent_id,
@@ -174,10 +174,17 @@ def make_cancelled_checkpoint(task_id: str = "task_003", agent_id: str = "2106")
 class TestWorkerSignal:
     def test_to_dict(self):
         signal = WorkerSignal(
-            worker_id="w1", tasks_assigned=5, evidence_rate=0.8,
-            approval_rate=0.7, avg_evidence_minutes=30.0, has_erc8004=True,
-            reputation_engagement=0.6, lifecycle_score=75.0,
-            risk_factors=[], recommendation="good_match", confidence=0.8,
+            worker_id="w1",
+            tasks_assigned=5,
+            evidence_rate=0.8,
+            approval_rate=0.7,
+            avg_evidence_minutes=30.0,
+            has_erc8004=True,
+            reputation_engagement=0.6,
+            lifecycle_score=75.0,
+            risk_factors=[],
+            recommendation="good_match",
+            confidence=0.8,
         )
         d = signal.to_dict()
         assert d["worker_id"] == "w1"
@@ -186,10 +193,16 @@ class TestWorkerSignal:
 
     def test_none_evidence_time(self):
         signal = WorkerSignal(
-            worker_id="w1", tasks_assigned=1, evidence_rate=0.0,
-            approval_rate=0.0, avg_evidence_minutes=None, has_erc8004=False,
-            reputation_engagement=0.0, lifecycle_score=50.0,
-            risk_factors=["no_lifecycle_history"], recommendation="caution",
+            worker_id="w1",
+            tasks_assigned=1,
+            evidence_rate=0.0,
+            approval_rate=0.0,
+            avg_evidence_minutes=None,
+            has_erc8004=False,
+            reputation_engagement=0.0,
+            lifecycle_score=50.0,
+            risk_factors=["no_lifecycle_history"],
+            recommendation="caution",
             confidence=0.15,
         )
         d = signal.to_dict()
@@ -199,9 +212,13 @@ class TestWorkerSignal:
 class TestAgentProfile:
     def test_to_dict(self):
         profile = AgentProfile(
-            agent_id="2106", total_tasks=10, completion_rate=0.8,
-            full_lifecycle_rate=0.6, avg_time_to_payment_hours=3.5,
-            weakest_stage="reputation", reputation_rate=0.5,
+            agent_id="2106",
+            total_tasks=10,
+            completion_rate=0.8,
+            full_lifecycle_rate=0.6,
+            avg_time_to_payment_hours=3.5,
+            weakest_stage="reputation",
+            reputation_rate=0.5,
             skill_versions=["4.2.0", "4.3.0"],
         )
         d = profile.to_dict()
@@ -210,9 +227,13 @@ class TestAgentProfile:
 
     def test_none_payment_time(self):
         profile = AgentProfile(
-            agent_id="a1", total_tasks=1, completion_rate=0.0,
-            full_lifecycle_rate=0.0, avg_time_to_payment_hours=None,
-            weakest_stage=None, reputation_rate=0.0,
+            agent_id="a1",
+            total_tasks=1,
+            completion_rate=0.0,
+            full_lifecycle_rate=0.0,
+            avg_time_to_payment_hours=None,
+            weakest_stage=None,
+            reputation_rate=0.0,
             skill_versions=[],
         )
         d = profile.to_dict()
@@ -268,7 +289,9 @@ class TestIngestion:
 class TestWorkerSignals:
     def test_complete_worker(self):
         bridge = LifecycleBridge()
-        cps = [make_complete_checkpoint(task_id=f"t{i}", worker_id="w1") for i in range(10)]
+        cps = [
+            make_complete_checkpoint(task_id=f"t{i}", worker_id="w1") for i in range(10)
+        ]
         bridge.ingest(cps)
 
         signal = bridge.worker_signal("w1")
@@ -313,7 +336,9 @@ class TestWorkerSignals:
 
     def test_confidence_scales_with_tasks(self):
         bridge = LifecycleBridge()
-        cps = [make_complete_checkpoint(task_id=f"t{i}", worker_id="w1") for i in range(25)]
+        cps = [
+            make_complete_checkpoint(task_id=f"t{i}", worker_id="w1") for i in range(25)
+        ]
         bridge.ingest(cps)
 
         signal = bridge.worker_signal("w1")
@@ -327,14 +352,19 @@ class TestWorkerSignals:
 
     def test_strong_match_threshold(self):
         bridge = LifecycleBridge()
-        cps = [make_complete_checkpoint(task_id=f"t{i}", worker_id="w1") for i in range(20)]
+        cps = [
+            make_complete_checkpoint(task_id=f"t{i}", worker_id="w1") for i in range(20)
+        ]
         bridge.ingest(cps)
         signal = bridge.worker_signal("w1")
         assert signal.recommendation == "strong_match"
 
     def test_evidence_speed(self):
         bridge = LifecycleBridge()
-        cps = [make_complete_checkpoint(task_id=f"t{i}", worker_id="w1", hours_spread=4.0) for i in range(5)]
+        cps = [
+            make_complete_checkpoint(task_id=f"t{i}", worker_id="w1", hours_spread=4.0)
+            for i in range(5)
+        ]
         bridge.ingest(cps)
         signal = bridge.worker_signal("w1")
         assert signal.avg_evidence_minutes is not None
@@ -472,10 +502,12 @@ class TestCompletionFunnel:
 class TestSummary:
     def test_basic_summary(self):
         bridge = LifecycleBridge()
-        bridge.ingest([
-            make_complete_checkpoint(task_id="t1"),
-            make_cancelled_checkpoint(task_id="t2"),
-        ])
+        bridge.ingest(
+            [
+                make_complete_checkpoint(task_id="t1"),
+                make_cancelled_checkpoint(task_id="t2"),
+            ]
+        )
         s = bridge.summary()
         assert s["total_checkpoints"] == 2
         assert s["completed"] == 1
@@ -595,11 +627,15 @@ class TestEdgeCases:
     def test_multiple_workers_different_speeds(self):
         bridge = LifecycleBridge()
         fast = [
-            make_complete_checkpoint(task_id=f"f{i}", worker_id="fast", hours_spread=2.0)
+            make_complete_checkpoint(
+                task_id=f"f{i}", worker_id="fast", hours_spread=2.0
+            )
             for i in range(5)
         ]
         slow = [
-            make_complete_checkpoint(task_id=f"s{i}", worker_id="slow", hours_spread=8.0)
+            make_complete_checkpoint(
+                task_id=f"s{i}", worker_id="slow", hours_spread=8.0
+            )
             for i in range(5)
         ]
         bridge.ingest(fast + slow)
