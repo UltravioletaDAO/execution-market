@@ -1410,6 +1410,18 @@
     "acquiring": "Obtendo localizacao GPS...",
     "altitude": "Altitude",
     "enableInSettings": "Ative o acesso a localizacao nas configuracoes do navegador",
+    "braveShieldsHint": "Brave: desative Shields (icone do leao) para este site",
+    "hint": {
+      "iosSafari": "Ajustes > Privacidade e Seguranca > Servicos de Localizacao > Safari > selecione \"Enquanto Usa\"",
+      "iosChrome": "Ajustes > Chrome > Localizacao > selecione \"Enquanto Usa o App\"",
+      "iosOther": "Ajustes > Privacidade e Seguranca > Servicos de Localizacao > ative para este navegador",
+      "androidChrome": "Toque no cadeado na barra de endereco > Permissoes > Localizacao > Permitir. Tambem: Configuracoes > Localizacao ativada",
+      "androidSamsung": "Toque no cadeado > Config. do site > Localizacao > Permitir. Tambem: Configuracoes > Localizacao ativada",
+      "androidOther": "Verifique permissoes do navegador e confirme que Configuracoes > Localizacao esta ativada",
+      "brave": "Toque no icone Shields (leao) e desative para este site, depois recarregue",
+      "firefox": "Toque no cadeado na barra de endereco > Limpar permissao e permitir novamente",
+      "desktop": "Clique no cadeado na barra de endereco > Config. do site > Localizacao > Permitir"
+    },
     "error": "Erro ao obter localizacao",
     "excellent": "Excelente",
     "fair": "Razoavel",
@@ -1429,7 +1441,10 @@
     "tracking": "Rastreando localizacao em tempo real",
     "tryAgain": "Tente novamente",
     "unavailable": "Localizacao indisponivel",
-    "waitMessage": "Isso pode levar alguns segundos"
+    "waitMessage": "Isso pode levar alguns segundos",
+    "showCoordinates": "Mostrar coordenadas",
+    "hideCoordinates": "Ocultar coordenadas",
+    "locationAcquired": "Localizacao obtida"
   },
   "payment": {
     "awaitingEscrow": "Aguardando deposito em escrow",

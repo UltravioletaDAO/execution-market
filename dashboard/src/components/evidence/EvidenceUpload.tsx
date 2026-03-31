@@ -461,10 +461,10 @@ export function EvidenceUpload({
   // Render capture mode
   const renderCaptureMode = () => (
     <div className="space-y-4">
-      {/* GPS Status */}
+      {/* GPS Status — errors stay inside GPSCapture's own UI (has retry button).
+           Only propagate upload errors to the parent form, not GPS permission errors. */}
       <GPSCapture
         onPositionChange={handleGpsUpdate}
-        onError={(err) => onError?.(err)}
         highAccuracy
         watchMode={requireGps || currentEvidenceType === 'photo_geo'}
         minAccuracy={taskLocation?.radiusKm ? taskLocation.radiusKm * 500 : undefined}

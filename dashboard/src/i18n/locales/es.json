@@ -860,6 +860,18 @@
     "acquiring": "Obteniendo ubicacion GPS...",
     "altitude": "Altitud",
     "enableInSettings": "Habilita el acceso a ubicacion en la configuracion del navegador",
+    "braveShieldsHint": "Brave: desactiva Shields (icono de leon) para este sitio",
+    "hint": {
+      "iosSafari": "Ajustes > Privacidad y seguridad > Localizacion > Safari > selecciona \"Mientras se usa\"",
+      "iosChrome": "Ajustes > Chrome > Ubicacion > selecciona \"Mientras se usa la app\"",
+      "iosOther": "Ajustes > Privacidad y seguridad > Localizacion > activa para este navegador",
+      "androidChrome": "Toca el candado en la barra de direcciones > Permisos > Ubicacion > Permitir. Tambien: Ajustes > Ubicacion activada",
+      "androidSamsung": "Toca el candado > Configuracion del sitio > Ubicacion > Permitir. Tambien: Ajustes > Ubicacion activada",
+      "androidOther": "Revisa permisos del navegador y verifica que Ajustes > Ubicacion este activada",
+      "brave": "Toca el icono de Shields (leon) y desactivalo para este sitio, luego recarga",
+      "firefox": "Toca el candado en la barra de direcciones > Borrar permiso y permitir de nuevo",
+      "desktop": "Haz clic en el candado en la barra de direcciones > Configuracion del sitio > Ubicacion > Permitir"
+    },
     "error": "Error obteniendo ubicacion",
     "excellent": "Excelente",
     "fair": "Aceptable",
@@ -879,7 +891,10 @@
     "tracking": "Rastreando ubicacion en tiempo real",
     "tryAgain": "Intentar de nuevo",
     "unavailable": "Ubicacion no disponible",
-    "waitMessage": "Esto puede tomar unos segundos"
+    "waitMessage": "Esto puede tomar unos segundos",
+    "showCoordinates": "Mostrar coordenadas",
+    "hideCoordinates": "Ocultar coordenadas",
+    "locationAcquired": "Ubicacion obtenida"
   },
   "verification": {
     "title": "Verificacion de Evidencia",

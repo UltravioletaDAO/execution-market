@@ -1458,6 +1458,18 @@
     "acquiring": "Acquiring GPS location...",
     "altitude": "Altitude",
     "enableInSettings": "Enable location access in your browser settings",
+    "braveShieldsHint": "Brave: disable Shields (lion icon) for this site",
+    "hint": {
+      "iosSafari": "Settings > Privacy & Security > Location Services > Safari Websites > set to \"While Using\"",
+      "iosChrome": "Settings > Chrome > Location > set to \"While Using the App\"",
+      "iosOther": "Settings > Privacy & Security > Location Services > enable for this browser",
+      "androidChrome": "Tap the lock icon in the address bar > Permissions > Location > Allow. Also check: Settings > Location is ON",
+      "androidSamsung": "Tap the lock icon > Site settings > Location > Allow. Also check: Settings > Location is ON",
+      "androidOther": "Check browser permissions and verify Settings > Location is ON",
+      "brave": "Tap the Brave Shields (lion icon) and disable it for this site, then reload",
+      "firefox": "Tap the lock icon in the address bar > Clear permission and allow again",
+      "desktop": "Click the lock icon in the address bar > Site settings > Location > Allow"
+    },
     "error": "Error obtaining location",
     "excellent": "Excellent",
     "fair": "Fair",
@@ -1477,7 +1489,10 @@
     "tracking": "Tracking location in real-time",
     "tryAgain": "Try again",
     "unavailable": "Location unavailable",
-    "waitMessage": "This may take a few seconds"
+    "waitMessage": "This may take a few seconds",
+    "showCoordinates": "Show coordinates",
+    "hideCoordinates": "Hide coordinates",
+    "locationAcquired": "Location acquired"
   },
   "payment": {
     "awaitingEscrow": "Awaiting escrow deposit",

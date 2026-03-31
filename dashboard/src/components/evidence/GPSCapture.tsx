@@ -5,8 +5,9 @@
  * Shows accuracy indicator, mini map preview, and handles permission states.
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { detectGpsPlatform, getPermissionHintKey } from '../../utils/gpsPermissionHint'
 
 export interface GPSPosition {
   latitude: number
@@ -66,6 +67,10 @@ export function GPSCapture({
   const [error, setError] = useState<string | null>(null)
   const [permissionStatus, setPermissionStatus] = useState<PermissionStatus>('unknown')
   const [isSupported] = useState(() => 'geolocation' in navigator)
+  const [showCoords, setShowCoords] = useState(false)
+
+  // Detect platform once for permission-denied hints
+  const platformHintKey = useMemo(() => getPermissionHintKey(detectGpsPlatform()), [])
 
   // Check permission status on mount
   useEffect(() => {
@@ -291,9 +296,15 @@ export function GPSCapture({
         ) : position ? (
           <div className="flex items-center gap-2">
             <div className={`w-2 h-2 rounded-full ${getAccuracyQuality(position.accuracy).bgColor}`} />
-            <span className="text-xs text-gray-600 dark:text-gray-400">
-              {position.latitude.toFixed(4)}, {position.longitude.toFixed(4)}
-            </span>
+            {showCoords ? (
+              <button type="button" onClick={() => setShowCoords(false)} className="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-mono">
+                {position.latitude.toFixed(4)}, {position.longitude.toFixed(4)}
+              </button>
+            ) : (
+              <button type="button" onClick={() => setShowCoords(true)} className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                {t('gps.showCoordinates', 'Show coordinates')}
+              </button>
+            )}
             <span className={`text-xs ${getAccuracyQuality(position.accuracy).color}`}>
               (+/-{position.accuracy.toFixed(0)}m)
             </span>
@@ -349,8 +360,8 @@ export function GPSCapture({
 
       {/* Main content */}
       <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-        {/* Map preview */}
-        {showMap && position && (
+        {/* Map preview — only visible when user explicitly shows coordinates */}
+        {showMap && position && showCoords && (
           <div className="relative h-32 bg-gray-100 dark:bg-gray-800">
             <img
               src={getMapUrl(position.latitude, position.longitude)}
@@ -368,7 +379,10 @@ export function GPSCapture({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                 </svg>
                 <p className="text-xs text-gray-500 mt-1">
-                  {position.latitude.toFixed(5)}, {position.longitude.toFixed(5)}
+                  {showCoords
+                    ? `${position.latitude.toFixed(5)}, ${position.longitude.toFixed(5)}`
+                    : t('gps.locationAcquired', 'Location acquired')
+                  }
                 </p>
               </div>
             </div>
@@ -424,9 +438,27 @@ export function GPSCapture({
           <div className="p-3 bg-white dark:bg-gray-800">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-mono text-gray-700 dark:text-gray-300">
-                  {position.latitude.toFixed(6)}, {position.longitude.toFixed(6)}
-                </p>
+                {showCoords ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowCoords(false)}
+                    className="text-sm font-mono text-gray-700 dark:text-gray-300 hover:text-gray-500"
+                  >
+                    {position.latitude.toFixed(6)}, {position.longitude.toFixed(6)}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowCoords(true)}
+                    className="flex items-center gap-1.5 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    {t('gps.showCoordinates', 'Show coordinates')}
+                  </button>
+                )}
                 <div className="flex items-center gap-2 mt-1">
                   {/* Accuracy indicator */}
                   <div className={`flex items-center gap-1 text-xs ${getAccuracyQuality(position.accuracy).color}`}>
@@ -435,8 +467,8 @@ export function GPSCapture({
                     <span className="font-medium">({getAccuracyQuality(position.accuracy).label})</span>
                   </div>
                 </div>
-                {/* Altitude if available */}
-                {position.altitude !== undefined && (
+                {/* Altitude if available — only when coords visible */}
+                {showCoords && position.altitude !== undefined && (
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                     {t('gps.altitude', 'Altitud')}: {position.altitude.toFixed(0)}m
                     {position.altitudeAccuracy && ` (+/-${position.altitudeAccuracy.toFixed(0)}m)`}
@@ -484,9 +516,10 @@ export function GPSCapture({
               <div className="flex-1">
                 <p className="text-sm font-medium">{error}</p>
                 {permissionStatus === 'denied' && (
-                  <p className="text-xs mt-1 text-gray-500 dark:text-gray-400">
-                    {t('gps.enableInSettings', 'Habilita el acceso a ubicacion en la configuracion del navegador')}
-                  </p>
+                  <div className="text-xs mt-2 text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 rounded-md p-2 space-y-1">
+                    <p className="font-medium">{t('gps.enableInSettings', 'Habilita el acceso a ubicacion en la configuracion del navegador')}:</p>
+                    <p className="text-amber-700 dark:text-amber-400">{t(platformHintKey)}</p>
+                  </div>
                 )}
               </div>
             </div>

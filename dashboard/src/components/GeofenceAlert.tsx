@@ -5,8 +5,9 @@
  * location radius. Shows a warning if the user is too far from the task location.
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { detectGpsPlatform, getPermissionHintKey } from '../utils/gpsPermissionHint'
 
 export interface GeofenceAlertProps {
   /** Task location (lat/lng) */
@@ -58,6 +59,7 @@ export function GeofenceAlert({
   const { t } = useTranslation()
   const [state, setState] = useState<GeofenceState>({ status: 'loading' })
   const [dismissed, setDismissed] = useState(false)
+  const platformHintKey = useMemo(() => getPermissionHintKey(detectGpsPlatform()), [])
 
   const radiusMeters = radiusKm * 1000
 
@@ -158,6 +160,17 @@ export function GeofenceAlert({
               {t('geofence.cannotVerify', 'Cannot verify your location')}
             </p>
             <p className="text-xs text-amber-600 mt-1">{state.errorMessage}</p>
+            {state.errorMessage?.includes('denied') && (
+              <p className="text-xs font-medium text-amber-700 mt-1">
+                {t(platformHintKey)}
+              </p>
+            )}
+            <button
+              onClick={checkPosition}
+              className="mt-2 text-xs text-amber-700 hover:text-amber-900 underline"
+            >
+              {t('gps.tryAgain', 'Try again')}
+            </button>
           </div>
           <button
             onClick={() => setDismissed(true)}
