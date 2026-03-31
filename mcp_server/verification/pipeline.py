@@ -315,7 +315,7 @@ def _extract_gps_from_evidence(evidence: Dict[str, Any]) -> tuple:
                 return float(lat), float(lng)
             except (TypeError, ValueError):
                 pass
-        # Check nested metadata
+        # Check nested metadata (direct coords or nested .gps object)
         metadata = photo_geo.get("metadata") or {}
         lat = metadata.get("lat") or metadata.get("latitude")
         lng = metadata.get("lng") or metadata.get("longitude") or metadata.get("lon")
@@ -324,9 +324,19 @@ def _extract_gps_from_evidence(evidence: Dict[str, Any]) -> tuple:
                 return float(lat), float(lng)
             except (TypeError, ValueError):
                 pass
+        # Frontend sends evidence[type].metadata.gps = {latitude, longitude, accuracy}
+        meta_gps = metadata.get("gps")
+        if isinstance(meta_gps, dict):
+            lat = meta_gps.get("lat") or meta_gps.get("latitude")
+            lng = meta_gps.get("lng") or meta_gps.get("longitude") or meta_gps.get("lon")
+            if lat is not None and lng is not None:
+                try:
+                    return float(lat), float(lng)
+                except (TypeError, ValueError):
+                    pass
 
-    # Check nested .gps inside any evidence type (mobile app sends
-    # evidence.photo.gps or evidence.photo_geo.gps with {lat, lng, accuracy})
+    # Check nested .gps or .metadata.gps inside any evidence type
+    # Mobile app sends evidence.photo.gps, web dashboard sends evidence.photo.metadata.gps
     for key in ("photo", "photo_geo", "screenshot", "document", "receipt", "video"):
         item = evidence.get(key)
         if isinstance(item, dict):
@@ -343,6 +353,22 @@ def _extract_gps_from_evidence(evidence: Dict[str, Any]) -> tuple:
                         return float(lat), float(lng)
                     except (TypeError, ValueError):
                         pass
+            # Web dashboard: evidence[type].metadata.gps = {latitude, longitude}
+            item_meta = item.get("metadata")
+            if isinstance(item_meta, dict):
+                meta_gps = item_meta.get("gps")
+                if isinstance(meta_gps, dict):
+                    lat = meta_gps.get("lat") or meta_gps.get("latitude")
+                    lng = (
+                        meta_gps.get("lng")
+                        or meta_gps.get("longitude")
+                        or meta_gps.get("lon")
+                    )
+                    if lat is not None and lng is not None:
+                        try:
+                            return float(lat), float(lng)
+                        except (TypeError, ValueError):
+                            pass
 
     # Check forensic metadata (from frontend collectForensicMetadata)
     forensics = evidence.get("forensic_metadata") or evidence.get("device_info") or {}
