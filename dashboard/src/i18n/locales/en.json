@@ -478,7 +478,11 @@
     "filename": "File",
     "fileSize": "Size",
     "file": "File",
-    "agentNotes": "Agent notes"
+    "agentNotes": "Agent notes",
+    "awaitingReview": "Awaiting agent review",
+    "awaitingReviewDesc": "Your evidence has been submitted and is pending approval by the task publisher.",
+    "evidenceApproved": "Evidence approved",
+    "evidenceRejected": "Evidence rejected"
   },
   "geofence": {
     "checking": "Checking your location...",

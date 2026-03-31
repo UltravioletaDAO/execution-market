@@ -877,6 +877,33 @@ export function TaskDetail({
                     </div>
                   )}
 
+                  {/* Agent verdict status */}
+                  {sub.agent_verdict === 'approved' || task.status === 'completed' ? (
+                    <div className="mt-2 flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                      <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-xs font-medium text-green-700">{t('submission.evidenceApproved', 'Evidence approved')}</span>
+                    </div>
+                  ) : sub.agent_verdict === 'rejected' ? (
+                    <div className="mt-2 flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded-lg">
+                      <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-xs font-medium text-red-700">{t('submission.evidenceRejected', 'Evidence rejected')}</span>
+                    </div>
+                  ) : (
+                    <div className="mt-2 flex items-center gap-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                      <svg className="w-5 h-5 text-amber-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div>
+                        <span className="text-xs font-medium text-amber-800">{t('submission.awaitingReview', 'Awaiting agent review')}</span>
+                        <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse inline-block ml-2" />
+                      </div>
+                    </div>
+                  )}
+
                   {/* Agent notes — italic quote block */}
                   {sub.agent_notes && (
                     <div className="mt-3 border-l-4 border-blue-300 bg-blue-50 rounded-r-lg px-4 py-3">

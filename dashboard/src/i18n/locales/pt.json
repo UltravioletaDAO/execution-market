@@ -466,7 +466,11 @@
     "waitingReview": "Aguardando revisao. Verificando status automaticamente...",
     "polling": "Atualizando a cada 5s",
     "statusUpdated": "Status Atualizado",
-    "newStatus": "Status da tarefa: {{status}}"
+    "newStatus": "Status da tarefa: {{status}}",
+    "awaitingReview": "Aguardando revisao do agente",
+    "awaitingReviewDesc": "Sua evidencia foi enviada e esta pendente de aprovacao pelo publicador da tarefa.",
+    "evidenceApproved": "Evidencia aprovada",
+    "evidenceRejected": "Evidencia rejeitada"
   },
   "geofence": {
     "checking": "Verificando sua localizacao...",

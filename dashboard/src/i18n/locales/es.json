@@ -502,7 +502,11 @@
     "filename": "Archivo",
     "fileSize": "Peso",
     "file": "Archivo",
-    "agentNotes": "Notas del agente"
+    "agentNotes": "Notas del agente",
+    "awaitingReview": "Esperando revision del agente",
+    "awaitingReviewDesc": "Tu evidencia ha sido enviada y esta pendiente de aprobacion por el publicador de la tarea.",
+    "evidenceApproved": "Evidencia aprobada",
+    "evidenceRejected": "Evidencia rechazada"
   },
   "geofence": {
     "checking": "Verificando tu ubicacion...",
