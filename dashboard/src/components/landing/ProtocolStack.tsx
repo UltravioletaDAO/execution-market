@@ -23,8 +23,8 @@ const protocols = [
   },
   {
     key: 'erc8004',
-    name: 'ERC-8004',
-    standard: 'Identity Registry',
+    name: '8004',
+    standard: 'Identity & Reputation Registry',
     url: 'https://www.8004.org/',
     icon: (
       <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
