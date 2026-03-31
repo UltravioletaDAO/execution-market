@@ -28,7 +28,6 @@ from verification.model_router import (
     HIGH_STAKES_CATEGORIES,
     LOW_STAKES_CATEGORIES,
     ModelSelection,
-    needs_consensus,
     select_tier,
     should_escalate,
 )
@@ -227,79 +226,103 @@ class TestInferenceCostEstimation:
 
 
 class TestTierEscalation:
-    """Tier escalation should correctly promote uncertain results."""
+    """Tier escalation should correctly promote uncertain results (AND logic V3)."""
 
-    def test_tier_1_low_score_escalates(self):
-        """Tier 1 with low score should escalate to Tier 2."""
-        next_tier = should_escalate(tier="tier_1", score=0.70, confidence=0.90)
+    def test_tier_1_both_low_escalates(self):
+        """Tier 1 with both low score AND low confidence should escalate."""
+        next_tier = should_escalate(tier="tier_1", score=0.65, confidence=0.55)
         assert next_tier == "tier_2"
 
-    def test_tier_1_low_confidence_escalates(self):
-        """Tier 1 with low confidence should escalate to Tier 2."""
-        next_tier = should_escalate(tier="tier_1", score=0.95, confidence=0.60)
+    def test_tier_1_safety_valve_very_low_score(self):
+        """Tier 1 with very low score (< 0.30) escalates regardless of confidence."""
+        next_tier = should_escalate(tier="tier_1", score=0.25, confidence=0.90)
         assert next_tier == "tier_2"
+
+    def test_tier_1_only_low_score_no_escalation(self):
+        """Tier 1 with low score but high confidence should NOT escalate (AND logic)."""
+        next_tier = should_escalate(tier="tier_1", score=0.65, confidence=0.75)
+        assert next_tier is None
 
     def test_tier_1_good_results_no_escalation(self):
         """Tier 1 with good results should not escalate."""
         next_tier = should_escalate(tier="tier_1", score=0.95, confidence=0.90)
         assert next_tier is None
 
-    def test_tier_2_low_confidence_escalates_to_3(self):
-        """Tier 2 with low confidence should escalate to Tier 3."""
-        next_tier = should_escalate(tier="tier_2", score=0.50, confidence=0.50)
+    def test_tier_2_both_low_escalates_to_3(self):
+        """Tier 2 with both low score AND confidence should escalate to Tier 3."""
+        next_tier = should_escalate(tier="tier_2", score=0.50, confidence=0.40)
         assert next_tier == "tier_3"
 
-    def test_tier_3_never_escalates(self):
-        """Tier 3 should never escalate (highest tier)."""
+    def test_tier_3_low_confidence_escalates_to_4(self):
+        """Tier 3 with low confidence escalates to Tier 4."""
         next_tier = should_escalate(tier="tier_3", score=0.10, confidence=0.10)
+        assert next_tier == "tier_4"
+
+    def test_tier_3_high_confidence_no_escalation(self):
+        """Tier 3 with high confidence should not escalate."""
+        next_tier = should_escalate(tier="tier_3", score=0.10, confidence=0.70)
+        assert next_tier is None
+
+    def test_tier_4_never_escalates(self):
+        """Tier 4 is terminal — never escalate."""
+        next_tier = should_escalate(tier="tier_4", score=0.10, confidence=0.10)
         assert next_tier is None
 
     def test_escalation_chain(self):
-        """Full escalation: Tier 1 → Tier 2 → Tier 3."""
-        # Start at Tier 1, low score
-        tier = "tier_1"
-        score, confidence = 0.70, 0.60
-
-        next_tier = should_escalate(tier, score, confidence)
+        """Full escalation: Tier 1 → Tier 2 → Tier 3 → Tier 4."""
+        # Start at Tier 1, both low (AND logic satisfied)
+        next_tier = should_escalate("tier_1", score=0.60, confidence=0.50)
         assert next_tier == "tier_2"
 
-        # At Tier 2, still low confidence
-        next_tier = should_escalate("tier_2", score, confidence)
+        # At Tier 2, both low
+        next_tier = should_escalate("tier_2", score=0.50, confidence=0.40)
         assert next_tier == "tier_3"
 
-        # At Tier 3, terminal
-        next_tier = should_escalate("tier_3", score, confidence)
+        # At Tier 3, low confidence
+        next_tier = should_escalate("tier_3", score=0.50, confidence=0.40)
+        assert next_tier == "tier_4"
+
+        # At Tier 4, terminal
+        next_tier = should_escalate("tier_4", score=0.50, confidence=0.40)
         assert next_tier is None
 
 
 # ============================================================================
-# Section 4: Consensus Verification Thresholds
+# Section 4: Consensus via Weighted Average (V3)
 # ============================================================================
 
 
-class TestConsensusThresholds:
-    """Multi-model consensus requirements based on task value."""
+class TestConsensusWeightedAverage:
+    """V3 consensus uses weighted average across tiers tried, not a boolean flag."""
 
-    def test_high_value_needs_consensus(self):
-        """Tasks >= $10 should require multi-model consensus."""
-        assert needs_consensus(bounty_usd=10.0) is True
-        assert needs_consensus(bounty_usd=50.0) is True
-        assert needs_consensus(bounty_usd=100.0) is True
+    def test_model_selection_has_start_and_max_tier(self):
+        """ModelSelection should carry start_tier and max_tier."""
+        sel = select_tier(bounty_usd=5.0, category="simple_action")
+        assert hasattr(sel, "start_tier")
+        assert hasattr(sel, "max_tier")
+        assert sel.start_tier in ("tier_1", "tier_2", "tier_3", "tier_4")
+        assert sel.max_tier in ("tier_1", "tier_2", "tier_3", "tier_4")
 
-    def test_low_value_no_consensus(self):
-        """Tasks < $10 should not require consensus by default."""
-        assert needs_consensus(bounty_usd=0.50) is False
-        assert needs_consensus(bounty_usd=5.0) is False
-        assert needs_consensus(bounty_usd=9.99) is False
+    def test_high_bounty_allows_full_tier_range(self):
+        """$1+ bounty should set max_tier=tier_4 (full escalation allowed)."""
+        sel = select_tier(bounty_usd=5.0, category="simple_action")
+        assert sel.max_tier == "tier_4"
 
-    def test_disputed_always_consensus(self):
-        """Disputed tasks should always require consensus regardless of value."""
-        assert needs_consensus(bounty_usd=0.50, is_disputed=True) is True
+    def test_low_bounty_caps_tier_range(self):
+        """< $0.10 bounty should set max_tier=tier_2 (cheap tasks capped)."""
+        sel = select_tier(bounty_usd=0.05, category="simple_action")
+        assert sel.max_tier == "tier_2"
 
-    def test_consensus_threshold_boundary(self):
-        """Test exact boundary at $10."""
-        assert needs_consensus(bounty_usd=9.99) is False
-        assert needs_consensus(bounty_usd=10.00) is True
+    def test_medium_bounty_caps_at_tier_3(self):
+        """$0.10-$0.99 bounty should set max_tier=tier_3."""
+        sel = select_tier(bounty_usd=0.50, category="simple_action")
+        assert sel.max_tier == "tier_3"
+
+    def test_disputed_bypasses_bounty_cap(self):
+        """Disputed tasks go straight to tier_4 regardless of bounty."""
+        sel = select_tier(bounty_usd=0.05, is_disputed=True)
+        assert sel.start_tier == "tier_4"
+        assert sel.max_tier == "tier_4"
 
 
 # ============================================================================
@@ -489,23 +512,23 @@ class TestEvidenceParserSkillExtraction:
 
 
 class TestCategoryTierAlignmentMatrix:
-    """Comprehensive test of how task categories map to verification tiers."""
+    """Comprehensive test of how task categories map to verification tiers (V3)."""
 
-    @pytest.mark.parametrize("category,min_tier", [
+    @pytest.mark.parametrize("category,min_start_tier", [
         ("physical_presence", "tier_2"),
         ("human_authority", "tier_2"),
         ("bureaucratic", "tier_2"),
         ("emergency", "tier_2"),
     ])
-    def test_high_stakes_min_tier(self, category, min_tier):
-        """High-stakes categories should have minimum tier guarantees."""
+    def test_high_stakes_min_start_tier(self, category, min_start_tier):
+        """High-stakes categories should start at tier_2 minimum."""
         result = select_tier(bounty_usd=0.50, category=category)
-        tier_order = {"tier_1": 1, "tier_2": 2, "tier_3": 3}
-        assert tier_order[result.tier] >= tier_order[min_tier]
+        tier_order = {"tier_1": 1, "tier_2": 2, "tier_3": 3, "tier_4": 4}
+        assert tier_order[result.start_tier] >= tier_order[min_start_tier]
 
     @pytest.mark.parametrize("bounty", [0.10, 0.20, 0.30, 0.49])
-    def test_low_bounty_with_exif_gets_tier_1(self, bounty):
-        """Low-value tasks with EXIF should route to Tier 1."""
+    def test_low_bounty_with_exif_starts_tier_1(self, bounty):
+        """Low-value tasks with EXIF + trusted worker should start at Tier 1."""
         result = select_tier(
             bounty_usd=bounty,
             category="simple_action",
@@ -513,17 +536,16 @@ class TestCategoryTierAlignmentMatrix:
             worker_completed_tasks=20,
             has_exif=True,
         )
-        assert result.tier == "tier_1"
+        assert result.start_tier == "tier_1"
 
     @pytest.mark.parametrize("bounty", [10.0, 15.0, 50.0, 100.0])
-    def test_high_bounty_gets_tier_3(self, bounty):
-        """High-value tasks should always route to Tier 3."""
+    def test_high_bounty_gets_tier_4_max(self, bounty):
+        """High-value tasks ($1+) should have max_tier=tier_4."""
         result = select_tier(bounty_usd=bounty, category="simple_action")
-        assert result.tier == "tier_3"
+        assert result.max_tier == "tier_4"
 
     def test_disputed_overrides_everything(self):
-        """Disputed status should always force Tier 3."""
-        # Even a cheap digital task should go to Tier 3 if disputed
+        """Disputed status should always force Tier 4."""
         result = select_tier(
             bounty_usd=0.10,
             category="data_processing",
@@ -531,17 +553,19 @@ class TestCategoryTierAlignmentMatrix:
             worker_completed_tasks=100,
             is_disputed=True,
         )
-        assert result.tier == "tier_3"
+        assert result.start_tier == "tier_4"
+        assert result.max_tier == "tier_4"
 
-    def test_medium_bounty_gets_tier_2(self):
-        """Medium-value tasks ($1-$9.99) should route to Tier 2."""
+    def test_medium_bounty_starts_tier_1_max_tier_4(self):
+        """Medium-value tasks ($1-$9.99) with trusted worker start tier_1, max tier_4."""
         result = select_tier(
             bounty_usd=5.0,
             category="simple_action",
             worker_reputation=4.0,
             worker_completed_tasks=20,
         )
-        assert result.tier == "tier_2"
+        assert result.start_tier == "tier_1"
+        assert result.max_tier == "tier_4"
 
 
 # ============================================================================
@@ -601,7 +625,7 @@ class TestReputationRoutingIntegration:
         assert result.tier == "tier_2"
 
     def test_reputation_doesnt_override_disputes(self):
-        """Even Diamante workers get Tier 3 for disputed submissions."""
+        """Even Diamante workers get Tier 4 for disputed submissions."""
         result = select_tier(
             bounty_usd=0.30,
             category="simple_action",
@@ -610,10 +634,11 @@ class TestReputationRoutingIntegration:
             has_exif=True,
             is_disputed=True,
         )
-        assert result.tier == "tier_3"
+        assert result.start_tier == "tier_4"
+        assert result.max_tier == "tier_4"
 
     def test_reputation_doesnt_override_high_value(self):
-        """Even Diamante workers get Tier 3 for $10+ tasks."""
+        """Even Diamante workers get tier_4 max for $10+ tasks."""
         result = select_tier(
             bounty_usd=15.0,
             category="simple_action",
@@ -621,15 +646,15 @@ class TestReputationRoutingIntegration:
             worker_completed_tasks=200,
             has_exif=True,
         )
-        assert result.tier == "tier_3"
+        assert result.max_tier == "tier_4"
 
     def test_no_reputation_data_defaults_safely(self):
-        """Missing reputation data should default to reasonable tier."""
+        """Missing reputation data should default to tier_1 start (standard routing)."""
         result = select_tier(
             bounty_usd=0.50,
             category="simple_action",
             worker_reputation=None,
             worker_completed_tasks=None,
         )
-        # Should be at least Tier 2 (no trust data = cautious)
-        assert result.tier in ("tier_2", "tier_3")
+        # No risk signals (rep=None doesn't trigger < 3.0 check) → tier_1 start
+        assert result.start_tier == "tier_1"

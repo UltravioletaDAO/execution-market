@@ -848,7 +848,8 @@ class TestMergePhaseB:
 
 class TestCommitmentHash:
     @pytest.mark.asyncio
-    async def test_commitment_hash_computed(self, monkeypatch):
+    async def test_tier_routing_details_in_result(self, monkeypatch):
+        """CheckResult details include tier routing metadata (V3 structure)."""
         monkeypatch.setenv("GOOGLE_API_KEY", "test-key")
 
         from verification.background_runner import _run_ai_semantic_check
@@ -872,11 +873,16 @@ class TestCommitmentHash:
                 _make_task(), {"photo": "url"}, ["https://example.com/img.jpg"]
             )
 
-        assert result.details.get("commitment_hash")
-        assert result.details["commitment_hash"].startswith("0x")
+        # V3: details carry tier routing metadata, not commitment_hash
+        assert "tiers_tried" in result.details
+        assert "consensus_type" in result.details
+        assert "start_tier" in result.details
+        assert "max_tier" in result.details
+        assert "routing_reason" in result.details
 
     @pytest.mark.asyncio
-    async def test_commitment_hash_deterministic(self, monkeypatch):
+    async def test_tier_routing_deterministic(self, monkeypatch):
+        """Same inputs should produce same tier routing decisions."""
         monkeypatch.setenv("GOOGLE_API_KEY", "test-key")
 
         from verification.background_runner import _run_ai_semantic_check
@@ -902,7 +908,9 @@ class TestCommitmentHash:
                 _make_task(), {}, ["https://example.com/img.jpg"]
             )
 
-        assert result1.details["commitment_hash"] == result2.details["commitment_hash"]
+        assert result1.details["start_tier"] == result2.details["start_tier"]
+        assert result1.details["max_tier"] == result2.details["max_tier"]
+        assert result1.details["consensus_type"] == result2.details["consensus_type"]
 
 
 # ---------------------------------------------------------------------------

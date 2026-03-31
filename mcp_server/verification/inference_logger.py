@@ -24,19 +24,23 @@ logger = logging.getLogger(__name__)
 
 COST_PER_1M_TOKENS: Dict[str, Dict[str, float]] = {
     # (provider, model) -> {"input": $/1M, "output": $/1M}
-    # Gemini
+    # --- Tier 1: Lightweight / Flash models ---
     "gemini:gemini-2.5-flash": {"input": 0.15, "output": 0.60},
-    "gemini:gemini-2.5-pro": {"input": 1.25, "output": 5.00},
-    # Anthropic — Claude 4.5/4.6
+    "gemini:gemini-2.5-flash-lite": {"input": 0.10, "output": 0.40},
+    "openai:gpt-4o-mini": {"input": 0.15, "output": 0.60},
+    "openai:gpt-4.1-nano": {"input": 0.10, "output": 0.40},
+    # --- Tier 2: Mid-range models ---
+    "openai:gpt-4.1-mini": {"input": 0.40, "output": 1.60},
     "anthropic:claude-haiku-4-5-20251001": {"input": 0.80, "output": 4.00},
+    "gemini:gemini-2.5-pro": {"input": 1.25, "output": 5.00},
+    # --- Tier 3: Frontier models ---
+    "openai:gpt-4.1": {"input": 2.00, "output": 8.00},
+    "openai:gpt-4o": {"input": 2.50, "output": 10.00},
     "anthropic:claude-sonnet-4-6-20250627": {"input": 3.00, "output": 15.00},
     "anthropic:claude-sonnet-4-20250514": {"input": 3.00, "output": 15.00},
     "anthropic:claude-opus-4-6-20250627": {"input": 15.00, "output": 75.00},
     "anthropic:claude-opus-4-20250514": {"input": 15.00, "output": 75.00},
-    # OpenAI
-    "openai:gpt-4o": {"input": 2.50, "output": 10.00},
-    "openai:gpt-4o-mini": {"input": 0.15, "output": 0.60},
-    # Bedrock
+    # --- Bedrock variants ---
     "bedrock:anthropic.claude-sonnet-4-6-v1:0": {"input": 3.00, "output": 15.00},
     "bedrock:anthropic.claude-opus-4-6-v1:0": {"input": 15.00, "output": 75.00},
 }
@@ -74,7 +78,7 @@ class InferenceRecord:
     submission_id: str
     task_id: str
     check_name: str  # 'ai_semantic', 'tampering', etc.
-    tier: str  # 'tier_0', 'tier_1', 'tier_2', 'tier_3'
+    tier: str  # 'tier_0', 'tier_1', 'tier_2', 'tier_3', 'tier_4'
     provider: str
     model: str
     prompt_version: str  # 'photint-v1.0-physical_presence'

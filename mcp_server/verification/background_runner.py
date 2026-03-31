@@ -9,6 +9,7 @@ Never blocks the HTTP response — failures are logged, not raised.
 """
 
 import asyncio
+import dataclasses
 import logging
 import os
 from typing import Any, Dict, List, Optional, Tuple
@@ -37,6 +38,9 @@ VERIFICATION_AUTO_APPROVE = os.environ.get(
     "yes",
 )
 VERIFICATION_AI_MAX_IMAGES = int(os.environ.get("VERIFICATION_AI_MAX_IMAGES", "2"))
+
+# Consensus weights: higher tiers have more authority
+TIER_WEIGHTS = {"tier_1": 1.0, "tier_2": 2.0, "tier_3": 3.0, "tier_4": 4.0}
 
 
 async def run_phase_b_verification(
@@ -382,7 +386,7 @@ async def _run_ai_semantic_check(
             compute_commitment_hash,
             get_inference_logger,
         )
-        from .model_router import select_tier, should_escalate
+        from .model_router import select_tier, should_escalate, tier_exceeds
         from .prompts import get_prompt_library
         from .providers import get_provider_for_tier
         from .providers_aws import analyze_with_rekognition
@@ -445,18 +449,22 @@ async def _run_ai_semantic_check(
         selection = select_tier(
             bounty_usd=bounty,
             category=category,
+            worker_reputation=task.get("executor_reputation"),
+            worker_completed_tasks=task.get("executor_completed_tasks"),
+            is_disputed=task.get("status") == "disputed",
             has_exif=has_exif,
             photo_count=len(photo_urls[:VERIFICATION_AI_MAX_IMAGES]),
         )
-        current_tier = selection.tier
+        current_tier = selection.start_tier
         logger.info(
-            "Model routing for %s: %s — %s",
+            "Model routing for %s: %s (max=%s) — %s",
             submission_id,
             current_tier,
+            selection.max_tier,
             selection.reason,
         )
 
-        # --- Step 4: Run verification (with escalation) ---
+        # --- Step 4: Run verification (with escalation + consensus) ---
         inference_logger = get_inference_logger()
         prompt_lib = get_prompt_library()
         pv = (
@@ -465,11 +473,10 @@ async def _run_ai_semantic_check(
             else f"photint-v1.0-{category}"
         )
 
-        final_result = None
-        final_tier = current_tier
+        tier_results = []  # Collect (tier, score, confidence, result) from all tiers
         tiers_tried = []
 
-        for _attempt in range(3):  # Max 3 escalation attempts
+        for _attempt in range(4):  # Max 4 tiers
             provider = get_provider_for_tier(current_tier)
             if not provider:
                 # Fallback: try default provider
@@ -481,16 +488,29 @@ async def _run_ai_semantic_check(
                 verifier = AIVerifier(provider=provider)
 
             timer = InferenceTimer()
-            with timer:
-                result = await verifier.verify_evidence(
-                    task=task,
-                    evidence=evidence,
-                    photo_urls=photo_urls[:VERIFICATION_AI_MAX_IMAGES],
-                    exif_context=exif_context,
-                    rekognition_context=rekognition_context,
+            try:
+                with timer:
+                    result = await verifier.verify_evidence(
+                        task=task,
+                        evidence=evidence,
+                        photo_urls=photo_urls[:VERIFICATION_AI_MAX_IMAGES],
+                        exif_context=exif_context,
+                        rekognition_context=rekognition_context,
+                    )
+            except Exception as e:
+                logger.warning(
+                    "[AUDIT] Tier %s failed: %s", current_tier, str(e)[:100]
                 )
+                # Don't include failed tier in consensus — try next
+                next_tier = should_escalate(current_tier, 0.0, 0.0)
+                if next_tier is None or tier_exceeds(next_tier, selection.max_tier):
+                    break
+                current_tier = next_tier
+                continue
 
             tiers_tried.append(current_tier)
+            score = _compute_ai_semantic_score(result, evidence=evidence, task=task)
+            tier_results.append((current_tier, score, result.confidence, result))
 
             # Log this inference
             if submission_id:
@@ -527,19 +547,13 @@ async def _run_ai_semantic_check(
                     )
                 )
 
-            final_result = result
-            final_tier = current_tier
-
-            # Check if we should escalate
-            score = _compute_ai_semantic_score(result, evidence=evidence, task=task)
-
+            # Check escalation with max_tier boundary
             next_tier = should_escalate(current_tier, score, result.confidence)
-            if next_tier is None:
-                break  # Confident result, no escalation needed
+            if next_tier is None or tier_exceeds(next_tier, selection.max_tier):
+                break
 
             logger.info(
-                "Escalating %s from %s to %s (score=%.2f, confidence=%.2f)",
-                submission_id,
+                "[AUDIT] Escalating from %s to %s (score=%.2f, conf=%.2f)",
                 current_tier,
                 next_tier,
                 score,
@@ -547,7 +561,45 @@ async def _run_ai_semantic_check(
             )
             current_tier = next_tier
 
-        # --- Step 5: Build final CheckResult ---
+        # --- Step 5: Compute consensus score ---
+        if len(tier_results) == 0:
+            # All tiers failed — return neutral
+            final_score = 0.5
+            final_result = None
+        elif len(tier_results) == 1:
+            final_score = tier_results[0][1]
+            final_result = tier_results[0][3]
+        else:
+            total_w = sum(
+                TIER_WEIGHTS.get(t, 1.0) for t, _, _, _ in tier_results
+            )
+            final_score = (
+                sum(TIER_WEIGHTS.get(t, 1.0) * s for t, s, _, _ in tier_results)
+                / total_w
+            )
+            final_result = tier_results[-1][3]  # Use highest tier's explanation
+
+        # --- Step 6: Detect tier disagreement ---
+        consensus_type = "agreement"
+        if len(tier_results) > 1:
+            scores = [s for _, s, _, _ in tier_results]
+            if max(scores) - min(scores) > 0.30:
+                consensus_type = "disagreement"
+                # When tiers strongly disagree, force human review
+                if (
+                    final_result
+                    and final_result.decision == VerificationDecision.APPROVED
+                ):
+                    final_result = dataclasses.replace(
+                        final_result, decision=VerificationDecision.NEEDS_HUMAN
+                    )
+                    logger.info(
+                        "[AUDIT] Tier disagreement detected (spread=%.2f), "
+                        "forcing NEEDS_HUMAN",
+                        max(scores) - min(scores),
+                    )
+
+        # --- Step 7: Build final CheckResult ---
         if final_result is None:
             return CheckResult(
                 name="ai_semantic",
@@ -557,17 +609,10 @@ async def _run_ai_semantic_check(
                 details={"provider": "none"},
             )
 
-        score = _compute_ai_semantic_score(final_result, evidence=evidence, task=task)
-
-        commitment_hash = compute_commitment_hash(
-            task.get("id", ""),
-            final_result.raw_response or final_result.explanation or "",
-        )
-
         return CheckResult(
             name="ai_semantic",
             passed=final_result.decision == VerificationDecision.APPROVED,
-            score=score,
+            score=round(final_score, 4),
             reason=final_result.explanation,
             details={
                 "decision": final_result.decision.value,
@@ -575,9 +620,13 @@ async def _run_ai_semantic_check(
                 "issues": final_result.issues,
                 "provider": final_result.provider,
                 "model": final_result.model,
-                "commitment_hash": commitment_hash,
-                "tier": final_tier,
                 "tiers_tried": tiers_tried,
+                "tier_scores": {
+                    t: round(s, 4) for t, s, _, _ in tier_results
+                },
+                "consensus_type": consensus_type,
+                "start_tier": selection.start_tier,
+                "max_tier": selection.max_tier,
                 "routing_reason": selection.reason,
             },
         )

@@ -189,25 +189,30 @@ class TestSelectTier:
         from verification.model_router import select_tier
 
         sel = select_tier(bounty_usd=0.10, has_exif=True)
-        assert sel.tier == "tier_1"
+        assert sel.start_tier == "tier_1"
+        assert sel.max_tier == "tier_3"  # $0.10 >= 0.10 → tier_3
+        assert sel.tier == sel.start_tier  # backward compat alias
 
-    def test_medium_value_tier_2(self):
+    def test_medium_value_tier_1_start_tier_4_max(self):
         from verification.model_router import select_tier
 
         sel = select_tier(bounty_usd=1.00)
-        assert sel.tier == "tier_2"
+        assert sel.start_tier == "tier_1"  # standard routing (no risk signals)
+        assert sel.max_tier == "tier_4"  # $1+ → tier_4
 
-    def test_high_value_tier_3(self):
+    def test_high_value_tier_1_start_tier_4_max(self):
         from verification.model_router import select_tier
 
         sel = select_tier(bounty_usd=15.00)
-        assert sel.tier == "tier_3"
+        assert sel.start_tier == "tier_1"  # standard routing
+        assert sel.max_tier == "tier_4"  # $1+ → tier_4
 
-    def test_disputed_always_tier_3(self):
+    def test_disputed_always_tier_4(self):
         from verification.model_router import select_tier
 
         sel = select_tier(bounty_usd=0.05, is_disputed=True)
-        assert sel.tier == "tier_3"
+        assert sel.start_tier == "tier_4"
+        assert sel.max_tier == "tier_4"
 
     @pytest.mark.parametrize(
         "category",
@@ -217,41 +222,57 @@ class TestSelectTier:
         from verification.model_router import select_tier
 
         sel = select_tier(bounty_usd=0.50, category=category)
-        assert sel.tier in ("tier_2", "tier_3")
+        assert sel.start_tier == "tier_2"
+        assert sel.max_tier == "tier_3"  # $0.50 >= 0.10 → tier_3
 
     def test_new_worker_tier_2(self):
         from verification.model_router import select_tier
 
         sel = select_tier(bounty_usd=0.10, worker_completed_tasks=3, has_exif=True)
-        assert sel.tier == "tier_2"
+        assert sel.start_tier == "tier_2"
 
     def test_low_reputation_tier_2(self):
         from verification.model_router import select_tier
 
         sel = select_tier(bounty_usd=0.10, worker_reputation=2.5, has_exif=True)
-        assert sel.tier == "tier_2"
+        assert sel.start_tier == "tier_2"
 
     def test_no_exif_physical_task_tier_2(self):
         from verification.model_router import select_tier
 
         sel = select_tier(bounty_usd=0.10, category="simple_action", has_exif=False)
-        assert sel.tier == "tier_2"
+        assert sel.start_tier == "tier_2"
 
     def test_digital_category_tier_1(self):
         from verification.model_router import select_tier
 
         sel = select_tier(bounty_usd=0.10, category="data_processing", has_exif=True)
-        assert sel.tier == "tier_1"
+        assert sel.start_tier == "tier_1"
 
 
 class TestShouldEscalate:
-    """should_escalate() escalation logic."""
+    """should_escalate() escalation logic — AND logic with safety valve."""
 
-    def test_tier_1_low_score_escalates_to_tier_2(self):
+    def test_tier_1_both_low_escalates_to_tier_2(self):
+        """score < 0.70 AND confidence < 0.60 → escalate."""
         from verification.model_router import should_escalate
 
-        result = should_escalate("tier_1", 0.85, 0.75)
+        result = should_escalate("tier_1", 0.65, 0.55)
         assert result == "tier_2"
+
+    def test_tier_1_safety_valve_very_low_score(self):
+        """score < 0.30 alone → escalate (safety valve)."""
+        from verification.model_router import should_escalate
+
+        result = should_escalate("tier_1", 0.25, 0.90)
+        assert result == "tier_2"
+
+    def test_tier_1_only_low_score_no_escalation(self):
+        """score < 0.70 but confidence >= 0.60 → no escalation (AND logic)."""
+        from verification.model_router import should_escalate
+
+        result = should_escalate("tier_1", 0.65, 0.75)
+        assert result is None
 
     def test_tier_1_high_score_no_escalation(self):
         from verification.model_router import should_escalate
@@ -259,36 +280,46 @@ class TestShouldEscalate:
         result = should_escalate("tier_1", 0.95, 0.90)
         assert result is None
 
-    def test_tier_2_low_confidence_escalates_to_tier_3(self):
+    def test_tier_2_both_low_escalates_to_tier_3(self):
+        """score < 0.60 AND confidence < 0.50 → escalate."""
         from verification.model_router import should_escalate
 
-        result = should_escalate("tier_2", 0.5, 0.60)
+        result = should_escalate("tier_2", 0.50, 0.40)
         assert result == "tier_3"
 
-    def test_tier_3_never_escalates(self):
+    def test_tier_2_safety_valve_very_low_score(self):
+        """score < 0.25 alone → escalate (safety valve)."""
+        from verification.model_router import should_escalate
+
+        result = should_escalate("tier_2", 0.20, 0.90)
+        assert result == "tier_3"
+
+    def test_tier_2_only_low_confidence_no_escalation(self):
+        """confidence < 0.50 but score >= 0.60 → no escalation (AND logic)."""
+        from verification.model_router import should_escalate
+
+        result = should_escalate("tier_2", 0.65, 0.40)
+        assert result is None
+
+    def test_tier_3_low_confidence_escalates_to_tier_4(self):
+        """tier_3 with confidence < 0.50 → escalate to tier_4."""
         from verification.model_router import should_escalate
 
         result = should_escalate("tier_3", 0.3, 0.2)
+        assert result == "tier_4"
+
+    def test_tier_3_high_confidence_no_escalation(self):
+        from verification.model_router import should_escalate
+
+        result = should_escalate("tier_3", 0.3, 0.70)
         assert result is None
 
+    def test_tier_4_never_escalates(self):
+        """tier_4 is terminal — never escalate."""
+        from verification.model_router import should_escalate
 
-class TestNeedsConsensus:
-    """needs_consensus() multi-model check."""
-
-    def test_high_value_needs_consensus(self):
-        from verification.model_router import needs_consensus
-
-        assert needs_consensus(15.0) is True
-
-    def test_low_value_no_consensus(self):
-        from verification.model_router import needs_consensus
-
-        assert needs_consensus(5.0) is False
-
-    def test_disputed_needs_consensus(self):
-        from verification.model_router import needs_consensus
-
-        assert needs_consensus(0.10, is_disputed=True) is True
+        result = should_escalate("tier_4", 0.1, 0.1)
+        assert result is None
 
 
 # ===================================================================
@@ -305,6 +336,7 @@ class TestTierModels:
         assert "tier_1" in TIER_MODELS
         assert "tier_2" in TIER_MODELS
         assert "tier_3" in TIER_MODELS
+        assert "tier_4" in TIER_MODELS
 
     def test_each_tier_has_at_least_two_options(self):
         from verification.providers import TIER_MODELS

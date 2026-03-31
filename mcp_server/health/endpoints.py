@@ -420,7 +420,7 @@ def _resolve_tier_routing() -> Dict[str, Optional[str]]:
             routing[tier] = chosen
         return routing
     except Exception:
-        return {"tier_1": None, "tier_2": None, "tier_3": None}
+        return {"tier_1": None, "tier_2": None, "tier_3": None, "tier_4": None}
 
 
 @router.get(

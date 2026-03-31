@@ -414,6 +414,7 @@ class VerificationAdapter:
             "tier_1": 0.002,
             "tier_2": 0.01,
             "tier_3": 0.05,
+            "tier_4": 0.15,
         }
         return tier_costs.get(tier, 0.002) * photo_count
 

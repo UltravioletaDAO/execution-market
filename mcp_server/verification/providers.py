@@ -369,18 +369,27 @@ def get_provider(
 # ---------------------------------------------------------------------------
 
 # Default models per tier — (provider, model_id)
+# tier_1: cheapest, fastest — bulk screening, low-value tasks
+# tier_2: mid-range — standard verification, balanced cost/quality
+# tier_3: premium — high-value tasks, disputed evidence
+# tier_4: frontier — consensus tiebreakers, critical disputes
 TIER_MODELS = {
     "tier_1": [
-        ("gemini", "gemini-2.5-flash"),
-        ("openai", "gpt-4o"),
-        ("anthropic", "claude-haiku-4-5-20251001"),
+        ("gemini", "gemini-2.5-flash-lite"),
+        ("openai", "gpt-4.1-nano"),
+        ("openai", "gpt-4o-mini"),
     ],
     "tier_2": [
-        ("anthropic", "claude-sonnet-4-6"),
-        ("openai", "gpt-4o"),
-        ("gemini", "gemini-2.5-pro"),
+        ("gemini", "gemini-2.5-flash"),
+        ("openai", "gpt-4.1-mini"),
+        ("anthropic", "claude-haiku-4-5-20251001"),
     ],
     "tier_3": [
+        ("openai", "gpt-4.1"),
+        ("anthropic", "claude-sonnet-4-6"),
+        ("gemini", "gemini-2.5-pro"),
+    ],
+    "tier_4": [
         ("anthropic", "claude-opus-4-6"),
         ("bedrock", "anthropic.claude-opus-4-6-v1:0"),
     ],
@@ -399,7 +408,7 @@ def get_provider_for_tier(
     is available for this tier.
 
     Args:
-        tier: "tier_1", "tier_2", or "tier_3"
+        tier: "tier_1", "tier_2", "tier_3", or "tier_4"
         exclude_providers: Provider names to skip (for consensus/diversity)
     """
     exclude = set(exclude_providers or [])

@@ -18,6 +18,13 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
+TIER_ORDER = {"tier_0": 0, "tier_1": 1, "tier_2": 2, "tier_3": 3, "tier_4": 4}
+
+
+def tier_exceeds(tier_a: str, tier_b: str) -> bool:
+    """Check if tier_a is strictly higher than tier_b using numeric ordering."""
+    return TIER_ORDER.get(tier_a, 0) > TIER_ORDER.get(tier_b, 0)
+
 
 # Categories that always require Tier 2+ (high-stakes)
 HIGH_STAKES_CATEGORIES = {
@@ -37,13 +44,22 @@ LOW_STAKES_CATEGORIES = {
     "multi_step_workflow",
 }
 
+# Physical categories where missing EXIF is suspicious
+PHYSICAL_CATEGORIES = {"physical_presence", "simple_action"}
+
 
 @dataclass
 class ModelSelection:
     """Result of model routing decision."""
 
-    tier: str  # "tier_1", "tier_2", "tier_3"
-    reason: str  # Why this tier was selected
+    start_tier: str  # Where verification begins
+    max_tier: str  # Bounty-determined ceiling
+    reason: str  # Why this routing was chosen
+    tier: str = ""  # Backward compat alias for start_tier
+
+    def __post_init__(self):
+        if not self.tier:
+            self.tier = self.start_tier
 
 
 def select_tier(
@@ -55,94 +71,51 @@ def select_tier(
     has_exif: bool = True,
     photo_count: int = 1,
 ) -> ModelSelection:
-    """
-    Determine which verification tier to use.
+    """Select verification tier based on bounty cap + category/worker start.
 
-    Args:
-        bounty_usd: Task bounty amount in USD.
-        category: Task category.
-        worker_reputation: Worker's reputation score (0-5).
-        worker_completed_tasks: Number of tasks the worker has completed.
-        is_disputed: Whether this submission is disputed.
-        has_exif: Whether the submitted image has EXIF metadata.
-        photo_count: Number of photos submitted.
-
-    Returns:
-        ModelSelection with tier and reason.
+    Architecture:
+    - max_tier: determined by bounty (cheap tasks can't use expensive models)
+    - start_tier: determined by category + worker profile (risky submissions start higher)
+    - Escalation within [start_tier, max_tier] range driven by confidence
     """
-    # Disputes always get expert review
+    # 1. Disputes bypass everything — expert review required
     if is_disputed:
         return ModelSelection(
-            tier="tier_3",
-            reason="Disputed submission requires expert review",
+            start_tier="tier_4",
+            max_tier="tier_4",
+            reason="Disputed submission — expert review required",
         )
 
-    # High-value tasks get expert review
-    if bounty_usd >= 10.0:
-        return ModelSelection(
-            tier="tier_3",
-            reason=f"High-value task (${bounty_usd:.2f}) requires expert review",
-        )
-
-    # High-stakes categories always get detailed analysis
-    if category in HIGH_STAKES_CATEGORIES:
-        if bounty_usd >= 5.0:
-            return ModelSelection(
-                tier="tier_3",
-                reason=f"High-stakes category '{category}' with bounty ${bounty_usd:.2f}",
-            )
-        return ModelSelection(
-            tier="tier_2",
-            reason=f"High-stakes category '{category}' requires detailed analysis",
-        )
-
-    # New workers get extra scrutiny
-    if worker_completed_tasks is not None and worker_completed_tasks < 5:
-        return ModelSelection(
-            tier="tier_2",
-            reason=f"New worker ({worker_completed_tasks} completed tasks)",
-        )
-
-    # Low reputation workers get extra scrutiny
-    if worker_reputation is not None and worker_reputation < 3.0:
-        return ModelSelection(
-            tier="tier_2",
-            reason=f"Low reputation worker ({worker_reputation:.1f})",
-        )
-
-    # No EXIF metadata is suspicious — needs deeper analysis
-    if not has_exif and category not in LOW_STAKES_CATEGORIES:
-        return ModelSelection(
-            tier="tier_2",
-            reason="No EXIF metadata — image may be processed or AI-generated",
-        )
-
-    # Medium-value tasks
+    # 2. Determine max_tier from bounty
     if bounty_usd >= 1.0:
-        return ModelSelection(
-            tier="tier_2",
-            reason=f"Medium-value task (${bounty_usd:.2f})",
-        )
+        max_tier = "tier_4"
+    elif bounty_usd >= 0.10:
+        max_tier = "tier_3"
+    else:
+        max_tier = "tier_2"
 
-    # Digital-only categories can use screening
-    if category in LOW_STAKES_CATEGORIES:
-        return ModelSelection(
-            tier="tier_1",
-            reason=f"Digital category '{category}' — screening sufficient",
-        )
+    # 3. Determine start_tier from category + worker signals
+    if category in HIGH_STAKES_CATEGORIES:
+        start_tier = "tier_2"
+        reason = f"High-stakes category ({category})"
+    elif worker_reputation is not None and worker_reputation < 3.0:
+        start_tier = "tier_2"
+        reason = f"Low reputation worker ({worker_reputation:.1f})"
+    elif worker_completed_tasks is not None and worker_completed_tasks < 5:
+        start_tier = "tier_2"
+        reason = f"New worker ({worker_completed_tasks} completed tasks)"
+    elif not has_exif and category in PHYSICAL_CATEGORIES:
+        start_tier = "tier_2"
+        reason = "No EXIF metadata on physical task"
+    else:
+        start_tier = "tier_1"
+        reason = "Standard routing — start cheap"
 
-    # Low-value tasks with good indicators
-    if bounty_usd < 0.50 and has_exif:
-        return ModelSelection(
-            tier="tier_1",
-            reason=f"Low-value task (${bounty_usd:.2f}) with EXIF present",
-        )
+    # 4. Ensure start_tier doesn't exceed max_tier
+    if tier_exceeds(start_tier, max_tier):
+        start_tier = max_tier
 
-    # Default: Tier 2 (safe middle ground)
-    return ModelSelection(
-        tier="tier_2",
-        reason="Default routing — detailed analysis",
-    )
+    return ModelSelection(start_tier=start_tier, max_tier=max_tier, reason=reason)
 
 
 def should_escalate(
@@ -150,21 +123,20 @@ def should_escalate(
     score: float,
     confidence: float,
 ) -> Optional[str]:
-    """
-    Determine if a tier result should be escalated to the next tier.
+    """Check if current tier result warrants escalation to a higher tier.
 
-    Returns the next tier string, or None if no escalation needed.
+    Uses AND logic for Tier 1-2 (both score AND confidence must be low)
+    plus a safety valve for clearly bad scores. This keeps ~95% of images
+    at Tier 1 while still escalating uncertain results.
     """
     if tier == "tier_1":
-        if score < 0.90 or confidence < 0.80:
+        if (score < 0.70 and confidence < 0.60) or score < 0.30:
             return "tier_2"
     elif tier == "tier_2":
-        if confidence < 0.70:
+        if (score < 0.60 and confidence < 0.50) or score < 0.25:
             return "tier_3"
-
+    elif tier == "tier_3":
+        if confidence < 0.50:
+            return "tier_4"
+    # tier_4 is terminal — never escalate
     return None
-
-
-def needs_consensus(bounty_usd: float, is_disputed: bool = False) -> bool:
-    """Check if this task requires multi-model consensus verification."""
-    return bounty_usd >= 10.0 or is_disputed
