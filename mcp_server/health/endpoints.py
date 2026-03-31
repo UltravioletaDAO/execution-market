@@ -6,6 +6,7 @@ Provides HTTP endpoints for health probes:
 - GET /health/ready - Readiness probe (can accept traffic?)
 - GET /health/live - Liveness probe (is process alive?)
 - GET /health/detailed - Detailed status with all dependencies
+- GET /health/ai-providers - AI provider connectivity check
 - GET /health/routes - Route parity check (lists all registered routes)
 
 Compatible with:
@@ -15,7 +16,9 @@ Compatible with:
 - Status page integrations
 """
 
+import asyncio
 import logging
+import time
 from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -327,6 +330,197 @@ async def detailed_health(
         result["history"] = checker.get_history(limit=10)
 
     return result
+
+
+# =============================================================================
+# AI Provider Health Check
+# =============================================================================
+
+# Module-level cache for AI provider health results
+_ai_provider_cache: Dict[str, Any] = {"result": None, "checked_at": 0.0}
+_AI_PROVIDER_CACHE_TTL = 300.0  # 5 minutes
+
+
+async def _check_single_provider(
+    provider_name: str,
+    provider_class: type,
+    model_override: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Minimal health check for a single AI provider.
+
+    Uses a 1-token text-only prompt to verify API connectivity while
+    keeping costs near zero.
+    """
+    result: Dict[str, Any] = {
+        "available": False,
+        "working": False,
+        "model": None,
+        "latency_ms": None,
+        "error": None,
+    }
+
+    try:
+        kwargs = {}
+        if model_override:
+            kwargs["model"] = model_override
+        instance = provider_class(**kwargs)
+        result["model"] = instance.model_id
+        result["available"] = instance.is_available()
+
+        if not result["available"]:
+            result["error"] = "No API key configured"
+            return result
+
+        # Minimal API call -- 1 token output, text-only (no images)
+        from verification.providers import VisionRequest
+
+        request = VisionRequest(
+            prompt="Reply with only the word OK.",
+            images=[],
+            image_types=[],
+            max_tokens=2,
+        )
+
+        start = time.time()
+        response = await asyncio.wait_for(
+            instance.analyze(request),
+            timeout=15.0,
+        )
+        latency = int((time.time() - start) * 1000)
+
+        result["working"] = bool(response and response.text)
+        result["latency_ms"] = latency
+    except asyncio.TimeoutError:
+        result["error"] = "API call timed out (>15s)"
+    except Exception as e:
+        result["error"] = str(e)[:200]
+
+    return result
+
+
+def _resolve_tier_routing() -> Dict[str, Optional[str]]:
+    """Determine which provider is active for each verification tier."""
+    try:
+        from verification.providers import TIER_MODELS, PROVIDERS
+
+        routing: Dict[str, Optional[str]] = {}
+        for tier, candidates in TIER_MODELS.items():
+            chosen = None
+            for provider_name, model_id in candidates:
+                if provider_name not in PROVIDERS:
+                    continue
+                try:
+                    instance = PROVIDERS[provider_name](model=model_id)
+                    if instance.is_available():
+                        chosen = provider_name
+                        break
+                except Exception:
+                    continue
+            routing[tier] = chosen
+        return routing
+    except Exception:
+        return {"tier_1": None, "tier_2": None, "tier_3": None}
+
+
+@router.get(
+    "/ai-providers",
+    summary="AI Provider Health Check",
+    description=(
+        "Verify connectivity to AI verification providers (Gemini, Anthropic, "
+        "OpenAI). Uses a minimal 1-token prompt to keep costs near zero. "
+        "Results are cached for 5 minutes."
+    ),
+    responses={
+        200: {"description": "AI provider status for all configured providers"},
+    },
+)
+async def ai_provider_health(
+    force: bool = Query(False, description="Bypass 5-minute cache"),
+) -> Dict[str, Any]:
+    """
+    Check health of AI verification providers.
+
+    For each configured provider (Gemini, Anthropic, OpenAI), reports:
+    - available: API key is set
+    - working: minimal test call succeeded
+    - model: which model is configured
+    - latency_ms: round-trip time for the test call
+
+    Results are cached for 5 minutes to avoid unnecessary API costs.
+    API keys are never exposed in the response.
+    """
+    global _ai_provider_cache
+
+    now = time.time()
+    if (
+        not force
+        and _ai_provider_cache["result"] is not None
+        and now - _ai_provider_cache["checked_at"] < _AI_PROVIDER_CACHE_TTL
+    ):
+        return _ai_provider_cache["result"]
+
+    # Import providers -- skip bedrock (AWS auth, not a simple API key check)
+    try:
+        from verification.providers import PROVIDERS
+    except ImportError:
+        return {
+            "providers": {},
+            "tier_routing": {},
+            "checked_at": datetime.now(timezone.utc).isoformat(),
+            "error": "verification.providers module not available",
+        }
+
+    # Check gemini, anthropic, openai in parallel (skip bedrock -- uses IAM)
+    check_names = ["gemini", "anthropic", "openai"]
+    tasks = []
+    for name in check_names:
+        if name in PROVIDERS:
+            tasks.append((name, _check_single_provider(name, PROVIDERS[name])))
+        else:
+            tasks.append((name, None))
+
+    # Run checks concurrently
+    provider_results: Dict[str, Any] = {}
+    coros = [t[1] for t in tasks if t[1] is not None]
+    coro_names = [t[0] for t in tasks if t[1] is not None]
+
+    if coros:
+        results = await asyncio.gather(*coros, return_exceptions=True)
+        for name, result in zip(coro_names, results):
+            if isinstance(result, Exception):
+                provider_results[name] = {
+                    "available": False,
+                    "working": False,
+                    "model": None,
+                    "latency_ms": None,
+                    "error": str(result)[:200],
+                }
+            else:
+                provider_results[name] = result
+
+    # Fill in any providers that weren't in PROVIDERS
+    for name in check_names:
+        if name not in provider_results:
+            provider_results[name] = {
+                "available": False,
+                "working": False,
+                "model": None,
+                "latency_ms": None,
+                "error": "Provider not installed",
+            }
+
+    tier_routing = _resolve_tier_routing()
+
+    response = {
+        "providers": provider_results,
+        "tier_routing": tier_routing,
+        "checked_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    _ai_provider_cache = {"result": response, "checked_at": now}
+
+    return response
 
 
 # =============================================================================

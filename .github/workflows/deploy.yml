@@ -322,6 +322,29 @@ jobs:
           done
           echo "Backend health check failed"; exit 1
 
+      - name: Verify AI providers
+        if: success()
+        run: |
+          echo "Checking AI provider health..."
+          RESPONSE=$(curl -sf "${{ env.API_URL }}/health/ai-providers" || echo '{"error":"endpoint not reachable"}')
+          echo "$RESPONSE" | python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          if 'error' in data:
+              print(f'WARNING: AI health check failed: {data[\"error\"]}')
+              sys.exit(0)  # Don't fail deploy for this
+          providers = data.get('providers', {})
+          for name, status in providers.items():
+              icon = 'OK' if status.get('working') else 'WARN' if status.get('available') else 'MISS'
+              print(f'  [{icon}] {name}: model={status.get(\"model\")}, latency={status.get(\"latency_ms\", \"n/a\")}ms')
+          working = sum(1 for s in providers.values() if s.get('working'))
+          total = len(providers)
+          print(f'AI Providers: {working}/{total} working')
+          if working == 0 and total > 0:
+              print('CRITICAL: No AI providers working!')
+              sys.exit(1)
+          "
+
   # ── Notify on Failure ────────────────────────────────────────────
   notify:
     name: Notify on Failure

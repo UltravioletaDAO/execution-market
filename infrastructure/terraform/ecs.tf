@@ -190,7 +190,7 @@ resource "aws_ecs_task_definition" "mcp_server" {
         { name = "EM_REQUIRE_ERC8004", value = "true" },
         { name = "EM_REQUIRE_ERC8004_WORKER", value = "true" },
         { name = "VERIFICATION_AI_ENABLED", value = "true" },
-        { name = "AI_VERIFICATION_PROVIDER", value = "anthropic" },
+        { name = "AI_VERIFICATION_PROVIDER", value = "gemini" },
         { name = "VERIFICATION_AUTO_APPROVE", value = "true" },
       ]
 
