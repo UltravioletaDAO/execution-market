@@ -201,6 +201,65 @@ async def run_phase_b_verification(
 # ---------------------------------------------------------------------------
 
 
+def _compute_ai_semantic_score(result: Any) -> float:
+    """Compute a nuanced score for AI semantic check based on decision + confidence.
+
+    GPS presence is evaluated by a SEPARATE check (gps). The AI semantic score
+    should reflect how well the visual content matches the task, not whether
+    GPS metadata is present.
+
+    Scoring rules:
+      - approved  -> confidence (e.g. 0.85)
+      - needs_human -> confidence * 0.6 (e.g. 0.42)
+      - rejected -> max(0.1, (1.0 - confidence) * 0.5) — never 0% because
+        the content analysis itself has value
+
+    GPS-content heuristic: if the AI explanation indicates the visual content
+    is plausible/matches but issues mention GPS/coordinates as the primary
+    concern, add a 0.2 bonus (capped at 0.85). This prevents the separate
+    GPS check from double-penalizing through the AI score.
+    """
+    from .ai_review import VerificationDecision
+
+    decision = result.decision
+    confidence = result.confidence
+    explanation = (result.explanation or "").lower()
+    issues = [i.lower() for i in (result.issues or [])]
+    issues_text = " ".join(issues)
+
+    # Base score from decision + confidence
+    if decision == VerificationDecision.APPROVED:
+        score = confidence
+    elif decision == VerificationDecision.NEEDS_HUMAN:
+        score = confidence * 0.6
+    else:  # REJECTED
+        score = max(0.1, (1.0 - confidence) * 0.5)
+
+    # GPS-content heuristic: detect when rejection is primarily about
+    # missing GPS while the AI acknowledges the content itself matches.
+    content_positive_phrases = [
+        "visual content is plausible",
+        "correct branding",
+        "consistent with",
+        "content appears genuine",
+        "matches the task",
+        "plausible and shows genuine",
+        "live-capture characteristics",
+    ]
+    gps_issue_phrases = ["gps", "coordinates", "geolocation", "location data"]
+
+    content_ok = any(phrase in explanation for phrase in content_positive_phrases)
+    gps_flagged = any(
+        any(gps in source for gps in gps_issue_phrases)
+        for source in [issues_text, explanation]
+    )
+
+    if content_ok and gps_flagged:
+        score = min(0.85, score + 0.2)
+
+    return round(score, 4)
+
+
 async def _run_ai_semantic_check(
     task: Dict[str, Any],
     evidence: Dict[str, Any],
@@ -376,12 +435,7 @@ async def _run_ai_semantic_check(
             final_tier = current_tier
 
             # Check if we should escalate
-            score_map = {
-                VerificationDecision.APPROVED: 1.0,
-                VerificationDecision.REJECTED: 0.0,
-                VerificationDecision.NEEDS_HUMAN: 0.5,
-            }
-            score = score_map.get(result.decision, 0.5)
+            score = _compute_ai_semantic_score(result)
 
             next_tier = should_escalate(current_tier, score, result.confidence)
             if next_tier is None:
@@ -407,12 +461,7 @@ async def _run_ai_semantic_check(
                 details={"provider": "none"},
             )
 
-        score_map = {
-            VerificationDecision.APPROVED: 1.0,
-            VerificationDecision.REJECTED: 0.0,
-            VerificationDecision.NEEDS_HUMAN: 0.5,
-        }
-        score = score_map.get(final_result.decision, 0.5)
+        score = _compute_ai_semantic_score(final_result)
 
         commitment_hash = compute_commitment_hash(
             task.get("id", ""),
