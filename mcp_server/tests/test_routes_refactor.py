@@ -90,6 +90,10 @@ EXPECTED_ROUTES = {
     # Legal
     "/api/v1/legal/privacy",
     "/api/v1/legal/terms",
+    # Worker submission detail (Phase B verification polling)
+    "/api/v1/submissions/{submission_id}",
+    # Worker social links
+    "/api/v1/workers/social-links",
 }
 
 
