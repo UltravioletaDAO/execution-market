@@ -168,7 +168,7 @@ def check_genai(image_path: str) -> GenAIResult:
         confidence = min(confidence, 1.0)
 
         # Determine if AI-generated
-        is_ai_generated = confidence >= 0.35 or len(signals) >= 2
+        is_ai_generated = confidence >= 0.50 and len(signals) >= 2
 
         # Generate reason
         if is_ai_generated:

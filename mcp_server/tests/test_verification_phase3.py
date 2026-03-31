@@ -340,7 +340,123 @@ class TestPhaseBChecks:
             result = await _run_genai_detection_check(["/tmp/test.jpg"])
             assert result.name == "genai_detection"
             assert result.passed is True
-            assert result.score == 1.0
+            # Nuanced scoring: min(1.0, 0.7 + confidence*0.3) = 0.73
+            assert result.score == 0.73
+
+    @pytest.mark.asyncio
+    async def test_genai_ai_detected_high_confidence(self):
+        """High-confidence AI detection (>=0.85) is trusted without vision confirmation."""
+        mock_result = MagicMock()
+        mock_result.is_ai_generated = True
+        mock_result.confidence = 0.9
+        mock_result.reason = "AI-generated (likely midjourney)"
+        mock_result.model_hint = "midjourney"
+        mock_result.signals = ["c2pa_ai_metadata", "ai_exif_anomalies"]
+
+        with patch(
+            "verification.checks.genai.check_genai",
+            return_value=mock_result,
+        ):
+            from verification.background_runner import _run_genai_detection_check
+
+            result = await _run_genai_detection_check(["/tmp/test.jpg"])
+            assert result.name == "genai_detection"
+            assert result.passed is False
+            # Nuanced scoring: max(0.1, 1.0 - 0.9) = 0.1
+            assert result.score == 0.1
+            assert result.details["is_ai_generated"] is True
+
+    @pytest.mark.asyncio
+    async def test_genai_vision_override(self):
+        """Vision model overrides moderate-confidence heuristic false positive."""
+        mock_result = MagicMock()
+        mock_result.is_ai_generated = True
+        mock_result.confidence = 0.6
+        mock_result.reason = "Possible AI signals"
+        mock_result.model_hint = None
+        mock_result.signals = ["ai_artifacts_found", "ai_statistical_patterns"]
+
+        vision_response = {
+            "is_ai_generated": False,
+            "confidence": 0.8,
+            "reason": "Natural photograph with real lighting",
+        }
+
+        with patch(
+            "verification.checks.genai.check_genai",
+            return_value=mock_result,
+        ):
+            with patch(
+                "verification.background_runner._confirm_genai_with_vision",
+                new_callable=AsyncMock,
+                return_value=vision_response,
+            ):
+                from verification.background_runner import _run_genai_detection_check
+
+                result = await _run_genai_detection_check(["/tmp/test.jpg"])
+                assert result.name == "genai_detection"
+                assert result.passed is True  # Vision override
+                assert result.details["is_ai_generated"] is False
+                assert "vision_model_override_natural" in result.details["signals"]
+
+    @pytest.mark.asyncio
+    async def test_genai_vision_confirms_ai(self):
+        """Vision model confirms AI detection — no override."""
+        mock_result = MagicMock()
+        mock_result.is_ai_generated = True
+        mock_result.confidence = 0.6
+        mock_result.reason = "Possible AI signals"
+        mock_result.model_hint = None
+        mock_result.signals = ["ai_artifacts_found", "ai_statistical_patterns"]
+
+        # Vision model also thinks it's AI
+        vision_response = {
+            "is_ai_generated": True,
+            "confidence": 0.7,
+            "reason": "AI-generated, unusual textures",
+        }
+
+        with patch(
+            "verification.checks.genai.check_genai",
+            return_value=mock_result,
+        ):
+            with patch(
+                "verification.background_runner._confirm_genai_with_vision",
+                new_callable=AsyncMock,
+                return_value=vision_response,
+            ):
+                from verification.background_runner import _run_genai_detection_check
+
+                result = await _run_genai_detection_check(["/tmp/test.jpg"])
+                assert result.name == "genai_detection"
+                assert result.passed is False  # Still detected as AI
+                assert result.details["is_ai_generated"] is True
+
+    @pytest.mark.asyncio
+    async def test_genai_vision_unavailable_fallback(self):
+        """When vision provider is unavailable, heuristic result stands."""
+        mock_result = MagicMock()
+        mock_result.is_ai_generated = True
+        mock_result.confidence = 0.6
+        mock_result.reason = "Possible AI signals"
+        mock_result.model_hint = None
+        mock_result.signals = ["ai_artifacts_found", "ai_statistical_patterns"]
+
+        with patch(
+            "verification.checks.genai.check_genai",
+            return_value=mock_result,
+        ):
+            with patch(
+                "verification.background_runner._confirm_genai_with_vision",
+                new_callable=AsyncMock,
+                return_value=None,  # No provider available
+            ):
+                from verification.background_runner import _run_genai_detection_check
+
+                result = await _run_genai_detection_check(["/tmp/test.jpg"])
+                assert result.name == "genai_detection"
+                assert result.passed is False  # Heuristic stands
+                assert result.details["is_ai_generated"] is True
 
     @pytest.mark.asyncio
     async def test_photo_source_no_images(self):

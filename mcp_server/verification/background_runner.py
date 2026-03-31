@@ -201,18 +201,95 @@ async def run_phase_b_verification(
 # ---------------------------------------------------------------------------
 
 
-def _compute_ai_semantic_score(result: Any) -> float:
-    """Compute a nuanced score for AI semantic check based on decision + confidence.
+def _metadata_quality_score(evidence: Dict[str, Any]) -> float:
+    """Score evidence metadata/EXIF quality (0.0-1.0).
 
-    GPS presence is evaluated by a SEPARATE check (gps). The AI semantic score
-    should reflect how well the visual content matches the task, not whether
-    GPS metadata is present.
+    Checks for capture timestamp, GPS metadata, device info, and image
+    dimensions.  A base score of 0.3 is given just for having evidence.
+    """
+    score = 0.3  # base: evidence exists
+    for key in ("photo", "photo_geo", "screenshot"):
+        item = evidence.get(key)
+        if not isinstance(item, dict):
+            continue
+        meta = item.get("metadata") or item
+        if meta.get("captureTimestamp") or meta.get("capture_timestamp"):
+            score += 0.2  # has capture timestamp
+        if meta.get("gps") or meta.get("latitude"):
+            score += 0.2  # has GPS metadata
+        if (
+            meta.get("deviceInfo")
+            or meta.get("device_info")
+            or meta.get("source") == "camera"
+        ):
+            score += 0.15  # has device info or camera source
+        if meta.get("imageWidth") or meta.get("width"):
+            score += 0.15  # has image dimensions
+        break  # only check first evidence item
+    return min(1.0, score)
 
-    Scoring rules:
+
+def _gps_proximity_score(evidence: Dict[str, Any], task: Dict[str, Any]) -> float:
+    """Score GPS proximity between evidence and task location (0.0-1.0).
+
+    Returns 0.0 when evidence has no GPS.  Returns 0.7 when evidence has GPS
+    but the task has no coordinates to compare against.  Otherwise uses a
+    haversine distance with tiered scoring.
+    """
+    # Lazy import to avoid circular imports
+    from .pipeline import _extract_gps_from_evidence
+
+    photo_lat, photo_lng = _extract_gps_from_evidence(evidence)
+    if photo_lat is None:
+        return 0.0  # no GPS in evidence
+
+    task_lat = task.get("location_lat")
+    task_lng = task.get("location_lng")
+    if task_lat is None or task_lng is None:
+        return 0.7  # GPS present but no task coords to compare
+
+    import math
+
+    R = 6371000  # Earth radius in meters
+    dlat = math.radians(float(task_lat) - photo_lat)
+    dlng = math.radians(float(task_lng) - photo_lng)
+    a = (
+        math.sin(dlat / 2) ** 2
+        + math.cos(math.radians(photo_lat))
+        * math.cos(math.radians(float(task_lat)))
+        * math.sin(dlng / 2) ** 2
+    )
+    distance = R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    if distance <= 500:
+        return 1.0
+    elif distance <= 2000:
+        return 0.7
+    elif distance <= 10000:
+        return 0.4
+    else:
+        return 0.1
+
+
+def _compute_ai_semantic_score(
+    result: Any,
+    evidence: Optional[Dict[str, Any]] = None,
+    task: Optional[Dict[str, Any]] = None,
+) -> float:
+    """Compute a weighted score for AI semantic check.
+
+    The final score blends three components with adaptive weighting:
+
+      - **Visual content score** (60%): Based on AI decision + confidence.
+      - **Metadata/EXIF quality score** (20%): Richness of evidence metadata.
+      - **GPS proximity score** (20%): Distance between evidence and task.
+
+    When GPS or metadata are unavailable, weights redistribute to visual.
+
+    Visual scoring rules:
       - approved  -> confidence (e.g. 0.85)
       - needs_human -> confidence * 0.6 (e.g. 0.42)
-      - rejected -> max(0.1, (1.0 - confidence) * 0.5) — never 0% because
-        the content analysis itself has value
+      - rejected -> max(0.1, (1.0 - confidence) * 0.5)
 
     GPS-content heuristic: if the AI explanation indicates the visual content
     is plausible/matches but issues mention GPS/coordinates as the primary
@@ -227,13 +304,13 @@ def _compute_ai_semantic_score(result: Any) -> float:
     issues = [i.lower() for i in (result.issues or [])]
     issues_text = " ".join(issues)
 
-    # Base score from decision + confidence
+    # Base visual score from decision + confidence
     if decision == VerificationDecision.APPROVED:
-        score = confidence
+        visual = confidence
     elif decision == VerificationDecision.NEEDS_HUMAN:
-        score = confidence * 0.6
+        visual = confidence * 0.6
     else:  # REJECTED
-        score = max(0.1, (1.0 - confidence) * 0.5)
+        visual = max(0.1, (1.0 - confidence) * 0.5)
 
     # GPS-content heuristic: detect when rejection is primarily about
     # missing GPS while the AI acknowledges the content itself matches.
@@ -255,9 +332,28 @@ def _compute_ai_semantic_score(result: Any) -> float:
     )
 
     if content_ok and gps_flagged:
-        score = min(0.85, score + 0.2)
+        visual = min(0.85, visual + 0.2)
 
-    return round(score, 4)
+    # Weighted blending with adaptive weights
+    if evidence and task:
+        meta_score = _metadata_quality_score(evidence)
+        gps_score = _gps_proximity_score(evidence, task)
+
+        has_gps = gps_score > 0.0
+        has_meta = meta_score > 0.3  # more than base
+
+        if has_gps and has_meta:
+            final = visual * 0.6 + meta_score * 0.2 + gps_score * 0.2
+        elif has_meta:  # no GPS
+            final = visual * 0.75 + meta_score * 0.25
+        elif has_gps:  # no metadata
+            final = visual * 0.75 + gps_score * 0.25
+        else:  # neither
+            final = visual
+    else:
+        final = visual  # fallback: no context provided
+
+    return round(min(1.0, max(0.0, final)), 4)
 
 
 async def _run_ai_semantic_check(
@@ -435,7 +531,7 @@ async def _run_ai_semantic_check(
             final_tier = current_tier
 
             # Check if we should escalate
-            score = _compute_ai_semantic_score(result)
+            score = _compute_ai_semantic_score(result, evidence=evidence, task=task)
 
             next_tier = should_escalate(current_tier, score, result.confidence)
             if next_tier is None:
@@ -461,7 +557,7 @@ async def _run_ai_semantic_check(
                 details={"provider": "none"},
             )
 
-        score = _compute_ai_semantic_score(final_result)
+        score = _compute_ai_semantic_score(final_result, evidence=evidence, task=task)
 
         commitment_hash = compute_commitment_hash(
             task.get("id", ""),
@@ -539,6 +635,73 @@ async def _run_tampering_check(temp_paths: List[str]) -> CheckResult:
         )
 
 
+async def _confirm_genai_with_vision(
+    temp_paths: List[str],
+) -> Optional[dict]:
+    """Use vision model to confirm/deny AI-generated detection."""
+    try:
+        from .providers import get_provider, VisionRequest
+
+        try:
+            provider = get_provider()
+        except ValueError:
+            return None
+
+        prompt = (
+            "Analyze this image carefully. Is it AI-generated "
+            "(made by Midjourney, DALL-E, Stable Diffusion, Flux, or similar) "
+            "or a real photograph taken by a camera?\n\n"
+            "Consider: natural lighting, hand/finger details, text rendering, "
+            "perspective consistency, background coherence, skin texture, "
+            "reflection accuracy, and overall photorealism.\n\n"
+            "Respond with ONLY a JSON object:\n"
+            '{"is_ai": true/false, "confidence": 0.0-1.0, "reason": "brief explanation"}'
+        )
+
+        # Read image bytes from first temp file
+        with open(temp_paths[0], "rb") as f:
+            image_bytes = f.read()
+
+        # Determine MIME type from extension
+        ext = (
+            temp_paths[0].rsplit(".", 1)[-1].lower() if "." in temp_paths[0] else "jpg"
+        )
+        mime_map = {
+            "jpg": "image/jpeg",
+            "jpeg": "image/jpeg",
+            "png": "image/png",
+            "webp": "image/webp",
+        }
+        mime_type = mime_map.get(ext, "image/jpeg")
+
+        response = await provider.analyze(
+            VisionRequest(
+                prompt=prompt,
+                images=[image_bytes],
+                image_types=[mime_type],
+                max_tokens=256,
+            )
+        )
+
+        import json as _json
+
+        # Try to parse JSON from response
+        text = response.text.strip()
+        # Handle markdown code blocks
+        if text.startswith("```"):
+            text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+        parsed = _json.loads(text)
+
+        return {
+            "is_ai_generated": bool(parsed.get("is_ai", False)),
+            "confidence": float(parsed.get("confidence", 0.5)),
+            "reason": str(parsed.get("reason", "")),
+        }
+    except Exception as e:
+        logger.warning("[AUDIT] genai vision confirmation failed: %s", e)
+        return None
+
+
 async def _run_genai_detection_check(temp_paths: List[str]) -> CheckResult:
     """Detect AI-generated images."""
     try:
@@ -554,15 +717,36 @@ async def _run_genai_detection_check(temp_paths: List[str]) -> CheckResult:
 
         result = check_genai(temp_paths[0])
 
+        # Vision model confirmation for moderate-confidence heuristic detections
+        if result.is_ai_generated and result.confidence < 0.85:
+            # Heuristic is uncertain — confirm with vision model
+            confirmation = await _confirm_genai_with_vision(temp_paths)
+            if (
+                confirmation
+                and not confirmation["is_ai_generated"]
+                and confirmation["confidence"] >= 0.6
+            ):
+                # Vision model says it's real — override heuristic
+                logger.info(
+                    "[AUDIT] genai_detection vision override: heuristic=%s vision=%s",
+                    result.confidence,
+                    confirmation["confidence"],
+                )
+                result.is_ai_generated = False
+                result.confidence = confirmation["confidence"]
+                result.signals.append("vision_model_override_natural")
+                result.signals.append(f"vision_reason: {confirmation['reason']}")
+
+        # Nuanced scoring instead of binary 0.0/1.0
         if result.is_ai_generated:
-            score = 0.0
+            score = max(0.1, 1.0 - result.confidence)
         else:
-            score = 1.0
+            score = min(1.0, 0.7 + result.confidence * 0.3)
 
         return CheckResult(
             name="genai_detection",
             passed=not result.is_ai_generated,
-            score=score,
+            score=round(score, 3),
             reason=result.reason or "No AI generation detected",
             details={
                 "is_ai_generated": result.is_ai_generated,
