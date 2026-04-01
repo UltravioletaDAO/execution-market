@@ -153,6 +153,13 @@ scripts/kk/data/workspaces/
 *secret*.json
 scripts/wallet-management/.keys.json
 
+# Debug/throwaway scripts (INC-2026-03-30: check_sub.mjs had hardcoded private key)
+check_sub.*
+debug_*
+scratch_*
+temp_*
+quick_test*
+
 # Internal docs (private business correspondence)
 docs/internal/
 

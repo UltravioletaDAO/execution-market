@@ -8,6 +8,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 > **NEVER use quick fixes, hardcodes, or workarounds.** Always find and fix the root cause. If you need more logs/traces to diagnose, add them. If the fix requires changing the skill, change the skill. If it requires changing the contract interface, document what needs to change. Quick fixes create debt that compounds into production outages. See INC-2026-03-24 for the cascading failures caused by incomplete ADR-001 migration.
 
+> **NEVER hardcode private keys, API keys, or secrets in ANY source file.** This is a ZERO-TOLERANCE rule. Two incidents (INC-2026-03-23, INC-2026-03-30) resulted in wallet drains because private keys were hardcoded in debug/test scripts that got committed to the public repo. **ALL secrets MUST be read from:** (1) Environment variables (`process.env.*`, `os.environ.*`), (2) AWS Secrets Manager, or (3) `.env.local` (gitignored). **NEVER create throwaway/debug scripts with inline keys** — not even "temporarily". The pre-commit hook in `.git/hooks/pre-commit` scans for `0x` + 64 hex chars and blocks the commit. If you need to test with a key, use `.env.local` and `dotenv`. If Clawd Bot or any agent produces a file with a hardcoded key, DELETE IT and rewrite to use env vars before committing.
+
+> **NEVER use broad `git add -A` or `git add .`** when committing. Always stage specific files by name. Broad staging is how throwaway debug scripts with secrets get accidentally committed. See INC-2026-03-30.
+
 ## Open Items — Remind Me
 
 > **[RESOLVED 2026-03-27] API key auth disabled by default** — `EM_API_KEYS_ENABLED=false` (default). All API key auth (x-api-key, Bearer) returns HTTP 403. Only ERC-8128 wallet signing is accepted. This closes the security hole where external agents could use API keys to create tasks as Agent #2106 (platform identity), potentially spending the platform wallet. To re-enable for internal testing: set `EM_API_KEYS_ENABLED=true` in ECS task definition. See INC-2026-03-27.
