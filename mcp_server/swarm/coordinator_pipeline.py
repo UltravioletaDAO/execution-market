@@ -296,6 +296,11 @@ class CoordinatorPipeline:
         self._consecutive_failures = 0
         self._created_at = time.time()
 
+        # Optional modules (registered via fluent setters)
+        self._chain_router = None
+        self._task_validator = None
+        self._batch_scheduler = None
+
         # History
         self._recent_results: deque[PipelineResult] = deque(maxlen=50)
 
@@ -312,6 +317,33 @@ class CoordinatorPipeline:
     @property
     def cycle_count(self) -> int:
         return self._cycle_count
+
+    @property
+    def chain_router(self):
+        return self._chain_router
+
+    def set_chain_router(self, router) -> "CoordinatorPipeline":
+        """Register a ChainRouter for pre-routing chain selection."""
+        self._chain_router = router
+        return self
+
+    @property
+    def task_validator(self):
+        return self._task_validator
+
+    def set_task_validator(self, validator) -> "CoordinatorPipeline":
+        """Register a TaskValidator for pre-routing task validation."""
+        self._task_validator = validator
+        return self
+
+    @property
+    def batch_scheduler(self):
+        return self._batch_scheduler
+
+    def set_batch_scheduler(self, scheduler) -> "CoordinatorPipeline":
+        """Register a BatchScheduler for intelligent task batching."""
+        self._batch_scheduler = scheduler
+        return self
 
     # ─── Core Pipeline ───────────────────────────────────────
 
@@ -667,6 +699,9 @@ class CoordinatorPipeline:
             "uptime_seconds": round(time.time() - self._created_at, 1),
             "coordinator": self._coordinator is not None,
             "signal_harness": self._harness is not None,
+            "chain_router": self._chain_router is not None,
+            "task_validator": self._task_validator is not None,
+            "batch_scheduler": self._batch_scheduler is not None,
             "config": {
                 "max_tasks_per_cycle": self._max_tasks,
                 "min_signal_coverage": self._min_coverage,

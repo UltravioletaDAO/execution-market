@@ -1218,7 +1218,7 @@ class TestAutoRegisterAgent:
         # No existing executor
         exec_result = MagicMock()
         exec_result.data = []
-        mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value = exec_result
+        mock_client.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value = exec_result
 
         _auto_register_agent_executor(
             client=mock_client,
@@ -1243,7 +1243,7 @@ class TestAutoRegisterAgent:
         # Existing executor found
         exec_result = MagicMock()
         exec_result.data = [{"id": "existing-id", "erc8004_agent_id": 2106}]
-        mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value = exec_result
+        mock_client.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value = exec_result
 
         _auto_register_agent_executor(
             client=mock_client,

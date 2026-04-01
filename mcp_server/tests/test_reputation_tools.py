@@ -390,7 +390,7 @@ class TestRateAgent:
                 task_id="a" * 36,
                 score=80,
             )
-            assert "not a numeric" in result.lower()
+            assert "no numeric" in result.lower()
         finally:
             os.environ.pop("EM_ERC8004_MCP_TOOLS_ENABLED", None)
 
