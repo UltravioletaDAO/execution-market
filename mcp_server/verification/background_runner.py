@@ -232,9 +232,7 @@ async def run_phase_b_verification(
             e,
             exc_info=True,
         )
-        await _report_phase_b_error(
-            submission_id, f"Unexpected error: {str(e)[:200]}"
-        )
+        await _report_phase_b_error(submission_id, f"Unexpected error: {str(e)[:200]}")
     finally:
         cleanup_temp_files(temp_paths)
 
