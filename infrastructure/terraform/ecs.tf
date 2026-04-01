@@ -284,6 +284,11 @@ resource "aws_ecs_task_definition" "mcp_server" {
           name      = "OPTIMISM_RPC_URL"
           valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/rpc-mainnet:optimism::"
         },
+        # Worker wallet for E2E Golden Flow reputation signing (INC-2026-03-30: rotated)
+        {
+          name      = "EM_WORKER_PRIVATE_KEY"
+          valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/test-worker:private_key::"
+        },
       ]
 
       logConfiguration = {

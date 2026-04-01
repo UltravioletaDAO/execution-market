@@ -115,7 +115,9 @@ Saúl reported seeing the wrong `escrow_tx` when viewing a different task. Inves
 Add this new env var to the `em-production-mcp-server` ECS task definition:
 
 ```
-AGENT_WALLET_PRIVATE_KEY = <private key for 0x52E05C8e45a32eeE169639F6d2cA40f8887b5A15>
+AGENT_WALLET_PRIVATE_KEY = <private key — see AWS Secrets Manager em/test-worker>
+# NOTE: Wallet 0x52E0...5A15 was BURNED in INC-2026-03-30 (key leaked).
+# New worker wallet: 0x4aa8bE0422e042e5E8A37b0F8E956117F12740B0
 ```
 
 The existing `WALLET_PRIVATE_KEY` (platform wallet `0xD386...`) stays unchanged — it's still used for:

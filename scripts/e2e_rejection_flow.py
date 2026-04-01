@@ -19,7 +19,7 @@ Usage:
 Environment:
     EM_API_KEY           -- Agent API key
     EM_API_URL           -- API base URL (default: https://api.execution.market)
-    EM_WORKER_WALLET     -- Worker wallet (default: 0x52E0...)
+    EM_WORKER_WALLET     -- Worker wallet (default: 0x4aa8...)
     EM_TEST_EXECUTOR_ID  -- Existing executor UUID (skips registration)
 
 Cost: ~$0.00 (no payment released on rejection).

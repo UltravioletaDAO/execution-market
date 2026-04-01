@@ -18,7 +18,7 @@ Environment:
     EM_API_KEY           -- Agent API key (optional when EM_REQUIRE_API_KEY=false)
     EM_API_URL           -- API base URL (default: https://api.execution.market)
     WALLET_PRIVATE_KEY   -- Agent wallet key (signs escrow for task assignment)
-    EM_WORKER_WALLET     -- Worker wallet (default: 0x52E0...)
+    EM_WORKER_WALLET     -- Worker wallet (default: 0x4aa8...)
     EM_WORKER_PRIVATE_KEY -- Worker private key (for on-chain reputation signing)
     EM_TEST_EXECUTOR_ID  -- Existing executor UUID (skips registration if set)
     SUPABASE_URL         -- For fallback queries
