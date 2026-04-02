@@ -48,6 +48,7 @@ Execution Market is the **Universal Execution Layer** — the infrastructure tha
 | Payments | x402 SDK + Facilitator (10 networks: 9 EVM + Solana, gasless) |
 | Evidence Storage | S3 + CloudFront CDN (presigned uploads) |
 | Agent Identity | ERC-8004 Registry (16 networks via Facilitator) |
+| Proof of Humanity | World ID 4.0 (Cloud API v4, RP signing, IDKit) |
 | SDKs | Python `uvd-x402-sdk>=0.19.2` / TypeScript `uvd-x402-sdk@2.32.2` |
 
 ## Project Structure
@@ -210,6 +211,7 @@ pytest -m "core or payments"               # Core + payments
 | `erc8004` | 177 | Scoring, side effects, auto-registration, rejection, reputation tools, ERC-8128 |
 | `security` | 61 | Fraud detection, GPS antispoofing |
 | `infrastructure` | 77 | Webhooks, WebSocket, A2A, timestamps |
+| `worldid` | 8 | World ID 4.0 RP signing, Cloud API verify, anti-sybil |
 | *(unmarked)* | 153 | A2A protocol, gas dust, prepare feedback, task transactions |
 
 ---
@@ -290,6 +292,7 @@ Main tables in Supabase:
 - `submissions` - Evidence uploads with verification status
 - `disputes` - Contested submissions with arbitration
 - `reputation_log` - Audit trail for reputation changes
+- `world_id_verifications` - World ID proofs with nullifier uniqueness (anti-sybil)
 
 ## Environment Variables
 
@@ -301,6 +304,9 @@ Required in `.env.local` (project root):
 - `PINATA_JWT_SECRET_ACCESS_TOKEN` - For IPFS uploads
 - `SOLANA_RPC_URL` - Solana RPC endpoint (optional, defaults to public mainnet-beta)
 - `SOLANA_WALLET_ADDRESS` - Solana wallet for balance checks (base58, no private key needed)
+- `WORLD_ID_APP_ID` - World ID application ID (from developer.world.org)
+- `WORLD_ID_RP_ID` - Relying Party ID for Cloud API v4
+- `WORLD_ID_SIGNING_KEY` - secp256k1 private key for RP signing (hex, no 0x prefix)
 
 Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 
@@ -308,6 +314,7 @@ Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 - `EM_API_KEYS_ENABLED` - Enable/disable API key auth (default: `false`). When false, ALL API key requests (x-api-key, Bearer) return HTTP 403. Only ERC-8128 wallet signing is accepted. Set to `true` only for internal testing.
 - `EM_REQUIRE_ERC8004` - Require ERC-8004 identity for task creation (default: `true` in production)
 - `EM_REQUIRE_ERC8004_WORKER` - Require ERC-8004 identity for workers (default: `true` in production)
+- `EM_WORLD_ID_ENABLED` - Enable/disable World ID enforcement on task applications (default: `true`). When true, tasks with bounty >= $5 require Orb-level World ID verification.
 
 ### Multichain Payment Config
 - `EM_ENABLED_NETWORKS` - Comma-separated list of enabled payment networks (default: `base,ethereum,polygon,arbitrum,celo,monad,avalanche,optimism,skale,solana`)
@@ -627,3 +634,6 @@ Agent ID **2106** on Base. Registration and reputation via Facilitator (`POST /r
 | `dashboard/src/components/SubmissionForm.tsx` | Evidence upload (uses `submitWork()` service) |
 | `dashboard/src/hooks/useProfileUpdate.ts` | Profile update with executor ID resolution |
 | `dashboard/src/context/AuthContext.tsx` | Auth state with wallet-based executor lookup |
+| `mcp_server/integrations/worldid/client.py` | World ID 4.0 RP signing (secp256k1 + EIP-191) + Cloud API v4 verify |
+| `mcp_server/api/routers/worldid.py` | World ID endpoints (GET /rp-signature, POST /verify) |
+| `dashboard/src/components/WorldIdVerification.tsx` | IDKit v4 widget + WorldIdBadge component |
