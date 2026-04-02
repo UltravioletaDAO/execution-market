@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useTranslation as useCustomTranslation } from '../i18n/hooks/useTranslation'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { WorldHumanBadge } from './agents/WorldHumanBadge'
 import type { Task } from '../types/database'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
@@ -182,8 +183,9 @@ export function TaskApplicationModal({ task, onClose, onSuccess }: TaskApplicati
                   {(executor.display_name || 'U')[0].toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-gray-900 truncate">
+                  <div className="font-semibold text-gray-900 truncate flex items-center gap-1.5">
                     {executor.display_name || t('profile.anonymous', 'Anonymous')}
+                    <WorldHumanBadge worldHumanId={executor.world_human_id} />
                   </div>
                   <div className="flex items-center gap-2 text-sm text-gray-500">
                     <span className="flex items-center gap-1">

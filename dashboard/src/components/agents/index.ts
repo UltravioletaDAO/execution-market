@@ -16,3 +16,5 @@ export type { AgentStandardCardProps } from './AgentStandardCard'
 export { AgentIdentityBadge } from './AgentIdentityBadge'
 
 export { XBadge } from './XBadge'
+
+export { WorldHumanBadge } from './WorldHumanBadge'

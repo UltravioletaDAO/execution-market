@@ -98,6 +98,8 @@ export interface Executor {
   reputation_contract: string | null
   reputation_token_id: number | null
   erc8004_agent_id: number | null
+  world_human_id: number | null
+  world_verified_at: string | null
   agent_type: AgentType
   networks_active: string[]
   preferred_language?: string | null
@@ -464,6 +466,8 @@ export interface ExecutorInsert {
   reputation_contract?: string | null
   reputation_token_id?: number | null
   erc8004_agent_id?: number | null
+  world_human_id?: number | null
+  world_verified_at?: string | null
   last_active_at?: string | null
 }
 
