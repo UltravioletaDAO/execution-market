@@ -2242,5 +2242,18 @@
         "preview": "Pré-visualização"
       }
     }
+  },
+  "worldId": {
+    "verifyButton": "Verificar com World ID",
+    "preparing": "Preparando verificacao...",
+    "verifyingProof": "Verificando prova...",
+    "success": "Verificacao bem-sucedida! Agora voce esta verificado como humano unico.",
+    "explainer": "World ID verifica que voce e um humano unico sem revelar sua identidade. Necessario para tarefas acima de $5.",
+    "tryAgain": "Tentar novamente",
+    "orbVerified": "Humano Verificado (Orb)",
+    "deviceVerified": "Verificado (Dispositivo)",
+    "required": "Requer World ID",
+    "requiredExplainer": "Esta tarefa requer verificacao do World ID para se candidatar.",
+    "verifyFirst": "Verifique sua identidade primeiro para se candidatar a esta tarefa."
   }
 }

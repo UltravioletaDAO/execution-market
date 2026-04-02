@@ -2311,5 +2311,18 @@
         "preview": "Preview"
       }
     }
+  },
+  "worldId": {
+    "verifyButton": "Verify with World ID",
+    "preparing": "Preparing verification...",
+    "verifyingProof": "Verifying proof...",
+    "success": "Verification successful! You are now verified as a unique human.",
+    "explainer": "World ID verifies you are a unique human without revealing your identity. Required for tasks above $5.",
+    "tryAgain": "Try again",
+    "orbVerified": "Orb Verified Human",
+    "deviceVerified": "Device Verified",
+    "required": "Requires World ID",
+    "requiredExplainer": "This task requires World ID verification to apply.",
+    "verifyFirst": "Verify your identity first to apply to this task."
   }
 }
