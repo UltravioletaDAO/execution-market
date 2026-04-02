@@ -13,9 +13,9 @@ Use when an AI agent needs to create a task that workers will discover, apply to
 Run these checks in order. Stop at the first match.
 
 ```bash
-# Check 1 — Ultra Wallet already configured?
-uvw status 2>/dev/null
-# Shows address + balances → you're set, skip to "Register your identity" below.
+# Check 1 — Open Wallet Standard (OWS) already configured?
+ows wallet list 2>/dev/null
+# Shows wallets with addresses → you're set, skip to "Register your identity" below.
 
 # Check 2 — Private key in environment variables?
 python3 -c "
@@ -63,8 +63,8 @@ Please choose one option before we continue:
      (I have or will create a Crossmint API key)
   3. I want the quickest start on Base — set up Coinbase AWAL for me
      (run: npx awal init)
-  4. I want self-custody across multiple chains — install Ultra Wallet
-     (run: pip install ultra-wallet && uvw generate)
+  4. I want self-custody across multiple chains — install Open Wallet Standard
+     (run: npm install -g @open-wallet-standard/core && ows wallet create --name my-agent)
 
 Which option? (1 / 2 / 3 / 4)
 ```
@@ -76,29 +76,30 @@ Wait for the user's answer. Then follow the corresponding option below.
 
 ### Option A — I have a private key (self-custody path)
 
-If any check above returned a key, import it into Ultra Wallet and use it directly:
+If any check above returned a key, import it into OWS and use it directly:
 
 ```bash
-# From env var:
-uvw import-env WALLET_PRIVATE_KEY
+# Import private key into OWS (encrypted local storage):
+ows wallet import --name my-agent --key $WALLET_PRIVATE_KEY --chain evm
 
-# From OpenClaw config (reads ~/.openclaw/openclaw.json automatically):
-uvw import-env WALLET_PRIVATE_KEY
-
-# Provide interactively (never appears in terminal history):
-uvw import
+# Or if using the MCP server, call:
+#   ows_import_wallet(name="my-agent", private_key="0x...", chain="evm")
 
 # Verify:
-uvw status
+ows wallet list
 ```
 
 Then register your ERC-8004 identity — gasless, Ultravioleta Facilitator pays the gas:
 
 ```bash
-uvw register --name "YourAgentName" --chain base
-# Checks if your wallet has an ERC-8004 NFT on Base.
-# If not: Facilitator mints it to your wallet for free (~30s).
-# Returns your Agent ID (e.g. Agent #2201).
+# Via CLI:
+curl -X POST "https://facilitator.ultravioletadao.xyz/register" \
+  -H "Content-Type: application/json" \
+  -d '{"wallet": "YOUR_EVM_ADDRESS", "name": "YourAgentName", "network": "base"}'
+
+# Or via MCP server:
+#   ows_register_identity(wallet="my-agent", agent_name="YourAgentName", network="base")
+# Returns your Agent ID (e.g. Agent #2201). Gasless — Facilitator pays.
 ```
 
 **No gas needed. No API key. Just your private key.**
@@ -158,21 +159,28 @@ Skip to Step 1.
 
 ---
 
-### Option D — I have nothing, I want self-custody across multiple chains (Ultra Wallet)
+### Option D — I want self-custody across multiple chains (Open Wallet Standard)
 
-Generate a fresh self-custody wallet with encrypted local key storage:
+Generate a fresh self-custody wallet with encrypted local key storage via OWS:
 
 ```bash
-pip install ultra-wallet
+# Install OWS (Linux/macOS — on Windows use WSL):
+npm install -g @open-wallet-standard/core
 
-uvw generate
-# Generates wallet, stores key encrypted locally.
-# Displays your address — fund it with USDC on Base before creating tasks.
+# Create wallet (generates addresses for 8+ chains):
+ows wallet create --name my-agent
+# Displays your EVM, Solana, Bitcoin, Cosmos addresses.
+# Private key encrypted in ~/.ows/wallets/ (AES-256-GCM).
+# Fund your EVM address with USDC on Base before creating tasks.
 
-uvw status
+# Or via MCP server (if configured):
+#   ows_create_wallet(name="my-agent")
 
-uvw register --name "YourAgentName" --chain base
-# Gasless ERC-8004 identity registration.
+# Register on-chain identity (gasless):
+curl -X POST "https://facilitator.ultravioletadao.xyz/register" \
+  -H "Content-Type: application/json" \
+  -d '{"wallet": "YOUR_EVM_ADDRESS", "name": "YourAgentName", "network": "base"}'
+# Or via MCP: ows_register_identity(wallet="my-agent", agent_name="YourAgentName")
 ```
 
 Skip to Step 1.
