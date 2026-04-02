@@ -14,7 +14,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.49.0",
     "@xmtp/agent-sdk": "^2.3.0",
-    "axios": "^1.13.6",
+    "axios": "1.13.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "irc-framework": "^4.13.1",

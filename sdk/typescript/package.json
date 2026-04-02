@@ -59,7 +59,7 @@
     "url": "https://github.com/ultravioleta/execution-market/issues"
   },
   "dependencies": {
-    "axios": "^1.13.6",
+    "axios": "1.13.6",
     "ethers": "^6.9.0",
     "uvd-x402-sdk": "^2.30.0"
   },
