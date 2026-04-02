@@ -44,11 +44,18 @@ class VerifyWorldIdRequest(BaseModel):
 
     proof: str = Field(..., description="ZK proof from IDKit")
     merkle_root: str = Field(..., description="Merkle root of the identity set")
-    nullifier_hash: str = Field(..., description="Unique nullifier hash for this person+app")
+    nullifier_hash: str = Field(
+        ..., description="Unique nullifier hash for this person+app"
+    )
     verification_level: str = Field(..., description="'orb' or 'device'")
     executor_id: str = Field(..., description="UUID of the executor being verified")
-    action: str = Field(default="verify-worker", description="Action string used during proof generation")
-    signal: str = Field(default="", description="Optional signal used during proof generation")
+    action: str = Field(
+        default="verify-worker",
+        description="Action string used during proof generation",
+    )
+    signal: str = Field(
+        default="", description="Optional signal used during proof generation"
+    )
 
 
 class VerifyWorldIdResponse(BaseModel):
@@ -248,7 +255,8 @@ async def verify_world_id(
                 "executor_id": executor_id,
                 "nullifier_hash": request.nullifier_hash,
                 "merkle_root": request.merkle_root,
-                "verification_level": result.verification_level or request.verification_level,
+                "verification_level": result.verification_level
+                or request.verification_level,
                 "proof": request.proof,
                 "verified_at": now,
             }
@@ -277,7 +285,8 @@ async def verify_world_id(
         client.table("executors").update(
             {
                 "world_id_verified": True,
-                "world_id_level": result.verification_level or request.verification_level,
+                "world_id_level": result.verification_level
+                or request.verification_level,
             }
         ).eq("id", executor_id).execute()
     except Exception as exc:

@@ -113,8 +113,8 @@ def _compute_rp_signature_message(
     Total: 81 bytes
     """
     version = b"\x01"
-    created_bytes = struct.pack(">Q", created_at)   # uint64 big-endian
-    expires_bytes = struct.pack(">Q", expires_at)    # uint64 big-endian
+    created_bytes = struct.pack(">Q", created_at)  # uint64 big-endian
+    expires_bytes = struct.pack(">Q", expires_at)  # uint64 big-endian
     action_hash = _hash_to_field(action.encode("utf-8"))
 
     return version + nonce + created_bytes + expires_bytes + action_hash

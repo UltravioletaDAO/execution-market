@@ -463,9 +463,7 @@ async def apply_to_task(
     # When enabled: tasks above the bounty threshold require World ID Orb verification.
     import os as _os
 
-    _world_id_enabled = (
-        _os.environ.get("EM_WORLD_ID_ENABLED", "true").lower() == "true"
-    )
+    _world_id_enabled = _os.environ.get("EM_WORLD_ID_ENABLED", "true").lower() == "true"
     if _world_id_enabled:
         try:
             from config.platform_config import PlatformConfig
