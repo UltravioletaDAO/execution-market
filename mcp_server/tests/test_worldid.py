@@ -1,7 +1,6 @@
 """Tests for World ID 4.0 integration."""
 
 import sys
-import os
 from pathlib import Path
 
 # Ensure mcp_server root is on sys.path for direct imports

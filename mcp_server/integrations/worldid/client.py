@@ -9,7 +9,6 @@ Implements the v4 RP signing spec:
 Cloud API v4: POST https://developer.world.org/api/v4/verify/{rp_id}
 """
 
-import hashlib
 import logging
 import os
 import struct

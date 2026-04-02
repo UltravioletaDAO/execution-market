@@ -151,7 +151,7 @@ export const AgentStandardCard = memo(function AgentStandardCard(props: AgentSta
             {data.social_links?.x && (
               <XBadge handle={data.social_links.x.handle} verified={data.social_links.x.verified} size="md" />
             )}
-            <WorldHumanBadge worldHumanId={data.world_human_id} />
+            <WorldHumanBadge worldHumanId={data.world_human_id ?? null} />
           </div>
 
           {/* Reputation tier + rating */}
