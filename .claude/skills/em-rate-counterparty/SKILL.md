@@ -29,7 +29,7 @@ if not wallet:
 if not wallet:
     try:
         import subprocess
-        r = subprocess.run(["uvw", "address"], capture_output=True, text=True, timeout=3)
+        r = subprocess.run(["ows", "wallet", "list", "--json"], capture_output=True, text=True, timeout=3)
         if r.returncode == 0 and r.stdout.strip().startswith("0x"):
             wallet = r.stdout.strip()
     except:
