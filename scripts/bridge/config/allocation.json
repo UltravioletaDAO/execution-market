@@ -1,0 +1,12 @@
+{
+  "bridge_plan": {
+    "source": "base",
+    "targets": {
+      "ethereum": "2.50",
+      "polygon": "2.50",
+      "arbitrum": "2.50",
+      "avalanche": "2.50",
+      "optimism": "2.50"
+    }
+  }
+}
