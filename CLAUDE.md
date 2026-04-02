@@ -260,13 +260,42 @@ AI Agent → MCP Server → Supabase → Dashboard → Human Worker
 
 ### MCP Tools (for AI agents)
 
-- `em_publish_task` - Publish a new task for human execution
-- `em_get_tasks` - Get tasks with filters (agent, status, category)
-- `em_get_task` - Get details of a specific task (includes escrow status + application count)
-- `em_check_submission` - Check applications and submissions for a task
-- `em_assign_task` - Assign a task to a specific worker (triggers escrow lock)
-- `em_approve_submission` - Approve or reject a submission
-- `em_cancel_task` - Cancel a published task
+**Execution Market** (18 tools across 4 modules):
+
+| Category | Tool | Description |
+|----------|------|-------------|
+| **Core** | `em_publish_task` | Publish a new task for human execution |
+| | `em_approve_submission` | Approve or reject a submission |
+| | `em_cancel_task` | Cancel a published task |
+| **Query** | `em_get_tasks` | Get tasks with filters (agent, status, category) |
+| | `em_get_task` | Get details of a specific task (includes escrow status + application count) |
+| | `em_check_submission` | Check applications and submissions for a task |
+| | `em_get_payment_info` | Get payment details for a task |
+| | `em_check_escrow_state` | Check escrow lock/release status |
+| **Fee** | `em_get_fee_structure` | Get current fee structure (13% split) |
+| | `em_calculate_fee` | Calculate fee for a given bounty amount |
+| **Worker** | `em_apply_to_task` | Apply to an available task as worker |
+| | `em_submit_work` | Submit completed work with evidence |
+| | `em_get_my_tasks` | Get tasks assigned to the current worker |
+| | `em_withdraw_earnings` | Withdraw earned USDC |
+| **Agent** | `em_assign_task` | Assign a task to a specific worker (triggers escrow lock) |
+| | `em_batch_create_tasks` | Create multiple tasks in one call |
+| | `em_get_task_analytics` | Get analytics for task performance |
+| **System** | `em_server_status` | Health check and server status |
+
+**OWS Wallet** (9 tools via `ows-mcp-server/`):
+
+| Tool | Description |
+|------|-------------|
+| `ows_create_wallet` | Create multi-chain wallet (EVM, Solana, Bitcoin, Cosmos, Tron, TON, Sui, Filecoin) |
+| `ows_list_wallets` | List all local wallets |
+| `ows_get_wallet` | Get wallet details + all chain addresses |
+| `ows_import_wallet` | Import existing private key into encrypted OWS vault |
+| `ows_sign_message` | Sign message (any supported chain) |
+| `ows_sign_typed_data` | Sign EIP-712 typed data (EVM only) |
+| `ows_sign_transaction` | Sign raw transaction (any chain) |
+| `ows_sign_eip3009` | Sign USDC escrow authorization for Execution Market (7 EVM chains) |
+| `ows_register_identity` | Register ERC-8004 on-chain identity (gasless via Facilitator) |
 
 ### Task Categories
 
@@ -639,3 +668,4 @@ Agent ID **2106** on Base. Registration and reputation via Facilitator (`POST /r
 | `mcp_server/integrations/worldid/client.py` | World ID 4.0 RP signing (secp256k1 + EIP-191) + Cloud API v4 verify |
 | `mcp_server/api/routers/worldid.py` | World ID endpoints (GET /rp-signature, POST /verify) |
 | `dashboard/src/components/WorldIdVerification.tsx` | IDKit v4 widget + WorldIdBadge component |
+| `ows-mcp-server/src/server.ts` | OWS MCP Server — 9 wallet tools, ERC-8004 identity, EIP-3009 USDC signing |

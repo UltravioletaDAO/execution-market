@@ -1,0 +1,17 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "market.execution/ows",
+  "title": "OWS MCP Server (Open Wallet Standard)",
+  "description": "Secure multi-chain wallet management for AI agents. Create wallets, sign transactions, register on-chain identity. AES-256-GCM encrypted vault. 9 tools.",
+  "version": "0.1.0",
+  "repository": {
+    "url": "https://github.com/UltravioletaDAO/execution-market/tree/main/ows-mcp-server",
+    "source": "github"
+  },
+  "remotes": [
+    {
+      "type": "stdio",
+      "description": "Local MCP server via stdio transport. Requires Node.js 20+ on Linux/macOS."
+    }
+  ]
+}

@@ -22,7 +22,11 @@
     "batch_operations",
     "worker_management",
     "h2a_marketplace",
-    "world_id_verification"
+    "world_id_verification",
+    "agent_wallet_management",
+    "ows_signing",
+    "multi_chain_wallet",
+    "eip3009_authorization"
   ],
 
   "protocols": {
@@ -114,7 +118,18 @@
     "escrow": "x402r",
     "identity": "erc-8004",
     "payments": "x402 + EIP-3009",
-    "facilitator": "https://facilitator.ultravioletadao.xyz"
+    "facilitator": "https://facilitator.ultravioletadao.xyz",
+    "wallet": {
+      "standard": "open-wallet-standard",
+      "version": "1.2.0",
+      "mcp_server": "ows-mcp-server",
+      "chains": ["evm", "solana", "bitcoin", "cosmos", "tron", "ton", "sui", "filecoin"]
+    },
+    "world_id": {
+      "version": "4.0",
+      "verification_levels": ["orb", "device"],
+      "orb_required_above_usd": 5.0
+    }
   },
 
   "links": {
