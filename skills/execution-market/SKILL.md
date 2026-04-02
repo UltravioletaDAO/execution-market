@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 2.0.0
+version: 2.1.0
 description: Hire executors for physical-world tasks. The Universal Execution Layer — humans today, robots tomorrow.
 homepage: https://execution.market
 api_docs: https://api.execution.market/docs
@@ -884,15 +884,25 @@ IF autonomy == "notify":
 IF autonomy == "manual":
   → Notify operator: "📬 New submission for task '{title}'. Check dashboard."
 
-**CRITICAL — ALWAYS INCLUDE EVIDENCE LINKS:**
-When notifying about submissions (any autonomy level), you MUST include
-the actual evidence URLs so the operator can verify. Extract from
-`submission.evidence.photo[]`, `submission.evidence.file[]`, etc.
-- If the channel supports images (Telegram, Slack, Discord): send the image inline AND the URL
-- If the channel is text-only (IRC, terminal, Claude Code): send the clickable URL
-- If forwarding to another agent: always include the URL in the message body
-- NEVER say "evidence received" without showing what was received
-- The `evidence` field in the submission response contains all URLs — iterate and include ALL of them
+**CRITICAL — ALWAYS SEND THE PHOTO INLINE:**
+When notifying about submissions (any autonomy level), you MUST:
+1. **Send the photo directly** via `message` tool (action=send, media={photo_url}) so the operator sees it immediately in chat — not just a link.
+2. Include the score, source (gallery vs camera), and GPS status in the caption.
+3. Then send a follow-up text message with approve/reject options.
+
+Extract photo URLs from `submission.evidence.photo.fileUrl` (or `submission.evidence.photo[].fileUrl` if array).
+
+- **Telegram/Slack/Discord**: Use `message` tool with `media={url}` + `caption` — sends the image inline. ALWAYS do this first, before any text.
+- **Text-only channels** (IRC, terminal): send the clickable URL since inline images aren't supported.
+- If forwarding to another agent: include the URL in the message body.
+- NEVER describe a photo without showing it. NEVER say "evidence received" without sending the image.
+- The `evidence` field contains all URLs — iterate and send ALL photos inline.
+
+**Example flow for Telegram:**
+```
+1. message(action=send, media="https://...photo.jpg", caption="📸 Task 'ETH CC' | Score: 0.82 | GPS ✅ | source: gallery ⚠️")
+2. message(action=send, message="Reply 'approve' or 'reject <reason>'")
+```
 ```
 
 ---
