@@ -289,6 +289,19 @@ resource "aws_ecs_task_definition" "mcp_server" {
           name      = "EM_WORKER_PRIVATE_KEY"
           valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/test-worker:private_key::"
         },
+        # World ID 4.0 (hackathon Track 2 — RP signing + Cloud API verify)
+        {
+          name      = "WORLD_ID_APP_ID"
+          valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/worldid:WORLD_ID_APP_ID::"
+        },
+        {
+          name      = "WORLD_ID_RP_ID"
+          valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/worldid:WORLD_ID_RP_ID::"
+        },
+        {
+          name      = "WORLD_ID_SIGNING_KEY"
+          valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/worldid:WORLD_ID_SIGNING_KEY::"
+        },
       ]
 
       logConfiguration = {
