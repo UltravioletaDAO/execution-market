@@ -701,6 +701,19 @@ class IdentityCheckResponse(BaseModel):
     error: Optional[str] = None
 
 
+class WorldIdStatusResponse(BaseModel):
+    """World ID verification status for a worker."""
+
+    verified: bool = Field(False, description="Whether the worker is World ID verified")
+    level: Optional[str] = Field(
+        None,
+        description="Verification level: 'orb' (biometric) or 'device' (phone)",
+    )
+    verified_at: Optional[str] = Field(
+        None, description="ISO 8601 timestamp of verification"
+    )
+
+
 class RegisterIdentityRequest(BaseModel):
     """Request to prepare an identity registration transaction."""
 

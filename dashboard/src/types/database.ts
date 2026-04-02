@@ -104,6 +104,8 @@ export interface Executor {
   networks_active: string[]
   preferred_language?: string | null
   social_links?: SocialLinks | null
+  world_id_verified?: boolean
+  world_id_level?: string | null  // 'orb' | 'device'
   created_at: string
   updated_at: string
   last_active_at: string | null

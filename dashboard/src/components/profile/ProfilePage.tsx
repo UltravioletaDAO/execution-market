@@ -5,6 +5,7 @@ import { EarningsCard } from './EarningsCard'
 import { ReputationCard } from './ReputationCard'
 import { TaskHistory } from './TaskHistory'
 import { WithdrawalForm } from './WithdrawalForm'
+import { WorldIdVerification } from '../WorldIdVerification'
 import { useEarnings, useReputation, useTaskHistory } from '../../hooks/useProfile'
 import type { Executor } from '../../types/database'
 
@@ -194,6 +195,14 @@ export function ProfilePage({ executor, onBack, onEditProfile, onLogout }: Profi
             </div>
           </div>
         )}
+      </div>
+
+      {/* Human Verification */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h3 className="text-gray-900 font-semibold mb-3">
+          {t('profile.humanVerification', 'Human Verification')}
+        </h3>
+        <WorldIdVerification />
       </div>
 
       {/* Earnings card */}

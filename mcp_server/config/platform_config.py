@@ -106,6 +106,10 @@ class PlatformConfig:
         # World AgentKit (human verification via AgentBook on Base)
         "feature.world_agentkit_enabled": True,
         "feature.world_agentkit_priority_boost": True,
+        # World ID 4.0 integration
+        "feature.world_id_enabled": True,
+        "feature.world_id_required_for_high_value": True,
+        "worldid.min_bounty_for_orb_usd": Decimal("5.00"),
         # MeshRelay integration
         "feature.meshrelay_dynamic_channels": False,
         "feature.meshrelay_relay_chains": False,

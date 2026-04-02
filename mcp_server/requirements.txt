@@ -41,6 +41,12 @@ web3>=6.15.0
 eth-account>=0.11.0
 
 # ===================
+# World ID 4.0 (RP Signing)
+# ===================
+coincurve>=20.0.0
+pycryptodome>=3.20.0
+
+# ===================
 # x402 SDK (Official Ultravioleta DAO SDK)
 # ===================
 uvd-x402-sdk[fastapi]>=0.19.4
