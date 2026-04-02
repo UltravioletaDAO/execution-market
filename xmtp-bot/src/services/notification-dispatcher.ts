@@ -156,7 +156,7 @@ export async function notifyNewRating(
     `**Nuevo rating recibido** ${stars}\n\n` +
       `| Campo | Valor |\n` +
       `|-------|-------|\n` +
-      `| Score | ${rating.score}/100 |\n` +
+      `| Score | ${rating.score}/5 |\n` +
       `| De | ${from} |\n` +
       (rating.comment ? `| Comentario | ${rating.comment} |\n` : "") +
       (rating.task_title ? `| Tarea | ${rating.task_title} |\n` : "") +
