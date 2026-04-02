@@ -139,9 +139,9 @@ export function EvidenceVerificationPanel({ details }: EvidenceVerificationPanel
             <span className="text-xs font-medium text-red-700">
               {t('autoCheck.phaseBError', 'AI verification failed')}
             </span>
-            {(verification as Record<string, unknown>).phase_b_error && (
+            {(verification as unknown as Record<string, unknown>).phase_b_error && (
               <p className="text-xs text-red-500 mt-0.5">
-                {String((verification as Record<string, unknown>).phase_b_error)}
+                {String((verification as unknown as Record<string, unknown>).phase_b_error)}
               </p>
             )}
           </div>

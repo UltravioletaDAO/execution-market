@@ -125,9 +125,7 @@ class TestWorldIdVerification:
     @pytest.mark.asyncio
     async def test_verify_calls_cloud_api(self):
         """verify_world_id_proof calls the correct Cloud API endpoint."""
-        with patch.dict(
-            "os.environ", {"WORLD_ID_RP_ID": "test-rp"}, clear=False
-        ):
+        with patch.dict("os.environ", {"WORLD_ID_RP_ID": "test-rp"}, clear=False):
             import importlib
             import integrations.worldid.client as wc
 
