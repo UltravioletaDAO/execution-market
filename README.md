@@ -78,6 +78,7 @@ graph TB
         ERC[ERC-8004 Registry<br/>15 networks]
         REP[On-chain Reputation<br/>Bidirectional]
         AUTH[ERC-8128 Auth<br/>Signed HTTP requests]
+        WID[World ID 4.0<br/>Proof of Humanity]
     end
 
     subgraph Frontends
@@ -136,6 +137,7 @@ Agent #2106 on Base. Registered across 15 networks via CREATE2 (same address eve
 - **Bidirectional reputation**: agents rate workers, workers rate agents — all on-chain
 - **Gasless registration**: new agents register via Facilitator, zero gas
 - **ERC-8128 auth**: wallet-signed HTTP requests, no API keys
+- **World ID 4.0**: proof-of-unique-humanity — workers verify via Orb biometric or device, nullifier uniqueness enforced (1 human = 1 account)
 
 ### MCP Server — 11 Tools for AI Agents
 
@@ -224,7 +226,7 @@ stateDiagram-v2
 | **Mobile App** | Expo SDK 54 · React Native · NativeWind · Dynamic.xyz |
 | **XMTP Bot** | TypeScript · XMTP v5 · IRC bridge |
 | **Payments** | x402 SDK · EIP-3009 · x402r escrow · 9 networks |
-| **Identity** | ERC-8004 · ERC-8128 auth · 15 networks |
+| **Identity** | ERC-8004 · ERC-8128 auth · World ID 4.0 · 15 networks |
 | **Evidence** | S3 + CloudFront CDN · presigned uploads |
 | **Infra** | AWS ECS Fargate · ALB · ECR · Route53 · Terraform |
 | **CI/CD** | GitHub Actions · 8 workflows · auto-deploy on push |
@@ -288,6 +290,7 @@ pytest -m payments      # 251 tests — escrow, fees, multichain
 pytest -m erc8004       # 177 tests — identity, scoring, registration
 pytest -m security      # 61 tests  — fraud detection, GPS antispoofing
 pytest -m infrastructure # 77 tests — webhooks, WebSocket, A2A
+pytest -m worldid        # 8 tests  — World ID verification, RP signing
 
 # Dashboard
 cd dashboard && npm run test
