@@ -103,6 +103,9 @@ class PlatformConfig:
         "feature.erc8004_dynamic_scoring_enabled": True,
         "feature.erc8004_rejection_feedback_enabled": False,
         "feature.describenet_enabled": False,
+        # World AgentKit (human verification via AgentBook on Base)
+        "feature.world_agentkit_enabled": True,
+        "feature.world_agentkit_priority_boost": True,
         # MeshRelay integration
         "feature.meshrelay_dynamic_channels": False,
         "feature.meshrelay_relay_chains": False,

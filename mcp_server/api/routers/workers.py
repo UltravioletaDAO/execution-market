@@ -109,6 +109,47 @@ async def register_worker(
 
 
 @router.get(
+    "/workers/world-status",
+    response_model=SuccessResponse,
+    responses={
+        200: {"description": "World verification status retrieved"},
+        400: {"model": ErrorResponse, "description": "Invalid wallet address"},
+        500: {"model": ErrorResponse, "description": "Lookup failed"},
+    },
+    summary="Check World Human Verification",
+    description=(
+        "Check whether a wallet address belongs to a World-verified human "
+        "via the AgentBook contract on Base."
+    ),
+    tags=["Workers", "World"],
+)
+async def get_world_status(
+    wallet: str = Query(
+        ...,
+        description="Wallet address to check (0x-prefixed)",
+        min_length=42,
+        max_length=42,
+    ),
+) -> SuccessResponse:
+    """Check World AgentBook verification status for a wallet address."""
+    if not wallet.startswith("0x"):
+        raise HTTPException(status_code=400, detail="Wallet must be 0x-prefixed")
+    try:
+        from integrations.world import lookup_human
+
+        result = await lookup_human(wallet)
+        return SuccessResponse(
+            message="World verification status retrieved",
+            data=result.to_dict(),
+        )
+    except Exception as e:
+        logger.error("World status lookup failed for %s: %s", wallet[:10], e)
+        raise HTTPException(
+            status_code=500, detail="Error checking World verification status"
+        )
+
+
+@router.get(
     "/workers/tasks/{task_id}/my-submission",
     response_model=SuccessResponse,
     responses={
@@ -366,6 +407,58 @@ async def apply_to_task(
                 e,
             )
 
+    # ---- World AgentKit Human Verification (non-blocking) -------------------
+    # When enabled, checks the AgentBook contract on Base to determine whether
+    # the worker is a World-verified human.  Result is stored in DB but NEVER
+    # blocks the application flow.
+    world_verified = False
+    world_human_id = None
+    try:
+        from config.platform_config import PlatformConfig
+
+        _world_enabled = await PlatformConfig.get(
+            "feature.world_agentkit_enabled", True
+        )
+        if _world_enabled:
+            from integrations.world import lookup_human
+
+            # Reuse wallet fetched by ERC-8004 block when available
+            if not locals().get("worker_wallet"):
+                _exec_stats = await db.get_executor_stats(executor_id)
+                worker_wallet = (_exec_stats or {}).get("wallet_address")
+
+            if worker_wallet:
+                world_result = await lookup_human(worker_wallet)
+                if world_result.is_human:
+                    world_verified = True
+                    world_human_id = world_result.human_id
+                    from datetime import datetime, timezone
+
+                    client = db.get_client()
+                    client.table("executors").update(
+                        {
+                            "world_human_id": world_result.human_id,
+                            "world_verified_at": datetime.now(timezone.utc).isoformat(),
+                        }
+                    ).eq("id", executor_id).execute()
+                    logger.info(
+                        "World AgentKit: executor=%s is verified human (humanId=%d)",
+                        executor_id[:8],
+                        world_result.human_id,
+                    )
+                else:
+                    logger.debug(
+                        "World AgentKit: executor=%s not verified (status=%s)",
+                        executor_id[:8],
+                        world_result.status,
+                    )
+    except Exception as e:
+        logger.warning(
+            "World AgentKit check failed (non-blocking) for %s: %s",
+            executor_id,
+            e,
+        )
+
     try:
         result = await db.apply_to_task(
             task_id=task_id,
@@ -421,6 +514,8 @@ async def apply_to_task(
                 "application_id": result["application"]["id"],
                 "task_id": task_id,
                 "status": "pending",
+                "world_verified": world_verified,
+                "world_human_id": world_human_id,
             },
         )
 
