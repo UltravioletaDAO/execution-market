@@ -1,5 +1,24 @@
 """Tests for World ID 4.0 integration."""
 
+import sys
+import os
+from pathlib import Path
+
+# Ensure mcp_server root is on sys.path for direct imports
+_mcp_root = str(Path(__file__).resolve().parent.parent)
+if _mcp_root not in sys.path:
+    sys.path.insert(0, _mcp_root)
+
+# Force-remove stale 'integrations' stub if another test file inserted one
+if "integrations" in sys.modules and not hasattr(
+    sys.modules["integrations"], "__path__"
+):
+    del sys.modules["integrations"]
+if "integrations.worldid" in sys.modules and not hasattr(
+    sys.modules["integrations.worldid"], "__path__"
+):
+    del sys.modules["integrations.worldid"]
+
 import pytest
 from unittest.mock import patch, AsyncMock, MagicMock
 
