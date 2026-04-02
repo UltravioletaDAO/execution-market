@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useTranslation as useCustomTranslation } from '../i18n/hooks/useTranslation'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { WorldIdBadge } from './WorldIdVerification'
 import type { Task } from '../types/database'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
@@ -192,6 +193,9 @@ export function TaskApplicationModal({ task, onClose, onSuccess }: TaskApplicati
                       </svg>
                       {executor.reputation_score}
                     </span>
+                    {executor.world_id_verified && (
+                      <WorldIdBadge level={executor.world_id_level || 'device'} size="sm" />
+                    )}
                     {location && (
                       <>
                         <span className="text-gray-300">|</span>
