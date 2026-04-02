@@ -103,6 +103,10 @@ class PlatformConfig:
         "feature.erc8004_dynamic_scoring_enabled": True,
         "feature.erc8004_rejection_feedback_enabled": False,
         "feature.describenet_enabled": False,
+        # World ID integration
+        "feature.world_id_enabled": True,
+        "feature.world_id_required_for_high_value": True,
+        "worldid.min_bounty_for_orb_usd": Decimal("5.00"),
         # MeshRelay integration
         "feature.meshrelay_dynamic_channels": False,
         "feature.meshrelay_relay_chains": False,
