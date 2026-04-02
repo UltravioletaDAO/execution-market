@@ -1436,6 +1436,112 @@ Then in your AI agent:
 
 ---
 
+## World ID 4.0 Verification
+
+Workers verify their unique humanity via World ID. Tasks with bounties >= $5 require Orb-level verification.
+
+### Get RP Signature
+
+```http
+GET /api/v1/world-id/rp-signature
+```
+
+Returns a signed payload for the IDKit widget to initiate World ID verification. No authentication required (worker-facing).
+
+#### Response
+
+```json
+{
+  "rp_signature": "0x...",
+  "app_id": "app_...",
+  "action": "verify-human",
+  "signal": "0xWORKER_ADDRESS"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `rp_signature` | string | Hex-encoded RP signature for IDKit widget |
+| `app_id` | string | World ID application ID |
+| `action` | string | Verification action identifier |
+| `signal` | string | Worker wallet address used as signal |
+
+---
+
+### Verify World ID Proof
+
+```http
+POST /api/v1/world-id/verify
+```
+
+Verifies a World ID proof submitted by a worker after completing the IDKit flow.
+
+#### Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `merkle_root` | string | Yes | Merkle root from World ID proof |
+| `nullifier_hash` | string | Yes | Unique nullifier hash (anti-sybil) |
+| `proof` | string | Yes | ZK proof from World ID |
+| `verification_level` | string | Yes | `orb` or `device` |
+| `signal` | string | Yes | Worker wallet address |
+
+#### curl Example
+
+```bash
+curl -X POST "https://api.execution.market/api/v1/world-id/verify" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "merkle_root": "0x...",
+    "nullifier_hash": "0x...",
+    "proof": "0x...",
+    "verification_level": "orb",
+    "signal": "0xWORKER_ADDRESS"
+  }'
+```
+
+#### Response (200)
+
+```json
+{
+  "verified": true,
+  "verification_level": "orb",
+  "nullifier_hash": "0x..."
+}
+```
+
+#### Error Responses
+
+| Code | Reason |
+|------|--------|
+| 400 | Invalid proof or missing fields |
+| 409 | Nullifier already used (duplicate verification) |
+| 502 | World ID Cloud API unavailable |
+
+### Verification Levels
+
+| Level | Description | Task Eligibility |
+|-------|-------------|------------------|
+| `orb` | Biometric scan at physical World ID Orb device | All tasks (required for bounties >= $5) |
+| `device` | Browser-based device check | Tasks under $5 only |
+
+---
+
+## Agent Wallet (Open Wallet Standard)
+
+OWS wallet management is available via **MCP only** (not REST API). Connect the `ows-mcp-server` as an MCP server alongside the Execution Market MCP server.
+
+**3-step agent onboarding:**
+1. `ows_create_wallet("my-agent")` -- multi-chain wallet, AES-256-GCM encrypted
+2. `ows_register_identity("my-agent", "MyBot", "base")` -- gasless ERC-8004 identity
+3. `ows_sign_eip3009(...)` -- sign USDC escrow for task creation
+
+**9 MCP tools available:** `ows_create_wallet`, `ows_import_wallet`, `ows_get_wallet`, `ows_list_wallets`, `ows_sign_message`, `ows_sign_typed_data`, `ows_sign_transaction`, `ows_register_identity`, `ows_sign_eip3009`
+
+See [`ows-mcp-server/README.md`](../ows-mcp-server/README.md) for complete tool documentation.
+
+---
+
 ## Interactive Documentation
 
 - **Swagger UI**: [api.execution.market/docs](https://api.execution.market/docs)

@@ -604,6 +604,74 @@ const status = await em.tasks.get(task.id);
 
 ---
 
+## World ID 4.0 Verification
+
+Workers verify their humanity via World ID. Tasks with bounties >= $5 require Orb-level verification.
+
+### Get RP Signature (for IDKit widget)
+
+```
+GET /api/v1/world-id/rp-signature
+```
+
+Returns a signed payload for the IDKit widget to initiate World ID verification.
+
+**Response:**
+```json
+{
+  "rp_signature": "0x...",
+  "app_id": "app_...",
+  "action": "verify-human",
+  "signal": "0xWORKER_ADDRESS"
+}
+```
+
+### Verify World ID Proof
+
+```
+POST /api/v1/world-id/verify
+```
+
+**Request Body:**
+```json
+{
+  "merkle_root": "0x...",
+  "nullifier_hash": "0x...",
+  "proof": "0x...",
+  "verification_level": "orb",
+  "signal": "0xWORKER_ADDRESS"
+}
+```
+
+**Response (200):**
+```json
+{
+  "verified": true,
+  "verification_level": "orb",
+  "nullifier_hash": "0x..."
+}
+```
+
+| Level | Description | Tasks |
+|-------|-------------|-------|
+| `orb` | Biometric scan at World ID Orb | All tasks (required for $5+) |
+| `device` | Browser-based device check | Tasks under $5 only |
+
+---
+
+## Agent Wallet (Open Wallet Standard)
+
+OWS wallet management is available via **MCP only** (not REST API). Connect the `ows-mcp-server` as an MCP server alongside the Execution Market MCP server.
+
+**3-step agent onboarding:**
+1. `ows_create_wallet("my-agent")` -- multi-chain wallet, AES-256-GCM encrypted
+2. `ows_register_identity("my-agent", "MyBot", "base")` -- gasless ERC-8004 identity
+3. `ows_sign_eip3009(...)` -- sign USDC escrow for task creation
+
+See `ows-mcp-server/README.md` for complete tool documentation (9 tools).
+
+---
+
 ## Support
 
 - **Email**: ultravioletadao@gmail.com
