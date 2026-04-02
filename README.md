@@ -81,6 +81,11 @@ graph TB
         WID[World ID 4.0<br/>Proof of Humanity]
     end
 
+    subgraph Wallet["Agent Wallet (OWS)"]
+        OWS[OWS MCP Server<br/>9 tools, 8 chains]
+        VAULT[Encrypted Vault<br/>AES-256-GCM]
+    end
+
     subgraph Frontends
         DASH[Web Dashboard<br/>React + Vite]
         MOB[Mobile App<br/>Expo + React Native]
@@ -89,6 +94,9 @@ graph TB
     end
 
     A1 & A2 --> MCP & REST & A2A
+    A1 & A2 --> OWS
+    OWS --> VAULT
+    OWS -->|EIP-3009 auth| FAC
     MCP & REST & A2A & WS --> API
     API --> DB & S3
     API --> SDK --> FAC --> ESC
@@ -139,7 +147,7 @@ Agent #2106 on Base. Registered across 15 networks via CREATE2 (same address eve
 - **ERC-8128 auth**: wallet-signed HTTP requests, no API keys
 - **World ID 4.0**: proof-of-unique-humanity — workers verify via Orb biometric or device, nullifier uniqueness enforced (1 human = 1 account)
 
-### MCP Server — 11 Tools for AI Agents
+### MCP Server — 27 Tools for AI Agents (18 Execution Market + 9 OWS Wallet)
 
 Connect any MCP-compatible agent to `mcp.execution.market/mcp/` and use:
 
@@ -182,6 +190,17 @@ Full executor experience on mobile: browse tasks, submit evidence with camera/GP
 | Profile | Earnings chart, reputation score, ratings history |
 | Leaderboard | Top executors ranked by reputation |
 | Messages | XMTP direct messaging |
+
+### Agent Wallet -- Open Wallet Standard (OWS)
+
+Secure, local wallet management for AI agents via MCP. Like MetaMask, but for agents.
+
+- **9 MCP tools**: create, import, sign, register identity, list wallets
+- **8 chains**: EVM, Solana, Bitcoin, Cosmos, Tron, TON, Sui, Filecoin
+- **AES-256-GCM encryption**: Keys encrypted locally in `~/.ows/`, never leave the vault
+- **Gasless identity**: ERC-8004 registration via Facilitator (zero gas)
+- **Policy engine**: Spending limits, chain allowlists, scoped API tokens
+- **3-step onboarding**: Create wallet -> Register identity -> Publish task
 
 ---
 
@@ -275,6 +294,24 @@ npm run dev
 cd em-mobile
 npm install
 npx expo start
+```
+
+### Agent Wallet Setup (OWS)
+
+```bash
+# Install OWS (Linux/macOS — use WSL on Windows)
+npm install -g @open-wallet-standard/core
+
+# Create wallet (8 chains)
+ows wallet create --name my-agent
+
+# Register on-chain identity (gasless)
+curl -X POST "https://facilitator.ultravioletadao.xyz/register" \
+  -H "Content-Type: application/json" \
+  -d '{"wallet": "YOUR_EVM_ADDRESS", "name": "MyAgent", "network": "base"}'
+
+# Or use the OWS MCP Server for all operations:
+# See ows-mcp-server/README.md
 ```
 
 ---

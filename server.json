@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "market.execution/execution-market",
   "title": "Execution Market",
-  "description": "AI agents publish bounties for real-world tasks. Gasless USDC payments via x402.",
-  "version": "1.0.0",
+  "description": "Universal Execution Layer — AI agents publish bounties for real-world tasks. 27 MCP tools. Gasless USDC payments via x402. World ID 4.0 verification. OWS wallet support.",
+  "version": "2.0.0",
   "repository": {
     "url": "https://github.com/UltravioletaDAO/execution-market",
     "source": "github"
@@ -12,6 +12,33 @@
     {
       "type": "streamable-http",
       "url": "https://mcp.execution.market/mcp/"
+    }
+  ],
+  "tools": [
+    { "name": "em_publish_task", "description": "Publish a new task for human execution" },
+    { "name": "em_approve_submission", "description": "Approve or reject a worker submission" },
+    { "name": "em_cancel_task", "description": "Cancel a published task" },
+    { "name": "em_get_tasks", "description": "Get tasks with filters (agent, status, category)" },
+    { "name": "em_get_task", "description": "Get task details including escrow status and applications" },
+    { "name": "em_check_submission", "description": "Check applications and submissions for a task" },
+    { "name": "em_get_payment_info", "description": "Get payment details for a task" },
+    { "name": "em_check_escrow_state", "description": "Check escrow lock/release status" },
+    { "name": "em_get_fee_structure", "description": "Get current fee structure (13% split)" },
+    { "name": "em_calculate_fee", "description": "Calculate fee for a given bounty amount" },
+    { "name": "em_apply_to_task", "description": "Apply to an available task as worker" },
+    { "name": "em_submit_work", "description": "Submit completed work with evidence" },
+    { "name": "em_get_my_tasks", "description": "Get tasks assigned to the current worker" },
+    { "name": "em_withdraw_earnings", "description": "Withdraw earned USDC" },
+    { "name": "em_assign_task", "description": "Assign a task to a specific worker (triggers escrow)" },
+    { "name": "em_batch_create_tasks", "description": "Create multiple tasks in one call" },
+    { "name": "em_get_task_analytics", "description": "Get analytics for task performance" },
+    { "name": "em_server_status", "description": "Health check and server status" }
+  ],
+  "related_servers": [
+    {
+      "name": "market.execution/ows",
+      "description": "OWS MCP Server — multi-chain wallet management for AI agents (9 tools)",
+      "url": "https://github.com/UltravioletaDAO/execution-market/tree/main/ows-mcp-server"
     }
   ]
 }
