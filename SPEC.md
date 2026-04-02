@@ -1123,6 +1123,46 @@ async def register_em_agent():
 
 ---
 
+## Agent Wallet (Open Wallet Standard)
+
+Agents use the Open Wallet Standard (OWS) for secure, multi-chain wallet management:
+
+- **8 supported chains**: EVM (Base, Ethereum, Polygon, Arbitrum, Avalanche, Optimism, Celo, Monad), Solana, Bitcoin, Cosmos, Tron, TON, Sui, Filecoin
+- **Encryption**: AES-256-GCM (scrypt N=2^16, r=8, p=1), keys encrypted at rest in `~/.ows/wallets/`
+- **MCP Server**: 9 tools exposed via Model Context Protocol (see `ows-mcp-server/`)
+- **Policy Engine**: Spending limits per transaction, daily caps, chain allowlists
+- **Gasless Identity**: ERC-8004 registration via Ultravioleta Facilitator (zero gas cost)
+- **EIP-3009 Signing**: USDC escrow authorizations for task creation
+
+### Onboarding Flow
+
+1. Agent creates wallet: `ows_create_wallet("my-agent")` -- 8 chains, encrypted locally
+2. Agent registers identity: `ows_register_identity(...)` -- ERC-8004 NFT on Base, gasless
+3. Agent publishes task: `ows_sign_eip3009(...)` -- signs escrow, Facilitator executes on-chain
+
+---
+
+## Proof of Humanity (World ID 4.0)
+
+Workers verify unique humanity via World ID:
+
+- **Orb verification**: Full biometric + liveness scan at physical World ID Orb device (highest assurance)
+- **Device verification**: Browser-based check (lower assurance, for tasks under $5)
+- **Nullifier anti-sybil**: Cryptographic proof that 1 person = 1 verified account (no personal data stored)
+- **Task eligibility**: Tasks >= $5 require Orb verification. Tasks < $5 accept device verification.
+- **Integration**: IDKit v4 widget in dashboard, backend RP signing (Cloud API v4)
+
+### Verification Flow
+
+1. Worker opens profile -- "Verify with World ID" button
+2. IDKit widget opens -- redirects to World ID app
+3. Worker scans Orb (or device check)
+4. Proof submitted to backend -- `/api/v1/world-id/verify`
+5. Backend verifies via World ID Cloud API
+6. Worker marked as verified -- can apply to $5+ tasks
+
+---
+
 ## 10. Ecosystem Integration
 
 Ver [SYNERGIES.md](./SYNERGIES.md) para analisis detallado.
