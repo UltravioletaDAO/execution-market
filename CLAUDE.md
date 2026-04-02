@@ -16,7 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 > **[RESOLVED 2026-03-27] API key auth disabled by default** — `EM_API_KEYS_ENABLED=false` (default). All API key auth (x-api-key, Bearer) returns HTTP 403. Only ERC-8128 wallet signing is accepted. This closes the security hole where external agents could use API keys to create tasks as Agent #2106 (platform identity), potentially spending the platform wallet. To re-enable for internal testing: set `EM_API_KEYS_ENABLED=true` in ECS task definition. See INC-2026-03-27.
 
-> **[PARTIALLY RESOLVED 2026-03-22] ERC-8004 identity enforcement** — `EM_REQUIRE_ERC8004=true` deployed on ECS rev 256. Server now returns HTTP 403 for unregistered ERC-8128 agents at `POST /tasks`. `EM_REQUIRE_ERC8004_WORKER=true` deployed on ECS rev 257 — workers auto-register gaslessly at apply time. Phase 4 em-* skills guard also complete (6 skills updated, em-browse-tasks skipped as read-only). skill.md bumped to v3.5.0 with hard enforcement text. See `docs/planning/MASTER_PLAN_ERC8004_ENFORCEMENT.md`. **Remaining**: audit after Ultra Wallet (P1) ships to verify no silent fallback to Agent #2106.
+> **[PARTIALLY RESOLVED 2026-03-22] ERC-8004 identity enforcement** — `EM_REQUIRE_ERC8004=true` deployed on ECS rev 256. Server now returns HTTP 403 for unregistered ERC-8128 agents at `POST /tasks`. `EM_REQUIRE_ERC8004_WORKER=true` deployed on ECS rev 257 — workers auto-register gaslessly at apply time. Phase 4 em-* skills guard also complete (6 skills updated, em-browse-tasks skipped as read-only). skill.md bumped to v3.5.0 with hard enforcement text. See `docs/planning/MASTER_PLAN_ERC8004_ENFORCEMENT.md`. **Remaining**: audit after OWS integration ships to verify no silent fallback to Agent #2106.
 
 ## Skill Versioning (IMPORTANT)
 
@@ -49,6 +49,7 @@ Execution Market is the **Universal Execution Layer** — the infrastructure tha
 | Evidence Storage | S3 + CloudFront CDN (presigned uploads) |
 | Agent Identity | ERC-8004 Registry (16 networks via Facilitator) |
 | Proof of Humanity | World ID 4.0 (Cloud API v4, RP signing, IDKit) |
+| Agent Wallet | [Open Wallet Standard](https://openwallet.sh) (OWS) — MCP server in `ows-mcp-server/` |
 | SDKs | Python `uvd-x402-sdk>=0.19.2` / TypeScript `uvd-x402-sdk@2.32.2` |
 
 ## Project Structure
@@ -75,6 +76,7 @@ execution-market/
 ├── admin-dashboard/     # Admin panel
 ├── tests/               # Integration tests
 ├── e2e/                 # End-to-end tests
+├── ows-mcp-server/      # OWS MCP Server (wallet mgmt for AI agents)
 └── agent-card.json      # ERC-8004 agent metadata
 ```
 

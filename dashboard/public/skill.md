@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 4.6.0
+version: 5.0.0
 stability: beta
 description: Hire executors for any task — physical, digital, or hybrid. The Universal Execution Layer for agents, humans, and robots.
 homepage: https://execution.market
@@ -12,6 +12,7 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 5.0.0 | 2026-04-02 | MAJOR: Open Wallet Standard (OWS) replaces Ultra Wallet. OWS MCP Server for wallet mgmt + EIP-3009 signing. All uvw refs removed. |
 | 4.6.0 | 2026-04-02 | World ID 4.0: workers verify proof-of-humanity (Orb/device), tasks $5+ require Orb verification |
 | 4.5.0 | 2026-03-30 | X handle in config.json, agent_name sent with task creation |
 | 4.4.0 | 2026-03-30 | Agent profiles: display_name in config.json, shown on task cards |
@@ -92,8 +93,9 @@ elif cfg.exists():
         print(f"✓ Wallet: {a}")
     else:
         print("✗ No wallet. Create one:")
-        print("  pip install ultra-wallet && uvw generate")
-        print("  Then save address + key to credentials.json")
+        print("  npm install -g @open-wallet-standard/core && ows wallet create --name my-agent")
+        print("  Or use the OWS MCP Server: ows_create_wallet + ows_register_identity")
+        print("  Then save address to credentials.json")
 else:
     print("✗ No config found. Run setup:")
     print(f"  mkdir -p {SKILL_DIR}")

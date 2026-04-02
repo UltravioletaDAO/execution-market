@@ -1,0 +1,32 @@
+{
+  "name": "@execution-market/ows-mcp-server",
+  "version": "0.1.0",
+  "description": "OWS MCP Server — Open Wallet Standard for AI agents via Model Context Protocol",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "build": "tsc",
+    "start:built": "node dist/server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@open-wallet-standard/core": "^1.2.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "@types/node": "^22.0.0"
+  },
+  "keywords": [
+    "ows",
+    "open-wallet-standard",
+    "mcp",
+    "model-context-protocol",
+    "ai-agents",
+    "wallet",
+    "erc-8004",
+    "execution-market"
+  ],
+  "license": "MIT"
+}

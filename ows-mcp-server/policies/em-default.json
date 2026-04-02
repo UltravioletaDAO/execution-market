@@ -1,0 +1,23 @@
+{
+  "id": "em-spending-limits",
+  "description": "Execution Market default spending policy — limits per-task bounty and restricts to supported chains",
+  "rules": [
+    {
+      "type": "spend_limit",
+      "max_per_tx_usd": 0.20,
+      "max_daily_usd": 5.00,
+      "note": "Testing budget: < $0.20 per task, $5/day max"
+    },
+    {
+      "type": "chain_allowlist",
+      "chains": ["evm"],
+      "networks": ["base", "ethereum", "polygon", "arbitrum", "avalanche", "optimism", "celo"],
+      "note": "Only EVM chains with USDC and x402r escrow support"
+    },
+    {
+      "type": "token_allowlist",
+      "tokens": ["USDC"],
+      "note": "Only USDC payments supported on Execution Market"
+    }
+  ]
+}

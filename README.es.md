@@ -226,6 +226,7 @@ stateDiagram-v2
 | **App Movil** | Expo SDK 54 · React Native · NativeWind · Dynamic.xyz |
 | **Bot XMTP** | TypeScript · XMTP v5 · Bridge IRC |
 | **Pagos** | x402 SDK · EIP-3009 · x402r escrow · 9 redes |
+| **Wallet de Agente** | [Open Wallet Standard](https://openwallet.sh) (OWS) · Servidor MCP · AES-256-GCM |
 | **Identidad** | ERC-8004 · Auth ERC-8128 · World ID 4.0 · 15 redes |
 | **Evidencia** | S3 + CloudFront CDN · Uploads con presigned URLs |
 | **Infraestructura** | AWS ECS Fargate · ALB · ECR · Route53 · Terraform |
@@ -316,6 +317,7 @@ execution-market/
 ├── supabase/            # 62 migraciones de base de datos
 ├── infrastructure/      # Terraform — ECS, ALB, Route53, ECR
 ├── admin-dashboard/     # Panel admin (S3 + CloudFront)
+├── ows-mcp-server/      # Servidor MCP OWS — gestion de wallets para agentes IA
 ├── e2e/                 # Tests E2E Playwright
 ├── landing/             # Pagina de aterrizaje
 └── agent-card.json      # Metadatos del agente ERC-8004
