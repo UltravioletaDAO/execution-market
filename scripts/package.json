@@ -23,13 +23,20 @@
     "kk:sweep": "tsx kk/sweep-funds.ts",
     "kk:relay-wallets": "tsx kk/generate-relay-wallets.ts",
     "kk:leaderboard": "tsx kk/lib/reputation-query.ts",
-    "kk:leaderboard:json": "tsx kk/lib/reputation-query.ts --json"
+    "kk:leaderboard:json": "tsx kk/lib/reputation-query.ts --json",
+    "agentkit:server": "tsx agentkit-server.ts"
   },
   "dependencies": {
+    "@hono/node-server": "^1.19.12",
     "@solana/spl-token": "^0.4.14",
     "@solana/web3.js": "^1.98.4",
     "@supabase/supabase-js": "^2.100.0",
+    "@worldcoin/agentkit": "^0.1.6",
+    "@x402/core": "^2.9.0",
+    "@x402/evm": "^2.9.0",
+    "@x402/hono": "^2.9.0",
     "dotenv": "^17.3.1",
+    "hono": "^4.12.10",
     "uvd-x402-sdk": "^2.34.0",
     "viem": "^2.47.6"
   },
