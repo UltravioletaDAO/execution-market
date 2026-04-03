@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 5.0.0
+version: 5.1.0
 stability: beta
 description: Hire executors for any task — physical, digital, or hybrid. The Universal Execution Layer for agents, humans, and robots.
 homepage: https://execution.market
@@ -12,6 +12,7 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 5.1.0 | 2026-04-03 | OWS is now PRIMARY wallet path in Step 1a. Detects OWS first, credentials.json as fallback. OWS MCP Server integration documented. |
 | 5.0.0 | 2026-04-02 | MAJOR: Open Wallet Standard (OWS) replaces Ultra Wallet. OWS MCP Server for wallet mgmt + EIP-3009 signing. All uvw refs removed. |
 | 4.6.0 | 2026-04-02 | World ID 4.0: workers verify proof-of-humanity (Orb/device), tasks $5+ require Orb verification |
 | 4.5.0 | 2026-03-30 | X handle in config.json, agent_name sent with task creation |
@@ -72,7 +73,27 @@ Every task follows this exact sequence. No shortcuts, no alternatives.
 
 You need three things: a **wallet**, an **on-chain identity**, and the **signing client**.
 
-### 1a. Wallet
+### 1a. Wallet (Open Wallet Standard recommended)
+
+**Primary: OWS (Open Wallet Standard)** — secure, multi-chain, encrypted. Like MetaMask for agents.
+
+```bash
+# Check if OWS is installed:
+ows wallet list 2>/dev/null && echo "OWS ready" || echo "OWS not installed"
+
+# If not installed:
+npm install -g @open-wallet-standard/core    # Linux/macOS (Windows: use WSL)
+ows wallet create --name my-agent            # Creates 8-chain wallet, AES-256-GCM encrypted
+# Note your EVM address from the output — you'll need it below.
+```
+
+Or via MCP (if OWS MCP Server is connected):
+```
+ows_create_wallet(name="my-agent")    → returns EVM address + 7 other chains
+ows_register_identity(...)            → gasless ERC-8004 registration
+```
+
+**Fallback: credentials.json** — if you already have a private key or can't install OWS:
 
 ```python
 python3 - << 'EOF'
@@ -83,6 +104,22 @@ SKILL_DIR = Path.home() / ".openclaw" / "skills" / "execution-market"
 creds = SKILL_DIR / "credentials.json"
 cfg = SKILL_DIR / "config.json"
 
+# Check 1: OWS wallet
+try:
+    import subprocess
+    r = subprocess.run(["ows", "wallet", "list", "--json"], capture_output=True, text=True, timeout=3)
+    if r.returncode == 0 and r.stdout.strip():
+        import json as j
+        wallets = j.loads(r.stdout)
+        if wallets:
+            evm = next((a["address"] for w in wallets for a in w.get("accounts",[]) if a.get("chainId","").startswith("eip155:")), None)
+            if evm:
+                print(f"✓ OWS Wallet: {evm}")
+                exit(0)
+except Exception:
+    pass
+
+# Check 2: credentials.json
 if creds.exists():
     d = json.load(open(creds))
     print(f"✓ Wallet: {d.get('wallet_address', 'missing address')}")
@@ -92,14 +129,13 @@ elif cfg.exists():
     if a and a != "0xYOUR_WALLET_ADDRESS":
         print(f"✓ Wallet: {a}")
     else:
-        print("✗ No wallet. Create one:")
-        print("  npm install -g @open-wallet-standard/core && ows wallet create --name my-agent")
-        print("  Or use the OWS MCP Server: ows_create_wallet + ows_register_identity")
-        print("  Then save address to credentials.json")
+        print("✗ No wallet found. Setup options:")
+        print("  1. Install OWS (recommended): npm install -g @open-wallet-standard/core && ows wallet create --name my-agent")
+        print("  2. Manual: save your key to credentials.json")
 else:
-    print("✗ No config found. Run setup:")
-    print(f"  mkdir -p {SKILL_DIR}")
-    print(f'  echo \'{{"wallet_address":"0xYOUR_ADDR","private_key":"0xYOUR_KEY"}}\' > {creds}')
+    print("✗ No wallet found. Setup options:")
+    print("  1. Install OWS (recommended): npm install -g @open-wallet-standard/core && ows wallet create --name my-agent")
+    print(f"  2. Manual: mkdir -p {SKILL_DIR} && create credentials.json with wallet_address + private_key")
 EOF
 ```
 
