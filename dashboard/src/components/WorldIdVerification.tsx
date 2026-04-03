@@ -22,7 +22,7 @@ import { orbLegacy, type RpContext, type ResponseItemV3, type ResponseItemV4 } f
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://api.execution.market'
+const API_BASE = import.meta.env.VITE_API_URL || 'https://api.execution.market'
 
 interface WorldIdVerificationProps {
   onVerified?: (level: string) => void
