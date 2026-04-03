@@ -456,9 +456,11 @@ server.registerTool(
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          wallet: evmAccount.address,
-          name: agent_name,
+          x402Version: 1,
           network: network ?? "base",
+          recipient: evmAccount.address,
+          agentUri: `https://execution.market/agents/${evmAccount.address.toLowerCase()}`,
+          name: agent_name,
         }),
       });
 
