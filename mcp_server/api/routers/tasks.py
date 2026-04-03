@@ -1707,20 +1707,20 @@ async def get_task_applications(
         )
         applications = result.data or []
 
-        # Look up wallet addresses for all executor_ids
+        # Look up wallet addresses and reputation for all executor_ids
         executor_ids = [app["executor_id"] for app in applications]
         if executor_ids:
             executors = (
                 client.table("executors")
-                .select("id, wallet_address")
+                .select("id, wallet_address, reputation_score, tasks_completed, avg_rating")
                 .in_("id", executor_ids)
                 .execute()
             )
-            wallet_map = {
-                e["id"]: e.get("wallet_address") for e in (executors.data or [])
+            executor_map = {
+                e["id"]: e for e in (executors.data or [])
             }
         else:
-            wallet_map = {}
+            executor_map = {}
 
         return ApplicationListResponse(
             applications=[
@@ -1728,10 +1728,13 @@ async def get_task_applications(
                     id=app["id"],
                     task_id=app["task_id"],
                     executor_id=app["executor_id"],
-                    wallet_address=wallet_map.get(app["executor_id"]),
+                    wallet_address=(executor_map.get(app["executor_id"]) or {}).get("wallet_address"),
                     message=app.get("message"),
                     status=app.get("status", "pending"),
                     created_at=app["created_at"],
+                    reputation_score=(executor_map.get(app["executor_id"]) or {}).get("reputation_score"),
+                    tasks_completed=(executor_map.get(app["executor_id"]) or {}).get("tasks_completed"),
+                    avg_rating=(executor_map.get(app["executor_id"]) or {}).get("avg_rating"),
                 )
                 for app in applications
             ],
