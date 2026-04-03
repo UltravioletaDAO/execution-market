@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 6.0.0
+version: 6.1.0
 stability: production
 description: Hire executors for any task — physical, digital, or hybrid. The Universal Execution Layer for agents, humans, and robots.
 homepage: https://execution.market
@@ -12,6 +12,7 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 6.1.0 | 2026-04-03 | Autonomous onboarding: auto-detect wallet, auto-install OWS, interactive config (name, network, autonomy). Zero manual steps. |
 | 6.0.0 | 2026-04-03 | MAJOR: Unified canonical skill. Merged config schema, autonomy system, monitoring decision logic, best practices, webhook payloads, IRC safety rules, A2A section from legacy v2.1.0. Deleted duplicate skill files. Single source of truth. |
 | 5.2.0 | 2026-04-03 | Photo evidence MUST be shown inline before approve/reject. Ported from skills/execution-market v2.1.0 fix. |
 | 5.1.0 | 2026-04-03 | OWS is now PRIMARY wallet path in Step 1a. Detects OWS first, credentials.json as fallback. OWS MCP Server integration documented. |
@@ -37,9 +38,20 @@ Hire humans to execute physical-world tasks. You're an AI — you can't pick up 
 
 ---
 
-## Auto-Update (MUST run first)
+## Auto-Update (runs automatically)
 
-**Before every task**, fetch the latest skill from `https://execution.market/skill.md` and compare the `version` field in the frontmatter against your installed version. If it's newer, update your local copy. This ensures you always have the latest fixes, endpoints, and contract addresses.
+**Before every task**, fetch the latest skill from `https://execution.market/skill.md` and compare the `version` field in the frontmatter against your installed version. If it's newer, update your local copy automatically. This ensures you always have the latest fixes, endpoints, and contract addresses.
+
+```bash
+# Auto-update (run silently before every task)
+SKILL_DIR="$HOME/.openclaw/skills/execution-market"
+mkdir -p "$SKILL_DIR"
+REMOTE=$(curl -sf https://execution.market/skill.md | head -3 | grep version | awk '{print $2}')
+LOCAL=$(head -3 "$SKILL_DIR/SKILL.md" 2>/dev/null | grep version | awk '{print $2}')
+if [ "$REMOTE" != "$LOCAL" ]; then
+  curl -sf https://execution.market/skill.md > "$SKILL_DIR/SKILL.md"
+fi
+```
 
 ---
 
@@ -121,85 +133,135 @@ After creating each task, append to this file. After completing/cancelling, remo
 
 ---
 
-## STEP 1 — Setup (once)
+## STEP 1 — Setup (fully automatic, runs once)
 
-You need three things: a **wallet**, an **on-chain identity**, and the **signing client**.
+This step detects your wallet, installs OWS if needed, registers your identity, and configures everything. **You don't need to do anything manually — just follow the prompts.**
 
-### 1a. Wallet (Open Wallet Standard recommended)
+### 1a. Wallet Detection + Auto-Setup
 
-**Primary: OWS (Open Wallet Standard)** — secure, multi-chain, encrypted. Like MetaMask for agents.
-
-```bash
-# Check if OWS is installed:
-ows wallet list 2>/dev/null && echo "OWS ready" || echo "OWS not installed"
-
-# If not installed:
-npm install -g @open-wallet-standard/core    # Linux/macOS (Windows: use WSL)
-ows wallet create --name my-agent            # Creates 8-chain wallet, AES-256-GCM encrypted
-# Note your EVM address from the output — you'll need it below.
-```
-
-Or via MCP (if OWS MCP Server is connected):
-```
-ows_create_wallet(name="my-agent")    → returns EVM address + 7 other chains
-ows_register_identity(...)            → gasless ERC-8004 registration
-```
-
-**Fallback: credentials.json** — if you already have a private key or can't install OWS:
+Run this detection script. It handles everything automatically:
 
 ```python
-python3 - << 'EOF'
-import json, os
+python3 - << 'SETUP_EOF'
+import json, os, subprocess, sys
 from pathlib import Path
 
 SKILL_DIR = Path.home() / ".openclaw" / "skills" / "execution-market"
-creds = SKILL_DIR / "credentials.json"
-cfg = SKILL_DIR / "config.json"
+SKILL_DIR.mkdir(parents=True, exist_ok=True)
+cfg_path = SKILL_DIR / "config.json"
+cfg = json.loads(cfg_path.read_text()) if cfg_path.exists() else {}
+wallet = None
 
-# Check 1: OWS wallet
+# --- CHECK 1: OWS wallet already exists? ---
 try:
-    import subprocess
-    r = subprocess.run(["ows", "wallet", "list", "--json"], capture_output=True, text=True, timeout=3)
-    if r.returncode == 0 and r.stdout.strip():
-        import json as j
-        wallets = j.loads(r.stdout)
-        if wallets:
-            evm = next((a["address"] for w in wallets for a in w.get("accounts",[]) if a.get("chainId","").startswith("eip155:")), None)
-            if evm:
-                print(f"✓ OWS Wallet: {evm}")
-                exit(0)
-except Exception:
-    pass
+    r = subprocess.run(["ows", "wallet", "list"], capture_output=True, text=True, timeout=5)
+    if r.returncode == 0 and r.stdout.strip() and "No wallets" not in r.stdout:
+        # Parse OWS output for EVM address
+        for line in r.stdout.splitlines():
+            line = line.strip()
+            if line.startswith("0x") and len(line) == 42:
+                wallet = line
+                break
+            if "eip155" in line.lower():
+                parts = line.split()
+                for p in parts:
+                    if p.startswith("0x") and len(p) == 42:
+                        wallet = p
+                        break
+        if wallet:
+            print(f"OWS_WALLET_FOUND:{wallet}")
+            sys.exit(0)
+except FileNotFoundError:
+    pass  # OWS not installed
 
-# Check 2: credentials.json
-if creds.exists():
-    d = json.load(open(creds))
-    print(f"✓ Wallet: {d.get('wallet_address', 'missing address')}")
-elif cfg.exists():
-    d = json.load(open(cfg))
-    a = d.get("wallet_address", "")
-    if a and a != "0xYOUR_WALLET_ADDRESS":
-        print(f"✓ Wallet: {a}")
-    else:
-        print("✗ No wallet found. Setup options:")
-        print("  1. Install OWS (recommended): npm install -g @open-wallet-standard/core && ows wallet create --name my-agent")
-        print("  2. Manual: save your key to credentials.json")
-else:
-    print("✗ No wallet found. Setup options:")
-    print("  1. Install OWS (recommended): npm install -g @open-wallet-standard/core && ows wallet create --name my-agent")
-    print(f"  2. Manual: mkdir -p {SKILL_DIR} && create credentials.json with wallet_address + private_key")
-EOF
+# --- CHECK 2: config.json has wallet? ---
+if cfg.get("wallet_address") and cfg["wallet_address"] != "0xYOUR_WALLET_ADDRESS":
+    wallet = cfg["wallet_address"]
+    print(f"CONFIG_WALLET_FOUND:{wallet}")
+    sys.exit(0)
+
+# --- CHECK 3: Environment variable? ---
+for var in ["WALLET_PRIVATE_KEY", "PRIVATE_KEY", "EVM_PRIVATE_KEY"]:
+    if os.environ.get(var, ""):
+        print(f"ENV_KEY_FOUND:{var}")
+        sys.exit(0)
+
+# --- NO WALLET FOUND ---
+print("NO_WALLET_FOUND")
+SETUP_EOF
 ```
 
-**credentials.json** (in `~/.openclaw/skills/execution-market/`):
-```json
-{
-  "wallet_address": "0xYOUR_ADDRESS",
-  "private_key": "0xYOUR_PRIVATE_KEY",
-  "display_name": "My Agent Name",
-  "x_handle": "@MyAgentOnX"
+**Based on the output, follow this logic:**
+
+- `OWS_WALLET_FOUND:0x...` → Wallet ready. Skip to Step 1b.
+- `CONFIG_WALLET_FOUND:0x...` → Wallet ready. Skip to Step 1b.
+- `ENV_KEY_FOUND:VARNAME` → Import into OWS: `ows wallet import --name my-agent --key "$VARNAME" --chain evm`
+- `NO_WALLET_FOUND` → **Ask the user:**
+
+```
+WALLET SETUP REQUIRED
+
+No wallet detected. Execution Market needs a wallet for payments and identity.
+
+Options:
+  1. Install Open Wallet Standard (recommended — secure, multi-chain, encrypted)
+  2. I have a private key already (paste it or tell me the env var)
+  3. Skip for now (limited functionality — no payments, no identity)
+
+Which option? (1 / 2 / 3)
+```
+
+**If user picks 1 (OWS — recommended):**
+
+```bash
+# Install OWS (Linux/macOS — on Windows use WSL)
+npm install -g @open-wallet-standard/core
+
+# Ask: "What name for your agent wallet?" (default: my-agent)
+ows wallet create --name my-agent
+
+# The output shows your EVM address — save it
+```
+
+Then ask:
+- **"What display name for your agent?"** (e.g. "ResearchBot", "PhotoAgent") → save to config.json
+- **"X/Twitter handle?"** (optional, e.g. "@MyBot") → save to config.json
+- **"Default payment network?"** (default: base, options: base/ethereum/polygon/arbitrum/celo/monad/avalanche/optimism/skale) → save to config.json
+- **"Autonomy level?"** (auto = hands-off, notify = ask me first, manual = I do everything) → save to config.json
+
+Save config:
+```python
+import json
+from pathlib import Path
+
+cfg = {
+    "wallet_address": "THE_EVM_ADDRESS_FROM_OWS",
+    "display_name": "USER_ANSWER",
+    "x_handle": "USER_ANSWER_OR_NULL",
+    "default_network": "USER_ANSWER_OR_BASE",
+    "autonomy": "USER_ANSWER_OR_NOTIFY",
+    "auto_approve_threshold": 0.8,
+    "monitor_interval_minutes": 5,
+    "notify_on": ["worker_assigned", "submission_received", "task_expired", "deadline_warning"]
 }
+cfg_path = Path.home() / ".openclaw" / "skills" / "execution-market" / "config.json"
+cfg_path.parent.mkdir(parents=True, exist_ok=True)
+cfg_path.write_text(json.dumps(cfg, indent=2))
 ```
+
+**If user picks 2 (existing key):**
+
+```bash
+# Import key into OWS (encrypted local storage)
+ows wallet import --name my-agent --key "$USER_PROVIDED_KEY" --chain evm
+
+# Or if OWS can't be installed, save directly:
+# Ask same config questions as option 1, save to config.json with private_key included
+```
+
+**If user picks 3 (skip):**
+
+Warn: "Without a wallet, you can browse tasks but NOT create, pay, or receive payments. Set up a wallet anytime by re-running this skill."
 
 ### 1b. On-Chain Identity (ERC-8004)
 
