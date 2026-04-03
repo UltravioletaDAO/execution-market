@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 7.0.0
+version: 7.0.1
 stability: production
 description: Hire executors for any task — physical, digital, or hybrid. The Universal Execution Layer for agents, humans, and robots.
 homepage: https://execution.market
@@ -12,6 +12,7 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 7.0.1 | 2026-04-03 | PATCH: WARNING — OWS CLI has 64-byte sig bug, use MCP server only. em_monitor.py download URL added. |
 | 7.0.0 | 2026-04-03 | MAJOR: OWS ERC-8128 signing (ows_sign_erc8128_request), 4 monitoring strategies (HEARTBEAT/cron/webhooks/WebSocket), worker reputation in applications, TTY export warning, assign success fix. |
 | 6.1.0 | 2026-04-03 | Autonomous onboarding: auto-detect wallet, auto-install OWS, interactive config (name, network, autonomy). Zero manual steps. |
 | 6.0.0 | 2026-04-03 | MAJOR: Unified canonical skill. Merged config schema, autonomy system, monitoring decision logic, best practices, webhook payloads, IRC safety rules, A2A section from legacy v2.1.0. Deleted duplicate skill files. Single source of truth. |
@@ -408,9 +409,11 @@ Save as a module and import everywhere:
 client = EM8128Client(private_key="0xYOUR_KEY", chain_id=8453)
 ```
 
-### Alternative: OWS Signing (if OWS MCP Server is connected)
+### Alternative: OWS Signing (RECOMMENDED if OWS MCP Server is connected)
 
 Instead of EM8128Client + raw private key, use the `ows_sign_erc8128_request` MCP tool. **One call, zero key exposure:**
+
+> **WARNING: Do NOT use the OWS CLI (`ows sign message`) for ERC-8128 auth.** The CLI v1.2.0 has a known bug that produces 64-byte signatures (missing first byte of `r`) instead of 65 bytes. The OWS MCP Server (Node.js SDK) does NOT have this bug — it produces correct 65-byte signatures with v=27/28. Always use the MCP tools, never the CLI, for signing.
 
 ```
 # Via MCP tool — returns ready-to-use headers:
@@ -777,14 +780,18 @@ Add to your skill's `HEARTBEAT.md` — the OpenClaw Gateway runs it every 5 minu
 ### Option 2: Standalone monitor script (for cron / non-OpenClaw)
 
 ```bash
+# Download the monitor script:
+curl -sf https://raw.githubusercontent.com/UltravioletaDAO/execution-market/main/scripts/em_monitor.py \
+  -o ~/.openclaw/skills/execution-market/scripts/em_monitor.py
+
 # Install deps:
 pip install eth-account httpx
 
-# Run once:
-python3 scripts/em_monitor.py --dry-run
+# Run once (dry run — prints notifications without sending):
+python3 ~/.openclaw/skills/execution-market/scripts/em_monitor.py --dry-run
 
 # System cron (every 3 min):
-*/3 * * * * cd /path/to/execution-market && python3 scripts/em_monitor.py >> /tmp/em-monitor.log 2>&1
+*/3 * * * * python3 ~/.openclaw/skills/execution-market/scripts/em_monitor.py >> /tmp/em-monitor.log 2>&1
 
 # Env vars needed:
 export TELEGRAM_BOT_TOKEN=your_token
