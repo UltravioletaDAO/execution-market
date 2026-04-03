@@ -17,6 +17,72 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import * as ows from "@open-wallet-standard/core";
+import { OWSWalletAdapter } from "uvd-x402-sdk";
+import type { OWSWallet } from "uvd-x402-sdk";
+import type { EIP3009Authorization } from "uvd-x402-sdk";
+
+// ---------------------------------------------------------------------------
+// OWS → SDK Bridge
+// ---------------------------------------------------------------------------
+
+/**
+ * Create an OWSWallet-compatible object from @open-wallet-standard/core.
+ *
+ * The SDK's OWSWalletAdapter expects an object with `accounts`, `signMessage`,
+ * and `signTypedData` methods using structured params. The @open-wallet-standard/core
+ * module uses a different function-call-based API. This bridge adapts between them.
+ *
+ * @param walletName - OWS wallet name or ID
+ * @param passphrase - Optional wallet passphrase for decryption
+ */
+function createOWSWalletBridge(walletName: string, passphrase?: string): OWSWallet {
+  const info = ows.getWallet(walletName);
+  const evmAccount = info.accounts.find((a) => a.chainId.startsWith("eip155:"));
+
+  return {
+    accounts: evmAccount
+      ? [{ address: evmAccount.address, chains: [evmAccount.chainId] }]
+      : [],
+
+    async signMessage(params: {
+      account: { address: string };
+      message: string | Uint8Array;
+    }) {
+      const msg =
+        typeof params.message === "string"
+          ? params.message
+          : Buffer.from(params.message).toString("utf-8");
+      const result = ows.signMessage(walletName, "evm", msg, passphrase);
+      return { signature: result.signature };
+    },
+
+    async signTypedData(params: {
+      account: { address: string };
+      domain: Record<string, unknown>;
+      types: Record<string, Array<{ name: string; type: string }>>;
+      primaryType: string;
+      message: Record<string, unknown>;
+    }) {
+      // @open-wallet-standard/core expects EIP-712 as a JSON string
+      const typedDataJson = JSON.stringify({
+        types: {
+          EIP712Domain: [
+            { name: "name", type: "string" },
+            { name: "version", type: "string" },
+            { name: "chainId", type: "uint256" },
+            { name: "verifyingContract", type: "address" },
+          ],
+          ...params.types,
+        },
+        primaryType: params.primaryType,
+        domain: params.domain,
+        message: params.message,
+      });
+      const result = ows.signTypedData(walletName, "evm", typedDataJson, passphrase);
+      return { signature: result.signature };
+    },
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Server
@@ -434,12 +500,12 @@ server.registerTool(
   },
   async ({ wallet, agent_name, network }) => {
     try {
-      // Get the EVM address from the wallet
-      const info = ows.getWallet(wallet);
-      const evmAccount = info.accounts.find((a) =>
-        a.chainId.startsWith("eip155:")
-      );
-      if (!evmAccount) {
+      // Create OWSWalletAdapter via the SDK bridge for address resolution
+      const owsBridge = createOWSWalletBridge(wallet);
+      let adapter: OWSWalletAdapter;
+      try {
+        adapter = new OWSWalletAdapter(owsBridge);
+      } catch {
         return {
           content: [
             {
@@ -451,15 +517,18 @@ server.registerTool(
         };
       }
 
+      const evmAddress = adapter.getAddress();
+
       // Call the Facilitator to register (gasless)
+      // Note: SDK doesn't wrap /register yet, so we keep the direct fetch
       const res = await fetch(`${FACILITATOR_URL}/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           x402Version: 1,
           network: network ?? "base",
-          recipient: evmAccount.address,
-          agentUri: `https://execution.market/agents/${evmAccount.address.toLowerCase()}`,
+          recipient: evmAddress,
+          agentUri: `https://execution.market/agents/${evmAddress.toLowerCase()}`,
           name: agent_name,
         }),
       });
@@ -486,7 +555,7 @@ server.registerTool(
               {
                 success: true,
                 agent_id: data.agent_id ?? data.tokenId ?? null,
-                wallet_address: evmAccount.address,
+                wallet_address: evmAddress,
                 network: network ?? "base",
                 message:
                   "Identity registered on-chain (gasless). You can now publish tasks on Execution Market.",
@@ -514,19 +583,8 @@ server.registerTool(
 );
 
 // ---------------------------------------------------------------------------
-// Tool: ows_sign_eip3009 (EIP-3009 ReceiveWithAuthorization for USDC escrow)
+// Tool: ows_sign_eip3009 (EIP-3009 via uvd-x402-sdk OWSWalletAdapter)
 // ---------------------------------------------------------------------------
-
-// USDC contract addresses per chain
-const USDC_CONTRACTS: Record<string, { address: string; chainId: number }> = {
-  base: { address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", chainId: 8453 },
-  ethereum: { address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", chainId: 1 },
-  polygon: { address: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", chainId: 137 },
-  arbitrum: { address: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", chainId: 42161 },
-  avalanche: { address: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E", chainId: 43114 },
-  optimism: { address: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85", chainId: 10 },
-  celo: { address: "0xcebA9300f2b948710d2653dD7B07f33A8B32118C", chainId: 42220 },
-};
 
 server.registerTool(
   "ows_sign_eip3009",
@@ -535,7 +593,8 @@ server.registerTool(
     description:
       "Sign an EIP-3009 ReceiveWithAuthorization for USDC — used for gasless escrow " +
       "deposits on Execution Market. The Facilitator executes the on-chain transfer. " +
-      "Agent signs, never pays gas.",
+      "Agent signs, never pays gas. " +
+      "Powered by uvd-x402-sdk (chain registry, USDC addresses, nonce generation handled automatically).",
     inputSchema: {
       wallet: z.string().describe("OWS wallet name or ID"),
       to: z.string().describe("Recipient address (escrow contract or worker wallet)"),
@@ -547,11 +606,11 @@ server.registerTool(
         .string()
         .optional()
         .default("base")
-        .describe("Payment network (default: base)"),
+        .describe("Payment network (default: base). Supports all SDK chains."),
       valid_before: z
         .number()
         .optional()
-        .describe("Unix timestamp when authorization expires (default: 1 hour from now)"),
+        .describe("Unix timestamp when authorization expires (default: 5 minutes from now per SDK)"),
       passphrase: z
         .string()
         .optional()
@@ -561,25 +620,13 @@ server.registerTool(
   async ({ wallet, to, amount_usdc, network, valid_before, passphrase }) => {
     try {
       const chain = network ?? "base";
-      const usdc = USDC_CONTRACTS[chain];
-      if (!usdc) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: `Unsupported network: ${chain}. Supported: ${Object.keys(USDC_CONTRACTS).join(", ")}`,
-            },
-          ],
-          isError: true,
-        };
-      }
 
-      // Get the signer address
-      const info = ows.getWallet(wallet);
-      const evmAccount = info.accounts.find((a) =>
-        a.chainId.startsWith("eip155:")
-      );
-      if (!evmAccount) {
+      // Create the SDK adapter via the OWS bridge
+      const owsBridge = createOWSWalletBridge(wallet, passphrase ?? undefined);
+      let adapter: OWSWalletAdapter;
+      try {
+        adapter = new OWSWalletAdapter(owsBridge);
+      } catch {
         return {
           content: [
             {
@@ -591,70 +638,18 @@ server.registerTool(
         };
       }
 
-      // Convert USDC amount to 6-decimal value
-      const value = BigInt(Math.round(amount_usdc * 1_000_000)).toString();
-
-      // Generate random nonce (32 bytes)
-      const { randomBytes } = await import("crypto");
-      const nonce = "0x" + randomBytes(32).toString("hex");
-
-      // Expiry: default 1 hour from now
-      const now = Math.floor(Date.now() / 1000);
-      const validBefore = valid_before ?? now + 3600;
-
-      // Build EIP-712 typed data
-      const typedData = {
-        types: {
-          EIP712Domain: [
-            { name: "name", type: "string" },
-            { name: "version", type: "string" },
-            { name: "chainId", type: "uint256" },
-            { name: "verifyingContract", type: "address" },
-          ],
-          ReceiveWithAuthorization: [
-            { name: "from", type: "address" },
-            { name: "to", type: "address" },
-            { name: "value", type: "uint256" },
-            { name: "validAfter", type: "uint256" },
-            { name: "validBefore", type: "uint256" },
-            { name: "nonce", type: "bytes32" },
-          ],
-        },
-        primaryType: "ReceiveWithAuthorization",
-        domain: {
-          name: "USD Coin",
-          version: "2",
-          chainId: usdc.chainId,
-          verifyingContract: usdc.address,
-        },
-        message: {
-          from: evmAccount.address,
-          to,
-          value,
-          validAfter: "0",
-          validBefore: validBefore.toString(),
-          nonce,
-        },
-      };
-
-      // Sign with OWS
-      const result = ows.signTypedData(
-        wallet,
-        "evm",
-        JSON.stringify(typedData),
-        passphrase ?? undefined
-      );
-
-      // Extract v, r, s
-      const sigHex = result.signature.startsWith("0x")
-        ? result.signature.slice(2)
-        : result.signature;
-      const r = "0x" + sigHex.slice(0, 64);
-      const s = "0x" + sigHex.slice(64, 128);
-      const v =
-        result.recoveryId !== undefined && result.recoveryId !== null
-          ? result.recoveryId
-          : parseInt(sigHex.slice(128, 130), 16);
+      // Delegate all EIP-3009 logic to the SDK:
+      // - Chain registry lookup (USDC address, chainId, decimals)
+      // - EIP-712 typed data construction
+      // - Nonce generation
+      // - Signing via OWS
+      // - v/r/s extraction
+      const auth: EIP3009Authorization = await adapter.signEIP3009({
+        to,
+        amountUsdc: amount_usdc,
+        network: chain,
+        ...(valid_before !== undefined ? { validBefore: valid_before } : {}),
+      });
 
       return {
         content: [
@@ -664,20 +659,19 @@ server.registerTool(
               {
                 success: true,
                 authorization: {
-                  from: evmAccount.address,
-                  to,
-                  value,
-                  validAfter: "0",
-                  validBefore: validBefore.toString(),
-                  nonce,
-                  v,
-                  r,
-                  s,
-                  signature: "0x" + sigHex,
+                  from: auth.from,
+                  to: auth.to,
+                  value: auth.value,
+                  validAfter: auth.validAfter,
+                  validBefore: auth.validBefore,
+                  nonce: auth.nonce,
+                  v: auth.v,
+                  r: auth.r,
+                  s: auth.s,
+                  signature: auth.signature,
                 },
                 network: chain,
                 amount_usdc,
-                usdc_contract: usdc.address,
                 note: "Send this authorization to the Facilitator or include as X-Payment-Auth header.",
               },
               null,
