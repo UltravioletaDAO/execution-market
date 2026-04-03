@@ -75,10 +75,11 @@ export function RateAgentModal({
         throw new Error(data.detail || `Error ${res.status}`)
       }
       setSuccess(true)
+      // Brief delay so user sees the success state, then notify parent.
+      // Parent handles closing + query invalidation via onSuccess.
       setTimeout(() => {
         onSuccess?.()
-        onClose()
-      }, 2000)
+      }, 1500)
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Unknown error'
       const friendlyMessages: [RegExp, string][] = [

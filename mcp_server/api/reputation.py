@@ -1112,28 +1112,48 @@ async def rate_agent_endpoint(
         if executor_id:
             client = db.get_client()
             stars = round(request.score / 20, 1)
-            client.table("ratings").upsert(
-                {
-                    "executor_id": executor_id,
-                    "task_id": request.task_id,
-                    "rater_id": executor_id,
-                    "rater_type": "worker",
-                    "rating": request.score,
-                    "stars": float(stars),
-                    "comment": request.comment or None,
-                    "task_value_usdc": float(task.get("bounty_usd", 0)),
-                    "is_public": True,
-                },
-                on_conflict="executor_id,task_id,rater_type",
-            ).execute()
+            # rater_id: use worker wallet for consistency with agent->worker path
+            # which uses str(agent_id). Fallback to executor_id if no wallet.
+            worker_wallet = (task.get("executor") or {}).get("wallet_address") or str(executor_id)
+            rating_row = {
+                "executor_id": executor_id,
+                "task_id": request.task_id,
+                "rater_id": worker_wallet,
+                "rater_type": "worker",
+                "rating": request.score,
+                "stars": float(stars),
+                "comment": request.comment or None,
+                "task_value_usdc": float(task.get("bounty_usd", 0)),
+                "is_public": True,
+            }
+            try:
+                client.table("ratings").upsert(
+                    rating_row,
+                    on_conflict="executor_id,task_id,rater_type",
+                ).execute()
+            except Exception as upsert_err:
+                # Fallback: constraint name might differ between DB versions.
+                # Try plain insert if upsert fails (duplicate will just raise).
+                logger.warning(
+                    "Upsert failed for worker->agent rating (trying INSERT): %s",
+                    upsert_err,
+                )
+                client.table("ratings").insert(rating_row).execute()
             logger.info(
-                "Stored worker->agent rating in DB: executor=%s task=%s score=%d",
+                "Stored worker->agent rating in DB: executor=%s task=%s score=%d rater=%s",
                 executor_id,
                 request.task_id,
                 request.score,
+                worker_wallet[:16] if len(worker_wallet) > 16 else worker_wallet,
             )
     except Exception as e:
-        logger.warning("Failed to store worker->agent rating in DB (non-fatal): %s", e)
+        logger.error(
+            "RATING_DB_WRITE_FAILED: Failed to store worker->agent rating in DB: "
+            "executor=%s task=%s error=%s",
+            task.get("executor_id"),
+            request.task_id,
+            str(e),
+        )
 
     # If relay path returned a TX hash, update feedback_documents so mobile shows the link
     if result.success and result.transaction_hash:

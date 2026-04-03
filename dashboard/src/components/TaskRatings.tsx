@@ -1,29 +1,18 @@
 /**
  * TaskRatings: Bidirectional ratings display for a completed task.
  *
- * Shows agent->worker and worker->agent ratings with stars and comments.
+ * Shows agent->worker and worker->agent ratings with scores and comments.
  * "Rate Agent" button for workers who haven't rated yet.
+ * Uses React Query (useTaskRatings) for caching + invalidation — same pattern as mobile.
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { supabase } from '../lib/supabase'
+import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../context/AuthContext'
+import { useTaskRatings, type RatingEntry } from '../hooks/useTaskRatings'
 import { getExplorerUrl, truncateHash } from '../utils/blockchain'
 import { RateAgentModal } from './RateAgentModal'
-
-interface Rating {
-  id: string
-  task_id: string
-  executor_id: string
-  rater_id: string
-  rater_type: 'agent' | 'worker'
-  rating: number // 0-100
-  stars: number // 0-5
-  comment: string | null
-  created_at: string
-  reputation_tx: string | null
-}
 
 interface TaskRatingsProps {
   taskId: string
@@ -54,7 +43,7 @@ function RatingCard({
   label,
   network = 'base',
 }: {
-  rating: Rating
+  rating: RatingEntry
   label: string
   network?: string
 }) {
@@ -98,13 +87,29 @@ function RatingCard({
   )
 }
 
+function NoRatingPlaceholder({ label }: { label: string }) {
+  const { t } = useTranslation()
+  return (
+    <div className="bg-white rounded-lg border border-dashed border-slate-200 p-4">
+      <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+        {label}
+      </span>
+      <p className="mt-1 text-sm text-slate-400">
+        {t('ratings.noRatingYet', 'No rating yet')}
+      </p>
+    </div>
+  )
+}
+
 export function TaskRatings({ taskId, executorId, paymentNetwork, taskTitle, agentId, agentName }: TaskRatingsProps) {
   const { t } = useTranslation()
   const { executor } = useAuth()
-  const [ratings, setRatings] = useState<Rating[]>([])
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
   const [showRateModal, setShowRateModal] = useState(false)
   const [resolvedAgentId, setResolvedAgentId] = useState<number | undefined>(agentId)
+
+  // Fetch ratings via React Query (same pattern as mobile useTaskRatings)
+  const { data: taskRatings, isLoading } = useTaskRatings(taskId)
 
   // Resolve agent ID from API when not provided via props
   useEffect(() => {
@@ -120,60 +125,10 @@ export function TaskRatings({ taskId, executorId, paymentNetwork, taskTitle, age
           setResolvedAgentId(Number(data.erc8004_agent_id))
         }
       })
-      .catch(() => {}) // Non-blocking — button stays disabled if unresolvable
+      .catch(() => {})
   }, [taskId, agentId])
 
-  const fetchRatings = useCallback(async () => {
-    try {
-      // Fetch ratings + feedback_documents (for reputation_tx) in parallel
-      const [ratingsRes, feedbackRes] = await Promise.all([
-        supabase
-          .from('ratings')
-          .select('*')
-          .eq('task_id', taskId)
-          .order('created_at', { ascending: true }),
-        supabase
-          .from('feedback_documents')
-          .select('feedback_type, reputation_tx')
-          .eq('task_id', taskId)
-          .not('reputation_tx', 'is', null)
-          .limit(10),
-      ])
-
-      if (ratingsRes.error) {
-        console.error('[TaskRatings] Error fetching ratings:', ratingsRes.error)
-        return
-      }
-
-      // Map feedback_type → reputation_tx
-      // feedback_type: "worker_rating" = agent rated the worker, "agent_rating" = worker rated the agent
-      const txMap: Record<string, string> = {}
-      for (const fb of feedbackRes.data || []) {
-        if (fb.reputation_tx) {
-          const raterType = fb.feedback_type === 'agent_rating' ? 'worker' : 'agent'
-          txMap[raterType] = fb.reputation_tx
-        }
-      }
-
-      // Merge reputation_tx into ratings
-      const merged = (ratingsRes.data || []).map((r: Rating) => ({
-        ...r,
-        reputation_tx: r.reputation_tx || txMap[r.rater_type] || null,
-      }))
-
-      setRatings(merged)
-    } catch (err) {
-      console.error('[TaskRatings] Unexpected error:', err)
-    } finally {
-      setLoading(false)
-    }
-  }, [taskId])
-
-  useEffect(() => {
-    fetchRatings()
-  }, [fetchRatings])
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="animate-pulse space-y-3">
         <div className="h-20 bg-gray-200 rounded-lg" />
@@ -182,14 +137,15 @@ export function TaskRatings({ taskId, executorId, paymentNetwork, taskTitle, age
     )
   }
 
-  const agentToWorker = ratings.find((r) => r.rater_type === 'agent')
-  const workerToAgent = ratings.find((r) => r.rater_type === 'worker')
+  const agentToWorker = taskRatings?.agentRating ?? null
+  const workerToAgent = taskRatings?.workerRating ?? null
 
   // Check if current user is the worker and hasn't rated yet
   const currentIsWorker = executor?.id && executorId && executor.id === executorId
   const canRateAgent = currentIsWorker && !workerToAgent
 
-  if (ratings.length === 0 && !canRateAgent) {
+  // Show nothing only if no ratings exist AND user can't rate
+  if (!agentToWorker && !workerToAgent && !canRateAgent) {
     return null
   }
 
@@ -199,23 +155,25 @@ export function TaskRatings({ taskId, executorId, paymentNetwork, taskTitle, age
         {t('ratings.taskRatings', 'Ratings')}
       </h3>
 
-      {agentToWorker && (
+      {/* Agent rated Worker */}
+      {agentToWorker ? (
         <RatingCard
           rating={agentToWorker}
           label={t('ratings.agentToWorker', 'Agent rated Worker')}
           network={paymentNetwork}
         />
-      )}
+      ) : currentIsWorker ? (
+        <NoRatingPlaceholder label={t('ratings.agentToWorker', 'Agent rated Worker')} />
+      ) : null}
 
-      {workerToAgent && (
+      {/* Worker rated Agent */}
+      {workerToAgent ? (
         <RatingCard
           rating={workerToAgent}
           label={t('ratings.workerToAgent', 'Worker rated Agent')}
           network={paymentNetwork}
         />
-      )}
-
-      {canRateAgent && resolvedAgentId && (
+      ) : canRateAgent && resolvedAgentId ? (
         <button
           type="button"
           onClick={(e) => {
@@ -227,7 +185,7 @@ export function TaskRatings({ taskId, executorId, paymentNetwork, taskTitle, age
         >
           {t('ratings.rateAgent', 'Rate Agent')}
         </button>
-      )}
+      ) : null}
 
       {showRateModal && resolvedAgentId && (
         <RateAgentModal
@@ -238,7 +196,8 @@ export function TaskRatings({ taskId, executorId, paymentNetwork, taskTitle, age
           onClose={() => setShowRateModal(false)}
           onSuccess={() => {
             setShowRateModal(false)
-            fetchRatings()
+            // Invalidate React Query cache → forces refetch from DB (same as mobile)
+            queryClient.invalidateQueries({ queryKey: ['ratings', 'task', taskId] })
           }}
         />
       )}
