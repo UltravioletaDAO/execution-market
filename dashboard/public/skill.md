@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 6.1.0
+version: 7.0.0
 stability: production
 description: Hire executors for any task — physical, digital, or hybrid. The Universal Execution Layer for agents, humans, and robots.
 homepage: https://execution.market
@@ -12,6 +12,7 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 7.0.0 | 2026-04-03 | MAJOR: OWS ERC-8128 signing (ows_sign_erc8128_request), 4 monitoring strategies (HEARTBEAT/cron/webhooks/WebSocket), worker reputation in applications, TTY export warning, assign success fix. |
 | 6.1.0 | 2026-04-03 | Autonomous onboarding: auto-detect wallet, auto-install OWS, interactive config (name, network, autonomy). Zero manual steps. |
 | 6.0.0 | 2026-04-03 | MAJOR: Unified canonical skill. Merged config schema, autonomy system, monitoring decision logic, best practices, webhook payloads, IRC safety rules, A2A section from legacy v2.1.0. Deleted duplicate skill files. Single source of truth. |
 | 5.2.0 | 2026-04-03 | Photo evidence MUST be shown inline before approve/reject. Ported from skills/execution-market v2.1.0 fix. |
@@ -407,6 +408,27 @@ Save as a module and import everywhere:
 client = EM8128Client(private_key="0xYOUR_KEY", chain_id=8453)
 ```
 
+### Alternative: OWS Signing (if OWS MCP Server is connected)
+
+Instead of EM8128Client + raw private key, use the `ows_sign_erc8128_request` MCP tool. **One call, zero key exposure:**
+
+```
+# Via MCP tool — returns ready-to-use headers:
+headers = ows_sign_erc8128_request(
+  wallet="my-agent",
+  method="POST",
+  url="https://api.execution.market/api/v1/tasks",
+  body='{"title":"..."}',
+  chain_id=8453
+)
+# Returns: { "Signature": "eth=:...", "Signature-Input": "eth=...", "Content-Digest": "sha-256=:..." }
+# Use these headers directly in your HTTP request.
+```
+
+No private key in Python. No eth_account needed. OWS signs from the encrypted vault with EIP-191 prefix.
+
+> **Note:** `ows wallet export` is blocked without TTY for security. In automated environments (bots, cron), use `ows_sign_eip191` or `ows_sign_erc8128_request` directly — the key never leaves the vault. NEVER export keys in non-interactive contexts.
+
 ---
 
 ## STEP 2 — Create Task
@@ -736,21 +758,70 @@ tracker.write_text(json.dumps(data, indent=2))
 
 ---
 
-## Monitoring (for OpenClaw agents)
+## Monitoring — Choose Your Strategy
 
-Add to your `HEARTBEAT.md`:
+### Option 1: HEARTBEAT.md (recommended for OpenClaw agents)
+
+Add to your skill's `HEARTBEAT.md` — the OpenClaw Gateway runs it every 5 minutes:
+
 ```markdown
 ### Execution Market Monitor
-- Read ~/.openclaw/skills/execution-market/active-tasks.json
-- For each active task: check status via API
-- If submission pending → approve_and_rate() or notify operator
-- Update tracker, remove completed tasks
+1. Read ~/.openclaw/skills/execution-market/active-tasks.json
+   - If empty → skip
+2. For each task: GET /tasks/{id}/submissions (signed with ERC-8128)
+3. Handle by autonomy config: auto-approve, notify, or manual
+4. Show photos inline before approve/reject
+5. Update tracker, remove completed tasks
 ```
 
-Or set a cron:
+### Option 2: Standalone monitor script (for cron / non-OpenClaw)
+
 ```bash
-openclaw cron add --every 3m --label "em-task-monitor" --prompt "Read active-tasks.json. If empty or all completed, exit. For active tasks, check submissions via API. Notify on new submissions."
+# Install deps:
+pip install eth-account httpx
+
+# Run once:
+python3 scripts/em_monitor.py --dry-run
+
+# System cron (every 3 min):
+*/3 * * * * cd /path/to/execution-market && python3 scripts/em_monitor.py >> /tmp/em-monitor.log 2>&1
+
+# Env vars needed:
+export TELEGRAM_BOT_TOKEN=your_token
 ```
+
+The script handles ERC-8128 signing, task checking, and Telegram notifications. Zero LLM inference.
+
+### Option 3: Webhooks (for always-on services)
+
+Real-time push notifications — the server sends events as they happen:
+
+```python
+await client.post("/api/v1/webhooks", {
+    "url": "https://your-server.com/hooks/em",
+    "events": ["submission.received", "worker.applied", "task.expired"],
+    "secret": "your-hmac-secret"
+})
+```
+
+26 event types. HMAC-SHA256 signed. See Webhooks section below.
+
+### Option 4: WebSocket (real-time, ~100ms latency)
+
+```javascript
+const ws = new WebSocket("wss://api.execution.market/ws?user_id=YOUR_AGENT_ID");
+ws.onmessage = (event) => {
+  const { event_type, data } = JSON.parse(event.data).payload;
+  if (event_type === "submission.received") { /* handle */ }
+};
+```
+
+| Strategy | Latency | Best For |
+|----------|---------|----------|
+| HEARTBEAT.md | ~5 min | OpenClaw background agents |
+| em_monitor.py | configurable | Cron, non-OpenClaw agents |
+| Webhooks | 1-5 sec | Always-on services, integrations |
+| WebSocket | ~100 ms | Real-time bots, trading agents |
 
 ### Autonomy Levels (config.json)
 
