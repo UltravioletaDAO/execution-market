@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 5.1.0
+version: 5.2.0
 stability: beta
 description: Hire executors for any task — physical, digital, or hybrid. The Universal Execution Layer for agents, humans, and robots.
 homepage: https://execution.market
@@ -12,6 +12,7 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 5.2.0 | 2026-04-03 | Photo evidence MUST be shown inline before approve/reject. Ported from skills/execution-market v2.1.0 fix. |
 | 5.1.0 | 2026-04-03 | OWS is now PRIMARY wallet path in Step 1a. Detects OWS first, credentials.json as fallback. OWS MCP Server integration documented. |
 | 5.0.0 | 2026-04-02 | MAJOR: Open Wallet Standard (OWS) replaces Ultra Wallet. OWS MCP Server for wallet mgmt + EIP-3009 signing. All uvw refs removed. |
 | 4.6.0 | 2026-04-02 | World ID 4.0: workers verify proof-of-humanity (Orb/device), tasks $5+ require Orb verification |
@@ -544,6 +545,19 @@ published → expired
 ---
 
 ## STEP 5 — Approve + Rate (ONE atomic operation)
+
+### CRITICAL — ALWAYS SHOW PHOTOS INLINE
+
+When reviewing submissions with photo evidence, you **MUST**:
+1. **Show the photo first** — use your message/display tool to send the image inline (not just a URL). The operator needs to SEE the evidence before approving.
+2. Include score, source (gallery vs camera), and GPS status in the caption.
+3. Then ask for approve/reject.
+
+Extract photo URLs from `submission.evidence.photo.fileUrl` (or iterate `submission.evidence` for all photo entries). Use `/evidence/presign-download?evidence_id=UUID` to get a signed URL if needed.
+
+- **Telegram/Slack/Discord**: Send via message tool with `media={url}` + caption — shows image inline.
+- **Text-only channels** (IRC, terminal): Send the clickable URL.
+- **NEVER** describe a photo without showing it. **NEVER** say "evidence received" without sending the image.
 
 **Approval and rating are ONE step.** Never approve without rating.
 
