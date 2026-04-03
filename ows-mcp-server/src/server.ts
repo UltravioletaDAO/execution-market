@@ -381,14 +381,20 @@ server.registerTool(
         passphrase ?? undefined
       );
 
-      // Extract v, r, s from the 65-byte signature
-      const sigHex = result.signature.startsWith("0x")
+      // Extract v, r, s — with OWS CLI 64-byte bug workaround
+      let sigHex = result.signature.startsWith("0x")
         ? result.signature.slice(2)
         : result.signature;
+      if (sigHex.length === 128) {
+        const vByte = (result.recoveryId !== undefined && result.recoveryId !== null)
+          ? (result.recoveryId < 27 ? result.recoveryId + 27 : result.recoveryId)
+          : 27;
+        sigHex = sigHex + vByte.toString(16).padStart(2, "0");
+      } else if (sigHex.length < 128) {
+        sigHex = sigHex.padStart(130, "0");
+      }
       const r = "0x" + sigHex.slice(0, 64);
       const s = "0x" + sigHex.slice(64, 128);
-      // v is either in the last byte or from recoveryId
-      // Normalize: OWS returns recoveryId 0/1, EVM expects 27/28
       const rawV =
         result.recoveryId !== undefined && result.recoveryId !== null
           ? result.recoveryId
@@ -873,9 +879,24 @@ function signEip191WithOws(
     "hex",
   );
 
-  const sigHex = result.signature.startsWith("0x")
+  let sigHex = result.signature.startsWith("0x")
     ? result.signature.slice(2)
     : result.signature;
+
+  // BUG WORKAROUND: OWS CLI v1.2.0 returns 64 bytes (128 hex) instead of 65 (130 hex).
+  // The first byte of r is dropped. We detect this and use recoveryId for v.
+  // See: https://github.com/open-wallet-standard/core/issues/XX
+  if (sigHex.length === 128) {
+    // 64 bytes: r(32) + s(32), missing v byte. Use recoveryId.
+    const vByte = (result.recoveryId !== undefined && result.recoveryId !== null)
+      ? (result.recoveryId < 27 ? result.recoveryId + 27 : result.recoveryId)
+      : 27;
+    sigHex = sigHex + vByte.toString(16).padStart(2, "0");
+  } else if (sigHex.length < 128) {
+    // Shorter than expected — zero-pad r on the left
+    sigHex = sigHex.padStart(130, "0");
+  }
+
   const r = "0x" + sigHex.slice(0, 64);
   const s = "0x" + sigHex.slice(64, 128);
   const rawV =
@@ -885,7 +906,7 @@ function signEip191WithOws(
   const v = rawV < 27 ? rawV + 27 : rawV;
 
   // Reconstruct the full 65-byte signature with correct v
-  const fullSig = "0x" + sigHex.slice(0, 128) + v.toString(16);
+  const fullSig = "0x" + sigHex.slice(0, 128) + v.toString(16).padStart(2, "0");
 
   return { signature: fullSig, v, r, s };
 }
