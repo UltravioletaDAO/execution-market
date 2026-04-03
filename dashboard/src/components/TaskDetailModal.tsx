@@ -164,6 +164,16 @@ export function TaskDetailModal({ taskId, onClose, onReviewSubmission }: TaskDet
                 </div>
               </div>
 
+              {/* World ID required banner for high-value tasks */}
+              {task.bounty_usd >= 5.0 && (
+                <div className="flex items-center gap-2 px-4 py-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-sm text-green-800 dark:text-green-300">
+                  <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span>{t('worldId.requiredExplainer', 'This task requires World ID verification to apply.')}</span>
+                </div>
+              )}
+
               {/* Instructions */}
               <div>
                 <h4 className="text-sm font-medium text-gray-700 mb-1">{t('tasks.instructions')}</h4>
