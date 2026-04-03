@@ -27,11 +27,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    - `MINOR` (x.+1.0): new sections, new options, backward-compatible changes
    - `MAJOR` (+1.0.0): breaking changes (removed options, changed defaults, new required steps)
 2. **Add a row to the Changelog table** at the top of the file with date + summary
-3. **Commit with the version in the message**, e.g. `feat(skill): v3.1.0 — wallet required`
+3. **Sync backend copy**: `cp dashboard/public/skill.md mcp_server/skills/SKILL.md`
+4. **Commit with the version in the message**, e.g. `feat(skill): v3.1.0 — wallet required`
 
 **Current version**: check `dashboard/public/skill.md` frontmatter — `version: x.x.x`
-**Served at**: `https://execution.market/skill.md`
+**Served at**: `https://execution.market/skill.md` (canonical) and `https://api.execution.market/skill.md` (backend copy)
 **Agents check for updates by comparing their installed version against the `version` field in the live file.**
+**CI enforces sync**: The `skill-sync-check` job fails if `dashboard/public/skill.md` != `mcp_server/skills/SKILL.md`. Always edit the canonical and copy to backend.
+**NEVER edit `mcp_server/skills/SKILL.md` directly** — it's a copy. Edit `dashboard/public/skill.md` and sync.
 
 ## Project Overview
 

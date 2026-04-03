@@ -45,6 +45,21 @@ jobs:
               - '.github/**'
               - 'Dockerfile*'
               - 'docker-compose*'
+  skill-sync-check:
+    name: Skill Sync Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Verify canonical skill == backend copy
+        run: |
+          if ! diff -q dashboard/public/skill.md mcp_server/skills/SKILL.md > /dev/null 2>&1; then
+            echo "::error::skill.md out of sync! dashboard/public/skill.md (canonical) != mcp_server/skills/SKILL.md (backend)"
+            echo "Fix: cp dashboard/public/skill.md mcp_server/skills/SKILL.md"
+            diff dashboard/public/skill.md mcp_server/skills/SKILL.md || true
+            exit 1
+          fi
+          echo "Skill files in sync (v$(head -3 dashboard/public/skill.md | grep version | cut -d' ' -f2))"
+
   lint-backend:
     name: Lint Backend
     runs-on: ubuntu-latest
