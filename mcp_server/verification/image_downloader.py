@@ -93,7 +93,9 @@ def _looks_like_image_url(s: str) -> bool:
     if not s.startswith(("http://", "https://")):
         return False
     lower = s.lower().split("?")[0]
-    return lower.endswith((".jpg", ".jpeg", ".png", ".gif", ".webp", ".heic", ".heif", ".bmp", ".tiff")) or (
+    return lower.endswith(
+        (".jpg", ".jpeg", ".png", ".gif", ".webp", ".heic", ".heif", ".bmp", ".tiff")
+    ) or (
         "cloudfront.net" in lower
         or "s3.amazonaws.com" in lower
         or "amazonaws.com" in lower
