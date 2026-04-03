@@ -18,6 +18,9 @@ Items captured during conversations to avoid context drift. Review at end of ses
 | 2026-03-26 | Brand shortname brainstorm: eMarket / exMarket | Shorter name for social/verbal use. Candidates: `eMarket`, `exMarket`, `EM`, `eM`. Decision pending — see conversation 2026-03-26. | P2 | pending |
 | 2026-03-31 | INC-2026-03-30 remediation: rotate wallet + fund new wallet | **MOSTLY DONE** — See status below. Wallet rotated, ECS deployed, 3/8 chains funded, 5 pending. | P0 | in-progress |
 | 2026-04-01 | Fund remaining 5 chains for worker wallet | Bridge USDC from Base to: Ethereum, Arbitrum, Celo, Monad, (verify Optimism arrived). deBridge programmatic bridge has allowance bug on ETH L1 — use app.debridge.finance UI instead. Scripts at `scripts/bridge/`. See handoff below. | P1 | pending |
+| 2026-04-03 | WorldCoin bug fix not deployed | User reports WorldCoin-related fix not visible in production. Blocked by Terraform deploy failure. Verify which commit has the fix and ensure it deploys. | P1 | pending |
+| 2026-04-03 | Terraform deploy pipeline broken | `Cannot apply incomplete plan` error in CI/CD Deploy job. Blocks ALL deploys to production. Commit `88e8cccb` (ECS task def changes) may be the trigger. Pre-existed before rating fix. Needs diagnosis. | P0 | pending |
+| 2026-04-03 | Evidence visibility not deployed | Commit `65cea1ed` surfaces PHOTINT AI analysis in submission views but hasn't reached production due to Terraform failure. | P1 | pending |
 
 ---
 

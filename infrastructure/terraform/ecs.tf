@@ -284,9 +284,8 @@ resource "aws_ecs_task_definition" "mcp_server" {
           name      = "OPTIMISM_RPC_URL"
           valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/rpc-mainnet:optimism::"
         },
-        # EM_WORKER_PRIVATE_KEY removed — only needed for Golden Flow E2E testing,
-        # not production. Was blocking deploy (ECS couldn't resolve em/test-worker ARN).
-        # For Golden Flow, set EM_WORKER_PRIVATE_KEY locally or via .env.local.
+        # EM_WORKER_PRIVATE_KEY removed (INC-2026-03-30) — only needed for E2E
+        # testing, not production. Secret em/test-worker doesn't exist in SM.
         # World ID 4.0 (hackathon Track 2 — RP signing + Cloud API verify)
         {
           name      = "WORLD_ID_APP_ID"
