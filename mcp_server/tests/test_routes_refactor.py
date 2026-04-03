@@ -94,6 +94,10 @@ EXPECTED_ROUTES = {
     "/api/v1/submissions/{submission_id}",
     # Worker social links
     "/api/v1/workers/social-links",
+    # World ID 4.0 verification
+    "/api/v1/world-id/rp-signature",
+    "/api/v1/world-id/verify",
+    "/api/v1/workers/world-status",
 }
 
 
