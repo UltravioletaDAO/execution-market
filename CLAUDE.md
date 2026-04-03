@@ -53,7 +53,7 @@ Execution Market is the **Universal Execution Layer** — the infrastructure tha
 | Agent Identity | ERC-8004 Registry (16 networks via Facilitator) |
 | Proof of Humanity | World ID 4.0 (Cloud API v4, RP signing, IDKit) |
 | Agent Wallet | [Open Wallet Standard](https://openwallet.sh) (OWS) — MCP server in `ows-mcp-server/` |
-| SDKs | Python `uvd-x402-sdk[wallet]>=0.20.0` / TypeScript `uvd-x402-sdk@2.35.0` |
+| SDKs | Python `uvd-x402-sdk[wallet]>=0.21.0` / TypeScript `uvd-x402-sdk@2.36.0` |
 
 ## Project Structure
 
@@ -533,7 +533,7 @@ Wrong Flow (DO NOT USE):
 
 | Component | Details |
 |-----------|---------|
-| **SDK** | `uvd-x402-sdk[fastapi,wallet]>=0.20.0` (in `mcp_server/requirements.txt`) |
+| **SDK** | `uvd-x402-sdk[fastapi,wallet]>=0.21.0` (in `mcp_server/requirements.txt`) |
 | **SDK Client** | `mcp_server/integrations/x402/sdk_client.py` — `EMX402SDK` class |
 | **Facilitator URL** | `https://facilitator.ultravioletadao.xyz` |
 | **Facilitator Endpoints** | `POST /verify`, `POST /settle`, `POST /register`, `POST /feedback` |
