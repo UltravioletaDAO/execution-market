@@ -526,6 +526,15 @@ class ApplicationResponse(BaseModel):
         ..., description="Application status (pending, accepted, rejected)"
     )
     created_at: str = Field(..., description="ISO 8601 timestamp")
+    reputation_score: Optional[int] = Field(
+        None, description="Worker reputation score (0-100)"
+    )
+    tasks_completed: Optional[int] = Field(
+        None, description="Number of completed tasks"
+    )
+    avg_rating: Optional[float] = Field(
+        None, description="Average rating received (0-5 scale)"
+    )
 
 
 class ApplicationListResponse(BaseModel):
