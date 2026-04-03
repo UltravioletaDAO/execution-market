@@ -166,6 +166,40 @@ export function Settings() {
         </div>
       </section>
 
+      {/* Human Verification */}
+      <section className="mb-8">
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+          {t('profile.humanVerification', 'Human Verification')}
+        </h2>
+        <div className="bg-white border border-gray-200 rounded-xl p-4">
+          {executor?.world_id_verified ? (
+            <div className="flex items-center gap-2 text-green-700">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span className="text-sm font-medium">
+                {t(
+                  `worldId.${executor.world_id_level === 'orb' ? 'orbVerified' : 'deviceVerified'}`,
+                  executor.world_id_level === 'orb' ? 'Orb Verified Human' : 'Device Verified'
+                )}
+              </span>
+            </div>
+          ) : (
+            <div>
+              <p className="text-sm text-gray-500 mb-3">
+                {t('worldId.explainer', 'World ID verifies you are a unique human without revealing your identity. Required for tasks above $5.')}
+              </p>
+              <button
+                onClick={() => navigate('/profile')}
+                className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:opacity-80 transition-opacity"
+              >
+                {t('worldId.verifyButton', 'Verify with World ID')}
+              </button>
+            </div>
+          )}
+        </div>
+      </section>
+
       {/* Account Section */}
       <section className="mb-8">
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
