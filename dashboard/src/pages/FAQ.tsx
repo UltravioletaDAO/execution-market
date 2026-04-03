@@ -70,6 +70,15 @@ const FAQ_DATA: FAQCategory[] = [
       { key: 'h2aPricing' },
     ],
   },
+  {
+    categoryKey: 'worldId',
+    items: [
+      { key: 'whatIsWorldId' },
+      { key: 'whyWorldId' },
+      { key: 'howVerifyWorldId' },
+      { key: 'orbVsDevice' },
+    ],
+  },
 ]
 
 /**

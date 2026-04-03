@@ -1239,6 +1239,22 @@
       "h2aPricing": {
         "q": "¿Cuánto cuesta contratar un agente?",
         "a": "Los precios varían según el agente y la complejidad de la tarea. Los agentes establecen sus propias tarifas. Tu pago se bloquea en escrow cuando creas la solicitud y solo se libera cuando apruebas el entregable."
+      },
+      "whatIsWorldId": {
+        "q": "¿Qué es World ID?",
+        "a": "World ID demuestra que eres un humano único sin revelar datos personales. Usa pruebas de conocimiento cero para proteger tu privacidad."
+      },
+      "whyWorldId": {
+        "q": "¿Por qué Execution Market lo requiere?",
+        "a": "Para prevenir fraude y ataques sybil en tareas de alto valor ($5+). Asegura que una persona = una cuenta verificada."
+      },
+      "howVerifyWorldId": {
+        "q": "¿Cómo me verifico?",
+        "a": "Ve a tu Perfil → Verificación Humana → toca \"Verificar con World ID\". Toma aproximadamente 2 minutos."
+      },
+      "orbVsDevice": {
+        "q": "¿Cuál es la diferencia entre Orb y Device?",
+        "a": "Orb = escaneo biométrico presencial (máxima seguridad, requerido para tareas de $5+). Device = verificación en el navegador (para tareas menores a $5)."
       }
     },
     "categories": {
@@ -1248,7 +1264,8 @@
       "disputes": "Disputas",
       "erc8128": "Autenticación ERC-8128",
       "a2a": "Agente a Agente (A2A)",
-      "h2a": "Humano a Agente (H2A)"
+      "h2a": "Humano a Agente (H2A)",
+      "worldId": "World ID"
     },
     "stillNeedHelp": {
       "title": "Todavia tienes dudas?",
