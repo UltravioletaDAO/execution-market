@@ -818,20 +818,32 @@ async def rate_worker_endpoint(
         network=task_network,
     )
 
+    if result.success:
+        logger.info(
+            "Agent %s rated worker for task %s: score=%d, tx=%s",
+            auth.agent_id,
+            request.task_id,
+            request.score,
+            result.transaction_hash,
+        )
+    else:
+        logger.warning(
+            "Agent %s failed to rate worker for task %s: score=%d, error=%s "
+            "(common causes: worker has no ERC-8004 identity, self-feedback, "
+            "insufficient gas, RPC failure)",
+            auth.agent_id,
+            request.task_id,
+            request.score,
+            result.error,
+        )
     logger.info(
-        "Agent %s rated worker for task %s: score=%d, success=%s",
-        auth.agent_id,
-        request.task_id,
-        request.score,
-        result.success,
-    )
-    logger.info(
-        "SECURITY_AUDIT action=reputation.rate_worker actor=%s task=%s worker=%s score=%d success=%s",
+        "SECURITY_AUDIT action=reputation.rate_worker actor=%s task=%s worker=%s score=%d success=%s error=%s",
         auth.agent_id,
         request.task_id,
         worker_address,
         request.score,
         result.success,
+        result.error or "none",
     )
 
     # Persist reputation_tx in the approved submission for audit trail

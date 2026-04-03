@@ -666,6 +666,14 @@ async def rate_worker(
             logger.warning("On-chain identity check failed: %s", exc)
 
     if not target_agent_id:
+        logger.warning(
+            "Cannot rate worker %s for task %s on %s: no ERC-8004 identity found "
+            "(checked DB + on-chain). Worker must register first via "
+            "POST /reputation/register or enable erc8004_auto_register_worker.",
+            worker_address[:10] if worker_address else "unknown",
+            task_id,
+            network,
+        )
         return FeedbackResult(
             success=False,
             error=f"Worker {worker_address[:10]}... has no ERC-8004 identity. "

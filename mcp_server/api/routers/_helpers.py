@@ -581,6 +581,15 @@ async def _send_reputation_feedback(
     override_score: Optional[int] = None,
 ) -> None:
     if not (ERC8004_AVAILABLE and rate_worker and worker_address and release_tx):
+        logger.info(
+            "Skipping reputation feedback for task=%s: ERC8004_AVAILABLE=%s, "
+            "rate_worker=%s, worker_address=%s, release_tx=%s",
+            task.get("id"),
+            ERC8004_AVAILABLE,
+            bool(rate_worker),
+            bool(worker_address),
+            bool(release_tx),
+        )
         return
 
     try:
@@ -653,8 +662,11 @@ async def _send_reputation_feedback(
                     pass  # Best-effort
         else:
             logger.warning(
-                "ERC-8004 reputation failed: task=%s, error=%s",
+                "ERC-8004 reputation failed (rating_tx will be null): task=%s, worker=%s, error=%s. "
+                "Most likely cause: worker has no ERC-8004 identity — register via "
+                "POST /reputation/register first, or enable erc8004_auto_register_worker feature flag.",
                 task["id"],
+                worker_address[:10] + "..." if worker_address else "unknown",
                 reputation_result.error,
             )
     except Exception as rep_err:
