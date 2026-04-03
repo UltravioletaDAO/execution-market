@@ -52,13 +52,17 @@ jobs:
       - uses: actions/checkout@v6
       - name: Verify canonical skill == backend copy
         run: |
-          if ! diff -q dashboard/public/skill.md mcp_server/skills/SKILL.md > /dev/null 2>&1; then
+          # Normalize line endings before comparing (Windows dev may add CRLF)
+          CANONICAL=$(cat dashboard/public/skill.md | tr -d '\r' | sha256sum | cut -d' ' -f1)
+          BACKEND=$(cat mcp_server/skills/SKILL.md | tr -d '\r' | sha256sum | cut -d' ' -f1)
+          if [ "$CANONICAL" != "$BACKEND" ]; then
             echo "::error::skill.md out of sync! dashboard/public/skill.md (canonical) != mcp_server/skills/SKILL.md (backend)"
             echo "Fix: cp dashboard/public/skill.md mcp_server/skills/SKILL.md"
-            diff dashboard/public/skill.md mcp_server/skills/SKILL.md || true
+            diff <(tr -d '\r' < dashboard/public/skill.md) <(tr -d '\r' < mcp_server/skills/SKILL.md) | head -30
             exit 1
           fi
-          echo "Skill files in sync (v$(head -3 dashboard/public/skill.md | grep version | cut -d' ' -f2))"
+          VERSION=$(head -5 dashboard/public/skill.md | grep version | awk '{print $2}')
+          echo "Skill files in sync (v${VERSION})"
 
   lint-backend:
     name: Lint Backend
