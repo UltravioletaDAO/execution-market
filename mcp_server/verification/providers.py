@@ -98,7 +98,7 @@ class AnthropicProvider(VerificationProvider):
     async def analyze(self, request: VisionRequest) -> VisionResponse:
         import anthropic
 
-        client = anthropic.Anthropic(api_key=self.api_key)
+        client = anthropic.AsyncAnthropic(api_key=self.api_key)
 
         content = []
         for img_data, mime_type in zip(request.images, request.image_types):
@@ -114,7 +114,7 @@ class AnthropicProvider(VerificationProvider):
             )
         content.append({"type": "text", "text": request.prompt})
 
-        message = client.messages.create(
+        message = await client.messages.create(
             model=self.model_id,
             max_tokens=request.max_tokens,
             messages=[{"role": "user", "content": content}],
@@ -211,6 +211,8 @@ class BedrockProvider(VerificationProvider):
             return False
 
     async def analyze(self, request: VisionRequest) -> VisionResponse:
+        import asyncio
+
         import boto3
 
         client = boto3.client("bedrock-runtime", region_name=self.region)
@@ -237,7 +239,9 @@ class BedrockProvider(VerificationProvider):
             }
         )
 
-        response = client.invoke_model(
+        # boto3 is synchronous — run in thread to avoid blocking the event loop.
+        response = await asyncio.to_thread(
+            client.invoke_model,
             modelId=self.model_id,
             contentType="application/json",
             accept="application/json",
@@ -274,6 +278,8 @@ class GeminiProvider(VerificationProvider):
         return bool(self.api_key)
 
     async def analyze(self, request: VisionRequest) -> VisionResponse:
+        import asyncio
+
         import google.generativeai as genai
 
         genai.configure(api_key=self.api_key)
@@ -284,11 +290,14 @@ class GeminiProvider(VerificationProvider):
             parts.append({"mime_type": mime_type, "data": img_data})
         parts.append(request.prompt)
 
-        response = model.generate_content(
-            parts,
-            generation_config=genai.types.GenerationConfig(
-                max_output_tokens=request.max_tokens,
-            ),
+        gen_config = genai.types.GenerationConfig(
+            max_output_tokens=request.max_tokens,
+        )
+
+        # google-generativeai SDK is synchronous — run in thread to avoid
+        # blocking the asyncio event loop (Phase B runs as background task).
+        response = await asyncio.to_thread(
+            model.generate_content, parts, generation_config=gen_config
         )
 
         usage = {}
