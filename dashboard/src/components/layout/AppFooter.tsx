@@ -52,10 +52,17 @@ export function AppFooter() {
           </nav>
         </div>
 
-        {/* Bottom */}
-        <div className="mt-6 pt-4 border-t border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-600">
-          <span>{t('footer.poweredBy', 'Powered by')} Ultravioleta DAO</span>
-          <span className="whitespace-nowrap">Multichain &middot; Stablecoins</span>
+        {/* Partners */}
+        <div className="mt-6 pt-4 border-t border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <span className="text-xs text-gray-600">{t('footer.poweredBy', 'Powered by')} Ultravioleta DAO</span>
+          <div className="flex items-center gap-4">
+            <a href="https://openwallet.sh" target="_blank" rel="noopener noreferrer" className="opacity-50 hover:opacity-80 transition-opacity" title="Open Wallet Standard">
+              <img src="/ows-logo.svg" alt="OWS" className="h-5 w-auto invert" />
+            </a>
+            <a href="https://worldcoin.org" target="_blank" rel="noopener noreferrer" className="opacity-50 hover:opacity-80 transition-opacity" title="World ID">
+              <img src="/worldcoin.png" alt="World ID" className="h-5 w-auto invert" />
+            </a>
+          </div>
         </div>
       </div>
     </footer>
