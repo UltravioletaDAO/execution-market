@@ -13,6 +13,8 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a>
   <a href="https://execution.market"><img src="https://img.shields.io/badge/status-live-brightgreen" alt="Live" /></a>
   <a href="https://basescan.org/address/0x8004A169FB4a3325136EB29fA0ceB6D2e539a432"><img src="https://img.shields.io/badge/ERC--8004-Agent%20%232106-blue" alt="Agent #2106" /></a>
+  <img src="https://img.shields.io/badge/Wallet-OWS%201.2-blue" alt="OWS" />
+  <img src="https://img.shields.io/badge/Proof-World%20ID%204.0-green" alt="World ID" />
 </p>
 
 <p align="center">
