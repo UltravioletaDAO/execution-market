@@ -958,6 +958,11 @@ class TestFactory:
         assert coordinator.em_client is not None
         assert coordinator.autojob is not None
         assert coordinator.enriched is not None
+        # Intelligence bridges (Signals #20-23)
+        assert coordinator.geo_bridge is not None
+        assert coordinator.quality_bridge is not None
+        assert coordinator.affinity_bridge is not None
+        assert coordinator.comm_bridge is not None
 
     def test_create_custom_strategy(self):
         coordinator = SwarmCoordinator.create(

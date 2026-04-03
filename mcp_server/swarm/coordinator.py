@@ -62,6 +62,10 @@ from .orchestrator import (
     RoutingFailure,
     RoutingStrategy,
 )
+from .geo_bridge import GeoBridge
+from .quality_bridge import QualityBridge
+from .affinity_bridge import AffinityBridge
+from .comm_bridge import CommBridge
 from .autojob_client import (
     AutoJobClient,
     EnrichedOrchestrator,
@@ -352,6 +356,10 @@ class SwarmCoordinator:
         default_strategy: RoutingStrategy = RoutingStrategy.BEST_FIT,
         task_expiry_hours: float = 24.0,
         health_check_interval_seconds: int = 300,
+        geo_bridge: Optional[GeoBridge] = None,
+        quality_bridge: Optional[QualityBridge] = None,
+        affinity_bridge: Optional[AffinityBridge] = None,
+        comm_bridge: Optional[CommBridge] = None,
     ):
         # Core components
         self.bridge = bridge
@@ -361,6 +369,12 @@ class SwarmCoordinator:
         self.autojob = autojob_client
         self.enriched = enriched_orchestrator
         self.default_strategy = default_strategy
+
+        # Swarm intelligence bridges (optional — activated on data ingestion)
+        self.geo_bridge: GeoBridge = geo_bridge or GeoBridge()
+        self.quality_bridge: QualityBridge = quality_bridge or QualityBridge()
+        self.affinity_bridge: AffinityBridge = affinity_bridge or AffinityBridge()
+        self.comm_bridge: CommBridge = comm_bridge or CommBridge()
 
         # Configuration
         self.task_expiry_hours = task_expiry_hours
