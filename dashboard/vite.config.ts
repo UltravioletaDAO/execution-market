@@ -1,4 +1,5 @@
 /// <reference types="vitest" />
+// Dashboard build — execution.market SPA
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
