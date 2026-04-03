@@ -49,7 +49,7 @@ pycryptodome>=3.20.0
 # ===================
 # x402 SDK (Official Ultravioleta DAO SDK)
 # ===================
-uvd-x402-sdk[fastapi]>=0.19.4
+uvd-x402-sdk[fastapi,wallet]>=0.20.0
 
 # ===================
 # Image Processing (Verification)
