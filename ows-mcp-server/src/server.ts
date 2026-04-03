@@ -415,6 +415,97 @@ server.registerTool(
 );
 
 // ---------------------------------------------------------------------------
+// Tool: ows_sign_eip191 (EIP-191 Personal Sign — required for ERC-8128 auth)
+// ---------------------------------------------------------------------------
+
+server.registerTool(
+  "ows_sign_eip191",
+  {
+    title: "Sign Message (EIP-191 Personal Sign)",
+    description:
+      "Sign a message with EIP-191 prefix (\\x19Ethereum Signed Message). " +
+      "Required for ERC-8128 HTTP auth. Regular ows_sign_message does NOT add this prefix, " +
+      "which causes signature verification to fail (401) on servers that use personal_sign recovery.",
+    inputSchema: {
+      wallet: z.string().describe("OWS wallet name or ID"),
+      message: z.string().describe("Message to sign (EIP-191 prefix added automatically)"),
+      passphrase: z
+        .string()
+        .optional()
+        .describe("Wallet passphrase if set"),
+    },
+  },
+  async ({ wallet, message, passphrase }) => {
+    try {
+      // Build EIP-191 prefixed message:
+      //   "\x19Ethereum Signed Message:\n" + byteLength + message
+      // OWS signMessage signs raw (no prefix), so we must prepend it ourselves.
+      const messageBytes = Buffer.from(message, "utf-8");
+      const prefix = `\x19Ethereum Signed Message:\n${messageBytes.length}`;
+      const prefixedMessage = Buffer.concat([
+        Buffer.from(prefix, "utf-8"),
+        messageBytes,
+      ]);
+
+      // Pass the prefixed message as hex to OWS signMessage.
+      // OWS will keccak256-hash then ECDSA-sign it (standard EVM signing).
+      const prefixedHex = prefixedMessage.toString("hex");
+      const result = ows.signMessage(
+        wallet,
+        "evm",
+        prefixedHex,
+        passphrase ?? undefined,
+        "hex", // tell OWS the message is hex-encoded bytes
+      );
+
+      // Extract v, r, s from 65-byte signature
+      const sigHex = result.signature.startsWith("0x")
+        ? result.signature.slice(2)
+        : result.signature;
+      const r = "0x" + sigHex.slice(0, 64);
+      const s = "0x" + sigHex.slice(64, 128);
+
+      // Normalize v byte: OWS returns recoveryId 0/1, EIP-191 needs 27/28
+      const rawV =
+        result.recoveryId !== undefined && result.recoveryId !== null
+          ? result.recoveryId
+          : parseInt(sigHex.slice(128, 130), 16);
+      const v = rawV < 27 ? rawV + 27 : rawV;
+
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify(
+              {
+                signature: "0x" + sigHex.slice(0, 128) + (v).toString(16),
+                v,
+                r,
+                s,
+                message_signed: message,
+                prefix_applied: true,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    } catch (err) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `EIP-191 signing failed: ${err instanceof Error ? err.message : String(err)}`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
 // Tool: ows_sign_transaction
 // ---------------------------------------------------------------------------
 
