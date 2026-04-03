@@ -125,6 +125,7 @@ export function SubmissionForm({
   const [error, setError] = useState<string | null>(null)
   const [isOutsideGeofence, setIsOutsideGeofence] = useState(false)
   const [verificationDetails, setVerificationDetails] = useState<Record<string, unknown> | null>(null)
+  const [aiVerificationResult, setAiVerificationResult] = useState<Record<string, unknown> | null>(null)
   const [submissionId, setSubmissionId] = useState<string | null>(null)
   const fileInputRefs = useRef<Map<string, HTMLInputElement>>(new Map())
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -189,7 +190,7 @@ export function SubmissionForm({
       try {
         const { data } = await supabase
           .from('submissions')
-          .select('auto_check_details')
+          .select('auto_check_details, ai_verification_result')
           .eq('id', submissionId)
           .single()
 
@@ -197,6 +198,9 @@ export function SubmissionForm({
           const details = data.auto_check_details as Record<string, unknown>
           // Always update with latest details (Phase A or AB)
           setVerificationDetails(details)
+          if (data.ai_verification_result) {
+            setAiVerificationResult(data.ai_verification_result as Record<string, unknown>)
+          }
 
           // Stop polling when Phase B is complete
           if (details.phase === 'AB') {
@@ -747,7 +751,12 @@ export function SubmissionForm({
           <div className="border-t border-gray-200 p-4 space-y-3">
             <EvidenceVerificationPanel details={verificationDetails} />
             {(() => {
-              const checks = (verificationDetails as { checks?: Array<{ name: string; details?: Record<string, unknown> }> }).checks
+              // Prefer the dedicated ai_verification_result (populated by Phase B)
+              if (aiVerificationResult) {
+                return <AIAnalysisDetails result={aiVerificationResult as AIAnalysisResult} />
+              }
+              // Fallback: check auto_check_details.checks for ai_semantic entry
+              const checks = (verificationDetails as { checks?: Array<{ name: string }> }).checks
               const aiCheck = Array.isArray(checks) ? checks.find((c) => c.name === 'ai_semantic') : undefined
               return aiCheck ? <AIAnalysisDetails result={aiCheck as unknown as AIAnalysisResult} /> : null
             })()}

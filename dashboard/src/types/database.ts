@@ -199,6 +199,8 @@ export interface Submission {
   reputation_tx: string | null
   paid_at: string | null
   payment_amount: number | null
+  ai_verification_result: Record<string, unknown> | null
+  perceptual_hashes: Record<string, unknown> | null
   // Joined relations
   task?: Task
   executor?: Executor

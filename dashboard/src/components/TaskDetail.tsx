@@ -897,12 +897,14 @@ export function TaskDetail({
                     <div className="mt-3 space-y-3">
                       <EvidenceVerificationPanel details={sub.auto_check_details} />
                       {(() => {
-                        const details = sub.auto_check_details as { checks?: Array<{ name: string; details?: Record<string, unknown> }> } | null
-                        const checks = details?.checks
-                        const aiCheck = Array.isArray(checks) ? checks.find((c) => c.name === 'ai_semantic') : undefined
-                        // Prefer sub-level ai_verification_result if it exists as a separate column, otherwise use check entry
-                        const aiResult = aiCheck as unknown as AIAnalysisResult | undefined
-                        return aiResult ? <AIAnalysisDetails result={aiResult} /> : null
+                        // Prefer the dedicated ai_verification_result column (populated by Phase B)
+                        if (sub.ai_verification_result) {
+                          return <AIAnalysisDetails result={sub.ai_verification_result as AIAnalysisResult} />
+                        }
+                        // Fallback: check auto_check_details.checks for ai_semantic entry
+                        const details = sub.auto_check_details as { checks?: Array<{ name: string }> } | null
+                        const aiCheck = Array.isArray(details?.checks) ? details.checks.find((c) => c.name === 'ai_semantic') : undefined
+                        return aiCheck ? <AIAnalysisDetails result={aiCheck as unknown as AIAnalysisResult} /> : null
                       })()}
                     </div>
                   )}

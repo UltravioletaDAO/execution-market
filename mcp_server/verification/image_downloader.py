@@ -75,6 +75,16 @@ def extract_photo_urls(evidence: Dict[str, Any]) -> List[str]:
                 _walk(item, depth + 1)
 
     _walk(evidence)
+    if not urls:
+        # Log diagnostic info to help debug missing URLs
+        keys = list(evidence.keys()) if isinstance(evidence, dict) else []
+        logger.warning(
+            "[PHOTINT] No photo URLs extracted from evidence keys=%s. "
+            "Check if fileUrl field is present and starts with http(s).",
+            keys,
+        )
+    else:
+        logger.info("[PHOTINT] Extracted %d photo URL(s) from evidence", len(urls))
     return urls
 
 
@@ -83,8 +93,11 @@ def _looks_like_image_url(s: str) -> bool:
     if not s.startswith(("http://", "https://")):
         return False
     lower = s.lower().split("?")[0]
-    return lower.endswith((".jpg", ".jpeg", ".png", ".gif", ".webp")) or (
-        "cloudfront.net" in lower or "s3.amazonaws.com" in lower
+    return lower.endswith((".jpg", ".jpeg", ".png", ".gif", ".webp", ".heic", ".heif", ".bmp", ".tiff")) or (
+        "cloudfront.net" in lower
+        or "s3.amazonaws.com" in lower
+        or "amazonaws.com" in lower
+        or "supabase" in lower
     )
 
 

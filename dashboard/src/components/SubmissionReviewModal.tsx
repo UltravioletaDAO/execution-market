@@ -7,11 +7,13 @@
  * - Request More Info
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 import { getCheckLabel } from '../constants/checkLabels'
 import { getSubmission, approveSubmission, rejectSubmission, requestMoreInfo } from '../services/submissions'
+import { AIAnalysisDetails } from './AIAnalysisDetails'
+import type { AIAnalysisResult } from './AIAnalysisDetails'
 import type { SubmissionWithDetails } from '../services/types'
 
 // --------------------------------------------------------------------------
@@ -119,6 +121,41 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
     load()
     return () => { cancelled = true }
   }, [submissionId])
+
+  // Poll for Phase B completion (auto_check_details.phase transitions from "A" to "AB")
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const currentPhase = (submission?.auto_check_details as { phase?: string } | null)?.phase
+  const hasVerdict = submission?.agent_verdict
+  const hasAiResult = submission?.ai_verification_result
+
+  useEffect(() => {
+    if (!submission) return
+    // Stop polling if Phase B is already complete or submission has verdict
+    if (currentPhase === 'AB' || hasVerdict || hasAiResult) return
+
+    pollingRef.current = setInterval(async () => {
+      try {
+        const updated = await getSubmission(submissionId)
+        if (!updated) return
+        setSubmission(updated)
+        const updatedPhase = (updated.auto_check_details as { phase?: string } | null)?.phase
+        if (updatedPhase === 'AB' || updated.ai_verification_result) {
+          if (pollingRef.current) clearInterval(pollingRef.current)
+        }
+      } catch {
+        // Silently ignore polling errors
+      }
+    }, 5000)
+
+    const timeout = setTimeout(() => {
+      if (pollingRef.current) clearInterval(pollingRef.current)
+    }, 60000) // stop after 60s
+
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current)
+      clearTimeout(timeout)
+    }
+  }, [submission, currentPhase, hasVerdict, hasAiResult, submissionId])
 
   const handleApprove = useCallback(async () => {
     if (!executor?.id || !submission) return
@@ -469,6 +506,16 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                       ))}
                     </div>
                   )}
+                  {/* Phase B error */}
+                  {(details as Record<string, unknown>)?.phase_b_error != null && (
+                    <div className="px-3 pb-3">
+                      <p className="text-xs text-red-500">
+                        {t('autoCheck.phaseBError', 'AI analysis error: {{error}}', {
+                          error: String((details as Record<string, unknown>).phase_b_error),
+                        })}
+                      </p>
+                    </div>
+                  )}
                   {/* Score guidance */}
                   <div className="px-3 pb-3 text-xs text-gray-500">
                     {score >= 0.95 ? t('autoCheck.guidanceHigh', 'All checks passed. Safe to approve.') :
@@ -479,6 +526,18 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                 </div>
                 )
               })()}
+
+              {/* AI Analysis Details (Phase B) */}
+              {submission.ai_verification_result && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">
+                    {t('aiAnalysis.title', 'AI Analysis')}
+                  </h3>
+                  <AIAnalysisDetails
+                    result={submission.ai_verification_result as AIAnalysisResult}
+                  />
+                </div>
+              )}
 
               {/* Result message */}
               {result && (
