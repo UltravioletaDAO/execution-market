@@ -1114,7 +1114,9 @@ async def rate_agent_endpoint(
             stars = round(request.score / 20, 1)
             # rater_id: use worker wallet for consistency with agent->worker path
             # which uses str(agent_id). Fallback to executor_id if no wallet.
-            worker_wallet = (task.get("executor") or {}).get("wallet_address") or str(executor_id)
+            worker_wallet = (task.get("executor") or {}).get("wallet_address") or str(
+                executor_id
+            )
             rating_row = {
                 "executor_id": executor_id,
                 "task_id": request.task_id,
