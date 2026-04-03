@@ -272,7 +272,7 @@ export function AgentOnboarding() {
               {t('agentOnboarding.apiDocumentation')}
             </a>
             <a
-              href="https://api.execution.market/skill.md"
+              href="https://execution.market/skill.md"
               target="_blank"
               rel="noopener noreferrer"
               className="px-6 py-3 bg-white text-gray-900 font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors flex items-center gap-2"
@@ -585,7 +585,7 @@ export function AgentOnboarding() {
 
           <div className="grid md:grid-cols-3 gap-6">
             <a
-              href="https://api.execution.market/skill.md"
+              href="https://execution.market/skill.md"
               target="_blank"
               rel="noopener noreferrer"
               className="block bg-white rounded-xl border border-gray-200 p-6 hover:border-blue-300 hover:shadow-lg transition-all group"
