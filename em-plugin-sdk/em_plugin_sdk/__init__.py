@@ -50,6 +50,12 @@ from .networks import (
     DEFAULT_TOKEN,
 )
 
+# Wallet adapter (optional — requires uvd-x402-sdk[wallet]>=0.20.0)
+try:
+    from uvd_x402_sdk.wallet import WalletAdapter, EnvKeyAdapter, OWSWalletAdapter
+except ImportError:
+    pass
+
 __version__ = "0.4.0"
 
 __all__ = [
@@ -103,4 +109,8 @@ __all__ = [
     "get_escrow_networks",
     "DEFAULT_NETWORK",
     "DEFAULT_TOKEN",
+    # Wallet adapter (optional — requires uvd-x402-sdk[wallet])
+    "WalletAdapter",
+    "EnvKeyAdapter",
+    "OWSWalletAdapter",
 ]

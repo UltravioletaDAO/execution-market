@@ -8,6 +8,7 @@ from .evidence import EvidenceResource
 from .payments import PaymentsResource
 from .webhooks import WebhooksResource
 from .h2a import H2AResource, AgentsResource
+from .identity import IdentityResource
 
 __all__ = [
     "TasksResource",
@@ -19,4 +20,5 @@ __all__ = [
     "WebhooksResource",
     "H2AResource",
     "AgentsResource",
+    "IdentityResource",
 ]

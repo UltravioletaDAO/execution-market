@@ -13,13 +13,26 @@ Resource-based namespacing (Stripe pattern)::
 
         # Workers
         worker = await client.workers.register(wallet_address="0x...")
+
+    # With wallet adapter (optional — requires uvd-x402-sdk[wallet])::
+    from uvd_x402_sdk.wallet import EnvKeyAdapter
+    wallet = EnvKeyAdapter()
+
+    async with EMClient(wallet=wallet) as client:
+        await client.identity.register("my-agent")
 """
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Optional
 
 import httpx
+
+# Wallet adapter (optional — requires uvd-x402-sdk[wallet]>=0.20.0)
+try:
+    from uvd_x402_sdk.wallet import WalletAdapter
+except ImportError:
+    WalletAdapter = None  # type: ignore[assignment,misc]
 
 from .exceptions import EMAuthError, EMError, EMNotFoundError, EMServerError, EMValidationError
 from .models import HealthResponse, PlatformConfig
@@ -33,6 +46,7 @@ from .resources.webhooks import WebhooksResource
 from .resources.h2a import H2AResource, AgentsResource
 from .resources.swarm import SwarmResource
 from .resources.relay import RelayResource
+from .resources.identity import IdentityResource
 from .retry import request_with_retry, DEFAULT_MAX_RETRIES, DEFAULT_BACKOFF_FACTOR
 
 DEFAULT_BASE_URL = "https://api.execution.market/api/v1"
@@ -44,6 +58,9 @@ class EMClient:
 
     Args:
         api_key: API key for authentication. Optional for open-access endpoints.
+        wallet: Optional :class:`~uvd_x402_sdk.wallet.WalletAdapter` for wallet-based
+            signing (ERC-8128, EIP-3009).  Requires ``uvd-x402-sdk[wallet]>=0.20.0``.
+            When provided without *api_key*, wallet signing is used for auth.
         base_url: Base URL for the API.
         timeout: Request timeout in seconds.
         max_retries: Number of retries on transient failures (429, 5xx).
@@ -53,12 +70,14 @@ class EMClient:
     def __init__(
         self,
         api_key: str | None = None,
+        wallet: Optional["WalletAdapter"] = None,
         base_url: str = DEFAULT_BASE_URL,
         timeout: float = DEFAULT_TIMEOUT,
         max_retries: int = DEFAULT_MAX_RETRIES,
         http_client: httpx.AsyncClient | None = None,
     ):
         self.api_key = api_key
+        self._wallet = wallet
         self.base_url = base_url.rstrip("/")
         self._timeout = timeout
         self._max_retries = max_retries
@@ -83,6 +102,7 @@ class EMClient:
         self.agents = AgentsResource(self)
         self.swarm = SwarmResource(self)
         self.relay = RelayResource(self)
+        self.identity = IdentityResource(self)
 
     def _default_headers(self) -> dict[str, str]:
         headers: dict[str, str] = {
