@@ -308,6 +308,15 @@ server.registerTool(
         message,
         passphrase ?? undefined
       );
+
+      // Normalize v byte: OWS returns recoveryId 0/1, EVM expects 27/28
+      const v =
+        result.recoveryId !== undefined &&
+        result.recoveryId !== null &&
+        result.recoveryId < 27
+          ? result.recoveryId + 27
+          : result.recoveryId ?? 27;
+
       return {
         content: [
           {
@@ -315,6 +324,7 @@ server.registerTool(
             text: JSON.stringify(
               {
                 signature: result.signature,
+                v,
                 recovery_id: result.recoveryId ?? null,
               },
               null,
@@ -377,10 +387,12 @@ server.registerTool(
       const r = "0x" + sigHex.slice(0, 64);
       const s = "0x" + sigHex.slice(64, 128);
       // v is either in the last byte or from recoveryId
-      const v =
+      // Normalize: OWS returns recoveryId 0/1, EVM expects 27/28
+      const rawV =
         result.recoveryId !== undefined && result.recoveryId !== null
           ? result.recoveryId
           : parseInt(sigHex.slice(128, 130), 16);
+      const v = rawV < 27 ? rawV + 27 : rawV;
 
       return {
         content: [
