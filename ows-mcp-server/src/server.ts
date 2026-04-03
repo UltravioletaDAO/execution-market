@@ -16,6 +16,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import * as crypto from "node:crypto";
 import * as ows from "@open-wallet-standard/core";
 import { OWSWalletAdapter } from "uvd-x402-sdk";
 import type { OWSWallet } from "uvd-x402-sdk";
@@ -449,40 +450,12 @@ server.registerTool(
   },
   async ({ wallet, message, passphrase }) => {
     try {
-      // Build EIP-191 prefixed message:
-      //   "\x19Ethereum Signed Message:\n" + byteLength + message
-      // OWS signMessage signs raw (no prefix), so we must prepend it ourselves.
-      const messageBytes = Buffer.from(message, "utf-8");
-      const prefix = `\x19Ethereum Signed Message:\n${messageBytes.length}`;
-      const prefixedMessage = Buffer.concat([
-        Buffer.from(prefix, "utf-8"),
-        messageBytes,
-      ]);
-
-      // Pass the prefixed message as hex to OWS signMessage.
-      // OWS will keccak256-hash then ECDSA-sign it (standard EVM signing).
-      const prefixedHex = prefixedMessage.toString("hex");
-      const result = ows.signMessage(
+      // Delegate to shared helper (defined below, hoisted at runtime)
+      const { signature, v, r, s } = signEip191WithOws(
         wallet,
-        "evm",
-        prefixedHex,
+        message,
         passphrase ?? undefined,
-        "hex", // tell OWS the message is hex-encoded bytes
       );
-
-      // Extract v, r, s from 65-byte signature
-      const sigHex = result.signature.startsWith("0x")
-        ? result.signature.slice(2)
-        : result.signature;
-      const r = "0x" + sigHex.slice(0, 64);
-      const s = "0x" + sigHex.slice(64, 128);
-
-      // Normalize v byte: OWS returns recoveryId 0/1, EIP-191 needs 27/28
-      const rawV =
-        result.recoveryId !== undefined && result.recoveryId !== null
-          ? result.recoveryId
-          : parseInt(sigHex.slice(128, 130), 16);
-      const v = rawV < 27 ? rawV + 27 : rawV;
 
       return {
         content: [
@@ -490,7 +463,7 @@ server.registerTool(
             type: "text" as const,
             text: JSON.stringify(
               {
-                signature: "0x" + sigHex.slice(0, 128) + (v).toString(16),
+                signature,
                 v,
                 r,
                 s,
@@ -876,13 +849,293 @@ server.registerTool(
 );
 
 // ---------------------------------------------------------------------------
+// Helper: EIP-191 sign via OWS (shared by ows_sign_eip191 and ows_sign_erc8128_request)
+// ---------------------------------------------------------------------------
+
+function signEip191WithOws(
+  walletName: string,
+  message: string,
+  passphrase?: string
+): { signature: string; v: number; r: string; s: string } {
+  const messageBytes = Buffer.from(message, "utf-8");
+  const prefix = `\x19Ethereum Signed Message:\n${messageBytes.length}`;
+  const prefixedMessage = Buffer.concat([
+    Buffer.from(prefix, "utf-8"),
+    messageBytes,
+  ]);
+  const prefixedHex = prefixedMessage.toString("hex");
+
+  const result = ows.signMessage(
+    walletName,
+    "evm",
+    prefixedHex,
+    passphrase,
+    "hex",
+  );
+
+  const sigHex = result.signature.startsWith("0x")
+    ? result.signature.slice(2)
+    : result.signature;
+  const r = "0x" + sigHex.slice(0, 64);
+  const s = "0x" + sigHex.slice(64, 128);
+  const rawV =
+    result.recoveryId !== undefined && result.recoveryId !== null
+      ? result.recoveryId
+      : parseInt(sigHex.slice(128, 130), 16);
+  const v = rawV < 27 ? rawV + 27 : rawV;
+
+  // Reconstruct the full 65-byte signature with correct v
+  const fullSig = "0x" + sigHex.slice(0, 128) + v.toString(16);
+
+  return { signature: fullSig, v, r, s };
+}
+
+// ---------------------------------------------------------------------------
+// Helper: Build RFC 9421 signature base (matches Python EM8128Client exactly)
+// ---------------------------------------------------------------------------
+
+function buildRfc9421SignatureBase(
+  method: string,
+  url: string,
+  body: string | undefined,
+  nonce: string,
+  chainId: number,
+  walletAddress: string,
+): {
+  signatureBase: string;
+  signatureParams: string;
+  contentDigest: string | null;
+} {
+  const parsed = new URL(url);
+  const created = Math.floor(Date.now() / 1000);
+  const expires = created + 300;
+
+  const covered: string[] = ["@method", "@authority", "@path"];
+
+  let contentDigest: string | null = null;
+
+  if (parsed.search && parsed.search.length > 1) {
+    covered.push("@query");
+  }
+
+  if (body) {
+    const bodyBytes = Buffer.from(body, "utf-8");
+    const sha256 = crypto.createHash("sha256").update(bodyBytes).digest("base64");
+    contentDigest = `sha-256=:${sha256}:`;
+    covered.push("content-digest");
+  }
+
+  const params: Record<string, string | number> = {
+    created,
+    expires,
+    nonce,
+    keyid: `erc8128:${chainId}:${walletAddress}`,
+    alg: "eip191",
+  };
+
+  // Build @signature-params string (matches Python _build_sig_params exactly)
+  const compStr = covered.map((c) => `"${c}"`).join(" ");
+  const parts: string[] = [`(${compStr})`];
+  // Ordered keys first: created, expires, nonce, keyid
+  for (const key of ["created", "expires", "nonce", "keyid"]) {
+    if (key in params) {
+      const val = params[key];
+      parts.push(typeof val === "number" ? `${key}=${val}` : `${key}="${val}"`);
+    }
+  }
+  // Then remaining keys sorted
+  for (const key of Object.keys(params).sort()) {
+    if (!["created", "expires", "nonce", "keyid"].includes(key)) {
+      const val = params[key];
+      parts.push(typeof val === "number" ? `${key}=${val}` : `${key}="${val}"`);
+    }
+  }
+  const signatureParams = parts.join(";");
+
+  // Build the signature base lines
+  const lines: string[] = [];
+  for (const comp of covered) {
+    switch (comp) {
+      case "@method":
+        lines.push(`"@method": ${method.toUpperCase()}`);
+        break;
+      case "@authority":
+        lines.push(`"@authority": ${parsed.host}`);
+        break;
+      case "@path":
+        lines.push(`"@path": ${parsed.pathname}`);
+        break;
+      case "@query":
+        lines.push(`"@query": ?${parsed.search.slice(1)}`);
+        break;
+      case "content-digest":
+        lines.push(`"content-digest": ${contentDigest}`);
+        break;
+    }
+  }
+  lines.push(`"@signature-params": ${signatureParams}`);
+
+  return {
+    signatureBase: lines.join("\n"),
+    signatureParams,
+    contentDigest,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Tool: ows_sign_erc8128_request (complete ERC-8128 auth flow)
+// ---------------------------------------------------------------------------
+
+server.registerTool(
+  "ows_sign_erc8128_request",
+  {
+    title: "Sign ERC-8128 HTTP Request",
+    description:
+      "Sign an HTTP request with ERC-8128 wallet authentication. Returns ready-to-use " +
+      "Signature + Signature-Input + Content-Digest headers. Fetches nonce automatically. " +
+      "This is the one-call-does-everything tool for authenticated API requests to Execution Market.",
+    inputSchema: {
+      wallet: z.string().describe("OWS wallet name"),
+      method: z
+        .enum(["GET", "POST", "PUT", "DELETE"])
+        .describe("HTTP method"),
+      url: z
+        .string()
+        .describe("Full URL (e.g. https://api.execution.market/api/v1/tasks)"),
+      body: z
+        .string()
+        .optional()
+        .describe("Request body JSON string (for POST/PUT)"),
+      chain_id: z
+        .number()
+        .optional()
+        .default(8453)
+        .describe("Chain ID (default: 8453 = Base)"),
+      passphrase: z
+        .string()
+        .optional()
+        .describe("Wallet passphrase if set"),
+    },
+  },
+  async ({ wallet, method, url, body, chain_id, passphrase }) => {
+    try {
+      // 1. Get wallet address from OWS
+      const info = ows.getWallet(wallet);
+      const evmAccount = info.accounts.find((a) =>
+        a.chainId.startsWith("eip155:")
+      );
+      if (!evmAccount) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: "No EVM account found in wallet. ERC-8128 requires an EVM address.",
+            },
+          ],
+          isError: true,
+        };
+      }
+      const walletAddress = evmAccount.address;
+
+      // 2. Determine the API base URL from the request URL
+      const parsed = new URL(url);
+      const apiBase = `${parsed.protocol}//${parsed.host}`;
+
+      // 3. Fetch nonce from the ERC-8128 nonce endpoint
+      const nonceRes = await fetch(
+        `${apiBase}/api/v1/auth/erc8128/nonce`
+      );
+      if (!nonceRes.ok) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Failed to fetch nonce (${nonceRes.status}): ${await nonceRes.text()}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+      const nonceData = await nonceRes.json() as { nonce: string };
+      const nonce = nonceData.nonce;
+
+      // 4. Build RFC 9421 signature base
+      const chainId = chain_id ?? 8453;
+      const { signatureBase, signatureParams, contentDigest } =
+        buildRfc9421SignatureBase(
+          method,
+          url,
+          body ?? undefined,
+          nonce,
+          chainId,
+          walletAddress,
+        );
+
+      // 5. Sign with EIP-191 (same as EM8128Client: encode_defunct + sign)
+      const { signature } = signEip191WithOws(
+        wallet,
+        signatureBase,
+        passphrase ?? undefined,
+      );
+
+      // 6. Base64-encode the raw signature bytes (65 bytes: r + s + v)
+      const sigHex = signature.startsWith("0x")
+        ? signature.slice(2)
+        : signature;
+      const sigBytes = Buffer.from(sigHex, "hex");
+      const sigB64 = sigBytes.toString("base64");
+
+      // 7. Build the headers
+      const headers: Record<string, string> = {
+        Signature: `eth=:${sigB64}:`,
+        "Signature-Input": `eth=${signatureParams}`,
+      };
+      if (contentDigest) {
+        headers["Content-Digest"] = contentDigest;
+      }
+
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify(
+              {
+                success: true,
+                headers,
+                wallet_address: walletAddress,
+                chain_id: chainId,
+                note:
+                  "Add these headers to your HTTP request. " +
+                  "For POST/PUT, also include Content-Type: application/json.",
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    } catch (err) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `ERC-8128 signing failed: ${err instanceof Error ? err.message : String(err)}`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
 // Boot
 // ---------------------------------------------------------------------------
 
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("[ows-mcp-server] Running on stdio — 8 tools available");
+  console.error("[ows-mcp-server] Running on stdio — 10 tools available");
   console.error("[ows-mcp-server] Wallet vault: ~/.ows/wallets/");
 }
 
