@@ -287,6 +287,16 @@ export function ProfileCompletionModal({ onComplete, onSkip, executor }: Profile
             />
           </div>
 
+          {/* World ID verification info */}
+          <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {t('worldId.explainer', 'World ID verifies you are a unique human without revealing your identity. Required for tasks above $5.')}
+            </h4>
+            <p className="text-xs text-gray-500 mt-1">
+              {t('profile.worldIdOptional', 'Optional — you can verify later from your profile.')}
+            </p>
+          </div>
+
           {/* Error */}
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
