@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
@@ -146,12 +146,19 @@ export function WorkerTasks() {
   )
 
   const { executor } = useAuth()
+  const [showOnlyEligible, setShowOnlyEligible] = useState(false)
 
   const {
     tasks: availableTasks,
     loading: availableLoading,
     error: availableError,
   } = useAvailableTasks({ category: category ?? undefined })
+
+  // When "only eligible" is checked and user lacks World ID, hide tasks >= $5
+  const filteredAvailableTasks = useMemo(() => {
+    if (!showOnlyEligible || executor?.world_id_verified) return availableTasks
+    return availableTasks.filter((task) => task.bounty_usd < 5.0)
+  }, [availableTasks, showOnlyEligible, executor?.world_id_verified])
 
   const {
     tasks: myTasks,
@@ -300,15 +307,24 @@ export function WorkerTasks() {
 
         {/* Category filter (only for available tasks) */}
         {activeTab === 'available' && (
-          <div className="mb-4">
+          <div className="mb-4 space-y-3">
             <CategoryFilter selected={category} onChange={setCategory} />
+            <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showOnlyEligible}
+                onChange={(e) => setShowOnlyEligible(e.target.checked)}
+                className="rounded border-gray-300 text-gray-900 focus:ring-gray-900"
+              />
+              {t('tasks.showEligible', 'Only tasks I can apply to')}
+            </label>
           </div>
         )}
 
         {/* Task list */}
         {activeTab === 'available' ? (
           <TaskList
-            tasks={availableTasks}
+            tasks={filteredAvailableTasks}
             loading={availableLoading}
             error={availableError}
             onTaskClick={handleTaskClick}
