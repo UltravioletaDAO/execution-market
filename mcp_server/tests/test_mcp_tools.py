@@ -67,6 +67,16 @@ def mock_db():
     db.assign_task = AsyncMock()
     db.get_agent_analytics = AsyncMock()
 
+    # Default get_task returns low-bounty task (below World ID threshold)
+    # Tests that need specific task data override this.
+    db.get_task.return_value = {"id": "default", "bounty_usd": 1.00, "agent_id": "agent-default", "status": "published"}
+
+    # Mock Supabase client for World ID enforcement check
+    _wid_result = MagicMock(data=[{"world_id_verified": True, "world_id_level": "orb"}])
+    _wid_chain = MagicMock()
+    _wid_chain.select.return_value.eq.return_value.limit.return_value.execute.return_value = _wid_result
+    db.get_client = MagicMock(return_value=MagicMock(table=MagicMock(return_value=_wid_chain)))
+
     return db
 
 
@@ -607,6 +617,7 @@ class TestApplyToTask:
         self, mock_db, sample_task, sample_executor, sample_task_id, sample_executor_id
     ):
         """Applying to a task should create an application record."""
+        mock_db.get_task.return_value = sample_task
         mock_db.apply_to_task.return_value = {
             "application": {
                 "id": str(uuid4()),
