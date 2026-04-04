@@ -39,6 +39,37 @@ from ._helpers import (
 router = APIRouter(prefix="/api/v1", tags=["Workers"])
 
 
+async def _auto_resolve_ens(executor_id: str, wallet: str) -> None:
+    """Fire-and-forget: resolve ENS name for wallet and save to executor profile."""
+    try:
+        from integrations.ens.client import reverse_resolve, get_ens_avatar
+        from datetime import datetime, timezone
+
+        result = await reverse_resolve(wallet)
+        if not result.resolved or not result.name:
+            return
+
+        avatar = await get_ens_avatar(result.name)
+        now = datetime.now(timezone.utc).isoformat()
+
+        client = db.get_client()
+        client.table("executors").update(
+            {
+                "ens_name": result.name,
+                "ens_avatar": avatar,
+                "ens_resolved_at": now,
+            }
+        ).eq("id", executor_id).execute()
+
+        logger.info(
+            "ENS auto-resolved: executor=%s, name=%s",
+            executor_id[:8],
+            result.name,
+        )
+    except Exception as exc:
+        logger.debug("ENS auto-resolve failed for %s: %s", wallet[:10], exc)
+
+
 @router.post(
     "/workers/register",
     response_model=SuccessResponse,
@@ -87,13 +118,24 @@ async def register_worker(
             rpc_result.get("is_new"),
         )
 
+        # Fire-and-forget: auto-resolve ENS name for wallet
+        executor_id = executor.get("id")
+        wallet = executor.get("wallet_address")
+        if executor_id and wallet:
+            try:
+                asyncio.get_running_loop().create_task(
+                    _auto_resolve_ens(executor_id, wallet)
+                )
+            except Exception:
+                pass  # Non-critical
+
         return SuccessResponse(
             message="Worker registered successfully"
             if rpc_result.get("is_new")
             else "Worker already registered",
             data={
-                "executor_id": executor.get("id"),
-                "wallet_address": executor.get("wallet_address"),
+                "executor_id": executor_id,
+                "wallet_address": wallet,
                 "created": rpc_result.get("is_new", False),
             },
         )
