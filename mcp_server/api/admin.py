@@ -2209,3 +2209,67 @@ async def audit_summary(admin=Depends(verify_admin_key)):
         "escrow_reconciliation": recon,
         "open_escrows": open_escrows,
     }
+
+
+# ---------------------------------------------------------------------------
+# Phase B re-processing
+# ---------------------------------------------------------------------------
+
+
+@router.post("/reprocess-phase-b")
+async def reprocess_phase_b(
+    limit: int = Query(10, ge=1, le=50),
+    admin=Depends(verify_admin_key),
+):
+    """Re-run Phase B (AI verification) for submissions missing ai_verification_result.
+
+    Only processes submissions that have evidence with photo URLs.
+    Returns count of submissions queued for reprocessing.
+    """
+    import asyncio
+
+    from verification.background_runner import run_phase_b_verification
+
+    client = db.get_client()
+
+    # Find submissions with NULL ai_verification_result that have evidence
+    result = (
+        client.table("submissions")
+        .select("id, task_id, evidence, submitted_at, notes")
+        .is_("ai_verification_result", "null")
+        .not_.is_("evidence", "null")
+        .order("submitted_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
+
+    submissions = result.data or []
+    queued = 0
+
+    for sub in submissions:
+        task = await db.get_task(sub["task_id"])
+        if not task:
+            continue
+
+        submission_data = {
+            "id": sub["id"],
+            "evidence": sub.get("evidence") or {},
+            "submitted_at": sub.get("submitted_at"),
+            "notes": sub.get("notes"),
+        }
+
+        asyncio.create_task(
+            run_phase_b_verification(
+                submission_id=sub["id"],
+                submission=submission_data,
+                task=task,
+            )
+        )
+        queued += 1
+        logger.info("Queued Phase B reprocessing for submission %s", sub["id"])
+
+    return {
+        "queued": queued,
+        "total_found": len(submissions),
+        "message": f"Queued {queued} submissions for Phase B reprocessing",
+    }
