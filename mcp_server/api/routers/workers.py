@@ -502,65 +502,18 @@ async def apply_to_task(
         )
 
     # ---- World ID Verification (high-value task enforcement) ----------------
-    # When enabled: tasks above the bounty threshold require World ID Orb verification.
-    import os as _os
+    # Shared utility used by both REST API and MCP tools.
+    from integrations.worldid.enforcement import check_world_id_eligibility
 
-    _world_id_enabled = _os.environ.get("EM_WORLD_ID_ENABLED", "true").lower() == "true"
-    if _world_id_enabled:
-        try:
-            from config.platform_config import PlatformConfig
+    if not locals().get("task_data"):
+        task_data = await db.get_task(task_id)
+    task_bounty = Decimal(str((task_data or {}).get("bounty_usd", 0)))
 
-            _world_id_required_high_value = await PlatformConfig.get(
-                "feature.world_id_required_for_high_value", True
-            )
-
-            if _world_id_required_high_value:
-                if not locals().get("task_data"):
-                    task_data = await db.get_task(task_id)
-
-                task_bounty = Decimal(str((task_data or {}).get("bounty_usd", 0)))
-                orb_threshold = await PlatformConfig.get(
-                    "worldid.min_bounty_for_orb_usd", Decimal("5.00")
-                )
-
-                _wid_check = (
-                    db.get_client()
-                    .table("executors")
-                    .select("world_id_verified, world_id_level")
-                    .eq("id", executor_id)
-                    .limit(1)
-                    .execute()
-                )
-                _wid_data = _wid_check.data[0] if _wid_check.data else {}
-                _wid_verified = _wid_data.get("world_id_verified", False)
-                _wid_level = _wid_data.get("world_id_level")
-
-                if task_bounty >= orb_threshold and (
-                    not _wid_verified or _wid_level != "orb"
-                ):
-                    raise HTTPException(
-                        status_code=403,
-                        detail={
-                            "error": "world_id_orb_required",
-                            "message": (
-                                f"Tasks with bounty >= ${orb_threshold} require "
-                                "World ID Orb verification. Please verify your "
-                                "identity at https://execution.market/profile."
-                            ),
-                            "verification_url": "/profile",
-                            "required_level": "orb",
-                            "current_level": _wid_level,
-                        },
-                    )
-
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.warning(
-                "World ID enforcement check failed (non-blocking) for %s: %s",
-                executor_id,
-                e,
-            )
+    _wid_allowed, _wid_error = await check_world_id_eligibility(
+        executor_id, task_bounty, db_client=db.get_client()
+    )
+    if not _wid_allowed:
+        raise HTTPException(status_code=403, detail=_wid_error)
 
     try:
         result = await db.apply_to_task(

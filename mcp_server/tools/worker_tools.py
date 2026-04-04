@@ -339,6 +339,27 @@ def register_worker_tools(
             except Exception:
                 pass  # Let the DB layer handle validation if pre-check fails
 
+            # World ID enforcement — same check as REST API
+            try:
+                from integrations.worldid.enforcement import (
+                    check_world_id_eligibility,
+                )
+                from decimal import Decimal as _Decimal
+
+                _task = task_check if task_check else await db_module.get_task(params.task_id)
+                _bounty = _Decimal(str((_task or {}).get("bounty_usd", 0)))
+                _wid_allowed, _wid_error = await check_world_id_eligibility(
+                    params.executor_id, _bounty
+                )
+                if not _wid_allowed:
+                    return f"Error: {_wid_error['message']}"
+            except Exception as _wid_exc:
+                logger.warning(
+                    "World ID check failed (non-blocking) for %s: %s",
+                    params.executor_id,
+                    _wid_exc,
+                )
+
             # Call database function which handles all validation
             result = await db_module.apply_to_task(
                 task_id=params.task_id,
