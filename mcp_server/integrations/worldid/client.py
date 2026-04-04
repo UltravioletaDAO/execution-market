@@ -28,7 +28,7 @@ WORLD_ID_APP_ID = os.environ.get("WORLD_ID_APP_ID", "")
 WORLD_ID_RP_ID = os.environ.get("WORLD_ID_RP_ID", "")
 WORLD_ID_SIGNING_KEY = os.environ.get("WORLD_ID_SIGNING_KEY", "")
 
-WORLD_CLOUD_API_URL = "https://developer.world.org/api/v4/verify"
+WORLD_CLOUD_API_URL = "https://developer.worldcoin.org/api/v2/verify"
 
 # Default action string used for worker verification
 DEFAULT_ACTION = "verify-worker"
@@ -181,24 +181,32 @@ async def verify_world_id_proof(
     signal: str = "",
 ) -> VerificationResult:
     """
-    Verify a World ID proof via the Cloud API v4.
+    Verify a World ID proof via the Cloud API v2.
 
-    Calls POST https://developer.world.org/api/v4/verify/{rp_id}
+    Calls POST https://developer.worldcoin.org/api/v2/verify/{app_id}
+
+    NOTE: The verify endpoint uses app_id (not rp_id). The rp_id is only
+    used for the RP signing step in IDKit. signal must be sent as
+    signal_hash (keccak256 of the signal string).
     """
-    if not WORLD_ID_RP_ID:
+    if not WORLD_ID_APP_ID:
         return VerificationResult(
             success=False,
-            error="WORLD_ID_RP_ID not configured",
+            error="WORLD_ID_APP_ID not configured",
         )
 
-    url = f"{WORLD_CLOUD_API_URL}/{WORLD_ID_RP_ID}"
+    url = f"{WORLD_CLOUD_API_URL}/{WORLD_ID_APP_ID}"
+
+    # Cloud API expects signal_hash (keccak256), not raw signal
+    signal_str = signal or ""
+    signal_hash = "0x" + _keccak256(signal_str.encode("utf-8")).hex()
 
     payload = {
         "proof": proof,
         "merkle_root": merkle_root,
         "nullifier_hash": nullifier_hash,
         "action": action,
-        "signal": signal or "",
+        "signal_hash": signal_hash,
         "verification_level": verification_level,
     }
 
@@ -236,7 +244,7 @@ async def verify_world_id_proof(
             )
             return VerificationResult(
                 success=False,
-                error=f"Cloud API returned {resp.status_code}",
+                error=f"Cloud API returned {resp.status_code}: {body[:100]}",
             )
 
     except Exception as exc:
