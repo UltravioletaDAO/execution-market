@@ -28,7 +28,7 @@ WORLD_ID_APP_ID = os.environ.get("WORLD_ID_APP_ID", "")
 WORLD_ID_RP_ID = os.environ.get("WORLD_ID_RP_ID", "")
 WORLD_ID_SIGNING_KEY = os.environ.get("WORLD_ID_SIGNING_KEY", "")
 
-WORLD_CLOUD_API_URL = "https://developer.worldcoin.org/api/v2/verify"
+WORLD_CLOUD_API_URL = "https://developer.world.org/api/v4/verify"
 
 # Default action string used for worker verification
 DEFAULT_ACTION = "verify-worker"
@@ -183,19 +183,20 @@ async def verify_world_id_proof(
     """
     Verify a World ID proof via the Cloud API v2.
 
-    Calls POST https://developer.worldcoin.org/api/v2/verify/{app_id}
+    Calls POST https://developer.world.org/api/v4/verify/{rp_id}
 
-    NOTE: The verify endpoint uses app_id (not rp_id). The rp_id is only
-    used for the RP signing step in IDKit. signal must be sent as
+    World ID 4.0 apps use the v4 endpoint with rp_id (not v2 with app_id).
+    v2 requires pre-registered actions in the portal; v4 uses RP signing
+    so actions are embedded in the signature. signal must be sent as
     signal_hash (keccak256 of the signal string).
     """
-    if not WORLD_ID_APP_ID:
+    if not WORLD_ID_RP_ID:
         return VerificationResult(
             success=False,
-            error="WORLD_ID_APP_ID not configured",
+            error="WORLD_ID_RP_ID not configured",
         )
 
-    url = f"{WORLD_CLOUD_API_URL}/{WORLD_ID_APP_ID}"
+    url = f"{WORLD_CLOUD_API_URL}/{WORLD_ID_RP_ID}"
 
     # Cloud API expects signal_hash (keccak256), not raw signal
     signal_str = signal or ""
