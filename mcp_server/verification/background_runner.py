@@ -650,6 +650,7 @@ async def _run_ai_semantic_check(
             details={
                 "decision": final_result.decision.value,
                 "confidence": final_result.confidence,
+                "explanation": final_result.explanation,
                 "issues": final_result.issues,
                 "provider": final_result.provider,
                 "model": final_result.model,
