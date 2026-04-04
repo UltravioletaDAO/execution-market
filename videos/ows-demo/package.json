@@ -1,0 +1,13 @@
+{
+  "name": "em-ows-demo",
+  "scripts": {
+    "start": "npx remotion studio",
+    "build": "npx remotion render src/index.tsx OWSDemo out/ows-demo.mp4"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "remotion": "^4.0.0",
+    "@remotion/cli": "^4.0.0"
+  }
+}
