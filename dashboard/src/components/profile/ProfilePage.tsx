@@ -6,6 +6,7 @@ import { ReputationCard } from './ReputationCard'
 import { TaskHistory } from './TaskHistory'
 import { WithdrawalForm } from './WithdrawalForm'
 import { WorldIdVerification } from '../WorldIdVerification'
+import { ENSLinkSection } from '../ENSLinkSection'
 import { useEarnings, useReputation, useTaskHistory } from '../../hooks/useProfile'
 import type { Executor } from '../../types/database'
 
@@ -203,6 +204,14 @@ export function ProfilePage({ executor, onBack, onEditProfile, onLogout }: Profi
           {t('profile.humanVerification', 'Human Verification')}
         </h3>
         <WorldIdVerification />
+      </div>
+
+      {/* ENS Identity */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h3 className="text-gray-900 font-semibold mb-3">
+          {t('profile.ensIdentity', 'ENS Identity')}
+        </h3>
+        <ENSLinkSection />
       </div>
 
       {/* Earnings card */}
