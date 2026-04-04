@@ -84,6 +84,7 @@ from .event_bus import EventBus, Event
 from .xmtp_bridge import XMTPBridge
 from .integrator import SwarmIntegrator, SwarmMode, CycleResult as IntegratorCycleResult
 from .explainer_bridge import ExplainerBridge
+from .calibrator_bridge import CalibratorBridge
 from .mcp_tools import register_swarm_tools
 
 __all__ = [
@@ -152,5 +153,6 @@ __all__ = [
     "SwarmMode",
     "IntegratorCycleResult",
     "ExplainerBridge",
+    "CalibratorBridge",
     "register_swarm_tools",
 ]

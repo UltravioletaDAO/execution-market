@@ -68,6 +68,7 @@ from .affinity_bridge import AffinityBridge
 from .comm_bridge import CommBridge
 from .fpq_bridge import FPQBridge
 from .explainer_bridge import ExplainerBridge
+from .calibrator_bridge import CalibratorBridge
 from .autojob_client import (
     AutoJobClient,
     EnrichedOrchestrator,
@@ -364,6 +365,7 @@ class SwarmCoordinator:
         comm_bridge: Optional[CommBridge] = None,
         fpq_bridge: Optional[FPQBridge] = None,
         explainer_bridge: Optional[ExplainerBridge] = None,
+        calibrator_bridge: Optional[CalibratorBridge] = None,
     ):
         # Core components
         self.bridge = bridge
@@ -381,6 +383,7 @@ class SwarmCoordinator:
         self.comm_bridge: CommBridge = comm_bridge or CommBridge()
         self.fpq_bridge: FPQBridge = fpq_bridge or FPQBridge()
         self.explainer_bridge: ExplainerBridge = explainer_bridge or ExplainerBridge()
+        self.calibrator_bridge: CalibratorBridge = calibrator_bridge or CalibratorBridge()
 
         # Configuration
         self.task_expiry_hours = task_expiry_hours
