@@ -738,6 +738,138 @@ class TestApplyToTask:
         assert "Error" in result
         assert "reputation" in result.lower()
 
+    @pytest.mark.asyncio
+    @pytest.mark.worldid
+    async def test_apply_blocked_by_world_id_high_value(
+        self, mock_db, sample_task, sample_executor, sample_task_id, sample_executor_id
+    ):
+        """MCP tool must block unverified workers on high-value tasks."""
+        # Task with bounty >= $5
+        sample_task["bounty_usd"] = 10.00
+        mock_db.get_task.return_value = sample_task
+        mock_db.get_executor_stats.return_value = None  # skip self-application check
+
+        from tools.worker_tools import register_worker_tools, WorkerToolsConfig
+        from mcp.server.fastmcp import FastMCP
+        from unittest.mock import MagicMock as _MagicMock
+
+        # Mock the enforcement utility to return blocked
+        with patch(
+            "integrations.worldid.enforcement.check_world_id_eligibility",
+            new_callable=AsyncMock,
+            return_value=(False, {
+                "error": "world_id_orb_required",
+                "message": "Tasks with bounty >= $5.00 require World ID Orb verification.",
+                "required_level": "orb",
+                "current_level": None,
+            }),
+        ):
+            mcp = FastMCP("test")
+            config = WorkerToolsConfig()
+            register_worker_tools(mcp, mock_db, None, config)
+
+            params = ApplyToTaskInput(
+                task_id=sample_task_id,
+                executor_id=sample_executor_id,
+            )
+
+            tool_func = None
+            for tool in mcp._tool_manager._tools.values():
+                if tool.name == "em_apply_to_task":
+                    tool_func = tool.fn
+                    break
+
+            result = await tool_func(params)
+
+        assert "Error" in result
+        assert "World ID" in result
+        mock_db.apply_to_task.assert_not_called()
+
+    @pytest.mark.asyncio
+    @pytest.mark.worldid
+    async def test_apply_allowed_world_id_verified(
+        self, mock_db, sample_task, sample_executor, sample_task_id, sample_executor_id
+    ):
+        """MCP tool allows orb-verified workers on high-value tasks."""
+        sample_task["bounty_usd"] = 10.00
+        mock_db.get_task.return_value = sample_task
+        mock_db.get_executor_stats.return_value = None
+        mock_db.apply_to_task.return_value = {
+            "application": {"id": str(uuid4()), "task_id": sample_task_id, "executor_id": sample_executor_id, "status": "pending"},
+            "task": sample_task,
+            "executor": sample_executor,
+        }
+
+        from tools.worker_tools import register_worker_tools, WorkerToolsConfig
+        from mcp.server.fastmcp import FastMCP
+
+        with patch(
+            "integrations.worldid.enforcement.check_world_id_eligibility",
+            new_callable=AsyncMock,
+            return_value=(True, None),
+        ):
+            mcp = FastMCP("test")
+            config = WorkerToolsConfig()
+            register_worker_tools(mcp, mock_db, None, config)
+
+            params = ApplyToTaskInput(
+                task_id=sample_task_id,
+                executor_id=sample_executor_id,
+            )
+
+            tool_func = None
+            for tool in mcp._tool_manager._tools.values():
+                if tool.name == "em_apply_to_task":
+                    tool_func = tool.fn
+                    break
+
+            result = await tool_func(params)
+
+        assert "Application Submitted" in result
+        mock_db.apply_to_task.assert_called_once()
+
+    @pytest.mark.asyncio
+    @pytest.mark.worldid
+    async def test_apply_low_value_no_world_id_needed(
+        self, mock_db, sample_task, sample_executor, sample_task_id, sample_executor_id
+    ):
+        """Low-value tasks don't require World ID — enforcement utility returns allowed."""
+        sample_task["bounty_usd"] = 1.00
+        mock_db.get_task.return_value = sample_task
+        mock_db.get_executor_stats.return_value = None
+        mock_db.apply_to_task.return_value = {
+            "application": {"id": str(uuid4()), "task_id": sample_task_id, "executor_id": sample_executor_id, "status": "pending"},
+            "task": sample_task,
+            "executor": sample_executor,
+        }
+
+        from tools.worker_tools import register_worker_tools, WorkerToolsConfig
+        from mcp.server.fastmcp import FastMCP
+
+        with patch(
+            "integrations.worldid.enforcement.check_world_id_eligibility",
+            new_callable=AsyncMock,
+            return_value=(True, None),
+        ):
+            mcp = FastMCP("test")
+            config = WorkerToolsConfig()
+            register_worker_tools(mcp, mock_db, None, config)
+
+            params = ApplyToTaskInput(
+                task_id=sample_task_id,
+                executor_id=sample_executor_id,
+            )
+
+            tool_func = None
+            for tool in mcp._tool_manager._tools.values():
+                if tool.name == "em_apply_to_task":
+                    tool_func = tool.fn
+                    break
+
+            result = await tool_func(params)
+
+        assert "Application Submitted" in result
+
 
 # ==================== SUBMIT_WORK TESTS ====================
 
