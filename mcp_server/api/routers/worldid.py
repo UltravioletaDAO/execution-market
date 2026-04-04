@@ -53,9 +53,7 @@ class VerifyWorldIdRequest(BaseModel):
     protocol_version: str = Field(
         default="3.0", description="IDKit protocol version ('3.0' or '4.0')"
     )
-    nonce: str = Field(
-        default="", description="Nonce from IDKit result"
-    )
+    nonce: str = Field(default="", description="Nonce from IDKit result")
     action: str = Field(
         default="verify-worker",
         description="Action string used during proof generation",
