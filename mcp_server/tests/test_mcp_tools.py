@@ -762,7 +762,6 @@ class TestApplyToTask:
 
         from tools.worker_tools import register_worker_tools, WorkerToolsConfig
         from mcp.server.fastmcp import FastMCP
-        from unittest.mock import MagicMock as _MagicMock
 
         # Mock the enforcement utility to return blocked
         with patch(
