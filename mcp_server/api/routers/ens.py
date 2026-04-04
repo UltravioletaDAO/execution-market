@@ -5,7 +5,6 @@ Provides ENS name resolution, text record reading, subname management,
 and profile linking for workers and agents.
 """
 
-import asyncio
 import logging
 import re
 from datetime import datetime, timezone
@@ -101,7 +100,13 @@ def _validate_label(label: str) -> Optional[str]:
         return "Label must be 1-63 characters"
     if not _LABEL_RE.match(label):
         return "Label must be lowercase alphanumeric (hyphens allowed, not at start/end)"
-    if label in ("www", "mail", "ftp", "admin", "api", "mcp", "app"):
+    _RESERVED = {
+        "www", "mail", "ftp", "admin", "api", "mcp", "app",
+        "dashboard", "docs", "status", "test", "dev", "staging",
+        "support", "help", "abuse", "security", "ns", "ns1", "ns2",
+        "smtp", "imap", "pop", "execution-market", "eth", "ens",
+    }
+    if label in _RESERVED:
         return f"Label '{label}' is reserved"
     return None
 

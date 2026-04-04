@@ -374,7 +374,8 @@ def _sync_create_subname(label: str, owner_address: str) -> dict:
         )
 
         signed = account.sign_transaction(tx)
-        tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
+        raw_tx = getattr(signed, "raw_transaction", None) or signed.rawTransaction
+        tx_hash = w3.eth.send_raw_transaction(raw_tx)
         tx_hex = tx_hash.hex()
 
         logger.info(

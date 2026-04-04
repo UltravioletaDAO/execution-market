@@ -39,7 +39,8 @@ export function ENSLinkSection() {
       const result = await linkENS(executorId)
       if (result.linked) {
         await refreshExecutor?.()
-        setState('success')
+        // Go back to idle — the refreshed executor data will show the detected ENS
+        setState('idle')
       } else {
         setError(result.message)
         setState('error')
@@ -64,8 +65,9 @@ export function ENSLinkSection() {
           tx_hash: result.tx_hash ?? undefined,
           explorer: result.explorer ?? undefined,
         })
-        await refreshExecutor?.()
         setState('success')
+        // Refresh executor data in background — don't let failure override success
+        try { await refreshExecutor?.() } catch { /* non-critical */ }
       } else {
         setError(result.message)
         setState('error')
