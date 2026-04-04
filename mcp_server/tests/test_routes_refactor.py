@@ -98,6 +98,12 @@ EXPECTED_ROUTES = {
     "/api/v1/world-id/rp-signature",
     "/api/v1/world-id/verify",
     "/api/v1/workers/world-status",
+    # ENS integration
+    "/api/v1/ens/resolve/{name_or_address}",
+    "/api/v1/ens/link",
+    "/api/v1/ens/records/{name}",
+    "/api/v1/ens/subname/{subname}",
+    "/api/v1/ens/claim-subname",
 }
 
 
