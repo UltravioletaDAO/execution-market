@@ -124,8 +124,12 @@ class TestWorldIdVerification:
 
     @pytest.mark.asyncio
     async def test_verify_calls_cloud_api(self):
-        """verify_world_id_proof calls the correct Cloud API endpoint."""
-        with patch.dict("os.environ", {"WORLD_ID_RP_ID": "test-rp"}, clear=False):
+        """verify_world_id_proof calls the correct v4 Cloud API endpoint."""
+        with patch.dict(
+            "os.environ",
+            {"WORLD_ID_RP_ID": "test-rp", "WORLD_ID_APP_ID": "app_test"},
+            clear=False,
+        ):
             import importlib
             import integrations.worldid.client as wc
 
@@ -135,7 +139,7 @@ class TestWorldIdVerification:
             mock_response.status_code = 200
             mock_response.json.return_value = {
                 "success": True,
-                "verification_level": "orb",
+                "nullifier": "0x123",
             }
 
             with patch("httpx.AsyncClient") as mock_client_cls:
@@ -145,17 +149,34 @@ class TestWorldIdVerification:
                 mock_client.__aexit__ = AsyncMock(return_value=None)
                 mock_client_cls.return_value = mock_client
 
+                # v4 API: pass responses array (forwarded as-is from IDKit)
+                mock_responses = [
+                    {
+                        "identifier": "proof_of_human",
+                        "nullifier": "0x123",
+                        "proof": "0xabc",
+                        "merkle_root": "0xdef",
+                        "signal_hash": "0x0",
+                    }
+                ]
+
                 result = await wc.verify_world_id_proof(
-                    proof="0xabc",
-                    merkle_root="0xdef",
                     nullifier_hash="0x123",
                     verification_level="orb",
+                    protocol_version="3.0",
+                    nonce="test-nonce",
+                    responses=mock_responses,
+                    action="verify-worker",
                 )
 
                 assert result.success
                 assert result.verification_level == "orb"
                 assert result.nullifier_hash == "0x123"
 
-                # Verify correct URL was called
+                # Verify correct v4 URL was called with rp_id
                 call_args = mock_client.post.call_args
                 assert "test-rp" in call_args[0][0]
+                # Verify payload includes protocol_version and responses
+                payload = call_args[1]["json"]
+                assert payload["protocol_version"] == "3.0"
+                assert "responses" in payload

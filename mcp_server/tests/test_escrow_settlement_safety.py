@@ -156,6 +156,10 @@ async def test_settle_rejects_released_escrow():
     mock_dispatcher = MagicMock()
     mock_dispatcher.get_mode.return_value = "fase2"
     mock_dispatcher.escrow_mode = "direct_release"
+    # Safety: if escrow check fails to bail out, don't crash on await
+    mock_dispatcher.release_direct_to_worker = AsyncMock(
+        return_value={"success": False, "error": "should not reach here"}
+    )
 
     with (
         patch("api.routers._helpers.db") as mock_db,
@@ -224,6 +228,10 @@ async def test_settle_rejects_refunded_escrow():
     mock_dispatcher = MagicMock()
     mock_dispatcher.get_mode.return_value = "fase2"
     mock_dispatcher.escrow_mode = "direct_release"
+    # Safety: if escrow check fails to bail out, don't crash on await
+    mock_dispatcher.release_direct_to_worker = AsyncMock(
+        return_value={"success": False, "error": "should not reach here"}
+    )
 
     with (
         patch("api.routers._helpers.db") as mock_db,
