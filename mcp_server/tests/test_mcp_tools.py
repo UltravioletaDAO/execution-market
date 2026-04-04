@@ -69,13 +69,20 @@ def mock_db():
 
     # Default get_task returns low-bounty task (below World ID threshold)
     # Tests that need specific task data override this.
-    db.get_task.return_value = {"id": "default", "bounty_usd": 1.00, "agent_id": "agent-default", "status": "published"}
+    db.get_task.return_value = {
+        "id": "default",
+        "bounty_usd": 1.00,
+        "agent_id": "agent-default",
+        "status": "published",
+    }
 
     # Mock Supabase client for World ID enforcement check
     _wid_result = MagicMock(data=[{"world_id_verified": True, "world_id_level": "orb"}])
     _wid_chain = MagicMock()
     _wid_chain.select.return_value.eq.return_value.limit.return_value.execute.return_value = _wid_result
-    db.get_client = MagicMock(return_value=MagicMock(table=MagicMock(return_value=_wid_chain)))
+    db.get_client = MagicMock(
+        return_value=MagicMock(table=MagicMock(return_value=_wid_chain))
+    )
 
     return db
 
@@ -767,12 +774,15 @@ class TestApplyToTask:
         with patch(
             "integrations.worldid.enforcement.check_world_id_eligibility",
             new_callable=AsyncMock,
-            return_value=(False, {
-                "error": "world_id_orb_required",
-                "message": "Tasks with bounty >= $5.00 require World ID Orb verification.",
-                "required_level": "orb",
-                "current_level": None,
-            }),
+            return_value=(
+                False,
+                {
+                    "error": "world_id_orb_required",
+                    "message": "Tasks with bounty >= $5.00 require World ID Orb verification.",
+                    "required_level": "orb",
+                    "current_level": None,
+                },
+            ),
         ):
             mcp = FastMCP("test")
             config = WorkerToolsConfig()
@@ -805,7 +815,12 @@ class TestApplyToTask:
         mock_db.get_task.return_value = sample_task
         mock_db.get_executor_stats.return_value = None
         mock_db.apply_to_task.return_value = {
-            "application": {"id": str(uuid4()), "task_id": sample_task_id, "executor_id": sample_executor_id, "status": "pending"},
+            "application": {
+                "id": str(uuid4()),
+                "task_id": sample_task_id,
+                "executor_id": sample_executor_id,
+                "status": "pending",
+            },
             "task": sample_task,
             "executor": sample_executor,
         }
@@ -848,7 +863,12 @@ class TestApplyToTask:
         mock_db.get_task.return_value = sample_task
         mock_db.get_executor_stats.return_value = None
         mock_db.apply_to_task.return_value = {
-            "application": {"id": str(uuid4()), "task_id": sample_task_id, "executor_id": sample_executor_id, "status": "pending"},
+            "application": {
+                "id": str(uuid4()),
+                "task_id": sample_task_id,
+                "executor_id": sample_executor_id,
+                "status": "pending",
+            },
             "task": sample_task,
             "executor": sample_executor,
         }

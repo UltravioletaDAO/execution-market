@@ -29,10 +29,14 @@ def _mock_db_client(world_id_verified=False, world_id_level=None, executor_found
     """Create a mock Supabase client that returns executor World ID status."""
     mock = MagicMock()
     if executor_found:
-        data = [{"world_id_verified": world_id_verified, "world_id_level": world_id_level}]
+        data = [
+            {"world_id_verified": world_id_verified, "world_id_level": world_id_level}
+        ]
     else:
         data = []
-    mock.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value = MagicMock(data=data)
+    mock.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value = MagicMock(
+        data=data
+    )
     return mock
 
 
@@ -45,7 +49,9 @@ class TestCheckWorldIdEligibility:
         from integrations.worldid.enforcement import check_world_id_eligibility
 
         db = _mock_db_client(world_id_verified=False)
-        allowed, err = await check_world_id_eligibility("exec-1", Decimal("1.00"), db_client=db)
+        allowed, err = await check_world_id_eligibility(
+            "exec-1", Decimal("1.00"), db_client=db
+        )
 
         assert allowed is True
         assert err is None
@@ -56,7 +62,9 @@ class TestCheckWorldIdEligibility:
         from integrations.worldid.enforcement import check_world_id_eligibility
 
         db = _mock_db_client(world_id_verified=True, world_id_level="orb")
-        allowed, err = await check_world_id_eligibility("exec-1", Decimal("10.00"), db_client=db)
+        allowed, err = await check_world_id_eligibility(
+            "exec-1", Decimal("10.00"), db_client=db
+        )
 
         assert allowed is True
         assert err is None
@@ -67,7 +75,9 @@ class TestCheckWorldIdEligibility:
         from integrations.worldid.enforcement import check_world_id_eligibility
 
         db = _mock_db_client(world_id_verified=False)
-        allowed, err = await check_world_id_eligibility("exec-1", Decimal("10.00"), db_client=db)
+        allowed, err = await check_world_id_eligibility(
+            "exec-1", Decimal("10.00"), db_client=db
+        )
 
         assert allowed is False
         assert err is not None
@@ -81,7 +91,9 @@ class TestCheckWorldIdEligibility:
         from integrations.worldid.enforcement import check_world_id_eligibility
 
         db = _mock_db_client(world_id_verified=True, world_id_level="device")
-        allowed, err = await check_world_id_eligibility("exec-1", Decimal("5.00"), db_client=db)
+        allowed, err = await check_world_id_eligibility(
+            "exec-1", Decimal("5.00"), db_client=db
+        )
 
         assert allowed is False
         assert err["error"] == "world_id_orb_required"
@@ -93,7 +105,9 @@ class TestCheckWorldIdEligibility:
         from integrations.worldid.enforcement import check_world_id_eligibility
 
         db = _mock_db_client(world_id_verified=False)
-        allowed, err = await check_world_id_eligibility("exec-1", Decimal("5.00"), db_client=db)
+        allowed, err = await check_world_id_eligibility(
+            "exec-1", Decimal("5.00"), db_client=db
+        )
 
         assert allowed is False
         assert err["error"] == "world_id_orb_required"
@@ -105,7 +119,9 @@ class TestCheckWorldIdEligibility:
         from integrations.worldid.enforcement import check_world_id_eligibility
 
         db = _mock_db_client(world_id_verified=False)
-        allowed, err = await check_world_id_eligibility("exec-1", Decimal("100.00"), db_client=db)
+        allowed, err = await check_world_id_eligibility(
+            "exec-1", Decimal("100.00"), db_client=db
+        )
 
         assert allowed is True
         assert err is None
@@ -118,7 +134,9 @@ class TestCheckWorldIdEligibility:
         with patch("config.platform_config.PlatformConfig") as mock_config:
             mock_config.get = AsyncMock(side_effect=lambda key, default: False)
             db = _mock_db_client(world_id_verified=False)
-            allowed, err = await check_world_id_eligibility("exec-1", Decimal("100.00"), db_client=db)
+            allowed, err = await check_world_id_eligibility(
+                "exec-1", Decimal("100.00"), db_client=db
+            )
 
         assert allowed is True
         assert err is None
@@ -129,7 +147,9 @@ class TestCheckWorldIdEligibility:
         from integrations.worldid.enforcement import check_world_id_eligibility
 
         db = _mock_db_client(executor_found=False)
-        allowed, err = await check_world_id_eligibility("exec-nonexistent", Decimal("10.00"), db_client=db)
+        allowed, err = await check_world_id_eligibility(
+            "exec-nonexistent", Decimal("10.00"), db_client=db
+        )
 
         assert allowed is False
         assert err["error"] == "world_id_orb_required"
@@ -142,7 +162,9 @@ class TestCheckWorldIdEligibility:
         db = MagicMock()
         db.table.side_effect = Exception("Connection timeout")
 
-        allowed, err = await check_world_id_eligibility("exec-1", Decimal("10.00"), db_client=db)
+        allowed, err = await check_world_id_eligibility(
+            "exec-1", Decimal("10.00"), db_client=db
+        )
 
         assert allowed is True
         assert err is None

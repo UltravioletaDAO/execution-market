@@ -346,7 +346,9 @@ def register_worker_tools(
             )
             from decimal import Decimal as _Decimal
 
-            _task = task_check if task_check else await db_module.get_task(params.task_id)
+            _task = (
+                task_check if task_check else await db_module.get_task(params.task_id)
+            )
             _bounty = _Decimal(str((_task or {}).get("bounty_usd", 0)))
             _wid_allowed, _wid_error = await check_world_id_eligibility(
                 params.executor_id, _bounty, db_client=db_module.get_client()
