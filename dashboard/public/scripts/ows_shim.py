@@ -123,16 +123,38 @@ def sign_transaction(wallet_name, transaction, passphrase=None):
     )
 
 
+def _convert_bytes(obj):
+    """Recursively convert bytes to 0x-prefixed hex strings for JSON."""
+    if isinstance(obj, bytes):
+        return "0x" + obj.hex()
+    elif isinstance(obj, dict):
+        return {k: _convert_bytes(v) for k, v in obj.items()}
+    elif isinstance(obj, (list, tuple)):
+        return [_convert_bytes(v) for v in obj]
+    return obj
+
+
 def sign_typed_data(wallet_name, domain, types, message, passphrase=None):
     # Determine primaryType (the non-EIP712Domain type)
     primary_type = next(k for k in types if k != "EIP712Domain")
+    # OWS CLI v1.2.4 REQUIRES EIP712Domain in types — add if missing
+    all_types = dict(types)
+    if "EIP712Domain" not in all_types:
+        # Infer EIP712Domain fields from the domain dict
+        domain_fields = []
+        field_order = [("name", "string"), ("version", "string"), ("chainId", "uint256"), ("verifyingContract", "address"), ("salt", "bytes32")]
+        conv_domain = _convert_bytes(domain)
+        for fname, ftype in field_order:
+            if fname in conv_domain:
+                domain_fields.append({"name": fname, "type": ftype})
+        all_types["EIP712Domain"] = domain_fields
     typed_data_json = json.dumps(
-        {
-            "types": types,
+        _convert_bytes({
+            "types": all_types,
             "primaryType": primary_type,
             "domain": domain,
             "message": message,
-        },
+        }),
         separators=(",", ":"),
     )
     r = subprocess.run(
