@@ -581,10 +581,10 @@ body { background: #09090b; margin: 0; }
 
 @app.get("/docs", include_in_schema=False)
 async def custom_swagger_ui_html() -> HTMLResponse:
-    return get_swagger_ui_html(
+    # Generate default Swagger HTML (keeps CDN base CSS for layout/flexbox)
+    base = get_swagger_ui_html(
         openapi_url="/openapi.json",
         title="Execution Market API",
-        swagger_css_url="/docs/swagger-dark.css",
         swagger_favicon_url="https://execution.market/favicon.ico",
         swagger_ui_parameters={
             "deepLinking": True,
@@ -594,6 +594,13 @@ async def custom_swagger_ui_html() -> HTMLResponse:
             "syntaxHighlight.theme": "monokai",
         },
     )
+    # Inject dark theme as additional stylesheet AFTER the CDN base CSS
+    html = base.body.decode()
+    html = html.replace(
+        "</head>",
+        '<link rel="stylesheet" href="/docs/swagger-dark.css">\n</head>',
+    )
+    return HTMLResponse(content=html)
 
 
 @app.get("/docs/swagger-dark.css", include_in_schema=False)
