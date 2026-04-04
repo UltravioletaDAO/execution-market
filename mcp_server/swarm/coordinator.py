@@ -71,6 +71,7 @@ from .explainer_bridge import ExplainerBridge
 from .calibrator_bridge import CalibratorBridge
 from .fraud_bridge import FraudBridge
 from .load_bridge import LoadBridge
+from .adaptation_bridge import AdaptationBridge
 from .autojob_client import (
     AutoJobClient,
     EnrichedOrchestrator,
@@ -370,6 +371,7 @@ class SwarmCoordinator:
         calibrator_bridge: Optional[CalibratorBridge] = None,
         fraud_bridge: Optional[FraudBridge] = None,
         load_bridge: Optional[LoadBridge] = None,
+        adaptation_bridge: Optional[AdaptationBridge] = None,
     ):
         # Core components
         self.bridge = bridge
@@ -390,6 +392,7 @@ class SwarmCoordinator:
         self.calibrator_bridge: CalibratorBridge = calibrator_bridge or CalibratorBridge()
         self.fraud_bridge: FraudBridge = fraud_bridge or FraudBridge()
         self.load_bridge: LoadBridge = load_bridge or LoadBridge()
+        self.adaptation_bridge: AdaptationBridge = adaptation_bridge or AdaptationBridge()
 
         # Configuration
         self.task_expiry_hours = task_expiry_hours
