@@ -103,11 +103,12 @@ _CACHE_TTL = 300  # 5 minutes
 
 
 def _cache_get(key: str) -> Optional[object]:
-    if key in _cache:
-        ts, val = _cache[key]
+    entry = _cache.get(key)
+    if entry is not None:
+        ts, val = entry
         if time.time() - ts < _CACHE_TTL:
             return val
-        del _cache[key]
+        _cache.pop(key, None)
     return None
 
 

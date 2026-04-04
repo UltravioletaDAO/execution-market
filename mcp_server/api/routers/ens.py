@@ -317,6 +317,9 @@ async def claim_subname(
         raise HTTPException(status_code=404, detail="Executor not found")
 
     wallet = executor.data[0].get("wallet_address")
+    if not wallet:
+        raise HTTPException(status_code=400, detail="Executor has no wallet address")
+
     existing_subname = executor.data[0].get("ens_subname")
 
     if existing_subname:
@@ -349,7 +352,8 @@ async def claim_subname(
         logger.error("Subname creation failed: %s", error_msg)
         raise HTTPException(status_code=500, detail=f"On-chain creation failed: {error_msg}")
 
-    # Save to DB
+    # Save to DB — if this fails, return partial success with TX hash
+    # so the user knows the subname exists on-chain
     full_subname = result["subname"]
     try:
         client.table("executors").update(
@@ -357,6 +361,13 @@ async def claim_subname(
         ).eq("id", executor_id).execute()
     except Exception as exc:
         logger.error("Failed to save subname for executor %s: %s", executor_id[:8], exc)
+        return ClaimSubnameResponse(
+            success=True,
+            subname=full_subname,
+            tx_hash=result.get("tx_hash"),
+            explorer=result.get("explorer"),
+            message=f"Subname {full_subname} created on-chain but DB save failed. Contact support with TX hash.",
+        )
 
     logger.info(
         "Subname claimed: %s -> %s (tx: %s)",
