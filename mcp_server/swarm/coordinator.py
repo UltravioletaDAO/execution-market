@@ -70,6 +70,7 @@ from .fpq_bridge import FPQBridge
 from .explainer_bridge import ExplainerBridge
 from .calibrator_bridge import CalibratorBridge
 from .fraud_bridge import FraudBridge
+from .load_bridge import LoadBridge
 from .autojob_client import (
     AutoJobClient,
     EnrichedOrchestrator,
@@ -368,6 +369,7 @@ class SwarmCoordinator:
         explainer_bridge: Optional[ExplainerBridge] = None,
         calibrator_bridge: Optional[CalibratorBridge] = None,
         fraud_bridge: Optional[FraudBridge] = None,
+        load_bridge: Optional[LoadBridge] = None,
     ):
         # Core components
         self.bridge = bridge
@@ -387,6 +389,7 @@ class SwarmCoordinator:
         self.explainer_bridge: ExplainerBridge = explainer_bridge or ExplainerBridge()
         self.calibrator_bridge: CalibratorBridge = calibrator_bridge or CalibratorBridge()
         self.fraud_bridge: FraudBridge = fraud_bridge or FraudBridge()
+        self.load_bridge: LoadBridge = load_bridge or LoadBridge()
 
         # Configuration
         self.task_expiry_hours = task_expiry_hours
