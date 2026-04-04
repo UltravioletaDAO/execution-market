@@ -2235,7 +2235,7 @@ async def reprocess_phase_b(
     # Find submissions with NULL ai_verification_result that have evidence
     result = (
         client.table("submissions")
-        .select("id, task_id, evidence, submitted_at, notes")
+        .select("id, task_id, evidence, submitted_at")
         .is_("ai_verification_result", "null")
         .not_.is_("evidence", "null")
         .order("submitted_at", desc=True)
@@ -2255,7 +2255,6 @@ async def reprocess_phase_b(
             "id": sub["id"],
             "evidence": sub.get("evidence") or {},
             "submitted_at": sub.get("submitted_at"),
-            "notes": sub.get("notes"),
         }
 
         asyncio.create_task(
