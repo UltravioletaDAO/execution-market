@@ -74,6 +74,7 @@ from .load_bridge import LoadBridge
 from .adaptation_bridge import AdaptationBridge
 from .trajectory_bridge import TrajectoryBridge
 from .cluster_bridge import ClusterBridge
+from .synthesis_bridge import SynthesisBridge
 from .autojob_client import (
     AutoJobClient,
     EnrichedOrchestrator,
@@ -376,6 +377,7 @@ class SwarmCoordinator:
         adaptation_bridge: Optional[AdaptationBridge] = None,
         trajectory_bridge: Optional[TrajectoryBridge] = None,
         cluster_bridge: Optional[ClusterBridge] = None,
+        synthesis_bridge: Optional[SynthesisBridge] = None,
     ):
         # Core components
         self.bridge = bridge
@@ -399,6 +401,7 @@ class SwarmCoordinator:
         self.adaptation_bridge: AdaptationBridge = adaptation_bridge or AdaptationBridge()
         self.trajectory_bridge: TrajectoryBridge = trajectory_bridge or TrajectoryBridge()
         self.cluster_bridge: ClusterBridge = cluster_bridge or ClusterBridge()
+        self.synthesis_bridge: SynthesisBridge = synthesis_bridge or SynthesisBridge()
 
         # Configuration
         self.task_expiry_hours = task_expiry_hours
