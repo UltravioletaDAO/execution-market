@@ -60,7 +60,7 @@ STANDARD_TEXT_KEYS = [
 # ENS NameWrapper address (mainnet)
 NAMEWRAPPER_ADDRESS = "0xD4416b13d2b3a9aBae7AcD5D6C2BbDBE25686401"
 
-# Minimal NameWrapper ABI for setSubnodeRecord
+# Minimal NameWrapper ABI for setSubnodeRecord + getData
 NAMEWRAPPER_ABI = [
     {
         "inputs": [
@@ -76,7 +76,18 @@ NAMEWRAPPER_ABI = [
         "outputs": [{"name": "", "type": "bytes32"}],
         "stateMutability": "nonpayable",
         "type": "function",
-    }
+    },
+    {
+        "inputs": [{"name": "id", "type": "uint256"}],
+        "name": "getData",
+        "outputs": [
+            {"name": "owner", "type": "address"},
+            {"name": "fuses", "type": "uint32"},
+            {"name": "expiry", "type": "uint64"},
+        ],
+        "stateMutability": "view",
+        "type": "function",
+    },
 ]
 
 # Minimal resolver ABI for text()
@@ -93,8 +104,8 @@ RESOLVER_TEXT_ABI = [
     }
 ]
 
-# Public resolver (mainnet)
-PUBLIC_RESOLVER = "0x231b0Ee14048e9dCcD1d247744d114a4EB5E8E63"
+# Public resolver v3 (mainnet, current)
+PUBLIC_RESOLVER = "0xF29100983E058B709F3D539b0c765937B804AC15"
 
 # ── TTL Cache ───────────────────────────────────────────────────────────────
 
@@ -131,9 +142,11 @@ def _get_w3() -> Web3:
 # ── Namehash (EIP-137) ─────────────────────────────────────────────────────
 
 def namehash(name: str) -> bytes:
-    """Compute ENS namehash per EIP-137."""
+    """Compute ENS namehash per EIP-137 with ENSIP-1 normalization."""
     if not name:
         return b"\x00" * 32
+    # ENSIP-1: normalize to lowercase before hashing
+    name = name.lower().strip()
     labels = name.split(".")
     node = b"\x00" * 32
     for label in reversed(labels):
@@ -346,14 +359,20 @@ def _sync_create_subname(label: str, owner_address: str) -> dict:
             abi=NAMEWRAPPER_ABI,
         )
 
-        # Strip 0x prefix if present, get account from key
-        key = ENS_OWNER_PRIVATE_KEY
-        if key.startswith("0x"):
-            key = key[2:]
-        account = w3.eth.account.from_key(key)
+        # from_key accepts both 0x-prefixed and raw hex
+        account = w3.eth.account.from_key(ENS_OWNER_PRIVATE_KEY)
+
+        # Query parent expiry to avoid revert (expiry <= parent_expiry)
+        try:
+            parent_data = namewrapper.functions.getData(
+                int.from_bytes(parent_node, "big")
+            ).call()
+            parent_expiry = parent_data[2] if len(parent_data) > 2 else 0
+        except Exception:
+            parent_expiry = 0  # fallback: no expiry
 
         # setSubnodeRecord params:
-        # fuses=0 (no restrictions), expiry=max uint64 (no expiry)
+        # fuses=0 (no restrictions), expiry=parent_expiry (inherit from parent)
         tx = namewrapper.functions.setSubnodeRecord(
             parent_node,
             label,
@@ -361,7 +380,7 @@ def _sync_create_subname(label: str, owner_address: str) -> dict:
             Web3.to_checksum_address(PUBLIC_RESOLVER),
             0,  # ttl
             0,  # fuses (no restrictions)
-            2**64 - 1,  # expiry (max)
+            parent_expiry if parent_expiry > 0 else 2**64 - 1,  # inherit parent or max
         ).build_transaction(
             {
                 "from": account.address,
