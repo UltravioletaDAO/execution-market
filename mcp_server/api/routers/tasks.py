@@ -2458,9 +2458,7 @@ async def cancel_task(
                 try:
                     escrow_result = (
                         client.table("escrows")
-                        .select(
-                            "id,status,escrow_id,refunded_at,released_at,metadata,beneficiary_address"
-                        )
+                        .select("id,status,escrow_id,refunded_at,released_at,metadata")
                         .eq("task_id", task_id)
                         .single()
                         .execute()
@@ -2502,15 +2500,11 @@ async def cancel_task(
 
                         agent_address = None
                         try:
-                            agent_address = (escrow_row or {}).get(
+                            agent_address = escrow_meta.get(
                                 "beneficiary_address"
+                            ) or _extract_agent_wallet_from_header(
+                                escrow_meta.get("x_payment_header")
                             )
-                            if not agent_address:
-                                agent_address = escrow_meta.get(
-                                    "beneficiary_address"
-                                ) or _extract_agent_wallet_from_header(
-                                    escrow_meta.get("x_payment_header")
-                                )
                         except Exception:
                             pass
 
@@ -3241,13 +3235,16 @@ async def assign_task_to_worker(
                     client = db.get_client()
                     esc_row = (
                         client.table("escrows")
-                        .select("beneficiary_address")
+                        .select("metadata")
                         .eq("task_id", task_id)
                         .limit(1)
                         .execute()
                     )
                     if esc_row.data:
-                        agent_address = esc_row.data[0].get(
+                        esc_meta = esc_row.data[0].get("metadata") or {}
+                        if isinstance(esc_meta, str):
+                            esc_meta = json.loads(esc_meta)
+                        agent_address = esc_meta.get(
                             "beneficiary_address", agent_address
                         )
                 except Exception:

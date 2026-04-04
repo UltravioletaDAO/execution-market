@@ -3222,7 +3222,7 @@ class PaymentDispatcher:
             client = db.get_client()
             result = (
                 client.table("escrows")
-                .select("metadata,total_amount_usdc,beneficiary_address,status")
+                .select("metadata,total_amount_usdc,status")
                 .eq("task_id", task_id)
                 .order("created_at", desc=True)
                 .limit(1)

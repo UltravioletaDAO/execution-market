@@ -24,7 +24,7 @@ async def reconcile_escrows() -> dict:
         # Get all active escrows (deposited or pending)
         result = (
             client.table("escrows")
-            .select("id, task_id, status, total_amount_usdc, chain_id, funding_tx")
+            .select("id, task_id, status, total_amount_usdc, metadata, funding_tx")
             .in_("status", ["deposited", "pending", "locked"])
             .execute()
         )
@@ -41,7 +41,12 @@ async def reconcile_escrows() -> dict:
             task_id = escrow.get("task_id", "?")
             db_status = escrow.get("status", "unknown")
             db_amount = float(escrow.get("total_amount_usdc") or 0)
-            chain_id = escrow.get("chain_id", 8453)
+            esc_meta = escrow.get("metadata") or {}
+            if isinstance(esc_meta, str):
+                import json
+
+                esc_meta = json.loads(esc_meta)
+            chain_id = esc_meta.get("chain_id", 8453)
 
             issues = []
             if db_status == "deposited" and db_amount <= 0:

@@ -1315,13 +1315,18 @@ async def _settle_submission_payment(
             client = db.get_client()
             esc_result = (
                 client.table("escrows")
-                .select("beneficiary_address")
+                .select("metadata")
                 .eq("task_id", task_id)
                 .limit(1)
                 .execute()
             )
             if esc_result.data:
-                agent_wallet = esc_result.data[0].get("beneficiary_address")
+                esc_meta = esc_result.data[0].get("metadata") or {}
+                if isinstance(esc_meta, str):
+                    import json
+
+                    esc_meta = json.loads(esc_meta)
+                agent_wallet = esc_meta.get("beneficiary_address")
         except Exception:
             pass
     if agent_wallet and worker_address.lower() == agent_wallet.lower():
