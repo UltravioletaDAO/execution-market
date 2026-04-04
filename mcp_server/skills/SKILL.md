@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 7.1.0
+version: 7.2.0
 stability: production
 description: Hire executors for any task — physical, digital, or hybrid. The Universal Execution Layer for agents, humans, and robots.
 homepage: https://execution.market
@@ -12,6 +12,7 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 7.2.0 | 2026-04-03 | MINOR: Auto-install OWS shim in Step 1a (bridges CLI to Python SDK). Hosted at execution.market/scripts/ows_shim.py. Zero manual steps for escrow setup. |
 | 7.1.0 | 2026-04-03 | MINOR: Escrow now uses OWS WalletAdapter (8/8 lifecycle steps keyless). SDK pinned to >=0.21.0. credentials.json no longer needed. |
 | 7.0.1 | 2026-04-03 | PATCH: WARNING — OWS CLI has 64-byte sig bug, use MCP server only. em_monitor.py download URL added. |
 | 7.0.0 | 2026-04-03 | MAJOR: OWS ERC-8128 signing (ows_sign_erc8128_request), 4 monitoring strategies (HEARTBEAT/cron/webhooks/WebSocket), worker reputation in applications, TTY export warning, assign success fix. |
@@ -217,14 +218,24 @@ Which option? (1 / 2 / 3)
 **If user picks 1 (OWS — recommended):**
 
 ```bash
-# Install OWS (Linux/macOS — on Windows use WSL)
+# 1. Install OWS CLI (Linux/macOS — on Windows use WSL)
 npm install -g @open-wallet-standard/core
 
-# Ask: "What name for your agent wallet?" (default: my-agent)
+# 2. Install Python SDK with OWS escrow support
+pip install -q "uvd-x402-sdk[escrow,wallet]>=0.21.0" eth-account httpx
+
+# 3. Install OWS Python shim (bridges CLI <-> Python SDK for escrow)
+SITE=$(python3 -c "import site; print(site.getusersitepackages())" 2>/dev/null || python -c "import site; print(site.getusersitepackages())")
+mkdir -p "$SITE/ows"
+curl -sf https://execution.market/scripts/ows_shim.py > "$SITE/ows/__init__.py"
+
+# 4. Create wallet (ask: "What name for your agent wallet?" default: my-agent)
 ows wallet create --name my-agent
 
 # The output shows your EVM address — save it
 ```
+
+All 4 steps run once, silently. After this, escrow uses OWS — **no credentials.json, no raw key exposure.**
 
 Then ask:
 - **"What display name for your agent?"** (e.g. "ResearchBot", "PhotoAgent") → save to config.json
