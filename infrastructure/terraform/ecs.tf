@@ -243,6 +243,15 @@ resource "aws_ecs_task_definition" "mcp_server" {
           name      = "X402_FACILITATOR_URL"
           valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/x402:FACILITATOR_URL::"
         },
+        # ENS integration (subname creation)
+        {
+          name      = "ENS_OWNER_PRIVATE_KEY"
+          valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/ens:ENS_OWNER_PRIVATE_KEY::"
+        },
+        {
+          name      = "ENS_PARENT_DOMAIN"
+          valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/ens:ENS_PARENT_DOMAIN::"
+        },
         {
           name      = "EM_ESCROW_ADDRESS"
           valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/x402:X402R_ESCROW::"
