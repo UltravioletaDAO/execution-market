@@ -42,8 +42,8 @@ class RPSignatureResponse(BaseModel):
 class VerifyWorldIdRequest(BaseModel):
     """World ID proof verification request from frontend."""
 
-    proof: str = Field(..., description="ZK proof from IDKit")
-    merkle_root: str = Field(..., description="Merkle root of the identity set")
+    proof: str = Field(default="", description="ZK proof from IDKit (for DB storage)")
+    merkle_root: str = Field(default="", description="Merkle root of the identity set")
     nullifier_hash: str = Field(
         ..., description="Unique nullifier hash for this person+app"
     )
@@ -55,6 +55,10 @@ class VerifyWorldIdRequest(BaseModel):
     )
     signal: str = Field(
         default="", description="Optional signal used during proof generation"
+    )
+    # Raw IDKit responses array — forwarded to v4 Cloud API as-is
+    responses: Optional[list] = Field(
+        default=None, description="Raw IDKit responses array for v4 Cloud API"
     )
 
 
@@ -233,10 +237,11 @@ async def verify_world_id(
     from integrations.worldid.client import verify_world_id_proof
 
     result = await verify_world_id_proof(
-        proof=request.proof,
-        merkle_root=request.merkle_root,
         nullifier_hash=request.nullifier_hash,
         verification_level=request.verification_level,
+        responses=request.responses,
+        proof=request.proof,
+        merkle_root=request.merkle_root,
         action=request.action,
         signal=request.signal,
     )

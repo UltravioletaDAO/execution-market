@@ -173,22 +173,21 @@ def sign_request(action: str = DEFAULT_ACTION) -> RPSignatureResult:
 
 
 async def verify_world_id_proof(
-    proof: str,
-    merkle_root: str,
     nullifier_hash: str,
     verification_level: str,
+    responses: Optional[list] = None,
+    proof: str = "",
+    merkle_root: str = "",
     action: str = DEFAULT_ACTION,
     signal: str = "",
 ) -> VerificationResult:
     """
-    Verify a World ID proof via the Cloud API v2.
+    Verify a World ID proof via the Cloud API v4.
 
     Calls POST https://developer.world.org/api/v4/verify/{rp_id}
 
-    World ID 4.0 apps use the v4 endpoint with rp_id (not v2 with app_id).
-    v2 requires pre-registered actions in the portal; v4 uses RP signing
-    so actions are embedded in the signature. signal must be sent as
-    signal_hash (keccak256 of the signal string).
+    The v4 endpoint requires a `responses` array (raw IDKit output).
+    Individual fields (proof, merkle_root) are kept for DB storage only.
     """
     if not WORLD_ID_RP_ID:
         return VerificationResult(
@@ -202,14 +201,23 @@ async def verify_world_id_proof(
     signal_str = signal or ""
     signal_hash = "0x" + _keccak256(signal_str.encode("utf-8")).hex()
 
-    payload = {
-        "proof": proof,
-        "merkle_root": merkle_root,
-        "nullifier_hash": nullifier_hash,
+    # v4 Cloud API requires the raw responses array from IDKit
+    payload: dict = {
         "action": action,
         "signal_hash": signal_hash,
-        "verification_level": verification_level,
     }
+
+    if responses:
+        # Forward raw IDKit responses array as-is
+        payload["responses"] = responses
+    else:
+        # Fallback: construct from individual fields (v2 compat)
+        payload.update({
+            "proof": proof,
+            "merkle_root": merkle_root,
+            "nullifier_hash": nullifier_hash,
+            "verification_level": verification_level,
+        })
 
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:

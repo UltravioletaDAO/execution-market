@@ -101,6 +101,8 @@ export function WorldIdVerification({ onVerified, className = '' }: WorldIdVerif
       const verificationLevel = response.identifier === 'proof_of_human' ? 'orb' : 'device'
 
       // Build payload for backend verification
+      // Send the raw IDKit responses array so the backend can forward it to
+      // the v4 Cloud API (which requires the responses[] format).
       const payload: Record<string, unknown> = {
         executor_id: executor.id,
         protocol_version: result.protocol_version,
@@ -108,15 +110,16 @@ export function WorldIdVerification({ onVerified, className = '' }: WorldIdVerif
         action: 'action' in result ? result.action : undefined,
         signal: walletAddress || '',
         verification_level: verificationLevel,
-        identifier: response.identifier,
         nullifier_hash: response.nullifier,
-        proof: response.proof,
+        // Raw IDKit responses array for v4 Cloud API forwarding
+        responses: result.responses,
       }
 
-      // v3 responses also include merkle_root at top level
+      // Also include individual fields for DB storage
       if ('merkle_root' in response) {
         payload.merkle_root = (response as ResponseItemV3).merkle_root
       }
+      payload.proof = typeof response.proof === 'string' ? response.proof : JSON.stringify(response.proof)
 
       const resp = await fetch(`${API_BASE}/api/v1/world-id/verify`, {
         method: 'POST',
