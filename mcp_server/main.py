@@ -217,43 +217,103 @@ async def lifespan(app: FastAPI):
 tags_metadata = [
     {
         "name": "Health",
-        "description": "Health checks and server status endpoints",
+        "description": "Health checks, readiness probes, and server status.",
     },
     {
         "name": "Tasks",
-        "description": "Task management for agents and workers",
+        "description": "Task CRUD — publish bounties, query, cancel. Core resource for agents.",
     },
     {
         "name": "Workers",
-        "description": "Worker (executor) registration and management",
+        "description": "Worker (executor) registration, profiles, and management.",
     },
     {
         "name": "Submissions",
-        "description": "Evidence submissions from workers",
+        "description": "Evidence submissions from workers — upload proof, check status.",
+    },
+    {
+        "name": "Evidence",
+        "description": "Evidence processing — AI verification, EXIF extraction, S3 uploads.",
     },
     {
         "name": "Payments",
-        "description": "x402 payment operations and configuration",
+        "description": "x402 payment operations — balance checks, fee calculation, settlement info.",
     },
     {
         "name": "Escrow",
-        "description": "x402r escrow management on Base Mainnet. Release payments to workers, refund agents.",
+        "description": "x402r on-chain escrow — lock, release, refund across 9 EVM chains.",
     },
     {
         "name": "Reputation",
-        "description": "ERC-8004 reputation and identity via facilitator (Base-first configuration). Bidirectional feedback between agents and workers.",
+        "description": "ERC-8004 on-chain reputation — bidirectional feedback, scores, identity.",
     },
     {
-        "name": "A2A",
-        "description": "Agent-to-Agent protocol endpoints",
+        "name": "Identity",
+        "description": "ERC-8004 agent/worker identity — registration, lookup, verification.",
+    },
+    {
+        "name": "World ID",
+        "description": "World ID 4.0 proof of humanity — RP signing, Orb-level verification.",
+    },
+    {
+        "name": "Agent Auth",
+        "description": "ERC-8128 wallet-based authentication for dashboard and agents.",
+    },
+    {
+        "name": "H2A Marketplace",
+        "description": "Human-to-Agent marketplace — humans publish tasks for AI agents.",
+    },
+    {
+        "name": "Agent Directory",
+        "description": "Registered agent discovery and profiles.",
+    },
+    {
+        "name": "A2A Protocol",
+        "description": "Agent-to-Agent JSON-RPC protocol (v0.3.0).",
+    },
+    {
+        "name": "A2A Discovery",
+        "description": "A2A agent card and capability discovery (/.well-known/agent.json).",
+    },
+    {
+        "name": "x402 Discovery",
+        "description": "x402 protocol auto-discovery (/.well-known/x402).",
+    },
+    {
+        "name": "Webhooks",
+        "description": "Webhook registration and event delivery.",
+    },
+    {
+        "name": "Account",
+        "description": "User account management and preferences.",
+    },
+    {
+        "name": "Moderation",
+        "description": "Content moderation and platform safety.",
+    },
+    {
+        "name": "Audit",
+        "description": "Audit grid and payment event trail.",
+    },
+    {
+        "name": "Legal",
+        "description": "Terms of service and legal documents.",
+    },
+    {
+        "name": "Chat",
+        "description": "Real-time chat relay (IRC bridge) per task.",
     },
     {
         "name": "WebSocket",
-        "description": "Real-time WebSocket connections",
+        "description": "Real-time WebSocket connections for live updates.",
     },
     {
         "name": "Admin",
-        "description": "Platform administration and configuration (requires admin key)",
+        "description": "Platform administration — config, stats, feature flags (requires admin key).",
+    },
+    {
+        "name": "Misc",
+        "description": "Miscellaneous utility endpoints.",
     },
 ]
 
@@ -268,25 +328,38 @@ app = FastAPI(
 Execution Market connects AI agents with executors for physical-world tasks. Humans today, robots tomorrow.
 
 ### Features
-- **x402 Payments**: Gasless stablecoin payments via facilitator
-- **A2A Protocol**: Agent-to-Agent communication (v0.3.0)
-- **MCP Tools**: Model Context Protocol integration
-- **Real-time Updates**: WebSocket notifications
+
+| Feature | Description |
+|---------|-------------|
+| **x402r Escrow** | Trustless on-chain escrow with gasless settlement (9 EVM chains + Solana) |
+| **ERC-8004 Identity** | On-chain agent/worker identity on 16 networks via Facilitator |
+| **ERC-8128 Auth** | Wallet-based authentication with signed challenges |
+| **World ID** | Sybil-resistant proof of humanity (Orb-level verification) |
+| **OWS Wallet** | Open Wallet Standard — multi-chain wallet management for AI agents (separate MCP server) |
+| **A2A Protocol** | Agent-to-Agent communication (v0.3.0) |
+| **MCP Tools** | 18 tools across 4 modules for AI agent integration |
+| **Real-time** | WebSocket notifications + MeshRelay event bus |
 
 ### Authentication
-- API Key via `X-API-Key` header
-- Bearer token via `Authorization` header
-- ERC-8004 identity tokens (coming soon)
+
+| Method | Header | Status |
+|--------|--------|--------|
+| **ERC-8128 Wallet Signing** | `Authorization: ERC-8128 <signed-challenge>` | **Primary** |
+| API Key | `X-API-Key` | Disabled by default (`EM_API_KEYS_ENABLED=false`) |
+| Bearer Token | `Authorization: Bearer <token>` | Disabled by default |
 
 ### Payment Networks
-Supports 19 mainnets including Ethereum, Base, Polygon, Optimism, Arbitrum, Avalanche.
+
+10 networks supported: Base, Ethereum, Polygon, Arbitrum, Avalanche, Optimism, Celo, Monad, SKALE + Solana (SPL transfers).
+Gasless via [Ultravioleta Facilitator](https://facilitator.ultravioletadao.xyz). Agent signs EIP-3009 auth, Facilitator pays gas.
 
 ### Links
+
 - [Dashboard](https://execution.market)
-- [Documentation](https://docs.execution.market)
 - [GitHub](https://github.com/ultravioleta-dao/execution-market)
+- [Skill for AI Agents](https://execution.market/skill.md)
     """,
-    version="1.0.0",
+    version="2.0.0",
     contact={
         "name": "Ultravioleta DAO",
         "url": "https://ultravioletadao.xyz",
@@ -306,7 +379,7 @@ Supports 19 mainnets including Ethereum, Base, Polygon, Optimism, Arbitrum, Aval
 # ── Custom dark-themed Swagger UI ────────────────────────────────────────────
 
 _SWAGGER_DARK_CSS = """
-/* Execution Market — Dark Swagger Theme */
+/* Execution Market — Dark Swagger Theme v2 */
 body { background: #09090b; margin: 0; }
 
 .swagger-ui .topbar {
@@ -326,15 +399,52 @@ body { background: #09090b; margin: 0; }
 }
 
 .swagger-ui { font-family: 'Roboto Mono', monospace; color: #fafafa; }
-.swagger-ui .info { margin: 32px 0; }
-.swagger-ui .info hgroup.main { margin: 0 0 20px; }
+
+/* Info block — tight layout */
+.swagger-ui .info { margin: 32px 0 24px; }
+.swagger-ui .info hgroup.main { margin: 0 0 16px; }
 .swagger-ui .info .title { color: #fafafa; font-family: 'Roboto Mono', monospace; font-size: 28px; }
-.swagger-ui .info .title small { background: #0ea5e9; color: #fff; border-radius: 3px; font-size: 11px; padding: 2px 8px; }
-.swagger-ui .info p, .swagger-ui .info li, .swagger-ui .info table { color: #a1a1aa; }
+.swagger-ui .info .title small { background: #0ea5e9; color: #fff; border-radius: 3px; font-size: 11px; padding: 2px 8px; vertical-align: middle; }
+.swagger-ui .info p, .swagger-ui .info li { color: #a1a1aa; font-size: 13px; line-height: 1.6; }
 .swagger-ui .info a { color: #0ea5e9; }
 
+/* Info block — headings */
+.swagger-ui .info .renderedMarkdown h2 { color: #fafafa; font-family: 'Roboto Mono', monospace; font-size: 20px; margin: 24px 0 8px; border-bottom: 1px solid #3f3f46; padding-bottom: 8px; }
+.swagger-ui .info .renderedMarkdown h3 { color: #e4e4e7; font-family: 'Roboto Mono', monospace; font-size: 14px; margin: 20px 0 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* Info block — tables (features, auth, etc.) */
+.swagger-ui .info table { color: #a1a1aa; border-collapse: collapse; width: 100%; margin: 8px 0 16px; font-size: 12px; }
+.swagger-ui .info table thead tr th {
+  color: #71717a; background: #18181b; border: 1px solid #3f3f46;
+  font-family: 'Roboto Mono', monospace; font-size: 11px; text-transform: uppercase;
+  letter-spacing: 0.05em; padding: 8px 12px; text-align: left;
+}
+.swagger-ui .info table tbody tr td {
+  border: 1px solid #3f3f46; padding: 8px 12px; background: transparent; vertical-align: top;
+}
+.swagger-ui .info table tbody tr:hover td { background: rgba(14,165,233,0.04); }
+.swagger-ui .info table strong { color: #fafafa; }
+.swagger-ui .info table code { color: #38bdf8; background: #27272a; padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+
+/* Info block — lists */
+.swagger-ui .info ul { padding-left: 20px; margin: 4px 0 12px; }
+.swagger-ui .info li { margin: 2px 0; }
+
+/* Version badge row — inline */
+.swagger-ui .info .base-url { color: #71717a; font-size: 12px; }
+
+/* Scheme selector / OAS version row — compact */
+.swagger-ui .scheme-container { background: #18181b; box-shadow: none; border-bottom: 1px solid #3f3f46; padding: 8px 0; }
+.swagger-ui .schemes > label { color: #71717a; font-family: 'Roboto Mono', monospace; font-size: 12px; }
+
+/* Contact/license links — subtle */
+.swagger-ui .info .info__contact, .swagger-ui .info .info__license,
+.swagger-ui .info .info__extdocs, .swagger-ui .info .info__tos {
+  font-size: 12px; color: #71717a; margin: 2px 0;
+}
+
 /* Main wrapper */
-.swagger-ui .wrapper { background: #09090b; }
+.swagger-ui .wrapper { background: #09090b; max-width: 1200px; }
 #swagger-ui { background: #09090b; }
 
 /* Tags */
@@ -410,10 +520,12 @@ body { background: #09090b; margin: 0; }
 }
 .swagger-ui label { color: #a1a1aa; font-family: 'Roboto Mono', monospace; font-size: 12px; }
 
-/* Parameters table */
-.swagger-ui table { color: #fafafa; }
-.swagger-ui table tbody tr td { border-color: #3f3f46; background: transparent; }
-.swagger-ui table thead tr th { color: #71717a; border-color: #3f3f46; font-family: 'Roboto Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+/* Parameters table (scoped to avoid overriding info tables) */
+.swagger-ui .opblock table { color: #fafafa; }
+.swagger-ui .opblock table tbody tr td { border-color: #3f3f46; background: transparent; }
+.swagger-ui .opblock table thead tr th { color: #71717a; border-color: #3f3f46; font-family: 'Roboto Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+.swagger-ui table.responses-table { color: #fafafa; }
+.swagger-ui table.responses-table thead tr th { color: #71717a; border-color: #3f3f46; font-family: 'Roboto Mono', monospace; font-size: 11px; text-transform: uppercase; }
 .swagger-ui .parameters-col_description p { color: #a1a1aa; }
 .swagger-ui .parameter__name { color: #0ea5e9; font-family: 'Roboto Mono', monospace; }
 .swagger-ui .parameter__type { color: #71717a; font-family: 'Roboto Mono', monospace; font-size: 12px; }
@@ -454,10 +566,6 @@ body { background: #09090b; margin: 0; }
 .swagger-ui .prop-name { color: #0ea5e9; }
 .swagger-ui .prop-type { color: #22c55e; }
 .swagger-ui .prop-format { color: #71717a; }
-
-/* Scheme selector */
-.swagger-ui .scheme-container { background: #18181b; box-shadow: none; border-bottom: 1px solid #3f3f46; }
-.swagger-ui .schemes > label { color: #71717a; font-family: 'Roboto Mono', monospace; font-size: 12px; }
 
 /* Filter */
 .swagger-ui .filter .operation-filter-input {
