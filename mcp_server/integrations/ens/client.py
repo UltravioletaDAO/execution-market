@@ -141,6 +141,7 @@ def _get_w3() -> Web3:
 
 # ── Namehash (EIP-137) ─────────────────────────────────────────────────────
 
+
 def namehash(name: str) -> bytes:
     """Compute ENS namehash per EIP-137 with ENSIP-1 normalization."""
     if not name:
@@ -157,6 +158,7 @@ def namehash(name: str) -> bytes:
 
 # ── Dataclasses ─────────────────────────────────────────────────────────────
 
+
 @dataclass
 class ENSResolution:
     name: Optional[str] = None
@@ -167,6 +169,7 @@ class ENSResolution:
 
 
 # ── Read Operations (no key needed) ─────────────────────────────────────────
+
 
 def _sync_reverse_resolve(address: str) -> ENSResolution:
     """Synchronous reverse resolution (address → name)."""
@@ -260,6 +263,7 @@ def _sync_get_text_record(name: str, key: str) -> Optional[str]:
 
 # ── Async Wrappers ──────────────────────────────────────────────────────────
 
+
 async def reverse_resolve(address: str) -> ENSResolution:
     """Async: resolve address to ENS name."""
     return await asyncio.to_thread(_sync_reverse_resolve, address)
@@ -324,6 +328,7 @@ async def resolve_with_metadata(name_or_address: str) -> dict:
 
 
 # ── Write Operations (needs ENS_OWNER_PRIVATE_KEY) ──────────────────────────
+
 
 def _sync_create_subname(label: str, owner_address: str) -> dict:
     """
@@ -413,7 +418,9 @@ def _sync_create_subname(label: str, owner_address: str) -> dict:
         }
 
     except Exception as exc:
-        logger.error("Failed to create subname %s.%s: %s", label, ENS_PARENT_DOMAIN, exc)
+        logger.error(
+            "Failed to create subname %s.%s: %s", label, ENS_PARENT_DOMAIN, exc
+        )
         return {"error": str(exc), "success": False}
 
 

@@ -99,12 +99,36 @@ def _validate_label(label: str) -> Optional[str]:
     if len(label) < 1 or len(label) > 63:
         return "Label must be 1-63 characters"
     if not _LABEL_RE.match(label):
-        return "Label must be lowercase alphanumeric (hyphens allowed, not at start/end)"
+        return (
+            "Label must be lowercase alphanumeric (hyphens allowed, not at start/end)"
+        )
     _RESERVED = {
-        "www", "mail", "ftp", "admin", "api", "mcp", "app",
-        "dashboard", "docs", "status", "test", "dev", "staging",
-        "support", "help", "abuse", "security", "ns", "ns1", "ns2",
-        "smtp", "imap", "pop", "execution-market", "eth", "ens",
+        "www",
+        "mail",
+        "ftp",
+        "admin",
+        "api",
+        "mcp",
+        "app",
+        "dashboard",
+        "docs",
+        "status",
+        "test",
+        "dev",
+        "staging",
+        "support",
+        "help",
+        "abuse",
+        "security",
+        "ns",
+        "ns1",
+        "ns2",
+        "smtp",
+        "imap",
+        "pop",
+        "execution-market",
+        "eth",
+        "ens",
     }
     if label in _RESERVED:
         return f"Label '{label}' is reserved"
@@ -256,9 +280,7 @@ async def link_ens(
         logger.error("Failed to update ENS for executor %s: %s", executor_id[:8], exc)
         raise HTTPException(status_code=500, detail="Failed to save ENS data")
 
-    logger.info(
-        "ENS linked: executor=%s, name=%s", executor_id[:8], result.name
-    )
+    logger.info("ENS linked: executor=%s, name=%s", executor_id[:8], result.name)
 
     return LinkENSResponse(
         linked=True,
@@ -290,7 +312,11 @@ async def claim_subname(
     worker_auth: Optional[WorkerAuth] = Depends(verify_worker_auth),
 ) -> ClaimSubnameResponse:
     """Claim a subname under execution-market.eth."""
-    from integrations.ens.client import create_subname, ENS_OWNER_PRIVATE_KEY, ENS_PARENT_DOMAIN
+    from integrations.ens.client import (
+        create_subname,
+        ENS_OWNER_PRIVATE_KEY,
+        ENS_PARENT_DOMAIN,
+    )
 
     if not ENS_OWNER_PRIVATE_KEY:
         raise HTTPException(
@@ -355,15 +381,17 @@ async def claim_subname(
     if not result.get("success"):
         error_msg = result.get("error", "Unknown error")
         logger.error("Subname creation failed: %s", error_msg)
-        raise HTTPException(status_code=500, detail=f"On-chain creation failed: {error_msg}")
+        raise HTTPException(
+            status_code=500, detail=f"On-chain creation failed: {error_msg}"
+        )
 
     # Save to DB — if this fails, return partial success with TX hash
     # so the user knows the subname exists on-chain
     full_subname = result["subname"]
     try:
-        client.table("executors").update(
-            {"ens_subname": full_subname}
-        ).eq("id", executor_id).execute()
+        client.table("executors").update({"ens_subname": full_subname}).eq(
+            "id", executor_id
+        ).execute()
     except Exception as exc:
         logger.error("Failed to save subname for executor %s: %s", executor_id[:8], exc)
         return ClaimSubnameResponse(
