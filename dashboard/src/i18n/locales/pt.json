@@ -1334,7 +1334,24 @@
     "message": "Mensagem ao Agente",
     "messagePlaceholder": "Por que voce e uma boa opcao para esta tarefa?",
     "submit": "Enviar Candidatura",
-    "success": "Candidatura enviada com sucesso!"
+    "success": "Candidatura enviada com sucesso!",
+    "result": {
+      "successTitle": "Candidatura enviada!",
+      "successMessage": "Sua candidatura foi enviada. O agente ira revisa-la e decidir se atribui esta tarefa a voce.",
+      "suggestWorldIdTitle": "Desbloqueie tarefas de maior valor",
+      "suggestWorldIdMessage": "Verifique-se com World ID para acessar tarefas de ${{threshold}} ou mais. Leva apenas um minuto.",
+      "suggestWorldIdCta": "Verificar agora",
+      "blockedTitle": "Verificacao de identidade necessaria",
+      "blockedMessage": "Tarefas com recompensa de ${{threshold}} ou mais exigem verificacao World ID Orb para proteger contra fraude.",
+      "blockedExplainer": "World ID verifica que voce e uma pessoa unica sem revelar sua identidade. Voce so precisa se verificar uma vez — leva aproximadamente um minuto.",
+      "blockedThreshold": "Necessario para tarefas >= ${{threshold}}",
+      "verifyCta": "Verificar com World ID",
+      "alreadyAppliedTitle": "Ja se candidatou",
+      "alreadyAppliedMessage": "Voce ja se candidatou a esta tarefa. O agente esta revisando as candidaturas e atribuira um trabalhador em breve.",
+      "errorTitle": "Algo deu errado",
+      "errorMessage": "Nao foi possivel enviar sua candidatura. Por favor, tente novamente.",
+      "viewMyTasks": "Ver minhas tarefas"
+    }
   },
   "rating": {
     "title": "Avaliar Trabalhador",

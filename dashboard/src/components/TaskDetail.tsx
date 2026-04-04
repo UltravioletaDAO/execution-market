@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useTaskPayment } from '../hooks/useTaskPayment'
+import { applyToTask, ApplicationError } from '../services/tasks'
 import type { Task, TaskCategory, Executor, Submission } from '../types/database'
 import { CATEGORY_ICONS } from '../constants/categories'
 import { getNetworkDisplayName } from '../utils/blockchain'
@@ -19,7 +20,6 @@ import { EvidenceModal } from './EvidenceModal'
 import { getStatusBadgeClass } from '../styles/theme'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 interface TaskDetailProps {
   task: Task
@@ -264,46 +264,29 @@ export function TaskDetail({
     setError(null)
 
     try {
-      // Get fresh session to avoid stale token / RLS mismatch
-      const { data: { session: currentSession } } = await supabase.auth.getSession()
-
-      const headers: Record<string, string> = {
-        apikey: SUPABASE_KEY,
-        'Content-Type': 'application/json',
-      }
-
-      if (currentSession?.access_token) {
-        headers['Authorization'] = `Bearer ${currentSession.access_token}`
-      }
-
-      // Use the apply_to_task RPC for atomic acceptance
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/apply_to_task`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          p_task_id: task.id,
-          p_executor_id: currentExecutor.id,
-          p_message: null,
-        }),
+      // Always go through REST API — enforces World ID, ERC-8004, rate limits
+      await applyToTask({
+        taskId: task.id,
+        executorId: currentExecutor.id,
       })
-
-      if (!response.ok) {
-        const text = await response.text()
-        throw new Error(text || `Failed: ${response.status}`)
-      }
-
-      const result = await response.json()
-      if (result && result.success === false) {
-        throw new Error(result.error || t('taskDetail.taskUnavailable', 'Task is no longer available'))
-      }
 
       onAccept?.()
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : t('taskDetail.acceptError', 'Could not accept the task. Try again.')
-      )
+      if (err instanceof ApplicationError) {
+        if (err.type === 'world_id_required') {
+          setError(t('worldId.requiredToApply', 'This task requires World ID verification. Verify your identity first.'))
+        } else if (err.type === 'already_applied') {
+          setError(t('application.result.alreadyAppliedMessage', 'You have already applied to this task.'))
+        } else {
+          setError(err.message)
+        }
+      } else {
+        setError(
+          err instanceof Error
+            ? err.message
+            : t('taskDetail.acceptError', 'Could not accept the task. Try again.')
+        )
+      }
     } finally {
       setAccepting(false)
     }

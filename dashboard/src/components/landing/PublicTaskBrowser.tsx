@@ -1,4 +1,4 @@
-import { useState, forwardRef, memo, useCallback } from 'react'
+import { useState, useEffect, forwardRef, memo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAvailableTasks } from '../../hooks/useTasks'
@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext'
 import { CategoryFilter } from '../TaskList'
 import { TaskDetailPanel } from './TaskDetailPanel'
 import { TaskApplicationModal } from '../TaskApplicationModal'
+import { getMyApplicationTaskIds } from '../../services/tasks'
 import type { Task, TaskCategory } from '../../types/database'
 import { useTranslation as useCustomTranslation } from '../../i18n/hooks/useTranslation'
 import { CATEGORY_ICONS } from '../../constants/categories'
@@ -15,7 +16,7 @@ interface PublicTaskBrowserProps {
 }
 
 // Inline job card that shows bounty prominently with Apply button
-const JobCard = memo(function JobCard({ task, onClick }: { task: Task; onClick: () => void }) {
+const JobCard = memo(function JobCard({ task, onClick, hasApplied }: { task: Task; onClick: () => void; hasApplied?: boolean }) {
   const { t } = useTranslation()
   const { formatCurrency, formatTimeRemaining } = useCustomTranslation()
 
@@ -78,13 +79,19 @@ const JobCard = memo(function JobCard({ task, onClick }: { task: Task; onClick: 
           <div className="text-xl font-black text-emerald-600">
             {formatCurrency(task.bounty_usd)}
           </div>
-          <span className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-colors ${
-            isExpired
-              ? 'bg-gray-200 text-gray-600'
-              : 'bg-emerald-600 text-white group-hover:bg-emerald-500'
-          }`}>
-            {isExpired ? t('tasks.expired', 'Expired') : t('tasks.apply', 'Apply')}
-          </span>
+          {hasApplied ? (
+            <span className="px-4 py-1.5 text-sm font-semibold rounded-lg bg-blue-100 text-blue-700">
+              {t('tasks.applied', 'Applied')}
+            </span>
+          ) : (
+            <span className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-colors ${
+              isExpired
+                ? 'bg-gray-200 text-gray-600'
+                : 'bg-emerald-600 text-white group-hover:bg-emerald-500'
+            }`}>
+              {isExpired ? t('tasks.expired', 'Expired') : t('tasks.apply', 'Apply')}
+            </span>
+          )}
         </div>
       </div>
     </article>
@@ -106,6 +113,13 @@ export const PublicTaskBrowser = forwardRef<HTMLElement, PublicTaskBrowserProps>
       executorId: executor?.id,
     })
 
+    // Track which tasks the current executor has already applied to
+    const [appliedTaskIds, setAppliedTaskIds] = useState<Set<string>>(new Set())
+    useEffect(() => {
+      if (!executor?.id) return
+      getMyApplicationTaskIds(executor.id).then(setAppliedTaskIds)
+    }, [executor?.id])
+
     const handleTaskClick = (task: Task) => {
       setSelectedTask(task)
     }
@@ -121,13 +135,14 @@ export const PublicTaskBrowser = forwardRef<HTMLElement, PublicTaskBrowserProps>
     }
 
     const handleApplicationSuccess = () => {
+      // Update applied IDs + remove from grid, but do NOT close modal or navigate.
+      // The modal's ApplicationResultView shows the success/World ID upsell screen
+      // and lets the user dismiss it via "View my tasks" or "Close".
       if (applyingTask) {
+        setAppliedTaskIds(prev => new Set(prev).add(applyingTask.id))
         removeTask(applyingTask.id)
       }
-      setApplyingTask(null)
       refetch()
-      // Navigate to worker dashboard with "My Tasks" tab active
-      navigate('/tasks', { state: { tab: 'mine' } })
     }
 
     return (
@@ -203,7 +218,7 @@ export const PublicTaskBrowser = forwardRef<HTMLElement, PublicTaskBrowserProps>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {tasks.map((task) => (
-              <JobCard key={task.id} task={task} onClick={() => handleTaskClick(task)} />
+              <JobCard key={task.id} task={task} onClick={() => handleTaskClick(task)} hasApplied={appliedTaskIds.has(task.id)} />
             ))}
           </div>
         )}
@@ -221,6 +236,7 @@ export const PublicTaskBrowser = forwardRef<HTMLElement, PublicTaskBrowserProps>
         {applyingTask && (
           <TaskApplicationModal
             task={applyingTask}
+            hasAlreadyApplied={appliedTaskIds.has(applyingTask.id)}
             onClose={() => setApplyingTask(null)}
             onSuccess={handleApplicationSuccess}
           />

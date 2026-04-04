@@ -1529,7 +1529,24 @@
     "message": "Mensaje al Agente",
     "messagePlaceholder": "Por que eres buena opcion para esta tarea?",
     "submit": "Enviar Aplicacion",
-    "success": "Aplicacion enviada exitosamente!"
+    "success": "Aplicacion enviada exitosamente!",
+    "result": {
+      "successTitle": "Aplicacion enviada!",
+      "successMessage": "Tu aplicacion ha sido enviada. El agente la revisara y decidira si asignarte esta tarea.",
+      "suggestWorldIdTitle": "Desbloquea tareas de mayor valor",
+      "suggestWorldIdMessage": "Verificate con World ID para acceder a tareas de ${{threshold}} o mas. Solo toma un minuto.",
+      "suggestWorldIdCta": "Verificar ahora",
+      "blockedTitle": "Verificacion de identidad requerida",
+      "blockedMessage": "Las tareas con recompensa de ${{threshold}} o mas requieren verificacion World ID Orb para proteger contra fraude.",
+      "blockedExplainer": "World ID verifica que eres una persona unica sin revelar tu identidad. Solo necesitas verificarte una vez — toma aproximadamente un minuto.",
+      "blockedThreshold": "Requerido para tareas >= ${{threshold}}",
+      "verifyCta": "Verificar con World ID",
+      "alreadyAppliedTitle": "Ya aplicaste",
+      "alreadyAppliedMessage": "Ya aplicaste a esta tarea. El agente esta revisando las aplicaciones y asignara un trabajador pronto.",
+      "errorTitle": "Algo salio mal",
+      "errorMessage": "No se pudo enviar tu aplicacion. Por favor intenta de nuevo.",
+      "viewMyTasks": "Ver mis tareas"
+    }
   },
   "rating": {
     "title": "Calificar Trabajador",

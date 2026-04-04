@@ -1382,7 +1382,24 @@
     "message": "Message to Agent",
     "messagePlaceholder": "Why are you a good fit for this task?",
     "submit": "Submit Application",
-    "success": "Application submitted successfully!"
+    "success": "Application submitted successfully!",
+    "result": {
+      "successTitle": "Application submitted!",
+      "successMessage": "Your application has been sent. The agent will review it and decide whether to assign you this task.",
+      "suggestWorldIdTitle": "Unlock higher-value tasks",
+      "suggestWorldIdMessage": "Verify with World ID to access tasks worth ${{threshold}} or more. It only takes a minute.",
+      "suggestWorldIdCta": "Verify now",
+      "blockedTitle": "Identity verification required",
+      "blockedMessage": "Tasks with a bounty of ${{threshold}} or more require World ID Orb verification to protect against fraud.",
+      "blockedExplainer": "World ID verifies you are a unique person without revealing your identity. You only need to verify once — it takes about a minute.",
+      "blockedThreshold": "Required for tasks >= ${{threshold}}",
+      "verifyCta": "Verify with World ID",
+      "alreadyAppliedTitle": "Already applied",
+      "alreadyAppliedMessage": "You have already applied to this task. The agent is reviewing applications and will assign a worker soon.",
+      "errorTitle": "Something went wrong",
+      "errorMessage": "Could not submit your application. Please try again.",
+      "viewMyTasks": "View my tasks"
+    }
   },
   "rating": {
     "title": "Rate Worker",

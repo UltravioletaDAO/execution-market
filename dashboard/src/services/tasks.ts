@@ -76,6 +76,23 @@ async function parseApiError(response: Response, fallback: string): Promise<stri
   }
 }
 
+/** Typed error for application failures that need special UI handling */
+export type ApplicationErrorType = 'world_id_required' | 'already_applied' | 'generic'
+
+export class ApplicationError extends Error {
+  type: ApplicationErrorType
+  status: number
+  detail: Record<string, unknown>
+
+  constructor(type: ApplicationErrorType, message: string, status: number, detail: Record<string, unknown> = {}) {
+    super(message)
+    this.name = 'ApplicationError'
+    this.type = type
+    this.status = status
+    this.detail = detail
+  }
+}
+
 // ============== TASK LISTING ==============
 
 /**
@@ -249,8 +266,43 @@ export async function applyToTask(data: ApplyToTaskData): Promise<{ application:
   })
 
   if (!response.ok) {
-    const fallback = `Failed to apply to task via API (${response.status})`
-    throw new Error(await parseApiError(response, fallback))
+    // Parse structured error for special handling
+    let body: Record<string, unknown> = {}
+    try {
+      body = await response.json() as Record<string, unknown>
+    } catch { /* fallback to empty */ }
+
+    const detail = body.detail as Record<string, unknown> | string | undefined
+
+    // 403 World ID required
+    if (response.status === 403) {
+      const detailObj = typeof detail === 'object' && detail !== null ? detail : body
+      if (detailObj.error === 'world_id_orb_required' || String(detail).includes('world_id')) {
+        throw new ApplicationError(
+          'world_id_required',
+          String(detailObj.message || 'World ID verification required'),
+          403,
+          detailObj as Record<string, unknown>,
+        )
+      }
+    }
+
+    // 409 — distinguish "already applied" from "task not available"
+    if (response.status === 409) {
+      const detailStr = typeof detail === 'string' ? detail : String(body.detail || body.message || '')
+      const isAlreadyApplied = detailStr.toLowerCase().includes('already applied')
+      throw new ApplicationError(
+        isAlreadyApplied ? 'already_applied' : 'generic',
+        detailStr || (isAlreadyApplied ? 'Already applied to this task' : 'Task is no longer available'),
+        409,
+      )
+    }
+
+    // Generic error
+    const msg = typeof detail === 'string' ? detail
+      : (typeof detail === 'object' && detail !== null ? String((detail as Record<string, string>).message || (detail as Record<string, string>).error || '') : '')
+      || String(body.message || body.error || `Failed to apply (${response.status})`)
+    throw new ApplicationError('generic', msg, response.status, body)
   }
 
   const payload = await response.json() as { data?: { application_id?: string } }
@@ -298,6 +350,23 @@ export async function cancelApplication(applicationId: string, executorId: strin
   if (error) {
     throw new Error(`Failed to cancel application: ${error.message}`)
   }
+}
+
+/**
+ * Get the set of task IDs where this executor has already applied
+ */
+export async function getMyApplicationTaskIds(executorId: string): Promise<Set<string>> {
+  const { data, error } = await db
+    .from('task_applications')
+    .select('task_id')
+    .eq('executor_id', executorId)
+
+  if (error) {
+    console.warn('Failed to fetch application task IDs:', error.message)
+    return new Set()
+  }
+
+  return new Set((data || []).map((row: { task_id: string }) => row.task_id))
 }
 
 // ============== TASK CANCELLATION (AGENT) ==============
