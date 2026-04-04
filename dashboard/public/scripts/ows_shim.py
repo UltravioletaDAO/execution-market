@@ -124,10 +124,40 @@ def sign_transaction(wallet_name, transaction, passphrase=None):
 
 
 def sign_typed_data(wallet_name, domain, types, message, passphrase=None):
-    data_str = json.dumps(
-        {"domain": domain, "types": types, "message": message}, sort_keys=True
+    # Determine primaryType (the non-EIP712Domain type)
+    primary_type = next(k for k in types if k != "EIP712Domain")
+    typed_data_json = json.dumps(
+        {
+            "types": types,
+            "primaryType": primary_type,
+            "domain": domain,
+            "message": message,
+        },
+        separators=(",", ":"),
     )
-    return sign_message(wallet_name, data_str, passphrase)
+    r = subprocess.run(
+        [
+            "ows",
+            "sign",
+            "message",
+            "--chain",
+            "ethereum",
+            "--wallet",
+            wallet_name,
+            "--message",
+            "eip712",
+            "--typed-data",
+            typed_data_json,
+            "--json",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    if r.returncode != 0:
+        raise Exception(f"ows sign typed-data failed: {r.stderr}")
+    d = json.loads(r.stdout)
+    fixed = _fix_sig(d.get("signature", ""), d.get("recoveryId", 27))
+    return OWSSignResult(signature=fixed)
 
 
 def sign_eip3009(
