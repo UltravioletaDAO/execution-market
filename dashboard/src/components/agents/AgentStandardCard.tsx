@@ -13,6 +13,7 @@ import { getReputationTier, getTierColor } from '../../hooks/useAgentReputation'
 import { AgentAvatar } from './AgentAvatar'
 import { AgentIdentityBadge } from './AgentIdentityBadge'
 import { WorldHumanBadge } from './WorldHumanBadge'
+import { ENSBadge } from './ENSBadge'
 import { XBadge } from './XBadge'
 import { Skeleton, SkeletonText } from '../ui/Skeleton'
 import type { Executor, AgentType } from '../../types/database'
@@ -152,6 +153,7 @@ export const AgentStandardCard = memo(function AgentStandardCard(props: AgentSta
               <XBadge handle={data.social_links.x.handle} verified={data.social_links.x.verified} size="md" />
             )}
             <WorldHumanBadge worldHumanId={data.world_human_id ?? null} />
+            <ENSBadge ensName={data.ens_name || data.ens_subname} size="md" />
           </div>
 
           {/* Reputation tier + rating */}

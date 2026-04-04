@@ -13,6 +13,7 @@ import { useAgentCard, preloadAgentCard } from '../../hooks/useAgentCard'
 import { AgentAvatar } from './AgentAvatar'
 import { AgentIdentityBadge } from './AgentIdentityBadge'
 import { WorldHumanBadge } from './WorldHumanBadge'
+import { ENSBadge } from './ENSBadge'
 import { XBadge } from './XBadge'
 import { Skeleton } from '../ui/Skeleton'
 import type { Executor, AgentType } from '../../types/database'
@@ -151,6 +152,7 @@ export const AgentMiniCard = memo(function AgentMiniCard(props: AgentMiniCardPro
             <XBadge handle={data.social_links.x.handle} verified={data.social_links.x.verified} size="sm" />
           )}
           <WorldHumanBadge worldHumanId={data.world_human_id} />
+          <ENSBadge ensName={data.ens_name || data.ens_subname} size="sm" />
         </div>
         <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
           {/* Star rating */}

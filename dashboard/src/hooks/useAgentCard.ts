@@ -26,6 +26,9 @@ export interface AgentCardData {
   social_links?: SocialLinks | null
   world_human_id: number | null
   world_verified_at: string | null
+  ens_name: string | null
+  ens_avatar: string | null
+  ens_subname: string | null
   member_since: string // created_at
 }
 
@@ -69,14 +72,14 @@ export function useAgentCard(walletAddress?: string | null) {
         // A wallet may have both (agent publishes tasks, worker completes them).
         const { data: agentExec } = await supabase
           .from('executors')
-          .select('wallet_address, display_name, avatar_url, bio, agent_type, erc8004_agent_id, reputation_score, tasks_completed, tasks_disputed, avg_rating, skills, social_links, world_human_id, world_verified_at, created_at')
+          .select('wallet_address, display_name, avatar_url, bio, agent_type, erc8004_agent_id, reputation_score, tasks_completed, tasks_disputed, avg_rating, skills, social_links, world_human_id, world_verified_at, ens_name, ens_avatar, ens_subname, created_at')
           .eq('wallet_address', wallet)
           .eq('executor_type', 'agent')
           .single()
 
         const executor = agentExec || (await supabase
           .from('executors')
-          .select('wallet_address, display_name, avatar_url, bio, agent_type, erc8004_agent_id, reputation_score, tasks_completed, tasks_disputed, avg_rating, skills, social_links, world_human_id, world_verified_at, created_at')
+          .select('wallet_address, display_name, avatar_url, bio, agent_type, erc8004_agent_id, reputation_score, tasks_completed, tasks_disputed, avg_rating, skills, social_links, world_human_id, world_verified_at, ens_name, ens_avatar, ens_subname, created_at')
           .eq('wallet_address', wallet)
           .limit(1)
           .single()
@@ -88,7 +91,7 @@ export function useAgentCard(walletAddress?: string | null) {
           // Try matching by ID in case walletAddress is actually an executor ID
           const { data: execById, error: byIdError } = await supabase
             .from('executors')
-            .select('wallet_address, display_name, avatar_url, bio, agent_type, erc8004_agent_id, reputation_score, tasks_completed, tasks_disputed, avg_rating, skills, social_links, world_human_id, world_verified_at, created_at')
+            .select('wallet_address, display_name, avatar_url, bio, agent_type, erc8004_agent_id, reputation_score, tasks_completed, tasks_disputed, avg_rating, skills, social_links, world_human_id, world_verified_at, ens_name, ens_avatar, ens_subname, created_at')
             .eq('id', wallet)
             .single()
 
@@ -153,6 +156,9 @@ function buildCardData(executor: Record<string, unknown>, tasksPosted: number): 
     social_links: (executor.social_links as SocialLinks | null) ?? null,
     world_human_id: (executor.world_human_id as number | null) ?? null,
     world_verified_at: (executor.world_verified_at as string | null) ?? null,
+    ens_name: (executor.ens_name as string | null) ?? null,
+    ens_avatar: (executor.ens_avatar as string | null) ?? null,
+    ens_subname: (executor.ens_subname as string | null) ?? null,
     member_since: (executor.created_at as string) ?? new Date().toISOString(),
   }
 }
@@ -175,6 +181,9 @@ export function preloadAgentCard(executor: Executor, tasksPosted = 0) {
     social_links: executor.social_links ?? null,
     world_human_id: executor.world_human_id ?? null,
     world_verified_at: executor.world_verified_at ?? null,
+    ens_name: executor.ens_name ?? null,
+    ens_avatar: executor.ens_avatar ?? null,
+    ens_subname: executor.ens_subname ?? null,
     member_since: executor.created_at,
   }
   agentCardCache.set(executor.wallet_address, card)

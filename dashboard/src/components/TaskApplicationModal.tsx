@@ -4,6 +4,7 @@ import { useTranslation as useCustomTranslation } from '../i18n/hooks/useTransla
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { WorldHumanBadge } from './agents/WorldHumanBadge'
+import { ENSBadge } from './agents/ENSBadge'
 import { WorldIdBadge } from './WorldIdVerification'
 import type { Task } from '../types/database'
 
@@ -187,6 +188,7 @@ export function TaskApplicationModal({ task, onClose, onSuccess }: TaskApplicati
                   <div className="font-semibold text-gray-900 truncate flex items-center gap-1.5">
                     {executor.display_name || t('profile.anonymous', 'Anonymous')}
                     <WorldHumanBadge worldHumanId={executor.world_human_id} />
+                    <ENSBadge ensName={executor.ens_name || executor.ens_subname} size="sm" />
                   </div>
                   <div className="flex items-center gap-2 text-sm text-gray-500">
                     <span className="flex items-center gap-1">
