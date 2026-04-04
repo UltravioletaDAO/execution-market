@@ -42,24 +42,32 @@ class RPSignatureResponse(BaseModel):
 class VerifyWorldIdRequest(BaseModel):
     """World ID proof verification request from frontend."""
 
-    proof: str = Field(default="", description="ZK proof from IDKit (for DB storage)")
-    merkle_root: str = Field(default="", description="Merkle root of the identity set")
+    # Required fields
     nullifier_hash: str = Field(
         ..., description="Unique nullifier hash for this person+app"
     )
     verification_level: str = Field(..., description="'orb' or 'device'")
     executor_id: str = Field(..., description="UUID of the executor being verified")
+
+    # v4 Cloud API fields — forwarded as-is from IDKit result
+    protocol_version: str = Field(
+        default="3.0", description="IDKit protocol version ('3.0' or '4.0')"
+    )
+    nonce: str = Field(
+        default="", description="Nonce from IDKit result"
+    )
     action: str = Field(
         default="verify-worker",
         description="Action string used during proof generation",
     )
-    signal: str = Field(
-        default="", description="Optional signal used during proof generation"
-    )
-    # Raw IDKit responses array — forwarded to v4 Cloud API as-is
     responses: Optional[list] = Field(
         default=None, description="Raw IDKit responses array for v4 Cloud API"
     )
+
+    # Legacy/DB storage fields (optional — extracted from responses by frontend)
+    proof: str = Field(default="", description="ZK proof (for DB storage)")
+    merkle_root: str = Field(default="", description="Merkle root (for DB storage)")
+    signal: str = Field(default="", description="Signal used during proof generation")
 
 
 class VerifyWorldIdResponse(BaseModel):
@@ -239,6 +247,8 @@ async def verify_world_id(
     result = await verify_world_id_proof(
         nullifier_hash=request.nullifier_hash,
         verification_level=request.verification_level,
+        protocol_version=request.protocol_version,
+        nonce=request.nonce,
         responses=request.responses,
         proof=request.proof,
         merkle_root=request.merkle_root,

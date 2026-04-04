@@ -175,6 +175,8 @@ def sign_request(action: str = DEFAULT_ACTION) -> RPSignatureResult:
 async def verify_world_id_proof(
     nullifier_hash: str,
     verification_level: str,
+    protocol_version: str = "3.0",
+    nonce: str = "",
     responses: Optional[list] = None,
     proof: str = "",
     merkle_root: str = "",
@@ -186,8 +188,11 @@ async def verify_world_id_proof(
 
     Calls POST https://developer.world.org/api/v4/verify/{rp_id}
 
-    The v4 endpoint requires a `responses` array (raw IDKit output).
-    Individual fields (proof, merkle_root) are kept for DB storage only.
+    The v4 endpoint expects the IDKit result forwarded as-is:
+      { protocol_version, nonce, action, responses[] }
+
+    signal_hash is already inside each responses[i] — do NOT add it top-level.
+    Individual fields (proof, merkle_root) are for DB storage only.
     """
     if not WORLD_ID_RP_ID:
         return VerificationResult(
@@ -197,27 +202,29 @@ async def verify_world_id_proof(
 
     url = f"{WORLD_CLOUD_API_URL}/{WORLD_ID_RP_ID}"
 
-    # Cloud API expects signal_hash (keccak256), not raw signal
-    signal_str = signal or ""
-    signal_hash = "0x" + _keccak256(signal_str.encode("utf-8")).hex()
-
-    # v4 Cloud API requires the raw responses array from IDKit
-    payload: dict = {
-        "action": action,
-        "signal_hash": signal_hash,
-    }
-
     if responses:
-        # Forward raw IDKit responses array as-is
-        payload["responses"] = responses
+        # v4 Cloud API: forward IDKit result structure as-is
+        # Required: protocol_version, nonce, action, responses[]
+        # signal_hash is inside each response item (IDKit computed it)
+        payload: dict = {
+            "protocol_version": protocol_version,
+            "nonce": nonce,
+            "action": action,
+            "responses": responses,
+        }
     else:
-        # Fallback: construct from individual fields (v2 compat)
-        payload.update({
+        # Fallback: v2 legacy endpoint (should not happen with current frontend)
+        signal_str = signal or ""
+        signal_hash = "0x" + _keccak256(signal_str.encode("utf-8")).hex()
+        url = f"https://developer.world.org/api/v2/verify/{WORLD_ID_APP_ID}"
+        payload = {
             "proof": proof,
             "merkle_root": merkle_root,
             "nullifier_hash": nullifier_hash,
             "verification_level": verification_level,
-        })
+            "action": action,
+            "signal_hash": signal_hash,
+        }
 
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
@@ -226,18 +233,17 @@ async def verify_world_id_proof(
         if resp.status_code == 200:
             data = resp.json()
             if data.get("success"):
+                # v4 response uses "nullifier" (not "nullifier_hash")
+                resp_nullifier = data.get("nullifier", nullifier_hash)
                 logger.info(
-                    "World ID proof verified: level=%s, nullifier=%s...%s",
-                    data.get("verification_level", verification_level),
-                    nullifier_hash[:10],
-                    nullifier_hash[-6:],
+                    "World ID proof verified: nullifier=%s...%s",
+                    resp_nullifier[:10] if resp_nullifier else "?",
+                    resp_nullifier[-6:] if resp_nullifier else "?",
                 )
                 return VerificationResult(
                     success=True,
-                    nullifier_hash=nullifier_hash,
-                    verification_level=data.get(
-                        "verification_level", verification_level
-                    ),
+                    nullifier_hash=resp_nullifier,
+                    verification_level=verification_level,
                 )
             else:
                 detail = data.get("detail", "Proof verification failed")
