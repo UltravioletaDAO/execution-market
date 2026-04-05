@@ -272,6 +272,7 @@
     "disconnectWallet": "Desconectar Carteira",
     "walletConnected": "Carteira Conectada",
     "connecting": "Conectando...",
+    "restoringSession": "Restaurando sessao...",
     "connected": "Conectado",
     "disconnect": "Desconectar",
     "email": "Email",

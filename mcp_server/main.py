@@ -905,6 +905,10 @@ async def health_check():
             logger.exception("Chat relay status check failed")
             chat_status = "error"
 
+    # Dynamic.xyz environment check (informational — frontend SDK config)
+    dynamic_env_id = os.environ.get("VITE_DYNAMIC_ENVIRONMENT_ID", "")
+    dynamic_status = "configured" if dynamic_env_id else "not_configured"
+
     return HealthResponse(
         status="healthy" if supabase_status == "healthy" else "degraded",
         version="0.1.0",
@@ -917,6 +921,7 @@ async def health_check():
             "x402": x402_status,
             "erc8004": erc8004_status,  # Facilitator-backed reputation
             "chat_relay": chat_status,
+            "dynamic": dynamic_status,  # Dynamic.xyz auth SDK env
         },
     )
 

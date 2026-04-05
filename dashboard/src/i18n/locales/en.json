@@ -273,6 +273,7 @@
     "disconnectWallet": "Disconnect Wallet",
     "walletConnected": "Wallet Connected",
     "connecting": "Connecting...",
+    "restoringSession": "Restoring session...",
     "connected": "Connected",
     "disconnect": "Disconnect",
     "email": "Email",

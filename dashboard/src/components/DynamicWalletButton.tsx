@@ -37,7 +37,7 @@ interface ConnectButtonProps {
 
 export function ConnectButton({ className = '', children }: ConnectButtonProps) {
   const { t } = useTranslation()
-  const { isAuthenticated, walletAddress, openAuthModal, logout } = useAuth()
+  const { isAuthenticated, walletAddress, openAuthModal, logout, loading } = useAuth()
 
   if (isAuthenticated && walletAddress) {
     return (
@@ -51,6 +51,17 @@ export function ConnectButton({ className = '', children }: ConnectButtonProps) 
         >
           Disconnect
         </button>
+      </div>
+    )
+  }
+
+  // Returning user: show restoring indicator instead of connect button
+  if (loading && localStorage.getItem('em_last_wallet_address')) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-sm text-gray-500 animate-pulse">
+          {t('auth.restoringSession', 'Restoring session...')}
+        </span>
       </div>
     )
   }

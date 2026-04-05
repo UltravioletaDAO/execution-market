@@ -175,6 +175,10 @@ export function AppHeader() {
                 </div>
                 <span className="hidden sm:inline">{executor?.display_name || t('nav.profile', 'Profile')}</span>
               </button>
+            ) : loading && localStorage.getItem('em_last_wallet_address') ? (
+              <span className="px-4 py-1.5 text-sm text-gray-400 animate-pulse">
+                {t('auth.restoringSession', 'Restoring session...')}
+              </span>
             ) : (
               <button
                 onClick={openAuthModal}
