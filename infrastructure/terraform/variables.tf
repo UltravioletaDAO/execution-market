@@ -138,6 +138,13 @@ variable "evidence_max_upload_mb" {
   default     = 25
 }
 
+# WAF
+variable "waf_blocked_ips" {
+  description = "List of CIDR blocks to permanently block at WAF level. Added 2026-04-04 after Tor exit node 104.244.78.233 flood."
+  type        = list(string)
+  default     = ["104.244.78.233/32"]
+}
+
 # Monitoring
 variable "alert_email" {
   description = "Email for CloudWatch alarm notifications (SNS subscription created automatically)"

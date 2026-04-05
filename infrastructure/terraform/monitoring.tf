@@ -142,6 +142,36 @@ resource "aws_cloudwatch_metric_alarm" "mcp_unhealthy_hosts" {
   }
 }
 
+# ── Alarm 5: 4xx Spike > 50/min (ABUSE DETECTION) ───────────────────────────
+# Catches unauthorized request floods (e.g., Tor bots hitting /a2a/ with 401).
+# Added 2026-04-04 after discovering 20.5% of traffic was 4xx junk.
+
+resource "aws_cloudwatch_metric_alarm" "mcp_4xx_spike" {
+  alarm_name          = "${local.name_prefix}-mcp-4xx-spike"
+  alarm_description   = "MCP server target returning > 50 HTTP 4xx per minute — possible abuse"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 3
+  metric_name         = "HTTPCode_Target_4XX_Count"
+  namespace           = "AWS/ApplicationELB"
+  period              = 60
+  statistic           = "Sum"
+  threshold           = 50
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    TargetGroup  = aws_lb_target_group.mcp_server.arn_suffix
+    LoadBalancer = aws_lb.main.arn_suffix
+  }
+
+  alarm_actions = [aws_sns_topic.mcp_alerts.arn]
+  ok_actions    = [aws_sns_topic.mcp_alerts.arn]
+
+  tags = {
+    Name     = "${local.name_prefix}-mcp-4xx-spike"
+    Severity = "warning"
+  }
+}
+
 # ── CloudWatch Dashboard ─────────────────────────────────────────────────────
 # 6 widgets: task counts, memory, CPU, 5xx, response time, unhealthy hosts.
 

@@ -140,16 +140,20 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         client_ip = _get_client_ip(request)
 
         # Check IP ban FIRST (cheapest check, no processing for banned IPs)
+        record_429_fn = None
+        record_unauth_fn = None
         try:
-            from security.ip_ban import is_banned, record_429
+            from security.ip_ban import is_banned, record_429, record_unauthorized
 
             if is_banned(client_ip):
                 return JSONResponse(
                     status_code=403,
                     content={"error": "Temporarily banned due to excessive requests"},
                 )
+            record_429_fn = record_429
+            record_unauth_fn = record_unauthorized
         except ImportError:
-            record_429 = None  # type: ignore[assignment]
+            pass
 
         # Reject oversized request bodies (1 MB max)
         content_length = int(request.headers.get("content-length", 0))
@@ -159,12 +163,42 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 content={"error": "Request body too large", "max_bytes": 1_048_576},
             )
 
-        # A2A-specific rate limits (stricter: 5 req per 2.5 min per IP)
+        # A2A early-reject: if no auth headers at all, return 401 immediately
+        # without invoking the full A2A JSON-RPC dispatch. Saves CPU on junk
+        # traffic from bots that don't even attempt authentication.
         if request.url.path.startswith("/a2a/"):
-            is_limited, retry_after = _check_a2a_limit(client_ip, limit=5, window=150)
+            has_auth = (
+                request.headers.get("signature-input")
+                or request.headers.get("Signature-Input")
+                or request.headers.get("authorization")
+                or request.headers.get("Authorization")
+                or request.headers.get("x-api-key")
+                or request.headers.get("X-API-Key")
+            )
+            if not has_auth:
+                if record_unauth_fn:
+                    record_unauth_fn(client_ip)
+                return JSONResponse(
+                    status_code=401,
+                    content={
+                        "jsonrpc": "2.0",
+                        "error": {
+                            "code": -32000,
+                            "message": "Authentication required",
+                        },
+                        "id": None,
+                    },
+                )
+
+        # A2A-specific rate limits (per IP, for authenticated requests that passed
+        # the early-reject above). 15 req/5min is generous for legitimate A2A
+        # discovery but catches repeat abuse from authenticated bots.
+        # Raised from 5/150s after review — agents polling task status is normal.
+        if request.url.path.startswith("/a2a/"):
+            is_limited, retry_after = _check_a2a_limit(client_ip, limit=15, window=300)
             if is_limited:
-                if record_429:
-                    record_429(client_ip)
+                if record_429_fn:
+                    record_429_fn(client_ip)
                 return JSONResponse(
                     status_code=429,
                     content={
@@ -214,8 +248,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 limit_type,
                 retry_after,
             )
-            if record_429:
-                record_429(client_ip)
+            if record_429_fn:
+                record_429_fn(client_ip)
 
             return JSONResponse(
                 status_code=429,
