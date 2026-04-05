@@ -141,6 +141,8 @@ jobs:
         working-directory: mcp_server
     env:
       TESTING: "true"
+      SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
     steps:
       - uses: actions/checkout@v6
 
