@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useTaskPayment } from '../hooks/useTaskPayment'
-import { applyToTask, ApplicationError } from '../services/tasks'
 import type { Task, TaskCategory, Executor, Submission } from '../types/database'
+import { TaskApplicationModal } from './TaskApplicationModal'
 import { CATEGORY_ICONS } from '../constants/categories'
 import { getNetworkDisplayName } from '../utils/blockchain'
 import { NetworkBadge } from './ui/NetworkBadge'
@@ -173,8 +173,7 @@ export function TaskDetail({
 }: TaskDetailProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const [accepting, setAccepting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [showApplicationModal, setShowApplicationModal] = useState(false)
 
   // Live task state: starts from prop, updated via realtime subscription
   const [task, setTask] = useState<Task>(taskProp)
@@ -256,41 +255,6 @@ export function TaskDetail({
     task.status === 'published' &&
     currentExecutor &&
     currentExecutor.reputation_score >= task.min_reputation
-
-  const handleAccept = async () => {
-    if (!currentExecutor) return
-
-    setAccepting(true)
-    setError(null)
-
-    try {
-      // Always go through REST API — enforces World ID, ERC-8004, rate limits
-      await applyToTask({
-        taskId: task.id,
-        executorId: currentExecutor.id,
-      })
-
-      onAccept?.()
-    } catch (err) {
-      if (err instanceof ApplicationError) {
-        if (err.type === 'world_id_required') {
-          setError(t('worldId.requiredToApply', 'This task requires World ID verification. Verify your identity first.'))
-        } else if (err.type === 'already_applied') {
-          setError(t('application.result.alreadyAppliedMessage', 'You have already applied to this task.'))
-        } else {
-          setError(err.message)
-        }
-      } else {
-        setError(
-          err instanceof Error
-            ? err.message
-            : t('taskDetail.acceptError', 'Could not accept the task. Try again.')
-        )
-      }
-    } finally {
-      setAccepting(false)
-    }
-  }
 
   return (
     <div className="bg-white rounded-lg border border-gray-200">
@@ -971,25 +935,6 @@ export function TaskDetail({
       {/* Actions */}
       {task.status === 'published' && (
         <div className="p-4 bg-gray-50 border-t border-gray-200">
-          {error && (
-            <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <div className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-                <div className="flex-1">
-                  <p className="text-sm text-red-700">{error}</p>
-                  <button
-                    onClick={() => setError(null)}
-                    className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
-                  >
-                    {t('common.dismiss')}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
           {!currentExecutor ? (
             <div className="text-center">
               <p className="text-gray-600 mb-2">{t('taskDetail.loginToAccept', 'Sign in to accept this task')}</p>
@@ -1008,14 +953,25 @@ export function TaskDetail({
             </div>
           ) : (
             <button
-              onClick={handleAccept}
-              disabled={accepting}
-              className="w-full py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => setShowApplicationModal(true)}
+              className="w-full py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors"
             >
-              {accepting ? t('taskDetail.accepting', 'Accepting...') : `${t('tasks.acceptTask')} - ${formatBounty(task.bounty_usd)}`}
+              {`${t('tasks.acceptTask')} - ${formatBounty(task.bounty_usd)}`}
             </button>
           )}
         </div>
+      )}
+
+      {/* Application Modal — handles World ID blocking, success, already applied, errors */}
+      {showApplicationModal && currentExecutor && (
+        <TaskApplicationModal
+          task={task}
+          onClose={() => setShowApplicationModal(false)}
+          onSuccess={() => {
+            setShowApplicationModal(false)
+            onAccept?.()
+          }}
+        />
       )}
     </div>
   )
