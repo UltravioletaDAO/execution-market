@@ -238,35 +238,8 @@ class TestRelayPaymentUnit:
         assert abs(sum(bounties) - 1.0) < 0.000001
 
 
-# ---------------------------------------------------------------------------
-# Dashboard Component (RelayChainStatus.tsx)
-# ---------------------------------------------------------------------------
-
-
-class TestRelayChainDashboard:
-    def test_component_file_exists(self):
-        assert (DASHBOARD_ROOT / "components" / "RelayChainStatus.tsx").exists()
-
-    def test_has_relay_chain_interface(self):
-        content = (DASHBOARD_ROOT / "components" / "RelayChainStatus.tsx").read_text()
-        assert "RelayChain" in content
-        assert "RelayLeg" in content
-
-    def test_shows_progress(self):
-        content = (DASHBOARD_ROOT / "components" / "RelayChainStatus.tsx").read_text()
-        assert "completed_legs" in content
-        assert "total_legs" in content
-
-    def test_shows_status_labels(self):
-        content = (DASHBOARD_ROOT / "components" / "RelayChainStatus.tsx").read_text()
-        assert "STATUS_LABELS" in content
-        assert "In Transit" in content
-        assert "Handed Off" in content
-
-    def test_shows_bounty_per_leg(self):
-        content = (DASHBOARD_ROOT / "components" / "RelayChainStatus.tsx").read_text()
-        assert "bounty_usdc" in content
-
+# RelayChainStatus.tsx dashboard component removed (dead code cleanup 2026-04-04).
+# Relay chain backend logic and migrations remain active.
 
 # ---------------------------------------------------------------------------
 # EMServ Index Registration
