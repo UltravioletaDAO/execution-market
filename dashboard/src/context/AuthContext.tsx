@@ -95,7 +95,7 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const { primaryWallet, handleLogOut, setShowAuthFlow, sdkHasLoaded } = useDynamicContext()
+  const { primaryWallet, handleLogOut, setShowAuthFlow, sdkHasLoaded, user } = useDynamicContext()
   const isLoggedIn = useIsLoggedIn()
   const userWallets = useUserWallets()
   const { enrichFromX } = useXProfileEnrichment()
@@ -155,7 +155,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     : (dynamicWalletAddress || persistedWalletAddress || null)
   // Only consider authenticated when Dynamic SDK says user is logged in.
   // persistedWalletAddress is a hint for executor lookup, NOT an auth signal.
-  const isAuthenticated = dynamicInitialized && isLoggedIn && !!dynamicWalletAddress
+  const isAuthenticated = dynamicInitialized && isLoggedIn
   // Profile is complete only when the user has explicitly set their display name.
   // Auto-generated names like "Worker_2b50111b" do NOT count as complete — the
   // onboarding form must appear so the user fills in their real info.
@@ -218,14 +218,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // --------------------------------------------------------------------------
   // Fetch or create executor using RPC function (bypasses RLS)
   // --------------------------------------------------------------------------
-  const fetchExecutor = useCallback(async (wallet: string): Promise<Executor | null> => {
+  const fetchExecutor = useCallback(async (wallet: string, email?: string | null): Promise<Executor | null> => {
     const normalizedWallet = wallet.toLowerCase()
 
     try {
       const rpcCall = async () => supabase.rpc('get_or_create_executor', {
         p_wallet_address: normalizedWallet,
         p_display_name: null,
-        p_email: null,
+        p_email: email || null,
       })
 
       let { data, error } = await rpcCall()
@@ -368,9 +368,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const refreshExecutor = useCallback(async () => {
     if (!walletAddress) return
     await linkWalletToSession(walletAddress)
-    const executorData = await fetchExecutor(walletAddress)
+    const executorData = await fetchExecutor(walletAddress, user?.email)
     setExecutor(executorData)
-  }, [walletAddress, fetchExecutor, linkWalletToSession])
+  }, [walletAddress, fetchExecutor, linkWalletToSession, user])
 
   // --------------------------------------------------------------------------
   // Logout
@@ -442,28 +442,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (!dynamicInitialized || !isLoggedIn) return
     if (dynamicWalletAddress) return // Wallet exists — all good
 
-    // Logged in but no wallet — wait 3s for embedded wallet creation,
-    // then auto-logout if still no wallet.
-    const recoveryTimeout = setTimeout(() => {
+    // Logged in but no wallet yet — email users wait for embedded wallet
+    // creation (1-5s). Don't auto-logout; just stop the loading spinner
+    // after 5s so the UI isn't stuck. The wallet-change effect (below)
+    // will handle executor creation once the wallet arrives.
+    const waitTimeout = setTimeout(() => {
       if (!dynamicWalletRef.current) {
-        console.warn('[Auth] Broken state: logged in but no wallet after 3s — auto-recovering')
-        handleLogOut().then(() => {
-          // Clear any persisted state
-          localStorage.removeItem(WALLET_STORAGE_KEY)
-          localStorage.removeItem(USER_TYPE_STORAGE_KEY)
-          setPersistedWalletAddress(null)
-          setExecutor(null)
-          setLoading(false)
-          setError(null)
-        }).catch((err) => {
-          console.error('[Auth] Auto-recovery logout failed:', err)
-          setLoading(false)
-        })
+        console.warn('[Auth] Logged in but no wallet after 5s — stopping loader (wallet may still arrive)')
+        setLoading(false)
       }
-    }, 3000)
+    }, 5000)
 
-    return () => clearTimeout(recoveryTimeout)
-  }, [dynamicInitialized, isLoggedIn, dynamicWalletAddress, handleLogOut])
+    return () => clearTimeout(waitTimeout)
+  }, [dynamicInitialized, isLoggedIn, dynamicWalletAddress])
 
   // --------------------------------------------------------------------------
   // Effect: Handle tab visibility changes (mobile tab switching)
@@ -523,7 +514,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }, 10_000)
 
       linkWalletToSession(walletAddress)
-        .then(() => fetchExecutor(walletAddress))
+        .then(() => fetchExecutor(walletAddress, user?.email))
         .then((data) => {
           if (loadingTimeoutRef.current) {
             clearTimeout(loadingTimeoutRef.current)
@@ -572,23 +563,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setLoading(false)
         })
     } else {
-      // Debounce wallet removal — Dynamic SDK may briefly null the wallet
-      // during session restoration or wallet provisioning transitions.
-      // 2s delay on mobile (tab switching can take >1s to restore SDK state),
-      // 500ms on desktop. Prevents logout flash on tab restore.
-      const debounceMs = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? 2000 : 500
-      logoutDebounceRef.current = setTimeout(() => {
-        logoutDebounceRef.current = null
-        setExecutor(null)
+      // No wallet address. Two cases:
+      // 1. User logged in via email, waiting for embedded wallet — DON'T clear
+      // 2. User actually logged out — clear everything
+      if (isLoggedIn) {
+        // Email user waiting for embedded wallet — just stop loading
         setLoading(false)
-        if (lastWalletRef.current) {
-          lastWalletRef.current = null
-          linkedWalletRef.current = null
-          supabase.auth.signOut().catch((err: unknown) => {
-            console.warn('[Auth] Failed to clear Supabase session:', err)
-          })
-        }
-      }, debounceMs)
+      } else {
+        // Actual logout — debounce and clear
+        const debounceMs = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? 2000 : 500
+        logoutDebounceRef.current = setTimeout(() => {
+          logoutDebounceRef.current = null
+          setExecutor(null)
+          setLoading(false)
+          if (lastWalletRef.current) {
+            lastWalletRef.current = null
+            linkedWalletRef.current = null
+            supabase.auth.signOut().catch((err: unknown) => {
+              console.warn('[Auth] Failed to clear Supabase session:', err)
+            })
+          }
+        }, debounceMs)
+      }
     }
 
     return () => {
@@ -600,7 +596,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         loadingTimeoutRef.current = null
       }
     }
-  }, [dynamicInitialized, walletAddress, fetchExecutor, linkWalletToSession, setUserType, enrichFromX])
+  }, [dynamicInitialized, walletAddress, isLoggedIn, fetchExecutor, linkWalletToSession, setUserType, enrichFromX, user])
 
   // --------------------------------------------------------------------------
   // Context Value

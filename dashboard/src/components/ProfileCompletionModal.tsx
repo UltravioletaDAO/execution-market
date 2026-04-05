@@ -68,7 +68,7 @@ export function ProfileCompletionModal({ onComplete, onSkip, executor }: Profile
   const [languages, setLanguages] = useState<string[]>(executor?.languages?.length ? executor.languages : ['Spanish'])
   const [locationCity, setLocationCity] = useState(executor?.location_city || '')
   const [locationCountry, setLocationCountry] = useState(executor?.location_country || '')
-  const [email, setEmail] = useState(executor?.email || '')
+  const [email, setEmail] = useState(user?.email || executor?.email || '')
 
   const isValid = displayName.trim().length > 0 && bio.trim().length > 0
 

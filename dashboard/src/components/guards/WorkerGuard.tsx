@@ -1,7 +1,7 @@
 // Execution Market: Worker Guard Component
 // Allows only workers to access the route, redirects agents to their dashboard
 
-import { type ReactNode } from 'react'
+import { type ReactNode, useState, useEffect } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 
@@ -46,10 +46,46 @@ export function WorkerGuard({
 }: WorkerGuardProps) {
   const { isAuthenticated, userType, loading } = useAuth()
   const location = useLocation()
+  const [timedOut, setTimedOut] = useState(false)
+
+  // Safety timeout: never show loading spinner for more than 10s
+  useEffect(() => {
+    if (!loading) {
+      setTimedOut(false)
+      return
+    }
+    const timeout = setTimeout(() => setTimedOut(true), 10_000)
+    return () => clearTimeout(timeout)
+  }, [loading])
 
   // Show loading state while checking authentication
-  if (loading) {
+  if (loading && !timedOut) {
     return <LoadingSpinner />
+  }
+
+  // Timed out — show retry option instead of infinite spinner
+  if (loading && timedOut) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">Taking longer than expected...</p>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+            >
+              Refresh
+            </button>
+            <button
+              onClick={() => window.location.href = '/'}
+              className="px-4 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+            >
+              Go Home
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   // Redirect to landing if not authenticated

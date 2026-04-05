@@ -68,9 +68,9 @@ export function Home() {
     taskSectionRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [])
 
-  const handleProfileComplete = useCallback(() => {
+  const handleProfileComplete = useCallback(async () => {
     setShowProfileCompletion(false)
-    refreshExecutor()
+    await refreshExecutor()
     navigate('/tasks')
   }, [navigate, refreshExecutor])
 
