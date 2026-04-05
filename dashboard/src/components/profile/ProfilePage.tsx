@@ -31,7 +31,7 @@ export function ProfilePage({ executor, onBack, onEditProfile, onLogout }: Profi
   }
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-4xl mx-auto space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <button
@@ -45,22 +45,34 @@ export function ProfilePage({ executor, onBack, onEditProfile, onLogout }: Profi
           <span className="text-sm font-medium">{t('common.back', 'Back')}</span>
         </button>
 
-        <button
-          onClick={onEditProfile}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-          </svg>
-          {t('profile.editProfile', 'Edit Profile')}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onEditProfile}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+            {t('profile.editProfile', 'Edit Profile')}
+          </button>
+
+          <button
+            onClick={onLogout}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            {t('profile.logout', 'Cerrar Sesion')}
+          </button>
+        </div>
       </div>
 
       {/* Profile header */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
         <div className="flex items-center gap-4">
           {/* Avatar */}
-          <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-lg flex-shrink-0">
             {executor.avatar_url ? (
               <img
                 src={executor.avatar_url}
@@ -198,34 +210,36 @@ export function ProfilePage({ executor, onBack, onEditProfile, onLogout }: Profi
         )}
       </div>
 
-      {/* Human Verification */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <h3 className="text-gray-900 font-semibold mb-3">
-          {t('profile.humanVerification', 'Human Verification')}
-        </h3>
-        <WorldIdVerification />
+      {/* Identity: World ID + ENS side by side */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <h3 className="text-gray-900 font-semibold mb-3">
+            {t('profile.humanVerification', 'Human Verification')}
+          </h3>
+          <WorldIdVerification />
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <h3 className="text-gray-900 font-semibold mb-3">
+            {t('profile.ensIdentity', 'ENS Identity')}
+          </h3>
+          <ENSLinkSection />
+        </div>
       </div>
 
-      {/* ENS Identity */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <h3 className="text-gray-900 font-semibold mb-3">
-          {t('profile.ensIdentity', 'ENS Identity')}
-        </h3>
-        <ENSLinkSection />
+      {/* Earnings + Reputation side by side */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <EarningsCard
+          earnings={earnings}
+          loading={earningsLoading}
+          onWithdraw={() => setShowWithdrawal(true)}
+        />
+
+        <ReputationCard
+          reputation={reputation}
+          loading={reputationLoading}
+        />
       </div>
-
-      {/* Earnings card */}
-      <EarningsCard
-        earnings={earnings}
-        loading={earningsLoading}
-        onWithdraw={() => setShowWithdrawal(true)}
-      />
-
-      {/* Reputation card */}
-      <ReputationCard
-        reputation={reputation}
-        loading={reputationLoading}
-      />
 
       {/* Task history */}
       <TaskHistory
@@ -234,19 +248,6 @@ export function ProfilePage({ executor, onBack, onEditProfile, onLogout }: Profi
         hasMore={hasMore}
         onLoadMore={loadMore}
       />
-
-      {/* Logout */}
-      <div className="pt-2 pb-4">
-        <button
-          onClick={onLogout}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
-          {t('profile.logout', 'Cerrar Sesion')}
-        </button>
-      </div>
 
       {/* Withdrawal modal */}
       {showWithdrawal && (
