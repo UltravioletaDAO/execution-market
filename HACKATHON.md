@@ -103,4 +103,4 @@ Same integration as above — the creative angle is using ENS as **AI agent iden
 
 ---
 
-*Built by [Ultravioleta DAO](https://github.com/UltravioletaDAO) — Medellin, Colombia*
+*Built by [Ultravioleta DAO](https://github.com/UltravioletaDAO) — From latam to the world*
