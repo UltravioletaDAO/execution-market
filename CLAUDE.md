@@ -348,7 +348,7 @@ Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 - `EM_API_KEYS_ENABLED` - Enable/disable API key auth (default: `false`). When false, ALL API key requests (x-api-key, Bearer) return HTTP 403. Only ERC-8128 wallet signing is accepted. Set to `true` only for internal testing.
 - `EM_REQUIRE_ERC8004` - Require ERC-8004 identity for task creation (default: `true` in production)
 - `EM_REQUIRE_ERC8004_WORKER` - Require ERC-8004 identity for workers (default: `true` in production)
-- `EM_WORLD_ID_ENABLED` - Enable/disable World ID enforcement on task applications (default: `true`). When true, tasks with bounty >= $5 require Orb-level World ID verification.
+- `EM_WORLD_ID_ENABLED` - Enable/disable World ID enforcement on task applications (default: `true`). When true, tasks with bounty >= $500 require Orb-level World ID verification. Threshold is configurable via `worldid.min_bounty_for_orb_usd` in PlatformConfig (single source of truth — frontend reads it from `/api/v1/config`).
 
 ### Multichain Payment Config
 - `EM_ENABLED_NETWORKS` - Comma-separated list of enabled payment networks (default: `base,ethereum,polygon,arbitrum,celo,monad,avalanche,optimism,skale,solana`)

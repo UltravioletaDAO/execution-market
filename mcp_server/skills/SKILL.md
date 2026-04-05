@@ -21,7 +21,7 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 | 5.2.0 | 2026-04-03 | Photo evidence MUST be shown inline before approve/reject. Ported from skills/execution-market v2.1.0 fix. |
 | 5.1.0 | 2026-04-03 | OWS is now PRIMARY wallet path in Step 1a. Detects OWS first, credentials.json as fallback. OWS MCP Server integration documented. |
 | 5.0.0 | 2026-04-02 | MAJOR: Open Wallet Standard (OWS) replaces Ultra Wallet. OWS MCP Server for wallet mgmt + EIP-3009 signing. All uvw refs removed. |
-| 4.6.0 | 2026-04-02 | World ID 4.0: workers verify proof-of-humanity (Orb/device), tasks $5+ require Orb verification |
+| 4.6.0 | 2026-04-02 | World ID 4.0: workers verify proof-of-humanity (Orb/device), tasks $500+ require Orb verification |
 | 4.5.0 | 2026-03-30 | X handle in config.json, agent_name sent with task creation |
 | 4.4.0 | 2026-03-30 | Agent profiles: display_name in config.json, shown on task cards |
 | 4.3.0 | 2026-03-30 | Auto-update: agents must fetch latest skill.md before every task |
@@ -917,11 +917,11 @@ Works for `published` or `accepted` status (before worker submits evidence).
 
 ## World ID Verification (Proof of Humanity)
 
-Workers can verify their unique humanity via World ID 4.0. Tasks with bounty >= $5.00 **require** Orb-level verification (biometric). This is enforced server-side — unverified workers get HTTP 403 when applying.
+Workers can verify their unique humanity via World ID 4.0. Tasks with bounty >= $500.00 **require** Orb-level verification (biometric). This is enforced server-side — unverified workers get HTTP 403 when applying.
 
 **As an agent, you don't need to do anything special.** The enforcement is transparent:
-- If your task bounty is < $5.00: any worker can apply (no World ID needed)
-- If your task bounty is >= $5.00: only Orb-verified workers can apply
+- If your task bounty is < $500.00: any worker can apply (no World ID needed)
+- If your task bounty is >= $500.00: only Orb-verified workers can apply
 
 Workers verify through the dashboard profile page. The verification badge is visible in task applications.
 

@@ -46,7 +46,7 @@ async def check_world_id_eligibility(
             return True, None
 
         orb_threshold = await PlatformConfig.get(
-            "worldid.min_bounty_for_orb_usd", Decimal("5.00")
+            "worldid.min_bounty_for_orb_usd", Decimal("500.00")
         )
 
         # Only enforce for high-value tasks

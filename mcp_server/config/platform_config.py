@@ -98,7 +98,7 @@ class PlatformConfig:
         # World ID 4.0 integration
         "feature.world_id_enabled": True,
         "feature.world_id_required_for_high_value": True,
-        "worldid.min_bounty_for_orb_usd": Decimal("5.00"),
+        "worldid.min_bounty_for_orb_usd": Decimal("500.00"),
         # MeshRelay integration
         "feature.meshrelay_dynamic_channels": False,
         "feature.meshrelay_relay_chains": False,

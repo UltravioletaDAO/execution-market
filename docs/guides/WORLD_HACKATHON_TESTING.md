@@ -348,7 +348,7 @@ WHERE world_id_verified = true;
 
 ## 5. Test de Enforcement (High-Value Tasks)
 
-> Las tareas con bounty >= $5 requieren World ID Orb verification. Este es el enforcement real que convierte World ID en anti-sybil con dientes.
+> Las tareas con bounty >= $500 requieren World ID Orb verification. Este es el enforcement real que convierte World ID en anti-sybil con dientes.
 
 **Configuracion:**
 
@@ -356,11 +356,11 @@ WHERE world_id_verified = true;
 |---|---|---|
 | `EM_WORLD_ID_ENABLED` | `true` | Activa enforcement (default) |
 | `feature.world_id_required_for_high_value` | `true` | Habilita regla de bounty (default) |
-| `worldid.min_bounty_for_orb_usd` | `5.00` | Threshold de bounty para requerir Orb |
+| `worldid.min_bounty_for_orb_usd` | `500.00` | Threshold de bounty para requerir Orb |
 
-### Paso 1: Crear una tarea con bounty >= $5
+### Paso 1: Crear una tarea con bounty >= $500
 
-Crear la tarea via API o dashboard con `bounty_usd >= 5.00`.
+Crear la tarea via API o dashboard con `bounty_usd >= 500.00`.
 
 ### Paso 2: Intentar aplicar con un worker NO verificado
 

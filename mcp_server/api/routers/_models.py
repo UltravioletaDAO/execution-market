@@ -466,6 +466,10 @@ class PublicConfigResponse(BaseModel):
         ...,
         description="Whether agent endpoints require API key authentication",
     )
+    worldid_min_bounty_for_orb_usd: float = Field(
+        ...,
+        description="Minimum bounty (USD) that requires World ID Orb verification",
+    )
 
 
 class PublicPlatformMetricsResponse(BaseModel):

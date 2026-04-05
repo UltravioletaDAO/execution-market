@@ -165,9 +165,15 @@ async def get_public_config():
 
     require_api_key = os.environ.get("EM_REQUIRE_API_KEY", "false").lower() == "true"
 
+    worldid_threshold = 500.00  # default fallback
+
     if CONFIG_AVAILABLE:
         try:
             config = await PlatformConfig.get_public_config()
+            wid_val = await PlatformConfig.get(
+                "worldid.min_bounty_for_orb_usd", Decimal("500.00")
+            )
+            worldid_threshold = float(wid_val)
             return PublicConfigResponse(
                 min_bounty_usd=float(config.get("min_usd", 0.01)),
                 max_bounty_usd=float(config.get("max_usd", 10000.00)),
@@ -175,6 +181,7 @@ async def get_public_config():
                 supported_tokens=config.get("supported_tokens", ["USDC"]),
                 preferred_network=config.get("preferred_network", "base"),
                 require_api_key=require_api_key,
+                worldid_min_bounty_for_orb_usd=worldid_threshold,
             )
         except Exception as e:
             logger.warning(f"Error loading public config: {e}")
@@ -186,6 +193,7 @@ async def get_public_config():
         supported_tokens=["USDC", "EURC", "USDT", "PYUSD", "AUSD"],
         preferred_network="base",
         require_api_key=require_api_key,
+        worldid_min_bounty_for_orb_usd=worldid_threshold,
     )
 
 

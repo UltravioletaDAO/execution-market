@@ -9,8 +9,7 @@ import { ApplicationResultView } from './ApplicationResultView'
 import type { ApplicationResultState } from './ApplicationResultView'
 import { applyToTask, ApplicationError } from '../services/tasks'
 import type { Task } from '../types/database'
-
-const WORLD_ID_BOUNTY_THRESHOLD = 5
+import { getWorldIdBountyThreshold } from '../hooks/usePlatformConfig'
 
 interface TaskApplicationModalProps {
   task: Task
@@ -99,7 +98,7 @@ export function TaskApplicationModal({ task, hasAlreadyApplied, onClose, onSucce
       })
 
       // Determine success state based on World ID status and bounty
-      const isHighValue = task.bounty_usd >= WORLD_ID_BOUNTY_THRESHOLD
+      const isHighValue = task.bounty_usd >= getWorldIdBountyThreshold()
       const isWorldIdVerified = executor.world_id_verified === true
 
       if (!isWorldIdVerified && !isHighValue) {
@@ -173,7 +172,7 @@ export function TaskApplicationModal({ task, hasAlreadyApplied, onClose, onSucce
           <div className="flex-1 overflow-y-auto px-6 pb-4">
             <ApplicationResultView
               state={resultState}
-              worldIdThreshold={WORLD_ID_BOUNTY_THRESHOLD}
+              worldIdThreshold={getWorldIdBountyThreshold()}
               errorMessage={error || undefined}
               onClose={onClose}
               onRetry={handleRetry}

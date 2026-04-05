@@ -8,6 +8,7 @@ import { memo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Task, TaskStatus } from '../types/database'
 import { useTranslation as useCustomTranslation } from '../i18n/hooks/useTranslation'
+import { getWorldIdBountyThreshold } from '../hooks/usePlatformConfig'
 import { CATEGORY_ICONS } from '../constants/categories'
 import { getNetworkDisplayName } from '../utils/blockchain'
 import { NETWORK_BY_KEY, getNetworkLogo } from '../config/networks'
@@ -193,7 +194,7 @@ export const TaskCard = memo(function TaskCard({ task, onClick }: TaskCardProps)
       )}
 
       {/* World ID required badge */}
-      {task.bounty_usd >= 5.0 && (
+      {task.bounty_usd >= getWorldIdBountyThreshold() && (
         <div className="mt-2 flex items-center">
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">

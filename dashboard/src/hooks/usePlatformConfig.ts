@@ -16,11 +16,13 @@ interface PlatformConfig {
   supported_tokens: string[]
   preferred_network: string
   require_api_key: boolean
+  worldid_min_bounty_for_orb_usd: number
 }
 
 interface UsePlatformConfigReturn {
   config: PlatformConfig | null
   requireApiKey: boolean
+  worldIdBountyThreshold: number
   loading: boolean
   error: string | null
 }
@@ -42,6 +44,14 @@ async function fetchConfig(): Promise<PlatformConfig> {
  */
 export function getRequireApiKey(): boolean {
   return cachedConfig?.require_api_key ?? true
+}
+
+/**
+ * Non-hook accessor for World ID bounty threshold.
+ * Returns cached value or default (500) if not yet fetched.
+ */
+export function getWorldIdBountyThreshold(): number {
+  return cachedConfig?.worldid_min_bounty_for_orb_usd ?? 500
 }
 
 /**
@@ -98,6 +108,7 @@ export function usePlatformConfig(): UsePlatformConfigReturn {
   return {
     config,
     requireApiKey: config?.require_api_key ?? true,
+    worldIdBountyThreshold: config?.worldid_min_bounty_for_orb_usd ?? 500,
     loading,
     error,
   }

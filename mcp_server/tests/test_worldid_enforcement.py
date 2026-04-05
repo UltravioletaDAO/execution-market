@@ -50,7 +50,7 @@ class TestCheckWorldIdEligibility:
 
         db = _mock_db_client(world_id_verified=False)
         allowed, err = await check_world_id_eligibility(
-            "exec-1", Decimal("1.00"), db_client=db
+            "exec-1", Decimal("100.00"), db_client=db
         )
 
         assert allowed is True
@@ -63,7 +63,7 @@ class TestCheckWorldIdEligibility:
 
         db = _mock_db_client(world_id_verified=True, world_id_level="orb")
         allowed, err = await check_world_id_eligibility(
-            "exec-1", Decimal("10.00"), db_client=db
+            "exec-1", Decimal("1000.00"), db_client=db
         )
 
         assert allowed is True
@@ -76,7 +76,7 @@ class TestCheckWorldIdEligibility:
 
         db = _mock_db_client(world_id_verified=False)
         allowed, err = await check_world_id_eligibility(
-            "exec-1", Decimal("10.00"), db_client=db
+            "exec-1", Decimal("1000.00"), db_client=db
         )
 
         assert allowed is False
@@ -92,7 +92,7 @@ class TestCheckWorldIdEligibility:
 
         db = _mock_db_client(world_id_verified=True, world_id_level="device")
         allowed, err = await check_world_id_eligibility(
-            "exec-1", Decimal("5.00"), db_client=db
+            "exec-1", Decimal("500.00"), db_client=db
         )
 
         assert allowed is False
@@ -106,7 +106,7 @@ class TestCheckWorldIdEligibility:
 
         db = _mock_db_client(world_id_verified=False)
         allowed, err = await check_world_id_eligibility(
-            "exec-1", Decimal("5.00"), db_client=db
+            "exec-1", Decimal("500.00"), db_client=db
         )
 
         assert allowed is False
@@ -148,7 +148,7 @@ class TestCheckWorldIdEligibility:
 
         db = _mock_db_client(executor_found=False)
         allowed, err = await check_world_id_eligibility(
-            "exec-nonexistent", Decimal("10.00"), db_client=db
+            "exec-nonexistent", Decimal("1000.00"), db_client=db
         )
 
         assert allowed is False

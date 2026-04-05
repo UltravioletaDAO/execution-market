@@ -285,13 +285,13 @@ Cuando un worker intenta aplicar a una tarea (`POST /api/v1/tasks/{id}/apply`), 
 ```
 SI world_id_enabled == true
   Y world_id_required_for_high_value == true
-  Y bounty_usd >= worldid.min_bounty_for_orb_usd (default: $5.00)
+  Y bounty_usd >= worldid.min_bounty_for_orb_usd (default: $500.00)
 ENTONCES
   El worker DEBE tener world_id_verified == true Y world_id_level == "orb"
   Si no, HTTP 403 con error "world_id_orb_required"
 ```
 
-**Ejemplo**: Una tarea con bounty de $8.00 requiere verificacion Orb. Una tarea de $3.00 no la requiere.
+**Ejemplo**: Una tarea con bounty de $600.00 requiere verificacion Orb. Una tarea de $100.00 no la requiere.
 
 ### Cambiar el threshold
 
@@ -341,7 +341,7 @@ Todas las flags se leen de `platform_config` (Supabase) con fallback a defaults 
 |------|---------|-------------|
 | `feature.world_id_enabled` | `true` | Habilita toda la integracion World ID (endpoints + enforcement) |
 | `feature.world_id_required_for_high_value` | `true` | Activa el enforcement de Orb para tareas de alto valor |
-| `worldid.min_bounty_for_orb_usd` | `5.00` | Bounty minimo en USD que requiere verificacion Orb |
+| `worldid.min_bounty_for_orb_usd` | `500.00` | Bounty minimo en USD que requiere verificacion Orb |
 
 Adicionalmente, la variable de entorno `EM_WORLD_ID_ENABLED` controla el enforcement en `apply_to_task()`. Si es `false`, el bloque de enforcement se salta completamente (independiente de las flags de DB).
 

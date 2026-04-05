@@ -762,8 +762,8 @@ class TestApplyToTask:
         self, mock_db, sample_task, sample_executor, sample_task_id, sample_executor_id
     ):
         """MCP tool must block unverified workers on high-value tasks."""
-        # Task with bounty >= $5
-        sample_task["bounty_usd"] = 10.00
+        # Task with bounty >= $500
+        sample_task["bounty_usd"] = 1000.00
         mock_db.get_task.return_value = sample_task
         mock_db.get_executor_stats.return_value = None  # skip self-application check
 
@@ -778,7 +778,7 @@ class TestApplyToTask:
                 False,
                 {
                     "error": "world_id_orb_required",
-                    "message": "Tasks with bounty >= $5.00 require World ID Orb verification.",
+                    "message": "Tasks with bounty >= $500.00 require World ID Orb verification.",
                     "required_level": "orb",
                     "current_level": None,
                 },
