@@ -20,6 +20,21 @@ logger = logging.getLogger(__name__)
 # Configurable interval (seconds) via environment, default 60
 CHECK_INTERVAL = int(os.environ.get("TASK_EXPIRATION_INTERVAL", "60"))
 
+# Circuit breaker: track consecutive failures for health reporting
+_consecutive_failures = 0
+_MAX_CONSECUTIVE_FAILURES = 5
+_last_success_time: float = 0.0
+
+
+def get_expiration_health() -> dict:
+    """Return health status for the expiration job (used by /health endpoint)."""
+    if _consecutive_failures >= _MAX_CONSECUTIVE_FAILURES:
+        return {"status": "unhealthy", "consecutive_failures": _consecutive_failures}
+    if _last_success_time == 0.0:
+        return {"status": "starting", "consecutive_failures": 0}
+    return {"status": "healthy", "consecutive_failures": _consecutive_failures}
+
+
 # Payout failure reasons that are permanent and should not be retried.
 # Tasks with these reasons get expired instead of retried every cycle.
 _PERMANENT_FAILURE_REASONS = frozenset(
@@ -382,8 +397,25 @@ async def run_task_expiration_loop() -> None:
             else:
                 logger.debug("[expiration] No expired tasks found")
 
+            # Reset circuit breaker on success
+            global _consecutive_failures, _last_success_time
+            _consecutive_failures = 0
+            _last_success_time = _time.time()
+
         except Exception as exc:
-            logger.error("[expiration] Error in expiration loop: %s", exc)
+            _consecutive_failures += 1
+            logger.error(
+                "[expiration] Error in expiration loop (%d/%d consecutive): %s",
+                _consecutive_failures,
+                _MAX_CONSECUTIVE_FAILURES,
+                exc,
+            )
+            if _consecutive_failures >= _MAX_CONSECUTIVE_FAILURES:
+                logger.critical(
+                    "[expiration] Circuit breaker OPEN — %d consecutive failures. "
+                    "Health check will report unhealthy.",
+                    _consecutive_failures,
+                )
 
         from audit import audit_log
 

@@ -82,7 +82,12 @@ def _is_cache_entry_valid(key_hash: str) -> bool:
     cached_at = _api_key_cache_timestamps.get(key_hash)
     if cached_at is None:
         return False
-    return (time.time() - cached_at) < _API_KEY_CACHE_TTL_SECONDS
+    if (time.time() - cached_at) >= _API_KEY_CACHE_TTL_SECONDS:
+        # Expired — clean up both dicts to prevent unbounded growth
+        _api_key_cache.pop(key_hash, None)
+        _api_key_cache_timestamps.pop(key_hash, None)
+        return False
+    return True
 
 
 async def verify_api_key(

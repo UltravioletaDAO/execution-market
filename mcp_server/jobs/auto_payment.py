@@ -32,6 +32,22 @@ RETRY_INTERVAL = int(os.environ.get("PAYMENT_RETRY_INTERVAL", "60"))
 MAX_BATCH = int(os.environ.get("PAYMENT_RETRY_BATCH_SIZE", "5"))
 MAX_RETRIES_PER_SUBMISSION = int(os.environ.get("PAYMENT_RETRY_MAX_ATTEMPTS", "10"))
 
+# Health pulse for background job monitoring
+import time as _time
+
+_last_cycle_time: float = 0.0
+
+
+def get_auto_payment_health() -> dict:
+    """Return health status for the auto-payment job."""
+    if _last_cycle_time == 0.0:
+        return {"status": "starting"}
+    age = _time.time() - _last_cycle_time
+    if age > RETRY_INTERVAL * 3:
+        return {"status": "stale", "last_cycle_age_s": round(age)}
+    return {"status": "healthy", "last_cycle_age_s": round(age)}
+
+
 # Task statuses where payment retry should NOT proceed
 TERMINAL_TASK_STATUSES = {"cancelled", "expired", "failed"}
 
@@ -288,11 +304,14 @@ async def _retry_settlement(client, submission: dict) -> bool:
             return False
 
         sdk = get_sdk()
-        result = await sdk.settle_task_payment(
-            task_id=task_id or "",
-            payment_header=payment_header,
-            worker_address=worker_address,
-            bounty_amount=bounty,
+        result = await asyncio.wait_for(
+            sdk.settle_task_payment(
+                task_id=task_id or "",
+                payment_header=payment_header,
+                worker_address=worker_address,
+                bounty_amount=bounty,
+            ),
+            timeout=120,
         )
 
         if not result.get("success"):
@@ -369,6 +388,13 @@ async def _retry_settlement(client, submission: dict) -> bool:
     except ImportError:
         logger.warning("[payment-retry] x402 SDK not importable, skipping")
         return False
+    except asyncio.TimeoutError:
+        logger.warning(
+            "[payment-retry] Settlement timed out (120s) for submission %s",
+            submission_id,
+        )
+        _increment_retry_count(client, submission_id)
+        return False
     except Exception as exc:
         logger.error(
             "[payment-retry] Unexpected error settling submission %s: %s",
@@ -382,22 +408,27 @@ async def _retry_settlement(client, submission: dict) -> bool:
 def _increment_retry_count(client, submission_id: str) -> None:
     """Best-effort increment of retry_count on submissions (column may not exist)."""
     try:
-        # Fetch current count
-        result = (
-            client.table("submissions")
-            .select("retry_count")
-            .eq("id", submission_id)
-            .limit(1)
-            .execute()
-        )
-        current = 0
-        if result.data:
-            current = result.data[0].get("retry_count") or 0
-        client.table("submissions").update(
-            {
-                "retry_count": current + 1,
-            }
-        ).eq("id", submission_id).execute()
+        # Atomic increment via RPC to avoid race conditions
+        try:
+            client.rpc(
+                "increment_retry_count",
+                {"p_submission_id": submission_id},
+            ).execute()
+        except Exception:
+            # Fallback: direct update if RPC not available
+            result = (
+                client.table("submissions")
+                .select("retry_count")
+                .eq("id", submission_id)
+                .limit(1)
+                .execute()
+            )
+            current = 0
+            if result.data:
+                current = result.data[0].get("retry_count") or 0
+            client.table("submissions").update({"retry_count": current + 1}).eq(
+                "id", submission_id
+            ).execute()
     except Exception:
         pass  # Column may not exist yet
 
@@ -501,13 +532,18 @@ async def run_auto_payment_loop() -> None:
                     "[payment-retry] Found %d orphaned submission(s) to retry",
                     len(orphaned),
                 )
-                settled = 0
-                for submission in orphaned:
-                    success = await _retry_settlement(client, submission)
-                    if success:
-                        settled += 1
-                    # Small delay between retries to avoid rate limits
-                    await asyncio.sleep(2)
+                # Process concurrently with a semaphore to limit parallelism
+                sem = asyncio.Semaphore(5)
+
+                async def _bounded_retry(sub):
+                    async with sem:
+                        return await _retry_settlement(client, sub)
+
+                results = await asyncio.gather(
+                    *[_bounded_retry(s) for s in orphaned],
+                    return_exceptions=True,
+                )
+                settled = sum(1 for r in results if r is True)
 
                 if settled > 0:
                     logger.info(
@@ -521,4 +557,6 @@ async def run_auto_payment_loop() -> None:
         except Exception as exc:
             logger.error("[payment-retry] Error in retry loop: %s", exc)
 
+        global _last_cycle_time
+        _last_cycle_time = _time.time()
         await asyncio.sleep(RETRY_INTERVAL)

@@ -9,7 +9,7 @@ on:
 
 concurrency:
   group: deploy-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 env:
   AWS_REGION: us-east-2

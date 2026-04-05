@@ -311,17 +311,19 @@ class IRCPool:
     # ------------------------------------------------------------------
 
     async def _reconnect(self) -> None:
-        """Reconnect with exponential backoff."""
+        """Reconnect with exponential backoff (max 10 attempts)."""
         backoff = 2.0
         max_backoff = 120.0
+        max_attempts = 10
         attempt = 0
 
-        while not self._shutdown:
+        while not self._shutdown and attempt < max_attempts:
             attempt += 1
             self._stats["reconnects"] += 1
             logger.info(
-                "IRCPool: reconnecting (attempt %d, backoff %.0fs)",
+                "IRCPool: reconnecting (attempt %d/%d, backoff %.0fs)",
                 attempt,
+                max_attempts,
                 backoff,
             )
 
@@ -337,6 +339,14 @@ class IRCPool:
                 return
 
             backoff = min(backoff * 2, max_backoff)
+
+        if attempt >= max_attempts:
+            logger.error(
+                "IRCPool: gave up reconnecting after %d attempts. "
+                "Chat relay is DOWN. Restart the server to retry.",
+                max_attempts,
+            )
+            self.is_connected = False
 
     # ------------------------------------------------------------------
     # Channel subscription API

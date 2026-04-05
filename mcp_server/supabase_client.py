@@ -80,6 +80,22 @@ def get_client() -> Client:
     return _client
 
 
+def close_client() -> None:
+    """Close the Supabase client and release resources."""
+    global _client
+    if _client is not None:
+        try:
+            # postgrest-py keeps an httpx client internally
+            if hasattr(_client, "postgrest") and hasattr(_client.postgrest, "aclose"):
+                import asyncio
+
+                asyncio.get_event_loop().create_task(_client.postgrest.aclose())
+        except Exception:
+            pass
+        _client = None
+        logger.info("Supabase client closed")
+
+
 # Alias for backwards compatibility
 get_supabase_client = get_client
 

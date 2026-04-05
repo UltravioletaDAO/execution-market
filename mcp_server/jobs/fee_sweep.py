@@ -14,10 +14,25 @@ Runs every FEE_SWEEP_INTERVAL seconds (default: 21600 = 6 hours).
 import asyncio
 import logging
 import os
+import time as _time
 
 logger = logging.getLogger(__name__)
 
 FEE_SWEEP_INTERVAL = int(os.environ.get("FEE_SWEEP_INTERVAL", "21600"))  # 6 hours
+
+# Health pulse
+_last_cycle_time: float = 0.0
+
+
+def get_fee_sweep_health() -> dict:
+    """Return health status for the fee sweep job."""
+    if _last_cycle_time == 0.0:
+        return {"status": "starting"}
+    age = _time.time() - _last_cycle_time
+    if age > FEE_SWEEP_INTERVAL * 2:
+        return {"status": "stale", "last_cycle_age_s": round(age)}
+    return {"status": "healthy", "last_cycle_age_s": round(age)}
+
 
 # EVM networks with deployed PaymentOperator contracts (Fase 5).
 # Solana excluded — uses Fase 1 only (no operator).
@@ -68,8 +83,11 @@ async def run_fee_sweep_loop() -> None:
 
             for network in SWEEP_NETWORKS:
                 try:
-                    tx_hash = await dispatcher._distribute_operator_fees(
-                        network=network, token="USDC"
+                    tx_hash = await asyncio.wait_for(
+                        dispatcher._distribute_operator_fees(
+                            network=network, token="USDC"
+                        ),
+                        timeout=120,
                     )
                     if tx_hash:
                         swept += 1
@@ -107,6 +125,8 @@ async def run_fee_sweep_loop() -> None:
                             logger.debug("[fee-sweep] checkpoint update: %s", ckpt_err)
                     else:
                         skipped += 1
+                except asyncio.TimeoutError:
+                    logger.warning("[fee-sweep] %s: timed out after 120s", network)
                 except Exception as e:
                     logger.warning("[fee-sweep] %s: error: %s", network, e)
 
@@ -125,4 +145,6 @@ async def run_fee_sweep_loop() -> None:
         except Exception as exc:
             logger.error("[fee-sweep] Error in sweep loop: %s", exc)
 
+        global _last_cycle_time
+        _last_cycle_time = _time.time()
         await asyncio.sleep(FEE_SWEEP_INTERVAL)

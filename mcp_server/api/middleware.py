@@ -21,13 +21,28 @@ logger = logging.getLogger(__name__)
 # Global rate limiter instance
 _rate_limiter: Optional[RateLimiter] = None
 
-# A2A-specific rate limit (in-memory sliding window)
+# A2A-specific rate limit (in-memory sliding window, bounded)
 _a2a_requests: dict = {}  # ip -> list of timestamps
+_a2a_check_count = 0
+_A2A_MAX_IPS = 5000
 
 
 def _check_a2a_limit(ip: str, limit: int = 5, window: int = 150) -> tuple:
     """Check A2A-specific rate limit. Returns (is_limited, retry_after_seconds)."""
+    global _a2a_check_count
     now = time.time()
+
+    # Periodic cleanup: evict stale IPs every 1000 checks
+    _a2a_check_count += 1
+    if _a2a_check_count % 1000 == 0:
+        cutoff_global = now - window
+        stale = [k for k, v in _a2a_requests.items() if not v or v[-1] < cutoff_global]
+        for k in stale:
+            del _a2a_requests[k]
+        # Hard cap
+        if len(_a2a_requests) > _A2A_MAX_IPS:
+            _a2a_requests.clear()
+
     timestamps = _a2a_requests.setdefault(ip, [])
     cutoff = now - window
     timestamps[:] = [t for t in timestamps if t > cutoff]

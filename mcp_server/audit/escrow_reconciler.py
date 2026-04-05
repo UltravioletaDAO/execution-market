@@ -68,6 +68,32 @@ async def reconcile_escrows() -> dict:
                     issues=issues,
                     severity="WARNING",
                 )
+
+                # Corrective action: mark phantom escrows as failed
+                if "deposited_but_zero_amount" in issues:
+                    try:
+                        client.table("escrows").update(
+                            {
+                                "status": "failed",
+                                "metadata": {
+                                    **(esc_meta or {}),
+                                    "reconciler_action": "auto_failed",
+                                    "reconciler_reason": "deposited_but_zero_amount",
+                                },
+                            }
+                        ).eq("task_id", task_id).execute()
+                        audit_log(
+                            "AUDIT_ESCROW_AUTO_CORRECTED",
+                            task_id=task_id,
+                            action="status_set_to_failed",
+                            reason="deposited_but_zero_amount",
+                        )
+                    except Exception as fix_err:
+                        logger.warning(
+                            "Escrow auto-correction failed for task %s: %s",
+                            task_id,
+                            fix_err,
+                        )
             else:
                 passed += 1
 

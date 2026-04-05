@@ -153,7 +153,7 @@ async def lifespan(app: FastAPI):
         os.environ.get("FEE_SWEEP_INTERVAL", "21600"),
     )
 
-    asyncio.create_task(run_escrow_reconciliation_loop())  # noqa: RUF006
+    reconciler_task = asyncio.create_task(run_escrow_reconciliation_loop())
     logger.info(
         "Escrow reconciliation background job scheduled (every %ss)",
         os.environ.get("EM_RECONCILE_INTERVAL", "900"),
@@ -161,6 +161,7 @@ async def lifespan(app: FastAPI):
 
     # Initialize MCP session manager
     # The session manager must be running for Streamable HTTP to work
+    mcp_session_healthy = False
     if MCP_HTTP_AVAILABLE:
         try:
             # Get the session manager after app is created
@@ -170,6 +171,8 @@ async def lifespan(app: FastAPI):
             # Run the session manager as async context manager
             async with session_manager.run():
                 logger.info("MCP session manager started successfully")
+                mcp_session_healthy = True
+                app.state.mcp_session_healthy = True
                 from audit import audit_log
 
                 audit_log(
@@ -178,28 +181,24 @@ async def lifespan(app: FastAPI):
                 yield
                 logger.info("Shutting down MCP session manager...")
         except Exception as e:
-            logger.error(f"Failed to start MCP session manager: {e}")
+            logger.error(
+                "MCP session manager FAILED — MCP transport unavailable: %s", e
+            )
+            app.state.mcp_session_healthy = False
             yield
     else:
         yield
 
     # Cancel background jobs on shutdown
-    expiration_task.cancel()
-    auto_payment_task.cancel()
-    fee_sweep_task.cancel()
-    try:
-        await expiration_task
-    except asyncio.CancelledError:
-        pass
-    try:
-        await auto_payment_task
-    except asyncio.CancelledError:
-        pass
-    try:
-        await fee_sweep_task
-    except asyncio.CancelledError:
-        pass
-    logger.info("Background jobs stopped")
+    _bg_tasks = [expiration_task, auto_payment_task, fee_sweep_task, reconciler_task]
+    for task in _bg_tasks:
+        task.cancel()
+    for task in _bg_tasks:
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+    logger.info("Background jobs stopped (4/4 cancelled)")
 
     # Stop MeshRelay adapter
     if meshrelay_adapter:
@@ -209,6 +208,9 @@ async def lifespan(app: FastAPI):
     # Stop chat relay
     if chat_resources and CHAT_AVAILABLE and teardown_chat:
         await teardown_chat(chat_resources)
+
+    # Close Supabase client to release connections
+    db.close_client()
 
     logger.info("Shutting down Execution Market MCP Server")
 
@@ -849,12 +851,18 @@ class WorkSubmission(BaseModel):
 async def health_check():
     """Health check endpoint for load balancers and monitoring."""
 
-    # Check Supabase connection
+    # Check Supabase connection (with timeout to prevent health check hang)
     supabase_status = "healthy"
     try:
         client = db.get_client()
-        # Simple query to verify connection
-        client.table("tasks").select("id").limit(1).execute()
+        await asyncio.wait_for(
+            asyncio.to_thread(
+                lambda: client.table("tasks").select("id").limit(1).execute()
+            ),
+            timeout=5.0,
+        )
+    except asyncio.TimeoutError:
+        supabase_status = "timeout (>5s)"
     except Exception as e:
         supabase_status = f"unhealthy: {str(e)[:50]}"
 
@@ -866,16 +874,26 @@ async def health_check():
     x402_status = "disabled"
     if x402_sdk:
         try:
-            health = await x402_sdk.health_check()
+            health = await asyncio.wait_for(x402_sdk.health_check(), timeout=5.0)
             x402_status = "healthy" if health.get("facilitator_healthy") else "degraded"
+        except asyncio.TimeoutError:
+            x402_status = "timeout"
         except Exception:
             logger.exception("x402 SDK health check failed")
             x402_status = "error"
     elif X402_SDK_AVAILABLE:
         x402_status = "not_configured"
 
-    # MCP Streamable HTTP status
-    mcp_status = "healthy" if MCP_HTTP_AVAILABLE else "disabled"
+    # MCP Streamable HTTP status (tracks actual session manager state)
+    mcp_status = "disabled"
+    if MCP_HTTP_AVAILABLE:
+        mcp_session_ok = getattr(app.state, "mcp_session_healthy", None)
+        if mcp_session_ok is True:
+            mcp_status = "healthy"
+        elif mcp_session_ok is False:
+            mcp_status = "error"
+        else:
+            mcp_status = "unknown"
 
     # ERC-8004 status (Base-first via facilitator)
     erc8004_status = "disabled"
@@ -909,8 +927,37 @@ async def health_check():
     dynamic_env_id = os.environ.get("VITE_DYNAMIC_ENVIRONMENT_ID", "")
     dynamic_status = "configured" if dynamic_env_id else "not_configured"
 
+    # Background jobs health pulse
+    bg_jobs = {}
+    try:
+        from jobs.task_expiration import get_expiration_health
+
+        bg_jobs["task_expiration"] = get_expiration_health()
+    except Exception:
+        bg_jobs["task_expiration"] = {"status": "import_error"}
+    try:
+        from jobs.auto_payment import get_auto_payment_health
+
+        bg_jobs["auto_payment"] = get_auto_payment_health()
+    except Exception:
+        bg_jobs["auto_payment"] = {"status": "import_error"}
+    try:
+        from jobs.fee_sweep import get_fee_sweep_health
+
+        bg_jobs["fee_sweep"] = get_fee_sweep_health()
+    except Exception:
+        bg_jobs["fee_sweep"] = {"status": "import_error"}
+
+    # Overall status: degraded if any critical service is down
+    any_job_unhealthy = any(j.get("status") == "unhealthy" for j in bg_jobs.values())
+    overall = "healthy"
+    if supabase_status != "healthy":
+        overall = "degraded"
+    if any_job_unhealthy:
+        overall = "degraded"
+
     return HealthResponse(
-        status="healthy" if supabase_status == "healthy" else "degraded",
+        status=overall,
         version="0.1.0",
         timestamp=datetime.now(timezone.utc).isoformat(),
         environment=os.environ.get("ENVIRONMENT", "development"),
@@ -922,6 +969,7 @@ async def health_check():
             "erc8004": erc8004_status,  # Facilitator-backed reputation
             "chat_relay": chat_status,
             "dynamic": dynamic_status,  # Dynamic.xyz auth SDK env
+            "background_jobs": bg_jobs,
         },
     )
 

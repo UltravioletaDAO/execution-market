@@ -188,6 +188,11 @@ class WebSocketManager:
         self._user_connections: Dict[str, Set[str]] = defaultdict(set)
         self._room_connections: Dict[str, Set[str]] = defaultdict(set)
 
+        # Global connection limit to prevent resource exhaustion
+        self.max_total_connections = int(
+            os.environ.get("WS_MAX_TOTAL_CONNECTIONS", "500")
+        )
+
         # Configuration
         self.heartbeat_interval = heartbeat_interval
         self.heartbeat_timeout = heartbeat_timeout
@@ -275,6 +280,14 @@ class WebSocketManager:
         Returns:
             Connection object for the new connection
         """
+        # Global connection limit
+        if len(self._connections) >= self.max_total_connections:
+            await websocket.close(code=4003, reason="Server at connection capacity")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=f"Max {self.max_total_connections} total connections reached",
+            )
+
         # Generate connection ID
         connection_id = f"ws_{secrets.token_hex(12)}"
 

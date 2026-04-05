@@ -53,7 +53,11 @@ class _RateLimiter:
 
     - Max ``per_second`` messages per second (default 1)
     - Max ``per_hour`` messages per hour per task (default 100)
+    - Bounded: max 10,000 tracked users, auto-evicts oldest entries
     """
+
+    _MAX_USERS = 10_000
+    _CLEANUP_EVERY = 500  # Run cleanup every N checks
 
     def __init__(self, per_second: int = 1, per_hour: int = 100):
         self._per_second = per_second
@@ -62,10 +66,37 @@ class _RateLimiter:
         self._last_msg: dict[str, float] = {}
         # {user_key:task_id: [timestamps_this_hour]}
         self._hourly: dict[str, list[float]] = defaultdict(list)
+        self._check_count = 0
+
+    def _cleanup(self) -> None:
+        """Evict stale entries to prevent unbounded memory growth."""
+        now = time.monotonic()
+        cutoff = now - 3600.0
+
+        # Prune hourly entries older than 1 hour
+        stale_keys = [k for k, v in self._hourly.items() if not v or v[-1] < cutoff]
+        for k in stale_keys:
+            del self._hourly[k]
+
+        # Prune last_msg entries older than 1 hour
+        stale_users = [k for k, ts in self._last_msg.items() if ts < cutoff]
+        for k in stale_users:
+            del self._last_msg[k]
+
+        # Hard cap: if still over limit, evict oldest
+        if len(self._last_msg) > self._MAX_USERS:
+            sorted_users = sorted(self._last_msg.items(), key=lambda x: x[1])
+            for k, _ in sorted_users[: len(sorted_users) - self._MAX_USERS]:
+                del self._last_msg[k]
 
     def check(self, user_key: str, task_id: str) -> Optional[str]:
         """Return an error message if rate limited, else None."""
         now = time.monotonic()
+
+        # Periodic cleanup
+        self._check_count += 1
+        if self._check_count % self._CLEANUP_EVERY == 0:
+            self._cleanup()
 
         # Per-second check
         last = self._last_msg.get(user_key, 0.0)
