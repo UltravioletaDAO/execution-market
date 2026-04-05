@@ -111,7 +111,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return null
   })
   const [loading, setLoading] = useState(true)
-  const [error] = useState<Error | null>(null)
+  const [error, setError] = useState<Error | null>(null)
   const [dynamicInitialized, setDynamicInitialized] = useState(false)
   const [persistedWalletAddress, setPersistedWalletAddress] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null
@@ -147,7 +147,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
   })()
   const dynamicWalletAddress = preferredWallet?.address?.toLowerCase() || null
   dynamicWalletRef.current = dynamicWalletAddress
-  const walletAddress = dynamicWalletAddress || persistedWalletAddress || null
+  // After SDK init, only trust SDK wallet. Persisted wallet is a pre-init hint
+  // to avoid flash of unauthenticated content, but must NOT be used for executor
+  // lookups once SDK is initialized — the SDK is the source of truth.
+  const walletAddress = dynamicInitialized
+    ? dynamicWalletAddress
+    : (dynamicWalletAddress || persistedWalletAddress || null)
   // Only consider authenticated when Dynamic SDK says user is logged in.
   // persistedWalletAddress is a hint for executor lookup, NOT an auth signal.
   const isAuthenticated = dynamicInitialized && isLoggedIn && !!dynamicWalletAddress
@@ -338,6 +343,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       } as Executor
     } catch (err) {
       console.error('[Auth] fetchExecutor exception:', err)
+      setError(err instanceof Error ? err : new Error('Failed to load profile'))
       return null
     }
   }, [])
@@ -370,14 +376,34 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Logout
   // --------------------------------------------------------------------------
   const logout = useCallback(async () => {
+    // Cancel any pending timeouts to prevent state updates after logout
+    if (loadingTimeoutRef.current) {
+      clearTimeout(loadingTimeoutRef.current)
+      loadingTimeoutRef.current = null
+    }
+    if (logoutDebounceRef.current) {
+      clearTimeout(logoutDebounceRef.current)
+      logoutDebounceRef.current = null
+    }
+
     await handleLogOut()
-    await supabase.auth.signOut()
     setExecutor(null)
     setUserType(null)
+    setError(null)
     setPersistedWalletAddress(null)
     localStorage.removeItem(WALLET_STORAGE_KEY)
     linkedWalletRef.current = null
     lastWalletRef.current = null
+
+    // Re-establish anonymous session so RLS-dependent queries (browsing tasks,
+    // public data) still work after logout. Without this, auth.uid() is null
+    // and all RLS-gated queries silently return empty results.
+    await supabase.auth.signOut()
+    try {
+      await supabase.auth.signInAnonymously()
+    } catch (err) {
+      console.warn('[Auth] Failed to re-init anonymous session after logout:', err)
+    }
   }, [handleLogOut, setUserType])
 
   // --------------------------------------------------------------------------
@@ -478,6 +504,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             setUserType(null)
           }
           setExecutor(data)
+          setError(null) // Clear any previous error on successful load
           // Sync language preference from DB (cross-device persistence).
           // Updates localStorage + i18n only — does NOT write back to DB (avoids circular write).
           if (data?.preferred_language
@@ -507,6 +534,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             loadingTimeoutRef.current = null
           }
           console.error('[Auth] Failed to load executor:', err)
+          setError(err instanceof Error ? err : new Error('Failed to connect wallet'))
           setExecutor(null)
           setLoading(false)
         })

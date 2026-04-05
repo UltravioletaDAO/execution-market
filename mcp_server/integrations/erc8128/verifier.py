@@ -17,6 +17,7 @@ Reference:
   - ERC-191: https://eips.ethereum.org/EIPS/eip-191
 """
 
+import asyncio
 import base64
 import hashlib
 import logging
@@ -214,13 +215,22 @@ async def verify_erc8128_request(
 
         if recovered.lower() != claimed_address:
             # ERC-1271 fallback: the claimed address may be a smart contract wallet
-            erc1271_valid = await _try_erc1271_fallback(
+            erc1271_valid, erc1271_error = await _try_erc1271_fallback(
                 claimed_address, sig_base, sig_bytes, chain_id
             )
             if not erc1271_valid:
+                if erc1271_error == "erc1271_timeout":
+                    reason = (
+                        f"ERC-1271 verification timed out for {claimed_address} on chain {chain_id}. "
+                        "Smart contract wallet may be unreachable — retry later."
+                    )
+                elif erc1271_error:
+                    reason = f"ERC-1271 verification failed for {claimed_address}: {erc1271_error}"
+                else:
+                    reason = f"Signer mismatch: recovered {recovered}, expected {claimed_address}"
                 return ERC8128Result(
                     ok=False,
-                    reason=f"Signer mismatch: recovered {recovered}, expected {claimed_address}",
+                    reason=reason,
                     chain_id=chain_id,
                 )
             # ERC-1271 verified — use the claimed address
@@ -269,12 +279,15 @@ async def verify_erc8128_request(
 
 async def _try_erc1271_fallback(
     address: str, message: str, signature: bytes, chain_id: int
-) -> bool:
+) -> tuple[bool, Optional[str]]:
     """
     Attempt ERC-1271 on-chain verification when ecrecover doesn't match.
 
     This handles smart contract wallets (Safe, ERC-4337) that cannot use
     ecrecover. The contract's isValidSignature method is called instead.
+
+    Returns (success, error_reason). error_reason is None on success or
+    ImportError, and a descriptive string on timeout or other failures.
     """
     try:
         from .erc1271 import verify_erc1271_signature
@@ -287,15 +300,20 @@ async def _try_erc1271_fallback(
             + message.encode()
         )
 
-        return await verify_erc1271_signature(
-            address, message_hash, signature, chain_id
+        result = await asyncio.wait_for(
+            verify_erc1271_signature(address, message_hash, signature, chain_id),
+            timeout=10.0,
         )
+        return (result, None)
     except ImportError:
         logger.debug("ERC-1271 module not available for fallback")
-        return False
+        return (False, None)
+    except (TimeoutError, asyncio.TimeoutError):
+        logger.warning("ERC-1271 fallback timed out for address=%s chain=%d", address, chain_id)
+        return (False, "erc1271_timeout")
     except Exception as e:
         logger.warning("ERC-1271 fallback failed: %s", e)
-        return False
+        return (False, str(e))
 
 
 # ---------------------------------------------------------------------------

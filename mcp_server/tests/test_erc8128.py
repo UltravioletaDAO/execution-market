@@ -761,8 +761,8 @@ class TestERC1271:
         """Verify ERC-1271 fallback is attempted when ecrecover mismatches (e.g., SCA wallet)."""
         from integrations.erc8128.verifier import _try_erc1271_fallback
 
-        # With no RPC, fallback should return False gracefully (not crash)
-        result = await _try_erc1271_fallback(
+        # With no RPC, fallback should return (False, error_reason) gracefully (not crash)
+        result, error_reason = await _try_erc1271_fallback(
             "0x0000000000000000000000000000000000000001",
             "test message",
             b"\x00" * 65,
@@ -859,10 +859,12 @@ class TestAgentAuth:
 
     @pytest.mark.asyncio
     async def test_nonce(self):
-        from api.auth import generate_auth_nonce
+        from api.auth import generate_auth_nonce, _nonce_requests
 
         reset_nonce_store()
-        r = await generate_auth_nonce()
+        _nonce_requests.clear()
+        mock_req = MockRequest(headers={"X-Forwarded-For": "10.0.0.1"})
+        r = await generate_auth_nonce(mock_req)
         assert r.get("nonce") and r.get("ttl_seconds") == 300
 
 

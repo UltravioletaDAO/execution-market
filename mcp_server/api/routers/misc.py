@@ -6,7 +6,7 @@ Extracted from api/routes.py.
 
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException, Path
+from fastapi import APIRouter, HTTPException, Path, Request
 
 import supabase_client as db
 from verification.ai_review import (
@@ -455,7 +455,7 @@ async def confirm_identity_registration(
     description="Generate a fresh single-use nonce for ERC-8128 wallet-based authentication",
     tags=["Authentication"],
 )
-async def get_auth_nonce():
+async def get_auth_nonce(request: Request):
     """
     Generate a fresh nonce for ERC-8128 authentication.
 
@@ -465,7 +465,7 @@ async def get_auth_nonce():
     """
     from ..auth import generate_auth_nonce
 
-    return await generate_auth_nonce()
+    return await generate_auth_nonce(request)
 
 
 @router.get(
@@ -477,11 +477,11 @@ async def get_auth_nonce():
     description="Generate a fresh nonce for EIP-8128 request signing (alias for /auth/nonce)",
     tags=["Authentication"],
 )
-async def get_erc8128_nonce():
+async def get_erc8128_nonce(request: Request):
     """Generate a fresh nonce for EIP-8128 request signing."""
     from ..auth import generate_auth_nonce
 
-    return await generate_auth_nonce()
+    return await generate_auth_nonce(request)
 
 
 @router.get(

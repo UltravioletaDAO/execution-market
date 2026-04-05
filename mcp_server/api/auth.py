@@ -646,10 +646,56 @@ async def verify_agent_auth(request: Request) -> AgentAuth:
 # Nonce endpoint helper
 # ==========================================================================
 
+# IP-based rate limiting for nonce generation (in-memory sliding window)
+_nonce_requests: dict = {}  # ip -> list of timestamps
+_NONCE_RATE_LIMIT = 5
+_NONCE_RATE_WINDOW = 60  # seconds
 
-async def generate_auth_nonce() -> dict:
+
+def _check_nonce_rate_limit(ip: str) -> tuple[bool, int]:
+    """Check nonce generation rate limit. Returns (is_limited, retry_after_seconds)."""
+    import time
+
+    now = time.time()
+    timestamps = _nonce_requests.setdefault(ip, [])
+    cutoff = now - _NONCE_RATE_WINDOW
+    timestamps[:] = [t for t in timestamps if t > cutoff]
+    if len(timestamps) >= _NONCE_RATE_LIMIT:
+        retry_after = int(_NONCE_RATE_WINDOW - (now - timestamps[0])) if timestamps else _NONCE_RATE_WINDOW
+        return True, retry_after
+    timestamps.append(now)
+    return False, 0
+
+
+def _get_nonce_client_ip(request: Request) -> str:
+    """Extract client IP from request for nonce rate limiting."""
+    forwarded_for = request.headers.get("X-Forwarded-For")
+    if forwarded_for:
+        return forwarded_for.split(",")[0].strip()
+    real_ip = request.headers.get("X-Real-IP")
+    if real_ip:
+        return real_ip.strip()
+    if request.client:
+        return request.client.host
+    return "unknown"
+
+
+async def generate_auth_nonce(request: Request) -> dict:
     """Generate a fresh nonce for ERC-8128 authentication."""
     from fastapi.responses import JSONResponse
+
+    # Rate limit: max 5 nonces per IP per 60 seconds
+    client_ip = _get_nonce_client_ip(request)
+    is_limited, retry_after = _check_nonce_rate_limit(client_ip)
+    if is_limited:
+        return JSONResponse(
+            status_code=429,
+            content={"error": "Rate limit exceeded for nonce generation"},
+            headers={
+                "Retry-After": str(retry_after),
+                "X-RateLimit-Type": "nonce",
+            },
+        )
 
     store = _get_erc8128_nonce_store()
     if store is None:
