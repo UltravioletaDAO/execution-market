@@ -121,7 +121,7 @@
         "standard": "Programmable Escrow",
         "description": "Bounties locked at creation, released on approval. Gasless settlement via the Ultravioleta Facilitator."
       },
-      "networksTitle": "10 Networks",
+      "networksTitle": "9 Networks",
       "networksSubtitle": "x402 payments + x402r escrow + ERC-8004 identity",
       "status": "Live"
     },

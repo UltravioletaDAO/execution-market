@@ -99,3 +99,27 @@ resource "aws_iam_user_policy_attachment" "cicd_deploy" {
   user       = local.cicd_user
   policy_arn = aws_iam_policy.em_cicd_deploy.arn
 }
+
+# ── Terraform-specific policy ───────────────────────────────────────────────
+#
+# Grants the deployer permissions needed for `terraform plan/apply` in the
+# infrastructure/terraform/ workspace. Covers: ECS, VPC/SGs, IAM (em-* scoped),
+# CloudWatch/SNS, ALB, WAFv2, Secrets, ECR, DynamoDB, Route53, CloudFront, ACM,
+# S3, EFS, Lambda, API Gateway, AutoScaling.
+#
+# Managed manually via AWS CLI until now. Tracked here for drift detection.
+# Source of truth: infrastructure/iam/em-cicd-terraform-policy.json
+#
+# Updated 2026-04-04: Added TerraformWAFv2 + TerraformWAFLogDelivery statements
+# to support waf.tf resources (IP blocklist, Web ACL, association, logging).
+
+resource "aws_iam_policy" "em_cicd_terraform" {
+  name        = "em-cicd-terraform"
+  description = "Terraform plan/apply permissions for Execution Market infrastructure: ECS, VPC, IAM, CloudWatch, ALB, WAFv2, Route53, etc."
+  policy      = file("${path.module}/em-cicd-terraform-policy.json")
+}
+
+resource "aws_iam_user_policy_attachment" "cicd_terraform" {
+  user       = local.cicd_user
+  policy_arn = aws_iam_policy.em_cicd_terraform.arn
+}
