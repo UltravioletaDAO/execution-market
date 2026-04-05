@@ -107,55 +107,54 @@ export function ENSLinkSection() {
         </div>
       )}
 
-      {/* No ENS — show options */}
+      {/* Detect ENS (only if no ENS detected yet) */}
       {!ensName && !ensSubname && state === 'idle' && (
-        <div className="space-y-3">
-          {/* Detect existing ENS */}
-          <div>
-            <button
-              onClick={handleDetectENS}
-              className="w-full px-4 py-2 text-sm font-medium text-indigo-700 bg-indigo-50 rounded-lg hover:bg-indigo-100 dark:bg-indigo-900/20 dark:text-indigo-300 dark:hover:bg-indigo-900/40 transition-colors"
-            >
-              {t('profile.ensDetect', 'Detect ENS Name')}
-            </button>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              {t('profile.ensDetectHint', 'Check if your wallet has an ENS name')}
-            </p>
-          </div>
+        <div>
+          <button
+            onClick={handleDetectENS}
+            className="w-full px-4 py-2 text-sm font-medium text-indigo-700 bg-indigo-50 rounded-lg hover:bg-indigo-100 dark:bg-indigo-900/20 dark:text-indigo-300 dark:hover:bg-indigo-900/40 transition-colors"
+          >
+            {t('profile.ensDetect', 'Detect ENS Name')}
+          </button>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            {t('profile.ensDetectHint', 'Check if your wallet has an ENS name')}
+          </p>
+        </div>
+      )}
 
-          {/* Claim subname */}
-          <div className="border-t border-gray-100 dark:border-gray-700 pt-3">
-            <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {t('profile.ensClaimTitle', 'Claim your execution-market.eth subname')}
-            </div>
-            <div className="flex gap-2">
-              <div className="flex-1 relative">
-                <input
-                  type="text"
-                  value={subnameLabel}
-                  onChange={(e) => setSubnameLabel(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                  placeholder="alice"
-                  maxLength={63}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
-                />
-                {subnameLabel && (
-                  <div className="mt-1 text-xs text-indigo-600 dark:text-indigo-400">
-                    {subnameLabel}.execution-market.eth
-                  </div>
-                )}
-              </div>
-              <button
-                onClick={handleClaimSubname}
-                disabled={!subnameLabel.trim()}
-                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {t('profile.ensClaim', 'Claim')}
-              </button>
-            </div>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              {t('profile.ensClaimHint', 'Free subname — creates an on-chain ENS identity for you')}
-            </p>
+      {/* Claim subname — always show if no subname yet */}
+      {!ensSubname && state === 'idle' && (
+        <div className="border-t border-gray-100 dark:border-gray-700 pt-3">
+          <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            {t('profile.ensClaimTitle', 'Claim your execution-market.eth subname')}
           </div>
+          <div className="flex gap-2">
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                value={subnameLabel}
+                onChange={(e) => setSubnameLabel(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                placeholder="alice"
+                maxLength={63}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+              />
+              {subnameLabel && (
+                <div className="mt-1 text-xs text-indigo-600 dark:text-indigo-400">
+                  {subnameLabel}.execution-market.eth
+                </div>
+              )}
+            </div>
+            <button
+              onClick={handleClaimSubname}
+              disabled={!subnameLabel.trim()}
+              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {t('profile.ensClaim', 'Claim')}
+            </button>
+          </div>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            {t('profile.ensClaimHint', 'Free subname — creates an on-chain ENS identity for you')}
+          </p>
         </div>
       )}
 
