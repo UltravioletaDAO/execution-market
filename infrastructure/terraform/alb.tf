@@ -32,41 +32,8 @@ resource "aws_security_group" "alb" {
   }
 }
 
-# S3 bucket for ALB access logs (Task 5.4: observability)
-resource "aws_s3_bucket" "alb_logs" {
-  bucket = "${local.name_prefix}-alb-logs"
-
-  tags = {
-    Name = "${local.name_prefix}-alb-logs"
-  }
-}
-
-resource "aws_s3_bucket_lifecycle_configuration" "alb_logs" {
-  bucket = aws_s3_bucket.alb_logs.id
-
-  rule {
-    id     = "expire-old-logs"
-    status = "Enabled"
-    expiration {
-      days = 30
-    }
-  }
-}
-
-resource "aws_s3_bucket_policy" "alb_logs" {
-  bucket = aws_s3_bucket.alb_logs.id
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect    = "Allow"
-        Principal = { AWS = "arn:aws:iam::033677994240:root" }
-        Action    = "s3:PutObject"
-        Resource  = "${aws_s3_bucket.alb_logs.arn}/*"
-      }
-    ]
-  })
-}
+# ALB access logs (Task 5.4) — DEFERRED: deployer IAM lacks s3:CreateBucket.
+# Create the S3 bucket manually or add IAM permission, then uncomment.
 
 # Application Load Balancer
 resource "aws_lb" "main" {
@@ -81,12 +48,6 @@ resource "aws_lb" "main" {
   # Ethereum L1 TXs can take 600-900s to confirm.
   # Must exceed Facilitator TxWatcher (900s) + margin.
   idle_timeout = 960
-
-  access_logs {
-    bucket  = aws_s3_bucket.alb_logs.id
-    prefix  = "alb"
-    enabled = true
-  }
 
   tags = {
     Name = "${local.name_prefix}-alb"
