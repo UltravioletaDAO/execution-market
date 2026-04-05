@@ -309,7 +309,9 @@ async def _try_erc1271_fallback(
         logger.debug("ERC-1271 module not available for fallback")
         return (False, None)
     except (TimeoutError, asyncio.TimeoutError):
-        logger.warning("ERC-1271 fallback timed out for address=%s chain=%d", address, chain_id)
+        logger.warning(
+            "ERC-1271 fallback timed out for address=%s chain=%d", address, chain_id
+        )
         return (False, "erc1271_timeout")
     except Exception as e:
         logger.warning("ERC-1271 fallback failed: %s", e)

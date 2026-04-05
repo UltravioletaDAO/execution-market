@@ -19,20 +19,20 @@ BAN_THRESHOLD = 10
 BAN_WINDOW = 300  # 5 minutes
 
 # Progressive ban durations (seconds)
-BAN_DURATION_FIRST = 7200      # 2 hours (first offense)
-BAN_DURATION_SECOND = 86400    # 24 hours (second offense)
-BAN_DURATION_REPEAT = 604800   # 7 days (third+ offense)
+BAN_DURATION_FIRST = 7200  # 2 hours (first offense)
+BAN_DURATION_SECOND = 86400  # 24 hours (second offense)
+BAN_DURATION_REPEAT = 604800  # 7 days (third+ offense)
 
 # Unauthorized (401) thresholds — separate from 429
-UNAUTH_THRESHOLD = 20          # 20 consecutive 401s
-UNAUTH_WINDOW = 300            # in 5 minutes
-UNAUTH_BAN_DURATION = 3600     # 1 hour ban
+UNAUTH_THRESHOLD = 20  # 20 consecutive 401s
+UNAUTH_WINDOW = 300  # in 5 minutes
+UNAUTH_BAN_DURATION = 3600  # 1 hour ban
 
 _lock = threading.RLock()
-_bans: dict = {}          # ip -> expiry timestamp
-_strikes: dict = {}       # ip -> [timestamps] (429 strikes)
-_unauth: dict = {}        # ip -> [timestamps] (401 strikes)
-_ban_history: dict = {}   # ip -> count of times banned (for progressive)
+_bans: dict = {}  # ip -> expiry timestamp
+_strikes: dict = {}  # ip -> [timestamps] (429 strikes)
+_unauth: dict = {}  # ip -> [timestamps] (401 strikes)
+_ban_history: dict = {}  # ip -> count of times banned (for progressive)
 
 
 def _get_ban_duration(ip: str) -> int:

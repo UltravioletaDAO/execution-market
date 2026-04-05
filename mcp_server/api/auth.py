@@ -661,7 +661,11 @@ def _check_nonce_rate_limit(ip: str) -> tuple[bool, int]:
     cutoff = now - _NONCE_RATE_WINDOW
     timestamps[:] = [t for t in timestamps if t > cutoff]
     if len(timestamps) >= _NONCE_RATE_LIMIT:
-        retry_after = int(_NONCE_RATE_WINDOW - (now - timestamps[0])) if timestamps else _NONCE_RATE_WINDOW
+        retry_after = (
+            int(_NONCE_RATE_WINDOW - (now - timestamps[0]))
+            if timestamps
+            else _NONCE_RATE_WINDOW
+        )
         return True, retry_after
     timestamps.append(now)
     return False, 0
