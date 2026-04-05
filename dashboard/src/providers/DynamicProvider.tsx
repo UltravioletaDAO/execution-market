@@ -11,7 +11,7 @@ import {
   DynamicWidget,
 } from '@dynamic-labs/sdk-react-core'
 import { EthereumWalletConnectors } from '@dynamic-labs/ethereum'
-import { DYNAMIC_ENVIRONMENT_ID, isDynamicConfigured, dynamicCssOverrides } from '../lib/dynamic'
+import { DYNAMIC_ENVIRONMENT_ID, isDynamicConfigured, isDynamicLive, dynamicCssOverrides } from '../lib/dynamic'
 
 // Re-export for convenience
 export { DynamicWidget }
@@ -26,8 +26,25 @@ interface DynamicProviderProps {
 export function DynamicProvider({ children }: DynamicProviderProps) {
   if (!isDynamicConfigured()) {
     console.warn('[Dynamic] VITE_DYNAMIC_ENVIRONMENT_ID not set. Auth will not work.')
-    return <>{children}</>
+    return (
+      <>
+        <div className="fixed top-0 left-0 right-0 z-50 bg-gray-900 text-center py-2 px-4 text-sm">
+          {import.meta.env.DEV ? (
+            <span className="text-amber-400">
+              Set VITE_DYNAMIC_ENVIRONMENT_ID in .env.local
+            </span>
+          ) : (
+            <span className="text-red-400">
+              Authentication unavailable. Please try again later.
+            </span>
+          )}
+        </div>
+        {children}
+      </>
+    )
   }
+
+  const showSandboxBanner = import.meta.env.DEV && !isDynamicLive()
 
   return (
     <DynamicContextProvider
@@ -40,6 +57,7 @@ export function DynamicProvider({ children }: DynamicProviderProps) {
         // session persistence across page reloads and mobile tab switches.
         // DO NOT change to 'connect-only' — it breaks session persistence.
         initialAuthenticationMode: 'connect-and-sign',
+        siweStatement: 'Sign in to Execution Market',
         events: {
           onAuthFlowOpen: () => {
             console.log('[Dynamic] Auth flow opened')
@@ -64,6 +82,11 @@ export function DynamicProvider({ children }: DynamicProviderProps) {
         },
       }}
     >
+      {showSandboxBanner && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-amber-900 text-center py-1 px-4 text-xs text-amber-200">
+          Dynamic Sandbox Mode
+        </div>
+      )}
       {children}
     </DynamicContextProvider>
   )

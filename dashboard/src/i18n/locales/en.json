@@ -317,6 +317,8 @@
     },
     "manualWalletDesc": "Enter your wallet address to continue",
     "emailPassword": "Email & Password",
+    "orSignInWithEmail": "Or sign in with email",
+    "authUnavailable": "Authentication unavailable. Please try again later.",
     "social": {
       "xLinked": "X account linked",
       "xVerified": "Verified on X",

@@ -317,6 +317,8 @@
       "notAuthenticated": "No autenticado",
       "signatureRejected": "Firma rechazada. Por favor firma el mensaje para continuar."
     },
+    "orSignInWithEmail": "O inicia sesion con email",
+    "authUnavailable": "Autenticacion no disponible. Por favor intenta mas tarde.",
     "social": {
       "xLinked": "Cuenta X vinculada",
       "xVerified": "Verificado en X",

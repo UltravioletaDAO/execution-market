@@ -316,6 +316,8 @@
     },
     "manualWalletDesc": "Digite o endereco da sua carteira para continuar",
     "emailPassword": "Email e Senha",
+    "orSignInWithEmail": "Ou entre com email",
+    "authUnavailable": "Autenticacao indisponivel. Por favor tente novamente mais tarde.",
     "social": {
       "xLinked": "Conta X vinculada",
       "xVerified": "Verificado no X",

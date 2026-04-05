@@ -12,6 +12,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 
+// Mock useDynamicContext BEFORE importing the component
+vi.mock('@dynamic-labs/sdk-react-core', () => ({
+  useDynamicContext: () => ({ user: null }),
+}))
+
 // Mock useProfileUpdate BEFORE importing the component
 const mockUpdateProfile = vi.fn()
 vi.mock('../../hooks/useProfileUpdate', () => ({
