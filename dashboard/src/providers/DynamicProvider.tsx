@@ -57,7 +57,8 @@ export function DynamicProvider({ children }: DynamicProviderProps) {
         // session persistence across page reloads and mobile tab switches.
         // DO NOT change to 'connect-only' — it breaks session persistence.
         initialAuthenticationMode: 'connect-and-sign',
-        siweStatement: 'Sign in to Execution Market',
+        // NOTE: siweStatement removed — it broke embedded wallet creation for email-only users.
+        // Dynamic's embedded wallets do auto-SIWE internally; custom statements can conflict.
         events: {
           onAuthFlowOpen: () => {
             console.log('[Dynamic] Auth flow opened')
