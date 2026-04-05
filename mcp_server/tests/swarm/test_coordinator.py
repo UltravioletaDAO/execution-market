@@ -21,6 +21,7 @@ Coverage:
     - Edge cases: duplicate tasks, expired tasks, empty queue, no agents
 """
 
+import json
 from datetime import datetime, timezone, timedelta
 from unittest.mock import MagicMock
 
@@ -810,6 +811,25 @@ class TestDashboard:
         assert dashboard["systems"]["em_api"] == "not configured"
         assert dashboard["systems"]["autojob"] == "not configured"
 
+    def test_dashboard_includes_decision_journal_status(self, tmp_path):
+        journal_path = tmp_path / "coordination" / "events.jsonl"
+        bridge = ReputationBridge()
+        lifecycle = LifecycleManager()
+        coord = SwarmCoordinator(
+            bridge=bridge,
+            lifecycle=lifecycle,
+            orchestrator=SwarmOrchestrator(bridge, lifecycle),
+            em_client=None,
+            autojob_client=None,
+            decision_journal_path=str(journal_path),
+        )
+        dashboard = coord.get_dashboard()
+        journal = dashboard["systems"]["decision_journal"]
+
+        assert journal["enabled"] is True
+        assert journal["path"] == str(journal_path)
+        assert journal["entries_written"] == 0
+
 
 # ─── Event System ─────────────────────────────────────────────────────────────
 
@@ -883,6 +903,54 @@ class TestEventSystem:
         for i in range(1100):
             coordinator._emit(CoordinatorEvent.HEALTH_CHECK, {"iteration": i})
         assert len(coordinator._events) == 1000  # deque maxlen
+
+    def test_decision_journal_writes_replayable_event_records(self, tmp_path):
+        bridge = ReputationBridge()
+        lifecycle = LifecycleManager()
+        orchestrator = SwarmOrchestrator(bridge, lifecycle)
+        journal_path = tmp_path / "memorymesh" / "coordinator.jsonl"
+
+        coord = SwarmCoordinator(
+            bridge=bridge,
+            lifecycle=lifecycle,
+            orchestrator=orchestrator,
+            em_client=None,
+            autojob_client=None,
+            decision_journal_path=str(journal_path),
+        )
+
+        coord.register_agent(
+            agent_id=7001,
+            name="Replay",
+            wallet_address="0xReplay0000000000000000000000000000000001",
+        )
+        coord.ingest_task(
+            task_id="journal-1",
+            title="Write to journal",
+            categories=["test"],
+            bounty_usd=4.2,
+            source="manual",
+        )
+        coord.process_task_queue()
+        coord.complete_task("journal-1", bounty_earned_usd=4.2)
+
+        entries = [json.loads(line) for line in journal_path.read_text().splitlines()]
+
+        assert [e["event"] for e in entries[:4]] == [
+            "agent_registered",
+            "task_ingested",
+            "task_assigned",
+            "task_completed",
+        ]
+        assigned = next(e for e in entries if e["event"] == "task_assigned")
+        completed = next(e for e in entries if e["event"] == "task_completed")
+
+        assert assigned["task"]["status"] == "assigned"
+        assert assigned["task"]["assigned_agent_id"] == 7001
+        assert assigned["agent"]["agent_id"] == 7001
+        assert completed["queue"]["completed"] >= 1
+        assert completed["data"]["bounty_usd"] == 4.2
+        assert coord._journal_entries_written == len(entries)
 
 
 # ─── Queue Management ─────────────────────────────────────────────────────────
