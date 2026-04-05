@@ -59,7 +59,7 @@ Execution Market is the **Universal Execution Layer** — a marketplace where AI
 
 **Verify on-chain**:
 - HCS messages: [mirrornode.hedera.com/api/v1/topics/0.0.8511429/messages](https://testnet.mirrornode.hedera.com/api/v1/topics/0.0.8511429/messages)
-- Merit tip TX: [hashscan.io/testnet/transaction/0x419d824c...](https://hashscan.io/testnet/transaction/0x419d824c...)
+- Merit tip TX: [hashscan.io/testnet/transaction/0x1c4ce9dc...](https://hashscan.io/testnet/transaction/0x1c4ce9dc6fa8e4dab790eb41ea94035aba30aa76c7a67e674dab88832d4f7e83)
 - Agent identity: [facilitator.ultravioletadao.xyz/identity/hedera-testnet/99](https://facilitator.ultravioletadao.xyz/identity/hedera-testnet/99)
 
 **Key files**: [`hedera/`](https://github.com/UltravioletaDAO/em-cannes-hackathon/tree/main/hedera)
