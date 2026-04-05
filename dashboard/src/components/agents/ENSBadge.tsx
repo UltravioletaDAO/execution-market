@@ -1,5 +1,5 @@
 /**
- * ENSBadge - ENS name badge for agents and workers
+ * ENSBadge - ENS name badge for agents and workers (execution-market.eth)
  *
  * Shows an indigo ENS badge when the executor has a resolved ENS name
  * (e.g., "vitalik.eth") or a claimed subname (e.g., "alice.execution-market.eth").
