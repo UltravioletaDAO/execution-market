@@ -93,19 +93,8 @@ class PlatformConfig:
         "timeout.task_default_hours": 24,
         "timeout.auto_release_on_timeout": True,
         # Features
-        "feature.disputes_enabled": True,
-        "feature.reputation_enabled": True,
-        "feature.auto_matching_enabled": False,
-        "feature.partial_release_enabled": True,
-        "feature.websocket_notifications": True,
-        "feature.erc8004_auto_register_worker_enabled": True,
-        "feature.erc8004_auto_rate_agent_enabled": True,
-        "feature.erc8004_dynamic_scoring_enabled": True,
-        "feature.erc8004_rejection_feedback_enabled": False,
-        "feature.describenet_enabled": False,
         # World AgentKit (human verification via AgentBook on Base)
         "feature.world_agentkit_enabled": True,
-        "feature.world_agentkit_priority_boost": True,
         # World ID 4.0 integration
         "feature.world_id_enabled": True,
         "feature.world_id_required_for_high_value": True,

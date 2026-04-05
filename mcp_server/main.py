@@ -869,6 +869,7 @@ async def health_check():
             health = await x402_sdk.health_check()
             x402_status = "healthy" if health.get("facilitator_healthy") else "degraded"
         except Exception:
+            logger.exception("x402 SDK health check failed")
             x402_status = "error"
     elif X402_SDK_AVAILABLE:
         x402_status = "not_configured"
@@ -884,6 +885,7 @@ async def health_check():
             client = get_facilitator_client()
             erc8004_status = "healthy"
         except Exception:
+            logger.exception("ERC-8004 facilitator client creation failed")
             erc8004_status = "error"
 
     # Chat relay status
@@ -900,6 +902,7 @@ async def health_check():
             else:
                 chat_status = "not_initialized"
         except Exception:
+            logger.exception("Chat relay status check failed")
             chat_status = "error"
 
     return HealthResponse(
@@ -965,6 +968,7 @@ async def register_executor(data: ExecutorRegistration):
     except HTTPException:
         raise
     except Exception:
+        logger.exception("Failed to register executor")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
@@ -1046,6 +1050,7 @@ async def get_my_tasks(executor_id: str, status: str | None = None):
         }
 
     except Exception:
+        logger.exception("Failed to get tasks for executor %s", executor_id)
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
@@ -1070,6 +1075,7 @@ async def get_executor_stats(executor_id: str):
     except HTTPException:
         raise
     except Exception:
+        logger.exception("Failed to get executor stats for %s", executor_id)
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
@@ -1116,6 +1122,7 @@ async def get_available_tasks(
         }
 
     except Exception:
+        logger.exception("Failed to get available tasks")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
