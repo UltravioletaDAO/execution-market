@@ -36,7 +36,7 @@ resource "aws_wafv2_ip_set" "blocklist" {
 resource "aws_wafv2_web_acl" "main" {
   name        = "${local.name_prefix}-waf"
   scope       = "REGIONAL"
-  description = "WAF for Execution Market ALB — rate limiting, IP reputation, blocklist"
+  description = "WAF for Execution Market ALB - rate limiting, IP reputation, blocklist"
 
   default_action {
     allow {}
@@ -291,7 +291,7 @@ resource "aws_wafv2_web_acl_association" "alb" {
 
 resource "aws_cloudwatch_metric_alarm" "waf_blocked_requests" {
   alarm_name          = "${local.name_prefix}-waf-high-block-rate"
-  alarm_description   = "WAF is blocking > 100 requests per 5 minutes — possible attack"
+  alarm_description   = "WAF is blocking > 100 requests per 5 minutes - possible attack"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
   metric_name         = "BlockedRequests"
