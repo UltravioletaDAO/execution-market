@@ -1545,7 +1545,7 @@ async def _settle_submission_payment(
                 )
                 verify_fee_split(
                     task_id=task_id,
-                    gross_usd=float(bounty),
+                    gross_usd=float(bounty) + float(fee),
                     worker_net_usd=float(worker_payout),
                     treasury_fee_usd=float(fee),
                     protocol_fee_usd=_protocol_fee,
