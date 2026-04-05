@@ -433,6 +433,39 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [sdkHasLoaded, dynamicInitialized])
 
   // --------------------------------------------------------------------------
+  // Effect: Auto-recover from broken auth state
+  // If Dynamic says user is logged in but has no wallet (e.g., email OTP verified
+  // but embedded wallet creation failed), auto-logout to clear the stale session.
+  // Without this, users get stuck on "Link a wallet" with no way out.
+  // --------------------------------------------------------------------------
+  useEffect(() => {
+    if (!dynamicInitialized || !isLoggedIn) return
+    if (dynamicWalletAddress) return // Wallet exists — all good
+
+    // Logged in but no wallet — wait 3s for embedded wallet creation,
+    // then auto-logout if still no wallet.
+    const recoveryTimeout = setTimeout(() => {
+      if (!dynamicWalletRef.current) {
+        console.warn('[Auth] Broken state: logged in but no wallet after 3s — auto-recovering')
+        handleLogOut().then(() => {
+          // Clear any persisted state
+          localStorage.removeItem(WALLET_STORAGE_KEY)
+          localStorage.removeItem(USER_TYPE_STORAGE_KEY)
+          setPersistedWalletAddress(null)
+          setExecutor(null)
+          setLoading(false)
+          setError(null)
+        }).catch((err) => {
+          console.error('[Auth] Auto-recovery logout failed:', err)
+          setLoading(false)
+        })
+      }
+    }, 3000)
+
+    return () => clearTimeout(recoveryTimeout)
+  }, [dynamicInitialized, isLoggedIn, dynamicWalletAddress, handleLogOut])
+
+  // --------------------------------------------------------------------------
   // Effect: Handle tab visibility changes (mobile tab switching)
   // When user switches away and comes back, re-fetch executor data to keep
   // the session warm. This helps after mobile browsers suspend the tab.
