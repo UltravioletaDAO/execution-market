@@ -30,6 +30,8 @@ Usage:
     dashboard = coordinator.get_dashboard()
 """
 
+from __future__ import annotations
+
 import json
 import logging
 import time
@@ -138,11 +140,23 @@ class EMApiClient:
         limit: int = 50,
         category: Optional[str] = None,
     ) -> list[dict]:
-        """Fetch tasks from the EM API."""
-        params = f"?status={status}&limit={limit}"
-        if category:
-            params += f"&category={category}"
-        result = self._request("GET", f"/api/v1/tasks{params}")
+        """Fetch tasks from the EM API.
+
+        Public swarm discovery should use `/tasks/available`, which exposes
+        published work without agent auth. Authenticated agent-specific views
+        still fall back to `/tasks` for non-published statuses.
+        """
+        if status == "published":
+            params = f"?limit={limit}&offset=0"
+            if category:
+                params += f"&category={category}"
+            result = self._request("GET", f"/api/v1/tasks/available{params}")
+        else:
+            params = f"?status={status}&limit={limit}"
+            if category:
+                params += f"&category={category}"
+            result = self._request("GET", f"/api/v1/tasks{params}")
+
         if isinstance(result, dict) and result.get("error"):
             return []
         # API returns {"tasks": [...]} or just a list
@@ -192,8 +206,13 @@ class EMApiClient:
         return result
 
     def get_task_stats(self) -> dict:
-        """Get aggregate task statistics."""
-        return self._request("GET", "/api/v1/tasks/stats")
+        """Get aggregate task statistics from the public metrics surface."""
+        result = self._request("GET", "/api/v1/public/metrics")
+        if isinstance(result, dict) and result.get("error"):
+            return result
+        if isinstance(result, dict) and isinstance(result.get("tasks"), dict):
+            return result["tasks"]
+        return result if isinstance(result, dict) else {"error": True, "detail": "Unexpected metrics payload"}
 
 
 # ─── Coordination Events ──────────────────────────────────────────────────────
