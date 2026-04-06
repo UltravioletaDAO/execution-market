@@ -598,7 +598,10 @@ class TestAsyncSync:
     @pytest.mark.asyncio
     async def test_sync_no_module(self, bridge):
         """Sync fails gracefully without supabase_client."""
-        result = await bridge.sync(force=True)
+        import unittest.mock as _m
+
+        with _m.patch.dict("sys.modules", {"supabase_client": None}):
+            result = await bridge.sync(force=True)
         assert result == 0
 
     @pytest.mark.asyncio
