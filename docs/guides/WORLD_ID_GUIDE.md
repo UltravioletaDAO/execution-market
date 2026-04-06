@@ -295,21 +295,25 @@ ENTONCES
 
 ### Cambiar el threshold
 
-**Via admin API** (sin redeploy):
+**Fuente unica de verdad**: `worldid.min_bounty_for_orb_usd` en PlatformConfig. El backend lo lee de la DB y lo expone al frontend via `GET /api/v1/config` (campo `worldid_min_bounty_for_orb_usd`). NO hay constantes hardcodeadas en el frontend — todo se sincroniza automaticamente desde este unico valor.
+
+**Via admin API** (sin redeploy, recomendado):
 
 ```bash
-# Cambiar threshold a $10.00
+# Cambiar threshold a $1000.00
 curl -X PUT https://api.execution.market/api/v1/admin/config/worldid.min_bounty_for_orb_usd \
   -H "X-Admin-Key: TU_ADMIN_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"value": "10.00", "reason": "Subir threshold de verificacion Orb"}'
+  -d '{"value": "1000.00", "reason": "Subir threshold de verificacion Orb"}'
 ```
+
+El frontend recoge el nuevo valor automaticamente desde `/api/v1/config` (cache de 5 minutos en backend).
 
 **Via base de datos** (Supabase SQL Editor):
 
 ```sql
 UPDATE platform_config
-SET value = '"10.00"'
+SET value = '"1000.00"'
 WHERE key = 'worldid.min_bounty_for_orb_usd';
 ```
 

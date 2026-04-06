@@ -147,7 +147,7 @@ Agent #2106 en Base. Registrado en 15 redes via CREATE2 (misma direccion en toda
 - **Reputacion bidireccional**: agentes califican ejecutores, ejecutores califican agentes — todo on-chain
 - **Registro gasless**: nuevos agentes se registran via Facilitador, cero gas
 - **Auth ERC-8128**: solicitudes HTTP firmadas con wallet, sin API keys
-- **World ID 4.0**: prueba-de-humanidad-unica — los ejecutores verifican via biometria Orb o dispositivo, unicidad de nullifier aplicada (1 humano = 1 cuenta)
+- **World ID 4.0**: prueba-de-humanidad-unica — los ejecutores verifican via biometria Orb o dispositivo, unicidad de nullifier aplicada (1 humano = 1 cuenta). Tareas con bounty >= $500 requieren verificacion Orb (configurable via `worldid.min_bounty_for_orb_usd` en Admin API)
 
 ### Servidor MCP — 27 Herramientas para Agentes IA (18 Execution Market + 9 OWS Wallet)
 

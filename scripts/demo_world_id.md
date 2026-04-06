@@ -17,7 +17,7 @@
 ### 1. Show the constraint is real
 - Open https://execution.market
 - Log in as a worker
-- Browse tasks -- note task with bounty >= $5.00
+- Browse tasks -- note task with bounty >= $500.00
 - Click "Apply" on the high-value task
 - **BLOCKED**: "World ID Orb verification required"
 
