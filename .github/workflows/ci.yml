@@ -161,7 +161,7 @@ jobs:
 
       - name: Run arbiter profile (fast fail-fast check)
         run: |
-          pytest tests/test_arbiter_service.py tests/test_arbiter_integration.py -v
+          pytest tests/test_arbiter_service.py tests/test_arbiter_integration.py tests/test_arbiter_phase5.py -v
         env:
           TESTING: "true"
 

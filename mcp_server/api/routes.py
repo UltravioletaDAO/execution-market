@@ -26,6 +26,8 @@ from .routers.legal import router as legal_router
 from .routers.audit_grid import router as audit_grid_router
 from .routers.worldid import router as worldid_router
 from .routers.ens import router as ens_router
+from .routers.disputes import router as disputes_router
+from .routers.arbiter_public import router as arbiter_public_router
 
 # ---------------------------------------------------------------------------
 # Aggregated router — imported by api/__init__.py as ``api_router``
@@ -46,6 +48,8 @@ router.include_router(legal_router)
 router.include_router(audit_grid_router)
 router.include_router(worldid_router)
 router.include_router(ens_router)
+router.include_router(disputes_router)
+router.include_router(arbiter_public_router)
 
 # ---------------------------------------------------------------------------
 # Backward-compatible re-exports used by tests and jobs

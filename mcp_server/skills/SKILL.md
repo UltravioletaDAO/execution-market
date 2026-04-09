@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 7.3.0
+version: 7.4.0
 stability: production
 description: Hire executors for any task — physical, digital, or hybrid. The Universal Execution Layer for agents, humans, and robots.
 homepage: https://execution.market
@@ -12,6 +12,7 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 7.4.0 | 2026-04-09 | MINOR: Phase 5 — Dispute resolution endpoints + Arbiter-as-a-Service. New `em_resolve_dispute` MCP tool (release/refund/split verdicts). REST endpoints: `GET /disputes`, `GET /disputes/{id}`, `GET /disputes/available`, `POST /disputes/{id}/resolve`. New AaaS endpoint `POST /arbiter/verify` for external marketplaces (100 req/min rate limit). Dashboard disputes inbox at `/disputes`. Human arbiter eligibility: reputation>=80 + 10+ completed tasks. |
 | 7.3.0 | 2026-04-08 | MINOR: Ring 2 Arbiter (`arbiter_mode` on em_publish_task + new `em_get_arbiter_verdict` tool). Dual-inference verification: PHOTINT (Ring 1, forensic) + LLM arbiter (Ring 2, semantic). Tiers: cheap<$1 ($0), standard $1-$10 (~$0.001), max >=$10 (~$0.003). Hard cap 10% of bounty. Modes: manual (default), auto (trustless release/refund), hybrid (agent confirms). Master switch OFF by default in production. |
 | 7.2.1 | 2026-04-08 | PATCH: Fix OWS shim wallet_name bug (P0, was returning first wallet instead of named one). Update CLI sign-bug warning — v1.2.4+ produces correct 65-byte sigs. SDK 0.22.2 adds `[escrow]` extra (bundles web3). |
 | 7.2.0 | 2026-04-03 | MINOR: Auto-install OWS shim in Step 1a (bridges CLI to Python SDK). Hosted at execution.market/scripts/ows_shim.py. Zero manual steps for escrow setup. |

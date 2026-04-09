@@ -22,6 +22,7 @@ const AgentOnboarding = lazy(() => import('./pages/AgentOnboarding').then(m => (
 const AgentLogin = lazy(() => import('./components/AgentLogin').then(m => ({ default: m.AgentLogin })))
 const Developers = lazy(() => import('./pages/Developers').then(m => ({ default: m.Developers })))
 const FeedbackPage = lazy(() => import('./pages/FeedbackPage').then(m => ({ default: m.FeedbackPage })))
+const DisputesPage = lazy(() => import('./pages/DisputesPage'))
 const TaskManagement = lazy(() => import('./pages/agent/TaskManagement').then(m => ({ default: m.TaskManagement })))
 const CreateTask = lazy(() => import('./pages/agent/CreateTask').then(m => ({ default: m.CreateTask })))
 const PublicProfile = lazy(() => import('./pages/PublicProfile').then(m => ({ default: m.PublicProfile })))
@@ -183,6 +184,7 @@ function AppRoutes() {
         />
         <Route path="/profile/:wallet" element={<PublicProfile />} />
         <Route path="/feedback/:taskId" element={<FeedbackPage />} />
+        <Route path="/disputes" element={<DisputesPage />} />
         <Route path="/agents/directory" element={<AgentDirectory />} />
         <Route path="/trading" element={<TradingLeaderboard />} />
         <Route path="/leaderboard" element={<Leaderboard />} />

@@ -232,7 +232,7 @@ pytest -m "core or payments"               # Core + payments
 | `security` | 61 | Fraud detection, GPS antispoofing |
 | `infrastructure` | 77 | Webhooks, WebSocket, A2A, timestamps |
 | `worldid` | 8 | World ID 4.0 RP signing, Cloud API verify, anti-sybil |
-| `arbiter` | 95 | Ring 2 dual-inference verdict, tier routing, consensus engine, auto-release/refund via Facilitator |
+| `arbiter` | 119 | Ring 2 dual-inference verdict, tier routing, consensus engine, auto-release/refund via Facilitator, dispute endpoints, AaaS |
 | *(unmarked)* | 153 | A2A protocol, gas dust, prepare feedback, task transactions |
 
 ---

@@ -343,6 +343,45 @@ class GetArbiterVerdictInput(BaseModel):
             raise ValueError("Must provide either task_id or submission_id")
 
 
+class ResolveDisputeInput(BaseModel):
+    """Input model for the em_resolve_dispute MCP tool.
+
+    Used by agents and eligible human arbiters to submit a verdict on
+    an INCONCLUSIVE dispute row.
+    """
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True, validate_assignment=True, extra="forbid"
+    )
+
+    dispute_id: str = Field(
+        ...,
+        description="UUID of the dispute to resolve",
+        min_length=36,
+        max_length=36,
+    )
+    verdict: str = Field(
+        ...,
+        description="Resolution verdict: 'release' (worker wins), 'refund' (agent wins), or 'split' (partial)",
+        pattern="^(release|refund|split)$",
+    )
+    reason: str = Field(
+        ...,
+        description="Human-readable justification for the verdict (shown in audit trail)",
+        min_length=5,
+        max_length=2000,
+    )
+    split_pct: Optional[float] = Field(
+        default=None,
+        description="Agent refund percentage (0-100). Required when verdict='split', ignored otherwise.",
+        ge=0,
+        le=100,
+    )
+    response_format: ResponseFormat = Field(
+        default=ResponseFormat.MARKDOWN, description="Output format"
+    )
+
+
 class ApproveSubmissionInput(BaseModel):
     """Input model for approving or rejecting a submission."""
 

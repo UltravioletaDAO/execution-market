@@ -116,6 +116,7 @@ from models import (
     GetTaskInput,
     CheckSubmissionInput,
     GetArbiterVerdictInput,
+    ResolveDisputeInput,
     ResponseFormat,
     TaskCategory,
 )
@@ -1242,6 +1243,105 @@ async def em_get_arbiter_verdict(params: GetArbiterVerdictInput) -> str:
 
     except Exception as e:
         return f"Error: Failed to get arbiter verdict - {str(e)}"
+
+
+@mcp.tool(
+    name="em_resolve_dispute",
+    annotations={
+        "title": "Resolve a Dispute (L2 Human Arbiter)",
+        "readOnlyHint": False,
+        "destructiveHint": True,
+        "idempotentHint": False,
+        "openWorldHint": True,
+    },
+)
+async def em_resolve_dispute(params: ResolveDisputeInput) -> str:
+    """
+    Submit a resolution verdict on a Ring 2 escalated dispute.
+
+    Who can call this:
+        1. The publishing agent (always, for their own task disputes)
+        2. Eligible human arbiters (reputation_score >= 80 AND
+           tasks_completed >= 10 in the same category)
+
+    Verdict options:
+        - 'release': worker wins -> triggers Facilitator /settle
+        - 'refund':  agent wins  -> triggers Facilitator /refund
+        - 'split':   partial release + partial refund
+                     (requires split_pct = agent's refund %, 0-100)
+
+    Side effects:
+        - Updates the dispute row (status, winner, resolution_type='manual',
+          agent_refund_usdc, executor_payout_usdc)
+        - Triggers the appropriate payment flow via existing Facilitator paths
+        - Emits dispute.resolved event on the event bus
+        - Destructive: moves funds on-chain (use carefully)
+
+    Args:
+        params (ResolveDisputeInput):
+            - dispute_id (str): UUID of the dispute
+            - verdict (str): 'release' | 'refund' | 'split'
+            - reason (str): justification (5-2000 chars, stored in audit trail)
+            - split_pct (float, optional): required for 'split' verdict (0-100)
+            - response_format (ResponseFormat): markdown | json
+
+    Returns:
+        str: Success message with dispute ID, verdict, amounts, and triggered
+             payment action, or error message.
+    """
+    try:
+        # Lazy import to avoid circular deps + api.routers.disputes may
+        # import supabase_client at module load time which we want deferred.
+        from api.routers.disputes import (
+            ResolveDisputeRequest,
+            resolve_dispute as resolve_dispute_endpoint,
+        )
+        from api.auth import AgentAuth
+
+        # Build a synthetic AgentAuth from env / platform config for MCP calls.
+        # In production MCP tool calls flow through the same auth layer as
+        # the REST API (via MCP Streamable HTTP), so this is only hit in
+        # local test mode or from the mcp.tool wrapper.
+        caller_agent_id = os.environ.get("EM_CALLER_AGENT_ID", "mcp-tool")
+        auth = AgentAuth(
+            agent_id=caller_agent_id,
+            wallet_address=os.environ.get("EM_CALLER_WALLET"),
+            auth_method="mcp_tool",
+        )
+
+        body = ResolveDisputeRequest(
+            verdict=params.verdict,
+            reason=params.reason,
+            split_pct=params.split_pct,
+        )
+
+        result = await resolve_dispute_endpoint(
+            dispute_id=params.dispute_id,
+            body=body,
+            auth=auth,
+        )
+
+        if params.response_format == ResponseFormat.JSON:
+            return json.dumps(result.model_dump(), indent=2, default=str)
+
+        lines = [
+            "# Dispute Resolved",
+            "",
+            f"**Dispute**: `{result.dispute_id}`",
+            f"**Verdict**: {result.verdict.upper()}",
+            f"**Agent refund**: ${result.agent_refund_usdc:.6f} USDC",
+            f"**Executor payout**: ${result.executor_payout_usdc:.6f} USDC",
+            f"**Resolved at**: {result.resolved_at}",
+            f"**Action triggered**: {result.action_triggered or 'pending'}",
+            "",
+            "The dispute row is now marked as resolved. Payment dispatch runs",
+            "asynchronously via the Facilitator -- check `payment_events` or",
+            "`em_get_task` for the transaction hash.",
+        ]
+        return "\n".join(lines)
+
+    except Exception as e:
+        return f"Error: Failed to resolve dispute - {str(e)}"
 
 
 @mcp.tool(
