@@ -835,7 +835,8 @@ No tasks were created. Fix errors and retry."""
                         location_hint=task_def.location_hint,
                         min_reputation=task_def.min_reputation or 0,
                         payment_token=params.payment_token or "USDC",
-                        arbiter_mode=getattr(task_def, "arbiter_mode", "manual") or "manual",
+                        arbiter_mode=getattr(task_def, "arbiter_mode", "manual")
+                        or "manual",
                     )
 
                     created_tasks.append(

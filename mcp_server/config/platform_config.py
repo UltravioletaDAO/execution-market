@@ -151,7 +151,9 @@ class PlatformConfig:
         "feature.arbiter_enabled": False,
         # Tier boundaries (USD bounty thresholds for inference strategy)
         "arbiter.tier.cheap_max_usd": Decimal("1.00"),  # bounty < 1   -> CHEAP   ($0)
-        "arbiter.tier.standard_max_usd": Decimal("10.00"),  # 1 <= bounty < 10 -> STANDARD (~$0.001)
+        "arbiter.tier.standard_max_usd": Decimal(
+            "10.00"
+        ),  # 1 <= bounty < 10 -> STANDARD (~$0.001)
         # Default thresholds (overridable per-category in arbiter/registry.py)
         "arbiter.thresholds.pass": Decimal("0.80"),  # >= -> PASS
         "arbiter.thresholds.fail": Decimal("0.30"),  # <= -> FAIL

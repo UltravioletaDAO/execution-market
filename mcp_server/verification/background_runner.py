@@ -1151,9 +1151,7 @@ async def _run_arbiter_for_submission(
         # Refresh submission to get the latest merged data
         current = await db.get_submission(submission_id)
         if not current:
-            logger.warning(
-                "Submission %s not found for arbiter run", submission_id
-            )
+            logger.warning("Submission %s not found for arbiter run", submission_id)
             return
 
         # Idempotency: skip if arbiter already ran for this submission
