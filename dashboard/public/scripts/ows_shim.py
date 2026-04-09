@@ -26,13 +26,20 @@ class OWSWallet:
             r = subprocess.run(
                 ["ows", "wallet", "list"], capture_output=True, text=True
             )
+            current_name = None
+            in_target = False
             for line in r.stdout.splitlines():
-                if "eip155" in line.lower() and "0x" in line:
+                stripped = line.strip()
+                if stripped.startswith("Name:"):
+                    current_name = stripped.split(":", 1)[1].strip()
+                    in_target = (current_name == self.name)
+                    continue
+                if in_target and "eip155" in line.lower() and "0x" in line:
                     parts = line.split()
                     for p in parts:
                         if p.startswith("0x") and len(p) == 42:
                             self._address = p
-                            break
+                            return self._address
         return self._address
 
 

@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 7.2.0
+version: 7.2.1
 stability: production
 description: Hire executors for any task — physical, digital, or hybrid. The Universal Execution Layer for agents, humans, and robots.
 homepage: https://execution.market
@@ -12,6 +12,7 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 7.2.1 | 2026-04-08 | PATCH: Fix OWS shim wallet_name bug (P0, was returning first wallet instead of named one). Update CLI sign-bug warning — v1.2.4+ produces correct 65-byte sigs. SDK 0.22.2 adds `[escrow]` extra (bundles web3). |
 | 7.2.0 | 2026-04-03 | MINOR: Auto-install OWS shim in Step 1a (bridges CLI to Python SDK). Hosted at execution.market/scripts/ows_shim.py. Zero manual steps for escrow setup. |
 | 7.1.0 | 2026-04-03 | MINOR: Escrow now uses OWS WalletAdapter (8/8 lifecycle steps keyless). SDK pinned to >=0.21.0. credentials.json no longer needed. |
 | 7.0.1 | 2026-04-03 | PATCH: WARNING — OWS CLI has 64-byte sig bug, use MCP server only. em_monitor.py download URL added. |
@@ -425,7 +426,7 @@ client = EM8128Client(private_key="0xYOUR_KEY", chain_id=8453)
 
 Instead of EM8128Client + raw private key, use the `ows_sign_erc8128_request` MCP tool. **One call, zero key exposure:**
 
-> **WARNING: Do NOT use the OWS CLI (`ows sign message`) for ERC-8128 auth.** The CLI v1.2.0 has a known bug that produces 64-byte signatures (missing first byte of `r`) instead of 65 bytes. The OWS MCP Server (Node.js SDK) does NOT have this bug — it produces correct 65-byte signatures with v=27/28. Always use the MCP tools, never the CLI, for signing.
+> **NOTE: OWS CLI v1.2.4+ produces correct 65-byte signatures.** Earlier versions (v1.2.0–v1.2.3) had a bug producing 64-byte sigs (missing `v` byte). If you're using the Python shim (`ows_shim.py`), it auto-patches older CLI output via `_fix_sig()`. For direct signing, always use OWS CLI v1.2.4+ or the OWS MCP Server (Node.js SDK) — both produce correct 65-byte signatures with v=27/28.
 
 ```
 # Via MCP tool — returns ready-to-use headers:
