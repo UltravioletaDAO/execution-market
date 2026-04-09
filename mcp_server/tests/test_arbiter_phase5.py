@@ -158,29 +158,11 @@ def _install_stubs():
 
     return fake_helpers, fake_event_bus, fake_dispatcher
 
-    fake_event_bus_instance = MagicMock()
-    fake_event_bus_instance.publish = AsyncMock()
 
-    class _FakeEventBus:
-        pass
-
-    fake_bus_module = types.ModuleType("events.bus")
-    fake_bus_module.get_event_bus = lambda: fake_event_bus_instance
-    fake_bus_module.EventBus = _FakeEventBus
-    sys.modules.setdefault("events.bus", fake_bus_module)
-
-    fake_dispatcher = MagicMock()
-    fake_dispatcher.refund_trustless_escrow = AsyncMock(
-        return_value={"success": True, "tx_hash": "0xREF"}
-    )
-    fake_pd_module = types.ModuleType("integrations.x402.payment_dispatcher")
-    fake_pd_module.get_payment_dispatcher = lambda: fake_dispatcher
-    sys.modules.setdefault("integrations.x402.payment_dispatcher", fake_pd_module)
-
-    return fake_helpers, fake_event_bus_instance, fake_dispatcher
-
-
-_FAKE_HELPERS, _FAKE_EVENT_BUS, _FAKE_DISPATCHER = _install_stubs()
+# Module-level placeholders. Populated by autouse fixture below.
+_FAKE_HELPERS = None
+_FAKE_EVENT_BUS = None
+_FAKE_DISPATCHER = None
 
 
 # Supabase client stub
@@ -224,29 +206,92 @@ def _make_fake_supabase_client(disputes=None, executors=None, tasks=None):
     return client
 
 
-# Install supabase stub. If test_arbiter_integration.py already installed
-# its tagged stub, reuse it so we don't break its tests with our different
-# mock factory. Otherwise install our own (phase5 tests need specific
-# fixture rows for disputes, executors, tasks).
-existing_db_p5 = sys.modules.get("supabase_client")
-_is_integration_stub = (
-    existing_db_p5 is not None
-    and getattr(existing_db_p5, "_arbiter_stub", None) == "integration"
-)
+# Supabase stub is installed by the autouse module-scope fixture below.
+fake_db = None
 
-if _is_integration_stub:
-    # Integration already set up its stub -- reuse
-    fake_db = existing_db_p5
-elif existing_db_p5 is not None:
-    # Real supabase_client (or broken stub) -- override get_client
-    existing_db_p5.get_client = lambda: _make_fake_supabase_client()
-    existing_db_p5._arbiter_stub = "phase5"
-    fake_db = existing_db_p5
-else:
-    fake_db = types.ModuleType("supabase_client")
-    fake_db.get_client = lambda: _make_fake_supabase_client()
-    fake_db._arbiter_stub = "phase5"
-    sys.modules["supabase_client"] = fake_db
+
+_STUB_MODULES_P5 = [
+    "api",
+    "api.routers",
+    "api.routers._helpers",
+    "api.routers.disputes",
+    "api.routers.arbiter_public",
+    "api.auth",
+    "events.bus",
+    "integrations.x402.payment_dispatcher",
+    "supabase_client",
+]
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _arbiter_phase5_stubs_module_scope():
+    """Install phase5 stubs scoped to this module. Save + restore sys.modules
+    to prevent leakage to other test files.
+    """
+    global _FAKE_HELPERS, _FAKE_EVENT_BUS, _FAKE_DISPATCHER, fake_db
+
+    saved_modules = {}
+    saved_attrs = {}
+
+    for name in _STUB_MODULES_P5:
+        saved_modules[name] = sys.modules.get(name)
+
+    def _save_attr(mod_name, attr_name):
+        mod = sys.modules.get(mod_name)
+        if mod is not None and hasattr(mod, attr_name):
+            saved_attrs[(mod_name, attr_name)] = getattr(mod, attr_name)
+
+    _save_attr("api.routers._helpers", "_settle_submission_payment")
+    _save_attr("api.routers._helpers", "dispatch_webhook")
+    _save_attr("events.bus", "get_event_bus")
+    _save_attr("events.bus", "EventBus")
+    _save_attr("integrations.x402.payment_dispatcher", "get_dispatcher")
+    _save_attr("integrations.x402.payment_dispatcher", "get_payment_dispatcher")
+    _save_attr("supabase_client", "get_client")
+
+    # Install stubs (runs _install_stubs which loads disputes.py + arbiter_public.py)
+    _FAKE_HELPERS, _FAKE_EVENT_BUS, _FAKE_DISPATCHER = _install_stubs()
+
+    # Install supabase stub for phase5 tests
+    existing_db_p5 = sys.modules.get("supabase_client")
+    _is_integration_stub = (
+        existing_db_p5 is not None
+        and getattr(existing_db_p5, "_arbiter_stub", None) == "integration"
+    )
+
+    if _is_integration_stub:
+        fake_db = existing_db_p5
+    elif existing_db_p5 is not None:
+        existing_db_p5.get_client = lambda: _make_fake_supabase_client()
+        existing_db_p5._arbiter_stub = "phase5"
+        fake_db = existing_db_p5
+    else:
+        fake_db_local = types.ModuleType("supabase_client")
+        fake_db_local.get_client = lambda: _make_fake_supabase_client()
+        fake_db_local._arbiter_stub = "phase5"
+        sys.modules["supabase_client"] = fake_db_local
+        fake_db = fake_db_local
+
+    yield
+
+    # Teardown
+    for (mod_name, attr_name), original in saved_attrs.items():
+        mod = sys.modules.get(mod_name)
+        if mod is not None:
+            setattr(mod, attr_name, original)
+
+    for name, original_mod in saved_modules.items():
+        if original_mod is None:
+            sys.modules.pop(name, None)
+        else:
+            sys.modules[name] = original_mod
+
+    sb = sys.modules.get("supabase_client")
+    if sb is not None and hasattr(sb, "_arbiter_stub"):
+        try:
+            delattr(sb, "_arbiter_stub")
+        except Exception:
+            pass
 
 
 # ---------------------------------------------------------------------------

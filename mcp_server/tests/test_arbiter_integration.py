@@ -112,7 +112,13 @@ def _install_stubs():
     return fake_helpers, fake_event_bus_instance, fake_dispatcher
 
 
-_FAKE_HELPERS, _FAKE_EVENT_BUS, _FAKE_DISPATCHER = _install_stubs()
+# Module-level placeholders. Populated by the autouse fixture below so
+# tests run with our mocks but OTHER test files in the same pytest
+# process see the real modules. DO NOT call _install_stubs() at module
+# load time -- it would pollute sys.modules during collection.
+_FAKE_HELPERS = None
+_FAKE_EVENT_BUS = None
+_FAKE_DISPATCHER = None
 
 
 # ---------------------------------------------------------------------------
@@ -142,23 +148,88 @@ def _make_fake_supabase_client(existing_verdict=None):
     return client
 
 
-# Install supabase_client stub. Force-override any existing module so
-# processor._persist_verdict + escalation use our mock, not the real
-# Supabase client (which would reject our non-UUID test IDs).
-#
-# Tagged with `_arbiter_stub = "integration"` so test_arbiter_phase5.py
-# can detect our stub and reuse it (without clobbering with its own
-# different mock factory).
-existing_db = sys.modules.get("supabase_client")
-if existing_db is not None:
-    existing_db.get_client = lambda: _make_fake_supabase_client()
-    existing_db._arbiter_stub = "integration"
-    fake_db = existing_db
-else:
-    fake_db = types.ModuleType("supabase_client")
-    fake_db.get_client = lambda: _make_fake_supabase_client()
-    fake_db._arbiter_stub = "integration"
-    sys.modules["supabase_client"] = fake_db
+# Supabase stub is installed by the autouse fixture below (scoped to this
+# test module so it doesn't leak to other test files).
+fake_db = None
+
+
+_STUB_MODULES = [
+    "api",
+    "api.routers",
+    "api.routers._helpers",
+    "events.bus",
+    "integrations.x402.payment_dispatcher",
+    "supabase_client",
+]
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _arbiter_stubs_module_scope():
+    """Install arbiter test stubs for the duration of this test module only.
+
+    This fixture runs BEFORE any test in this file and AFTER the last test.
+    It saves the original sys.modules state and the original attributes it
+    patches, then restores everything on teardown. This prevents the stubs
+    from leaking to other test files in the same pytest process.
+    """
+    global _FAKE_HELPERS, _FAKE_EVENT_BUS, _FAKE_DISPATCHER, fake_db
+
+    # Save original sys.modules entries and specific attributes we patch
+    saved_modules = {}
+    saved_attrs = {}  # (module_name, attr_name) -> original value
+    for name in _STUB_MODULES:
+        saved_modules[name] = sys.modules.get(name)
+
+    # Save attributes we monkey-patch on real modules
+    def _save_attr(mod_name, attr_name):
+        mod = sys.modules.get(mod_name)
+        if mod is not None and hasattr(mod, attr_name):
+            saved_attrs[(mod_name, attr_name)] = getattr(mod, attr_name)
+
+    _save_attr("api.routers._helpers", "_settle_submission_payment")
+    _save_attr("api.routers._helpers", "dispatch_webhook")
+    _save_attr("events.bus", "get_event_bus")
+    _save_attr("events.bus", "EventBus")
+    _save_attr("integrations.x402.payment_dispatcher", "get_dispatcher")
+    _save_attr("integrations.x402.payment_dispatcher", "get_payment_dispatcher")
+    _save_attr("supabase_client", "get_client")
+
+    # Install stubs
+    _FAKE_HELPERS, _FAKE_EVENT_BUS, _FAKE_DISPATCHER = _install_stubs()
+    existing_db = sys.modules.get("supabase_client")
+    if existing_db is not None:
+        existing_db.get_client = lambda: _make_fake_supabase_client()
+        existing_db._arbiter_stub = "integration"
+        fake_db = existing_db
+    else:
+        fake_db_local = types.ModuleType("supabase_client")
+        fake_db_local.get_client = lambda: _make_fake_supabase_client()
+        fake_db_local._arbiter_stub = "integration"
+        sys.modules["supabase_client"] = fake_db_local
+        fake_db = fake_db_local
+
+    yield
+
+    # Teardown: restore everything
+    for (mod_name, attr_name), original in saved_attrs.items():
+        mod = sys.modules.get(mod_name)
+        if mod is not None:
+            setattr(mod, attr_name, original)
+
+    # Remove any entries we added that weren't there before
+    for name, original_mod in saved_modules.items():
+        if original_mod is None:
+            sys.modules.pop(name, None)
+        else:
+            sys.modules[name] = original_mod
+
+    # Clear our stub tags
+    sb = sys.modules.get("supabase_client")
+    if sb is not None and hasattr(sb, "_arbiter_stub"):
+        try:
+            delattr(sb, "_arbiter_stub")
+        except Exception:
+            pass
 
 
 # ---------------------------------------------------------------------------
