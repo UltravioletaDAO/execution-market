@@ -266,6 +266,139 @@ resource "aws_lambda_function" "evidence_presign" {
   }
 }
 
+# ----------------------------------------------------------------------------
+# Phase 0 GR-0.4 (CLOUD-003): JWT Lambda authorizer for the evidence API.
+#
+# The presign API was previously unauthenticated — anyone on the internet
+# could mint S3 PUT/GET URLs. This authorizer enforces a short-lived HS256
+# JWT minted by the backend MCP server after ERC-8128 verification. The JWT
+# is scoped to (task_id, submission_id, actor_id, exp).
+#
+# DEPENDENCY: the backend MCP server must implement `mint_evidence_jwt`
+# (Track D2) and expose it to clients before this authorizer is deployed,
+# otherwise legitimate evidence uploads will fail with 401 / 403.
+# ----------------------------------------------------------------------------
+
+resource "aws_secretsmanager_secret" "evidence_jwt_secret" {
+  count                   = var.enable_evidence_pipeline ? 1 : 0
+  name                    = "em/evidence-jwt-secret"
+  description             = "HS256 signing key for the evidence presign API Gateway authorizer (Phase 0 GR-0.4 CLOUD-003). Shared with the backend MCP server's mint_evidence_jwt() helper."
+  recovery_window_in_days = 7
+
+  tags = {
+    Name    = "${local.name_prefix}-evidence-jwt-secret"
+    Purpose = "evidence-authorizer"
+  }
+}
+
+# Generate an initial random signing key so `terraform apply` is self-contained.
+# Operators can rotate out-of-band with `aws secretsmanager put-secret-value`;
+# the `lifecycle { ignore_changes }` block below prevents Terraform from
+# overwriting rotated values on subsequent applies.
+resource "random_password" "evidence_jwt_secret" {
+  count            = var.enable_evidence_pipeline ? 1 : 0
+  length           = 64
+  special          = true
+  override_special = "!@#$%^&*()-_=+[]{}"
+}
+
+resource "aws_secretsmanager_secret_version" "evidence_jwt_secret" {
+  count         = var.enable_evidence_pipeline ? 1 : 0
+  secret_id     = aws_secretsmanager_secret.evidence_jwt_secret[0].id
+  secret_string = random_password.evidence_jwt_secret[0].result
+
+  lifecycle {
+    ignore_changes = [secret_string]
+  }
+}
+
+resource "aws_iam_role" "evidence_authorizer_lambda" {
+  count = var.enable_evidence_pipeline ? 1 : 0
+  name  = "${local.name_prefix}-evidence-authorizer-lambda"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "evidence_authorizer_lambda" {
+  count = var.enable_evidence_pipeline ? 1 : 0
+  name  = "${local.name_prefix}-evidence-authorizer-lambda-policy"
+  role  = aws_iam_role.evidence_authorizer_lambda[0].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "CloudWatchLogs"
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+        Resource = "arn:aws:logs:*:*:*"
+      },
+      {
+        Sid    = "ReadEvidenceJWTSecret"
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret"
+        ]
+        Resource = aws_secretsmanager_secret.evidence_jwt_secret[0].arn
+      }
+    ]
+  })
+}
+
+data "archive_file" "evidence_authorizer_lambda" {
+  count       = var.enable_evidence_pipeline ? 1 : 0
+  type        = "zip"
+  source_file = "${path.module}/lambda/evidence_presign_authorizer.py"
+  output_path = "${path.module}/lambda/evidence_presign_authorizer.zip"
+}
+
+resource "aws_lambda_function" "evidence_authorizer" {
+  count = var.enable_evidence_pipeline ? 1 : 0
+
+  function_name = "${local.name_prefix}-evidence-authorizer"
+  role          = aws_iam_role.evidence_authorizer_lambda[0].arn
+  handler       = "evidence_presign_authorizer.lambda_handler"
+  runtime       = "python3.12"
+
+  filename         = data.archive_file.evidence_authorizer_lambda[0].output_path
+  source_code_hash = data.archive_file.evidence_authorizer_lambda[0].output_base64sha256
+  timeout          = 5
+  memory_size      = 128
+
+  # The Lambda fetches the secret from Secrets Manager at cold start using
+  # the ARN below. This keeps the plaintext secret out of Lambda env vars,
+  # matches the repo convention (see CLAUDE.md "Secrets Manager" guidance),
+  # and allows rotation without redeploying the Lambda.
+  environment {
+    variables = {
+      EM_EVIDENCE_JWT_SECRET_ARN = aws_secretsmanager_secret.evidence_jwt_secret[0].arn
+    }
+  }
+
+  depends_on = [aws_secretsmanager_secret_version.evidence_jwt_secret]
+
+  tags = {
+    Name    = "${local.name_prefix}-evidence-authorizer"
+    Purpose = "evidence-authorizer"
+  }
+}
+
 resource "aws_apigatewayv2_api" "evidence" {
   count         = var.enable_evidence_pipeline ? 1 : 0
   name          = "${local.name_prefix}-evidence-api"
@@ -287,18 +420,46 @@ resource "aws_apigatewayv2_integration" "evidence_lambda" {
   payload_format_version = "2.0"
 }
 
+# Phase 0 GR-0.4 (CLOUD-003): JWT authorizer wired to the evidence HTTP API.
+# authorization_type = "CUSTOM" + authorizer_id on each route enforces that
+# every request carries a valid, unexpired, task-bound JWT.
+resource "aws_apigatewayv2_authorizer" "evidence_jwt" {
+  count                             = var.enable_evidence_pipeline ? 1 : 0
+  api_id                            = aws_apigatewayv2_api.evidence[0].id
+  authorizer_type                   = "REQUEST"
+  identity_sources                  = ["$request.header.Authorization"]
+  name                              = "evidence-jwt-authorizer"
+  authorizer_uri                    = aws_lambda_function.evidence_authorizer[0].invoke_arn
+  authorizer_payload_format_version = "2.0"
+  enable_simple_responses           = true
+  authorizer_result_ttl_in_seconds  = 0 # disable caching — JWT task_id cross-check must run per-request
+}
+
+resource "aws_lambda_permission" "apigw_invoke_evidence_authorizer" {
+  count         = var.enable_evidence_pipeline ? 1 : 0
+  statement_id  = "AllowExecutionFromAPIGatewayEvidenceAuthorizer"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.evidence_authorizer[0].function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.evidence[0].execution_arn}/authorizers/${aws_apigatewayv2_authorizer.evidence_jwt[0].id}"
+}
+
 resource "aws_apigatewayv2_route" "upload_url" {
-  count     = var.enable_evidence_pipeline ? 1 : 0
-  api_id    = aws_apigatewayv2_api.evidence[0].id
-  route_key = "GET /upload-url"
-  target    = "integrations/${aws_apigatewayv2_integration.evidence_lambda[0].id}"
+  count              = var.enable_evidence_pipeline ? 1 : 0
+  api_id             = aws_apigatewayv2_api.evidence[0].id
+  route_key          = "GET /upload-url"
+  target             = "integrations/${aws_apigatewayv2_integration.evidence_lambda[0].id}"
+  authorization_type = "CUSTOM"
+  authorizer_id      = aws_apigatewayv2_authorizer.evidence_jwt[0].id
 }
 
 resource "aws_apigatewayv2_route" "download_url" {
-  count     = var.enable_evidence_pipeline ? 1 : 0
-  api_id    = aws_apigatewayv2_api.evidence[0].id
-  route_key = "GET /download-url"
-  target    = "integrations/${aws_apigatewayv2_integration.evidence_lambda[0].id}"
+  count              = var.enable_evidence_pipeline ? 1 : 0
+  api_id             = aws_apigatewayv2_api.evidence[0].id
+  route_key          = "GET /download-url"
+  target             = "integrations/${aws_apigatewayv2_integration.evidence_lambda[0].id}"
+  authorization_type = "CUSTOM"
+  authorizer_id      = aws_apigatewayv2_authorizer.evidence_jwt[0].id
 }
 
 resource "aws_apigatewayv2_stage" "evidence_default" {
