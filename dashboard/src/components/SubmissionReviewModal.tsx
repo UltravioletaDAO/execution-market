@@ -15,6 +15,7 @@ import { getSubmission, approveSubmission, rejectSubmission, requestMoreInfo } f
 import { AIAnalysisDetails } from './AIAnalysisDetails'
 import type { AIAnalysisResult } from './AIAnalysisDetails'
 import type { SubmissionWithDetails } from '../services/types'
+import { ArbiterVerdictBadge } from './ArbiterVerdictBadge'
 
 // --------------------------------------------------------------------------
 // Types
@@ -538,6 +539,95 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                   />
                 </div>
               )}
+
+              {/* Ring 2 Arbiter Verdict */}
+              {(() => {
+                type ArbiterFields = {
+                  arbiter_verdict?: string | null
+                  arbiter_tier?: string | null
+                  arbiter_score?: number | null
+                  arbiter_confidence?: number | null
+                  arbiter_evidence_hash?: string | null
+                  arbiter_commitment_hash?: string | null
+                  arbiter_verdict_data?: {
+                    reason?: string | null
+                    disagreement?: boolean
+                    ring_scores?: Array<{
+                      ring?: string
+                      provider?: string
+                      model?: string
+                      score?: number
+                      decision?: string
+                    }>
+                  } | null
+                }
+                const a = submission as unknown as ArbiterFields
+                if (!a.arbiter_verdict) return null
+                return (
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <h3 className="text-sm font-medium text-gray-700">
+                        {t('arbiter.title', 'Ring 2 Arbiter Verdict')}
+                      </h3>
+                      <ArbiterVerdictBadge
+                        verdict={
+                          a.arbiter_verdict as
+                            | 'pass'
+                            | 'fail'
+                            | 'inconclusive'
+                            | 'skipped'
+                        }
+                        tier={
+                          a.arbiter_tier as 'cheap' | 'standard' | 'max' | null
+                        }
+                        score={a.arbiter_score}
+                        confidence={a.arbiter_confidence}
+                        size="lg"
+                      />
+                    </div>
+                    {a.arbiter_verdict_data?.reason && (
+                      <p className="text-xs text-gray-600">
+                        {a.arbiter_verdict_data.reason}
+                      </p>
+                    )}
+                    {a.arbiter_verdict_data?.disagreement && (
+                      <p className="text-xs text-amber-700 font-medium">
+                        {t(
+                          'arbiter.disagreement',
+                          'Ring disagreement detected — escalated to L2'
+                        )}
+                      </p>
+                    )}
+                    {Array.isArray(a.arbiter_verdict_data?.ring_scores) &&
+                      a.arbiter_verdict_data.ring_scores.length > 0 && (
+                        <div className="pt-1 border-t border-gray-200 space-y-1">
+                          {a.arbiter_verdict_data.ring_scores.map((rs, i) => (
+                            <div
+                              key={`${rs.ring}-${i}`}
+                              className="flex items-center justify-between text-xs"
+                            >
+                              <span className="text-gray-600">
+                                {rs.ring} · {rs.provider ?? '?'}/
+                                {rs.model ?? '?'}
+                              </span>
+                              <span className="font-mono text-gray-500">
+                                {typeof rs.score === 'number'
+                                  ? `${Math.round(rs.score * 100)}%`
+                                  : '—'}{' '}
+                                {rs.decision ? `· ${rs.decision}` : ''}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    {a.arbiter_evidence_hash && (
+                      <p className="text-[10px] font-mono text-gray-400 break-all">
+                        hash: {a.arbiter_evidence_hash.slice(0, 10)}…{a.arbiter_evidence_hash.slice(-8)}
+                      </p>
+                    )}
+                  </div>
+                )
+              })()}
 
               {/* Result message */}
               {result && (

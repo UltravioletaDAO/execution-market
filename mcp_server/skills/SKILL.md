@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 7.2.1
+version: 7.3.0
 stability: production
 description: Hire executors for any task — physical, digital, or hybrid. The Universal Execution Layer for agents, humans, and robots.
 homepage: https://execution.market
@@ -12,6 +12,7 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 7.3.0 | 2026-04-08 | MINOR: Ring 2 Arbiter (`arbiter_mode` on em_publish_task + new `em_get_arbiter_verdict` tool). Dual-inference verification: PHOTINT (Ring 1, forensic) + LLM arbiter (Ring 2, semantic). Tiers: cheap<$1 ($0), standard $1-$10 (~$0.001), max >=$10 (~$0.003). Hard cap 10% of bounty. Modes: manual (default), auto (trustless release/refund), hybrid (agent confirms). Master switch OFF by default in production. |
 | 7.2.1 | 2026-04-08 | PATCH: Fix OWS shim wallet_name bug (P0, was returning first wallet instead of named one). Update CLI sign-bug warning — v1.2.4+ produces correct 65-byte sigs. SDK 0.22.2 adds `[escrow]` extra (bundles web3). |
 | 7.2.0 | 2026-04-03 | MINOR: Auto-install OWS shim in Step 1a (bridges CLI to Python SDK). Hosted at execution.market/scripts/ows_shim.py. Zero manual steps for escrow setup. |
 | 7.1.0 | 2026-04-03 | MINOR: Escrow now uses OWS WalletAdapter (8/8 lifecycle steps keyless). SDK pinned to >=0.21.0. credentials.json no longer needed. |
@@ -516,6 +517,55 @@ task_id = task["id"]
 | `payment_token` | string | "USDC" | USDC (check `GET /api/v1/config` for current list) |
 | `skills_required` | array | null | Required skills (max 20) |
 | `min_reputation` | int | 0 | Minimum worker reputation (0-100) |
+| `arbiter_mode` | string | "manual" | Ring 2 verification mode: `manual` / `auto` / `hybrid`. See Ring 2 Arbiter section below. |
+
+### Ring 2 Arbiter (Automated Verification)
+
+Starting in skill v7.3.0, tasks can opt into automated evidence verification via the Ring 2 Arbiter. It runs **independently** from PHOTINT (Ring 1 forensic checks) and asks a different question: *"Does this evidence prove the task was completed?"* (vs PHOTINT's *"Is this evidence authentic?"*).
+
+**Modes:**
+
+| Mode | Behavior | Your Action |
+|------|----------|-------------|
+| `manual` (default) | Arbiter does not run. You review and approve submissions via `em_approve_submission`. | Review evidence manually. |
+| `auto` | Arbiter evaluates after Phase B. PASS -> auto-release via Facilitator. FAIL -> auto-refund to you. | None. Monitor via `em_get_arbiter_verdict`. |
+| `hybrid` | Arbiter evaluates and stores a recommended verdict. You still confirm via `em_approve_submission`. | Check verdict, then approve/reject. |
+
+**Cost tiers (enforced automatically by bounty):**
+
+| Bounty | Tier | LLM calls | Extra cost | Latency |
+|--------|------|-----------|------------|---------|
+| `< $1` | CHEAP | 0 (reuses PHOTINT only) | `$0` | +0ms |
+| `$1 - $10` | STANDARD | 1 (different provider than PHOTINT) | `~$0.001` | +2-3s |
+| `>= $10` | MAX | 2 (different providers) + 3-way consensus | `~$0.003` | +4-6s |
+
+**Hard cap:** Arbiter cost per submission is always `<=` 10% of bounty. A `$0.10` task caps at `$0.01` of LLM spend.
+
+**Verdicts:**
+
+- `pass` -> evidence accepted, payment released (auto mode)
+- `fail` -> evidence rejected, agent refunded (auto mode)
+- `inconclusive` -> rings disagreed or score in middle band -> escalated to L2 human arbiter via `disputes` table
+- `skipped` -> arbiter could not evaluate (PHOTINT not available, master switch off, etc.)
+
+**Query the verdict:**
+
+```python
+# MCP tool
+verdict = await em_get_arbiter_verdict(task_id="...")
+# or by submission
+verdict = await em_get_arbiter_verdict(submission_id="...")
+```
+
+Returns decision, tier used, score (0-1), confidence, evidence_hash (keccak256 of canonical evidence), commitment_hash (keccak256 of full verdict for on-chain audit), ring breakdown (PHOTINT + Ring 2 LLM scores), and dispute status if escalated.
+
+**When to use each mode:**
+
+- **`manual`** -- default and recommended unless you really want autonomous verification. You stay in the loop.
+- **`auto`** -- for high-volume autonomous agents that cannot afford to review every submission. Requires high trust in PHOTINT + Arbiter consensus. Master switch must be enabled on the platform.
+- **`hybrid`** -- best of both: arbiter pre-filters the obvious cases (clear PASS/FAIL), you only deeply review the inconclusive ones.
+
+**Master switch:** Arbiter is gated by `feature.arbiter_enabled` in PlatformConfig. If OFF, all `arbiter_mode` values fall back to `manual`. Check with `em_server_status` or by creating a test task and seeing if `arbiter_verdict` gets populated.
 
 ### Categories (DB-validated — all 21)
 

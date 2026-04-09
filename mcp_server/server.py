@@ -115,6 +115,7 @@ from models import (
     GetTasksInput,
     GetTaskInput,
     CheckSubmissionInput,
+    GetArbiterVerdictInput,
     ResponseFormat,
     TaskCategory,
 )
@@ -1051,6 +1052,196 @@ No human has submitted evidence yet and no one has applied. The task is {"still 
 
 # em_approve_submission and em_cancel_task are registered via register_core_tools()
 # See tools/core_tools.py
+
+
+@mcp.tool(
+    name="em_get_arbiter_verdict",
+    annotations={
+        "title": "Get Ring 2 Arbiter Verdict",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": True,
+    },
+)
+async def em_get_arbiter_verdict(params: GetArbiterVerdictInput) -> str:
+    """
+    Get the Ring 2 arbiter verdict for a task or submission.
+
+    Returns the dual-inference verdict (PHOTINT + Arbiter) including decision,
+    score, tier used, evidence hash, commitment hash, and dispute status if
+    the submission was escalated to L2 human review.
+
+    Only available for tasks that were created with arbiter_mode != "manual"
+    and after Phase B verification has completed.
+
+    Args:
+        params (GetArbiterVerdictInput): Validated input containing:
+            - task_id (str, optional): UUID of the task
+            - submission_id (str, optional): UUID of the submission
+            - response_format (ResponseFormat): markdown or json
+            (at least one of task_id or submission_id must be provided)
+
+    Returns:
+        str: Arbiter verdict details or error message if not yet evaluated.
+    """
+    try:
+        client = db.get_client()
+
+        # Lookup the submission (by submission_id or latest submission for task)
+        if params.submission_id:
+            sub_result = (
+                client.table("submissions")
+                .select(
+                    "id, task_id, arbiter_verdict, arbiter_tier, arbiter_score, "
+                    "arbiter_confidence, arbiter_evidence_hash, arbiter_commitment_hash, "
+                    "arbiter_verdict_data, arbiter_cost_usd, arbiter_latency_ms, "
+                    "arbiter_evaluated_at"
+                )
+                .eq("id", params.submission_id)
+                .limit(1)
+                .execute()
+            )
+        else:
+            sub_result = (
+                client.table("submissions")
+                .select(
+                    "id, task_id, arbiter_verdict, arbiter_tier, arbiter_score, "
+                    "arbiter_confidence, arbiter_evidence_hash, arbiter_commitment_hash, "
+                    "arbiter_verdict_data, arbiter_cost_usd, arbiter_latency_ms, "
+                    "arbiter_evaluated_at"
+                )
+                .eq("task_id", params.task_id)
+                .order("submitted_at", desc=True)
+                .limit(1)
+                .execute()
+            )
+
+        if not sub_result.data:
+            lookup = params.submission_id or f"task {params.task_id}"
+            return f"Error: No submission found for {lookup}"
+
+        sub = sub_result.data[0]
+
+        if sub.get("arbiter_verdict") is None:
+            return (
+                f"# Arbiter Verdict Pending\n\n"
+                f"**Submission**: `{sub['id']}`\n"
+                f"**Status**: Not yet evaluated by Ring 2 arbiter.\n\n"
+                f"Possible reasons:\n"
+                f"- Task was created with `arbiter_mode=manual`\n"
+                f"- Phase B (async AI verification) has not completed yet\n"
+                f"- Arbiter master switch is disabled\n"
+            )
+
+        # Check for a dispute if the verdict was INCONCLUSIVE
+        dispute_info = None
+        if sub.get("arbiter_verdict") == "inconclusive":
+            try:
+                dispute_result = (
+                    client.table("disputes")
+                    .select("id, status, escalation_tier, resolved_at, winner")
+                    .eq("submission_id", sub["id"])
+                    .order("created_at", desc=True)
+                    .limit(1)
+                    .execute()
+                )
+                if dispute_result.data:
+                    dispute_info = dispute_result.data[0]
+            except Exception:
+                pass
+
+        if params.response_format == ResponseFormat.JSON:
+            payload = {
+                "submission_id": sub["id"],
+                "task_id": sub["task_id"],
+                "verdict": sub["arbiter_verdict"],
+                "tier": sub.get("arbiter_tier"),
+                "score": sub.get("arbiter_score"),
+                "confidence": sub.get("arbiter_confidence"),
+                "evidence_hash": sub.get("arbiter_evidence_hash"),
+                "commitment_hash": sub.get("arbiter_commitment_hash"),
+                "cost_usd": sub.get("arbiter_cost_usd"),
+                "latency_ms": sub.get("arbiter_latency_ms"),
+                "evaluated_at": sub.get("arbiter_evaluated_at"),
+                "verdict_data": sub.get("arbiter_verdict_data"),
+                "dispute": dispute_info,
+            }
+            return json.dumps(payload, indent=2, default=str)
+
+        # Markdown format
+        verdict = sub["arbiter_verdict"]
+        emoji = {
+            "pass": "APPROVED",
+            "fail": "REJECTED",
+            "inconclusive": "ESCALATED",
+            "skipped": "SKIPPED",
+        }.get(verdict, verdict.upper())
+
+        lines = [
+            "# Ring 2 Arbiter Verdict",
+            "",
+            f"**Submission**: `{sub['id']}`",
+            f"**Task**: `{sub['task_id']}`",
+            f"**Decision**: {emoji} ({verdict})",
+            f"**Tier**: {sub.get('arbiter_tier', 'unknown')}",
+            f"**Aggregate Score**: {sub.get('arbiter_score', 'n/a')}",
+            f"**Confidence**: {sub.get('arbiter_confidence', 'n/a')}",
+            f"**Evaluated At**: {sub.get('arbiter_evaluated_at', 'n/a')}",
+            "",
+            "## Cryptographic Audit Trail",
+            f"- **Evidence hash**: `{sub.get('arbiter_evidence_hash', 'n/a')}`",
+            f"- **Commitment hash**: `{sub.get('arbiter_commitment_hash', 'n/a')}`",
+            "",
+            "## Cost Metrics",
+            f"- **LLM cost**: ${sub.get('arbiter_cost_usd', 0) or 0:.6f}",
+            f"- **Latency**: {sub.get('arbiter_latency_ms', 0)} ms",
+        ]
+
+        # Ring breakdown if available
+        verdict_data = sub.get("arbiter_verdict_data") or {}
+        ring_scores = verdict_data.get("ring_scores") or []
+        if ring_scores:
+            lines.extend(["", "## Ring Breakdown"])
+            for rs in ring_scores:
+                lines.append(
+                    f"- **{rs.get('ring', 'unknown')}** "
+                    f"({rs.get('provider', '?')}/{rs.get('model', '?')}): "
+                    f"score={rs.get('score', 'n/a')}, "
+                    f"decision={rs.get('decision', 'n/a')}, "
+                    f"confidence={rs.get('confidence', 'n/a')}"
+                )
+
+        reason = verdict_data.get("reason")
+        if reason:
+            lines.extend(["", "## Reason", reason])
+
+        if verdict_data.get("disagreement"):
+            lines.extend(
+                [
+                    "",
+                    "WARNING: Ring disagreement detected -- escalated to L2 human review.",
+                ]
+            )
+
+        if dispute_info:
+            lines.extend(
+                [
+                    "",
+                    "## Dispute Status",
+                    f"- **Dispute ID**: `{dispute_info['id']}`",
+                    f"- **Status**: {dispute_info.get('status', 'open')}",
+                    f"- **Escalation tier**: {dispute_info.get('escalation_tier', 2)}",
+                ]
+            )
+            if dispute_info.get("resolved_at"):
+                lines.append(f"- **Resolved at**: {dispute_info['resolved_at']}")
+                lines.append(f"- **Winner**: {dispute_info.get('winner', 'n/a')}")
+
+        return "\n".join(lines)
+
+    except Exception as e:
+        return f"Error: Failed to get arbiter verdict - {str(e)}"
 
 
 @mcp.tool(

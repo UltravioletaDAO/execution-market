@@ -219,6 +219,7 @@ export async function createTask(data: CreateTaskData): Promise<Task> {
       min_reputation: data.minReputation || 0,
       payment_token: data.paymentToken || 'USDC',
       payment_network: data.paymentNetwork || 'base',
+      arbiter_mode: data.arbiterMode || 'manual',
     }),
   })
 

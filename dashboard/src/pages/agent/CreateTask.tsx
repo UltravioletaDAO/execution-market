@@ -40,6 +40,8 @@ interface TaskFormData {
   max_executors: number
   evidence_required: EvidenceType[]
   evidence_optional: EvidenceType[]
+  /** Ring 2 arbiter mode: 'manual' | 'auto' | 'hybrid' */
+  arbiter_mode: 'manual' | 'auto' | 'hybrid'
 }
 
 type FormStep = 'details' | 'location' | 'evidence' | 'preview'
@@ -108,6 +110,7 @@ const DEFAULT_FORM_DATA: TaskFormData = {
   max_executors: 1,
   evidence_required: [],
   evidence_optional: [],
+  arbiter_mode: 'manual',
 }
 
 const FORM_STEPS: FormStep[] = ['details', 'location', 'evidence', 'preview']
@@ -762,6 +765,7 @@ export function CreateTask({ agentId, onBack, onSubmit, onSuccess }: CreateTaskP
         evidenceOptional: formData.evidence_optional.length > 0 ? formData.evidence_optional : undefined,
         locationHint: formData.location_hint.trim() || undefined,
         minReputation: formData.min_reputation,
+        arbiterMode: formData.arbiter_mode,
       })
 
       onSuccess?.(created.id)
@@ -908,6 +912,76 @@ export function CreateTask({ agentId, onBack, onSubmit, onSuccess }: CreateTaskP
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
+            </div>
+
+            {/* Ring 2 Arbiter Mode */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t('createTask.arbiterMode', 'Evidence verification mode')}
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {(['manual', 'auto', 'hybrid'] as const).map((mode) => {
+                  const selected = formData.arbiter_mode === mode
+                  const labels = {
+                    manual: {
+                      title: t('createTask.arbiterMode.manual.title', 'Manual'),
+                      desc: t(
+                        'createTask.arbiterMode.manual.desc',
+                        'You review and approve each submission yourself.'
+                      ),
+                    },
+                    auto: {
+                      title: t('createTask.arbiterMode.auto.title', 'Automatic'),
+                      desc: t(
+                        'createTask.arbiterMode.auto.desc',
+                        'Ring 2 arbiter auto-releases on PASS and auto-refunds on FAIL. No action needed.'
+                      ),
+                    },
+                    hybrid: {
+                      title: t('createTask.arbiterMode.hybrid.title', 'Hybrid'),
+                      desc: t(
+                        'createTask.arbiterMode.hybrid.desc',
+                        'Arbiter recommends a verdict, you confirm before payment.'
+                      ),
+                    },
+                  }[mode]
+                  return (
+                    <button
+                      type="button"
+                      key={mode}
+                      onClick={() => updateFormData({ arbiter_mode: mode })}
+                      className={`text-left p-3 border rounded-lg transition-colors ${
+                        selected
+                          ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+                          : 'border-gray-300 hover:border-gray-400'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`h-3 w-3 rounded-full border ${
+                            selected
+                              ? 'bg-blue-500 border-blue-600'
+                              : 'bg-white border-gray-400'
+                          }`}
+                          aria-hidden="true"
+                        />
+                        <span className="font-semibold text-gray-900">
+                          {labels.title}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-600 mt-1 ml-5">{labels.desc}</p>
+                    </button>
+                  )
+                })}
+              </div>
+              {formData.arbiter_mode !== 'manual' ? (
+                <p className="text-xs text-gray-500 mt-2">
+                  {t(
+                    'createTask.arbiterMode.costNote',
+                    'Ring 2 inference cost scales with bounty: $0 under $1, ~$0.001 for $1-$10, ~$0.003 above $10. Hard cap: 10% of bounty.'
+                  )}
+                </p>
+              ) : null}
             </div>
           </div>
         )}

@@ -222,6 +222,16 @@ class PublishTaskInput(BaseModel):
         description="Display name for the publishing agent. Shown on task cards in the dashboard.",
         max_length=100,
     )
+    arbiter_mode: Optional[str] = Field(
+        default="manual",
+        description=(
+            "Verification mode for evidence approval. "
+            "'manual' (default): agent reviews and approves submissions. "
+            "'auto': Ring 2 ArbiterService evaluates evidence and triggers release/refund without agent intervention. "
+            "'hybrid': arbiter evaluates and recommends, agent confirms before payment."
+        ),
+        pattern="^(manual|auto|hybrid)$",
+    )
 
     @field_validator("evidence_required")
     @classmethod
@@ -292,6 +302,45 @@ class CheckSubmissionInput(BaseModel):
     response_format: ResponseFormat = Field(
         default=ResponseFormat.MARKDOWN, description="Output format"
     )
+
+
+class GetArbiterVerdictInput(BaseModel):
+    """Input model for retrieving an arbiter verdict on a submission.
+
+    You can query by either task_id OR submission_id. If both are provided,
+    submission_id takes precedence.
+    """
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True, validate_assignment=True, extra="forbid"
+    )
+
+    task_id: Optional[str] = Field(
+        default=None,
+        description="UUID of the task (fetches latest submission's verdict)",
+        min_length=36,
+        max_length=36,
+    )
+    submission_id: Optional[str] = Field(
+        default=None,
+        description="UUID of the submission (exact verdict lookup)",
+        min_length=36,
+        max_length=36,
+    )
+    response_format: ResponseFormat = Field(
+        default=ResponseFormat.MARKDOWN, description="Output format"
+    )
+
+    @field_validator("task_id", "submission_id")
+    @classmethod
+    def validate_at_least_one(cls, v, info):
+        # This validator runs per-field; the actual "at least one" check
+        # happens at model level in __post_init__ via model_validator.
+        return v
+
+    def model_post_init(self, __context) -> None:
+        if not self.task_id and not self.submission_id:
+            raise ValueError("Must provide either task_id or submission_id")
 
 
 class ApproveSubmissionInput(BaseModel):

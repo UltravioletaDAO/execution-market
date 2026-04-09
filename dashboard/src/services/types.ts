@@ -54,6 +54,13 @@ export interface CreateTaskData {
   minReputation?: number
   paymentToken?: string
   paymentNetwork?: string
+  /**
+   * Ring 2 arbiter mode for automated evidence verification.
+   * - 'manual' (default): agent reviews and approves submissions
+   * - 'auto':   ArbiterService auto-releases/refunds based on PHOTINT + LLM verdict
+   * - 'hybrid': arbiter recommends, agent confirms before payment
+   */
+  arbiterMode?: 'manual' | 'auto' | 'hybrid'
 }
 
 /**

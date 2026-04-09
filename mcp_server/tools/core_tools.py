@@ -222,6 +222,14 @@ def register_core_tools(
                 - min_reputation (int): Minimum executor reputation
                 - payment_token (str): Payment token symbol (default: USDC)
                 - payment_network (str): Payment network (default: base)
+                - arbiter_mode (str): Verification mode for evidence approval.
+                    'manual' (default): you review and approve submissions yourself.
+                    'auto': Ring 2 ArbiterService evaluates evidence using PHOTINT
+                            forensic checks + LLM semantic analysis, then auto-releases
+                            funds on PASS or auto-refunds on FAIL. No agent action needed.
+                    'hybrid': arbiter recommends a verdict, you confirm before payment.
+                    Cost: 0 for tasks <$1, ~$0.001 for $1-$10, ~$0.003 for >=$10.
+                    Hard cap: arbiter spend never exceeds 10% of bounty.
 
         Returns:
             str: Success message with task ID and details, or error message.
@@ -286,6 +294,7 @@ def register_core_tools(
                 location_lng=_loc_lng,
                 location_radius_km=_loc_radius,
                 skill_version=params.skill_version,
+                arbiter_mode=getattr(params, "arbiter_mode", "manual") or "manual",
             )
 
             # Payment authorization via dispatcher
