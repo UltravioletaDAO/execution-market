@@ -73,8 +73,22 @@ def _install_stubs():
         return_value={"success": True, "tx_hash": "0xREF_DEFAULT"}
     )
     fake_pd_module = types.ModuleType("integrations.x402.payment_dispatcher")
+    fake_pd_module.get_dispatcher = lambda: fake_dispatcher
+    # Also register alias for backward-compat in case any caller uses the
+    # api.routers._helpers alias name.
     fake_pd_module.get_payment_dispatcher = lambda: fake_dispatcher
-    sys.modules.setdefault("integrations.x402.payment_dispatcher", fake_pd_module)
+
+    # Use direct assignment (not setdefault) to ensure our stub shadows
+    # any real module that other tests may have imported earlier in the
+    # same pytest process.
+    existing = sys.modules.get("integrations.x402.payment_dispatcher")
+    if existing is None or not hasattr(existing, "get_dispatcher"):
+        sys.modules["integrations.x402.payment_dispatcher"] = fake_pd_module
+    else:
+        # Real module is present -- monkey-patch the get_dispatcher function
+        # so processor.py's lazy import returns our mock.
+        existing.get_dispatcher = lambda: fake_dispatcher
+        existing.get_payment_dispatcher = lambda: fake_dispatcher
 
     return fake_helpers, fake_event_bus_instance, fake_dispatcher
 

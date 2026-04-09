@@ -137,20 +137,24 @@ def _install_stubs():
     else:
         fake_event_bus = sys.modules["events.bus"].get_event_bus()
 
-    # Install payment dispatcher stub
-    if "integrations.x402.payment_dispatcher" not in sys.modules:
+    # Install payment dispatcher stub. If another test file (integration.py)
+    # already installed a stub with get_dispatcher, DO NOT overwrite it --
+    # reuse their stub so their _FAKE_DISPATCHER references stay valid.
+    existing_pd = sys.modules.get("integrations.x402.payment_dispatcher")
+    if existing_pd is not None and hasattr(existing_pd, "get_dispatcher"):
+        # Another test file already stubbed this -- reuse their dispatcher
+        fake_dispatcher = existing_pd.get_dispatcher()
+    else:
+        # First stub install (we run alone or before integration.py)
         fake_dispatcher_local = MagicMock()
         fake_dispatcher_local.refund_trustless_escrow = AsyncMock(
             return_value={"success": True, "tx_hash": "0xREF"}
         )
         fake_pd_module = types.ModuleType("integrations.x402.payment_dispatcher")
+        fake_pd_module.get_dispatcher = lambda: fake_dispatcher_local
         fake_pd_module.get_payment_dispatcher = lambda: fake_dispatcher_local
         sys.modules["integrations.x402.payment_dispatcher"] = fake_pd_module
         fake_dispatcher = fake_dispatcher_local
-    else:
-        fake_dispatcher = sys.modules[
-            "integrations.x402.payment_dispatcher"
-        ].get_payment_dispatcher()
 
     return fake_helpers, fake_event_bus, fake_dispatcher
 

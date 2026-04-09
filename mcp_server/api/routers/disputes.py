@@ -631,9 +631,9 @@ async def _trigger_resolution_payment(
             return "pending"
 
         elif verdict == "refund":
-            from integrations.x402.payment_dispatcher import get_payment_dispatcher
+            from integrations.x402.payment_dispatcher import get_dispatcher
 
-            dispatcher = get_payment_dispatcher()
+            dispatcher = get_dispatcher()
             if dispatcher:
                 refund = await dispatcher.refund_trustless_escrow(
                     task_id=task_id,

@@ -286,9 +286,9 @@ async def _handle_auto_fail(
     task_id = task.get("id", "")
 
     try:
-        from integrations.x402.payment_dispatcher import get_payment_dispatcher
+        from integrations.x402.payment_dispatcher import get_dispatcher
 
-        dispatcher = get_payment_dispatcher()
+        dispatcher = get_dispatcher()
         if not dispatcher:
             return ProcessResult(
                 action="refunded",
