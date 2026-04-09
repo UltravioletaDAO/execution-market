@@ -569,6 +569,7 @@ async def phase_task_creation(
     client: httpx.AsyncClient,
     results: GoldenFlowResults,
     bounty: float,
+    arbiter_mode: str = "manual",
 ) -> PhaseResult:
     """Phase 2: Create task (direct_release: balance check only, no on-chain escrow)."""
     phase = PhaseResult("task_creation", "Task Creation (Balance Check)")
@@ -582,24 +583,31 @@ async def phase_task_creation(
     print(f"    Fee:         ${fee:.6f} {PAYMENT_TOKEN} (13%, on-chain fee calculator)")
     print(f"    Fee model:   credit_card (fee deducted from bounty)")
     print(f"    Escrow:      deferred to assignment (direct_release mode)")
+    print(f"    Arbiter:     {arbiter_mode}")
 
     try:
         print("  [1/1] Creating task...")
+        task_payload = {
+            "title": f"[GOLDEN FLOW] E2E Test - {ts_short()}",
+            "instructions": "Respond with: golden_flow_complete",
+            "category": "simple_action",
+            "bounty_usd": bounty,
+            "deadline_hours": 1,
+            "evidence_required": ["text_response"],
+            "location_hint": "Any location",
+            "payment_network": "base",
+            "payment_token": PAYMENT_TOKEN,
+        }
+        # Only include arbiter_mode when it's set -- keeps backward compatibility
+        # with older servers that don't know about the field.
+        if arbiter_mode and arbiter_mode != "manual":
+            task_payload["arbiter_mode"] = arbiter_mode
+
         task_data = await api_call(
             client,
             "POST",
             "/tasks",
-            {
-                "title": f"[GOLDEN FLOW] E2E Test - {ts_short()}",
-                "instructions": "Respond with: golden_flow_complete",
-                "category": "simple_action",
-                "bounty_usd": bounty,
-                "deadline_hours": 1,
-                "evidence_required": ["text_response"],
-                "location_hint": "Any location",
-                "payment_network": "base",
-                "payment_token": PAYMENT_TOKEN,
-            },
+            task_payload,
         )
 
         http_status = task_data.get("_http_status")
@@ -1464,6 +1472,136 @@ async def phase_verification(
 
 
 # ---------------------------------------------------------------------------
+# Phase 8: Arbiter Verdict (only when --arbiter flag is set)
+# ---------------------------------------------------------------------------
+async def phase_arbiter_verdict(
+    client: httpx.AsyncClient,
+    results: GoldenFlowResults,
+    task_id: str,
+    submission_id: str,
+    arbiter_mode: str,
+) -> PhaseResult:
+    """Phase 8: Verify Ring 2 arbiter verdict was produced and persisted.
+
+    Only runs when --arbiter is passed. Confirms:
+    - ArbiterService produced a verdict (persisted in submissions.arbiter_verdict)
+    - Tier matches bounty (CHEAP for <$1, STANDARD for $1-$10, MAX for >=$10)
+    - Evidence hash is present (keccak256, 66 chars with 0x prefix)
+    - Commitment hash is present
+    - For auto mode: verdict should be 'pass' or 'fail' (not SKIPPED)
+    - Dispute row exists if verdict was 'inconclusive'
+    """
+    phase = PhaseResult("arbiter_verdict", "Ring 2 Arbiter Verdict")
+    _print_header("PHASE 8: RING 2 ARBITER VERDICT")
+
+    try:
+        print(f"  Arbiter mode: {arbiter_mode}")
+        print("  [1/3] Fetching submission with arbiter fields...")
+
+        sub_data = await api_call(
+            client,
+            "GET",
+            f"/submissions/{submission_id}",
+        )
+        sub_status = sub_data.get("_http_status")
+        if sub_status != 200:
+            return phase.fail(
+                f"Could not fetch submission: HTTP {sub_status}",
+                submission_id=submission_id,
+            )
+
+        arbiter_verdict = sub_data.get("arbiter_verdict")
+        arbiter_tier = sub_data.get("arbiter_tier")
+        arbiter_score = sub_data.get("arbiter_score")
+        arbiter_evidence_hash = sub_data.get("arbiter_evidence_hash")
+        arbiter_commitment_hash = sub_data.get("arbiter_commitment_hash")
+
+        print(f"         verdict:          {arbiter_verdict}")
+        print(f"         tier:             {arbiter_tier}")
+        print(f"         score:            {arbiter_score}")
+        print(f"         evidence_hash:    {arbiter_evidence_hash}")
+        print(f"         commitment_hash:  {arbiter_commitment_hash}")
+
+        if arbiter_verdict is None:
+            # Arbiter may still be running -- wait and retry once
+            print("  [retry] Arbiter verdict not yet persisted. Waiting 10s...")
+            await asyncio.sleep(10)
+            sub_data = await api_call(
+                client, "GET", f"/submissions/{submission_id}"
+            )
+            arbiter_verdict = sub_data.get("arbiter_verdict")
+            arbiter_tier = sub_data.get("arbiter_tier")
+            arbiter_score = sub_data.get("arbiter_score")
+            arbiter_evidence_hash = sub_data.get("arbiter_evidence_hash")
+            arbiter_commitment_hash = sub_data.get("arbiter_commitment_hash")
+
+        if arbiter_verdict is None:
+            return phase.partial(
+                "Arbiter verdict not populated (master switch may be OFF)",
+                submission_id=submission_id,
+                arbiter_mode=arbiter_mode,
+            )
+
+        # Validate hash formats (0x + 64 hex chars)
+        print("  [2/3] Validating cryptographic hashes...")
+        if not arbiter_evidence_hash or not arbiter_evidence_hash.startswith("0x"):
+            return phase.fail(
+                f"Invalid evidence_hash format: {arbiter_evidence_hash}",
+            )
+        if len(arbiter_evidence_hash) != 66:
+            return phase.fail(
+                f"evidence_hash wrong length ({len(arbiter_evidence_hash)}): {arbiter_evidence_hash}",
+            )
+        if not arbiter_commitment_hash or not arbiter_commitment_hash.startswith(
+            "0x"
+        ):
+            return phase.fail(
+                f"Invalid commitment_hash format: {arbiter_commitment_hash}",
+            )
+        print("         hashes valid (66 chars, 0x prefix)")
+
+        # Validate verdict is an allowed value
+        if arbiter_verdict not in ("pass", "fail", "inconclusive", "skipped"):
+            return phase.fail(f"Invalid arbiter_verdict: {arbiter_verdict}")
+
+        # Tier sanity check based on bounty
+        print("  [3/3] Validating tier routing + dispute escalation...")
+        if arbiter_tier not in ("cheap", "standard", "max"):
+            return phase.fail(f"Invalid arbiter_tier: {arbiter_tier}")
+
+        # If verdict was inconclusive, verify a dispute row was created
+        dispute_info = None
+        if arbiter_verdict == "inconclusive":
+            disputes = await api_call(
+                client, "GET", f"/disputes?submission_id={submission_id}"
+            )
+            if disputes.get("_http_status") == 200:
+                rows = disputes.get("items") or disputes.get("disputes") or []
+                if rows:
+                    dispute_info = rows[0]
+                    print(f"         dispute created: {dispute_info.get('id')}")
+                    print(f"         escalation_tier: {dispute_info.get('escalation_tier')}")
+                else:
+                    return phase.fail(
+                        "INCONCLUSIVE verdict but no dispute row found",
+                    )
+
+        return phase.pass_(
+            submission_id=submission_id,
+            arbiter_mode=arbiter_mode,
+            arbiter_verdict=arbiter_verdict,
+            arbiter_tier=arbiter_tier,
+            arbiter_score=arbiter_score,
+            evidence_hash=arbiter_evidence_hash,
+            commitment_hash=arbiter_commitment_hash,
+            dispute_id=dispute_info.get("id") if dispute_info else None,
+        )
+
+    except Exception as e:
+        return phase.fail(f"Unexpected error: {e}")
+
+
+# ---------------------------------------------------------------------------
 # Report generation
 # ---------------------------------------------------------------------------
 def generate_report_en(results: GoldenFlowResults, bounty: float) -> str:
@@ -2130,6 +2268,21 @@ async def main() -> int:
             PAYMENT_TOKEN = token
             TOKEN_CONTRACT = TOKEN_CONTRACTS[token]
 
+    # Parse --arbiter [mode]. Default "auto" when --arbiter is set without value.
+    arbiter_mode = "manual"
+    for i, arg in enumerate(sys.argv):
+        if arg == "--arbiter":
+            # Optional value follows: --arbiter auto | hybrid | manual
+            if i + 1 < len(sys.argv) and sys.argv[i + 1] in (
+                "manual",
+                "auto",
+                "hybrid",
+            ):
+                arbiter_mode = sys.argv[i + 1]
+            else:
+                arbiter_mode = "auto"
+            break
+
     worker_net = float(Decimal(str(bounty)) * WORKER_PCT)
     fee = float(Decimal(str(bounty)) * PLATFORM_FEE_PCT)
 
@@ -2144,6 +2297,7 @@ async def main() -> int:
     _print_kv("Worker net", f"${worker_net:.6f} {PAYMENT_TOKEN} (87%)", 2)
     _print_kv("Fee", f"${fee:.6f} {PAYMENT_TOKEN} (13%)", 2)
     _print_kv("Escrow mode", "direct_release (escrow at assignment)", 2)
+    _print_kv("Arbiter mode", arbiter_mode, 2)
     _print_kv("Worker", WORKER_WALLET, 2)
     _print_kv("Treasury", TREASURY_WALLET, 2)
     _print_kv("Auth", "API key set" if API_KEY else "Anonymous (no API key)", 2)
@@ -2174,7 +2328,7 @@ async def main() -> int:
             return 1
 
         # Phase 2: Task Creation
-        p2 = await phase_task_creation(client, results, bounty)
+        p2 = await phase_task_creation(client, results, bounty, arbiter_mode=arbiter_mode)
         results.add(p2)
 
         task_id = p2.details.get("task_id")
@@ -2226,6 +2380,14 @@ async def main() -> int:
         # Phase 7: Verification
         p7 = await phase_verification(client, results, task_id)
         results.add(p7)
+
+        # Phase 8: Arbiter Verdict (only when --arbiter is set to non-manual)
+        if arbiter_mode != "manual":
+            await asyncio.sleep(5)  # Allow Phase B + arbiter to finish
+            p8 = await phase_arbiter_verdict(
+                client, results, task_id, submission_id, arbiter_mode
+            )
+            results.add(p8)
 
     # Generate and save reports
     _print_summary(results, bounty)

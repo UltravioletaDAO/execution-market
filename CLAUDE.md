@@ -119,6 +119,20 @@ When presenting decisions with multiple options (architecture questions, config 
 
 **Rule of thumb**: If the answer is "obviously yes", don't ask—just do it and report what you did.
 
+### Viral Monologue Reflex (Standing Instruction)
+
+During any working session (planning, debugging, research, concept validation, incident post-mortem), Claude watches for moments where a fact, a kill, a receipt, or a contrarian insight could become a viral 60-second monologue. When such a moment occurs, Claude MUST proactively:
+
+1. **Draft the monologue in one shot** using `vault/_templates/tpl-monologue.md`. Fill in hook (0-3s), tension (3-15s), reveal (15-35s), receipts (35-50s), and punchline (50-60s) in the template's exact structure. Pick ONE hook-type from the library (number-shock | graveyard | contrarian | i-was-wrong | curiosity-gap | receipt-drop). Cite only facts with primary sources — no fabricated numbers (see Tesla Fleet lesson in `[[meta-validation-framework]]`).
+
+2. **Save it to `vault/18-content/monologues/YYYY-MM-DD-<topic-slug>.md`** using kebab-case. The slug MUST match the source concept's slug in `vault/20-concepts/` or `vault/21-graveyard/`. If the source concept has no vault note yet, create a stub concept file FIRST so the wikilinks resolve.
+
+3. **Wikilink it to the source concept** in the frontmatter `related` field AND in the body at the first mention. Bidirectional: add a backlink stub in the concept note's "Monologues" section (Obsidian will auto-populate via backlinks, but an explicit mention keeps Dataview queries cleaner).
+
+4. **Notify the user in ONE line** at the end of the turn. Format: `Drafted monologue vault/18-content/monologues/<filename>.md — hook: <hook-type>, length: 60s, topic: [[<concept>]].` Nothing more. No ceremony. Do not interrupt the flow of the current task.
+
+Claude does NOT ask permission before drafting. The user has already consented via this standing instruction. Claude does NOT stop the current task to do this — the monologue draft is a side-effect, dropped into the vault, flagged in one line, and the main task continues immediately. Budget: max 2 monologues per session. Overflow goes to `vault/18-content/drafts/_backlog.md` with one-line pitches. Over time, drafts accumulate in `vault/18-content/drafts/` (if rough) or `vault/18-content/monologues/` (if publishable), and the user reviews them when ready to stream.
+
 ## Focus Discipline — One Thread at a Time
 
 **CRITICAL: Protect the conversation context from topic drift.**
@@ -201,6 +215,7 @@ pytest -m erc8004                          # ERC-8004 integration (177 tests)
 pytest -m payments                         # Payment flows (251 tests)
 pytest -m security                         # Fraud, GPS, auth (61 tests)
 pytest -m infrastructure                   # Webhooks, WS, A2A (77 tests)
+pytest -m arbiter                          # Ring 2 Arbiter (95 tests)
 
 # Combine profiles
 pytest -m "core or erc8004"                # Core + ERC-8004
@@ -217,6 +232,7 @@ pytest -m "core or payments"               # Core + payments
 | `security` | 61 | Fraud detection, GPS antispoofing |
 | `infrastructure` | 77 | Webhooks, WebSocket, A2A, timestamps |
 | `worldid` | 8 | World ID 4.0 RP signing, Cloud API verify, anti-sybil |
+| `arbiter` | 95 | Ring 2 dual-inference verdict, tier routing, consensus engine, auto-release/refund via Facilitator |
 | *(unmarked)* | 153 | A2A protocol, gas dust, prepare feedback, task transactions |
 
 ---
@@ -484,6 +500,19 @@ related-files:        # Optional: source code paths
 **IMPORTANT**: When adding features to either the web dashboard or mobile app, update the feature parity document at `docs/planning/FEATURE_PARITY_WEB_MOBILE.md`. Both platforms should stay synchronized. See the document for the current feature matrix and planned work.
 
 Mobile app lives in `em-mobile/` — Expo SDK 54 + React Native + NativeWind + Dynamic.xyz auth.
+
+## Strategic Validation & Content Skills (NEW, 2026-04-08)
+
+Four reusable skills for strategic work (brainstorming, validation, content generation):
+
+- **`validate-concept`** — Apply the Meta-Validation Framework (5 failure modes, 6 axes, 3 kill-switches) to any new concept. Produces a 1-page scorecard with GO/CAUTION/KILL verdict. Use BEFORE writing strategy docs. Framework doc: `.unused/future/META_VALIDATION_FRAMEWORK.md` (or `vault/19-validation/framework/` after migration).
+- **`draft-monologue`** — Draft a 60-90s viral monologue when a concept has viral potential. Auto-saves to `vault/18-content/monologues/` with frontmatter, wikilinks, and delivery notes. Budget: 2 per session. 7 hook types, 7 triggers. Reference: `.unused/future/viral-factory/03-MONOLOGUE-TEMPLATES.md`.
+- **`fact-check`** — Verify any numerical or factual claim against primary sources. Use BEFORE posting anything public (tweets, LinkedIn, pitches, mayor outreach). Known fact-check patterns (Tesla Fleet API, Option B tweet, CITYaaS figures) in skill doc.
+- **`launch-validation-team`** — Spawn a standardized multi-agent team (PM + HR + specialists + devil's advocate) in parallel to ruthlessly validate a concept. Used successfully for Tesla Fleet (killed), Option B (rewritten), CARRIERaaS (CAUTION), CITYaaS (fact-checked).
+
+**Active master plan:** `.unused/future/MASTER_PLAN_SESSION_CLOSURE.md` — 8-phase execution plan for closing open work and bootstrapping the viral content factory.
+
+**Session handoff:** `.unused/future/HANDOFF_2026-04-08.md` — full context for continuing work across sessions.
 
 ## Operational State (as of 2026-02-28)
 

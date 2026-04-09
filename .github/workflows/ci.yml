@@ -159,6 +159,12 @@ jobs:
           pip install -r requirements.txt
           pip install pytest pytest-asyncio pytest-cov
 
+      - name: Run arbiter profile (fast fail-fast check)
+        run: |
+          pytest tests/test_arbiter_service.py tests/test_arbiter_integration.py -v
+        env:
+          TESTING: "true"
+
       - name: Run tests with coverage
         run: |
           pytest \
