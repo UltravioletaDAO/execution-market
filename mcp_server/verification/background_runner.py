@@ -225,6 +225,27 @@ async def run_phase_b_verification(
             merged["phase"],
         )
 
+        # 8. Run Ring 2 ArbiterService if task has arbiter_enabled
+        # Fire-and-forget: never blocks Phase B response, never raises.
+        try:
+            if task.get("arbiter_enabled") and task.get("arbiter_mode") not in (
+                None,
+                "",
+                "manual",
+            ):
+                await _run_arbiter_for_submission(
+                    submission_id=submission_id,
+                    task=task,
+                    merged_phase_b=merged,
+                )
+        except Exception as arbiter_err:
+            logger.error(
+                "Arbiter post-Phase-B failed for %s: %s",
+                submission_id,
+                arbiter_err,
+                exc_info=True,
+            )
+
     except Exception as e:
         logger.error(
             "Phase B verification failed for %s: %s",
@@ -1087,4 +1108,98 @@ async def _evaluate_auto_approve(
             submission_id,
             score,
             ai_confidence,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Ring 2 — Arbiter post-Phase-B integration
+# ---------------------------------------------------------------------------
+
+
+async def _run_arbiter_for_submission(
+    submission_id: str,
+    task: Dict[str, Any],
+    merged_phase_b: Dict[str, Any],
+) -> None:
+    """Run the Ring 2 ArbiterService after Phase B completes.
+
+    Reads the merged Phase A+B PHOTINT scores, runs the dual-ring arbiter,
+    and dispatches the verdict to the payment processor (release/refund/escalate).
+
+    Idempotency: ArbiterService.evaluate() is safe to call multiple times --
+    same input -> same evidence_hash and commitment_hash. The processor's
+    underlying _settle_submission_payment also has its own idempotency check.
+
+    This function NEVER raises -- all errors are logged. Failures here must
+    not break Phase B for the rest of the system.
+    """
+    try:
+        # Lazy imports to avoid circular deps and to keep verification module
+        # importable without the arbiter package being available.
+        from integrations.arbiter.config import is_arbiter_enabled
+        from integrations.arbiter.processor import process_arbiter_verdict
+        from integrations.arbiter.service import ArbiterService
+
+        # Master switch -- if globally disabled, skip silently
+        if not await is_arbiter_enabled():
+            logger.debug(
+                "Arbiter master switch OFF -- skipping arbiter for submission %s",
+                submission_id,
+            )
+            return
+
+        # Refresh submission to get the latest merged data
+        current = await db.get_submission(submission_id)
+        if not current:
+            logger.warning(
+                "Submission %s not found for arbiter run", submission_id
+            )
+            return
+
+        # Idempotency: skip if arbiter already ran for this submission
+        if current.get("arbiter_verdict") is not None:
+            logger.info(
+                "Submission %s already has arbiter verdict (%s) -- skipping",
+                submission_id,
+                current.get("arbiter_verdict"),
+            )
+            return
+
+        # Build a submission dict the arbiter expects (with task + executor relations)
+        if not current.get("task"):
+            current["task"] = task
+
+        # Run the arbiter
+        arbiter = ArbiterService.from_defaults()
+        verdict = await arbiter.evaluate(task=task, submission=current)
+
+        logger.info(
+            "Arbiter verdict for submission %s: decision=%s tier=%s score=%.3f",
+            submission_id,
+            verdict.decision.value,
+            verdict.tier.value,
+            verdict.aggregate_score,
+        )
+
+        # Dispatch verdict to processor (release / refund / escalate / store)
+        result = await process_arbiter_verdict(
+            verdict=verdict, task=task, submission=current
+        )
+
+        logger.info(
+            "Arbiter dispatch for submission %s: action=%s success=%s tx=%s",
+            submission_id,
+            result.action,
+            result.success,
+            result.payment_tx or result.refund_tx or result.dispute_id or "-",
+        )
+
+    except Exception as e:
+        # Critical: never raise -- log only
+        logger.error(
+            "Arbiter run failed for submission %s: %s: %s",
+            submission_id,
+            type(e).__name__,
+            e,
+            exc_info=True,
         )
