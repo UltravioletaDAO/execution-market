@@ -23,6 +23,44 @@ from datetime import datetime, UTC
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
+# ---------------------------------------------------------------------------
+# Arbiter test isolation (Phase 1-5 of commerce scheme + arbiter integration)
+# ---------------------------------------------------------------------------
+#
+# The arbiter test files install sys.modules stubs at module-load time to
+# mock api.routers._helpers, events.bus, integrations.x402.payment_dispatcher,
+# and supabase_client. This is necessary because the real modules either
+# have unrelated import issues (web3 version) or would hit the real DB / API.
+#
+# Problem: module-level sys.modules manipulation leaks to OTHER test files
+# that run AFTER the arbiter tests (e.g., test_event_bus.py gets a fake
+# events.bus module and crashes).
+#
+# Fix: reorder test collection so arbiter tests run LAST, after all other
+# tests have had a chance to import the real modules into sys.modules.
+# This way the arbiter stubs (which use setdefault in most cases) don't
+# pollute the import cache of subsequent tests -- because there are no
+# subsequent tests.
+
+
+def pytest_collection_modifyitems(config, items):
+    """Push arbiter tests to the end of the collection order.
+
+    This avoids sys.modules pollution from arbiter test stubs affecting
+    unrelated tests like test_event_bus.py and test_channel_manager.py
+    that rely on the real events.bus module.
+    """
+    arbiter_items = []
+    non_arbiter_items = []
+    for item in items:
+        nodeid = item.nodeid.lower()
+        if "test_arbiter" in nodeid:
+            arbiter_items.append(item)
+        else:
+            non_arbiter_items.append(item)
+    items[:] = non_arbiter_items + arbiter_items
+
+
 @pytest.fixture
 def sample_task():
     """Sample task for testing."""

@@ -41,54 +41,73 @@ def _install_stubs():
     production these modules exist; in the test env they either don't
     or have import errors unrelated to arbiter code.
     """
-    # api.routers._helpers
-    fake_helpers = types.ModuleType("api.routers._helpers")
-    fake_helpers._settle_submission_payment = AsyncMock(
-        return_value={"payment_tx": "0xPAY_DEFAULT"}
-    )
-    fake_helpers.dispatch_webhook = AsyncMock()
-    fake_routers_pkg = types.ModuleType("api.routers")
-    fake_routers_pkg._helpers = fake_helpers
-    fake_api_pkg = types.ModuleType("api")
-    fake_api_pkg.routers = fake_routers_pkg
-    sys.modules.setdefault("api", fake_api_pkg)
-    sys.modules.setdefault("api.routers", fake_routers_pkg)
-    sys.modules.setdefault("api.routers._helpers", fake_helpers)
+    # --- api.routers._helpers ---
+    # ALWAYS force-override. The real _helpers has unrelated imports
+    # that may fail in test env, and processor.py lazy-imports
+    # _settle_submission_payment which MUST be our mock.
+    fake_settle = AsyncMock(return_value={"payment_tx": "0xPAY_DEFAULT"})
+    fake_dispatch_webhook = AsyncMock()
 
-    # events.bus (stub the get_event_bus factory)
+    existing_helpers = sys.modules.get("api.routers._helpers")
+    if existing_helpers is not None:
+        # Monkey-patch the real module's attributes so lazy imports
+        # inside arbiter code use our mocks.
+        existing_helpers._settle_submission_payment = fake_settle
+        existing_helpers.dispatch_webhook = fake_dispatch_webhook
+        fake_helpers = existing_helpers
+    else:
+        fake_helpers = types.ModuleType("api.routers._helpers")
+        fake_helpers._settle_submission_payment = fake_settle
+        fake_helpers.dispatch_webhook = fake_dispatch_webhook
+        fake_routers_pkg = types.ModuleType("api.routers")
+        fake_routers_pkg.__path__ = []
+        fake_routers_pkg._helpers = fake_helpers
+        fake_api_pkg = types.ModuleType("api")
+        fake_api_pkg.__path__ = []
+        fake_api_pkg.routers = fake_routers_pkg
+        sys.modules["api"] = fake_api_pkg
+        sys.modules["api.routers"] = fake_routers_pkg
+        sys.modules["api.routers._helpers"] = fake_helpers
+
+    # --- events.bus ---
+    # CANNOT force-override because test_event_bus.py needs the real module.
+    # Only stub if not present (conftest reorders arbiter tests LAST, so
+    # test_event_bus runs first and loads the real module, meaning we'll
+    # fall through to the else branch and patch attributes on the real module).
     fake_event_bus_instance = MagicMock()
     fake_event_bus_instance.publish = AsyncMock()
 
-    class _FakeEventBus:
-        pass
+    existing_events_bus = sys.modules.get("events.bus")
+    if existing_events_bus is not None:
+        # Preserve the original get_event_bus for other test files by only
+        # patching on a per-test basis via the instance. Here we just override
+        # the factory function to return our mock.
+        existing_events_bus.get_event_bus = lambda: fake_event_bus_instance
+    else:
 
-    fake_bus_module = types.ModuleType("events.bus")
-    fake_bus_module.get_event_bus = lambda: fake_event_bus_instance
-    fake_bus_module.EventBus = _FakeEventBus
-    sys.modules.setdefault("events.bus", fake_bus_module)
+        class _FakeEventBus:
+            pass
 
-    # x402 payment dispatcher
+        fake_bus_module = types.ModuleType("events.bus")
+        fake_bus_module.get_event_bus = lambda: fake_event_bus_instance
+        fake_bus_module.EventBus = _FakeEventBus
+        sys.modules["events.bus"] = fake_bus_module
+
+    # --- x402 payment dispatcher ---
     fake_dispatcher = MagicMock()
     fake_dispatcher.refund_trustless_escrow = AsyncMock(
         return_value={"success": True, "tx_hash": "0xREF_DEFAULT"}
     )
-    fake_pd_module = types.ModuleType("integrations.x402.payment_dispatcher")
-    fake_pd_module.get_dispatcher = lambda: fake_dispatcher
-    # Also register alias for backward-compat in case any caller uses the
-    # api.routers._helpers alias name.
-    fake_pd_module.get_payment_dispatcher = lambda: fake_dispatcher
 
-    # Use direct assignment (not setdefault) to ensure our stub shadows
-    # any real module that other tests may have imported earlier in the
-    # same pytest process.
-    existing = sys.modules.get("integrations.x402.payment_dispatcher")
-    if existing is None or not hasattr(existing, "get_dispatcher"):
-        sys.modules["integrations.x402.payment_dispatcher"] = fake_pd_module
+    existing_pd = sys.modules.get("integrations.x402.payment_dispatcher")
+    if existing_pd is not None:
+        existing_pd.get_dispatcher = lambda: fake_dispatcher
+        existing_pd.get_payment_dispatcher = lambda: fake_dispatcher
     else:
-        # Real module is present -- monkey-patch the get_dispatcher function
-        # so processor.py's lazy import returns our mock.
-        existing.get_dispatcher = lambda: fake_dispatcher
-        existing.get_payment_dispatcher = lambda: fake_dispatcher
+        fake_pd_module = types.ModuleType("integrations.x402.payment_dispatcher")
+        fake_pd_module.get_dispatcher = lambda: fake_dispatcher
+        fake_pd_module.get_payment_dispatcher = lambda: fake_dispatcher
+        sys.modules["integrations.x402.payment_dispatcher"] = fake_pd_module
 
     return fake_helpers, fake_event_bus_instance, fake_dispatcher
 
@@ -123,10 +142,23 @@ def _make_fake_supabase_client(existing_verdict=None):
     return client
 
 
-# Install supabase_client stub so processor._persist_verdict + escalation can run
-fake_db = types.ModuleType("supabase_client")
-fake_db.get_client = lambda: _make_fake_supabase_client()
-sys.modules.setdefault("supabase_client", fake_db)
+# Install supabase_client stub. Force-override any existing module so
+# processor._persist_verdict + escalation use our mock, not the real
+# Supabase client (which would reject our non-UUID test IDs).
+#
+# Tagged with `_arbiter_stub = "integration"` so test_arbiter_phase5.py
+# can detect our stub and reuse it (without clobbering with its own
+# different mock factory).
+existing_db = sys.modules.get("supabase_client")
+if existing_db is not None:
+    existing_db.get_client = lambda: _make_fake_supabase_client()
+    existing_db._arbiter_stub = "integration"
+    fake_db = existing_db
+else:
+    fake_db = types.ModuleType("supabase_client")
+    fake_db.get_client = lambda: _make_fake_supabase_client()
+    fake_db._arbiter_stub = "integration"
+    sys.modules["supabase_client"] = fake_db
 
 
 # ---------------------------------------------------------------------------

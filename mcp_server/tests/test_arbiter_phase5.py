@@ -224,9 +224,29 @@ def _make_fake_supabase_client(disputes=None, executors=None, tasks=None):
     return client
 
 
-fake_db = types.ModuleType("supabase_client")
-fake_db.get_client = lambda: _make_fake_supabase_client()
-sys.modules.setdefault("supabase_client", fake_db)
+# Install supabase stub. If test_arbiter_integration.py already installed
+# its tagged stub, reuse it so we don't break its tests with our different
+# mock factory. Otherwise install our own (phase5 tests need specific
+# fixture rows for disputes, executors, tasks).
+existing_db_p5 = sys.modules.get("supabase_client")
+_is_integration_stub = (
+    existing_db_p5 is not None
+    and getattr(existing_db_p5, "_arbiter_stub", None) == "integration"
+)
+
+if _is_integration_stub:
+    # Integration already set up its stub -- reuse
+    fake_db = existing_db_p5
+elif existing_db_p5 is not None:
+    # Real supabase_client (or broken stub) -- override get_client
+    existing_db_p5.get_client = lambda: _make_fake_supabase_client()
+    existing_db_p5._arbiter_stub = "phase5"
+    fake_db = existing_db_p5
+else:
+    fake_db = types.ModuleType("supabase_client")
+    fake_db.get_client = lambda: _make_fake_supabase_client()
+    fake_db._arbiter_stub = "phase5"
+    sys.modules["supabase_client"] = fake_db
 
 
 # ---------------------------------------------------------------------------

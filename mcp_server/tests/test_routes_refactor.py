@@ -104,6 +104,14 @@ EXPECTED_ROUTES = {
     "/api/v1/ens/records/{name}",
     "/api/v1/ens/subname/{subname}",
     "/api/v1/ens/claim-subname",
+    # Ring 2 Arbiter — dispute resolution (Phase 5)
+    "/api/v1/disputes",
+    "/api/v1/disputes/{dispute_id}",
+    "/api/v1/disputes/available",
+    "/api/v1/disputes/{dispute_id}/resolve",
+    # Ring 2 Arbiter — public Arbiter-as-a-Service (Phase 5)
+    "/api/v1/arbiter/verify",
+    "/api/v1/arbiter/status",
 }
 
 
