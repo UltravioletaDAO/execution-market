@@ -569,6 +569,12 @@ class TestAaasRequestModels:
 
 
 class TestAaasEndpoint:
+    @pytest.fixture(autouse=True)
+    def _enable_aaas(self, monkeypatch):
+        # Phase 0 GR-0.2: AaaS defaults disabled. Flip the env flag on
+        # for this class so we exercise the underlying endpoint logic.
+        monkeypatch.setenv("EM_AAAS_ENABLED", "true")
+
     @pytest.mark.asyncio
     async def test_verify_pass_path(self):
         """End-to-end: arbiter returns PASS -> endpoint maps to response."""
@@ -688,6 +694,13 @@ class TestAaasEndpoint:
 
 
 class TestAaasStatus:
+    @pytest.fixture(autouse=True)
+    def _enable_aaas(self, monkeypatch):
+        # Phase 0 GR-0.2: AaaS defaults disabled. Enable for this class
+        # so the /status endpoint doesn't 503 on the env flag check
+        # before we can exercise the PlatformConfig master switch.
+        monkeypatch.setenv("EM_AAAS_ENABLED", "true")
+
     @pytest.mark.asyncio
     async def test_status_returns_tiers_and_categories(self):
         from api.routers.arbiter_public import arbiter_status

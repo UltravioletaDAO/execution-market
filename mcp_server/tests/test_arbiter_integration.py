@@ -233,6 +233,21 @@ def _arbiter_stubs_module_scope():
 
 
 # ---------------------------------------------------------------------------
+# Phase 0 GR-0.2: enable auto-release for this test module.
+# ---------------------------------------------------------------------------
+#
+# processor.py now reads EM_ARBITER_AUTO_RELEASE_ENABLED at call time and
+# defaults to false. This module's tests were written against the pre-gate
+# behavior and assert that auto-mode PASS/FAIL trigger settle/refund. To
+# keep the semantic coverage of those tests while the gate exists, we
+# flip the env flag on for every test in this file. The new
+# test_arbiter_phase0.py file exercises the OFF path explicitly.
+@pytest.fixture(autouse=True)
+def _enable_auto_release_for_integration_tests(monkeypatch):
+    monkeypatch.setenv("EM_ARBITER_AUTO_RELEASE_ENABLED", "true")
+
+
+# ---------------------------------------------------------------------------
 # Shared fixtures
 # ---------------------------------------------------------------------------
 

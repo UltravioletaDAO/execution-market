@@ -35,6 +35,7 @@ Architecture:
 """
 
 import logging
+import os
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
@@ -42,6 +43,38 @@ from .config import resolve_arbiter_mode
 from .types import ArbiterDecision, ArbiterVerdict
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Phase 0 GR-0.2: hard kill-switch for arbiter auto-release / auto-refund.
+# ---------------------------------------------------------------------------
+#
+# Independent of PlatformConfig.feature.arbiter_enabled. This env flag is
+# a last line of defense: even if the runtime config is mis-toggled, the
+# auto branch of processor.process_arbiter_verdict() will refuse to move
+# funds unless EM_ARBITER_AUTO_RELEASE_ENABLED=true.
+#
+# Context (AI-001, AI-005):
+#   * Ring 2 LLM inference is currently a STUB that returns [] -- so
+#     every "dual-inference" verdict is actually single-ring PHOTINT.
+#   * The auto-release code path ultimately calls
+#     _settle_submission_payment() or dispatcher.refund_trustless_escrow(),
+#     i.e. real money moves. We refuse to auto-act on a half-built
+#     decision engine.
+#
+# Until Phase 1 guardrails land (Ring 2 wired + cost caps enforced +
+# prompt hardening + authenticated callers), auto mode downgrades to a
+# stored-verdict state that requires manual agent confirmation.
+def _auto_release_enabled() -> bool:
+    """Read the auto-release master kill-switch at call time.
+
+    Read-at-call-time (rather than cached at import) so tests can flip
+    os.environ with monkeypatch and see the change without module reload.
+    """
+    return (
+        os.environ.get("EM_ARBITER_AUTO_RELEASE_ENABLED", "false").strip().lower()
+        == "true"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -167,6 +200,42 @@ async def process_arbiter_verdict(
 
     # ---- Step 7: AUTO mode -- act on verdict ----
     if effective_mode == "auto":
+        # Phase 0 GR-0.2: hard kill-switch. Even when PlatformConfig says
+        # feature.arbiter_enabled=true, we refuse to move funds while
+        # Ring 2 is a stub (AI-001) and cost/prompt guards are missing
+        # (AI-003, AI-004, AI-006). Downgrade to stored-verdict and
+        # force manual agent confirmation.
+        if not _auto_release_enabled():
+            logger.warning(
+                "Arbiter auto-release attempted but EM_ARBITER_AUTO_RELEASE_ENABLED=false "
+                "-- refusing to dispatch. submission=%s task=%s verdict=%s "
+                "(downgrading to stored, manual confirmation required)",
+                submission_id,
+                task_id,
+                verdict.decision.value,
+            )
+            await _emit_arbiter_event(
+                "submission.arbiter_stored",
+                task,
+                submission,
+                verdict,
+                extra_payload={
+                    "mode": "auto",
+                    "auto_release_disabled": True,
+                    "reason": "EM_ARBITER_AUTO_RELEASE_ENABLED=false",
+                    "awaiting_confirmation": True,
+                },
+            )
+            return ProcessResult(
+                action="stored",
+                success=True,
+                details={
+                    "reason": "auto_release_disabled",
+                    "env_var": "EM_ARBITER_AUTO_RELEASE_ENABLED",
+                    "verdict": verdict.decision.value,
+                },
+            )
+
         if verdict.decision == ArbiterDecision.PASS:
             return await _handle_auto_pass(verdict, task, submission)
         elif verdict.decision == ArbiterDecision.FAIL:

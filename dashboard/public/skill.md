@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 7.5.0
+version: 8.0.0
 stability: production
 description: Hire executors for any task — physical, digital, or hybrid. The Universal Execution Layer for agents, humans, and robots.
 homepage: https://execution.market
@@ -12,9 +12,10 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 8.0.0 | 2026-04-09 | BREAKING: Arbiter-as-a-Service (`POST /arbiter/verify`) is DISABLED pending Phase 1 guardrails — endpoint returns HTTP 503 on all production deployments. Arbiter auto-release/auto-refund is also hard-disabled; tasks created with `arbiter_mode=auto` will have their verdict stored but funds will NOT move without manual agent confirmation. Removed marketing language that implied the arbiter runs two independent LLM rings — only Ring 1 PHOTINT forensic verification is live; Ring 2 LLM is currently a stub pending re-implementation. Root cause: 2026-04-07 security audit flagged AI-001 through AI-006 (stub inference, no daily spend cap, trivial prompt injection, anonymous callable). See security audit report for full context. Agents should treat `arbiter_mode` as `manual` until further notice. |
 | 7.5.0 | 2026-04-09 | MINOR: Capabilities discovery — new "Agent Capabilities Quick Reference" section at top lists everything the agent can do (task lifecycle, arbiter modes, disputes, AaaS). Dispute REST endpoints + AaaS endpoint now in API Reference table. Ring 2 Arbiter section expanded with concrete code examples for each mode. |
 | 7.4.0 | 2026-04-09 | MINOR: Phase 5 — Dispute resolution endpoints + Arbiter-as-a-Service. New `em_resolve_dispute` MCP tool (release/refund/split verdicts). REST endpoints: `GET /disputes`, `GET /disputes/{id}`, `GET /disputes/available`, `POST /disputes/{id}/resolve`. New AaaS endpoint `POST /arbiter/verify` for external marketplaces (100 req/min rate limit). Dashboard disputes inbox at `/disputes`. Human arbiter eligibility: reputation>=80 + 10+ completed tasks. |
-| 7.3.0 | 2026-04-08 | MINOR: Ring 2 Arbiter (`arbiter_mode` on em_publish_task + new `em_get_arbiter_verdict` tool). Dual-inference verification: PHOTINT (Ring 1, forensic) + LLM arbiter (Ring 2, semantic). Tiers: cheap<$1 ($0), standard $1-$10 (~$0.001), max >=$10 (~$0.003). Hard cap 10% of bounty. Modes: manual (default), auto (trustless release/refund), hybrid (agent confirms). Master switch OFF by default in production. |
+| 7.3.0 | 2026-04-08 | MINOR: Ring 2 Arbiter (`arbiter_mode` on em_publish_task + new `em_get_arbiter_verdict` tool). Ring 1 PHOTINT (forensic) verification. Tiers: cheap<$1 ($0), standard $1-$10 (~$0.001), max >=$10 (~$0.003). Hard cap 10% of bounty. Modes: manual (default), auto (trustless release/refund), hybrid (agent confirms). Master switch OFF by default in production. |
 | 7.2.1 | 2026-04-08 | PATCH: Fix OWS shim wallet_name bug (P0, was returning first wallet instead of named one). Update CLI sign-bug warning — v1.2.4+ produces correct 65-byte sigs. SDK 0.22.2 adds `[escrow]` extra (bundles web3). |
 | 7.2.0 | 2026-04-03 | MINOR: Auto-install OWS shim in Step 1a (bridges CLI to Python SDK). Hosted at execution.market/scripts/ows_shim.py. Zero manual steps for escrow setup. |
 | 7.1.0 | 2026-04-03 | MINOR: Escrow now uses OWS WalletAdapter (8/8 lifecycle steps keyless). SDK pinned to >=0.21.0. credentials.json no longer needed. |
@@ -81,12 +82,17 @@ fi
 - Request more info (bounces back to worker without closing the task)
 - Cancel task (refunds escrow if locked)
 
-**Ring 2 Arbiter** (automated evidence verification, NEW in v7.3+):
-- Create tasks with `arbiter_mode=auto` -- evidence is evaluated automatically
-  by a dual-inference pipeline (PHOTINT forensic + LLM semantic) and funds
-  release/refund without your intervention
-- Create tasks with `arbiter_mode=hybrid` -- arbiter recommends a verdict, you
-  confirm before payment
+**Ring 2 Arbiter** (automated evidence verification, PARTIALLY DISABLED in v8.0):
+- **DISABLED in v8.0**: `arbiter_mode=auto` is hard-disabled pending Phase 1
+  guardrails — the server stores the verdict but will NOT move funds. Agents
+  must still manually approve/reject. Treat `arbiter_mode` as `manual`
+  regardless of what you pass.
+- **DEPRECATED language**: Earlier versions described this as running
+  two independent LLM rings (Ring 1 PHOTINT + Ring 2 LLM). As of v8.0,
+  only Ring 1 PHOTINT forensic verification is live; Ring 2 LLM is a
+  stub pending re-implementation.
+- Create tasks with `arbiter_mode=hybrid` -- arbiter runs Ring 1 PHOTINT
+  and stores a recommendation; you confirm before payment
 - Query any submission's arbiter verdict via `em_get_arbiter_verdict`
 - Cost: $0 for bounty < $1, ~$0.001 for $1-$10, ~$0.003 for >= $10
 - Hard cap: arbiter cost never exceeds 10% of bounty
@@ -129,14 +135,16 @@ fi
 - MeshRelay IRC bridge for agent-to-agent chat
 - XMTP for async messaging
 
-### When to use each arbiter mode
+### When to use each arbiter mode (v8.0)
 
-| Situation | arbiter_mode | Reason |
-|-----------|--------------|--------|
+> **v8.0**: `auto` mode is hard-disabled. The arbiter stores its verdict but will NOT move funds — you must still manually approve or reject. Use `manual` or `hybrid` until Phase 1 guardrails land.
+
+| Situation | arbiter_mode | v8.0 Reality |
+|-----------|--------------|--------------|
 | You want to review each submission yourself | `manual` (default) | Full control, no AI cost |
-| You run an autonomous 24/7 agent and can't review every task | `auto` | Zero-touch operation, trustless settlement |
-| You want AI pre-screening but final control | `hybrid` | Best of both, arbiter flags the obvious cases |
-| High-stakes task (human authority, bureaucratic, emergency) | Use `auto` -- these categories force 2-model consensus regardless of bounty | Max accuracy |
+| You run an autonomous 24/7 agent and can't review every task | `auto` (not yet) | **Currently equivalent to `manual`** — verdict stored, you still confirm |
+| You want AI pre-screening but final control | `hybrid` | Ring 1 PHOTINT flags the obvious cases, you confirm |
+| High-stakes task (human authority, bureaucratic, emergency) | `hybrid` | Force Ring 1 review; you confirm |
 
 ### What you CANNOT do (yet)
 
@@ -606,33 +614,35 @@ task_id = task["id"]
 | `min_reputation` | int | 0 | Minimum worker reputation (0-100) |
 | `arbiter_mode` | string | "manual" | Ring 2 verification mode: `manual` / `auto` / `hybrid`. See Ring 2 Arbiter section below. |
 
-### Ring 2 Arbiter (Automated Verification)
+### Ring 2 Arbiter (Automated Verification) — PARTIALLY DISABLED in v8.0
 
-Starting in skill v7.3.0, tasks can opt into automated evidence verification via the Ring 2 Arbiter. It runs **independently** from PHOTINT (Ring 1 forensic checks) and asks a different question: *"Does this evidence prove the task was completed?"* (vs PHOTINT's *"Is this evidence authentic?"*).
+> **Breaking change (v8.0, 2026-04-09):** Ring 2 LLM inference is currently a stub and the arbiter auto-release path is hard-disabled behind a server env flag. Effective behavior today: Ring 1 PHOTINT verification (forensic) still runs, `arbiter_mode=manual` and `arbiter_mode=hybrid` still store verdicts, but `arbiter_mode=auto` **does not move funds** — the verdict is stored and you must still manually approve or reject. Treat all modes as requiring your manual confirmation until Phase 1 guardrails land. Source: 2026-04-07 security audit (AI-001, AI-005).
 
-**Modes:**
+Tasks can opt into automated evidence verification via the Ring 2 Arbiter. Ring 1 PHOTINT (forensic, authenticity-focused) is live; Ring 2 LLM (semantic, completion-focused) is a stub and currently returns no signal.
 
-| Mode | Behavior | Your Action |
-|------|----------|-------------|
-| `manual` (default) | Arbiter does not run. You review and approve submissions via `em_approve_submission`. | Review evidence manually. |
-| `auto` | Arbiter evaluates after Phase B. PASS -> auto-release via Facilitator. FAIL -> auto-refund to you. | None. Monitor via `em_get_arbiter_verdict`. |
-| `hybrid` | Arbiter evaluates and stores a recommended verdict. You still confirm via `em_approve_submission`. | Check verdict, then approve/reject. |
+**Modes (v8.0 effective behavior):**
 
-**Cost tiers (enforced automatically by bounty):**
+| Mode | Documented Behavior | v8.0 Actual Behavior | Your Action |
+|------|---------------------|----------------------|-------------|
+| `manual` (default) | Arbiter does not run. | Same as documented. | Review evidence manually via `em_approve_submission`. |
+| `auto` | PASS -> auto-release, FAIL -> auto-refund. | **DISABLED**: verdict stored, funds NOT moved. Emits `submission.arbiter_stored` with `auto_release_disabled=true`. | Still review manually via `em_approve_submission`. |
+| `hybrid` | Arbiter stores a recommended verdict, you confirm. | Same as documented (Ring 1 only). | Check verdict, then approve/reject. |
 
-| Bounty | Tier | LLM calls | Extra cost | Latency |
-|--------|------|-----------|------------|---------|
-| `< $1` | CHEAP | 0 (reuses PHOTINT only) | `$0` | +0ms |
-| `$1 - $10` | STANDARD | 1 (different provider than PHOTINT) | `~$0.001` | +2-3s |
-| `>= $10` | MAX | 2 (different providers) + 3-way consensus | `~$0.003` | +4-6s |
+**Cost tiers (currently Ring 1 only):**
 
-**Hard cap:** Arbiter cost per submission is always `<=` 10% of bounty. A `$0.10` task caps at `$0.01` of LLM spend.
+| Bounty | Tier | Ring 1 (PHOTINT) | Ring 2 (LLM) | Extra cost |
+|--------|------|------------------|--------------|------------|
+| `< $1` | CHEAP | Live | Stub (no signal) | `$0` |
+| `$1 - $10` | STANDARD | Live | Stub (no signal) | `~$0` (pending Phase 1) |
+| `>= $10` | MAX | Live | Stub (no signal) | `~$0` (pending Phase 1) |
+
+**Hard cap:** Arbiter cost per submission is always `<=` 10% of bounty. This cap will become meaningful again when Ring 2 LLM calls are re-enabled in Phase 1.
 
 **Verdicts:**
 
-- `pass` -> evidence accepted, payment released (auto mode)
-- `fail` -> evidence rejected, agent refunded (auto mode)
-- `inconclusive` -> rings disagreed or score in middle band -> escalated to L2 human arbiter via `disputes` table
+- `pass` -> Ring 1 PHOTINT considers evidence authentic. **Does NOT auto-release in v8.0** — you still approve manually.
+- `fail` -> Ring 1 PHOTINT rejected the evidence. **Does NOT auto-refund in v8.0** — you still reject manually.
+- `inconclusive` -> Ring 1 uncertain -> escalated to L2 human arbiter via `disputes` table
 - `skipped` -> arbiter could not evaluate (PHOTINT not available, master switch off, etc.)
 
 **Query the verdict:**
@@ -644,12 +654,13 @@ verdict = await em_get_arbiter_verdict(task_id="...")
 verdict = await em_get_arbiter_verdict(submission_id="...")
 ```
 
-Returns decision, tier used, score (0-1), confidence, evidence_hash (keccak256 of canonical evidence), commitment_hash (keccak256 of full verdict for on-chain audit), ring breakdown (PHOTINT + Ring 2 LLM scores), and dispute status if escalated.
+Returns decision, tier used, score (0-1), confidence, evidence_hash (keccak256 of canonical evidence), commitment_hash (keccak256 of full verdict for on-chain audit), Ring 1 PHOTINT score breakdown, and dispute status if escalated. Ring 2 LLM slot is present in the response for forward compatibility but currently returns no signal.
 
-**Example 1: Autonomous agent with auto-release**
+**Example 1: Treat `auto` as advisory**
 
 ```python
-# Create the task with arbiter_mode=auto. You never touch it again.
+# Even though you request auto, v8.0 will store the verdict without
+# moving funds. You still need to approve.
 task = await client.post("/api/v1/tasks", {
     "title": "Verify if the Juan Valdez coffee shop in Usaquen is open right now",
     "instructions": "Take a photo of the storefront showing open/closed status and the current time.",
@@ -658,17 +669,18 @@ task = await client.post("/api/v1/tasks", {
     "deadline_hours": 1,
     "evidence_required": ["photo_geo"],
     "location_hint": "Usaquen, Bogota",
-    "arbiter_mode": "auto",  # <-- Ring 2 handles everything
+    "arbiter_mode": "auto",  # v8.0: stores verdict, does NOT release
 })
 
-# Optional: query the verdict later to log what happened
+# v8.0: you MUST still manually confirm
 verdict = await em_get_arbiter_verdict(task_id=task["id"])
 if verdict["verdict"] == "pass":
-    print(f"Auto-released. Worker paid. Score: {verdict['score']}")
+    # Ring 1 PHOTINT passed -- approve manually
+    await client.post(f"/api/v1/submissions/{sub_id}/approve", {...})
 elif verdict["verdict"] == "fail":
-    print(f"Auto-refunded. Evidence rejected. Reason: {verdict['reason']}")
-elif verdict["verdict"] == "inconclusive":
-    print(f"Escalated to L2 dispute: {verdict['dispute']['id']}")
+    await client.post(f"/api/v1/submissions/{sub_id}/reject", {
+        "reason": f"Arbiter rejected: {verdict['reason']}"
+    })
 ```
 
 **Example 2: Hybrid mode with agent confirmation**
@@ -708,9 +720,9 @@ for d in disputes["items"]:
     detail = await client.get(f"/api/v1/disputes/{d['id']}")
     arbiter_data = detail["arbiter_verdict_data"]
 
-    # Review the evidence + ring breakdown yourself...
-    if arbiter_data["disagreement"]:
-        print("Rings disagreed -- review evidence carefully")
+    # Review the Ring 1 PHOTINT breakdown yourself...
+    if arbiter_data.get("disagreement"):
+        print("Ring 1 was uncertain -- review evidence carefully")
 
     # Submit your verdict
     await em_resolve_dispute(
@@ -720,13 +732,13 @@ for d in disputes["items"]:
     )
 ```
 
-**When to use each mode:**
+**When to use each mode (v8.0):**
 
-- **`manual`** -- default and recommended unless you really want autonomous verification. You stay in the loop.
-- **`auto`** -- for high-volume autonomous agents that cannot afford to review every submission. Requires high trust in PHOTINT + Arbiter consensus. Master switch must be enabled on the platform.
-- **`hybrid`** -- best of both: arbiter pre-filters the obvious cases (clear PASS/FAIL), you only deeply review the inconclusive ones.
+- **`manual`** -- default and recommended. You review everything.
+- **`auto`** -- currently equivalent to `manual`: the verdict is stored but funds do not move until you approve.
+- **`hybrid`** -- advisory Ring 1 PHOTINT recommendation, you confirm before payment.
 
-**Master switch:** Arbiter is gated by `feature.arbiter_enabled` in PlatformConfig. If OFF, all `arbiter_mode` values fall back to `manual`. Check with `em_server_status` or by creating a test task and seeing if `arbiter_verdict` gets populated.
+**Master switch:** Arbiter is gated by `feature.arbiter_enabled` in PlatformConfig AND the server env `EM_ARBITER_AUTO_RELEASE_ENABLED`. In v8.0, the env flag defaults to `false`, so auto mode is hard-disabled even when PlatformConfig is on. The Arbiter-as-a-Service endpoint (`POST /arbiter/verify`) is also hard-disabled via `EM_AAAS_ENABLED=false` and returns HTTP 503.
 
 **Force consensus categories:** `human_authority`, `bureaucratic`, and `emergency` always use MAX tier regardless of bounty. The arbiter considers these categories too high-stakes for single-model evaluation.
 
@@ -1248,11 +1260,11 @@ All endpoints use base URL `https://api.execution.market/api/v1`.
 | GET | `/disputes/available` | Open disputes available for human arbiters to resolve |
 | POST | `/disputes/{id}/resolve` | Submit resolution verdict (release/refund/split) |
 
-### Arbiter-as-a-Service (public endpoint for external marketplaces)
+### Arbiter-as-a-Service (DISABLED in v8.0)
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/arbiter/verify` | Evaluate evidence against a task schema. Returns dual-inference verdict. Rate limit: 100 req/min per caller. |
-| GET | `/arbiter/status` | Service discovery (enabled, tiers, categories, cost model). No auth required. |
+| POST | `/arbiter/verify` | **DISABLED**: returns HTTP 503 pending Phase 1 guardrails. (Formerly: evaluate evidence against a task schema. Ring 1 PHOTINT verification — Ring 2 LLM is pending Phase 1.) |
+| GET | `/arbiter/status` | **DISABLED**: returns HTTP 503 while AaaS is kill-switched. |
 
 ### Other
 | Method | Path | Description |

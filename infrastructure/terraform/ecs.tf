@@ -192,6 +192,16 @@ resource "aws_ecs_task_definition" "mcp_server" {
         { name = "VERIFICATION_AI_ENABLED", value = "true" },
         { name = "AI_VERIFICATION_PROVIDER", value = "gemini" },
         { name = "VERIFICATION_AUTO_APPROVE", value = "true" },
+        # Phase 0 GR-0.2: hard kill-switches for the Ring 2 arbiter
+        # subsystem. Ring 2 LLM is currently a stub (AI-001) and
+        # auto-release has no cost cap (AI-004) or prompt hardening
+        # (AI-006). Both flags default false at the code level — we set
+        # them here explicitly so a misconfigured override cannot enable
+        # auto-release or the AaaS endpoint in production without an
+        # intentional Terraform change. See
+        # docs/reports/security-audit-2026-04-07/.
+        { name = "EM_AAAS_ENABLED", value = "false" },
+        { name = "EM_ARBITER_AUTO_RELEASE_ENABLED", value = "false" },
       ]
 
       secrets = [

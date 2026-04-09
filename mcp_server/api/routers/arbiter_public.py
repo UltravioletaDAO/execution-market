@@ -48,6 +48,7 @@ Auth:
 """
 
 import logging
+import os
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -62,6 +63,42 @@ from ..auth import AgentAuth, verify_agent_auth
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/arbiter", tags=["Arbiter-as-a-Service"])
+
+
+# ============================================================================
+# Phase 0 GR-0.2: hard kill-switch for Arbiter-as-a-Service
+# ============================================================================
+#
+# Ring 2 LLM inference is currently a STUB (AI-001) that returns []. The
+# AaaS endpoint is therefore "dual-inference" in name only. Additionally:
+#
+#   * Auth is anonymous-callable via the verify_agent_auth fallback path
+#     (Track A is hardening that).
+#   * bounty_usd is caller-controlled with no daily spend cap (AI-003, AI-004).
+#   * Prompt injection is trivial via task_schema.instructions (AI-006).
+#   * There is no kill switch for arbiter auto-release (AI-005 — see
+#     processor.py for its sibling gate).
+#
+# Until Phase 1 guardrails land (real LLM wiring, daily budget enforcement,
+# prompt hardening, authenticated callers), both the /verify and /status
+# endpoints are hard-disabled by default. Flip EM_AAAS_ENABLED=true ONLY
+# for internal testing.
+#
+# Default is False. Missing env var == disabled. See
+# docs/reports/security-audit-2026-04-07/specialists/SC_03_AI_REDTEAM.md.
+def _aaas_enabled() -> bool:
+    """Read the AaaS master kill-switch at call time.
+
+    Reading at call time (instead of at import time) makes the flag
+    testable via monkeypatching os.environ inside a single test process.
+    """
+    return os.environ.get("EM_AAAS_ENABLED", "false").strip().lower() == "true"
+
+
+_AAAS_DISABLED_DETAIL = (
+    "Arbiter-as-a-Service is disabled on this deployment. "
+    "See https://execution.market/skill.md for updates."
+)
 
 
 # ============================================================================
@@ -198,6 +235,16 @@ async def verify_evidence(
     Returns verdict, confidence, cryptographic hashes (keccak256), and
     ring breakdown. Idempotent: same inputs -> same evidence_hash.
     """
+    # 0. Phase 0 GR-0.2: hard kill-switch — disabled by default until
+    #    Phase 1 guardrails land (Ring 2 wiring, daily budget, prompt
+    #    injection defenses, authenticated callers). This MUST be the
+    #    first check so unauthenticated callers can't probe deeper.
+    if not _aaas_enabled():
+        raise HTTPException(
+            status_code=503,
+            detail=_AAAS_DISABLED_DETAIL,
+        )
+
     # 1. Master switch check
     if not await is_arbiter_enabled():
         raise HTTPException(
@@ -296,6 +343,15 @@ async def arbiter_status() -> ArbiterStatusResponse:
 
     No authentication required -- intended for service discovery.
     """
+    # Phase 0 GR-0.2: do NOT leak the presence of the arbiter endpoint
+    # while the service is kill-switched. Return 503 with the same
+    # detail as /verify so probes see a consistent disabled surface.
+    if not _aaas_enabled():
+        raise HTTPException(
+            status_code=503,
+            detail=_AAAS_DISABLED_DETAIL,
+        )
+
     from integrations.arbiter.config import get_cost_controls, get_tier_boundaries
     from integrations.arbiter.registry import get_default_registry
 
