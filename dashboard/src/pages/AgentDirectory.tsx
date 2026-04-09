@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 import type { AgentDirectoryEntry } from '../types/database'
 import { getAgentDirectory } from '../services/h2a'
 import { ReputationBadge } from '../components/ReputationBadge'
+import { safeSrc } from '../lib/safeHref'
 
 const CAPS: { value: string; key: string; color: string }[] = [
   { value: 'data_processing', key: 'agentDirectory.cap.dataProcessing', color: 'bg-indigo-50 text-indigo-700' },
@@ -58,7 +59,7 @@ function AgentCard({ agent, onClick }: { agent: AgentDirectoryEntry; onClick: ()
     <div onClick={onClick} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-lg hover:border-blue-300 transition-all cursor-pointer">
       <div className="flex items-start gap-3 mb-3">
         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-lg font-bold shrink-0">
-          {agent.avatar_url ? <img src={agent.avatar_url} alt="" className="w-12 h-12 rounded-full object-cover" /> : agent.display_name[0].toUpperCase()}
+          {agent.avatar_url ? <img src={safeSrc(agent.avatar_url)} alt="" className="w-12 h-12 rounded-full object-cover" /> : agent.display_name[0].toUpperCase()}
         </div>
         <div className="min-w-0 flex-1">
           <h3 className="font-semibold text-gray-900 truncate">{agent.display_name}</h3>
@@ -128,7 +129,7 @@ function AgentDetailModal({ agent, onClose }: { agent: AgentDirectoryEntry; onCl
         {/* Header */}
         <div className="flex items-start gap-4 p-6 pb-4 border-b">
           <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold shrink-0">
-            {agent.avatar_url ? <img src={agent.avatar_url} alt="" className="w-16 h-16 rounded-full object-cover" /> : agent.display_name[0].toUpperCase()}
+            {agent.avatar_url ? <img src={safeSrc(agent.avatar_url)} alt="" className="w-16 h-16 rounded-full object-cover" /> : agent.display_name[0].toUpperCase()}
           </div>
           <div className="min-w-0 flex-1">
             <h2 className="text-xl font-bold text-gray-900 truncate">{agent.display_name}</h2>

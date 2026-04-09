@@ -1,4 +1,5 @@
 import { useEffect, useCallback } from 'react'
+import { safeSrc } from '../lib/safeHref'
 
 interface EvidenceModalProps {
   imageUrl: string
@@ -52,7 +53,7 @@ export function EvidenceModal({ imageUrl, alt, onClose }: EvidenceModalProps) {
 
       {/* Image — stop propagation so clicking the image does not close the modal */}
       <img
-        src={imageUrl}
+        src={safeSrc(imageUrl)}
         alt={alt}
         className="max-h-[90vh] max-w-[90vw] object-contain"
         onClick={(e) => e.stopPropagation()}

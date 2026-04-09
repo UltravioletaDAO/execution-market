@@ -563,6 +563,11 @@ export function SubmissionForm({
         {evidenceFile ? (
           <div className="relative">
             {evidenceFile.preview ? (
+              // NOTE: evidenceFile.preview is a blob: URL created locally by
+              // URL.createObjectURL() on the user's just-picked File. It is
+              // NOT user-supplied data from the network, so it must NOT be
+              // passed through safeSrc() (which would block blob:).
+              // See dashboard/src/lib/safeHref.ts and FE-005.
               <img
                 src={evidenceFile.preview}
                 alt={`Preview ${type}`}

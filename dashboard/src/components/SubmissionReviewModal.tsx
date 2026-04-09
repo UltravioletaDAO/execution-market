@@ -16,6 +16,7 @@ import { AIAnalysisDetails } from './AIAnalysisDetails'
 import type { AIAnalysisResult } from './AIAnalysisDetails'
 import type { SubmissionWithDetails } from '../services/types'
 import { ArbiterVerdictBadge } from './ArbiterVerdictBadge'
+import { safeHref, safeSrc } from '../lib/safeHref'
 
 // --------------------------------------------------------------------------
 // Types
@@ -316,22 +317,22 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                         {ev?.fileUrl ? (
                           <div>
                             {ev.mimeType?.startsWith('image/') || ev.fileUrl?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                              <a href={ev.fileUrl} target="_blank" rel="noopener noreferrer">
+                              <a href={safeHref(ev.fileUrl)} target="_blank" rel="noopener noreferrer">
                                 <img
-                                  src={ev.fileUrl}
+                                  src={safeSrc(ev.fileUrl)}
                                   alt={key}
                                   className="max-w-full max-h-64 rounded-lg object-contain hover:opacity-90 transition-opacity cursor-zoom-in"
                                 />
                               </a>
                             ) : ev.mimeType?.startsWith('video/') ? (
                               <video
-                                src={ev.fileUrl}
+                                src={safeSrc(ev.fileUrl)}
                                 controls
                                 className="max-w-full max-h-64 rounded-lg"
                               />
                             ) : (
                               <a
-                                href={ev.fileUrl}
+                                href={safeHref(ev.fileUrl)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-1.5 text-blue-600 hover:underline text-sm"
@@ -408,7 +409,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                     {(submission.evidence_files as string[]).map((url, idx) => (
                       <a
                         key={idx}
-                        href={url}
+                        href={safeHref(url)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm text-blue-600 transition-colors"

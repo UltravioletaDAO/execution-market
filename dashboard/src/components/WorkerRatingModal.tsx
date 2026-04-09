@@ -12,6 +12,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { rateWorker, starsToScore } from '../services/reputation'
 import { WorkerReputationBadge } from './WorkerReputationBadge'
+import { safeSrc } from '../lib/safeHref'
 
 // --------------------------------------------------------------------------
 // Types
@@ -223,7 +224,7 @@ export function WorkerRatingModal({
             <div className="w-12 h-12 bg-emerald-200 rounded-full flex items-center justify-center flex-shrink-0">
               {worker.avatar_url ? (
                 <img
-                  src={worker.avatar_url}
+                  src={safeSrc(worker.avatar_url)}
                   alt={workerName}
                   className="w-full h-full rounded-full object-cover"
                 />

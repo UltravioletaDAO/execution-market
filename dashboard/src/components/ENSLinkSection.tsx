@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 import { linkENS, claimSubname } from '../services/ens'
 import { ENSBadge } from './agents/ENSBadge'
+import { safeHref } from '../lib/safeHref'
 
 type State = 'idle' | 'resolving' | 'claiming' | 'success' | 'error'
 
@@ -193,7 +194,7 @@ export function ENSLinkSection() {
           )}
           {claimResult.explorer && (
             <a
-              href={claimResult.explorer}
+              href={safeHref(claimResult.explorer)}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-1 text-xs text-green-600 dark:text-green-400 underline"

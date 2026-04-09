@@ -9,6 +9,7 @@ import { WorldIdVerification } from '../WorldIdVerification'
 import { ENSLinkSection } from '../ENSLinkSection'
 import { useEarnings, useReputation, useTaskHistory } from '../../hooks/useProfile'
 import type { Executor } from '../../types/database'
+import { safeSrc } from '../../lib/safeHref'
 
 interface ProfilePageProps {
   executor: Executor
@@ -75,7 +76,7 @@ export function ProfilePage({ executor, onBack, onEditProfile, onLogout }: Profi
           <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-lg flex-shrink-0">
             {executor.avatar_url ? (
               <img
-                src={executor.avatar_url}
+                src={safeSrc(executor.avatar_url)}
                 alt={executor.display_name || 'User'}
                 className="w-full h-full rounded-full object-cover"
               />

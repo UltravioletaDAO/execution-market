@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { safeHref } from '../lib/safeHref'
 
 const API_BASE_URL = (
   import.meta.env.VITE_API_URL || 'https://api.execution.market'
@@ -276,7 +277,7 @@ export function FeedbackPage() {
                   {doc.evidence.map((url, i) => (
                     <li key={i}>
                       <a
-                        href={url}
+                        href={safeHref(url)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-600 hover:text-blue-800 underline text-sm break-all"

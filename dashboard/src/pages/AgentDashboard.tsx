@@ -11,6 +11,7 @@ import { TxHashLink } from '../components/TxLink'
 import { getAgentTasks, getTaskAnalytics } from '../services/tasks'
 import { getPendingSubmissions } from '../services/submissions'
 import { getAgentReputation, type ReputationInfo } from '../services/reputation'
+import { safeSrc } from '../lib/safeHref'
 
 // --------------------------------------------------------------------------
 // Types
@@ -238,7 +239,7 @@ function PendingSubmissionItem({
       <div className="w-10 h-10 bg-purple-200 rounded-full flex items-center justify-center flex-shrink-0">
         {executor?.avatar_url ? (
           <img
-            src={executor.avatar_url}
+            src={safeSrc(executor.avatar_url)}
             alt={executor.display_name || 'Worker'}
             className="w-full h-full rounded-full object-cover"
           />

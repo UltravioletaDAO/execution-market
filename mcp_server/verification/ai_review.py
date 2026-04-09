@@ -26,6 +26,10 @@ from .providers import (
 
 logger = logging.getLogger(__name__)
 
+# Cap evidence downloads to prevent memory exhaustion and malicious body sizes.
+# Phase 0 GR-0.4 — see docs/reports/security-audit-2026-04-07/specialists/SC_05_BACKEND_API.md [API-004]
+MAX_EVIDENCE_DOWNLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
+
 
 class VerificationDecision(Enum):
     """Possible verification outcomes."""
@@ -193,11 +197,56 @@ class AIVerifier:
             )
 
     async def _download_image(self, url: str) -> bytes:
-        """Download image from URL."""
-        async with httpx.AsyncClient() as client:
-            response = await client.get(url, timeout=30.0)
-            response.raise_for_status()
-            return response.content
+        """Download image from URL.
+
+        Security (Phase 0 GR-0.4, closes API-004):
+          - follow_redirects=False — blocks SSRF via 3xx redirect to internal
+            services. Callers MUST validate host allowlist BEFORE calling us.
+          - timeout=10.0 — bounded so a slowloris cannot hang a worker.
+          - Response body capped at MAX_EVIDENCE_DOWNLOAD_BYTES (10 MB) to
+            prevent memory exhaustion.
+          - Explicit rejection of 3xx responses.
+        """
+        async with httpx.AsyncClient(
+            follow_redirects=False,
+            timeout=10.0,
+        ) as client:
+            # Use streaming so we can enforce MAX_EVIDENCE_DOWNLOAD_BYTES
+            # BEFORE the full body is buffered in memory.
+            async with client.stream("GET", url) as response:
+                # If we got a 3xx, it's a redirect attempt — reject explicitly.
+                if 300 <= response.status_code < 400:
+                    raise httpx.HTTPStatusError(
+                        f"Evidence URL returned a redirect "
+                        f"({response.status_code}); redirects are not allowed",
+                        request=response.request,
+                        response=response,
+                    )
+                response.raise_for_status()
+
+                # Pre-check Content-Length if the server sent one.
+                content_length = response.headers.get("content-length")
+                if content_length is not None:
+                    try:
+                        if int(content_length) > MAX_EVIDENCE_DOWNLOAD_BYTES:
+                            raise ValueError(
+                                f"Evidence too large: Content-Length="
+                                f"{content_length} > "
+                                f"{MAX_EVIDENCE_DOWNLOAD_BYTES}"
+                            )
+                    except ValueError:
+                        raise
+
+                chunks: List[bytes] = []
+                total = 0
+                async for chunk in response.aiter_bytes(chunk_size=65536):
+                    total += len(chunk)
+                    if total > MAX_EVIDENCE_DOWNLOAD_BYTES:
+                        raise ValueError(
+                            f"Evidence too large (>{MAX_EVIDENCE_DOWNLOAD_BYTES} bytes)"
+                        )
+                    chunks.append(chunk)
+                return b"".join(chunks)
 
     def _get_media_type(self, url: str) -> str:
         """Determine media type from URL."""

@@ -20,6 +20,7 @@ import { CameraCapture, type CapturedPhoto } from './CameraCapture'
 import { GPSCapture, type GPSPosition } from './GPSCapture'
 import { EvidencePreview, type EvidenceItem, type UploadStatus } from './EvidencePreview'
 import { EvidenceVerification, type EvidenceVerificationData } from './EvidenceVerification'
+import { safeSrc } from '../../lib/safeHref'
 
 // ============================================================================
 // Types
@@ -614,7 +615,7 @@ export function EvidenceUpload({
                 className="flex items-center gap-3 p-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg"
               >
                 <img
-                  src={ev.url}
+                  src={safeSrc(ev.url)}
                   alt=""
                   className="w-10 h-10 rounded object-cover"
                 />

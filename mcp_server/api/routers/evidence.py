@@ -79,6 +79,10 @@ class PresignUploadResponse(BaseModel):
     content_type: str
     expires_in: int
     nonce: str
+    # Phase 0 GR-0.4: short-lived JWT the client sends to the Lambda
+    # presign authorizer (Track D1). Not used directly by the caller — it
+    # is forwarded in the Authorization header.
+    authorizer_jwt: Optional[str] = None
 
 
 class PresignDownloadResponse(BaseModel):
@@ -86,6 +90,7 @@ class PresignDownloadResponse(BaseModel):
     key: str
     public_url: Optional[str] = None
     expires_in: int
+    authorizer_jwt: Optional[str] = None
 
 
 @router.get(
@@ -180,6 +185,28 @@ async def presign_upload(
         },
     )
 
+    # Phase 0 GR-0.4: mint a short-lived JWT bound to this (task, executor).
+    # The client forwards it to the Lambda presign authorizer owned by
+    # Track D1. If the secret is not configured (local dev), we return
+    # None and log at debug — the Lambda is optional until D1 ships.
+    authorizer_jwt: Optional[str] = None
+    try:
+        from integrations.evidence.jwt_helper import mint_evidence_jwt
+
+        # submission_id is pre-allocated from the nonce so the Lambda can
+        # bind the upload to the eventual submission row.
+        authorizer_jwt = mint_evidence_jwt(
+            task_id=task_id,
+            submission_id=nonce,
+            actor_id=executor_id,
+        )
+    except RuntimeError as e:
+        # EM_EVIDENCE_JWT_SECRET not set — OK in local dev.
+        logger.debug("[Evidence] skipping authorizer JWT: %s", e)
+    except Exception as e:
+        # Don't fail the presign on JWT errors — log loudly and continue.
+        logger.error("[Evidence] failed to mint authorizer JWT: %s", e)
+
     return PresignUploadResponse(
         upload_url=upload_url,
         key=key,
@@ -187,6 +214,7 @@ async def presign_upload(
         content_type=content_type,
         expires_in=PRESIGN_EXPIRES_UPLOAD,
         nonce=nonce,
+        authorizer_jwt=authorizer_jwt,
     )
 
 
@@ -257,9 +285,28 @@ async def presign_download(
         f"{EVIDENCE_PUBLIC_BASE_URL}/{key}" if EVIDENCE_PUBLIC_BASE_URL else None
     )
 
+    # Phase 0 GR-0.4: mint authorizer JWT for the Lambda (Track D1).
+    authorizer_jwt: Optional[str] = None
+    try:
+        from integrations.evidence.jwt_helper import mint_evidence_jwt
+
+        actor_id = (
+            worker_auth.executor_id if worker_auth else (_key_task_id or "unknown")
+        )
+        authorizer_jwt = mint_evidence_jwt(
+            task_id=_key_task_id or "unknown",
+            submission_id=key,
+            actor_id=actor_id,
+        )
+    except RuntimeError as e:
+        logger.debug("[Evidence] skipping authorizer JWT (download): %s", e)
+    except Exception as e:
+        logger.error("[Evidence] failed to mint authorizer JWT (download): %s", e)
+
     return PresignDownloadResponse(
         download_url=download_url,
         key=key,
         public_url=public_url,
         expires_in=PRESIGN_EXPIRES_DOWNLOAD,
+        authorizer_jwt=authorizer_jwt,
     )

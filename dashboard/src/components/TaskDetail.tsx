@@ -18,6 +18,7 @@ import { TaskLifecycleTimeline } from './TaskLifecycleTimeline'
 import { TaskRatings } from './TaskRatings'
 import { EvidenceModal } from './EvidenceModal'
 import { getStatusBadgeClass } from '../styles/theme'
+import { safeHref, safeSrc } from '../lib/safeHref'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 
@@ -553,7 +554,7 @@ export function TaskDetail({
                                   className="block mt-2 cursor-zoom-in w-full"
                                 >
                                   <img
-                                    src={fileUrl}
+                                    src={safeSrc(fileUrl)}
                                     alt={filename || evType}
                                     className="rounded-lg max-h-72 w-full object-contain border border-gray-200 bg-white"
                                     onError={(e) => {
@@ -567,7 +568,7 @@ export function TaskDetail({
                                   <div className="hidden w-full h-32 bg-gray-100 rounded items-center justify-center">
                                     <div className="text-center">
                                       <span className="text-xs text-gray-400 block">{t('evidence.imageLoadError', 'Could not load image')}</span>
-                                      <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline mt-1 block">
+                                      <a href={safeHref(fileUrl)} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline mt-1 block">
                                         {t('evidence.downloadDirect', 'Download directly')}
                                       </a>
                                     </div>
@@ -582,7 +583,7 @@ export function TaskDetail({
                               )}
                               {/* Non-image file link */}
                               {!isImage && fileUrl && (
-                                <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm block mt-1">
+                                <a href={safeHref(fileUrl)} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm block mt-1">
                                   {filename || 'View file'}
                                 </a>
                               )}
@@ -770,10 +771,10 @@ export function TaskDetail({
                                   onClick={() => setZoomImage({ url: ev, alt: key })}
                                   className="block mt-2 cursor-zoom-in w-full"
                                 >
-                                  <img src={ev} alt={key} className="rounded-lg max-h-72 w-full object-contain border border-gray-200 bg-white" />
+                                  <img src={safeSrc(ev)} alt={key} className="rounded-lg max-h-72 w-full object-contain border border-gray-200 bg-white" />
                                 </button>
                               ) : (
-                                <a href={ev} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm block mt-1">{ev}</a>
+                                <a href={safeHref(ev)} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm block mt-1">{ev}</a>
                               )}
                             </div>
                           )
@@ -827,10 +828,10 @@ export function TaskDetail({
                               onClick={() => setZoomImage({ url, alt: `Evidence ${i + 1}` })}
                               className="cursor-zoom-in"
                             >
-                              <img src={url} alt={`Evidence ${i + 1}`} className="rounded-lg max-h-48 object-contain border border-gray-200 bg-white" />
+                              <img src={safeSrc(url)} alt={`Evidence ${i + 1}`} className="rounded-lg max-h-48 object-contain border border-gray-200 bg-white" />
                             </button>
                           ) : (
-                            <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm">
+                            <a key={i} href={safeHref(url)} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm">
                               {t('submission.file', 'File')} {i + 1}
                             </a>
                           )

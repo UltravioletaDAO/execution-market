@@ -7,6 +7,7 @@
 
 import { memo, useMemo } from 'react'
 import { cn } from '../../lib/utils'
+import { safeSrc } from '../../lib/safeHref'
 import type { AgentType } from '../../types/database'
 
 interface AgentAvatarProps {
@@ -81,7 +82,7 @@ export const AgentAvatar = memo(function AgentAvatar({
     <div className={cn('relative inline-flex flex-shrink-0', className)}>
       {avatarUrl ? (
         <img
-          src={avatarUrl}
+          src={safeSrc(avatarUrl)}
           alt={displayName || `Agent ${walletAddress.slice(0, 8)}`}
           className={cn(
             sizeConfig.container,

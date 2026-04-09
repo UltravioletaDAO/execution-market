@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import type { Task, Submission } from '../../types/database'
 import { getH2ATask, getH2ASubmissions, approveH2ASubmission } from '../../services/h2a'
+import { safeHref } from '../../lib/safeHref'
 
 const FEE_PCT = 0.13
 
@@ -116,7 +117,7 @@ export function ReviewSubmission() {
                 )}
                 {sub.evidence_files?.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-3">
-                    {sub.evidence_files.map((f, i) => <a key={i} href={f} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline bg-white px-3 py-1 rounded border">📁 Archivo {i + 1}</a>)}
+                    {sub.evidence_files.map((f, i) => <a key={i} href={safeHref(f)} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline bg-white px-3 py-1 rounded border">📁 Archivo {i + 1}</a>)}
                   </div>
                 )}
                 <div className="text-xs text-gray-400">Entregado: {new Date(sub.submitted_at).toLocaleString('es')}</div>

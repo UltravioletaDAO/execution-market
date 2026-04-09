@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase'
 import { useProfileUpdate, type ProfileUpdateData } from '../../hooks/useProfileUpdate'
 import type { Executor } from '../../types/database'
+import { safeSrc } from '../../lib/safeHref'
 
 const PREDEFINED_SKILLS = [
   'photography',
@@ -211,7 +212,7 @@ export function ProfileEditModal({ executor, onClose, onSaved }: ProfileEditModa
               onClick={() => avatarInputRef.current?.click()}
             >
               {avatarUrl ? (
-                <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                <img src={safeSrc(avatarUrl)} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
                 (displayName || 'U')[0].toUpperCase()
               )}

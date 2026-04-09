@@ -4,15 +4,20 @@ Evidence verification, worker identity, auth, and health endpoints.
 Extracted from api/routes.py.
 """
 
+import ipaddress
+import os
 from datetime import datetime, timezone
+from urllib.parse import urlparse
 
-from fastapi import APIRouter, HTTPException, Path, Request
+from fastapi import APIRouter, Depends, HTTPException, Path, Request
 
 import supabase_client as db
 from verification.ai_review import (
     verify_with_ai,
     VerificationDecision,
 )
+
+from ..auth import verify_agent_auth, AgentAuth
 
 from ._models import (
     VerifyEvidenceRequest,
@@ -48,6 +53,129 @@ router = APIRouter(prefix="/api/v1", tags=["Misc"])
 
 
 # =============================================================================
+# EVIDENCE URL HOST ALLOWLIST (SSRF defense)
+# Phase 0 GR-0.4 — see docs/reports/security-audit-2026-04-07/specialists/SC_05_BACKEND_API.md [API-004]
+# =============================================================================
+
+
+def _derive_allowed_evidence_hosts() -> frozenset[str]:
+    """
+    Build the host allowlist for evidence URL fetching.
+
+    Always includes our own domains. Pulls additional hosts from env vars so
+    Supabase Storage + the evidence CloudFront distribution are honored in
+    whichever environment the server runs in.
+    """
+    hosts: set[str] = {
+        "execution.market",
+        "api.execution.market",
+        "cdn.execution.market",  # CloudFront for evidence S3
+        "mcp.execution.market",
+    }
+
+    # Derive Supabase Storage host from SUPABASE_URL (e.g. https://abcxyz.supabase.co)
+    supabase_url = os.environ.get("SUPABASE_URL") or os.environ.get("VITE_SUPABASE_URL")
+    if supabase_url:
+        try:
+            parsed = urlparse(supabase_url)
+            if parsed.hostname:
+                hosts.add(parsed.hostname)
+        except Exception:
+            pass
+
+    # Evidence CDN host (EVIDENCE_PUBLIC_BASE_URL points at the CloudFront dist)
+    evidence_base = os.environ.get("EVIDENCE_PUBLIC_BASE_URL")
+    if evidence_base:
+        try:
+            parsed = urlparse(evidence_base)
+            if parsed.hostname:
+                hosts.add(parsed.hostname)
+        except Exception:
+            pass
+
+    # Evidence S3 bucket direct access (e.g. my-bucket.s3.us-east-2.amazonaws.com)
+    evidence_bucket = os.environ.get("EVIDENCE_BUCKET")
+    region = os.environ.get("AWS_DEFAULT_REGION", "us-east-2")
+    if evidence_bucket:
+        hosts.add(f"{evidence_bucket}.s3.{region}.amazonaws.com")
+        hosts.add(f"{evidence_bucket}.s3.amazonaws.com")
+
+    # Optional additional allowed hosts from env (comma-separated)
+    extra = os.environ.get("EM_EVIDENCE_ALLOWED_HOSTS", "")
+    for host in extra.split(","):
+        host = host.strip()
+        if host:
+            hosts.add(host)
+
+    return frozenset(hosts)
+
+
+ALLOWED_EVIDENCE_HOSTS: frozenset[str] = _derive_allowed_evidence_hosts()
+
+# Cap response body to prevent memory exhaustion by a redirector that serves
+# a huge payload once the URL passes host validation.
+MAX_EVIDENCE_BYTES = 10 * 1024 * 1024  # 10 MB
+
+
+def _validate_evidence_url(url: str) -> None:
+    """
+    Validate a caller-supplied evidence URL before fetching it.
+
+    Defenses:
+      - https only (blocks http://, file://, gopher://, etc.)
+      - Hostname must be in ALLOWED_EVIDENCE_HOSTS
+      - Reject raw IP addresses (SSRF defense-in-depth)
+
+    Raises HTTPException(400) on any violation.
+    """
+    if not url or not isinstance(url, str):
+        raise HTTPException(status_code=400, detail="Invalid evidence_url")
+
+    try:
+        parsed = urlparse(url)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid evidence_url: {e}") from e
+
+    if parsed.scheme != "https":
+        raise HTTPException(
+            status_code=400,
+            detail="evidence_url must use https",
+        )
+
+    hostname = parsed.hostname
+    if not hostname:
+        raise HTTPException(
+            status_code=400, detail="evidence_url is missing a hostname"
+        )
+
+    # Block raw IP addresses — defense in depth even if the IP happened to
+    # be in the allowlist (it shouldn't be).
+    try:
+        ipaddress.ip_address(hostname)
+        raise HTTPException(
+            status_code=400,
+            detail="evidence_url cannot be a raw IP address",
+        )
+    except ValueError:
+        pass  # Not an IP — good.
+
+    # Hostname allowlist (case-insensitive)
+    if hostname.lower() not in {h.lower() for h in ALLOWED_EVIDENCE_HOSTS}:
+        logger.warning(
+            "SECURITY_AUDIT action=evidence.verify.host_blocked host=%s url=%s",
+            hostname,
+            url[:200],
+        )
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"evidence_url host not in allowlist: {hostname}. "
+                "Upload evidence through the /evidence/presign-upload flow."
+            ),
+        )
+
+
+# =============================================================================
 # EVIDENCE VERIFICATION
 # =============================================================================
 
@@ -59,7 +187,10 @@ router = APIRouter(prefix="/api/v1", tags=["Misc"])
         200: {
             "description": "AI verification result with confidence score and decision"
         },
+        400: {"model": ErrorResponse, "description": "Invalid evidence URL"},
+        401: {"model": ErrorResponse, "description": "Unauthenticated"},
         404: {"model": ErrorResponse, "description": "Task not found"},
+        413: {"model": ErrorResponse, "description": "Evidence too large"},
         503: {
             "model": ErrorResponse,
             "description": "AI verification service unavailable",
@@ -69,15 +200,46 @@ router = APIRouter(prefix="/api/v1", tags=["Misc"])
     description="Pre-verify submitted evidence against task requirements using AI vision models",
     tags=["Evidence", "AI", "Worker"],
 )
-async def verify_evidence(request: VerifyEvidenceRequest) -> VerifyEvidenceResponse:
+async def verify_evidence(
+    request: VerifyEvidenceRequest,
+    # TODO: switch to verify_agent_auth_write after Track A lands.
+    # Phase 0 GR-0.4 — closes API-004 (endpoint was unauthenticated).
+    auth: AgentAuth = Depends(verify_agent_auth),
+) -> VerifyEvidenceResponse:
     """
     Verify evidence against task requirements using AI vision models.
 
     Worker-facing endpoint for pre-verification of evidence before submission.
     Uses AI vision models to analyze uploaded evidence and provide instant feedback
     on whether it meets the task requirements.
+
+    Security (Phase 0 GR-0.4):
+      - Requires authenticated caller (ERC-8128 wallet signature).
+      - evidence_url MUST be https and its hostname MUST be in
+        ALLOWED_EVIDENCE_HOSTS (blocks SSRF into AWS metadata, RDS, etc.).
+      - The downstream AI verifier fetches with follow_redirects=False
+        and caps the response body to MAX_EVIDENCE_BYTES.
     """
     from ..verification_helpers import get_verifier
+
+    # Reject anonymous/unauthenticated callers even if the global auth dep
+    # allows anonymous access on read endpoints. This endpoint is write-ish:
+    # it triggers AI spend and (before the fix) was an SSRF vector.
+    if auth.auth_method == "anonymous":
+        logger.warning(
+            "SECURITY_AUDIT action=evidence.verify.unauth path=/evidence/verify"
+        )
+        raise HTTPException(
+            status_code=401,
+            detail=(
+                "Authentication required. Sign the request with ERC-8128 "
+                "(Signature + Signature-Input headers)."
+            ),
+        )
+
+    # Validate the URL BEFORE any network I/O. Blocks SSRF into internal
+    # services (AWS metadata, RDS, VPC endpoints, ECS task metadata, ...).
+    _validate_evidence_url(request.evidence_url)
 
     # Get task details
     task = await db.get_task(request.task_id)
