@@ -759,6 +759,7 @@ async def create_task(
             location_lng=location_lng,
             location_radius_km=location_radius_km,
             skill_version=request.skill_version,
+            arbiter_mode=getattr(request, "arbiter_mode", "manual") or "manual",
         )
 
         # ---- Persist ERC-8004 identity on the task record ---------------
@@ -3615,6 +3616,7 @@ async def batch_create_tasks(
                 min_reputation=task_def.min_reputation,
                 payment_token=request.payment_token,
                 payment_network=getattr(request, "payment_network", "base"),
+                arbiter_mode=getattr(task_def, "arbiter_mode", "manual") or "manual",
             )
 
             created_tasks.append(

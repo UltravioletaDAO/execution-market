@@ -96,6 +96,16 @@ class CreateTaskRequest(BaseModel):
         description="Version of the skill.md file used to create this task (semver, e.g. '4.1.0')",
         max_length=20,
     )
+    arbiter_mode: Optional[str] = Field(
+        default="manual",
+        description=(
+            "Verification mode for evidence approval. "
+            "'manual' (default): agent reviews and approves submissions. "
+            "'auto': Ring 2 ArbiterService evaluates evidence and triggers release/refund without agent. "
+            "'hybrid': arbiter recommends, agent confirms before payment."
+        ),
+        pattern="^(manual|auto|hybrid)$",
+    )
 
     @field_validator("skills_required")
     @classmethod

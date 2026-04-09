@@ -143,6 +143,29 @@ class PlatformConfig:
         # Treasury
         "treasury.wallet_address": "0x0000000000000000000000000000000000000000",
         "treasury.protection_fund_address": "0x0000000000000000000000000000000000000000",
+        # ----------------------------------------------------------------
+        # Arbiter (Ring 2 dual-inference verdict service)
+        # See: docs/planning/MASTER_PLAN_COMMERCE_SCHEME_ARBITER.md
+        # ----------------------------------------------------------------
+        # Master switch -- when False, all arbiter_mode values fall back to 'manual'
+        "feature.arbiter_enabled": False,
+        # Tier boundaries (USD bounty thresholds for inference strategy)
+        "arbiter.tier.cheap_max_usd": Decimal("1.00"),  # bounty < 1   -> CHEAP   ($0)
+        "arbiter.tier.standard_max_usd": Decimal("10.00"),  # 1 <= bounty < 10 -> STANDARD (~$0.001)
+        # Default thresholds (overridable per-category in arbiter/registry.py)
+        "arbiter.thresholds.pass": Decimal("0.80"),  # >= -> PASS
+        "arbiter.thresholds.fail": Decimal("0.30"),  # <= -> FAIL
+        # Cost controls
+        "arbiter.cost.max_per_eval_usd": Decimal("0.20"),  # Hard cap per submission
+        "arbiter.cost.daily_budget_usd": Decimal("100.00"),  # Soft cap, alert at 80%
+        "arbiter.cost.alert_threshold_pct": Decimal("0.80"),
+        "arbiter.cost.bounty_ratio_max": Decimal("0.10"),  # Cost <= 10% of bounty
+        # Escalation (L2 human arbiter)
+        "arbiter.escalation.timeout_hours": 24,  # L2 human review window
+        "arbiter.escalation.min_human_trust_tier": "high",  # VerificationAdapter tier
+        # Provider diversity (Tier MAX requires 2 different providers)
+        "arbiter.providers.preferred_ring2_a": "anthropic",
+        "arbiter.providers.preferred_ring2_b": "openai",
         # Mobile Feature Flags (Apple Review Mode)
         "mobile.terminology_mode": "conservative",
         "mobile.show_chain_logos": False,

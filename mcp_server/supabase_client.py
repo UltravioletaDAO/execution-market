@@ -173,8 +173,15 @@ async def create_task(
     location_lng: Optional[float] = None,
     location_radius_km: Optional[float] = None,
     skill_version: Optional[str] = None,
+    arbiter_mode: str = "manual",
 ) -> Dict[str, Any]:
-    """Create a new task in the database."""
+    """Create a new task in the database.
+
+    arbiter_mode controls Ring 2 evidence verification:
+        'manual' (default): agent reviews and approves submissions
+        'auto':   ArbiterService releases/refunds without agent intervention
+        'hybrid': arbiter recommends + agent confirms
+    """
     client = get_client()
 
     evidence_schema = {
@@ -195,6 +202,8 @@ async def create_task(
         "payment_token": payment_token,
         "payment_network": payment_network,
         "status": "published",
+        "arbiter_mode": arbiter_mode,
+        "arbiter_enabled": arbiter_mode != "manual",
     }
 
     if target_executor_type:
