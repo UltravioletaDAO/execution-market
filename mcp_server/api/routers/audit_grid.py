@@ -10,7 +10,7 @@ from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Query, Depends
 
-from ..auth import verify_agent_auth, AgentAuth
+from ..auth import verify_agent_auth_read, AgentAuth
 
 import supabase_client as db
 
@@ -165,7 +165,7 @@ async def get_audit_grid(
         pattern="^(created_at|completion_pct|bounty_usd)$",
     ),
     sort_dir: str = Query("desc", description="Sort direction", pattern="^(asc|desc)$"),
-    auth: AgentAuth = Depends(verify_agent_auth),
+    auth: AgentAuth = Depends(verify_agent_auth_read),
 ):
     """Get the task lifecycle audit grid."""
     try:

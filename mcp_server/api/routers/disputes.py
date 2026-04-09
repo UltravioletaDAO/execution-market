@@ -32,7 +32,7 @@ from pydantic import BaseModel, Field
 
 import supabase_client as db
 
-from ..auth import AgentAuth, verify_agent_auth
+from ..auth import AgentAuth, verify_agent_auth_read, verify_agent_auth_write
 
 logger = logging.getLogger(__name__)
 
@@ -244,7 +244,7 @@ async def list_disputes(
     ),
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
-    auth: AgentAuth = Depends(verify_agent_auth),
+    auth: AgentAuth = Depends(verify_agent_auth_read),
 ) -> DisputeListResponse:
     """List disputes visible to the authenticated agent.
 
@@ -313,7 +313,7 @@ async def list_disputes(
 async def list_available_disputes(
     category: Optional[str] = Query(default=None, description="Filter by category"),
     limit: int = Query(default=20, ge=1, le=100),
-    auth: AgentAuth = Depends(verify_agent_auth),
+    auth: AgentAuth = Depends(verify_agent_auth_read),
 ) -> DisputeListResponse:
     """List open disputes available for human arbiters to pick up.
 
@@ -367,7 +367,7 @@ async def list_available_disputes(
 @router.get("/{dispute_id}", response_model=DisputeDetail)
 async def get_dispute(
     dispute_id: str,
-    auth: AgentAuth = Depends(verify_agent_auth),
+    auth: AgentAuth = Depends(verify_agent_auth_read),
 ) -> DisputeDetail:
     """Get full details of a single dispute.
 
@@ -401,7 +401,7 @@ async def get_dispute(
 async def resolve_dispute(
     dispute_id: str,
     body: ResolveDisputeRequest,
-    auth: AgentAuth = Depends(verify_agent_auth),
+    auth: AgentAuth = Depends(verify_agent_auth_write),
 ) -> ResolveDisputeResponse:
     """Submit a resolution verdict on a dispute.
 

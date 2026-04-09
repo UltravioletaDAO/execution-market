@@ -58,7 +58,7 @@ from integrations.arbiter.config import is_arbiter_enabled
 from integrations.arbiter.service import ArbiterService
 from integrations.arbiter.types import ArbiterDecision
 
-from ..auth import AgentAuth, verify_agent_auth
+from ..auth import AgentAuth, verify_agent_auth_write
 
 logger = logging.getLogger(__name__)
 
@@ -211,7 +211,7 @@ def _check_rate_limit(caller_id: str) -> None:
 @router.post("/verify", response_model=ArbiterVerifyResponse)
 async def verify_evidence(
     body: ArbiterVerifyRequest,
-    auth: AgentAuth = Depends(verify_agent_auth),
+    auth: AgentAuth = Depends(verify_agent_auth_write),
 ) -> ArbiterVerifyResponse:
     """Run Ring 2 arbiter evaluation on arbitrary evidence.
 

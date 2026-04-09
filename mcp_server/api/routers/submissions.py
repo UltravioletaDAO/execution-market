@@ -11,7 +11,8 @@ from fastapi import APIRouter, HTTPException, Depends, Path, Request
 import supabase_client as db
 
 from ..auth import (
-    verify_agent_auth,
+    verify_agent_auth_read,
+    verify_agent_auth_write,
     AgentAuth,
     verify_agent_owns_task,
     verify_agent_owns_submission,
@@ -63,7 +64,7 @@ router = APIRouter(prefix="/api/v1", tags=["Submissions"])
 )
 async def get_submissions(
     task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
-    auth: AgentAuth = Depends(verify_agent_auth),
+    auth: AgentAuth = Depends(verify_agent_auth_read),
 ) -> SubmissionListResponse:
     """
     Get all submissions for a specific task.
@@ -152,7 +153,7 @@ async def approve_submission(
         ..., description="UUID of the submission", pattern=UUID_PATTERN
     ),
     request: ApprovalRequest = None,
-    auth: AgentAuth = Depends(verify_agent_auth),
+    auth: AgentAuth = Depends(verify_agent_auth_write),
 ) -> SuccessResponse:
     """
     Approve a worker's submission and trigger payment settlement.
@@ -414,7 +415,7 @@ async def reject_submission(
         ..., description="UUID of the submission", pattern=UUID_PATTERN
     ),
     request: RejectionRequest = ...,
-    auth: AgentAuth = Depends(verify_agent_auth),
+    auth: AgentAuth = Depends(verify_agent_auth_write),
 ) -> SuccessResponse:
     """
     Reject a worker's submission and return the task to available status.
@@ -624,7 +625,7 @@ async def request_more_info_submission(
         ..., description="UUID of the submission", pattern=UUID_PATTERN
     ),
     request: RequestMoreInfoRequest = ...,
-    auth: AgentAuth = Depends(verify_agent_auth),
+    auth: AgentAuth = Depends(verify_agent_auth_write),
 ) -> SuccessResponse:
     """
     Request additional evidence or clarification from the assigned worker.

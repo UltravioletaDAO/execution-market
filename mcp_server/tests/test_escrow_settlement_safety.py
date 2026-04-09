@@ -433,7 +433,9 @@ async def test_cancel_escrow_lookup_failure_with_tx_raises():
     mock_dispatcher.escrow_mode = "direct_release"
 
     with (
-        patch("api.routers.tasks.verify_agent_auth", return_value=mock_auth),
+        # Patch the write-variant dependency — cancel_task uses verify_agent_auth_write
+        # since the Phase 0 GR-0.1 split (2026-04-09).
+        patch("api.routers.tasks.verify_agent_auth_write", return_value=mock_auth),
         patch("api.routers.tasks.db") as mock_tasks_db,
         patch(
             "api.routers.tasks.get_payment_dispatcher",
@@ -452,10 +454,11 @@ async def test_cancel_escrow_lookup_failure_with_tx_raises():
 
         app.include_router(router)
 
-        # Override the auth dependency at app level
-        from api.auth import verify_agent_auth
+        # Override the auth dependency at app level. cancel_task now depends on
+        # verify_agent_auth_write (GR-0.1), so override that symbol.
+        from api.auth import verify_agent_auth_write
 
-        app.dependency_overrides[verify_agent_auth] = lambda: mock_auth
+        app.dependency_overrides[verify_agent_auth_write] = lambda: mock_auth
 
         try:
             client = TestClient(app, raise_server_exceptions=False)

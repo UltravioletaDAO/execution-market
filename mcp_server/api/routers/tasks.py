@@ -18,7 +18,8 @@ import supabase_client as db
 from models import TaskCategory, TaskStatus
 
 from ..auth import (
-    verify_agent_auth,
+    verify_agent_auth_read,
+    verify_agent_auth_write,
     AgentAuth,
 )
 
@@ -440,7 +441,7 @@ async def get_public_platform_metrics():
 async def create_task(
     http_request: Request,
     request: CreateTaskRequest,
-    auth: AgentAuth = Depends(verify_agent_auth),
+    auth: AgentAuth = Depends(verify_agent_auth_write),
 ) -> TaskResponse:
     """
     Create a new task with automatic payment handling.
@@ -1564,7 +1565,7 @@ async def get_available_tasks(
 )
 async def get_task(
     task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
-    auth: AgentAuth = Depends(verify_agent_auth),
+    auth: AgentAuth = Depends(verify_agent_auth_read),
 ) -> TaskResponse:
     """Get detailed information about a specific task."""
     task = await db.get_task(task_id)
@@ -1685,7 +1686,7 @@ async def get_task(
 )
 async def get_task_applications(
     task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
-    auth: AgentAuth = Depends(verify_agent_auth),
+    auth: AgentAuth = Depends(verify_agent_auth_read),
 ) -> ApplicationListResponse:
     """Get all applications for a task. Only the task publisher can view."""
     task = await db.get_task(task_id)
@@ -1783,7 +1784,7 @@ async def get_task_applications(
 )
 async def get_task_payment(
     task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
-    auth: AgentAuth = Depends(verify_agent_auth),
+    auth: AgentAuth = Depends(verify_agent_auth_read),
 ) -> TaskPaymentResponse:
     """Get comprehensive payment timeline and status for a specific task."""
     try:
@@ -2108,7 +2109,7 @@ async def get_task_payment(
 )
 async def get_task_transactions(
     task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
-    auth: AgentAuth = Depends(verify_agent_auth),
+    auth: AgentAuth = Depends(verify_agent_auth_read),
 ) -> TaskTransactionsResponse:
     """Get all on-chain transactions for a task, ordered chronologically."""
     try:
@@ -2264,7 +2265,7 @@ async def get_task_transactions(
 async def get_task_chat_history(
     task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
     limit: int = Query(200, ge=1, le=1000, description="Max messages"),
-    auth: AgentAuth = Depends(verify_agent_auth),
+    auth: AgentAuth = Depends(verify_agent_auth_read),
 ):
     """Get chat log from the task's IRC channel.
 
@@ -2326,7 +2327,7 @@ async def list_tasks(
     category: Optional[TaskCategory] = Query(None, description="Filter by category"),
     limit: int = Query(20, ge=1, le=100, description="Maximum results"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
-    auth: AgentAuth = Depends(verify_agent_auth),
+    auth: AgentAuth = Depends(verify_agent_auth_read),
 ) -> TaskListResponse:
     """List tasks for the authenticated agent with filtering and pagination."""
     result = await db.get_tasks(
@@ -2410,7 +2411,7 @@ async def list_tasks(
 async def cancel_task(
     task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
     request: CancelRequest = None,
-    auth: AgentAuth = Depends(verify_agent_auth),
+    auth: AgentAuth = Depends(verify_agent_auth_write),
 ) -> SuccessResponse:
     """Cancel a task and handle payment refunds automatically."""
     refund_info = None
@@ -2823,7 +2824,7 @@ async def cancel_task(
 )
 async def get_analytics(
     days: int = Query(30, ge=1, le=365, description="Number of days to analyze"),
-    auth: AgentAuth = Depends(verify_agent_auth),
+    auth: AgentAuth = Depends(verify_agent_auth_read),
 ):
     """Get comprehensive analytics for the authenticated agent."""
     from ._models import AnalyticsResponse
@@ -2874,7 +2875,7 @@ async def get_analytics(
 async def assign_task_to_worker(
     task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
     request: WorkerAssignRequest = ...,
-    auth: AgentAuth = Depends(verify_agent_auth),
+    auth: AgentAuth = Depends(verify_agent_auth_write),
     http_request: Request = None,
 ) -> SuccessResponse:
     """Assign a published task to a specific worker executor."""
@@ -3590,7 +3591,7 @@ async def assign_task_to_worker(
 )
 async def batch_create_tasks(
     request: BatchCreateRequest,
-    auth: AgentAuth = Depends(verify_agent_auth),
+    auth: AgentAuth = Depends(verify_agent_auth_write),
 ) -> BatchCreateResponse:
     """Create multiple tasks in a single request for efficiency."""
     created_tasks = []

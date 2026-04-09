@@ -99,7 +99,13 @@ def _install_stubs():
         return _AgentAuth()
 
     fake_auth.AgentAuth = _AgentAuth
+    # Provide all three entry points so routers using the post-GR-0.1
+    # verify_agent_auth_read / verify_agent_auth_write split still import
+    # cleanly against this stub module. The legacy alias is kept for any
+    # remaining call sites.
     fake_auth.verify_agent_auth = _verify_agent_auth
+    fake_auth.verify_agent_auth_read = _verify_agent_auth
+    fake_auth.verify_agent_auth_write = _verify_agent_auth
     # Only install if not already present (don't clobber integration.py's stub)
     sys.modules.setdefault("api.auth", fake_auth)
 

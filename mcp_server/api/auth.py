@@ -538,23 +538,31 @@ async def _resolve_erc8004_identity(wallet_address: str, chain_id: int) -> dict:
     return {"registered": False, "agent_id": None}
 
 
-async def verify_agent_auth(request: Request) -> AgentAuth:
+async def _verify_agent_auth_impl(request: Request, allow_anonymous: bool) -> AgentAuth:
     """
-    Unified auth dependency: tries ERC-8128 first (if Signature header present),
-    falls back to API key auth.
+    Internal implementation of the unified agent auth dependency.
 
-    Usage in routes::
-
-        @router.post("/api/v1/tasks")
-        async def create_task(auth: AgentAuth = Depends(verify_agent_auth)):
-            print(f"Authenticated: {auth.agent_id} via {auth.auth_method}")
+    Args:
+        request: FastAPI request object with auth headers.
+        allow_anonymous: When ``True``, requests with no auth headers are admitted
+            as the platform Agent #2106 (``auth_method="anonymous"``). When
+            ``False``, missing auth raises ``HTTPException(401)``. Mutation routes
+            (POST/PUT/DELETE) MUST pass ``allow_anonymous=False``.
 
     Priority:
-      1. Signature header present → ERC-8128 verification
-      2. Bearer/X-API-Key header → existing API key verification
-      3. Neither → depends on EM_REQUIRE_API_KEY setting
+      1. Signature header present → ERC-8128 verification (unchanged)
+      2. API key headers present → API key verification
+         (or 403 when ``EM_API_KEYS_ENABLED=false``)
+      3. Neither → 401 (write) or anonymous Agent #2106 (read)
+
+    Security note (Phase 0 GR-0.1, 2026-04-09):
+      Previously a single ``verify_agent_auth`` admitted ALL unauthenticated
+      callers as Agent #2106. That turned 17 mutation routes into an open
+      platform-identity marketplace (see audit API-001, API-006, API-011,
+      API-012, API-027). This helper now forces callers to explicitly opt in
+      to the anonymous fallback via ``allow_anonymous=True``.
     """
-    # Path 1: ERC-8128 signature-based auth
+    # Path 1: ERC-8128 signature-based auth (unchanged).
     sig_header = request.headers.get("signature")
     sig_input_header = request.headers.get("signature-input")
 
@@ -610,7 +618,7 @@ async def verify_agent_auth(request: Request) -> AgentAuth:
     x_api_key = request.headers.get("x-api-key")
 
     if not _API_KEYS_ENABLED:
-        # Reject explicit API key attempts with 403
+        # Reject explicit API key attempts with 403 (unchanged behavior).
         if authorization or x_api_key:
             logger.warning(
                 "API key auth attempted but EM_API_KEYS_ENABLED=false — rejected"
@@ -623,8 +631,25 @@ async def verify_agent_auth(request: Request) -> AgentAuth:
                     "See https://execution.market/skill.md for setup instructions."
                 ),
             )
-        # No auth headers at all — allow anonymous read access (Agent #2106)
-        # This preserves dashboard/public endpoint functionality.
+
+        # No auth headers at all. Behaviour depends on the caller: public reads
+        # tolerate anonymous identities, mutations MUST reject them (GR-0.1).
+        if not allow_anonymous:
+            logger.warning(
+                "SECURITY_AUDIT action=agent_auth.write_rejected "
+                "path=%s reason=no_auth_headers",
+                request.url.path,
+            )
+            raise HTTPException(
+                status_code=401,
+                detail=(
+                    "Authentication required — provide ERC-8128 signature "
+                    "or Bearer token"
+                ),
+                headers={"WWW-Authenticate": 'ERC8128 realm="execution-market"'},
+            )
+
+        # Read-only path: admit anonymous as Agent #2106 (platform identity).
         return AgentAuth(
             agent_id=str(os.environ.get("EM_AGENT_ID", "2106")),
             tier="free",
@@ -632,9 +657,6 @@ async def verify_agent_auth(request: Request) -> AgentAuth:
         )
 
     # Path 2b: API key auth (only reachable when EM_API_KEYS_ENABLED=true)
-    authorization = request.headers.get("authorization")
-    x_api_key = request.headers.get("x-api-key")
-
     api_key_data = await verify_api_key_if_required(
         authorization=authorization, x_api_key=x_api_key
     )
@@ -645,6 +667,52 @@ async def verify_agent_auth(request: Request) -> AgentAuth:
         auth_method="api_key",
         organization_id=api_key_data.organization_id,
     )
+
+
+async def verify_agent_auth_read(request: Request) -> AgentAuth:
+    """
+    Agent auth dependency for **public read** endpoints.
+
+    Admits requests with no auth headers as the platform Agent #2106
+    (``auth_method="anonymous"``). Use this ONLY for endpoints that need to
+    remain reachable without credentials (e.g. ``GET /tasks/available``).
+
+    For every mutation (POST/PUT/DELETE) and any sensitive read, use
+    :func:`verify_agent_auth_write` instead.
+    """
+    return await _verify_agent_auth_impl(request, allow_anonymous=True)
+
+
+async def verify_agent_auth_write(request: Request) -> AgentAuth:
+    """
+    Agent auth dependency for **mutation** endpoints (POST/PUT/DELETE).
+
+    Raises ``HTTPException(401)`` when no auth headers are present. This is the
+    canonical dependency for every route that changes state, moves funds, or
+    reveals PII. Accepts ERC-8128 signatures (primary) or API keys when
+    ``EM_API_KEYS_ENABLED=true``.
+    """
+    return await _verify_agent_auth_impl(request, allow_anonymous=False)
+
+
+async def verify_agent_auth(request: Request) -> AgentAuth:
+    """
+    **Deprecated**: use :func:`verify_agent_auth_read` or
+    :func:`verify_agent_auth_write` explicitly.
+
+    Kept as a backward-compatible alias that behaves like the strict
+    ``verify_agent_auth_write`` variant, so legacy callers fail closed. Emits a
+    ``DeprecationWarning`` to surface remaining call sites.
+    """
+    import warnings
+
+    warnings.warn(
+        "verify_agent_auth is deprecated — use verify_agent_auth_read or "
+        "verify_agent_auth_write explicitly (Phase 0 GR-0.1).",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return await verify_agent_auth_write(request)
 
 
 # ==========================================================================

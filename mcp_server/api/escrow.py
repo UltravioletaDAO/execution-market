@@ -21,7 +21,7 @@ except ImportError:
 
 # x402r direct escrow (REMOVED — all payments go through SDK + facilitator now)
 
-from .auth import verify_agent_auth, AgentAuth
+from .auth import verify_agent_auth_write, AgentAuth
 
 logger = logging.getLogger(__name__)
 
@@ -269,7 +269,7 @@ async def get_merchant_balance(
     deprecated=True,
 )
 async def release_to_worker(
-    request: ReleaseRequest, auth: AgentAuth = Depends(verify_agent_auth)
+    request: ReleaseRequest, auth: AgentAuth = Depends(verify_agent_auth_write)
 ) -> ReleaseResponse:
     """
     Release escrowed funds to a worker.
@@ -295,7 +295,7 @@ async def release_to_worker(
     },
 )
 async def refund_to_agent(
-    request: RefundRequest, auth: AgentAuth = Depends(verify_agent_auth)
+    request: RefundRequest, auth: AgentAuth = Depends(verify_agent_auth_write)
 ) -> RefundResponse:
     """
     Refund escrowed funds to the original payer (agent).

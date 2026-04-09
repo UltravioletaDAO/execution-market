@@ -42,7 +42,7 @@ except ImportError:
     EM_AGENT_ID = 0
 
 from .auth import (
-    verify_agent_auth,
+    verify_agent_auth_write,
     AgentAuth,
     verify_worker_auth,
     WorkerAuth,
@@ -721,7 +721,7 @@ async def lookup_identity_by_wallet(
 )
 async def rate_worker_endpoint(
     request: WorkerFeedbackRequest,
-    auth: AgentAuth = Depends(verify_agent_auth),
+    auth: AgentAuth = Depends(verify_agent_auth_write),
 ) -> FeedbackResponse:
     """
     Rate a worker after task completion (agent → worker).

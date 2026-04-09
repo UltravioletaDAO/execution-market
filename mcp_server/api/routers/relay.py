@@ -16,7 +16,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 
 import supabase_client as db
-from ..auth import verify_agent_auth, AgentAuth
+from ..auth import verify_agent_auth_write, AgentAuth
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +80,7 @@ class RelayChainResponse(BaseModel):
 @router.post("", response_model=RelayChainResponse, status_code=201)
 async def create_relay_chain(
     req: CreateRelayChainRequest,
-    auth: AgentAuth = Depends(verify_agent_auth),
+    auth: AgentAuth = Depends(verify_agent_auth_write),
 ):
     """Create a relay chain from a parent task."""
     # Verify parent task exists and is owned by caller
@@ -206,7 +206,7 @@ async def assign_leg_worker(
     chain_id: str,
     leg_number: int,
     req: AssignLegRequest,
-    auth: AgentAuth = Depends(verify_agent_auth),
+    auth: AgentAuth = Depends(verify_agent_auth_write),
 ):
     """Assign a worker to a relay chain leg."""
     # Verify chain exists
@@ -255,7 +255,7 @@ async def record_handoff(
     chain_id: str,
     leg_number: int,
     req: HandoffRequest,
-    auth: AgentAuth = Depends(verify_agent_auth),
+    auth: AgentAuth = Depends(verify_agent_auth_write),
 ):
     """Record a handoff between relay workers. Requires matching handoff code."""
     # Get the leg
