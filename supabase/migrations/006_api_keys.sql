@@ -82,45 +82,22 @@ CREATE TRIGGER api_keys_updated_at
     EXECUTE FUNCTION update_updated_at_column();
 
 -- ---------------------------------------------------------------------------
--- Insert test API key for development/testing
--- Key: chamba_free_d57b51d2a852191a7dd02d5ac158ddc3
+-- [REDACTED 2026-04-09 — Phase 0 GR-0.5 / DB-020]
+--
+-- This migration previously inserted two test API keys with the full
+-- plaintext key embedded in SQL comments and key_prefix columns:
+--   - chamba_free_*   (free-tier dev key)
+--   - chamba_enterprise_*  (enterprise-tier dev key)
+--
+-- Both keys were leaked via the public git history. The INSERT statements
+-- have been removed from this file to prevent re-seeding on future DB
+-- recreates, and migration 094_delete_plaintext_api_key.sql deletes any
+-- surviving rows from existing databases.
+--
+-- Do NOT re-introduce plaintext keys in migrations. Use a gitignored seed
+-- file (supabase/seeds/local-dev.sql) for local dev data, and AWS Secrets
+-- Manager for all production credentials.
+--
+-- Security audit: docs/reports/security-audit-2026-04-07/
+-- Runbook:        docs/reports/security-audit-2026-04-07/RUNBOOK_GR_0_5_credential_rotation.md
 -- ---------------------------------------------------------------------------
-INSERT INTO api_keys (
-    key_hash,
-    key_prefix,
-    agent_id,
-    tier,
-    name,
-    is_active
-) VALUES (
-    -- SHA256 of 'chamba_free_d57b51d2a852191a7dd02d5ac158ddc3'
-    'c7185996d0b08c1c811f13c378a95afe226cd09438c4e6e49d1bd8455db533e6',
-    'chamba_free_d57b51d2a8521',
-    'test_agent_001',
-    'free',
-    'Test API Key for Development',
-    TRUE
-);
-
--- Also insert an enterprise test key
--- Key: chamba_enterprise_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
-INSERT INTO api_keys (
-    key_hash,
-    key_prefix,
-    agent_id,
-    tier,
-    name,
-    is_active,
-    rate_limit_per_minute,
-    monthly_task_limit
-) VALUES (
-    -- SHA256 of 'chamba_enterprise_a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6'
-    'f3e2d1c0b9a8f7e6d5c4b3a2f1e0d9c8b7a6f5e4d3c2b1a0f9e8d7c6b5a4f3e2',
-    'chamba_enterprise_a1b2c3d4e5f',
-    'test_enterprise_agent',
-    'enterprise',
-    'Enterprise Test API Key',
-    TRUE,
-    1000,
-    10000
-);

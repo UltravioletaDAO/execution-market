@@ -11,7 +11,11 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true,
+    // Phase 0 GR-0.5 / FE-013: sourcemaps disabled in production builds.
+    // Sourcemaps make reverse-engineering trivial and can leak internal
+    // module paths. Keep false for any shipped build. If a developer
+    // needs sourcemaps locally, override with `vite build --sourcemap`.
+    sourcemap: false,
     // The vendor-web3 chunk (~5MB) contains @dynamic-labs + @walletconnect +
     // @reown + viem + wagmi. These libraries are deeply intertwined and cannot
     // be split further. The chunk is lazy-loaded via DynamicProvider so it

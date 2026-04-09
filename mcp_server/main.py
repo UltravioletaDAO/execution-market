@@ -92,6 +92,85 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+
+# ---------------------------------------------------------------------------
+# Boot-time security assertions (Phase 0 GR-0.5)
+# ---------------------------------------------------------------------------
+#
+# These assertions fire at module import time so that a misconfigured
+# production container crashes immediately instead of silently running with
+# weak defaults. If you need to bypass them for local development or test
+# runs, set the explicit escape-hatch env vars described below.
+#
+# References:
+#   - CRY-004: JWT secret default "em-dev-jwt-secret-change-me"
+#   - SC-002:  settlement address falling back to the cold treasury wallet
+#   - docs/reports/security-audit-2026-04-07/40_FINAL_CONSOLIDATED_PLAN.md
+# ---------------------------------------------------------------------------
+
+_BOOT_ASSERTIONS_ENABLED = os.environ.get(
+    "EM_DISABLE_BOOT_ASSERTIONS", ""
+).lower() not in ("true", "1", "yes")
+_BOOT_IS_TESTING = os.environ.get("TESTING", "").lower() in ("true", "1", "yes")
+
+
+def _assert_jwt_secret_not_default() -> None:
+    """CRY-004: refuse to boot if JWT_SECRET is unset or still the dev default.
+
+    Resolution order matches ``mcp_server/api/agent_auth.py``:
+        EM_JWT_SECRET > SUPABASE_JWT_SECRET
+    """
+    jwt_default_dev = "em-dev-jwt-secret-change-me"
+    jwt_secret = os.environ.get("EM_JWT_SECRET") or os.environ.get(
+        "SUPABASE_JWT_SECRET"
+    )
+    if not jwt_secret or jwt_secret == jwt_default_dev:
+        raise RuntimeError(
+            "CRITICAL: JWT secret is unset or still the default dev value "
+            "('em-dev-jwt-secret-change-me'). Refusing to start — set "
+            "EM_JWT_SECRET (or SUPABASE_JWT_SECRET) via AWS Secrets Manager "
+            "before deploy. Phase 0 GR-0.5 / CRY-004."
+        )
+
+
+def _assert_settlement_not_treasury() -> None:
+    """SC-002: refuse to boot if the resolved settlement address == treasury.
+
+    The settlement address is the *transit* wallet where agent funds land
+    before being disbursed to the worker + treasury. If it resolves to the
+    cold treasury wallet, the Feb 2026 incident repeats: funds lock in a
+    Ledger cold-storage wallet with no way to release them to workers.
+    """
+    treasury = os.environ.get("EM_TREASURY_ADDRESS", "").strip()
+    if not treasury:
+        # sdk_client.py already guards this case with its own RuntimeError
+        # in production. Skip here to avoid duplicating the error surface.
+        return
+    try:
+        from integrations.x402.sdk_client import EMX402SDK
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.warning(
+            "Could not import EMX402SDK for settlement address assertion: %s",
+            exc,
+        )
+        return
+    resolved = EMX402SDK._resolve_settlement_address()
+    if resolved and resolved.lower() == treasury.lower():
+        raise RuntimeError(
+            "CRITICAL: settlement address resolves to the cold treasury "
+            f"wallet ({treasury}). This violates the Feb 2026 incident "
+            "postmortem — agent funds would settle directly into the cold "
+            "wallet with no disbursement path. Set EM_SETTLEMENT_ADDRESS "
+            "or WALLET_PRIVATE_KEY to a hot platform wallet before deploy. "
+            "Phase 0 GR-0.5 / SC-002."
+        )
+
+
+if _BOOT_ASSERTIONS_ENABLED and not _BOOT_IS_TESTING:
+    _assert_jwt_secret_not_default()
+    _assert_settlement_not_treasury()
+
+
 # Get Streamable HTTP configuration from environment
 MCP_STATELESS_HTTP = os.environ.get("MCP_STATELESS_HTTP", "false").lower() == "true"
 MCP_JSON_RESPONSE = os.environ.get("MCP_JSON_RESPONSE", "true").lower() == "true"
