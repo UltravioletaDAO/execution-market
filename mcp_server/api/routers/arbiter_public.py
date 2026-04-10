@@ -181,14 +181,42 @@ class ArbiterVerifyResponse(BaseModel):
 RATE_LIMIT_MAX_PER_MINUTE = 100
 _rate_limit_buckets: Dict[str, list] = {}
 
+# AI-009: Cap the in-memory bucket dict to prevent unbounded memory growth.
+# Each bucket stores up to 100 timestamps (float, 8 bytes each) so at
+# MAX_BUCKETS=10000 the ceiling is ~8 MB — acceptable for a single process.
+# TODO: Replace with Redis-backed limiter when AaaS is re-enabled (Phase 3)
+MAX_RATE_LIMIT_BUCKETS = 10_000
+
+
+def _evict_rate_limit_buckets() -> None:
+    """Evict the oldest half of rate-limit buckets when capacity is exceeded.
+
+    AI-009: prevents unbounded memory growth in the process-local dict.
+    Eviction is by oldest first-request timestamp within each bucket.
+    """
+    if len(_rate_limit_buckets) <= MAX_RATE_LIMIT_BUCKETS:
+        return
+
+    sorted_keys = sorted(
+        _rate_limit_buckets.keys(),
+        key=lambda k: _rate_limit_buckets[k][0] if _rate_limit_buckets[k] else 0,
+    )
+    for k in sorted_keys[: MAX_RATE_LIMIT_BUCKETS // 2]:
+        del _rate_limit_buckets[k]
+
+    logger.info("Rate-limit bucket eviction: kept %d buckets", len(_rate_limit_buckets))
+
 
 def _check_rate_limit(caller_id: str) -> None:
     """Simple sliding-window rate limiter (100 req/min).
 
     For MVP only -- replace with Redis-backed limiter for production
-    horizontal scaling.
+    horizontal scaling (AI-009).
     """
     import time
+
+    # Evict stale buckets if dict has grown too large (AI-009)
+    _evict_rate_limit_buckets()
 
     now = time.time()
     cutoff = now - 60.0
