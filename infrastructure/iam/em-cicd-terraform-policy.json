@@ -66,8 +66,8 @@
         "iam:PutRolePolicy"
       ],
       "Resource": [
-        "arn:aws:iam::518898403364:role/em-*",
-        "arn:aws:iam::518898403364:policy/em-*"
+        "arn:aws:iam::<YOUR_AWS_ACCOUNT_ID>:role/em-*",
+        "arn:aws:iam::<YOUR_AWS_ACCOUNT_ID>:policy/em-*"
       ]
     },
     {
@@ -164,7 +164,7 @@
         "secretsmanager:GetResourcePolicy",
         "secretsmanager:ListSecrets"
       ],
-      "Resource": "arn:aws:secretsmanager:us-east-2:518898403364:secret:em/*"
+      "Resource": "arn:aws:secretsmanager:us-east-2:<YOUR_AWS_ACCOUNT_ID>:secret:em/*"
     },
     {
       "Sid": "TerraformECR",
@@ -177,7 +177,7 @@
         "ecr:ListTagsForResource",
         "ecr:TagResource"
       ],
-      "Resource": "arn:aws:ecr:us-east-2:518898403364:repository/em-*"
+      "Resource": "arn:aws:ecr:us-east-2:<YOUR_AWS_ACCOUNT_ID>:repository/em-*"
     },
     {
       "Sid": "TerraformDynamoDB",
@@ -186,7 +186,7 @@
         "dynamodb:Describe*",
         "dynamodb:ListTagsOfResource"
       ],
-      "Resource": "arn:aws:dynamodb:us-east-2:518898403364:table/em-*"
+      "Resource": "arn:aws:dynamodb:us-east-2:<YOUR_AWS_ACCOUNT_ID>:table/em-*"
     },
     {
       "Sid": "TerraformRoute53",
@@ -218,7 +218,7 @@
         "acm:DescribeCertificate",
         "acm:ListTagsForCertificate"
       ],
-      "Resource": "arn:aws:acm:*:518898403364:certificate/*"
+      "Resource": "arn:aws:acm:*:<YOUR_AWS_ACCOUNT_ID>:certificate/*"
     },
     {
       "Sid": "TerraformS3Buckets",
@@ -251,7 +251,7 @@
         "lambda:GetFunctionCodeSigningConfig",
         "lambda:ListTags"
       ],
-      "Resource": "arn:aws:lambda:us-east-2:518898403364:function:em-*"
+      "Resource": "arn:aws:lambda:us-east-2:<YOUR_AWS_ACCOUNT_ID>:function:em-*"
     },
     {
       "Sid": "TerraformAPIGateway",

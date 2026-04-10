@@ -24,7 +24,7 @@ coverage/
 *.swp
 
 # Git
-.git
+.git/
 .gitignore
 
 # Documentation
@@ -36,6 +36,18 @@ docs/
 .env.local
 .env.*.local
 !.env.production
+!.env.example
+
+# Secrets & certificates
+*.pem
+*.key
+
+# Dead code
+patches/
+
+# Claude / Vault (development only)
+.claude/
+vault/
 
 # Temporary
 *.log

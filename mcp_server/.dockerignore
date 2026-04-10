@@ -25,7 +25,7 @@ htmlcov/
 *.swp
 
 # Git
-.git
+.git/
 .gitignore
 
 # Documentation
@@ -35,9 +35,18 @@ docs/
 # Environment
 .env
 .env.*
+!.env.example
+
+# Secrets & certificates
+*.pem
+*.key
 
 # Dead code — ADR-001 violation (SC-003)
 patches/
+
+# Claude / Vault (development only)
+.claude/
+vault/
 
 # Temporary
 *.log

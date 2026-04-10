@@ -7,11 +7,11 @@
 # Applied manually via AWS CLI, Terraform for persistence/drift detection.
 
 locals {
-  aws_account_id       = "518898403364"
-  aws_region           = "us-east-2"
-  cloudfront_dist_id   = "E2SD27QZ0GK40U"
-  dashboard_s3_bucket  = "em-production-dashboard"
-  cicd_user            = "execution-market-deployer"
+  aws_account_id      = "<YOUR_AWS_ACCOUNT_ID>"
+  aws_region          = "us-east-2"
+  cloudfront_dist_id  = "E2SD27QZ0GK40U"
+  dashboard_s3_bucket = "em-production-dashboard"
+  cicd_user           = "execution-market-deployer"
 }
 
 resource "aws_iam_policy" "em_cicd_deploy" {

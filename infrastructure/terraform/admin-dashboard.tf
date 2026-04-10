@@ -7,7 +7,7 @@
 # Resources originally created via AWS CLI (2026-02-07), now managed by Terraform.
 #   - S3 bucket: em-production-admin-dashboard
 #   - CloudFront distribution: E2IUZLTDUFIAQP
-#   - ACM cert (us-east-1): arn:aws:acm:us-east-1:518898403364:certificate/841084f8-b130-4b12-87ee-88ac7d81be24
+#   - ACM cert (us-east-1): arn:aws:acm:us-east-1:<YOUR_AWS_ACCOUNT_ID>:certificate/<YOUR_ACM_CERT_ID>
 #   - Route53 A record: admin.execution.market → CloudFront
 #
 # To import existing resources into Terraform state:
@@ -22,7 +22,7 @@ locals {
   admin_domain        = "admin.${var.domain}"
   admin_cloudfront_id = "E2IUZLTDUFIAQP"
   admin_oac_id        = "E2IUZLTDUFIAQP"
-  admin_acm_cert_arn  = "arn:aws:acm:us-east-1:518898403364:certificate/841084f8-b130-4b12-87ee-88ac7d81be24"
+  admin_acm_cert_arn  = "arn:aws:acm:us-east-1:${local.account_id}:certificate/841084f8-b130-4b12-87ee-88ac7d81be24"
 }
 
 resource "aws_s3_bucket" "admin_dashboard" {
@@ -84,9 +84,9 @@ resource "aws_cloudfront_distribution" "admin_dashboard" {
 
   # SPA routing: return index.html for 403 (S3 returns 403 for missing keys)
   custom_error_response {
-    error_code         = 403
-    response_code      = 200
-    response_page_path = "/index.html"
+    error_code            = 403
+    response_code         = 200
+    response_page_path    = "/index.html"
     error_caching_min_ttl = 10
   }
 
