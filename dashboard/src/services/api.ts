@@ -40,7 +40,11 @@ function getAuthToken(): string | null {
 }
 
 /**
- * Set authentication token
+ * Set authentication token.
+ *
+ * SECURITY NOTE (FE-009): Auth tokens in localStorage are vulnerable to XSS
+ * exfiltration. CSP script-src policy is the primary defense. Phase 4 should
+ * migrate to httpOnly cookies set by the backend for token storage.
  */
 export function setAuthToken(token: string): void {
   localStorage.setItem('em_auth_token', token)

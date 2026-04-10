@@ -44,7 +44,16 @@ export function isAgentLoggedIn(): boolean {
   }
 }
 
-/** Store agent session data after successful login */
+/**
+ * Store agent session data after successful login.
+ *
+ * SECURITY NOTE (FE-009): Agent JWTs are stored in localStorage, which is
+ * accessible to any JS running on the page (XSS exfiltration risk).
+ * sessionStorage would limit exposure to the current tab, but agent sessions
+ * are expected to persist across tabs. The ideal mitigation is httpOnly
+ * cookies set by the backend (Phase 4). Until then, the CSP script-src
+ * policy is the primary XSS defense layer.
+ */
 export function setAgentSession(token: string, agentId: string, tier: string): void {
   localStorage.setItem(AGENT_JWT_KEY, token)
   localStorage.setItem(AGENT_ID_KEY, agentId)
