@@ -7,6 +7,7 @@ Extracted from api/routes.py.
 import json
 import os
 import time
+import uuid as _uuid
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from typing import Optional, List, Dict, Any
@@ -1099,9 +1100,16 @@ async def create_task(
                                 )
                             except Exception:
                                 pass
+                        _ref = str(_uuid.uuid4())[:8]
+                        logger.error(
+                            "Escrow lock failed for task %s [ref=%s]: %s",
+                            task["id"],
+                            _ref,
+                            escrow_error,
+                        )
                         raise HTTPException(
                             status_code=402,
-                            detail=f"Escrow lock failed: {escrow_error}. Task cancelled.",
+                            detail=f"Escrow lock failed. Task cancelled (ref: {_ref}).",
                         )
 
                 elif dispatcher and dispatcher.get_mode() == "x402r":
@@ -1178,9 +1186,16 @@ async def create_task(
                                 )
                             except Exception:
                                 pass
+                        _ref = str(_uuid.uuid4())[:8]
+                        logger.error(
+                            "Payment escrow failed for task %s [ref=%s]: %s",
+                            task["id"],
+                            _ref,
+                            escrow_error,
+                        )
                         raise HTTPException(
                             status_code=402,
-                            detail=f"Payment escrow failed: {escrow_error}. Task has been cancelled.",
+                            detail=f"Payment escrow failed. Task has been cancelled (ref: {_ref}).",
                         )
                 elif dispatcher and dispatcher.get_mode() == "fase1":
                     auth_result = await dispatcher.authorize_payment(
@@ -3139,16 +3154,18 @@ async def assign_task_to_worker(
                         )
                     except Exception:
                         pass
+                    _ref = str(_uuid.uuid4())[:8]
                     raise HTTPException(
                         status_code=402,
-                        detail=f"Escrow lock failed: {escrow_error}. Task remains published.",
+                        detail=f"Escrow lock failed. Task remains published (ref: {_ref}).",
                     )
             except HTTPException:
                 raise
             except ValueError as ve:
+                logger.warning("Invalid X-Payment-Auth for task %s: %s", task_id, ve)
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Invalid X-Payment-Auth: {ve}",
+                    detail="Invalid X-Payment-Auth header format",
                 )
             except Exception as e:
                 logger.error(
@@ -3245,9 +3262,16 @@ async def assign_task_to_worker(
                                 )
                             except Exception:
                                 pass
+                            _ref = str(_uuid.uuid4())[:8]
+                            logger.error(
+                                "Escrow lock failed for task %s [ref=%s]: %s",
+                                task_id,
+                                _ref,
+                                escrow_error,
+                            )
                             raise HTTPException(
                                 status_code=402,
-                                detail=f"Escrow lock failed: {escrow_error}. Task remains published.",
+                                detail=f"Escrow lock failed. Task remains published (ref: {_ref}).",
                             )
             except HTTPException:
                 raise

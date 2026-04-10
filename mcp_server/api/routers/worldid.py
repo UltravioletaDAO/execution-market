@@ -159,7 +159,11 @@ async def get_rp_signature(
     try:
         result = sign_request(action=action)
     except ValueError as exc:
-        raise HTTPException(status_code=503, detail=str(exc))
+        logger.error("World ID RP signing failed: %s", exc)
+        raise HTTPException(
+            status_code=503,
+            detail="World ID signing service temporarily unavailable",
+        )
 
     return RPSignatureResponse(
         nonce=result.nonce,

@@ -6,6 +6,7 @@ Extracted from api/routes.py.
 
 import ipaddress
 import os
+import uuid as _uuid
 from datetime import datetime, timezone
 from urllib.parse import urlparse
 
@@ -134,7 +135,10 @@ def _validate_evidence_url(url: str) -> None:
     try:
         parsed = urlparse(url)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid evidence_url: {e}") from e
+        logger.warning("Invalid evidence_url: %s", e)
+        raise HTTPException(
+            status_code=400, detail="Invalid evidence_url format"
+        ) from e
 
     if parsed.scheme != "https":
         raise HTTPException(
@@ -461,10 +465,13 @@ async def register_worker_identity(
     try:
         identity = await check_worker_identity(wallet)
     except Exception as e:
-        logger.error("Identity check failed for %s: %s", executor_id, e)
+        req_id = str(_uuid.uuid4())[:8]
+        logger.error(
+            "Identity check failed for %s [req=%s]: %s", executor_id, req_id, e
+        )
         raise HTTPException(
             status_code=503,
-            detail=f"Could not check on-chain identity: {e}",
+            detail=f"Could not check on-chain identity (ref: {req_id})",
         )
 
     # Already registered
@@ -490,10 +497,16 @@ async def register_worker_identity(
             agent_uri=request.agent_uri,
         )
     except Exception as e:
-        logger.error("Failed to build registration tx for %s: %s", executor_id, e)
+        req_id = str(_uuid.uuid4())[:8]
+        logger.error(
+            "Failed to build registration tx for %s [req=%s]: %s",
+            executor_id,
+            req_id,
+            e,
+        )
         raise HTTPException(
             status_code=503,
-            detail=f"Could not prepare registration transaction: {e}",
+            detail=f"Could not prepare registration transaction (ref: {req_id})",
         )
 
     logger.info(

@@ -49,6 +49,7 @@ Auth:
 
 import logging
 import os
+import uuid as _uuid
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -280,11 +281,14 @@ async def verify_evidence(
     try:
         arbiter = ArbiterService.from_defaults()
         verdict = await arbiter.evaluate(task, submission)
-    except Exception as e:
-        logger.exception("AaaS evaluation failed for caller %s", caller_id)
+    except Exception:
+        req_id = str(_uuid.uuid4())[:8]
+        logger.exception(
+            "AaaS evaluation failed for caller %s [req=%s]", caller_id, req_id
+        )
         raise HTTPException(
             status_code=500,
-            detail=f"Arbiter evaluation failed: {e}",
+            detail=f"Arbiter evaluation failed (ref: {req_id})",
         )
 
     # 5. Handle SKIPPED (caller didn't provide enough signal)

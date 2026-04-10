@@ -24,6 +24,7 @@ Auth:
 """
 
 import logging
+import uuid as _uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -304,9 +305,10 @@ async def list_disputes(
 
     except HTTPException:
         raise
-    except Exception as e:
-        logger.exception("list_disputes failed")
-        raise HTTPException(status_code=500, detail=f"Failed to list disputes: {e}")
+    except Exception:
+        req_id = str(_uuid.uuid4())[:8]
+        logger.exception("list_disputes failed [req=%s]", req_id)
+        raise HTTPException(status_code=500, detail=f"Internal error (ref: {req_id})")
 
 
 @router.get("/available", response_model=DisputeListResponse)
@@ -359,9 +361,10 @@ async def list_available_disputes(
             items=[_row_to_summary(r) for r in rows],
             total=len(rows),
         )
-    except Exception as e:
-        logger.exception("list_available_disputes failed")
-        raise HTTPException(status_code=500, detail=f"Failed to list: {e}")
+    except Exception:
+        req_id = str(_uuid.uuid4())[:8]
+        logger.exception("list_available_disputes failed [req=%s]", req_id)
+        raise HTTPException(status_code=500, detail=f"Internal error (ref: {req_id})")
 
 
 @router.get("/{dispute_id}", response_model=DisputeDetail)
@@ -387,9 +390,10 @@ async def get_dispute(
         return _row_to_detail(row)
     except HTTPException:
         raise
-    except Exception as e:
-        logger.exception("get_dispute failed")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch dispute: {e}")
+    except Exception:
+        req_id = str(_uuid.uuid4())[:8]
+        logger.exception("get_dispute failed [req=%s]", req_id)
+        raise HTTPException(status_code=500, detail=f"Internal error (ref: {req_id})")
 
 
 # ============================================================================
@@ -597,9 +601,10 @@ async def resolve_dispute(
 
     except HTTPException:
         raise
-    except Exception as e:
-        logger.exception("resolve_dispute failed")
-        raise HTTPException(status_code=500, detail=f"Resolve failed: {e}")
+    except Exception:
+        req_id = str(_uuid.uuid4())[:8]
+        logger.exception("resolve_dispute failed [req=%s]", req_id)
+        raise HTTPException(status_code=500, detail=f"Internal error (ref: {req_id})")
 
 
 async def _trigger_resolution_payment(

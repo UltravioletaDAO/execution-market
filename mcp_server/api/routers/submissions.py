@@ -4,6 +4,7 @@ Submission approval, rejection, and more-info endpoints.
 Extracted from api/routes.py.
 """
 
+import uuid as _uuid
 from datetime import datetime, timezone, timedelta
 
 from fastapi import APIRouter, HTTPException, Depends, Path, Request
@@ -293,9 +294,16 @@ async def approve_submission(
     release_error = settlement.get("payment_error")
 
     if not release_tx:
+        req_id = str(_uuid.uuid4())[:8]
+        logger.error(
+            "Settlement failed for submission %s [req=%s]: %s",
+            submission_id,
+            req_id,
+            release_error or "missing tx hash",
+        )
         raise HTTPException(
             status_code=502,
-            detail=f"Could not settle payment before approval: {release_error or 'missing tx hash'}",
+            detail=f"Could not settle payment before approval (ref: {req_id})",
         )
 
     # Only mark approved/completed after settlement has tx evidence.

@@ -7,6 +7,7 @@ and profile linking for workers and agents.
 
 import logging
 import re
+import uuid as _uuid
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -380,9 +381,10 @@ async def claim_subname(
 
     if not result.get("success"):
         error_msg = result.get("error", "Unknown error")
-        logger.error("Subname creation failed: %s", error_msg)
+        req_id = str(_uuid.uuid4())[:8]
+        logger.error("Subname creation failed [req=%s]: %s", req_id, error_msg)
         raise HTTPException(
-            status_code=500, detail=f"On-chain creation failed: {error_msg}"
+            status_code=500, detail=f"On-chain creation failed (ref: {req_id})"
         )
 
     # Save to DB — if this fails, return partial success with TX hash
