@@ -8,7 +8,7 @@ import logging
 from typing import Optional, List
 
 from fastapi import APIRouter, HTTPException, Depends, Query, Path
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 import supabase_client as db
 
@@ -29,6 +29,8 @@ router = APIRouter(prefix="/api/v1", tags=["Moderation"])
 
 
 class CreateReportRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     target_type: str = Field(
         ...,
         description="Type of content being reported",
@@ -61,6 +63,8 @@ class ReportResponse(BaseModel):
 
 
 class UpdateReportRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     status: str = Field(
         ...,
         description="New report status",
@@ -72,6 +76,8 @@ class UpdateReportRequest(BaseModel):
 
 
 class BlockUserRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     blocked_user_id: str = Field(
         ..., description="UUID of the user to block", min_length=36, max_length=36
     )

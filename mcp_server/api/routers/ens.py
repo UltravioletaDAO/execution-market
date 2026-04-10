@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 import supabase_client as db
 
@@ -53,6 +53,8 @@ class ENSRecordsResponse(BaseModel):
 class LinkENSRequest(BaseModel):
     """Link an existing ENS name to executor profile."""
 
+    model_config = ConfigDict(extra="forbid")
+
     executor_id: str = Field(..., description="UUID of the executor")
 
 
@@ -67,6 +69,8 @@ class LinkENSResponse(BaseModel):
 
 class ClaimSubnameRequest(BaseModel):
     """Claim a subname under execution-market.eth."""
+
+    model_config = ConfigDict(extra="forbid")
 
     executor_id: str = Field(..., description="UUID of the executor")
     label: str = Field(

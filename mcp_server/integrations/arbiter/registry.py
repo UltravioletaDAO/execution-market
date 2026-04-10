@@ -9,7 +9,7 @@ Per-task overrides can be applied via PlatformConfig at runtime.
 """
 
 import logging
-from typing import Dict
+from typing import Dict, List, Optional
 
 from .types import ArbiterConfig, ArbiterTier
 
@@ -196,7 +196,7 @@ class ArbiterRegistry:
     runtime overrides via PlatformConfig (Phase 1 Task 1.5 wires this).
     """
 
-    def __init__(self, configs: Dict[str, ArbiterConfig] = None):
+    def __init__(self, configs: Optional[Dict[str, ArbiterConfig]] = None):
         self._configs = configs if configs is not None else CATEGORY_CONFIGS
 
     def get(self, category: str) -> ArbiterConfig:
@@ -215,11 +215,11 @@ class ArbiterRegistry:
             return GENERIC_FALLBACK
         return config
 
-    def all_categories(self) -> list:
+    def all_categories(self) -> List[str]:
         """Return list of all configured categories (for testing/debug)."""
         return sorted(self._configs.keys())
 
-    def consensus_required_categories(self) -> list:
+    def consensus_required_categories(self) -> List[str]:
         """Return categories that always force MAX tier (consensus_required=True)."""
         return sorted(
             cat for cat, cfg in self._configs.items() if cfg.consensus_required

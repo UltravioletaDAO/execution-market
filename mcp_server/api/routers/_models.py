@@ -261,6 +261,8 @@ class SubmissionListResponse(BaseModel):
 class ApprovalRequest(BaseModel):
     """Request model for approving a submission."""
 
+    model_config = ConfigDict(extra="forbid")
+
     notes: Optional[str] = Field(
         default=None, description="Optional notes about the approval", max_length=1000
     )
@@ -275,6 +277,8 @@ class ApprovalRequest(BaseModel):
 
 class RejectionRequest(BaseModel):
     """Request model for rejecting a submission."""
+
+    model_config = ConfigDict(extra="forbid")
 
     notes: str = Field(
         ..., description="Required reason for rejection", min_length=10, max_length=1000
@@ -295,6 +299,8 @@ class RejectionRequest(BaseModel):
 class RequestMoreInfoRequest(BaseModel):
     """Request model for requesting more info on a submission."""
 
+    model_config = ConfigDict(extra="forbid")
+
     notes: str = Field(
         ..., description="Required clarification request", min_length=5, max_length=1000
     )
@@ -308,6 +314,8 @@ class RequestMoreInfoRequest(BaseModel):
 class CancelRequest(BaseModel):
     """Request model for cancelling a task."""
 
+    model_config = ConfigDict(extra="forbid")
+
     reason: Optional[str] = Field(
         default=None, description="Optional reason for cancellation", max_length=500
     )
@@ -315,6 +323,8 @@ class CancelRequest(BaseModel):
 
 class WorkerAssignRequest(BaseModel):
     """Request model for assigning a task to a worker."""
+
+    model_config = ConfigDict(extra="forbid")
 
     executor_id: str = Field(
         ...,
@@ -377,6 +387,8 @@ class WorkerRegisterRequest(BaseModel):
 class WorkerApplicationRequest(BaseModel):
     """Request model for worker applying to a task."""
 
+    model_config = ConfigDict(extra="forbid")
+
     executor_id: str = Field(
         ...,
         description="Worker's executor ID",
@@ -389,6 +401,8 @@ class WorkerApplicationRequest(BaseModel):
 
 class WorkerSubmissionRequest(BaseModel):
     """Request model for worker submitting work."""
+
+    model_config = ConfigDict(extra="forbid")
 
     executor_id: str = Field(
         ...,
@@ -503,6 +517,8 @@ class PublicPlatformMetricsResponse(BaseModel):
 
 class ConfigUpdateRequest(BaseModel):
     """Request to update a config value (admin only)."""
+
+    model_config = ConfigDict(extra="forbid")
 
     value: Any = Field(..., description="New value for the config key")
     reason: Optional[str] = Field(None, description="Reason for the change (for audit)")
@@ -688,6 +704,8 @@ class TaskTransactionsResponse(BaseModel):
 class VerifyEvidenceRequest(BaseModel):
     """Request to verify evidence against task requirements."""
 
+    model_config = ConfigDict(extra="forbid")
+
     task_id: str = Field(..., description="UUID of the task")
     evidence_url: str = Field(
         ..., description="Public URL of the uploaded evidence file"
@@ -740,6 +758,8 @@ class WorldIdStatusResponse(BaseModel):
 class RegisterIdentityRequest(BaseModel):
     """Request to prepare an identity registration transaction."""
 
+    model_config = ConfigDict(extra="forbid")
+
     agent_uri: Optional[str] = Field(
         None,
         description="Metadata URI for the identity (defaults to execution.market profile URL)",
@@ -764,6 +784,8 @@ class RegisterIdentityResponse(BaseModel):
 class ConfirmIdentityRequest(BaseModel):
     """Request to confirm a registration transaction."""
 
+    model_config = ConfigDict(extra="forbid")
+
     tx_hash: str = Field(
         ...,
         description="Transaction hash of the registration tx",
@@ -780,6 +802,8 @@ class ConfirmIdentityRequest(BaseModel):
 class BatchTaskDefinition(BaseModel):
     """Single task definition for batch creation."""
 
+    model_config = ConfigDict(extra="forbid")
+
     title: str = Field(..., min_length=5, max_length=255)
     instructions: str = Field(..., min_length=20, max_length=5000)
     category: TaskCategory
@@ -793,6 +817,8 @@ class BatchTaskDefinition(BaseModel):
 
 class BatchCreateRequest(BaseModel):
     """Request model for batch task creation."""
+
+    model_config = ConfigDict(extra="forbid")
 
     tasks: List[BatchTaskDefinition] = Field(
         ..., description="List of tasks to create", min_length=1, max_length=50

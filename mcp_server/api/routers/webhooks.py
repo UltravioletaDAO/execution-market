@@ -9,9 +9,9 @@ import logging
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from ..auth import verify_api_key, APIKeyData
+from ..auth import verify_agent_auth_write, AgentAuth
 from webhooks.events import WebhookEventType, WebhookEvent
 from webhooks.registry import get_webhook_registry, WebhookStatus
 from webhooks.sender import send_webhook
@@ -27,6 +27,8 @@ router = APIRouter(prefix="/api/v1/webhooks", tags=["Webhooks"])
 
 
 class WebhookCreateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     url: str = Field(..., description="HTTPS endpoint URL")
     events: List[str] = Field(
         ..., description="Event types to subscribe to", min_length=1
@@ -51,6 +53,8 @@ class WebhookCreateRequest(BaseModel):
 
 
 class WebhookUpdateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     url: Optional[str] = None
     events: Optional[List[str]] = None
     description: Optional[str] = None
@@ -98,7 +102,7 @@ class WebhookCreateResponse(WebhookResponse):
 @router.post("/", response_model=WebhookCreateResponse, status_code=201)
 async def register_webhook(
     req: WebhookCreateRequest,
-    api_key: APIKeyData = Depends(verify_api_key),
+    auth: AgentAuth = Depends(verify_agent_auth_write),
 ):
     """Register a new webhook endpoint."""
     registry = get_webhook_registry()
@@ -106,7 +110,7 @@ async def register_webhook(
 
     try:
         registration = registry.register(
-            owner_id=api_key.agent_id,
+            owner_id=auth.agent_id,
             url=req.url,
             events=event_types,
             description=req.description,
@@ -130,11 +134,11 @@ async def register_webhook(
 
 @router.get("/", response_model=List[WebhookResponse])
 async def list_webhooks(
-    api_key: APIKeyData = Depends(verify_api_key),
+    auth: AgentAuth = Depends(verify_agent_auth_write),
 ):
     """List all webhooks for the authenticated agent."""
     registry = get_webhook_registry()
-    webhooks = registry.get_by_owner(api_key.agent_id)
+    webhooks = registry.get_by_owner(auth.agent_id)
     return [
         WebhookResponse(
             webhook_id=wh.webhook_id,
@@ -157,12 +161,12 @@ async def list_webhooks(
 @router.get("/{webhook_id}", response_model=WebhookResponse)
 async def get_webhook(
     webhook_id: str,
-    api_key: APIKeyData = Depends(verify_api_key),
+    auth: AgentAuth = Depends(verify_agent_auth_write),
 ):
     """Get a single webhook by ID."""
     registry = get_webhook_registry()
     wh = registry.get(webhook_id)
-    if not wh or wh.owner_id != api_key.agent_id:
+    if not wh or wh.owner_id != auth.agent_id:
         raise HTTPException(status_code=404, detail="Webhook not found")
 
     return WebhookResponse(
@@ -185,7 +189,7 @@ async def get_webhook(
 async def update_webhook(
     webhook_id: str,
     req: WebhookUpdateRequest,
-    api_key: APIKeyData = Depends(verify_api_key),
+    auth: AgentAuth = Depends(verify_agent_auth_write),
 ):
     """Update a webhook endpoint."""
     registry = get_webhook_registry()
@@ -196,7 +200,7 @@ async def update_webhook(
     try:
         wh = registry.update(
             webhook_id=webhook_id,
-            owner_id=api_key.agent_id,
+            owner_id=auth.agent_id,
             url=req.url,
             events=event_types,
             description=req.description,
@@ -227,11 +231,11 @@ async def update_webhook(
 @router.delete("/{webhook_id}", status_code=204)
 async def delete_webhook(
     webhook_id: str,
-    api_key: APIKeyData = Depends(verify_api_key),
+    auth: AgentAuth = Depends(verify_agent_auth_write),
 ):
     """Delete a webhook endpoint."""
     registry = get_webhook_registry()
-    deleted = registry.delete(webhook_id, api_key.agent_id)
+    deleted = registry.delete(webhook_id, auth.agent_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Webhook not found")
 
@@ -239,11 +243,11 @@ async def delete_webhook(
 @router.post("/{webhook_id}/rotate-secret")
 async def rotate_webhook_secret(
     webhook_id: str,
-    api_key: APIKeyData = Depends(verify_api_key),
+    auth: AgentAuth = Depends(verify_agent_auth_write),
 ):
     """Rotate the webhook signing secret. Returns new secret (shown only once)."""
     registry = get_webhook_registry()
-    new_secret = registry.rotate_secret(webhook_id, api_key.agent_id)
+    new_secret = registry.rotate_secret(webhook_id, auth.agent_id)
     if not new_secret:
         raise HTTPException(status_code=404, detail="Webhook not found")
     return {"webhook_id": webhook_id, "secret": new_secret}
@@ -252,12 +256,12 @@ async def rotate_webhook_secret(
 @router.post("/{webhook_id}/test")
 async def test_webhook(
     webhook_id: str,
-    api_key: APIKeyData = Depends(verify_api_key),
+    auth: AgentAuth = Depends(verify_agent_auth_write),
 ):
     """Send a test ping event to the webhook."""
     registry = get_webhook_registry()
     wh = registry.get(webhook_id)
-    if not wh or wh.owner_id != api_key.agent_id:
+    if not wh or wh.owner_id != auth.agent_id:
         raise HTTPException(status_code=404, detail="Webhook not found")
 
     secret = registry.get_secret(webhook_id) or ""

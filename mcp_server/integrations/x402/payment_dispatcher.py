@@ -1534,6 +1534,28 @@ class PaymentDispatcher:
         # Fill in receiver and network-specific fields
         inner = payload.get("payload", {})
         pi = inner.get("paymentInfo", {})
+
+        # SC-009: Assert the agent's signed operator matches our expected operator
+        # for this network. Prevents agents from routing funds through rogue operators.
+        signed_operator = (pi.get("operator") or "").lower()
+        expected_operator = operator.lower()
+        if signed_operator and signed_operator != expected_operator:
+            logger.warning(
+                "SC-009 REJECT: agent signed operator=%s but expected=%s for network=%s",
+                signed_operator,
+                expected_operator,
+                network,
+            )
+            return {
+                "success": False,
+                "tx_hash": None,
+                "escrow_status": "operator_mismatch",
+                "error": (
+                    f"Operator mismatch: signed {signed_operator[:10]}... "
+                    f"does not match expected {expected_operator[:10]}... for {network}"
+                ),
+            }
+
         pi["receiver"] = worker_address
 
         # Ensure paymentRequirements exists and is populated
@@ -2023,6 +2045,8 @@ class PaymentDispatcher:
         )
 
         # Fase 5: Best-effort flush of operator fees to treasury via distributeFees()
+        # TODO: Move to periodic cron (every 15 min). Currently called per-release,
+        # wasting gas from the hot wallet. Phase 3 SC-010.
         fee_distribute_tx = None
         try:
             fee_distribute_tx = await self._distribute_operator_fees(
@@ -3539,6 +3563,8 @@ class PaymentDispatcher:
 
         try:
             # Fase 5: First flush operator fees to treasury via distributeFees()
+            # TODO: Move to periodic cron (every 15 min). Currently called per-release,
+            # wasting gas from the hot wallet. Phase 3 SC-010.
             distribute_tx = None
             try:
                 distribute_tx = await self._distribute_operator_fees(

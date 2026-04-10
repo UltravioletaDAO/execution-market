@@ -53,7 +53,7 @@ import uuid as _uuid
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from integrations.arbiter.config import is_arbiter_enabled
 from integrations.arbiter.service import ArbiterService
@@ -110,6 +110,8 @@ _AAAS_DISABLED_DETAIL = (
 class TaskSchema(BaseModel):
     """Minimal task description the arbiter needs to evaluate evidence."""
 
+    model_config = ConfigDict(extra="forbid")
+
     category: str = Field(
         default="general",
         description="Task category (maps to per-category thresholds)",
@@ -125,6 +127,8 @@ class TaskSchema(BaseModel):
 
 class ArbiterVerifyRequest(BaseModel):
     """Public AaaS request body."""
+
+    model_config = ConfigDict(extra="forbid")
 
     evidence: Dict[str, Any] = Field(
         ..., description="Evidence payload to evaluate (arbitrary dict)"

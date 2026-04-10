@@ -29,7 +29,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 import supabase_client as db
 
@@ -92,6 +92,8 @@ class ResolveDisputeRequest(BaseModel):
       - 'split':     partial release + partial refund
                      (provide split_pct = agent's refund %, 0-100)
     """
+
+    model_config = ConfigDict(extra="forbid")
 
     verdict: str = Field(..., pattern="^(release|refund|split)$")
     reason: str = Field(..., min_length=5, max_length=2000)

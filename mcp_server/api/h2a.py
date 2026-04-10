@@ -141,7 +141,8 @@ async def verify_jwt_auth(
     except pyjwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expired")
     except pyjwt.InvalidTokenError as e:
-        raise HTTPException(status_code=401, detail=f"Invalid token: {e}")
+        logger.warning("H2A JWT validation failed: %s", e)
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 
 # Cache the JWKS client to avoid fetching keys on every request
@@ -410,7 +411,7 @@ async def create_h2a_task(
         raise
     except Exception as e:
         logger.error("Failed to create H2A task: %s", str(e))
-        raise HTTPException(status_code=500, detail=f"Task creation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Task creation failed")
 
 
 @router.get(
@@ -854,7 +855,7 @@ async def approve_h2a_submission(
         raise
     except Exception as e:
         logger.error("H2A approval failed: task=%s, error=%s", task_id, str(e))
-        raise HTTPException(status_code=500, detail=f"Approval failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Approval failed")
 
 
 @router.post(

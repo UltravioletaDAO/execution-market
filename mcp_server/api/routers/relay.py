@@ -13,7 +13,7 @@ import secrets
 from typing import List, Optional, Dict, Any
 
 from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 import supabase_client as db
 from ..auth import verify_agent_auth_write, AgentAuth
@@ -29,22 +29,30 @@ router = APIRouter(prefix="/api/v1/relay-chains", tags=["relay"])
 
 
 class LegInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     pickup_location: Optional[Dict[str, Any]] = None
     dropoff_location: Optional[Dict[str, Any]] = None
     bounty_usdc: float = Field(gt=0, description="Bounty for this leg in USDC")
 
 
 class CreateRelayChainRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     task_id: str = Field(..., description="Parent task ID")
     legs: List[LegInput] = Field(..., min_length=2, description="At least 2 legs")
 
 
 class AssignLegRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     worker_wallet: str = Field(..., min_length=42, max_length=42)
     worker_nick: Optional[str] = None
 
 
 class HandoffRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     handoff_code: str = Field(..., min_length=4, max_length=8)
     evidence: Optional[Dict[str, Any]] = None
 

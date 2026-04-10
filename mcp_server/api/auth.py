@@ -609,7 +609,7 @@ async def _verify_agent_auth_impl(request: Request, allow_anonymous: bool) -> Ag
             logger.error("ERC-8128 verification error: %s", e)
             raise HTTPException(
                 status_code=401,
-                detail=f"ERC-8128 verification error: {e}",
+                detail="ERC-8128 verification error",
                 headers={"WWW-Authenticate": 'ERC8128 realm="execution-market"'},
             )
 
@@ -928,7 +928,8 @@ async def verify_worker_auth(
         return None
     except Exception as e:
         if _REQUIRE_WORKER_AUTH:
-            raise HTTPException(status_code=401, detail=f"Invalid token: {e}")
+            logger.warning("Worker auth token validation failed: %s", e)
+            raise HTTPException(status_code=401, detail="Invalid token")
         logger.warning(
             "SECURITY_AUDIT action=worker_auth.invalid_token path=%s error=%s",
             request.url.path,

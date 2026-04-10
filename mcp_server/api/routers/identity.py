@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Depends, Query
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ..auth import verify_api_key, APIKeyData
 import supabase_client as db
@@ -36,6 +36,8 @@ class IdentityLookupResponse(BaseModel):
 
 
 class IdentitySyncRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     irc_nick: str = Field(min_length=1, max_length=64)
     wallet_address: str = Field(min_length=42, max_length=42)
     trust_level: int = Field(ge=0, le=3, default=1)
@@ -62,6 +64,8 @@ class IdentitySyncResponse(BaseModel):
 
 
 class VerifyChallengeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     irc_nick: str
     wallet_address: str
     signature: str

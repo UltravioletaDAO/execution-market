@@ -348,4 +348,4 @@ async def refund_to_agent(
             request.deposit_id[:16],
             sdk_err,
         )
-        raise HTTPException(status_code=500, detail=f"Refund failed: {sdk_err}")
+        raise HTTPException(status_code=500, detail="Refund failed")

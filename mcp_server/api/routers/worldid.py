@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 import supabase_client as db
 
@@ -41,6 +41,8 @@ class RPSignatureResponse(BaseModel):
 
 class VerifyWorldIdRequest(BaseModel):
     """World ID proof verification request from frontend."""
+
+    model_config = ConfigDict(extra="forbid")
 
     # Required fields
     nullifier_hash: str = Field(
