@@ -87,10 +87,19 @@ async def check_world_id_eligibility(
         return True, None
 
     except Exception as e:
-        # Fail-open on transient errors (don't block workers on DB glitches)
-        logger.warning(
-            "World ID enforcement check failed (non-blocking) for %s: %s",
+        # CRY-007: Fail-CLOSED on errors — do NOT allow unverified access
+        # when enforcement cannot be checked. This prevents bypassing
+        # World ID gates via intentional error injection.
+        logger.error(
+            "World ID enforcement check failed (BLOCKING) for %s: %s",
             executor_id,
             e,
         )
-        return True, None
+        return False, {
+            "error": "world_id_check_failed",
+            "message": (
+                "World ID verification could not be checked. "
+                "Please try again later or contact support."
+            ),
+            "verification_url": "/profile",
+        }

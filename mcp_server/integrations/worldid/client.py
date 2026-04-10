@@ -202,6 +202,9 @@ async def verify_world_id_proof(
 
     url = f"{WORLD_CLOUD_API_URL}/{WORLD_ID_RP_ID}"
 
+    # CRY-010: Pin action to server config — never trust client-supplied action
+    server_action = DEFAULT_ACTION
+
     if responses:
         # v4 Cloud API: forward IDKit result structure as-is
         # Required: protocol_version, nonce, action, responses[]
@@ -209,7 +212,7 @@ async def verify_world_id_proof(
         payload: dict = {
             "protocol_version": protocol_version,
             "nonce": nonce,
-            "action": action,
+            "action": server_action,
             "responses": responses,
         }
     else:
@@ -222,7 +225,7 @@ async def verify_world_id_proof(
             "merkle_root": merkle_root,
             "nullifier_hash": nullifier_hash,
             "verification_level": verification_level,
-            "action": action,
+            "action": server_action,
             "signal_hash": signal_hash,
         }
 
@@ -235,15 +238,32 @@ async def verify_world_id_proof(
             if data.get("success"):
                 # v4 response uses "nullifier" (not "nullifier_hash")
                 resp_nullifier = data.get("nullifier", nullifier_hash)
+
+                # CRY-002: Trust the API response for verification_level, NOT the client input.
+                # The Cloud API returns the actual credential tier that was verified.
+                api_level = data.get("verification_level") or data.get(
+                    "credential_type"
+                )
+                if api_level:
+                    actual_level = api_level
+                else:
+                    # If API doesn't return level, default to device (lowest, safest)
+                    actual_level = "device"
+                    logger.warning(
+                        "World ID Cloud API did not return verification_level — defaulting to device"
+                    )
+
                 logger.info(
-                    "World ID proof verified: nullifier=%s...%s",
+                    "World ID proof verified: nullifier=%s...%s level=%s (client_claimed=%s)",
                     resp_nullifier[:10] if resp_nullifier else "?",
                     resp_nullifier[-6:] if resp_nullifier else "?",
+                    actual_level,
+                    verification_level,
                 )
                 return VerificationResult(
                     success=True,
                     nullifier_hash=resp_nullifier,
-                    verification_level=verification_level,
+                    verification_level=actual_level,
                 )
             else:
                 detail = data.get("detail", "Proof verification failed")
