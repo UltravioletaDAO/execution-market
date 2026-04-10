@@ -31,6 +31,7 @@ import math
 import time
 from dataclasses import dataclass, field, asdict
 from enum import Enum
+from typing import Optional
 
 
 # ──────────────────────────────────────────────────────────────
@@ -869,7 +870,7 @@ class SealBridge:
     def prepare_batch(
         self,
         recommendations: list[SealRecommendation],
-        min_confidence: float | None = None,
+        min_confidence: Optional[float] = None,
     ) -> BatchSealRequest:
         """
         Prepare a batch of seal recommendations for on-chain submission.
@@ -914,7 +915,7 @@ class SealBridge:
     def evaluate_fleet(
         self,
         agent_metrics: dict[str, dict],
-        address_map: dict[str, str] | None = None,
+        address_map: Optional[dict] = None,
     ) -> list[SealProfile]:
         """
         Evaluate all agents in the fleet and generate seal profiles.
