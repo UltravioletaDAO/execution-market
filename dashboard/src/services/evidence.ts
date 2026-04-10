@@ -9,8 +9,6 @@
  */
 
 const EVIDENCE_API_URL = import.meta.env.VITE_EVIDENCE_API_URL || ''
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 export interface EvidenceMetadata {
   gps?: {
@@ -135,49 +133,10 @@ async function uploadToS3(
   })
 }
 
-/** Upload a file to Supabase Storage (fallback). */
-async function uploadToSupabase(
-  file: File,
-  executorId: string,
-  taskId: string,
-  evidenceType: string,
-  onProgress?: (pct: number) => void,
-): Promise<string> {
-  const path = `${executorId}/${taskId}/${evidenceType}_${Date.now()}`
-  const uploadUrl = `${SUPABASE_URL}/storage/v1/object/evidence/${path}`
-
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest()
-
-    xhr.upload.addEventListener('progress', (event) => {
-      if (event.lengthComputable && onProgress) {
-        onProgress(Math.round((event.loaded / event.total) * 100))
-      }
-    })
-
-    xhr.addEventListener('load', () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        resolve(path)
-      } else {
-        reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`))
-      }
-    })
-
-    xhr.addEventListener('error', () => reject(new Error('Network error during upload')))
-    xhr.addEventListener('abort', () => reject(new Error('Upload cancelled')))
-
-    xhr.open('POST', uploadUrl)
-    xhr.setRequestHeader('apikey', SUPABASE_KEY)
-    xhr.setRequestHeader('Authorization', `Bearer ${SUPABASE_KEY}`)
-    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream')
-    xhr.setRequestHeader('x-upsert', 'true')
-    xhr.send(file)
-  })
-}
-
 /**
- * Upload evidence file with automatic backend selection.
- * Uses S3 presigned URLs when available, falls back to Supabase.
+ * Upload evidence file via S3 presigned URLs.
+ * Direct Supabase Storage uploads are no longer allowed (DB-008 security lockdown).
+ * The S3 presigned URL pipeline (VITE_EVIDENCE_API_URL) is required.
  */
 export async function uploadEvidenceFile(params: {
   file: File
@@ -189,40 +148,35 @@ export async function uploadEvidenceFile(params: {
 }): Promise<UploadResult> {
   const { file, taskId, executorId, evidenceType, submissionId, onProgress } = params
 
+  if (!isS3PipelineEnabled()) {
+    throw new Error(
+      'Evidence upload requires VITE_EVIDENCE_API_URL to be configured. ' +
+      'Direct Supabase Storage uploads are disabled for security (DB-008).'
+    )
+  }
+
   // Compute checksum
   const checksum = await computeChecksum(file)
 
-  if (isS3PipelineEnabled()) {
-    // S3 presigned URL flow
-    const presigned = await getPresignedUrl({
-      taskId,
-      submissionId,
-      actorId: executorId,
-      filename: file.name,
-      contentType: file.type || 'application/octet-stream',
-      evidenceType,
-      checksum,
-    })
+  // S3 presigned URL flow
+  const presigned = await getPresignedUrl({
+    taskId,
+    submissionId,
+    actorId: executorId,
+    filename: file.name,
+    contentType: file.type || 'application/octet-stream',
+    evidenceType,
+    checksum,
+  })
 
-    await uploadToS3(presigned, file, onProgress)
-
-    return {
-      key: presigned.key,
-      public_url: presigned.public_url,
-      backend: 's3',
-      checksum,
-      nonce: presigned.nonce,
-    }
-  }
-
-  // Supabase fallback
-  const path = await uploadToSupabase(file, executorId, taskId, evidenceType, onProgress)
+  await uploadToS3(presigned, file, onProgress)
 
   return {
-    key: path,
-    public_url: `${SUPABASE_URL}/storage/v1/object/public/evidence/${path}`,
-    backend: 'supabase',
+    key: presigned.key,
+    public_url: presigned.public_url,
+    backend: 's3',
     checksum,
+    nonce: presigned.nonce,
   }
 }
 

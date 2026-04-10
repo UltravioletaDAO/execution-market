@@ -19,8 +19,7 @@ interface ImportMetaEnv {
   readonly VITE_ENABLE_TESTNET?: string
   readonly VITE_REQUIRE_AGENT_API_KEY?: string
 
-  // Development
-  readonly VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS?: string
+  // (VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS removed — DB-008 security lockdown)
 }
 
 interface ImportMeta {

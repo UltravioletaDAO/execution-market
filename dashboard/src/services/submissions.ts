@@ -13,12 +13,9 @@ import type {
   ApproveSubmissionData,
   RejectSubmissionData,
   SubmissionWithDetails,
-  Evidence,
 } from './types'
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://api.execution.market').replace(/\/+$/, '')
-const ALLOW_DIRECT_SUPABASE_MUTATIONS = import.meta.env.VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS === 'true'
-import { getRequireApiKey } from '../hooks/usePlatformConfig'
 const AGENT_API_KEY = import.meta.env.VITE_API_KEY as string | undefined
 
 function buildWorkerSubmitUrl(taskId: string): string {
@@ -49,10 +46,6 @@ function buildRequestMoreInfoUrl(submissionId: string): string {
   return `${API_BASE_URL}/api/v1/submissions/${submissionId}/request-more-info`
 }
 
-function hasAgentApiKey(): boolean {
-  return Boolean(AGENT_API_KEY)
-}
-
 function buildAgentJsonHeaders(): HeadersInit {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (AGENT_API_KEY) {
@@ -79,84 +72,6 @@ async function getTaskTitle(taskId: string): Promise<string> {
     .single()
 
   return data?.title || 'Task'
-}
-
-async function submitWorkDirect(data: SubmitWorkData): Promise<{ submission: Submission; task: { id: string; title: string }; verification: VerificationResponse | null }> {
-  const { taskId, executorId, evidence } = data
-
-  // Get task to verify assignment and status
-  const { data: task, error: taskError } = await supabase
-    .from('tasks')
-    .select('*')
-    .eq('id', taskId)
-    .single()
-
-  if (taskError || !task) {
-    throw new Error('Task not found')
-  }
-
-  // Verify executor is assigned
-  if (task.executor_id !== executorId) {
-    throw new Error('You are not assigned to this task')
-  }
-
-  // Verify task status
-  const validStatuses = ['accepted', 'in_progress']
-  if (!validStatuses.includes(task.status)) {
-    throw new Error(`Task is not in a submittable state (status: ${task.status})`)
-  }
-
-  // Validate required evidence
-  const evidenceSchema = task.evidence_schema || { required: [], optional: [] }
-  const required: string[] = evidenceSchema.required || []
-  const missing = required.filter((r: string) => !evidence[r])
-
-  if (missing.length > 0) {
-    throw new Error(`Missing required evidence: ${missing.join(', ')}`)
-  }
-
-  // Extract file URLs from evidence
-  const evidenceFiles: string[] = []
-  Object.values(evidence).forEach((ev: Evidence) => {
-    if (ev.fileUrl) {
-      evidenceFiles.push(ev.fileUrl)
-    }
-  })
-
-  // Create submission
-  const submissionData = {
-    task_id: taskId,
-    executor_id: executorId,
-    evidence,
-    evidence_files: evidenceFiles,
-    submitted_at: new Date().toISOString(),
-    agent_verdict: null,
-  }
-
-  const { data: submission, error } = await supabase
-    .from('submissions')
-    .insert(submissionData)
-    .select()
-    .single()
-
-  if (error) {
-    throw new Error(`Failed to submit work: ${error.message}`)
-  }
-
-  // Update task status to submitted
-  await supabase
-    .from('tasks')
-    .update({ status: 'submitted' })
-    .eq('id', taskId)
-
-  return {
-    submission,
-    task: {
-      id: task.id,
-      title: task.title,
-    },
-    verification: null,
-  }
 }
 
 // ============== SUBMIT WORK ==============
@@ -230,11 +145,7 @@ export async function submitWork(data: SubmitWorkData): Promise<{ submission: Su
       verification,
     }
   } catch (error) {
-    if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
-      throw error instanceof Error ? error : new Error('Failed to submit work via API')
-    }
-    // Explicit fallback for local/dev troubleshooting only.
-    return submitWorkDirect(data)
+    throw error instanceof Error ? error : new Error('Failed to submit work via API')
   }
 }
 
@@ -342,380 +253,112 @@ export async function getPendingSubmissions(agentId: string): Promise<Submission
 // ============== APPROVE/REJECT SUBMISSIONS ==============
 
 /**
- * Approve a submission
+ * Approve a submission via backend API.
+ * Direct Supabase mutations are no longer allowed (DB-008 security lockdown).
  */
-async function approveSubmissionDirect(data: ApproveSubmissionData): Promise<Submission> {
-  const { submissionId, agentId, verdict, notes, rating } = data
+export async function approveSubmission(data: ApproveSubmissionData): Promise<Submission> {
+  const { submissionId, notes } = data
 
-  // Get submission with task
-  const submission = await getSubmission(submissionId)
-  if (!submission) {
-    throw new Error('Submission not found')
+  const response = await fetch(buildApproveSubmissionUrl(submissionId), {
+    method: 'POST',
+    headers: buildAgentJsonHeaders(),
+    body: JSON.stringify({ notes }),
+  })
+
+  if (!response.ok) {
+    const fallback = `Failed to approve submission via API (${response.status})`
+    throw new Error(await parseApiError(response, fallback))
   }
 
-  // Verify agent owns the task
-  const task = submission.task
-  if (!task || task.agent_id !== agentId) {
-    throw new Error('Not authorized to approve this submission')
-  }
+  const payload = await response.json() as { data?: { submission_id?: string } }
+  const approvedSubmissionId = payload?.data?.submission_id || submissionId
 
-  // Update submission
-  const updates: Record<string, unknown> = {
-    agent_verdict: verdict,
-    agent_notes: notes,
-  }
-
-  if (verdict === 'accepted') {
-    updates.verified_at = new Date().toISOString()
-  }
-
-  const { data: updatedSubmission, error } = await supabase
+  const { data: submission, error } = await supabase
     .from('submissions')
-    .update(updates)
-    .eq('id', submissionId)
-    .select()
+    .select('*')
+    .eq('id', approvedSubmissionId)
     .single()
 
-  if (error) {
-    throw new Error(`Failed to update submission: ${error.message}`)
+  if (error || !submission) {
+    throw new Error(
+      `Submission approved via API but could not load row: ${error?.message || 'unknown error'}`
+    )
   }
 
-  // If accepted, update task status and reputation
-  if (verdict === 'accepted') {
-    // Update task to completed
-    await supabase
-      .from('tasks')
-      .update({
-        status: 'completed',
-        completed_at: new Date().toISOString(),
-      })
-      .eq('id', task.id)
-
-    // Update executor reputation
-    if (submission.executor_id) {
-      await updateExecutorReputation(
-        submission.executor_id,
-        task.id,
-        10, // +10 for completed task
-        'Task completed successfully',
-        rating
-      )
-    }
-  }
-
-  return updatedSubmission
-}
-
-export async function approveSubmission(data: ApproveSubmissionData): Promise<Submission> {
-  const { submissionId, verdict, notes, rating } = data
-
-  // API endpoint currently supports accepted verdict without custom rating payload.
-  if (verdict !== 'accepted' || rating !== undefined) {
-    if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
-      throw new Error(
-        'Submission approval is API-only in this environment (accepted verdict without custom rating). Enable VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS=true only for local debugging.'
-      )
-    }
-    return approveSubmissionDirect(data)
-  }
-
-  if (!hasAgentApiKey()) {
-    if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
-      throw new Error(
-        getRequireApiKey()
-          ? 'VITE_API_KEY is required for submission approval when VITE_getRequireApiKey()=true'
-          : 'Direct Supabase submission approval is disabled. Configure VITE_API_KEY or enable VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS=true for local debugging.'
-      )
-    }
-    return approveSubmissionDirect(data)
-  }
-
-  try {
-    const response = await fetch(buildApproveSubmissionUrl(submissionId), {
-      method: 'POST',
-      headers: buildAgentJsonHeaders(),
-      body: JSON.stringify({ notes }),
-    })
-
-    if (!response.ok) {
-      const fallback = `Failed to approve submission via API (${response.status})`
-      throw new Error(await parseApiError(response, fallback))
-    }
-
-    const payload = await response.json() as { data?: { submission_id?: string } }
-    const approvedSubmissionId = payload?.data?.submission_id || submissionId
-
-    const { data: submission, error } = await supabase
-      .from('submissions')
-      .select('*')
-      .eq('id', approvedSubmissionId)
-      .single()
-
-    if (error || !submission) {
-      throw new Error(
-        `Submission approved via API but could not load row: ${error?.message || 'unknown error'}`
-      )
-    }
-
-    return submission
-  } catch (error) {
-    if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
-      throw error instanceof Error ? error : new Error('Failed to approve submission via API')
-    }
-    // Explicit fallback for local/dev troubleshooting only.
-    return approveSubmissionDirect(data)
-  }
+  return submission
 }
 
 /**
- * Reject a submission
+ * Reject a submission via backend API.
+ * Direct Supabase mutations are no longer allowed (DB-008 security lockdown).
  */
-async function rejectSubmissionDirect(data: RejectSubmissionData): Promise<Submission> {
-  const { submissionId, agentId, feedback } = data
-
-  // Get submission with task
-  const submission = await getSubmission(submissionId)
-  if (!submission) {
-    throw new Error('Submission not found')
-  }
-
-  // Verify agent owns the task
-  const task = submission.task
-  if (!task || task.agent_id !== agentId) {
-    throw new Error('Not authorized to reject this submission')
-  }
-
-  // Update submission
-  const { data: updatedSubmission, error } = await supabase
-    .from('submissions')
-    .update({
-      agent_verdict: 'disputed',
-      agent_notes: feedback,
-    })
-    .eq('id', submissionId)
-    .select()
-    .single()
-
-  if (error) {
-    throw new Error(`Failed to reject submission: ${error.message}`)
-  }
-
-  // Update task status
-  await supabase
-    .from('tasks')
-    .update({ status: 'disputed' })
-    .eq('id', task.id)
-
-  return updatedSubmission
-}
-
 export async function rejectSubmission(data: RejectSubmissionData): Promise<Submission> {
   const { submissionId, feedback } = data
 
-  if (!hasAgentApiKey()) {
-    if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
-      throw new Error(
-        getRequireApiKey()
-          ? 'VITE_API_KEY is required for submission rejection when VITE_getRequireApiKey()=true'
-          : 'Direct Supabase submission rejection is disabled. Configure VITE_API_KEY or enable VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS=true for local debugging.'
-      )
-    }
-    return rejectSubmissionDirect(data)
+  const response = await fetch(buildRejectSubmissionUrl(submissionId), {
+    method: 'POST',
+    headers: buildAgentJsonHeaders(),
+    body: JSON.stringify({ notes: feedback }),
+  })
+
+  if (!response.ok) {
+    const fallback = `Failed to reject submission via API (${response.status})`
+    throw new Error(await parseApiError(response, fallback))
   }
 
-  try {
-    const response = await fetch(buildRejectSubmissionUrl(submissionId), {
-      method: 'POST',
-      headers: buildAgentJsonHeaders(),
-      body: JSON.stringify({ notes: feedback }),
-    })
+  const payload = await response.json() as { data?: { submission_id?: string } }
+  const rejectedSubmissionId = payload?.data?.submission_id || submissionId
 
-    if (!response.ok) {
-      const fallback = `Failed to reject submission via API (${response.status})`
-      throw new Error(await parseApiError(response, fallback))
-    }
+  const { data: submission, error } = await supabase
+    .from('submissions')
+    .select('*')
+    .eq('id', rejectedSubmissionId)
+    .single()
 
-    const payload = await response.json() as { data?: { submission_id?: string } }
-    const rejectedSubmissionId = payload?.data?.submission_id || submissionId
-
-    const { data: submission, error } = await supabase
-      .from('submissions')
-      .select('*')
-      .eq('id', rejectedSubmissionId)
-      .single()
-
-    if (error || !submission) {
-      throw new Error(
-        `Submission rejected via API but could not load row: ${error?.message || 'unknown error'}`
-      )
-    }
-
-    return submission
-  } catch (error) {
-    if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
-      throw error instanceof Error ? error : new Error('Failed to reject submission via API')
-    }
-    // Explicit fallback for local/dev troubleshooting only.
-    return rejectSubmissionDirect(data)
+  if (error || !submission) {
+    throw new Error(
+      `Submission rejected via API but could not load row: ${error?.message || 'unknown error'}`
+    )
   }
+
+  return submission
 }
 
 /**
- * Request more information on a submission
+ * Request more information on a submission via backend API.
+ * Direct Supabase mutations are no longer allowed (DB-008 security lockdown).
  */
-async function requestMoreInfoDirect(submissionId: string, agentId: string, notes: string): Promise<Submission> {
-  // Get submission with task
-  const submission = await getSubmission(submissionId)
-  if (!submission) {
-    throw new Error('Submission not found')
+export async function requestMoreInfo(submissionId: string, _agentId: string, notes: string): Promise<Submission> {
+  const response = await fetch(buildRequestMoreInfoUrl(submissionId), {
+    method: 'POST',
+    headers: buildAgentJsonHeaders(),
+    body: JSON.stringify({ notes }),
+  })
+
+  if (!response.ok) {
+    const fallback = `Failed to request more info via API (${response.status})`
+    throw new Error(await parseApiError(response, fallback))
   }
 
-  // Verify agent owns the task
-  const task = submission.task
-  if (!task || task.agent_id !== agentId) {
-    throw new Error('Not authorized to update this submission')
-  }
+  const payload = await response.json() as { data?: { submission_id?: string } }
+  const updatedSubmissionId = payload?.data?.submission_id || submissionId
 
-  // Update submission
   const { data: updatedSubmission, error } = await supabase
     .from('submissions')
-    .update({
-      agent_verdict: 'more_info_requested',
-      agent_notes: notes,
-    })
-    .eq('id', submissionId)
-    .select()
+    .select('*')
+    .eq('id', updatedSubmissionId)
     .single()
 
-  if (error) {
-    throw new Error(`Failed to update submission: ${error.message}`)
+  if (error || !updatedSubmission) {
+    throw new Error(
+      `More-info request succeeded via API but submission could not be reloaded: ${error?.message || 'unknown error'}`
+    )
   }
-
-  // Update task status back to in_progress so worker can resubmit
-  await supabase
-    .from('tasks')
-    .update({ status: 'in_progress' })
-    .eq('id', task.id)
 
   return updatedSubmission
 }
 
-export async function requestMoreInfo(submissionId: string, agentId: string, notes: string): Promise<Submission> {
-  if (!hasAgentApiKey()) {
-    if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
-      throw new Error(
-        getRequireApiKey()
-          ? 'VITE_API_KEY is required for request-more-info when VITE_getRequireApiKey()=true'
-          : 'Direct Supabase request-more-info is disabled. Configure VITE_API_KEY or enable VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS=true for local debugging.'
-      )
-    }
-    return requestMoreInfoDirect(submissionId, agentId, notes)
-  }
-
-  try {
-    const response = await fetch(buildRequestMoreInfoUrl(submissionId), {
-      method: 'POST',
-      headers: buildAgentJsonHeaders(),
-      body: JSON.stringify({ notes }),
-    })
-
-    if (!response.ok) {
-      const fallback = `Failed to request more info via API (${response.status})`
-      throw new Error(await parseApiError(response, fallback))
-    }
-
-    const payload = await response.json() as { data?: { submission_id?: string } }
-    const updatedSubmissionId = payload?.data?.submission_id || submissionId
-
-    const { data: updatedSubmission, error } = await supabase
-      .from('submissions')
-      .select('*')
-      .eq('id', updatedSubmissionId)
-      .single()
-
-    if (error || !updatedSubmission) {
-      throw new Error(
-        `More-info request succeeded via API but submission could not be reloaded: ${error?.message || 'unknown error'}`
-      )
-    }
-
-    return updatedSubmission
-  } catch (error) {
-    if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
-      throw error instanceof Error ? error : new Error('Failed to request more info via API')
-    }
-    // Explicit fallback for local/dev troubleshooting only.
-    return requestMoreInfoDirect(submissionId, agentId, notes)
-  }
-}
-
-// ============== HELPER FUNCTIONS ==============
-
-/**
- * Update executor reputation
- */
-async function updateExecutorReputation(
-  executorId: string,
-  taskId: string,
-  delta: number,
-  reason: string,
-  rating?: number
-): Promise<void> {
-  // Get current score
-  const { data: executor } = await supabase
-    .from('executors')
-    .select('reputation_score, tasks_completed')
-    .eq('id', executorId)
-    .single()
-
-  if (!executor) {
-    return
-  }
-
-  const currentScore = executor.reputation_score || 0
-  const newScore = Math.max(0, currentScore + delta)
-  const tasksCompleted = (executor.tasks_completed || 0) + (delta > 0 ? 1 : 0)
-
-  // Update executor
-  const updates: Record<string, unknown> = {
-    reputation_score: newScore,
-    tasks_completed: tasksCompleted,
-    last_active_at: new Date().toISOString(),
-  }
-
-  // Update average rating if provided
-  if (rating !== undefined) {
-    const { data: existingRatings } = await supabase
-      .from('reputation_log')
-      .select('delta')
-      .eq('executor_id', executorId)
-      .not('delta', 'is', null)
-
-    const ratingCount = existingRatings?.length || 0
-    const currentAvg = executor.avg_rating || 0
-    const newAvg = ratingCount > 0
-      ? (currentAvg * ratingCount + rating) / (ratingCount + 1)
-      : rating
-
-    updates.avg_rating = newAvg
-  }
-
-  await supabase
-    .from('executors')
-    .update(updates)
-    .eq('id', executorId)
-
-  // Log the change
-  await supabase
-    .from('reputation_log')
-    .insert({
-      executor_id: executorId,
-      task_id: taskId,
-      delta,
-      new_score: newScore,
-      reason,
-    })
-}
+// ============== EVIDENCE UPLOAD ==============
 
 /**
  * Upload evidence file to S3 via presigned URL.
