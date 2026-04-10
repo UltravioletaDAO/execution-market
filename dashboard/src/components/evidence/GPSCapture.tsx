@@ -266,11 +266,11 @@ export function GPSCapture({
     }
   }, [permissionStatus]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Generate static map URL (using OpenStreetMap static image proxy)
-  const getMapUrl = useCallback((lat: number, lng: number, zoom = 15): string => {
-    // Using a public static map service
-    return `https://static-maps.yandex.ru/v1?ll=${lng},${lat}&z=${zoom}&size=300,150&l=map&pt=${lng},${lat},pm2rdm`
-  }, [])
+  // Generate map preview text (privacy-preserving — no third-party map service)
+  // Previously used Yandex static maps which leaked exact GPS coordinates to a
+  // third-party service. Replaced with text-only display per FE-011 security audit.
+  // Coordinates rounded to ~1km precision for "location verified" without leaking
+  // exact position. Phase 3 may add self-hosted tile rendering if visual maps needed.
 
   // Render not supported state
   if (!isSupported) {
@@ -378,39 +378,20 @@ export function GPSCapture({
 
       {/* Main content */}
       <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-        {/* Map preview — only visible when user explicitly shows coordinates */}
+        {/* Location confirmation — privacy-preserving text display (FE-011)
+            Previously rendered a Yandex static map image which leaked exact GPS
+            coordinates to a third-party service. Replaced with rounded text coords
+            (~1km precision) to confirm location capture without privacy leakage. */}
         {showMap && position && showCoords && (
-          <div className="relative h-32 bg-gray-100 dark:bg-gray-800">
-            <img
-              src={getMapUrl(position.latitude, position.longitude)}
-              alt={t('gps.mapAlt', 'Mapa de ubicacion')}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                // Hide image on error, show fallback
-                (e.target as HTMLImageElement).style.display = 'none'
-              }}
-            />
-            {/* Fallback if map fails to load */}
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800">
-              <div className="text-center">
-                <svg className="w-8 h-8 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                </svg>
-                <p className="text-xs text-gray-500 mt-1">
-                  {showCoords
-                    ? `${position.latitude.toFixed(5)}, ${position.longitude.toFixed(5)}`
-                    : t('gps.locationAcquired', 'Location acquired')
-                  }
-                </p>
-              </div>
-            </div>
-            {/* Pin marker */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full">
-              <div className="relative">
-                <svg className="w-8 h-8 text-red-600 drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
-                </svg>
-              </div>
+          <div className="flex items-center justify-center h-20 bg-gray-100 dark:bg-gray-800">
+            <div className="text-center">
+              <svg className="w-6 h-6 mx-auto text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {t('gps.locationCaptured', 'Location captured')} ({position.latitude.toFixed(2)}, {position.longitude.toFixed(2)})
+              </p>
             </div>
           </div>
         )}
