@@ -99,116 +99,61 @@ BEGIN;
 -- IMPORTANT: PostgreSQL grants EXECUTE to PUBLIC by default on newly created
 -- functions. In Supabase, `anon` and `authenticated` are members of PUBLIC, so
 -- revoking ONLY from `anon`/`authenticated` is not enough — we must also
--- revoke from PUBLIC, otherwise the grant survives via inheritance. Functions
--- that were never explicitly GRANTed (e.g. submit_work, reconcile_executor_balances)
--- are only accessible because of the PUBLIC default grant, and revoking PUBLIC
--- is the only way to lock them down.
+-- revoke from PUBLIC, otherwise the grant survives via inheritance.
 --
--- We REVOKE in this order: first PUBLIC (the source), then anon/authenticated
--- (any explicit grants from earlier migrations). service_role is unaffected
--- because it has its own explicit grant or superuser bypass.
+-- DEFENSIVE: Each REVOKE/GRANT/COMMENT is wrapped in a DO/EXCEPTION block
+-- so that functions which do not exist in the target database are skipped
+-- gracefully (NOTICE instead of ERROR). This handles production databases
+-- where some migrations were applied out of order or functions were dropped.
 
--- DB-001: get_or_create_executor — rebinds user_id via COALESCE, no auth check
-REVOKE EXECUTE ON FUNCTION public.get_or_create_executor(text, text, text, text, text)
-    FROM PUBLIC, anon, authenticated;
+-- Helper: revoke + grant in one block, skip if function does not exist
+CREATE OR REPLACE FUNCTION _092_safe_revoke_and_grant(p_func_sig text)
+RETURNS void LANGUAGE plpgsql AS $$
+BEGIN
+    EXECUTE format('REVOKE EXECUTE ON FUNCTION %s FROM PUBLIC, anon, authenticated', p_func_sig);
+    EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role', p_func_sig);
+    RAISE NOTICE '092: locked down %', p_func_sig;
+EXCEPTION WHEN undefined_function OR undefined_object THEN
+    RAISE NOTICE '092: SKIPPED % (function does not exist in this database)', p_func_sig;
+END;
+$$;
 
--- DB-002: link_wallet_to_session — p_user_id passed directly, no auth.uid() check
--- Migration 009 added (uuid, text, integer, text, text) as a NEW overload on top
--- of the existing (uuid, text, integer) from migration 008, so the 3-arg version
--- may still exist in production. Drop the stale 3-arg overload defensively
--- (if it's there, it's also exploitable — same ownership bug) and revoke the
--- 5-arg version from PUBLIC + anon + authenticated.
+-- DB-002 stale overload: drop defensively before revoking
 DROP FUNCTION IF EXISTS public.link_wallet_to_session(uuid, text, integer);
-REVOKE EXECUTE ON FUNCTION public.link_wallet_to_session(uuid, text, integer, text, text)
-    FROM PUBLIC, anon, authenticated;
 
--- DB-003: update_executor_profile — p_executor_id with zero ownership check
-REVOKE EXECUTE ON FUNCTION public.update_executor_profile(
-    uuid, text, text, text[], text[], text, text, text, text, text
-) FROM PUBLIC, anon, authenticated;
+-- DB-001
+SELECT _092_safe_revoke_and_grant('public.get_or_create_executor(text, text, text, text, text)');
+-- DB-002
+SELECT _092_safe_revoke_and_grant('public.link_wallet_to_session(uuid, text, integer, text, text)');
+-- DB-003
+SELECT _092_safe_revoke_and_grant('public.update_executor_profile(uuid, text, text, text[], text[], text, text, text, text, text)');
+-- DB-010
+SELECT _092_safe_revoke_and_grant('public.submit_rating(uuid, uuid, character varying, integer, text, integer, integer, integer)');
+-- DB-011
+SELECT _092_safe_revoke_and_grant('public.submit_work(uuid, uuid, jsonb, text)');
+-- DB-012
+SELECT _092_safe_revoke_and_grant('public.claim_task(uuid, uuid)');
+-- DB-013
+SELECT _092_safe_revoke_and_grant('public.apply_to_task(uuid, uuid, text)');
+-- DB-013
+SELECT _092_safe_revoke_and_grant('public.abandon_task(uuid, uuid, text)');
+-- DB-011
+SELECT _092_safe_revoke_and_grant('public.submit_evidence(uuid, uuid, jsonb, text)');
+-- DB-012
+SELECT _092_safe_revoke_and_grant('public.release_task(uuid, uuid)');
+-- DB-013
+SELECT _092_safe_revoke_and_grant('public.create_dispute(uuid, uuid, dispute_reason, text, jsonb, text)');
+-- DB-013
+SELECT _092_safe_revoke_and_grant('public.respond_to_dispute(uuid, uuid, text, jsonb)');
+-- DB-013
+SELECT _092_safe_revoke_and_grant('public.submit_arbitration_vote(uuid, uuid, arbitration_vote, text, integer, numeric)');
+-- DB-019
+SELECT _092_safe_revoke_and_grant('public.create_task_escrow(uuid, character varying, numeric, numeric)');
+-- DB-022
+SELECT _092_safe_revoke_and_grant('public.reconcile_executor_balances()');
 
--- DB-010: submit_rating — caller-supplied executor_id + rater_id, no auth check
-REVOKE EXECUTE ON FUNCTION public.submit_rating(
-    uuid, uuid, character varying, integer, text, integer, integer, integer
-) FROM PUBLIC, anon, authenticated;
-
--- DB-011: submit_work — trusts caller-supplied p_executor_id
--- (no explicit GRANT in any migration — callable today via PUBLIC default)
-REVOKE EXECUTE ON FUNCTION public.submit_work(uuid, uuid, jsonb, text)
-    FROM PUBLIC, anon, authenticated;
-
--- DB-012: claim_task — trusts caller-supplied p_executor_id
-REVOKE EXECUTE ON FUNCTION public.claim_task(uuid, uuid)
-    FROM PUBLIC, anon, authenticated;
-
--- DB-013: apply_to_task — trusts caller-supplied p_executor_id
-REVOKE EXECUTE ON FUNCTION public.apply_to_task(uuid, uuid, text)
-    FROM PUBLIC, anon, authenticated;
-
--- DB-013: abandon_task — trusts caller-supplied p_executor_id
-REVOKE EXECUTE ON FUNCTION public.abandon_task(uuid, uuid, text)
-    FROM PUBLIC, anon, authenticated;
-
--- DB-011: submit_evidence — trusts caller-supplied p_executor_id
-REVOKE EXECUTE ON FUNCTION public.submit_evidence(uuid, uuid, jsonb, text)
-    FROM PUBLIC, anon, authenticated;
-
--- DB-012: release_task — trusts caller-supplied p_executor_id
-REVOKE EXECUTE ON FUNCTION public.release_task(uuid, uuid)
-    FROM PUBLIC, anon, authenticated;
-
--- DB-013: create_dispute — no caller identity verification
-REVOKE EXECUTE ON FUNCTION public.create_dispute(
-    uuid, uuid, dispute_reason, text, jsonb, text
-) FROM PUBLIC, anon, authenticated;
-
--- DB-013: respond_to_dispute — trusts caller-supplied p_executor_id
-REVOKE EXECUTE ON FUNCTION public.respond_to_dispute(uuid, uuid, text, jsonb)
-    FROM PUBLIC, anon, authenticated;
-
--- DB-013: submit_arbitration_vote — trusts caller-supplied p_arbitrator_id
-REVOKE EXECUTE ON FUNCTION public.submit_arbitration_vote(
-    uuid, uuid, arbitration_vote, text, integer, numeric
-) FROM PUBLIC, anon, authenticated;
-
--- DB-019: create_task_escrow — anyone can create escrow records
-REVOKE EXECUTE ON FUNCTION public.create_task_escrow(
-    uuid, character varying, numeric, numeric
-) FROM PUBLIC, anon, authenticated;
-
--- DB-022: reconcile_executor_balances — information disclosure via drift report
--- (no explicit GRANT in any migration — callable today via PUBLIC default)
-REVOKE EXECUTE ON FUNCTION public.reconcile_executor_balances()
-    FROM PUBLIC, anon, authenticated;
-
--- Explicitly re-grant to service_role so backend API calls keep working.
--- (service_role normally bypasses grants as a Supabase superuser-equivalent,
--- but being explicit is safer and documents intent.)
-GRANT EXECUTE ON FUNCTION public.get_or_create_executor(text, text, text, text, text) TO service_role;
-GRANT EXECUTE ON FUNCTION public.link_wallet_to_session(uuid, text, integer, text, text) TO service_role;
-GRANT EXECUTE ON FUNCTION public.update_executor_profile(
-    uuid, text, text, text[], text[], text, text, text, text, text
-) TO service_role;
-GRANT EXECUTE ON FUNCTION public.submit_rating(
-    uuid, uuid, character varying, integer, text, integer, integer, integer
-) TO service_role;
-GRANT EXECUTE ON FUNCTION public.submit_work(uuid, uuid, jsonb, text) TO service_role;
-GRANT EXECUTE ON FUNCTION public.claim_task(uuid, uuid) TO service_role;
-GRANT EXECUTE ON FUNCTION public.apply_to_task(uuid, uuid, text) TO service_role;
-GRANT EXECUTE ON FUNCTION public.abandon_task(uuid, uuid, text) TO service_role;
-GRANT EXECUTE ON FUNCTION public.submit_evidence(uuid, uuid, jsonb, text) TO service_role;
-GRANT EXECUTE ON FUNCTION public.release_task(uuid, uuid) TO service_role;
-GRANT EXECUTE ON FUNCTION public.create_dispute(
-    uuid, uuid, dispute_reason, text, jsonb, text
-) TO service_role;
-GRANT EXECUTE ON FUNCTION public.respond_to_dispute(uuid, uuid, text, jsonb) TO service_role;
-GRANT EXECUTE ON FUNCTION public.submit_arbitration_vote(
-    uuid, uuid, arbitration_vote, text, integer, numeric
-) TO service_role;
-GRANT EXECUTE ON FUNCTION public.create_task_escrow(
-    uuid, character varying, numeric, numeric
-) TO service_role;
-GRANT EXECUTE ON FUNCTION public.reconcile_executor_balances() TO service_role;
+-- Clean up the helper function (one-shot, not needed after migration)
+DROP FUNCTION _092_safe_revoke_and_grant(text);
 
 
 -- ============================================================================
@@ -253,39 +198,50 @@ CREATE POLICY "world_id_verifications_update_service_role_only"
 
 
 -- ============================================================================
--- 3. Comments documenting the revocation
+-- 3. Comments documenting the revocation (defensive — skip if function missing)
 -- ============================================================================
 
-COMMENT ON FUNCTION public.get_or_create_executor(text, text, text, text, text)
-    IS 'REVOKED from anon/authenticated 2026-04-09 (GR-0.3, DB-001). Service_role only. Call via backend API.';
-COMMENT ON FUNCTION public.link_wallet_to_session(uuid, text, integer, text, text)
-    IS 'REVOKED from anon/authenticated 2026-04-09 (GR-0.3, DB-002). Service_role only. Call via backend API.';
-COMMENT ON FUNCTION public.update_executor_profile(uuid, text, text, text[], text[], text, text, text, text, text)
-    IS 'REVOKED from anon/authenticated 2026-04-09 (GR-0.3, DB-003). Service_role only. Call via backend API.';
-COMMENT ON FUNCTION public.submit_rating(uuid, uuid, character varying, integer, text, integer, integer, integer)
-    IS 'REVOKED from anon/authenticated 2026-04-09 (GR-0.3, DB-010). Service_role only. Call via backend API.';
-COMMENT ON FUNCTION public.submit_work(uuid, uuid, jsonb, text)
-    IS 'REVOKED from anon/authenticated 2026-04-09 (GR-0.3, DB-011). Service_role only. Call via backend API.';
-COMMENT ON FUNCTION public.claim_task(uuid, uuid)
-    IS 'REVOKED from anon/authenticated 2026-04-09 (GR-0.3, DB-012). Service_role only. Call via backend API.';
-COMMENT ON FUNCTION public.apply_to_task(uuid, uuid, text)
-    IS 'REVOKED from anon/authenticated 2026-04-09 (GR-0.3, DB-013). Service_role only. Call via backend API.';
-COMMENT ON FUNCTION public.abandon_task(uuid, uuid, text)
-    IS 'REVOKED from anon/authenticated 2026-04-09 (GR-0.3, DB-013). Service_role only. Call via backend API.';
-COMMENT ON FUNCTION public.submit_evidence(uuid, uuid, jsonb, text)
-    IS 'REVOKED from anon/authenticated 2026-04-09 (GR-0.3, DB-011). Service_role only. Call via backend API.';
-COMMENT ON FUNCTION public.release_task(uuid, uuid)
-    IS 'REVOKED from anon/authenticated 2026-04-09 (GR-0.3, DB-012). Service_role only. Call via backend API.';
-COMMENT ON FUNCTION public.create_dispute(uuid, uuid, dispute_reason, text, jsonb, text)
-    IS 'REVOKED from anon/authenticated 2026-04-09 (GR-0.3, DB-013). Service_role only. Call via backend API.';
-COMMENT ON FUNCTION public.respond_to_dispute(uuid, uuid, text, jsonb)
-    IS 'REVOKED from anon/authenticated 2026-04-09 (GR-0.3, DB-013). Service_role only. Call via backend API.';
-COMMENT ON FUNCTION public.submit_arbitration_vote(uuid, uuid, arbitration_vote, text, integer, numeric)
-    IS 'REVOKED from anon/authenticated 2026-04-09 (GR-0.3, DB-013). Service_role only. Call via backend API.';
-COMMENT ON FUNCTION public.create_task_escrow(uuid, character varying, numeric, numeric)
-    IS 'REVOKED from anon/authenticated 2026-04-09 (GR-0.3, DB-019). Service_role only. Call via backend API.';
-COMMENT ON FUNCTION public.reconcile_executor_balances()
-    IS 'REVOKED from anon/authenticated 2026-04-09 (GR-0.3, DB-022). Service_role only. Admin tool.';
+CREATE OR REPLACE FUNCTION _092_safe_comment(p_func_sig text, p_comment text)
+RETURNS void LANGUAGE plpgsql AS $$
+BEGIN
+    EXECUTE format('COMMENT ON FUNCTION %s IS %L', p_func_sig, p_comment);
+EXCEPTION WHEN undefined_function OR undefined_object THEN
+    RAISE NOTICE '092: COMMENT skipped for % (does not exist)', p_func_sig;
+END;
+$$;
+
+SELECT _092_safe_comment('public.get_or_create_executor(text, text, text, text, text)',
+    'REVOKED from anon/authenticated 2026-04-09 (GR-0.3, DB-001). Service_role only.');
+SELECT _092_safe_comment('public.link_wallet_to_session(uuid, text, integer, text, text)',
+    'REVOKED from anon/authenticated 2026-04-09 (GR-0.3, DB-002). Service_role only.');
+SELECT _092_safe_comment('public.update_executor_profile(uuid, text, text, text[], text[], text, text, text, text, text)',
+    'REVOKED from anon/authenticated 2026-04-09 (GR-0.3, DB-003). Service_role only.');
+SELECT _092_safe_comment('public.submit_rating(uuid, uuid, character varying, integer, text, integer, integer, integer)',
+    'REVOKED from anon/authenticated 2026-04-09 (GR-0.3, DB-010). Service_role only.');
+SELECT _092_safe_comment('public.submit_work(uuid, uuid, jsonb, text)',
+    'REVOKED from anon/authenticated 2026-04-09 (GR-0.3, DB-011). Service_role only.');
+SELECT _092_safe_comment('public.claim_task(uuid, uuid)',
+    'REVOKED from anon/authenticated 2026-04-09 (GR-0.3, DB-012). Service_role only.');
+SELECT _092_safe_comment('public.apply_to_task(uuid, uuid, text)',
+    'REVOKED from anon/authenticated 2026-04-09 (GR-0.3, DB-013). Service_role only.');
+SELECT _092_safe_comment('public.abandon_task(uuid, uuid, text)',
+    'REVOKED from anon/authenticated 2026-04-09 (GR-0.3, DB-013). Service_role only.');
+SELECT _092_safe_comment('public.submit_evidence(uuid, uuid, jsonb, text)',
+    'REVOKED from anon/authenticated 2026-04-09 (GR-0.3, DB-011). Service_role only.');
+SELECT _092_safe_comment('public.release_task(uuid, uuid)',
+    'REVOKED from anon/authenticated 2026-04-09 (GR-0.3, DB-012). Service_role only.');
+SELECT _092_safe_comment('public.create_dispute(uuid, uuid, dispute_reason, text, jsonb, text)',
+    'REVOKED from anon/authenticated 2026-04-09 (GR-0.3, DB-013). Service_role only.');
+SELECT _092_safe_comment('public.respond_to_dispute(uuid, uuid, text, jsonb)',
+    'REVOKED from anon/authenticated 2026-04-09 (GR-0.3, DB-013). Service_role only.');
+SELECT _092_safe_comment('public.submit_arbitration_vote(uuid, uuid, arbitration_vote, text, integer, numeric)',
+    'REVOKED from anon/authenticated 2026-04-09 (GR-0.3, DB-013). Service_role only.');
+SELECT _092_safe_comment('public.create_task_escrow(uuid, character varying, numeric, numeric)',
+    'REVOKED from anon/authenticated 2026-04-09 (GR-0.3, DB-019). Service_role only.');
+SELECT _092_safe_comment('public.reconcile_executor_balances()',
+    'REVOKED from anon/authenticated 2026-04-09 (GR-0.3, DB-022). Admin tool.');
+
+DROP FUNCTION _092_safe_comment(text, text);
 
 COMMIT;
 
