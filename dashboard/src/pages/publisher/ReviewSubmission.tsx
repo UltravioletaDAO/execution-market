@@ -8,6 +8,18 @@ import type { Task, Submission } from '../../types/database'
 import { getH2ATask, getH2ASubmissions, approveH2ASubmission } from '../../services/h2a'
 import { safeHref } from '../../lib/safeHref'
 
+/**
+ * Feature flag: H2A on-chain signing.
+ * The approval flow currently sends placeholder strings ('pending_browser_signature')
+ * instead of real EIP-3009 signatures. The backend silently rejects them, causing
+ * a false "success" state. Gate the entire approval UI behind this flag until
+ * Phase 3 implements real viem signing.
+ *
+ * Set VITE_H2A_SIGNING_ENABLED=true in .env.local to re-enable during development.
+ * See: FE-001, FE-002 in security audit.
+ */
+const H2A_SIGNING_ENABLED = import.meta.env.VITE_H2A_SIGNING_ENABLED === 'true'
+
 const FEE_PCT = 0.13
 
 const GPS_KEYS = new Set(['latitude', 'longitude', 'lat', 'lng', 'lon'])
@@ -72,6 +84,30 @@ export function ReviewSubmission() {
 
   if (loading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-500">Cargando...</div>
   if (error || !task) return <div className="min-h-screen bg-gray-50 flex items-center justify-center"><div className="text-center"><p className="text-red-500 mb-4">{error || 'No encontrado'}</p><button onClick={() => navigate('/publisher/dashboard')} className="px-4 py-2 bg-blue-600 text-white rounded-lg">Volver</button></div></div>
+
+  // FE-001/FE-002: H2A approval flow disabled until real EIP-3009 signing is implemented (Phase 3)
+  if (!H2A_SIGNING_ENABLED) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-md p-6 text-center">
+          <h2 className="text-xl font-semibold mb-4">Approval Temporarily Disabled</h2>
+          <p className="text-gray-600 mb-4">
+            The on-chain approval flow is being upgraded for security.
+            Approvals are currently processed via the API.
+          </p>
+          <p className="text-sm text-gray-400 mb-6">
+            Phase 2 security hardening — FE-001
+          </p>
+          <button
+            onClick={() => navigate('/publisher/dashboard')}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Back to Dashboard
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
