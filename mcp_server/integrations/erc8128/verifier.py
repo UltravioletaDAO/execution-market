@@ -193,7 +193,25 @@ async def verify_erc8128_request(
                     chain_id=chain_id,
                 )
 
-        # 8. Verify Content-Digest — MANDATORY for bodied requests (CRY-001)
+        # 8. Consume nonce BEFORE signature verification (CRY-012)
+        #
+        # Consuming the nonce early closes the race window where two
+        # concurrent requests with the same nonce could both pass
+        # verification.  If the expensive signature check (step 10)
+        # later fails, the nonce is "wasted" — safe, because the
+        # legitimate signer simply generates a new one.
+        if not is_replayable and nonce_store is not None:
+            nonce_key = f"erc8128:{chain_id}:{claimed_address}:{nonce_value}"
+            ttl = int(expires) - int(created) + pol.clock_skew_sec
+            consumed = await nonce_store.consume(nonce_key, ttl)
+            if not consumed:
+                return ERC8128Result(
+                    ok=False,
+                    reason="Nonce already consumed (replay attempt)",
+                    chain_id=chain_id,
+                )
+
+        # 9. Verify Content-Digest — MANDATORY for bodied requests (CRY-001)
         has_body = (
             _get_header(request, "content-length") not in (None, "0")
             or _get_header(request, "transfer-encoding") is not None
@@ -214,12 +232,12 @@ async def verify_erc8128_request(
             if digest_err:
                 return ERC8128Result(ok=False, reason=digest_err, chain_id=chain_id)
 
-        # 9. Reconstruct the signature base (RFC 9421)
+        # 10. Reconstruct the signature base (RFC 9421)
         sig_base = await _build_signature_base(
             request, label, covered_components, params
         )
 
-        # 10. EIP-191 ecrecover
+        # 11. EIP-191 ecrecover
         recovered = _eip191_recover(sig_base, sig_bytes)
         if recovered is None:
             return ERC8128Result(
@@ -250,19 +268,6 @@ async def verify_erc8128_request(
                 )
             # ERC-1271 verified — use the claimed address
             recovered = claimed_address
-
-        # 11. Consume nonce (replay protection)
-        if not is_replayable and nonce_store is not None:
-            nonce_key = f"erc8128:{chain_id}:{claimed_address}:{nonce_value}"
-            ttl = int(expires) - int(created) + pol.clock_skew_sec
-            consumed = await nonce_store.consume(nonce_key, ttl)
-            if not consumed:
-                return ERC8128Result(
-                    ok=False,
-                    reason="Nonce already consumed (replay attempt)",
-                    chain_id=chain_id,
-                    address=recovered,
-                )
 
         logger.info(
             "ERC-8128 verified: address=%s chain=%d binding=%s replayable=%s label=%s",
@@ -673,24 +678,43 @@ async def _build_signature_base(
     return "\n".join(lines)
 
 
+def _resolve_authority(request: Any) -> str:
+    """Resolve the @authority component from the request.
+
+    Behind ALB/CloudFront the internal listener hostname (request.url.netloc)
+    differs from the original Host header the client signed against.  Use
+    ``X-Forwarded-Host`` (set by ALB) when available, falling back to the
+    request URL's netloc.
+
+    CRY-005: fixes signature mismatch behind reverse proxies.
+    """
+    forwarded_host = _get_header(request, "x-forwarded-host")
+    if forwarded_host:
+        # ALB may chain multiple values; take the first (client-facing)
+        return forwarded_host.split(",")[0].strip()
+
+    url = getattr(request, "url", None)
+    if url is not None:
+        if hasattr(url, "netloc"):
+            return str(url.netloc)
+        if hasattr(url, "hostname"):
+            host = str(url.hostname)
+            port = getattr(url, "port", None)
+            if port and port not in (80, 443):
+                host = f"{host}:{port}"
+            return host
+
+    host = _get_header(request, "host")
+    return host or ""
+
+
 async def _resolve_component(request: Any, component: str) -> str:
     """Resolve a covered component's value from the request."""
     if component == "@method":
         return getattr(request, "method", "GET").upper()
 
     if component == "@authority":
-        url = getattr(request, "url", None)
-        if url is not None:
-            if hasattr(url, "netloc"):
-                return str(url.netloc)
-            if hasattr(url, "hostname"):
-                host = str(url.hostname)
-                port = getattr(url, "port", None)
-                if port and port not in (80, 443):
-                    host = f"{host}:{port}"
-                return host
-        host = _get_header(request, "host")
-        return host or ""
+        return _resolve_authority(request)
 
     if component == "@path":
         url = getattr(request, "url", None)
@@ -712,17 +736,20 @@ async def _resolve_component(request: Any, component: str) -> str:
 
 
 def _build_signature_params(covered: list[str], params: dict[str, Any]) -> str:
-    """Build the @signature-params value."""
+    """Build the @signature-params value.
+
+    CRY-006: preserve the SIGNER's original parameter ordering from the
+    Signature-Input header.  RFC 9421 requires the verifier to reconstruct
+    the signature base using the exact parameter order supplied by the
+    signer, not a canonical reordering.  Python 3.7+ dicts maintain
+    insertion order, and ``_parse_params`` inserts keys in the order they
+    appear in the raw header, so iterating ``params`` directly is correct.
+    """
     comp_str = " ".join(f'"{c}"' for c in covered)
     parts = [f"({comp_str})"]
 
-    ordered_keys = ["created", "expires", "nonce", "keyid"]
-    for key in ordered_keys:
-        if key in params:
-            parts.append(_format_param(key, params[key]))
-    for key in sorted(params.keys()):
-        if key not in ordered_keys:
-            parts.append(_format_param(key, params[key]))
+    for key, value in params.items():
+        parts.append(_format_param(key, value))
 
     return ";".join(parts)
 

@@ -378,6 +378,7 @@ class TestSigBase:
 
     @pytest.mark.asyncio
     async def test_param_order(self):
+        """CRY-006: verifier preserves the signer's original parameter ordering."""
         sb = await _build_signature_base(
             MockRequest(),
             "eth",
@@ -385,7 +386,13 @@ class TestSigBase:
             {"keyid": "k", "nonce": "n", "expires": 200, "created": 100},
         )
         p = [l for l in sb.split("\n") if "@signature-params" in l][0]
-        assert p.index("created=") < p.index("expires=") < p.index("nonce=")
+        # Dict insertion order: keyid, nonce, expires, created
+        assert (
+            p.index("keyid=")
+            < p.index("nonce=")
+            < p.index("expires=")
+            < p.index("created=")
+        )
 
 
 @pytest.mark.skipif(not HAS_ETH, reason="eth_account not available")
@@ -575,9 +582,11 @@ class TestFullVerification:
         keyid = f"erc8128:{chain_id}:{addr}"
         now = int(time.time())
         c, e = created or now, expires or now + 60
-        params = {"created": c, "expires": e, "keyid": keyid}
+        # CRY-006: param order must match _sig_input (created, expires, nonce, keyid)
+        params = {"created": c, "expires": e}
         if nonce:
             params["nonce"] = nonce
+        params["keyid"] = keyid
         sb = await _build_signature_base(req, label, components, params)
         sig = _sign(sb, PK)
         req.headers["signature-input"] = _sig_input(
