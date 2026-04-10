@@ -1,9 +1,14 @@
 /**
- * Execution Market ERC-8004 Registration Script — Base Mainnet
+ * LEGACY: Execution Market ERC-8004 Registration Script — Base Mainnet
  *
- * Registers Execution Market as Agent #469 (cross-chain) in the ERC-8004
- * IdentityRegistry on Base Mainnet. The registry is deployed at the same
- * CREATE2 address on every supported chain.
+ * STATUS: LEGACY (SC-014). Uses direct walletClient.writeContract() instead of
+ * the Facilitator's gasless POST /register endpoint. Kept for historical reference
+ * and emergency use (if Facilitator is down). For normal registration, use:
+ *   - Facilitator: POST https://facilitator.ultravioletadao.xyz/register
+ *   - OWS MCP: ows_register_identity tool
+ *   - Backend: auto-registration at worker apply time (EM_REQUIRE_ERC8004_WORKER=true)
+ *
+ * Original: Registered Execution Market as Agent #2106 on Base (previously #469).
  *
  * Usage:
  *   npx tsx scripts/register-erc8004-base.ts

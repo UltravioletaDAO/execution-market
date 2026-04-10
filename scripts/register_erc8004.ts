@@ -1,7 +1,13 @@
 /**
- * Execution Market ERC-8004 Registration Script
+ * LEGACY: Execution Market ERC-8004 Registration Script — Sepolia Testnet
  *
- * Registers Execution Market as an agent in the ERC-8004 IdentityRegistry on Sepolia.
+ * STATUS: LEGACY. Sepolia registration for Agent #469 (deprecated — production is
+ * Agent #2106 on Base). Uses direct walletClient.writeContract() instead of the
+ * Facilitator's gasless POST /register endpoint. Kept for historical reference only.
+ *
+ * For current registration, use:
+ *   - Facilitator: POST https://facilitator.ultravioletadao.xyz/register
+ *   - register-erc8004-base.ts (also legacy, but for Base mainnet)
  *
  * Usage:
  *   npx tsx scripts/register_erc8004.ts

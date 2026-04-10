@@ -1,5 +1,14 @@
 /**
- * Execution Market Agent Simulation - Full MCP + x402 Payment Flow
+ * LEGACY: Execution Market Agent Simulation - Full MCP + x402 Payment Flow
+ *
+ * STATUS: LEGACY. Uses direct walletClient.writeContract() to escrow contracts
+ * instead of the x402 SDK + Facilitator. The correct flow since ADR-001 is:
+ *   Agent signs EIP-3009 auth -> X-Payment-Auth header -> SDK -> Facilitator -> on-chain
+ *
+ * For current E2E testing, use:
+ *   - python scripts/e2e_golden_flow.py (production Golden Flow)
+ *   - python scripts/e2e_full_lifecycle.py (fee split verification)
+ *   - python scripts/e2e_mcp_api.py (REST API lifecycle)
  *
  * Simulates an AI agent that:
  * 1. Connects to Execution Market MCP server

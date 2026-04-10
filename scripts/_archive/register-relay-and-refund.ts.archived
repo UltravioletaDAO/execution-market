@@ -3,7 +3,11 @@
 // recovery, use uvd-x402-sdk EscrowClient.request_refund() via Facilitator.
 
 /**
- * Register relay as merchant (setting our wallet as arbiter), then refund.
+ * LEGACY: Register relay as merchant (setting our wallet as arbiter), then refund.
+ *
+ * STATUS: LEGACY. One-time recovery script for stuck USDC in the relay escrow.
+ * Uses direct walletClient.writeContract() because this is an emergency recovery
+ * operation that cannot go through the normal Facilitator flow.
  *
  * The deposit was made through the relay, so the escrow's "merchant" for our
  * deposit is the relay address. We need to be the arbiter of the relay to
