@@ -50,6 +50,7 @@
 -- tables it does not own. We temporarily assume the storage admin role, run
 -- all policy changes, then reset back to the original role.
 -- ----------------------------------------------------------------------------
+GRANT supabase_storage_admin TO postgres;
 SET ROLE supabase_storage_admin;
 
 -- ----------------------------------------------------------------------------
@@ -177,5 +178,6 @@ COMMENT ON POLICY "evidence_select_participant"        ON storage.objects IS
 COMMENT ON POLICY "evidence_select_service_role"       ON storage.objects IS
     'Phase 0 GR-0.4 / DB-008: explicit service_role SELECT for the backend.';
 
--- Reset role back to the original caller (postgres)
+-- Reset role back to the original caller (postgres) and revoke the grant
 RESET ROLE;
+REVOKE supabase_storage_admin FROM postgres;
