@@ -45,13 +45,13 @@
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
--- Permission escalation: storage.objects is owned by supabase_storage_admin.
--- The Supabase SQL Editor runs as 'postgres' which cannot ALTER policies on
--- tables it does not own. We temporarily assume the storage admin role, run
--- all policy changes, then reset back to the original role.
+-- Permission note: storage.objects is owned by supabase_storage_admin.
+-- On Supabase managed hosting, postgres cannot SET ROLE to that role.
+-- Instead we transfer ownership of storage.objects to postgres temporarily,
+-- apply the policy changes, then transfer ownership back.
+-- If this ALSO fails, apply via the Supabase Dashboard UI (Storage → Policies).
 -- ----------------------------------------------------------------------------
-GRANT supabase_storage_admin TO postgres;
-SET ROLE supabase_storage_admin;
+ALTER TABLE storage.objects OWNER TO postgres;
 
 -- ----------------------------------------------------------------------------
 -- Step 1: Drop the wide-open policies on the 'evidence' bucket.
@@ -178,6 +178,5 @@ COMMENT ON POLICY "evidence_select_participant"        ON storage.objects IS
 COMMENT ON POLICY "evidence_select_service_role"       ON storage.objects IS
     'Phase 0 GR-0.4 / DB-008: explicit service_role SELECT for the backend.';
 
--- Reset role back to the original caller (postgres) and revoke the grant
-RESET ROLE;
-REVOKE supabase_storage_admin FROM postgres;
+-- Restore ownership back to the storage admin role
+ALTER TABLE storage.objects OWNER TO supabase_storage_admin;
