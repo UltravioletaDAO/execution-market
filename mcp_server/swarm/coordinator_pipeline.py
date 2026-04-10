@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 CoordinatorPipeline — End-to-End Instrumented Routing Pipeline
 ===============================================================
