@@ -36,6 +36,9 @@ docs/
 .env
 .env.*
 
+# Dead code — ADR-001 violation (SC-003)
+patches/
+
 # Temporary
 *.log
 *.tmp

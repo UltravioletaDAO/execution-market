@@ -1,0 +1,15 @@
+name: No Patches Dir
+on: [push, pull_request]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Fail if patches/ contains Python files
+        run: |
+          if find mcp_server/patches -name '*.py' 2>/dev/null | grep -q .; then
+            echo "ERROR: mcp_server/patches/*.py exists — violates ADR-001"
+            echo "The patches/ directory contained direct contract calls with"
+            echo "WALLET_PRIVATE_KEY. It was removed in SC-003. Do not re-add."
+            exit 1
+          fi
