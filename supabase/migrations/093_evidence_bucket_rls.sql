@@ -45,13 +45,13 @@
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
--- Permission note: storage.objects is owned by supabase_storage_admin.
--- On Supabase managed hosting, postgres cannot SET ROLE to that role.
--- Instead we transfer ownership of storage.objects to postgres temporarily,
--- apply the policy changes, then transfer ownership back.
--- If this ALSO fails, apply via the Supabase Dashboard UI (Storage → Policies).
+-- IMPORTANT: On Supabase managed hosting, storage.objects is owned by
+-- supabase_storage_admin and postgres cannot CREATE/DROP policies on it.
+-- This migration MUST be applied via the Supabase Dashboard UI:
+--   Storage → Policies (or Authentication → Policies → storage.objects)
+-- The SQL below documents what was applied. See steps in the commit message.
+-- Applied manually: 2026-04-10
 -- ----------------------------------------------------------------------------
-ALTER TABLE storage.objects OWNER TO postgres;
 
 -- ----------------------------------------------------------------------------
 -- Step 1: Drop the wide-open policies on the 'evidence' bucket.
@@ -178,5 +178,4 @@ COMMENT ON POLICY "evidence_select_participant"        ON storage.objects IS
 COMMENT ON POLICY "evidence_select_service_role"       ON storage.objects IS
     'Phase 0 GR-0.4 / DB-008: explicit service_role SELECT for the backend.';
 
--- Restore ownership back to the storage admin role
-ALTER TABLE storage.objects OWNER TO supabase_storage_admin;
+-- (No ownership transfer needed — applied via Dashboard UI)
