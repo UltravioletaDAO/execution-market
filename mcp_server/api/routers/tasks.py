@@ -831,15 +831,26 @@ async def create_task(
             from integrations.x402.payment_dispatcher import EM_ESCROW_TIMING
 
             escrow_timing = x_escrow_timing or EM_ESCROW_TIMING
+            network = request.payment_network or "base"
+            # SC-001: Compute expected lock amount in atomic units (USDC 6 decimals).
+            # In credit_card fee model, bounty = lock amount (fee deducted on-chain).
+            _bounty_atomic = str(
+                int(Decimal(str(request.bounty_usd)) * Decimal("1000000"))
+            )
+            _agent_wallet = getattr(auth, "wallet_address", None) or auth.agent_id
             try:
-                parsed_auth = dispatcher.validate_agent_preauth(x_payment_auth)
+                parsed_auth = dispatcher.validate_agent_preauth(
+                    x_payment_auth,
+                    network=network,
+                    expected_payer=_agent_wallet,
+                    expected_amount_atomic=_bounty_atomic,
+                )
             except ValueError as ve:
                 return JSONResponse(
                     status_code=400,
                     content={"error": f"Invalid X-Payment-Auth: {ve}"},
                 )
 
-            network = request.payment_network or "base"
             agent_address = (
                 parsed_auth.get("payload", {})
                 .get("authorization", {})
@@ -3023,9 +3034,19 @@ async def assign_task_to_worker(
 
         if x_payment_auth and worker_wallet and dispatcher:
             try:
-                parsed_auth = dispatcher.validate_agent_preauth(x_payment_auth)
                 network = task.get("payment_network") or "base"
                 bounty = Decimal(str(task.get("bounty_usd", 0)))
+                # SC-001: Validate preauth against NETWORK_CONFIG
+                _agent_wallet_assign = (
+                    getattr(auth, "wallet_address", None) or auth.agent_id
+                )
+                _bounty_atomic_assign = str(int(bounty * Decimal("1000000")))
+                parsed_auth = dispatcher.validate_agent_preauth(
+                    x_payment_auth,
+                    network=network,
+                    expected_payer=_agent_wallet_assign,
+                    expected_amount_atomic=_bounty_atomic_assign,
+                )
 
                 lock_result = await dispatcher.relay_agent_auth_to_facilitator(
                     parsed_auth,

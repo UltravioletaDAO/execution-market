@@ -1349,21 +1349,36 @@ class PaymentDispatcher:
     # =========================================================================
 
     @staticmethod
-    def validate_agent_preauth(payload_json: str) -> dict:
+    def validate_agent_preauth(
+        payload_json: str,
+        *,
+        network: Optional[str] = None,
+        expected_payer: Optional[str] = None,
+        expected_amount_atomic: Optional[str] = None,
+    ) -> dict:
         """Validate an agent's pre-signed X-Payment-Auth payload.
 
         The payload is the JSON that the agent would normally send to the
-        Facilitator /settle endpoint. The server validates structure only —
-        it does NOT verify the cryptographic signature (the Facilitator does that).
+        Facilitator /settle endpoint. Validates structure AND — when network,
+        expected_payer, or expected_amount_atomic are provided — verifies that
+        the payload targets the correct operator, token, amount, and payer
+        registered in NETWORK_CONFIG (SC-001 hardening).
 
         Args:
             payload_json: Raw JSON string from the X-Payment-Auth header.
+            network: Payment network name (e.g. "base"). When provided, validates
+                operator and token against NETWORK_CONFIG.
+            expected_payer: Authenticated agent's wallet address. When provided,
+                validates authorization.from matches.
+            expected_amount_atomic: Expected lock amount in atomic units (e.g. "5000000"
+                for $5 USDC). When provided, validates paymentInfo.maxAmount matches.
 
         Returns:
             Parsed dict with the payload structure.
 
         Raises:
-            ValueError: If the payload is malformed or missing required fields.
+            ValueError: If the payload is malformed, missing required fields,
+                or fails security validation against NETWORK_CONFIG.
         """
         try:
             data = json.loads(payload_json)
@@ -1406,6 +1421,62 @@ class PaymentDispatcher:
         missing_pi = [f for f in required_pi_fields if f not in pi]
         if missing_pi:
             raise ValueError(f"X-Payment-Auth paymentInfo missing fields: {missing_pi}")
+
+        # ── SC-001: Validate against NETWORK_CONFIG ──────────────────
+        # Prevents attacker from routing funds to a malicious operator
+        # or unauthorized token contract.
+        if network is not None:
+            cfg = NETWORK_CONFIG.get(network)
+            if not cfg:
+                raise ValueError(f"Unknown payment network: {network}")
+
+            # Validate operator matches expected for this network
+            expected_operator = cfg.get("operator") or (
+                cfg.get("x402r_infra", {}).get("operator")
+            )
+            if (
+                expected_operator
+                and pi["operator"].lower() != expected_operator.lower()
+            ):
+                raise ValueError(
+                    f"paymentInfo.operator must be {expected_operator} for network {network}"
+                )
+
+            # Validate token is in the network's allowlist
+            allowed_tokens = {
+                t.get("address", "").lower()
+                for t in cfg.get("tokens", {}).values()
+                if t.get("address")
+            }
+            if allowed_tokens and pi["token"].lower() not in allowed_tokens:
+                raise ValueError(
+                    f"paymentInfo.token {pi['token']} not in allowlist for network {network}"
+                )
+
+            # Validate authorization.to is the correct tokenCollector
+            expected_collector = cfg.get("x402r_infra", {}).get(
+                "tokenCollector"
+            ) or cfg.get("token_collector")
+            if expected_collector and auth["to"].lower() != expected_collector.lower():
+                raise ValueError(
+                    f"authorization.to must be tokenCollector {expected_collector} "
+                    f"for network {network}"
+                )
+
+        # Validate payer matches authenticated agent wallet
+        if expected_payer is not None:
+            if auth["from"].lower() != expected_payer.lower():
+                raise ValueError(
+                    "authorization.from must match the authenticated agent wallet"
+                )
+
+        # Validate amount matches expected total (bounty = lock amount in credit_card model)
+        if expected_amount_atomic is not None:
+            if str(pi["maxAmount"]) != str(expected_amount_atomic):
+                raise ValueError(
+                    f"paymentInfo.maxAmount {pi['maxAmount']} does not match "
+                    f"expected {expected_amount_atomic}"
+                )
 
         return data
 
