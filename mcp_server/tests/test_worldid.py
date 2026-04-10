@@ -140,6 +140,7 @@ class TestWorldIdVerification:
             mock_response.json.return_value = {
                 "success": True,
                 "nullifier": "0x123",
+                "verification_level": "orb",
             }
 
             with patch("httpx.AsyncClient") as mock_client_cls:

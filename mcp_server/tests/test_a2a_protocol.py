@@ -540,9 +540,27 @@ class TestA2ATaskManager:
 class TestA2AJSONRPCRouter:
     """Test the A2A JSON-RPC endpoint."""
 
+    @pytest.fixture(autouse=True)
+    def _mock_a2a_auth(self, monkeypatch):
+        """Mock verify_agent_auth_write for A2A tests.
+
+        API-019 changed auth from trusting X-ERC8004-Agent-Id header
+        to using verify_agent_auth_write from api.auth.
+        """
+        from api.auth import AgentAuth
+
+        async def _mock_auth(request):
+            return AgentAuth(
+                agent_id="test-agent-a2a",
+                wallet_address="0x1234567890abcdef1234567890abcdef12345678",
+                auth_method="erc8128",
+            )
+
+        monkeypatch.setattr("api.auth.verify_agent_auth_write", _mock_auth)
+
     @pytest.fixture
     def client(self):
-        """Create a test client for the A2A router with auth headers."""
+        """Create a test client for the A2A router."""
         from fastapi import FastAPI
         from fastapi.testclient import TestClient
         from a2a.jsonrpc_router import router
@@ -551,8 +569,6 @@ class TestA2AJSONRPCRouter:
         app.include_router(router)
         try:
             c = TestClient(app)
-            # A2A endpoint requires authentication — set a default agent identity
-            c.headers["X-ERC8004-Agent-Id"] = "test-agent-9999"
             return c
         except TypeError:
             pytest.skip("httpx/starlette TestClient incompatibility")
@@ -569,10 +585,7 @@ class TestA2AJSONRPCRouter:
         resp = client.post(
             "/a2a/v1",
             content="not json",
-            headers={
-                "Content-Type": "application/json",
-                "X-ERC8004-Agent-Id": "test-agent-9999",
-            },
+            headers={"Content-Type": "application/json"},
         )
         assert resp.status_code == 200
         data = resp.json()
