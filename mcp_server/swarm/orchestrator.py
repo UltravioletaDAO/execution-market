@@ -15,6 +15,8 @@ Task routing strategies:
 - BUDGET_AWARE: Prefer agents with remaining budget headroom
 """
 
+from __future__ import annotations
+
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -23,6 +25,7 @@ from typing import Optional
 
 from .reputation_bridge import (
     ReputationBridge,
+    ReputationTier,
     OnChainReputation,
     InternalReputation,
     CompositeScore,
@@ -56,6 +59,40 @@ PRIORITY_WEIGHTS = {
     TaskPriority.NORMAL: 0.5,
     TaskPriority.LOW: 0.2,
 }
+
+
+TIER_ORDER = {
+    ReputationTier.NUEVO: 0,
+    ReputationTier.BRONCE: 1,
+    ReputationTier.PLATA: 2,
+    ReputationTier.ORO: 3,
+    ReputationTier.DIAMANTE: 4,
+}
+
+TIER_ALIASES = {
+    "new": ReputationTier.NUEVO,
+    "nuevo": ReputationTier.NUEVO,
+    "bronze": ReputationTier.BRONCE,
+    "bronce": ReputationTier.BRONCE,
+    "silver": ReputationTier.PLATA,
+    "plata": ReputationTier.PLATA,
+    "gold": ReputationTier.ORO,
+    "oro": ReputationTier.ORO,
+    "diamond": ReputationTier.DIAMANTE,
+    "diamante": ReputationTier.DIAMANTE,
+}
+
+
+def _normalize_tier(value: str | ReputationTier | None) -> ReputationTier | None:
+    """Normalize user/task tier input to a ReputationTier enum."""
+    if value is None:
+        return None
+    if isinstance(value, ReputationTier):
+        return value
+    normalized = str(value).strip().lower()
+    if not normalized:
+        return None
+    return TIER_ALIASES.get(normalized)
 
 
 @dataclass
@@ -197,6 +234,21 @@ class SwarmOrchestrator:
                 excluded_agents=0,
             )
 
+        required_tier = _normalize_tier(task.required_tier)
+        if task.required_tier and required_tier is None:
+            failure = RoutingFailure(
+                task_id=task.task_id,
+                reason=(
+                    "Unknown required_tier value "
+                    f"{task.required_tier!r}; expected one of "
+                    "nuevo/bronce/plata/oro/diamante"
+                ),
+                attempted_agents=0,
+                excluded_agents=0,
+            )
+            self._failures.append(failure)
+            return failure
+
         # Get available agents from lifecycle manager
         available = self.lifecycle.get_available_agents()
 
@@ -229,7 +281,12 @@ class SwarmOrchestrator:
         scored = self._score_candidates(candidates, task)
 
         # Apply routing strategy
-        selected = self._apply_strategy(scored, task, strategy)
+        selected = self._apply_strategy(
+            scored,
+            task,
+            strategy,
+            required_tier=required_tier,
+        )
 
         if selected is None:
             failure = RoutingFailure(
@@ -367,6 +424,7 @@ class SwarmOrchestrator:
         scored: list[tuple[int, CompositeScore]],
         task: TaskRequest,
         strategy: RoutingStrategy,
+        required_tier: ReputationTier | None = None,
     ) -> Optional[tuple[int, CompositeScore]]:
         """Apply routing strategy to select the final agent."""
         if not scored:
@@ -381,6 +439,17 @@ class SwarmOrchestrator:
 
         if not qualified:
             return None
+
+        # Enforce minimum tier if requested.
+        if required_tier is not None:
+            qualified = [
+                (aid, score)
+                for aid, score in qualified
+                if TIER_ORDER.get(_normalize_tier(score.tier), -1)
+                >= TIER_ORDER[required_tier]
+            ]
+            if not qualified:
+                return None
 
         # Apply preferences
         if task.preferred_agent_ids:

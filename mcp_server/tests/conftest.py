@@ -17,7 +17,11 @@ Combine profiles:
 import pytest
 import sys
 from pathlib import Path
-from datetime import datetime, UTC
+from datetime import datetime, timezone
+try:
+    from datetime import UTC
+except ImportError:
+    UTC = timezone.utc  # Python 3.9 compat
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))

@@ -30,6 +30,8 @@ Usage:
     dashboard = coordinator.get_dashboard()
 """
 
+from __future__ import annotations
+
 import json
 import logging
 import time
@@ -37,6 +39,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timezone, timedelta
 from enum import Enum
+from pathlib import Path
 from typing import Optional, Callable
 from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
@@ -62,6 +65,19 @@ from .orchestrator import (
     RoutingFailure,
     RoutingStrategy,
 )
+from .geo_bridge import GeoBridge
+from .quality_bridge import QualityBridge
+from .affinity_bridge import AffinityBridge
+from .comm_bridge import CommBridge
+from .fpq_bridge import FPQBridge
+from .explainer_bridge import ExplainerBridge
+from .calibrator_bridge import CalibratorBridge
+from .fraud_bridge import FraudBridge
+from .load_bridge import LoadBridge
+from .adaptation_bridge import AdaptationBridge
+from .trajectory_bridge import TrajectoryBridge
+from .cluster_bridge import ClusterBridge
+from .synthesis_bridge import SynthesisBridge
 from .autojob_client import (
     AutoJobClient,
     EnrichedOrchestrator,
@@ -125,11 +141,23 @@ class EMApiClient:
         limit: int = 50,
         category: Optional[str] = None,
     ) -> list[dict]:
-        """Fetch tasks from the EM API."""
-        params = f"?status={status}&limit={limit}"
-        if category:
-            params += f"&category={category}"
-        result = self._request("GET", f"/api/v1/tasks{params}")
+        """Fetch tasks from the EM API.
+
+        Public swarm discovery should use `/tasks/available`, which exposes
+        published work without agent auth. Authenticated agent-specific views
+        still fall back to `/tasks` for non-published statuses.
+        """
+        if status == "published":
+            params = f"?limit={limit}&offset=0"
+            if category:
+                params += f"&category={category}"
+            result = self._request("GET", f"/api/v1/tasks/available{params}")
+        else:
+            params = f"?status={status}&limit={limit}"
+            if category:
+                params += f"&category={category}"
+            result = self._request("GET", f"/api/v1/tasks{params}")
+
         if isinstance(result, dict) and result.get("error"):
             return []
         # API returns {"tasks": [...]} or just a list
@@ -179,8 +207,13 @@ class EMApiClient:
         return result
 
     def get_task_stats(self) -> dict:
-        """Get aggregate task statistics."""
-        return self._request("GET", "/api/v1/tasks/stats")
+        """Get aggregate task statistics from the public metrics surface."""
+        result = self._request("GET", "/api/v1/public/metrics")
+        if isinstance(result, dict) and result.get("error"):
+            return result
+        if isinstance(result, dict) and isinstance(result.get("tasks"), dict):
+            return result["tasks"]
+        return result if isinstance(result, dict) else {"error": True, "detail": "Unexpected metrics payload"}
 
 
 # ─── Coordination Events ──────────────────────────────────────────────────────
@@ -352,6 +385,20 @@ class SwarmCoordinator:
         default_strategy: RoutingStrategy = RoutingStrategy.BEST_FIT,
         task_expiry_hours: float = 24.0,
         health_check_interval_seconds: int = 300,
+        geo_bridge: Optional[GeoBridge] = None,
+        quality_bridge: Optional[QualityBridge] = None,
+        affinity_bridge: Optional[AffinityBridge] = None,
+        comm_bridge: Optional[CommBridge] = None,
+        fpq_bridge: Optional[FPQBridge] = None,
+        explainer_bridge: Optional[ExplainerBridge] = None,
+        calibrator_bridge: Optional[CalibratorBridge] = None,
+        fraud_bridge: Optional[FraudBridge] = None,
+        load_bridge: Optional[LoadBridge] = None,
+        adaptation_bridge: Optional[AdaptationBridge] = None,
+        trajectory_bridge: Optional[TrajectoryBridge] = None,
+        cluster_bridge: Optional[ClusterBridge] = None,
+        synthesis_bridge: Optional[SynthesisBridge] = None,
+        decision_journal_path: Optional[str] = None,
     ):
         # Core components
         self.bridge = bridge
@@ -362,9 +409,29 @@ class SwarmCoordinator:
         self.enriched = enriched_orchestrator
         self.default_strategy = default_strategy
 
+        # Swarm intelligence bridges (optional — activated on data ingestion)
+        self.geo_bridge: GeoBridge = geo_bridge or GeoBridge()
+        self.quality_bridge: QualityBridge = quality_bridge or QualityBridge()
+        self.affinity_bridge: AffinityBridge = affinity_bridge or AffinityBridge()
+        self.comm_bridge: CommBridge = comm_bridge or CommBridge()
+        self.fpq_bridge: FPQBridge = fpq_bridge or FPQBridge()
+        self.explainer_bridge: ExplainerBridge = explainer_bridge or ExplainerBridge()
+        self.calibrator_bridge: CalibratorBridge = calibrator_bridge or CalibratorBridge()
+        self.fraud_bridge: FraudBridge = fraud_bridge or FraudBridge()
+        self.load_bridge: LoadBridge = load_bridge or LoadBridge()
+        self.adaptation_bridge: AdaptationBridge = adaptation_bridge or AdaptationBridge()
+        self.trajectory_bridge: TrajectoryBridge = trajectory_bridge or TrajectoryBridge()
+        self.cluster_bridge: ClusterBridge = cluster_bridge or ClusterBridge()
+        self.synthesis_bridge: SynthesisBridge = synthesis_bridge or SynthesisBridge()
+
         # Configuration
         self.task_expiry_hours = task_expiry_hours
         self.health_check_interval = health_check_interval_seconds
+        self.decision_journal_path = (
+            Path(decision_journal_path).expanduser()
+            if decision_journal_path
+            else None
+        )
 
         # Task queue
         self._task_queue: dict[str, QueuedTask] = {}
@@ -391,6 +458,8 @@ class SwarmCoordinator:
         self._autojob_enrichments = 0
         self._routing_attempts = 0
         self._routing_successes = 0
+        self._journal_entries_written = 0
+        self._journal_sequence = 0
 
     @classmethod
     def create(
@@ -997,6 +1066,13 @@ class SwarmCoordinator:
             "systems": {
                 "em_api": "configured" if self.em_client else "not configured",
                 "autojob": "configured" if self.autojob else "not configured",
+                "decision_journal": {
+                    "enabled": self.decision_journal_path is not None,
+                    "path": str(self.decision_journal_path)
+                    if self.decision_journal_path
+                    else None,
+                    "entries_written": self._journal_entries_written,
+                },
                 "last_health_check": self._last_health_check.isoformat()
                 if self._last_health_check
                 else None,
@@ -1014,6 +1090,112 @@ class SwarmCoordinator:
             self._event_hooks[event] = []
         self._event_hooks[event].append(callback)
 
+    def _serialize_for_journal(self, value):
+        """Convert runtime objects into JSON-safe values for append-only logs."""
+        if isinstance(value, datetime):
+            return value.isoformat()
+        if isinstance(value, Enum):
+            return value.value
+        if isinstance(value, dict):
+            return {k: self._serialize_for_journal(v) for k, v in value.items()}
+        if isinstance(value, (list, tuple, set)):
+            return [self._serialize_for_journal(v) for v in value]
+        if isinstance(value, (str, int, float, bool)) or value is None:
+            return value
+        return str(value)
+
+    def _task_snapshot(self, task_id: Optional[str]) -> Optional[dict]:
+        """Capture the current queue-side view of a task for replay/debugging."""
+        if not task_id:
+            return None
+
+        task = self._task_queue.get(task_id)
+        if task is None:
+            return None
+
+        return {
+            "task_id": task.task_id,
+            "title": task.title,
+            "categories": list(task.categories),
+            "bounty_usd": task.bounty_usd,
+            "priority": task.priority.value,
+            "source": task.source,
+            "status": task.status,
+            "attempts": task.attempts,
+            "max_attempts": task.max_attempts,
+            "assigned_agent_id": task.assigned_agent_id,
+            "ingested_at": task.ingested_at.isoformat(),
+            "last_attempt_at": task.last_attempt_at.isoformat()
+            if task.last_attempt_at
+            else None,
+        }
+
+    def _agent_snapshot(self, agent_id: Optional[int]) -> Optional[dict]:
+        """Capture the current lifecycle view of an agent for replay/debugging."""
+        if agent_id is None:
+            return None
+
+        record = self.lifecycle.agents.get(agent_id)
+        if record is None:
+            return None
+
+        try:
+            budget = self.lifecycle.get_budget_status(agent_id)
+        except LifecycleError:
+            budget = {}
+
+        return {
+            "agent_id": agent_id,
+            "name": record.name,
+            "state": record.state.value,
+            "personality": record.personality,
+            "current_task": record.current_task_id,
+            "wallet": f"{record.wallet_address[:10]}...",
+            "health": "healthy" if record.health.is_healthy else "degraded",
+            "budget_daily_pct": budget.get("daily_pct"),
+            "budget_monthly_pct": budget.get("monthly_pct"),
+            "tags": list(record.tags),
+        }
+
+    def _queue_breakdown(self) -> dict[str, int]:
+        """Summarize queue state without recomputing the full dashboard."""
+        queue_status = {
+            "pending": 0,
+            "assigned": 0,
+            "completed": 0,
+            "failed": 0,
+            "expired": 0,
+        }
+        for task in self._task_queue.values():
+            queue_status[task.status] = queue_status.get(task.status, 0) + 1
+        return queue_status
+
+    def _write_decision_journal(self, record: EventRecord) -> None:
+        """Append coordinator decisions/events to a durable JSONL journal."""
+        if self.decision_journal_path is None:
+            return
+
+        try:
+            self.decision_journal_path.parent.mkdir(parents=True, exist_ok=True)
+
+            self._journal_sequence += 1
+            payload = {
+                "event_id": f"coord_{record.timestamp.strftime('%Y%m%dT%H%M%S')}_{self._journal_sequence:06d}",
+                "event": record.event.value,
+                "timestamp": record.timestamp.isoformat(),
+                "data": self._serialize_for_journal(record.data),
+                "task": self._task_snapshot(record.data.get("task_id")),
+                "agent": self._agent_snapshot(record.data.get("agent_id")),
+                "queue": self._queue_breakdown(),
+            }
+
+            with self.decision_journal_path.open("a", encoding="utf-8") as f:
+                f.write(json.dumps(payload, sort_keys=True) + "\n")
+
+            self._journal_entries_written += 1
+        except Exception as e:
+            logger.error(f"Decision journal write failed for {record.event.value}: {e}")
+
     def _emit(self, event: CoordinatorEvent, data: dict = None) -> None:
         """Emit an event and call registered hooks."""
         record = EventRecord(
@@ -1022,6 +1204,7 @@ class SwarmCoordinator:
             data=data or {},
         )
         self._events.append(record)  # deque(maxlen=1000) auto-evicts oldest
+        self._write_decision_journal(record)
 
         # Call hooks
         for callback in self._event_hooks.get(event, []):

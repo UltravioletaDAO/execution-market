@@ -10,6 +10,8 @@ The bridge produces a CompositeScore that the SwarmOrchestrator uses
 for task routing decisions.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
