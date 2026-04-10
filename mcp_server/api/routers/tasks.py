@@ -35,7 +35,6 @@ from ._models import (
     CancelRequest,
     WorkerAssignRequest,
     BatchCreateRequest,
-    BatchCreateResponse,
     ApplicationResponse,
     ApplicationListResponse,
     SuccessResponse,
@@ -3593,85 +3592,90 @@ async def assign_task_to_worker(
 
 @router.post(
     "/tasks/batch",
-    response_model=BatchCreateResponse,
-    status_code=201,
-    responses={
-        201: {"description": "Batch tasks created with success/failure breakdown"},
-        400: {
-            "model": ErrorResponse,
-            "description": "Invalid request or too many tasks in batch",
-        },
-        401: {
-            "model": ErrorResponse,
-            "description": "Unauthorized - invalid or missing API key",
-        },
-    },
-    summary="Batch Create Tasks",
-    description="Create multiple similar tasks in a single API call for efficiency",
+    status_code=503,
+    summary="Batch Create Tasks (DISABLED)",
+    description=(
+        "Batch task creation is temporarily disabled for security hardening. "
+        "Use POST /api/v1/tasks to create tasks individually."
+    ),
     tags=["Tasks", "Agent", "Batch"],
 )
 async def batch_create_tasks(
     request: BatchCreateRequest,
     auth: AgentAuth = Depends(verify_agent_auth_write),
-) -> BatchCreateResponse:
-    """Create multiple tasks in a single request for efficiency."""
-    created_tasks = []
-    errors = []
-    total_bounty = 0.0
+):
+    """Batch endpoint disabled — Phase 1 GR-1.5 / API-002.
 
-    for i, task_def in enumerate(request.tasks):
-        try:
-            deadline = datetime.now(timezone.utc) + timedelta(
-                hours=task_def.deadline_hours
-            )
-
-            task = await db.create_task(
-                agent_id=auth.agent_id,
-                title=task_def.title,
-                instructions=task_def.instructions,
-                category=task_def.category.value,
-                bounty_usd=task_def.bounty_usd,
-                deadline=deadline,
-                evidence_required=[e.value for e in task_def.evidence_required],
-                evidence_optional=[e.value for e in (task_def.evidence_optional or [])],
-                location_hint=task_def.location_hint,
-                min_reputation=task_def.min_reputation,
-                payment_token=request.payment_token,
-                payment_network=getattr(request, "payment_network", "base"),
-                arbiter_mode=getattr(task_def, "arbiter_mode", "manual") or "manual",
-            )
-
-            created_tasks.append(
-                {
-                    "index": i,
-                    "id": task["id"],
-                    "title": task["title"],
-                    "bounty_usd": task["bounty_usd"],
-                }
-            )
-            total_bounty += task_def.bounty_usd
-
-        except Exception as e:
-            errors.append(
-                {
-                    "index": i,
-                    "title": task_def.title,
-                    "error": str(e),
-                }
-            )
-
-    logger.info(
-        "Batch create: agent=%s, created=%d, failed=%d, total_bounty=%.2f",
-        auth.agent_id,
-        len(created_tasks),
-        len(errors),
-        total_bounty,
+    This endpoint skips X402 payment validation, ERC-8004 identity checks,
+    and escrow entirely. Disabled until it is rewritten to call the
+    single-task create_task logic per item with full validation.
+    """
+    raise HTTPException(
+        status_code=503,
+        detail=(
+            "Batch task creation is temporarily disabled for security hardening. "
+            "Use POST /api/v1/tasks to create tasks individually. "
+            "Phase 1 GR-1.5 / API-002."
+        ),
     )
-
-    return BatchCreateResponse(
-        created=len(created_tasks),
-        failed=len(errors),
-        tasks=created_tasks,
-        errors=errors,
-        total_bounty=total_bounty,
-    )
+    # --- Original body (kept as reference for the rewrite) ---
+    # created_tasks = []
+    # errors = []
+    # total_bounty = 0.0
+    #
+    # for i, task_def in enumerate(request.tasks):
+    #     try:
+    #         deadline = datetime.now(timezone.utc) + timedelta(
+    #             hours=task_def.deadline_hours
+    #         )
+    #
+    #         task = await db.create_task(
+    #             agent_id=auth.agent_id,
+    #             title=task_def.title,
+    #             instructions=task_def.instructions,
+    #             category=task_def.category.value,
+    #             bounty_usd=task_def.bounty_usd,
+    #             deadline=deadline,
+    #             evidence_required=[e.value for e in task_def.evidence_required],
+    #             evidence_optional=[e.value for e in (task_def.evidence_optional or [])],
+    #             location_hint=task_def.location_hint,
+    #             min_reputation=task_def.min_reputation,
+    #             payment_token=request.payment_token,
+    #             payment_network=getattr(request, "payment_network", "base"),
+    #             arbiter_mode=getattr(task_def, "arbiter_mode", "manual") or "manual",
+    #         )
+    #
+    #         created_tasks.append(
+    #             {
+    #                 "index": i,
+    #                 "id": task["id"],
+    #                 "title": task["title"],
+    #                 "bounty_usd": task["bounty_usd"],
+    #             }
+    #         )
+    #         total_bounty += task_def.bounty_usd
+    #
+    #     except Exception as e:
+    #         errors.append(
+    #             {
+    #                 "index": i,
+    #                 "title": task_def.title,
+    #                 "error": str(e),
+    #             }
+    #         )
+    #
+    # logger.info(
+    #     "Batch create: agent=%s, created=%d, failed=%d, total_bounty=%.2f",
+    #     auth.agent_id,
+    #     len(created_tasks),
+    #     len(errors),
+    #     total_bounty,
+    # )
+    #
+    # return BatchCreateResponse(
+    #     created=len(created_tasks),
+    #     failed=len(errors),
+    #     tasks=created_tasks,
+    #     errors=errors,
+    #     total_bounty=total_bounty,
+    # )
