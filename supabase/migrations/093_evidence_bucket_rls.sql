@@ -45,6 +45,14 @@
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
+-- Permission escalation: storage.objects is owned by supabase_storage_admin.
+-- The Supabase SQL Editor runs as 'postgres' which cannot ALTER policies on
+-- tables it does not own. We temporarily assume the storage admin role, run
+-- all policy changes, then reset back to the original role.
+-- ----------------------------------------------------------------------------
+SET ROLE supabase_storage_admin;
+
+-- ----------------------------------------------------------------------------
 -- Step 1: Drop the wide-open policies on the 'evidence' bucket.
 -- These were introduced in migration 013_fix_submissions_and_task_release.
 -- ----------------------------------------------------------------------------
@@ -168,3 +176,6 @@ COMMENT ON POLICY "evidence_select_participant"        ON storage.objects IS
     'Phase 0 GR-0.4 / DB-008: executor who uploaded may read back (preview); agent reads go via backend service_role.';
 COMMENT ON POLICY "evidence_select_service_role"       ON storage.objects IS
     'Phase 0 GR-0.4 / DB-008: explicit service_role SELECT for the backend.';
+
+-- Reset role back to the original caller (postgres)
+RESET ROLE;
