@@ -193,8 +193,23 @@ async def verify_erc8128_request(
                     chain_id=chain_id,
                 )
 
-        # 8. Verify Content-Digest if covered
-        if "content-digest" in covered_components:
+        # 8. Verify Content-Digest — MANDATORY for bodied requests (CRY-001)
+        has_body = (
+            _get_header(request, "content-length") not in (None, "0")
+            or _get_header(request, "transfer-encoding") is not None
+        )
+        if has_body:
+            if "content-digest" not in covered_components:
+                return ERC8128Result(
+                    ok=False,
+                    reason="Bodied request MUST include content-digest in signed components (CRY-001)",
+                    chain_id=chain_id,
+                )
+            digest_err = await _verify_content_digest(request)
+            if digest_err:
+                return ERC8128Result(ok=False, reason=digest_err, chain_id=chain_id)
+        elif "content-digest" in covered_components:
+            # Bodyless request that voluntarily covers content-digest — still verify
             digest_err = await _verify_content_digest(request)
             if digest_err:
                 return ERC8128Result(ok=False, reason=digest_err, chain_id=chain_id)
