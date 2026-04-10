@@ -731,8 +731,9 @@ class TestFeeCalculations:
         )
 
         assert result["success"] is True
-        # $0.50 * 13% = $0.065 (above minimum $0.01)
-        assert result["platform_fee"] == 0.065
+        # compute_lock_amount(0.50) = ceil(0.50*10000/8700) = 0.574713
+        # treasury = 0.574713 - 0.50 = 0.074713
+        assert result["platform_fee"] == 0.074713
 
     @pytest.mark.asyncio
     async def test_x402r_fee_for_tiny_bounty(self):
@@ -1193,7 +1194,9 @@ class TestFase2Flow:
         assert result["fee_tx_hash"] is None
         assert result["fee_status"] == "accrued"
         assert result["net_to_worker"] == 10.00
-        assert result["platform_fee"] == 1.30
+        # compute_lock_amount(10.00) = ceil(10.00*10000/8700) = 11.494253
+        # treasury = 11.494253 - 10.00 = 1.494253
+        assert result["platform_fee"] == 1.494253
 
     @pytest.mark.asyncio
     async def test_fase2_release_no_escrow_state(self):

@@ -11,6 +11,7 @@ Covers:
 
 import json
 import os
+import time
 import pytest
 from decimal import Decimal
 from unittest.mock import patch, AsyncMock, MagicMock
@@ -23,38 +24,51 @@ DISPATCHER_MODULE = "integrations.x402.payment_dispatcher"
 # ═══════════════════════════════════════════════════════════════
 
 
-VALID_PREAUTH_PAYLOAD = {
-    "x402Version": 2,
-    "scheme": "escrow",
-    "payload": {
-        "authorization": {
-            "from": "0xAgentWallet1234567890abcdef1234567890abcdef",
-            "to": "0xTokenCollector1234567890abcdef1234567890ab",
-            "value": "5000000",
-            "validAfter": "0",
-            "validBefore": "1711843200",
-            "nonce": "0x" + "ab" * 32,
-        },
-        "signature": "0x" + "cc" * 65,
-        "paymentInfo": {
-            "operator": "0xOperator1234567890abcdef1234567890abcdef12",
-            "receiver": "",
-            "token": "0xUSDC1234567890abcdef1234567890abcdef123456",
-            "maxAmount": "5000000",
-            "preApprovalExpiry": 1711843200,
-            "authorizationExpiry": 1711843200,
-            "refundExpiry": 1711929600,
-            "minFeeBps": 0,
-            "maxFeeBps": 1800,
-            "feeReceiver": "0xOperator1234567890abcdef1234567890abcdef12",
-            "salt": "0x" + "dd" * 32,
-        },
-    },
-    "paymentRequirements": {
+def _future_timestamp(offset_seconds: int = 3600) -> int:
+    """Return a Unix timestamp in the future (default: 1 hour from now)."""
+    return int(time.time()) + offset_seconds
+
+
+def _make_valid_preauth_payload() -> dict:
+    """Build a valid preauth payload with a future validBefore timestamp."""
+    future_ts = _future_timestamp()
+    return {
+        "x402Version": 2,
         "scheme": "escrow",
-        "network": "eip155:8453",
-    },
-}
+        "payload": {
+            "authorization": {
+                "from": "0xAgentWallet1234567890abcdef1234567890abcdef",
+                "to": "0xTokenCollector1234567890abcdef1234567890ab",
+                "value": "5000000",
+                "validAfter": "0",
+                "validBefore": str(future_ts),
+                "nonce": "0x" + "ab" * 32,
+            },
+            "signature": "0x" + "cc" * 65,
+            "paymentInfo": {
+                "operator": "0xOperator1234567890abcdef1234567890abcdef12",
+                "receiver": "",
+                "token": "0xUSDC1234567890abcdef1234567890abcdef123456",
+                "maxAmount": "5000000",
+                "preApprovalExpiry": future_ts,
+                "authorizationExpiry": future_ts,
+                "refundExpiry": future_ts + 86400,
+                "minFeeBps": 0,
+                "maxFeeBps": 1800,
+                "feeReceiver": "0xOperator1234567890abcdef1234567890abcdef12",
+                "salt": "0x" + "dd" * 32,
+            },
+        },
+        "paymentRequirements": {
+            "scheme": "escrow",
+            "network": "eip155:8453",
+        },
+    }
+
+
+# Keep a module-level reference for tests that only need structural validation
+# (not time-dependent).  Re-generated per test run so validBefore is always future.
+VALID_PREAUTH_PAYLOAD = _make_valid_preauth_payload()
 
 
 def _make_dispatcher():
@@ -303,11 +317,14 @@ class TestStorePreauth:
         mock_db.get_client.return_value = mock_client
         original_db = sys.modules.get("db")
         sys.modules["db"] = mock_db
+
+        valid_before = _future_timestamp()
+        payload = _make_valid_preauth_payload()
         try:
             result = d.store_preauth(
                 task_id="task-123",
-                payload_json=json.dumps(VALID_PREAUTH_PAYLOAD),
-                valid_before=1711843200,
+                payload_json=json.dumps(payload),
+                valid_before=valid_before,
                 network="base",
             )
         finally:
@@ -325,7 +342,7 @@ class TestStorePreauth:
         assert insert_call["status"] == "pending_assignment"
         meta = insert_call["metadata"]
         assert meta["escrow_timing"] == "lock_on_assignment"
-        assert meta["preauth_valid_before"] == 1711843200
+        assert meta["preauth_valid_before"] == valid_before
         assert "preauth_signature" in meta
 
     def test_db_failure(self):
@@ -337,11 +354,14 @@ class TestStorePreauth:
         mock_db.get_client.side_effect = Exception("DB connection failed")
         original_db = sys.modules.get("db")
         sys.modules["db"] = mock_db
+
+        valid_before = _future_timestamp()
+        payload = _make_valid_preauth_payload()
         try:
             result = d.store_preauth(
                 task_id="task-fail",
-                payload_json=json.dumps(VALID_PREAUTH_PAYLOAD),
-                valid_before=1711843200,
+                payload_json=json.dumps(payload),
+                valid_before=valid_before,
                 network="base",
             )
         finally:
