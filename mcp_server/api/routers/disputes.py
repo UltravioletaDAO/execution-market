@@ -422,6 +422,18 @@ async def resolve_dispute(
       - Emits dispute.resolved event
     """
     try:
+        # Phase 1 GR-1.5 / API-003: Require ERC-8128 wallet signing
+        if auth.auth_method != "erc8128":
+            raise HTTPException(
+                status_code=403,
+                detail="Dispute resolution requires ERC-8128 wallet signing",
+            )
+        if not auth.wallet_address:
+            raise HTTPException(
+                status_code=403,
+                detail="Wallet address required for dispute resolution",
+            )
+
         client = db.get_client()
 
         # 1. Fetch dispute
@@ -445,10 +457,15 @@ async def resolve_dispute(
                 detail=f"Dispute already resolved (status={dispute['status']})",
             )
 
-        # 3. Authorization check: agent owns the task OR eligible human arbiter
-        dispute_agent_id = (dispute.get("agent_id") or "").lower()
-        caller_wallet = (getattr(auth, "wallet_address", "") or "").lower()
+        # 3. Authorization check: wallet-based ownership OR eligible human arbiter
+        # API-003 fix: compare wallet_address, not agent_id (which defaults to
+        # "2106" for platform-owned tasks and can be impersonated).
+        caller_wallet = (auth.wallet_address or "").lower()
         caller_agent_id = (auth.agent_id or "").lower()
+
+        # Check ownership via wallet address primarily, agent_id as fallback
+        # for pre-ERC-8128 records
+        dispute_agent_id = (dispute.get("agent_id") or "").lower()
         is_task_owner = dispute_agent_id and dispute_agent_id in (
             caller_wallet,
             caller_agent_id,
