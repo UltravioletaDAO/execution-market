@@ -111,6 +111,30 @@ EM_OPERATOR = os.environ.get(
 FASE5_MAX_FEE_BPS = 1800
 FASE5_FEE_BPS = 1300
 
+
+def compute_lock_amount(bounty: Decimal, fee_bps: int = FASE5_FEE_BPS) -> Decimal:
+    """Credit-card formula: lock enough so worker gets >= bounty after on-chain fee split.
+
+    The on-chain StaticFeeCalculator deducts ``fee_bps`` from the locked amount
+    and sends the remainder to the worker.  To guarantee the worker receives at
+    least ``bounty``, we must lock::
+
+        lock = ceil(bounty * 10000 / (10000 - fee_bps))
+
+    This matches the formula in ``deploy-payment-operator.ts`` (line 224).
+
+    Args:
+        bounty: The worker's expected bounty in USDC (human-readable, 6 decimals).
+        fee_bps: Fee in basis points (default 1300 = 13%).
+
+    Returns:
+        The amount to lock in escrow, quantized to 6 USDC decimals (ROUND_CEILING).
+    """
+    return (bounty * Decimal(10000) / Decimal(10000 - fee_bps)).quantize(
+        Decimal("0.000001"), rounding=ROUND_CEILING
+    )
+
+
 # Fee model: who absorbs the 13% on-chain fee?
 # "credit_card" (default): bounty = lock amount. Fee deducted from bounty. Worker gets 87%.
 # "agent_absorbs": lock amount = bounty / 0.87. Agent pays extra so worker gets ~100% of bounty.
@@ -292,6 +316,12 @@ def _compute_treasury_remainder(
 ) -> Decimal:
     """
     Compute the treasury fee as the remainder after paying the worker.
+
+    .. note::
+        **ADVISORY ONLY** — this function provides an off-chain *estimate*
+        for logging and analytics.  The on-chain ``StaticFeeCalculator``
+        (1300 BPS) is the authoritative source of truth for the actual fee
+        split at escrow release time.
 
     Treasury receives whatever is left in the platform wallet after the worker
     gets their full bounty. This naturally handles any on-chain protocol fee
@@ -887,9 +917,8 @@ class PaymentDispatcher:
         client = self._get_fase2_client(network)
         platform_address = _get_platform_address()
 
-        # Total to lock = bounty + platform fee
-        total_amount = amount_usdc * (Decimal("1") + PLATFORM_FEE_PERCENT)
-        total_amount = total_amount.quantize(Decimal("0.000001"))
+        # Total to lock = credit-card formula (worker gets >= bounty after 13% deduction)
+        total_amount = compute_lock_amount(amount_usdc)
 
         # Convert to atomic units (6 decimals for USDC)
         config = NETWORK_CONFIG.get(network, {})
@@ -1118,11 +1147,7 @@ class PaymentDispatcher:
 
         if fee_model == "agent_absorbs":
             # Agent pays extra so worker gets ~100% of bounty after 13% fee deduction.
-            # lock = ceil(bounty * 10000 / (10000 - FEE_BPS))
-            denom = Decimal(10000 - FASE5_FEE_BPS)
-            lock_amount = (bounty_usdc * Decimal(10000) / denom).quantize(
-                Decimal("0.000001"), rounding=ROUND_CEILING
-            )
+            lock_amount = compute_lock_amount(bounty_usdc)
         else:
             # credit_card (default): bounty IS the lock amount. Fee deducted on-chain.
             lock_amount = bounty_usdc
@@ -1642,6 +1667,18 @@ class PaymentDispatcher:
         Returns:
             Dict with success, escrow_status.
         """
+        # Validate valid_before is sane (must be future, max 14 days out)
+        now = int(time.time())
+        if valid_before <= now:
+            raise ValueError(
+                f"valid_before ({valid_before}) must be in the future (now={now})"
+            )
+        max_valid_before = now + 86400 * 14  # 14 days
+        if valid_before > max_valid_before:
+            raise ValueError(
+                f"valid_before ({valid_before}) exceeds 14-day maximum ({max_valid_before})"
+            )
+
         parsed = json.loads(payload_json)
         agent_address = (
             parsed.get("payload", {}).get("authorization", {}).get("from", "")
@@ -2471,8 +2508,9 @@ class PaymentDispatcher:
 
         # Step 3: Calculate platform fee (ACCRUED — no TX).
         # Fee stays in platform wallet. Use admin sweep endpoint to collect.
-        total_locked = bounty_amount * (Decimal("1") + PLATFORM_FEE_PERCENT)
-        total_locked = total_locked.quantize(Decimal("0.000001"))
+        # ADVISORY: This is an off-chain estimate for logging only.
+        # The on-chain StaticFeeCalculator is the source of truth for the actual split.
+        total_locked = compute_lock_amount(bounty_amount)
         on_chain_bps = await _get_protocol_fee_bps()
         platform_fee = _compute_treasury_remainder(
             bounty_amount, total_locked, on_chain_bps
@@ -2784,8 +2822,9 @@ class PaymentDispatcher:
         # handles any on-chain protocol fee deduction from x402r — if the escrow
         # contract takes a cut, the treasury amount shrinks accordingly instead
         # of the transfer failing due to insufficient funds.
-        total_locked = bounty_amount * (Decimal("1") + PLATFORM_FEE_PERCENT)
-        total_locked = total_locked.quantize(Decimal("0.000001"))
+        # ADVISORY: This is an off-chain estimate for logging only.
+        # The on-chain StaticFeeCalculator is the source of truth for the actual split.
+        total_locked = compute_lock_amount(bounty_amount)
         on_chain_bps = await _get_protocol_fee_bps()
         platform_fee = _compute_treasury_remainder(
             bounty_amount, total_locked, on_chain_bps
