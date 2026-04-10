@@ -33,38 +33,26 @@ router = APIRouter(prefix="/a2a/v1", tags=["A2A Protocol"])
 
 async def _extract_agent_id(request: Request) -> Optional[str]:
     """
-    Extract agent identity from request headers.
+    Extract agent identity from request via verified auth.
 
-    Supports:
-    - Authorization: Bearer <token> — API key or JWT
-    - X-API-Key: <key> — Direct API key
-    - X-ERC8004-Agent-Id: <id> — ERC-8004 identity
+    Phase 1 GR-1.5 / API-019: Uses verify_agent_auth_write to
+    cryptographically verify the caller's identity instead of trusting
+    client-supplied headers like X-ERC8004-Agent-Id.
     """
-    # Try ERC-8004 agent ID header first
-    erc8004_id = request.headers.get("X-ERC8004-Agent-Id")
-    if erc8004_id:
-        return f"erc8004:{erc8004_id}"
+    try:
+        from api.auth import verify_agent_auth_write
 
-    # Try API key — resolve to agent_id via auth module
-    api_key = request.headers.get("X-API-Key")
-    if api_key:
-        try:
-            from ..api.auth import verify_api_key
-
-            key_data = await verify_api_key(authorization=None, x_api_key=api_key)
-            return f"agent:{key_data.agent_id}"
-        except Exception:
-            # Auth failed or unavailable — fall back to truncated key identifier
-            return f"apikey:{api_key[:8]}"
-
-    # Try Bearer token
-    auth_header = request.headers.get("Authorization", "")
-    if auth_header.startswith("Bearer "):
-        token = auth_header[7:]
-        return f"bearer:{token[:8]}"
-
-    # Anonymous
-    return None
+        auth = await verify_agent_auth_write(request)
+        # Prefer wallet address for cross-chain consistency
+        if auth.wallet_address:
+            return f"erc8004:{auth.wallet_address}"
+        return f"agent:{auth.agent_id}"
+    except Exception as _auth_err:
+        # Auth failed — return None so the caller gets 401
+        logger.debug(
+            "A2A auth extraction failed: %s: %s", type(_auth_err).__name__, _auth_err
+        )
+        return None
 
 
 # ============== METHOD HANDLERS ==============
