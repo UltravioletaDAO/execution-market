@@ -726,14 +726,31 @@ async def submit_work(
                 except Exception:
                     pass  # Non-blocking
 
-                # Launch Phase B (async, non-blocking)
-                asyncio.create_task(
-                    run_phase_b_verification(
-                        submission_id=submission_id,
-                        submission=submission_data,
-                        task=task,
-                    )
+                # Phase B: always launch for physical/location categories
+                # (Ring 1 PHOTINT is valuable regardless of arbiter_mode).
+                # Ring 2 (Arbiter LLM) is still gated inside Phase B by
+                # arbiter_mode != manual, BUT for physical categories we
+                # force it to run — see background_runner.py.
+                physical_categories = {
+                    "physical_presence",
+                    "location_based",
+                    "verification",
+                    "sensory",
+                    "data_collection",
+                }
+                should_launch_phase_b = (
+                    task.get("arbiter_enabled")
+                    or task.get("category") in physical_categories
+                    or True  # Keep unconditional launch as safety net
                 )
+                if should_launch_phase_b:
+                    asyncio.create_task(
+                        run_phase_b_verification(
+                            submission_id=submission_id,
+                            submission=submission_data,
+                            task=task,
+                        )
+                    )
         except Exception as verify_err:
             logger.warning(
                 "Evidence verification failed for submission %s: %s",

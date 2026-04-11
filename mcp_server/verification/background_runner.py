@@ -225,14 +225,25 @@ async def run_phase_b_verification(
             merged["phase"],
         )
 
-        # 8. Run Ring 2 ArbiterService if task has arbiter_enabled
+        # 8. Run Ring 2 ArbiterService
+        # For physical categories, ALWAYS run the arbiter (PHOTINT forensic
+        # analysis is critical for photo authenticity, GPS consistency, and
+        # timestamp integrity).  For other categories, require explicit
+        # arbiter_enabled + non-manual arbiter_mode.
         # Fire-and-forget: never blocks Phase B response, never raises.
+        _PHYSICAL_CATEGORIES = {
+            "physical_presence",
+            "location_based",
+            "verification",
+            "sensory",
+            "data_collection",
+        }
         try:
-            if task.get("arbiter_enabled") and task.get("arbiter_mode") not in (
-                None,
-                "",
-                "manual",
-            ):
+            is_physical = task.get("category") in _PHYSICAL_CATEGORIES
+            has_explicit_arbiter = task.get("arbiter_enabled") and task.get(
+                "arbiter_mode"
+            ) not in (None, "", "manual")
+            if is_physical or has_explicit_arbiter:
                 await _run_arbiter_for_submission(
                     submission_id=submission_id,
                     task=task,

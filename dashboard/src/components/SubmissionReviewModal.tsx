@@ -529,8 +529,8 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                 )
               })()}
 
-              {/* AI Analysis Details (Phase B) */}
-              {submission.ai_verification_result && (
+              {/* Ring 1: AI Analysis / PHOTINT (Phase B) */}
+              {submission.ai_verification_result ? (
                 <div>
                   <h3 className="text-sm font-medium text-gray-700 mb-2">
                     {t('aiAnalysis.title', 'AI Analysis')}
@@ -539,7 +539,26 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                     result={submission.ai_verification_result as AIAnalysisResult}
                   />
                 </div>
-              )}
+              ) : (() => {
+                const category = submission.task?.category
+                const physicalCategories = ['physical_presence', 'location_based', 'verification', 'sensory', 'data_collection']
+                const isPhysical = category && physicalCategories.includes(category)
+                const details = submission.auto_check_details as AutoCheckDetails | null
+                const phase = details?.phase
+                if (!isPhysical) return null
+                return (
+                  <div className="rounded-lg border border-gray-200 bg-blue-50 p-3">
+                    <h3 className="text-sm font-medium text-gray-700 mb-1">
+                      {t('aiAnalysis.ring1Title', 'Ring 1: PHOTINT Analysis')}
+                    </h3>
+                    <p className="text-xs text-blue-700">
+                      {phase === 'AB'
+                        ? t('aiAnalysis.ring1NotAvailable', 'PHOTINT: Analysis completed but no AI result produced. Evidence may lack photos.')
+                        : t('aiAnalysis.ring1Processing', 'PHOTINT: Processing photo forensics (tampering, GenAI detection, GPS consistency)...')}
+                    </p>
+                  </div>
+                )
+              })()}
 
               {/* Ring 2 Arbiter Verdict */}
               {(() => {
@@ -563,7 +582,40 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                   } | null
                 }
                 const a = submission as unknown as ArbiterFields
-                if (!a.arbiter_verdict) return null
+
+                // When no arbiter verdict exists, show explicit status
+                if (!a.arbiter_verdict) {
+                  const category = submission.task?.category
+                  const physicalCategories = ['physical_presence', 'location_based', 'verification', 'sensory', 'data_collection']
+                  const isPhysical = category && physicalCategories.includes(category)
+                  // Detect arbiter_mode from task metadata (may not be in TS type but present in DB)
+                  const taskAny = submission.task as Record<string, unknown> | undefined
+                  const arbiterMode = taskAny?.arbiter_mode as string | null | undefined
+                  const arbiterEnabled = taskAny?.arbiter_enabled as boolean | null | undefined
+
+                  let statusMessage: string | null = null
+                  let statusBg = 'bg-gray-50'
+                  let statusText = 'text-gray-500'
+
+                  if (!arbiterMode || arbiterMode === 'manual') {
+                    statusMessage = t('arbiter.manualMode', 'Arbiter: Not requested (manual mode). Set arbiter_mode to "auto" or "hybrid" for AI evaluation.')
+                  } else if (arbiterEnabled || isPhysical) {
+                    statusMessage = t('arbiter.processing', 'Arbiter: Processing AI evaluation...')
+                    statusBg = 'bg-blue-50'
+                    statusText = 'text-blue-700'
+                  }
+
+                  if (!statusMessage) return null
+                  return (
+                    <div className={`rounded-lg border border-gray-200 ${statusBg} p-3`}>
+                      <h3 className="text-sm font-medium text-gray-700 mb-1">
+                        {t('arbiter.title', 'Ring 2 Arbiter Verdict')}
+                      </h3>
+                      <p className={`text-xs ${statusText}`}>{statusMessage}</p>
+                    </div>
+                  )
+                }
+
                 return (
                   <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2">
                     <div className="flex items-center justify-between flex-wrap gap-2">
