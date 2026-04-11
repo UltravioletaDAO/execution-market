@@ -77,20 +77,47 @@ VALID_PAYLOAD = {
 }
 
 
-def _make_dispatcher():
-    """Create a PaymentDispatcher with TEST_NETWORK_CONFIG."""
-    with (
-        patch(f"{DISPATCHER_MODULE}.ADVANCED_ESCROW_AVAILABLE", False),
-        patch(f"{DISPATCHER_MODULE}.FASE2_SDK_AVAILABLE", True),
-        patch(f"{DISPATCHER_MODULE}.SDK_AVAILABLE", True),
-        patch(f"{DISPATCHER_MODULE}.NETWORK_CONFIG", TEST_NETWORK_CONFIG),
-        patch(f"{DISPATCHER_MODULE}.PLATFORM_FEE_PERCENT", Decimal("0.13")),
+def _dispatcher_patches():
+    """Return a context manager that patches PaymentDispatcher dependencies.
+
+    NETWORK_CONFIG must stay patched while calling validate_agent_preauth
+    (a @staticmethod that reads the module-level variable), so the caller
+    must keep this context manager open during assertions, not only during
+    dispatcher construction.
+    """
+    from contextlib import ExitStack
+
+    stack = ExitStack()
+    stack.enter_context(patch(f"{DISPATCHER_MODULE}.ADVANCED_ESCROW_AVAILABLE", False))
+    stack.enter_context(patch(f"{DISPATCHER_MODULE}.FASE2_SDK_AVAILABLE", True))
+    stack.enter_context(patch(f"{DISPATCHER_MODULE}.SDK_AVAILABLE", True))
+    stack.enter_context(
+        patch(f"{DISPATCHER_MODULE}.NETWORK_CONFIG", TEST_NETWORK_CONFIG)
+    )
+    stack.enter_context(
+        patch(f"{DISPATCHER_MODULE}.PLATFORM_FEE_PERCENT", Decimal("0.13"))
+    )
+    stack.enter_context(
         patch(
             f"{DISPATCHER_MODULE}._get_platform_address",
             return_value="0xPlatformAddr",
-        ),
-        patch.dict(os.environ, {"WALLET_PRIVATE_KEY": "0x" + "aa" * 32}),
-    ):
+        )
+    )
+    stack.enter_context(
+        patch.dict(os.environ, {"WALLET_PRIVATE_KEY": "0x" + "aa" * 32})
+    )
+    return stack
+
+
+def _make_dispatcher():
+    """Create a PaymentDispatcher with TEST_NETWORK_CONFIG.
+
+    NOTE: The returned dispatcher's validate_agent_preauth is a @staticmethod
+    that reads the module-level NETWORK_CONFIG. If you need SC-001 validation
+    (network kwarg), use ``_dispatcher_patches()`` as a context manager around
+    BOTH construction and assertion so the patch stays active.
+    """
+    with _dispatcher_patches():
         from integrations.x402.payment_dispatcher import PaymentDispatcher
 
         d = PaymentDispatcher(mode="fase2")
@@ -102,34 +129,42 @@ class TestSC001RejectsUnknownOperator:
     """SC-001: paymentInfo.operator must match NETWORK_CONFIG[network].operator."""
 
     def test_rejects_unknown_operator(self):
-        d = _make_dispatcher()
-        payload = copy.deepcopy(VALID_PAYLOAD)
-        payload["payload"]["paymentInfo"]["operator"] = (
-            "0xMaliciousOperator000000000000000000000000"
-        )
-        with pytest.raises(ValueError, match="paymentInfo.operator must be"):
-            d.validate_agent_preauth(
-                json.dumps(payload),
-                network="base",
-                expected_payer=VALID_AGENT_WALLET,
+        with _dispatcher_patches():
+            from integrations.x402.payment_dispatcher import PaymentDispatcher
+
+            d = PaymentDispatcher(mode="fase2")
+            d.escrow_mode = "direct_release"
+            payload = copy.deepcopy(VALID_PAYLOAD)
+            payload["payload"]["paymentInfo"]["operator"] = (
+                "0xMaliciousOperator000000000000000000000000"
             )
+            with pytest.raises(ValueError, match="paymentInfo.operator must be"):
+                d.validate_agent_preauth(
+                    json.dumps(payload),
+                    network="base",
+                    expected_payer=VALID_AGENT_WALLET,
+                )
 
 
 class TestSC001RejectsUnknownToken:
     """SC-001: paymentInfo.token must be in NETWORK_CONFIG[network].tokens allowlist."""
 
     def test_rejects_unknown_token(self):
-        d = _make_dispatcher()
-        payload = copy.deepcopy(VALID_PAYLOAD)
-        payload["payload"]["paymentInfo"]["token"] = (
-            "0xMaliciousToken0000000000000000000000000000"
-        )
-        with pytest.raises(ValueError, match="not in allowlist"):
-            d.validate_agent_preauth(
-                json.dumps(payload),
-                network="base",
-                expected_payer=VALID_AGENT_WALLET,
+        with _dispatcher_patches():
+            from integrations.x402.payment_dispatcher import PaymentDispatcher
+
+            d = PaymentDispatcher(mode="fase2")
+            d.escrow_mode = "direct_release"
+            payload = copy.deepcopy(VALID_PAYLOAD)
+            payload["payload"]["paymentInfo"]["token"] = (
+                "0xMaliciousToken0000000000000000000000000000"
             )
+            with pytest.raises(ValueError, match="not in allowlist"):
+                d.validate_agent_preauth(
+                    json.dumps(payload),
+                    network="base",
+                    expected_payer=VALID_AGENT_WALLET,
+                )
 
 
 class TestSC001RejectsAmountMismatch:
@@ -172,17 +207,23 @@ class TestSC001RejectsWrongTokenCollector:
     """SC-001: authorization.to must match NETWORK_CONFIG tokenCollector."""
 
     def test_rejects_wrong_collector(self):
-        d = _make_dispatcher()
-        payload = copy.deepcopy(VALID_PAYLOAD)
-        payload["payload"]["authorization"]["to"] = (
-            "0xMaliciousCollector0000000000000000000000"
-        )
-        with pytest.raises(ValueError, match="authorization.to must be tokenCollector"):
-            d.validate_agent_preauth(
-                json.dumps(payload),
-                network="base",
-                expected_payer=VALID_AGENT_WALLET,
+        with _dispatcher_patches():
+            from integrations.x402.payment_dispatcher import PaymentDispatcher
+
+            d = PaymentDispatcher(mode="fase2")
+            d.escrow_mode = "direct_release"
+            payload = copy.deepcopy(VALID_PAYLOAD)
+            payload["payload"]["authorization"]["to"] = (
+                "0xMaliciousCollector0000000000000000000000"
             )
+            with pytest.raises(
+                ValueError, match="authorization.to must be tokenCollector"
+            ):
+                d.validate_agent_preauth(
+                    json.dumps(payload),
+                    network="base",
+                    expected_payer=VALID_AGENT_WALLET,
+                )
 
 
 class TestSC001RejectsUnknownNetwork:

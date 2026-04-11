@@ -65,14 +65,13 @@ class TestBatchEndpointDisabled:
         ):
             yield
 
-    def test_batch_returns_503(self):
+    @pytest.mark.asyncio
+    async def test_batch_returns_503(self):
         """Batch endpoint always raises HTTPException(503)."""
         from fastapi import HTTPException
 
         # Import the endpoint function directly
         from api.routers.tasks import batch_create_tasks
-
-        import asyncio
 
         # Build a minimal BatchCreateRequest mock
         mock_request = MagicMock()
@@ -81,9 +80,7 @@ class TestBatchEndpointDisabled:
         auth = _make_auth()
 
         with pytest.raises(HTTPException) as exc_info:
-            asyncio.get_event_loop().run_until_complete(
-                batch_create_tasks(request=mock_request, auth=auth)
-            )
+            await batch_create_tasks(request=mock_request, auth=auth)
 
         assert exc_info.value.status_code == 503
         assert "temporarily disabled" in exc_info.value.detail
