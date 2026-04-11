@@ -40,6 +40,7 @@ from ._models import (
     ApplicationListResponse,
     SuccessResponse,
     ErrorResponse,
+    UpdateEscrowMetadataRequest,
 )
 
 from ._helpers import (
@@ -2473,6 +2474,9 @@ async def cancel_task(
         cancellable_statuses = {"published"}
         if is_direct_release_cancel:
             cancellable_statuses.add("accepted")
+            cancellable_statuses.add(
+                "expired"
+            )  # Allow cancel+refund for expired tasks with locked escrow
 
         if task_status not in cancellable_statuses:
             raise HTTPException(
@@ -2826,6 +2830,146 @@ async def cancel_task(
         logger.error("Unexpected error cancelling task %s: %s", task_id, error_msg)
         raise HTTPException(
             status_code=500, detail="Internal error while cancelling task"
+        )
+
+
+# =============================================================================
+# ESCROW METADATA UPDATE
+# =============================================================================
+
+_ESCROW_UPDATABLE_STATUSES = {"deposited", "authorized"}
+
+
+@router.patch(
+    "/tasks/{task_id}/escrow",
+    response_model=SuccessResponse,
+    responses={
+        200: {"description": "Escrow metadata updated successfully"},
+        401: {
+            "model": ErrorResponse,
+            "description": "Unauthorized - invalid or missing authentication",
+        },
+        403: {
+            "model": ErrorResponse,
+            "description": "Not authorized to update this task's escrow",
+        },
+        404: {"model": ErrorResponse, "description": "Task or escrow not found"},
+        409: {
+            "model": ErrorResponse,
+            "description": "Escrow cannot be updated in current status",
+        },
+    },
+    summary="Update Escrow Metadata",
+    description=(
+        "Update escrow metadata (payment_info, escrow_tx) for an active escrow. "
+        "Only the task owner can update, and only while escrow is deposited or authorized."
+    ),
+    tags=["Tasks", "Payments"],
+)
+async def update_escrow_metadata(
+    task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
+    request: UpdateEscrowMetadataRequest = ...,
+    auth: AgentAuth = Depends(verify_agent_auth_write),
+) -> SuccessResponse:
+    """Update escrow metadata for a task (e.g. payment_info for release/refund)."""
+    try:
+        task = await db.get_task(task_id)
+        if not task:
+            raise HTTPException(status_code=404, detail="Task not found")
+
+        # Verify ownership
+        is_owner = task.get("agent_id") == auth.agent_id or (
+            getattr(auth, "wallet_address", None)
+            and task.get("agent_id") == auth.wallet_address
+        )
+        if not is_owner:
+            raise HTTPException(
+                status_code=403, detail="Not authorized to update this task's escrow"
+            )
+
+        # Fetch existing escrow row
+        client = db.get_client()
+        try:
+            escrow_result = (
+                client.table("escrows")
+                .select("id,status,metadata,escrow_tx")
+                .eq("task_id", task_id)
+                .single()
+                .execute()
+            )
+            escrow_row = escrow_result.data
+        except Exception:
+            escrow_row = None
+
+        if not escrow_row:
+            raise HTTPException(
+                status_code=404, detail="No escrow record found for this task"
+            )
+
+        escrow_status = _normalize_status(escrow_row.get("status") or "none")
+        if escrow_status not in _ESCROW_UPDATABLE_STATUSES:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"Cannot update escrow in '{escrow_status}' status. "
+                    f"Only {', '.join(sorted(_ESCROW_UPDATABLE_STATUSES))} escrows can be updated."
+                ),
+            )
+
+        # Build update payload
+        update_fields: Dict[str, Any] = {}
+        existing_metadata = escrow_row.get("metadata") or {}
+        if isinstance(existing_metadata, str):
+            existing_metadata = json.loads(existing_metadata)
+
+        if request.payment_info is not None:
+            existing_metadata["payment_info"] = request.payment_info
+            update_fields["metadata"] = existing_metadata
+
+        if request.escrow_tx is not None:
+            update_fields["escrow_tx"] = request.escrow_tx
+
+        if not update_fields:
+            return SuccessResponse(
+                message="No fields to update.",
+                data={"task_id": task_id, "escrow_status": escrow_status},
+            )
+
+        client.table("escrows").update(update_fields).eq("task_id", task_id).execute()
+
+        # Also update task-level escrow_tx if provided
+        if request.escrow_tx is not None:
+            try:
+                await db.update_task(task_id, {"escrow_tx": request.escrow_tx})
+            except Exception as task_upd_err:
+                logger.warning(
+                    "Could not update escrow_tx on task %s: %s", task_id, task_upd_err
+                )
+
+        logger.info(
+            "Escrow metadata updated: task=%s, agent=%s, fields=%s",
+            task_id,
+            auth.agent_id,
+            list(update_fields.keys()),
+        )
+
+        return SuccessResponse(
+            message="Escrow metadata updated successfully.",
+            data={
+                "task_id": task_id,
+                "escrow_status": escrow_status,
+                "updated_fields": list(update_fields.keys()),
+            },
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            "Unexpected error updating escrow metadata for task %s: %s", task_id, e
+        )
+        raise HTTPException(
+            status_code=500, detail="Internal error while updating escrow metadata"
         )
 
 

@@ -90,48 +90,106 @@ async def _process_expired_task(client, task: dict) -> None:
 
     escrow_mode = os.environ.get("EM_ESCROW_MODE", "platform_release")
 
+    # Retry configuration for refund attempts
+    max_retries = 3
+    retry_delay_s = 5
+
     if escrow_mode == "direct_release":
         # Fase 5 trustless: use PaymentDispatcher
         try:
             from integrations.x402.payment_dispatcher import PaymentDispatcher
 
             dispatcher = PaymentDispatcher()
-            result = await dispatcher.refund_trustless_escrow(
-                task_id=task_id,
-                reason="Auto-refund: task expired past deadline",
-            )
+            last_error = None
 
-            if result.get("success"):
-                logger.info(
-                    "[expiration] Fase 5 refund successful for task %s: tx=%s",
+            for attempt in range(1, max_retries + 1):
+                try:
+                    result = await dispatcher.refund_trustless_escrow(
+                        task_id=task_id,
+                        reason="Auto-refund: task expired past deadline",
+                    )
+
+                    if result.get("success"):
+                        logger.info(
+                            "[expiration] Fase 5 refund successful for task %s (attempt %d): tx=%s",
+                            task_id,
+                            attempt,
+                            result.get("tx_hash", "N/A"),
+                        )
+                        try:
+                            client.table("payments").insert(
+                                {
+                                    "task_id": task_id,
+                                    "agent_id": agent_id,
+                                    "type": "refund",
+                                    "status": "confirmed",
+                                    "tx_hash": result.get("tx_hash", ""),
+                                    "escrow_id": escrow_id,
+                                    "note": "Auto-refund: task expired past deadline (Fase 5 trustless)",
+                                    "created_at": datetime.now(
+                                        timezone.utc
+                                    ).isoformat(),
+                                }
+                            ).execute()
+                        except Exception as exc:
+                            logger.error(
+                                "[expiration] Failed to record payment for task %s: %s",
+                                task_id,
+                                exc,
+                            )
+                        last_error = None
+                        break  # Success — exit retry loop
+                    else:
+                        last_error = result.get("error", "Refund returned failure")
+                        logger.warning(
+                            "[expiration] Fase 5 refund attempt %d/%d failed for task %s: %s",
+                            attempt,
+                            max_retries,
+                            task_id,
+                            last_error,
+                        )
+                except Exception as retry_exc:
+                    last_error = str(retry_exc)
+                    logger.warning(
+                        "[expiration] Fase 5 refund attempt %d/%d raised exception for task %s: %s",
+                        attempt,
+                        max_retries,
+                        task_id,
+                        retry_exc,
+                    )
+
+                if attempt < max_retries:
+                    await asyncio.sleep(retry_delay_s)
+
+            # All retries exhausted — log failure to payment_events
+            if last_error:
+                logger.warning(
+                    "[expiration] All %d refund attempts failed for task %s: %s",
+                    max_retries,
                     task_id,
-                    result.get("tx_hash", "N/A"),
+                    last_error,
                 )
                 try:
-                    client.table("payments").insert(
-                        {
-                            "task_id": task_id,
-                            "agent_id": agent_id,
-                            "type": "refund",
-                            "status": "confirmed",
-                            "tx_hash": result.get("tx_hash", ""),
+                    from integrations.x402.payment_events import log_payment_event
+
+                    await log_payment_event(
+                        task_id=task_id,
+                        event_type="refund_failed",
+                        status="failed",
+                        error=f"Auto-refund exhausted {max_retries} retries: {last_error}",
+                        metadata={
                             "escrow_id": escrow_id,
-                            "note": "Auto-refund: task expired past deadline (Fase 5 trustless)",
-                            "created_at": datetime.now(timezone.utc).isoformat(),
-                        }
-                    ).execute()
-                except Exception as exc:
-                    logger.error(
-                        "[expiration] Failed to record payment for task %s: %s",
-                        task_id,
-                        exc,
+                            "escrow_mode": "direct_release",
+                            "retries": max_retries,
+                        },
                     )
-            else:
-                logger.warning(
-                    "[expiration] Fase 5 refund failed for task %s: %s",
-                    task_id,
-                    result.get("error"),
-                )
+                except Exception as log_exc:
+                    logger.error(
+                        "[expiration] Could not log refund_failed event for task %s: %s",
+                        task_id,
+                        log_exc,
+                    )
+
         except ImportError:
             logger.warning(
                 "[expiration] PaymentDispatcher not available for Fase 5, skipping refund for task %s",
@@ -158,40 +216,96 @@ async def _process_expired_task(client, task: dict) -> None:
                 )
                 return
 
-            result = refund_to_agent(task_id=task_id)
+            last_error = None
 
-            if result.success:
-                logger.info(
-                    "[expiration] Refund successful for task %s: tx=%s",
+            for attempt in range(1, max_retries + 1):
+                try:
+                    result = refund_to_agent(task_id=task_id)
+
+                    if result.success:
+                        logger.info(
+                            "[expiration] Refund successful for task %s (attempt %d): tx=%s",
+                            task_id,
+                            attempt,
+                            getattr(result, "transaction_hash", "N/A"),
+                        )
+                        try:
+                            client.table("payments").insert(
+                                {
+                                    "task_id": task_id,
+                                    "agent_id": agent_id,
+                                    "type": "refund",
+                                    "status": "confirmed",
+                                    "tx_hash": getattr(result, "transaction_hash", ""),
+                                    "escrow_id": escrow_id,
+                                    "note": "Auto-refund: task expired past deadline (via SDK)",
+                                    "created_at": datetime.now(
+                                        timezone.utc
+                                    ).isoformat(),
+                                }
+                            ).execute()
+                        except Exception as exc:
+                            logger.error(
+                                "[expiration] Failed to record payment for task %s: %s",
+                                task_id,
+                                exc,
+                            )
+                        last_error = None
+                        break  # Success — exit retry loop
+                    else:
+                        last_error = str(
+                            getattr(result, "error", "Refund returned failure")
+                        )
+                        logger.warning(
+                            "[expiration] Refund attempt %d/%d failed for task %s (escrow_id=%s): %s",
+                            attempt,
+                            max_retries,
+                            task_id,
+                            escrow_id,
+                            last_error,
+                        )
+                except Exception as retry_exc:
+                    last_error = str(retry_exc)
+                    logger.warning(
+                        "[expiration] Refund attempt %d/%d raised exception for task %s: %s",
+                        attempt,
+                        max_retries,
+                        task_id,
+                        retry_exc,
+                    )
+
+                if attempt < max_retries:
+                    await asyncio.sleep(retry_delay_s)
+
+            # All retries exhausted — log failure to payment_events
+            if last_error:
+                logger.warning(
+                    "[expiration] All %d refund attempts failed for task %s: %s",
+                    max_retries,
                     task_id,
-                    getattr(result, "transaction_hash", "N/A"),
+                    last_error,
                 )
                 try:
-                    client.table("payments").insert(
-                        {
-                            "task_id": task_id,
-                            "agent_id": agent_id,
-                            "type": "refund",
-                            "status": "confirmed",
-                            "tx_hash": getattr(result, "transaction_hash", ""),
+                    from integrations.x402.payment_events import log_payment_event
+
+                    await log_payment_event(
+                        task_id=task_id,
+                        event_type="refund_failed",
+                        status="failed",
+                        error=f"Auto-refund exhausted {max_retries} retries: {last_error}",
+                        metadata={
                             "escrow_id": escrow_id,
-                            "note": "Auto-refund: task expired past deadline (via SDK)",
-                            "created_at": datetime.now(timezone.utc).isoformat(),
-                        }
-                    ).execute()
-                except Exception as exc:
-                    logger.error(
-                        "[expiration] Failed to record payment for task %s: %s",
-                        task_id,
-                        exc,
+                            "escrow_mode": "platform_release",
+                            "retries": max_retries,
+                        },
                     )
-            else:
-                logger.warning(
-                    "[expiration] Refund failed for task %s (escrow_id=%s): %s",
-                    task_id,
-                    escrow_id,
-                    result.error,
-                )
+                except Exception as log_exc:
+                    logger.error(
+                        "[expiration] Could not log refund_failed event for task %s: %s",
+                        task_id,
+                        log_exc,
+                    )
+
         except ImportError:
             logger.warning(
                 "[expiration] x402r escrow not available, skipping refund for task %s",

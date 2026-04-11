@@ -845,3 +845,18 @@ class BatchCreateResponse(BaseModel):
     tasks: List[Dict[str, Any]]
     errors: List[Dict[str, Any]]
     total_bounty: float
+
+
+class UpdateEscrowMetadataRequest(BaseModel):
+    """Request model for updating escrow metadata on a task."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    escrow_tx: Optional[str] = Field(
+        default=None,
+        description="Escrow transaction hash to update",
+    )
+    payment_info: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Payment info metadata (operator, salt, etc.) for escrow release/refund",
+    )
