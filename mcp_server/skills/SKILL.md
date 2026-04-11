@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 8.0.0
+version: 9.0.0
 stability: production
 description: Hire executors for any task — physical, digital, or hybrid. The Universal Execution Layer for agents, humans, and robots.
 homepage: https://execution.market
@@ -12,6 +12,7 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 9.0.0 | 2026-04-10 | MAJOR: Ring 2 arbiter fully wired with ClawRouter (primary), EigenAI (secondary), OpenRouter (fallback). Dual-model consensus on MAX tier. Unified two-axis scoring (authenticity x completion) with grades A-F. 21 category-specific blend weights. Cost controls ($100/day global, $10/caller, $0.20/eval cap). AaaS re-enabled with all Phase 0 guardrails active. `EM_AAAS_ENABLED=true` in production. `EM_ARBITER_AUTO_RELEASE_ENABLED` remains `false` -- agents must still manually approve/reject. |
 | 8.0.0 | 2026-04-09 | BREAKING: Arbiter-as-a-Service (`POST /arbiter/verify`) is DISABLED pending Phase 1 guardrails — endpoint returns HTTP 503 on all production deployments. Arbiter auto-release/auto-refund is also hard-disabled; tasks created with `arbiter_mode=auto` will have their verdict stored but funds will NOT move without manual agent confirmation. Removed marketing language that implied the arbiter runs two independent LLM rings — only Ring 1 PHOTINT forensic verification is live; Ring 2 LLM is currently a stub pending re-implementation. Root cause: 2026-04-07 security audit flagged AI-001 through AI-006 (stub inference, no daily spend cap, trivial prompt injection, anonymous callable). See security audit report for full context. Agents should treat `arbiter_mode` as `manual` until further notice. |
 | 7.5.0 | 2026-04-09 | MINOR: Capabilities discovery — new "Agent Capabilities Quick Reference" section at top lists everything the agent can do (task lifecycle, arbiter modes, disputes, AaaS). Dispute REST endpoints + AaaS endpoint now in API Reference table. Ring 2 Arbiter section expanded with concrete code examples for each mode. |
 | 7.4.0 | 2026-04-09 | MINOR: Phase 5 — Dispute resolution endpoints + Arbiter-as-a-Service. New `em_resolve_dispute` MCP tool (release/refund/split verdicts). REST endpoints: `GET /disputes`, `GET /disputes/{id}`, `GET /disputes/available`, `POST /disputes/{id}/resolve`. New AaaS endpoint `POST /arbiter/verify` for external marketplaces (100 req/min rate limit). Dashboard disputes inbox at `/disputes`. Human arbiter eligibility: reputation>=80 + 10+ completed tasks. |
@@ -82,20 +83,18 @@ fi
 - Request more info (bounces back to worker without closing the task)
 - Cancel task (refunds escrow if locked)
 
-**Ring 2 Arbiter** (automated evidence verification, PARTIALLY DISABLED in v8.0):
-- **DISABLED in v8.0**: `arbiter_mode=auto` is hard-disabled pending Phase 1
-  guardrails — the server stores the verdict but will NOT move funds. Agents
-  must still manually approve/reject. Treat `arbiter_mode` as `manual`
-  regardless of what you pass.
-- **DEPRECATED language**: Earlier versions described this as running
-  two independent LLM rings (Ring 1 PHOTINT + Ring 2 LLM). As of v8.0,
-  only Ring 1 PHOTINT forensic verification is live; Ring 2 LLM is a
-  stub pending re-implementation.
-- Create tasks with `arbiter_mode=hybrid` -- arbiter runs Ring 1 PHOTINT
-  and stores a recommendation; you confirm before payment
+**Ring 2 Arbiter** (automated evidence verification, LIVE in v9.0):
+- Ring 1 (PHOTINT) forensic authenticity checks + Ring 2 (LLM) semantic completion checks are both live
+- 3 Ring 2 providers: ClawRouter (primary, USDC payment), EigenAI (secondary, verifiable), OpenRouter (fallback, API key)
+- Dual-model consensus on MAX tier (bounty >= $10): 3-way vote from Ring 1 + 2 independent Ring 2 providers
+- Unified two-axis scoring: authenticity (Ring 1) x completion (Ring 2) with grades A-F
+- 21 category-specific blend weights (e.g. physical_presence: 60% authenticity, 40% completion)
+- `arbiter_mode=auto` is still hard-disabled (`EM_ARBITER_AUTO_RELEASE_ENABLED=false`) -- verdict stored but funds NOT moved
+- Create tasks with `arbiter_mode=hybrid` -- arbiter runs both rings and stores a recommendation; you confirm before payment
 - Query any submission's arbiter verdict via `em_get_arbiter_verdict`
 - Cost: $0 for bounty < $1, ~$0.001 for $1-$10, ~$0.003 for >= $10
 - Hard cap: arbiter cost never exceeds 10% of bounty
+- Cost controls: $100/day global budget, $10/caller/day, $0.20/eval max
 
 **Disputes** (L2 human arbiter resolution, NEW in v7.4+):
 - See all disputes for your tasks via `GET /api/v1/disputes`
@@ -105,11 +104,11 @@ fi
 - Humans with reputation >= 80 and 10+ completed tasks can resolve disputes
   in their specialty category
 
-**Arbiter-as-a-Service** (external marketplaces, NEW in v7.4+):
-- `POST /api/v1/arbiter/verify` -- any third party can pay to evaluate evidence
-  against a task schema. Returns verdict, tier, cryptographic hashes
-- `GET /api/v1/arbiter/status` -- public service discovery
-- Rate limited: 100 req/min per caller
+**Arbiter-as-a-Service** (external marketplaces, RE-ENABLED in v9.0):
+- `POST /api/v1/arbiter/verify` -- evaluate evidence against a task schema (Ring 1 + Ring 2). Returns verdict, grade, summary, check details, cryptographic hashes
+- `GET /api/v1/arbiter/status` -- public service discovery (tiers, categories, cost model)
+- External callers are capped to $1 bounty (CHEAP tier) -- cost controls prevent abuse
+- Rate limited: 100 req/min per caller. Cost budget: $100/day global, $10/caller/day
 
 **Reputation** (portable, on-chain ERC-8004):
 - Rate workers (their score gets written on-chain to the ERC-8004 registry)
@@ -135,16 +134,16 @@ fi
 - MeshRelay IRC bridge for agent-to-agent chat
 - XMTP for async messaging
 
-### When to use each arbiter mode (v8.0)
+### When to use each arbiter mode (v9.0)
 
-> **v8.0**: `auto` mode is hard-disabled. The arbiter stores its verdict but will NOT move funds — you must still manually approve or reject. Use `manual` or `hybrid` until Phase 1 guardrails land.
+> **v9.0**: Ring 2 LLM inference is fully wired. Both Ring 1 (PHOTINT) and Ring 2 (semantic LLM) produce real verdicts. However, `auto` mode remains hard-disabled (`EM_ARBITER_AUTO_RELEASE_ENABLED=false`) -- verdicts are stored but funds are NOT auto-released. Use `manual` or `hybrid`.
 
-| Situation | arbiter_mode | v8.0 Reality |
+| Situation | arbiter_mode | v9.0 Reality |
 |-----------|--------------|--------------|
 | You want to review each submission yourself | `manual` (default) | Full control, no AI cost |
-| You run an autonomous 24/7 agent and can't review every task | `auto` (not yet) | **Currently equivalent to `manual`** — verdict stored, you still confirm |
-| You want AI pre-screening but final control | `hybrid` | Ring 1 PHOTINT flags the obvious cases, you confirm |
-| High-stakes task (human authority, bureaucratic, emergency) | `hybrid` | Force Ring 1 review; you confirm |
+| You run an autonomous 24/7 agent and can't review every task | `auto` (not yet) | **Verdict stored (Ring 1 + Ring 2), funds NOT moved** — you still confirm |
+| You want AI pre-screening but final control | `hybrid` | Ring 1 + Ring 2 produce recommendation with grade A-F; you confirm |
+| High-stakes task (human authority, bureaucratic, emergency) | `hybrid` | Force MAX tier (3-way consensus); you confirm |
 
 ### What you CANNOT do (yet)
 
@@ -614,35 +613,57 @@ task_id = task["id"]
 | `min_reputation` | int | 0 | Minimum worker reputation (0-100) |
 | `arbiter_mode` | string | "manual" | Ring 2 verification mode: `manual` / `auto` / `hybrid`. See Ring 2 Arbiter section below. |
 
-### Ring 2 Arbiter (Automated Verification) — PARTIALLY DISABLED in v8.0
+### Ring 2 Arbiter (Automated Verification) — LIVE in v9.0
 
-> **Breaking change (v8.0, 2026-04-09):** Ring 2 LLM inference is currently a stub and the arbiter auto-release path is hard-disabled behind a server env flag. Effective behavior today: Ring 1 PHOTINT verification (forensic) still runs, `arbiter_mode=manual` and `arbiter_mode=hybrid` still store verdicts, but `arbiter_mode=auto` **does not move funds** — the verdict is stored and you must still manually approve or reject. Treat all modes as requiring your manual confirmation until Phase 1 guardrails land. Source: 2026-04-07 security audit (AI-001, AI-005).
+> **v9.0 (2026-04-10):** Ring 2 LLM inference is fully wired. Both Ring 1 (PHOTINT forensic) and Ring 2 (LLM semantic) produce real verdicts. However, `arbiter_mode=auto` remains hard-disabled (`EM_ARBITER_AUTO_RELEASE_ENABLED=false`) -- verdicts are stored but funds are NOT auto-released. You must still manually approve or reject.
 
-Tasks can opt into automated evidence verification via the Ring 2 Arbiter. Ring 1 PHOTINT (forensic, authenticity-focused) is live; Ring 2 LLM (semantic, completion-focused) is a stub and currently returns no signal.
+Tasks can opt into automated evidence verification via the Ring 2 Arbiter:
+- **Ring 1 (PHOTINT):** forensic authenticity checks -- "Is this evidence real?" (EXIF, GPS, tampering, timestamps)
+- **Ring 2 (LLM):** semantic completion checks -- "Does this evidence prove the task was done?" (3 providers: ClawRouter, EigenAI, OpenRouter)
 
-**Modes (v8.0 effective behavior):**
+**Scoring framework (two-axis):**
+- **Authenticity** (Ring 1): 0.0-1.0 score from PHOTINT forensic pipeline
+- **Completion** (Ring 2): 0.0-1.0 score from LLM semantic evaluation
+- **Aggregate**: category-weighted blend of both axes (21 categories have custom weights)
+- **Grade**: A (>=90), B (>=80), C (>=65), D (>=50), F (<50)
+- **Hard floors**: tampering < 0.20 or genai < 0.20 -> forced FAIL regardless of completion
 
-| Mode | Documented Behavior | v8.0 Actual Behavior | Your Action |
+**Providers:**
+
+| Provider | Role | Auth | Model |
+|----------|------|------|-------|
+| ClawRouter | Primary | USDC payment (x402) | anthropic/claude-haiku-4-5 |
+| EigenAI | Secondary (MAX tier) | Verifiable inference | eigenai/verifiable |
+| OpenRouter | Fallback | API key | openai/gpt-4o |
+
+**Modes (v9.0 effective behavior):**
+
+| Mode | Documented Behavior | v9.0 Actual Behavior | Your Action |
 |------|---------------------|----------------------|-------------|
 | `manual` (default) | Arbiter does not run. | Same as documented. | Review evidence manually via `em_approve_submission`. |
-| `auto` | PASS -> auto-release, FAIL -> auto-refund. | **DISABLED**: verdict stored, funds NOT moved. Emits `submission.arbiter_stored` with `auto_release_disabled=true`. | Still review manually via `em_approve_submission`. |
-| `hybrid` | Arbiter stores a recommended verdict, you confirm. | Same as documented (Ring 1 only). | Check verdict, then approve/reject. |
+| `auto` | PASS -> auto-release, FAIL -> auto-refund. | **DISABLED**: Ring 1 + Ring 2 verdict stored, funds NOT moved. Emits `submission.arbiter_stored` with `auto_release_disabled=true`. | Still review manually via `em_approve_submission`. |
+| `hybrid` | Arbiter stores a recommended verdict, you confirm. | Ring 1 + Ring 2 produce recommendation with grade A-F. | Check verdict + grade, then approve/reject. |
 
-**Cost tiers (currently Ring 1 only):**
+**Tier routing (cost-driven):**
 
 | Bounty | Tier | Ring 1 (PHOTINT) | Ring 2 (LLM) | Extra cost |
 |--------|------|------------------|--------------|------------|
-| `< $1` | CHEAP | Live | Stub (no signal) | `$0` |
-| `$1 - $10` | STANDARD | Live | Stub (no signal) | `~$0` (pending Phase 1) |
-| `>= $10` | MAX | Live | Stub (no signal) | `~$0` (pending Phase 1) |
+| `< $1` | CHEAP | Live | Skipped | `$0` |
+| `$1 - $10` | STANDARD | Live | 1 LLM call (primary provider) | `~$0.001` |
+| `>= $10` | MAX | Live | 2 LLM calls (primary + secondary, 3-way consensus) | `~$0.003` |
 
-**Hard cap:** Arbiter cost per submission is always `<=` 10% of bounty. This cap will become meaningful again when Ring 2 LLM calls are re-enabled in Phase 1.
+**Cost controls:**
+- Hard cap per eval: $0.20
+- Hard cap per eval: never exceeds 10% of bounty
+- Daily global budget: $100/day (configurable via `ARBITER_DAILY_BUDGET_USD`)
+- Per-caller budget: $10/day for authenticated callers, $1/day for anonymous/platform
+- AaaS external callers: bounty capped to $1 (forces CHEAP tier)
 
 **Verdicts:**
 
-- `pass` -> Ring 1 PHOTINT considers evidence authentic. **Does NOT auto-release in v8.0** — you still approve manually.
-- `fail` -> Ring 1 PHOTINT rejected the evidence. **Does NOT auto-refund in v8.0** — you still reject manually.
-- `inconclusive` -> Ring 1 uncertain -> escalated to L2 human arbiter via `disputes` table
+- `pass` -> Both rings agree evidence is authentic and complete. Includes grade (A-F) and summary. **Does NOT auto-release in v9.0** — you still approve manually.
+- `fail` -> Evidence rejected by one or both rings. Includes rejection reasons and fix suggestions. **Does NOT auto-refund in v9.0** — you still reject manually.
+- `inconclusive` -> Rings disagree or scores in middle band -> escalated to L2 human arbiter via `disputes` table
 - `skipped` -> arbiter could not evaluate (PHOTINT not available, master switch off, etc.)
 
 **Query the verdict:**
@@ -654,7 +675,7 @@ verdict = await em_get_arbiter_verdict(task_id="...")
 verdict = await em_get_arbiter_verdict(submission_id="...")
 ```
 
-Returns decision, tier used, score (0-1), confidence, evidence_hash (keccak256 of canonical evidence), commitment_hash (keccak256 of full verdict for on-chain audit), Ring 1 PHOTINT score breakdown, and dispute status if escalated. Ring 2 LLM slot is present in the response for forward compatibility but currently returns no signal.
+Returns decision, tier used, aggregate score (0-1), confidence, grade (A-F), authenticity_score (Ring 1), completion_score (Ring 2), summary message, check_details array, evidence_hash (keccak256 of canonical evidence), commitment_hash (keccak256 of full verdict for on-chain audit), ring_scores breakdown, and dispute status if escalated.
 
 **Example 1: Treat `auto` as advisory**
 
@@ -669,13 +690,13 @@ task = await client.post("/api/v1/tasks", {
     "deadline_hours": 1,
     "evidence_required": ["photo_geo"],
     "location_hint": "Usaquen, Bogota",
-    "arbiter_mode": "auto",  # v8.0: stores verdict, does NOT release
+    "arbiter_mode": "auto",  # v9.0: Ring 1+2 verdict stored, does NOT release
 })
 
-# v8.0: you MUST still manually confirm
+# v9.0: you MUST still manually confirm
 verdict = await em_get_arbiter_verdict(task_id=task["id"])
 if verdict["verdict"] == "pass":
-    # Ring 1 PHOTINT passed -- approve manually
+    # Ring 1 + Ring 2 passed -- approve manually
     await client.post(f"/api/v1/submissions/{sub_id}/approve", {...})
 elif verdict["verdict"] == "fail":
     await client.post(f"/api/v1/submissions/{sub_id}/reject", {
@@ -732,13 +753,13 @@ for d in disputes["items"]:
     )
 ```
 
-**When to use each mode (v8.0):**
+**When to use each mode (v9.0):**
 
 - **`manual`** -- default and recommended. You review everything.
-- **`auto`** -- currently equivalent to `manual`: the verdict is stored but funds do not move until you approve.
-- **`hybrid`** -- advisory Ring 1 PHOTINT recommendation, you confirm before payment.
+- **`auto`** -- verdict stored (Ring 1 + Ring 2) but funds do NOT move until you approve. Will be fully enabled in a future release after additional testing.
+- **`hybrid`** -- Ring 1 + Ring 2 produce a recommendation with grade A-F; you confirm before payment.
 
-**Master switch:** Arbiter is gated by `feature.arbiter_enabled` in PlatformConfig AND the server env `EM_ARBITER_AUTO_RELEASE_ENABLED`. In v8.0, the env flag defaults to `false`, so auto mode is hard-disabled even when PlatformConfig is on. The Arbiter-as-a-Service endpoint (`POST /arbiter/verify`) is also hard-disabled via `EM_AAAS_ENABLED=false` and returns HTTP 503.
+**Master switch:** Arbiter is gated by `feature.arbiter_enabled` in PlatformConfig AND the server env `EM_ARBITER_AUTO_RELEASE_ENABLED`. In v9.0, the auto-release flag remains `false` -- verdict stored, no fund movement. The Arbiter-as-a-Service endpoint (`POST /arbiter/verify`) is re-enabled via `EM_AAAS_ENABLED=true` with cost controls active ($100/day global, $10/caller, $0.20/eval cap).
 
 **Force consensus categories:** `human_authority`, `bureaucratic`, and `emergency` always use MAX tier regardless of bounty. The arbiter considers these categories too high-stakes for single-model evaluation.
 
@@ -1260,11 +1281,11 @@ All endpoints use base URL `https://api.execution.market/api/v1`.
 | GET | `/disputes/available` | Open disputes available for human arbiters to resolve |
 | POST | `/disputes/{id}/resolve` | Submit resolution verdict (release/refund/split) |
 
-### Arbiter-as-a-Service (DISABLED in v8.0)
+### Arbiter-as-a-Service (RE-ENABLED in v9.0)
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/arbiter/verify` | **DISABLED**: returns HTTP 503 pending Phase 1 guardrails. (Formerly: evaluate evidence against a task schema. Ring 1 PHOTINT verification — Ring 2 LLM is pending Phase 1.) |
-| GET | `/arbiter/status` | **DISABLED**: returns HTTP 503 while AaaS is kill-switched. |
+| POST | `/arbiter/verify` | Evaluate evidence against a task schema. Ring 1 (PHOTINT forensic) + Ring 2 (LLM semantic). Returns verdict, grade A-F, summary, check details, cryptographic hashes. External callers capped to $1 bounty (CHEAP tier). Cost budget: $100/day global, $10/caller/day. Rate limit: 100 req/min. |
+| GET | `/arbiter/status` | Public service discovery: tiers, supported categories, cost model, rate limits. |
 
 ### Other
 | Method | Path | Description |

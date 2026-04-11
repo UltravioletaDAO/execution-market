@@ -200,8 +200,10 @@ resource "aws_ecs_task_definition" "mcp_server" {
         # auto-release or the AaaS endpoint in production without an
         # intentional Terraform change. See
         # docs/reports/security-audit-2026-04-07/.
-        { name = "EM_AAAS_ENABLED", value = "false" },
-        { name = "EM_ARBITER_AUTO_RELEASE_ENABLED", value = "false" },
+        { name = "EM_AAAS_ENABLED", value = "true" },  # Re-enabled: Ring 2 wired, cost controls active, all Phase 0 guardrails in place (2026-04-10)
+        { name = "EM_ARBITER_AUTO_RELEASE_ENABLED", value = "false" },  # Stays false: auto-release requires more testing before enabling
+        { name = "ARBITER_DAILY_BUDGET_USD", value = "100" },
+        { name = "ARBITER_PER_CALLER_BUDGET_USD", value = "10" },
       ]
 
       secrets = [

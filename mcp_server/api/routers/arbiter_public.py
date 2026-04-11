@@ -56,6 +56,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
 from integrations.arbiter.config import is_arbiter_enabled
+from integrations.arbiter.cost_tracker import CostTracker
 from integrations.arbiter.service import ArbiterService
 from integrations.arbiter.types import ArbiterDecision
 
@@ -64,6 +65,21 @@ from ..auth import AgentAuth, verify_agent_auth_write
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/arbiter", tags=["Arbiter-as-a-Service"])
+
+# Module-level cost tracker (shared across requests, resets daily)
+_cost_tracker = CostTracker()
+
+# Estimated per-tier costs for pre-flight budget checks
+_TIER_COST_ESTIMATES: dict[str, float] = {
+    "cheap": 0.0,
+    "standard": 0.001,
+    "max": 0.003,
+}
+
+# External callers (no task_id) are capped to CHEAP tier bounty.
+# Set to 0.99 (just under the $1.00 cheap/standard boundary) to ensure
+# the tier router selects CHEAP and no Ring 2 LLM inference runs.
+_EXTERNAL_BOUNTY_CAP_USD = 0.99
 
 
 # ============================================================================
@@ -311,12 +327,33 @@ async def verify_evidence(
     caller_id = getattr(auth, "wallet_address", None) or auth.agent_id or "anonymous"
     _check_rate_limit(caller_id)
 
-    # 3. Build synthetic task + submission dicts that ArbiterService expects
+    # 3. Cost controls (Phase V4)
+    #    External callers (no task_id in AaaS path) are capped to $1 bounty
+    #    to force CHEAP tier and prevent abuse.
+    effective_bounty = min(body.bounty_usd, _EXTERNAL_BOUNTY_CAP_USD)
+
+    # Estimate tier from effective bounty and pre-check budget
+    if effective_bounty < 1.0:
+        est_tier = "cheap"
+    elif effective_bounty < 10.0:
+        est_tier = "standard"
+    else:
+        est_tier = "max"
+    estimated_cost = _TIER_COST_ESTIMATES.get(est_tier, 0.003)
+
+    can_spend, spend_reason = _cost_tracker.can_spend(estimated_cost, caller_id)
+    if not can_spend:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Arbiter cost budget exceeded: {spend_reason}",
+        )
+
+    # 4. Build synthetic task + submission dicts that ArbiterService expects
     #    The AaaS path doesn't hit the DB -- we feed the service inline data.
     task = {
-        "id": f"aaas-{caller_id}-{int(body.bounty_usd * 1000)}",
+        "id": f"aaas-{caller_id}-{int(effective_bounty * 1000)}",
         "category": body.task_schema.category,
-        "bounty_usd": body.bounty_usd,
+        "bounty_usd": effective_bounty,
         "instructions": body.task_schema.instructions or "",
         "evidence_schema": {
             "required": body.task_schema.required_fields or [],
@@ -331,7 +368,7 @@ async def verify_evidence(
         "ai_verification_result": None,
     }
 
-    # 4. Run the arbiter
+    # 5. Run the arbiter
     try:
         arbiter = ArbiterService.from_defaults()
         verdict = await arbiter.evaluate(task, submission)
@@ -345,7 +382,7 @@ async def verify_evidence(
             detail=f"Arbiter evaluation failed (ref: {req_id})",
         )
 
-    # 5. Handle SKIPPED (caller didn't provide enough signal)
+    # 6. Handle SKIPPED (caller didn't provide enough signal)
     if verdict.decision == ArbiterDecision.SKIPPED:
         raise HTTPException(
             status_code=400,
@@ -355,12 +392,15 @@ async def verify_evidence(
             ),
         )
 
-    # 6. Extract unified scoring fields (V3-B)
+    # 7. Record actual cost
+    _cost_tracker.record_spend(verdict.cost_usd, caller_id)
+
+    # 8. Extract unified scoring fields (V3-B)
     from integrations.arbiter.messages import extract_scoring_fields
 
     scoring = extract_scoring_fields(verdict)
 
-    # 7. Serialize for the response
+    # 9. Serialize for the response
     return ArbiterVerifyResponse(
         verdict=verdict.decision.value,
         tier=verdict.tier.value,
