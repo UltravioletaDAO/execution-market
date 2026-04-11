@@ -798,6 +798,14 @@ async def rate_worker_endpoint(
             status_code=409, detail="Task has no assigned worker to rate"
         )
 
+    # Prevent self-rating at wallet level (catches it before any contract call)
+    rater_wallet = _normalize_address(getattr(auth, "wallet_address", None))
+    if rater_wallet and worker_address and rater_wallet == worker_address:
+        raise HTTPException(
+            status_code=403,
+            detail="Cannot rate: rater wallet matches worker wallet (self-feedback)",
+        )
+
     # Resolve worker's ERC-8004 agent ID.
     # The executors table stores a SINGLE global erc8004_agent_id, but agents
     # can have different IDs on different chains. Only use the cached ID if the

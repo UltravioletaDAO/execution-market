@@ -184,6 +184,8 @@ async def give_feedback_direct(
     # ---- Pre-flight: detect self-feedback before spending gas ----
     # The ReputationRegistry reverts when msg.sender == ownerOf(agentId).
     # Catching this early gives a clear error and avoids wasting gas.
+    sender_address = None
+    agent_owner = None
     try:
         w3_preflight = _get_web3(target_network)
         sender_address = w3_preflight.eth.account.from_key(pk).address
@@ -192,28 +194,29 @@ async def give_feedback_direct(
             abi=_OWNER_OF_ABI,
         )
         agent_owner = identity_contract.functions.ownerOf(agent_id).call()
-        if sender_address.lower() == agent_owner.lower():
-            err_msg = (
-                f"Self-feedback detected: sender {sender_address} is the owner of "
-                f"agent #{agent_id} on {target_network}. The ReputationRegistry reverts "
-                f"when msg.sender == ownerOf(agentId). "
-                f"To fix: set EM_REPUTATION_RELAY_KEY to a separate wallet that does "
-                f"not own any agent NFTs."
-            )
-            logger.error(err_msg)
-            return FeedbackResult(
-                success=False,
-                error=err_msg,
-                network=target_network,
-            )
     except Exception as preflight_err:
-        # Non-blocking: if ownerOf call fails (e.g. agent doesn't exist on
-        # this chain, or RPC issue), let the TX attempt proceed and fail
+        # Non-blocking: if ownerOf RPC call fails (e.g. agent doesn't exist
+        # on this chain, or RPC timeout), let the TX attempt proceed and fail
         # with a more specific on-chain error.
         logger.debug(
             "Self-feedback preflight check could not complete on %s: %s",
             target_network,
             preflight_err,
+        )
+
+    if sender_address and agent_owner and sender_address.lower() == agent_owner.lower():
+        err_msg = (
+            f"Self-feedback detected: sender {sender_address} is the owner of "
+            f"agent #{agent_id} on {target_network}. The ReputationRegistry reverts "
+            f"when msg.sender == ownerOf(agentId). "
+            f"To fix: set EM_REPUTATION_RELAY_KEY to a separate wallet that does "
+            f"not own any agent NFTs."
+        )
+        logger.error(err_msg)
+        return FeedbackResult(
+            success=False,
+            error=err_msg,
+            network=target_network,
         )
 
     def _send_tx():
