@@ -71,6 +71,10 @@ def _make_valid_preauth_payload() -> dict:
 VALID_PREAUTH_PAYLOAD = _make_valid_preauth_payload()
 
 
+# Dummy operator used in VALID_PREAUTH_PAYLOAD (must match for SC-009 check)
+_TEST_OPERATOR = "0xOperator1234567890abcdef1234567890abcdef12"
+
+
 def _make_dispatcher():
     """Create a PaymentDispatcher in fase2/direct_release mode."""
     with (
@@ -91,6 +95,7 @@ def _make_dispatcher():
                     },
                     "escrow_address": "0xEscrowContract",
                     "token_collector": "0xTokenCollector",
+                    "operator": _TEST_OPERATOR,
                 }
             },
         ),
@@ -98,6 +103,10 @@ def _make_dispatcher():
         patch(
             f"{DISPATCHER_MODULE}._get_platform_address",
             return_value="0xPlatformAddr",
+        ),
+        patch(
+            f"{DISPATCHER_MODULE}._get_operator_for_network",
+            return_value=_TEST_OPERATOR,
         ),
         patch.dict(os.environ, {"WALLET_PRIVATE_KEY": "0x" + "aa" * 32}),
     ):
@@ -198,6 +207,13 @@ class TestValidateAgentPreauth:
 
 
 class TestRelayToFacilitator:
+    """Tests for relay_agent_auth_to_facilitator.
+
+    Each test patches _get_operator_for_network so SC-009 sees the same dummy
+    operator that lives in VALID_PREAUTH_PAYLOAD (avoids coupling tests to
+    production contract addresses).
+    """
+
     @pytest.mark.asyncio
     async def test_success(self):
         d = _make_dispatcher()
@@ -207,7 +223,13 @@ class TestRelayToFacilitator:
             "transaction": {"hash": "0x" + "ab" * 32},
         }
 
-        with patch("httpx.AsyncClient") as MockClient:
+        with (
+            patch(
+                f"{DISPATCHER_MODULE}._get_operator_for_network",
+                return_value=_TEST_OPERATOR,
+            ),
+            patch("httpx.AsyncClient") as MockClient,
+        ):
             mock_client_instance = AsyncMock()
             mock_client_instance.post.return_value = mock_response
             mock_client_instance.__aenter__ = AsyncMock(
@@ -235,7 +257,13 @@ class TestRelayToFacilitator:
             "error": "Insufficient allowance",
         }
 
-        with patch("httpx.AsyncClient") as MockClient:
+        with (
+            patch(
+                f"{DISPATCHER_MODULE}._get_operator_for_network",
+                return_value=_TEST_OPERATOR,
+            ),
+            patch("httpx.AsyncClient") as MockClient,
+        ):
             mock_client_instance = AsyncMock()
             mock_client_instance.post.return_value = mock_response
             mock_client_instance.__aenter__ = AsyncMock(
@@ -264,7 +292,13 @@ class TestRelayToFacilitator:
             "transaction": {"hash": "0xabc"},
         }
 
-        with patch("httpx.AsyncClient") as MockClient:
+        with (
+            patch(
+                f"{DISPATCHER_MODULE}._get_operator_for_network",
+                return_value=_TEST_OPERATOR,
+            ),
+            patch("httpx.AsyncClient") as MockClient,
+        ):
             mock_client_instance = AsyncMock()
 
             async def capture_post(url, json=None, **kwargs):
