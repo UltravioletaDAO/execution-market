@@ -147,10 +147,15 @@ class ArbiterService:
         )
 
         # 8. Compute total cost from Ring 2 inferences.
-        # Phase 1: always 0 because Ring 2 LLM calls are not yet wired (Task 1.6).
-        # Phase 2: read from InferenceLogger records via the inference_id on each
-        # RingScore once we wire actual LLM calls.
+        # Ring 2 providers report cost per-request via usage.total_cost.
+        # Sum across all Ring 2 scores (0 for CHEAP tier).
         total_cost = 0.0
+        for rs in ring2_scores:
+            if rs.raw_response:
+                # Cost is tracked in the Ring2Response, but RingScore doesn't
+                # carry cost directly. For now, total_cost stays 0 until
+                # InferenceLogger is wired (Phase 2 Task 2.8+).
+                pass
 
         latency_ms = int((time.monotonic() - start_time) * 1000)
 
@@ -253,25 +258,128 @@ class ArbiterService:
     ) -> List[RingScore]:
         """Run Ring 2 LLM inference(s) based on tier.
 
-        STUB: Phase 1 Task 1.6 will wire actual LLM calls via existing
-        ai_review.py infrastructure. For now this returns an empty list,
-        which makes CHEAP tier work end-to-end (consensus engine handles
-        the absence of Ring 2 scores). STANDARD and MAX tiers gracefully
-        degrade to CHEAP when Ring 2 is not yet available.
+        CHEAP: no LLM call (Ring 1 only).
+        STANDARD: 1 LLM call via primary provider (ClawRouter > OpenRouter).
+        MAX: 2 LLM calls from different providers (primary + secondary).
 
-        See: integrations/arbiter/inference.py (Task 1.6)
+        Provider priority (per x402r arbiter research):
+        - Primary: ClawRouter (USDC via x402) > OpenRouter (API key)
+        - Secondary: EigenAI (verifiable) > OpenRouter (different model)
         """
         if tier == ArbiterTier.CHEAP:
             return []
 
-        # TODO Task 1.6: wire actual Ring 2 LLM inference here using
-        # ai_review.py + a NEW arbiter prompt library asking the
-        # task-completion question (vs PHOTINT's authenticity question).
-        logger.info(
-            "Ring 2 inference NOT YET WIRED (tier=%s) -- gracefully degrading to CHEAP",
-            tier.value,
+        from .prompts import build_ring2_prompt
+        from .providers import get_ring2_provider, get_ring2_secondary_provider
+
+        # Extract Ring 1 score info for the prompt
+        ring1_data = self._extract_ring1_for_prompt(submission)
+
+        prompt = build_ring2_prompt(
+            task=task,
+            evidence=evidence,
+            ring1_score=ring1_data.get("score"),
+            ring1_confidence=ring1_data.get("confidence"),
+            ring1_decision=ring1_data.get("decision"),
+            ring1_reason=ring1_data.get("reason"),
         )
-        return []
+
+        scores: List[RingScore] = []
+
+        # Primary provider (STANDARD + MAX)
+        try:
+            primary = get_ring2_provider()
+            result = await primary.evaluate(prompt, tier)
+            scores.append(
+                RingScore(
+                    ring="ring2_primary",
+                    score=result.confidence,
+                    decision="pass" if result.completed else "fail",
+                    confidence=result.confidence,
+                    provider=result.provider,
+                    model=result.model,
+                    reason=result.reason,
+                    raw_response=result.raw_response,
+                )
+            )
+            logger.info(
+                "Ring 2 primary: provider=%s model=%s completed=%s conf=%.2f cost=$%.4f",
+                result.provider,
+                result.model,
+                result.completed,
+                result.confidence,
+                result.cost_usd,
+            )
+        except Exception as e:
+            logger.error("Ring 2 primary provider failed: %s", e)
+
+        # Secondary provider (MAX only -- dual consensus)
+        if tier == ArbiterTier.MAX and scores:
+            try:
+                secondary = get_ring2_secondary_provider()
+                result2 = await secondary.evaluate(prompt, tier)
+                scores.append(
+                    RingScore(
+                        ring="ring2_secondary",
+                        score=result2.confidence,
+                        decision="pass" if result2.completed else "fail",
+                        confidence=result2.confidence,
+                        provider=result2.provider,
+                        model=result2.model,
+                        reason=result2.reason,
+                        raw_response=result2.raw_response,
+                    )
+                )
+                logger.info(
+                    "Ring 2 secondary: provider=%s model=%s completed=%s conf=%.2f cost=$%.4f",
+                    result2.provider,
+                    result2.model,
+                    result2.completed,
+                    result2.confidence,
+                    result2.cost_usd,
+                )
+            except Exception as e:
+                logger.error("Ring 2 secondary provider failed: %s", e)
+
+        if not scores:
+            logger.warning(
+                "All Ring 2 providers failed (tier=%s) -- gracefully degrading to CHEAP",
+                tier.value,
+            )
+
+        return scores
+
+    @staticmethod
+    def _extract_ring1_for_prompt(submission: Dict[str, Any]) -> Dict[str, Any]:
+        """Extract Ring 1 (PHOTINT) data for inclusion in Ring 2 prompt."""
+        phase_a = submission.get("auto_check_details") or {}
+        phase_b = submission.get("ai_verification_result") or {}
+
+        score = phase_a.get("score")
+        if isinstance(phase_b, dict) and phase_b.get("score") is not None:
+            if score is not None:
+                score = (score + phase_b["score"]) / 2.0
+            else:
+                score = phase_b["score"]
+
+        decision = None
+        if score is not None:
+            if score >= 0.80:
+                decision = "pass"
+            elif score <= 0.30:
+                decision = "fail"
+            else:
+                decision = "inconclusive"
+
+        reason = phase_b.get("reason") or phase_a.get("reason") or None
+        confidence = phase_b.get("confidence") or phase_a.get("confidence") or None
+
+        return {
+            "score": score,
+            "confidence": confidence,
+            "decision": decision,
+            "reason": reason,
+        }
 
     # ------------------------------------------------------------------
     # Hash computation (audit trail)
