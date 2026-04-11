@@ -120,9 +120,22 @@ async def run_phase_b_verification(
             return
 
         temp_paths = [path for path, _ in downloaded]
+        sid = submission_id[:8]
 
-        # 3. Run 5 checks concurrently
-        check_tasks = [
+        # 3. Run 5 checks concurrently (each wrapped with a timeout)
+        # Per-check timeout (seconds). AI semantic gets more time because
+        # it may run multi-tier escalation with multiple LLM calls.
+        _CHECK_TIMEOUT_AI = 120  # ai_semantic: up to 2 LLM calls
+        _CHECK_TIMEOUT_DEFAULT = 60  # other checks
+
+        check_names = [
+            "ai_semantic",
+            "tampering",
+            "genai_detection",
+            "photo_source",
+            "duplicate",
+        ]
+        check_coros = [
             _run_ai_semantic_check(
                 task, evidence, photo_urls, submission_id, temp_paths
             ),
@@ -131,8 +144,32 @@ async def run_phase_b_verification(
             _run_photo_source_check(temp_paths, task.get("category", "")),
             _run_duplicate_check(temp_paths, submission_id, task.get("id", "")),
         ]
+        check_timeouts = [
+            _CHECK_TIMEOUT_AI,
+            _CHECK_TIMEOUT_DEFAULT,
+            _CHECK_TIMEOUT_DEFAULT,
+            _CHECK_TIMEOUT_DEFAULT,
+            _CHECK_TIMEOUT_DEFAULT,
+        ]
 
-        results = await asyncio.gather(*check_tasks, return_exceptions=True)
+        # Wrap each coroutine with asyncio.wait_for so a single hanging
+        # check cannot block the entire Phase B pipeline forever.
+        async def _run_with_timeout(name: str, coro, timeout: int):
+            logger.info("Phase B [%s] starting %s...", sid, name)
+            try:
+                result = await asyncio.wait_for(coro, timeout=timeout)
+                logger.info("Phase B [%s] %s complete", sid, name)
+                return result
+            except asyncio.TimeoutError:
+                logger.error("Phase B [%s] %s TIMED OUT after %ds", sid, name, timeout)
+                raise TimeoutError(f"{name} timed out after {timeout}s")
+
+        wrapped_tasks = [
+            _run_with_timeout(name, coro, tout)
+            for name, coro, tout in zip(check_names, check_coros, check_timeouts)
+        ]
+
+        results = await asyncio.gather(*wrapped_tasks, return_exceptions=True)
 
         # Collect successful checks and perceptual hashes
         phase_b_checks: List[CheckResult] = []
@@ -140,17 +177,10 @@ async def run_phase_b_verification(
 
         for i, result in enumerate(results):
             if isinstance(result, Exception):
-                check_names = [
-                    "ai_semantic",
-                    "tampering",
-                    "genai_detection",
-                    "photo_source",
-                    "duplicate",
-                ]
                 logger.warning(
-                    "Phase B check '%s' failed for %s: %s",
+                    "Phase B [%s] check '%s' FAILED: %s",
+                    sid,
                     check_names[i],
-                    submission_id,
                     result,
                 )
                 continue
@@ -164,6 +194,15 @@ async def run_phase_b_verification(
             elif isinstance(result, CheckResult):
                 phase_b_checks.append(result)
 
+        passed_names = [c.name for c in phase_b_checks]
+        logger.info(
+            "Phase B [%s] checks done: %d/%d passed (%s)",
+            sid,
+            len(phase_b_checks),
+            len(check_names),
+            ", ".join(passed_names) if passed_names else "none",
+        )
+
         if not phase_b_checks:
             logger.warning("No Phase B checks succeeded for %s", submission_id)
             await _report_phase_b_error(
@@ -173,6 +212,7 @@ async def run_phase_b_verification(
             return
 
         # 4. Fetch current auto_check_details and merge
+        logger.info("Phase B [%s] merging results into DB...", sid)
         current_submission = await db.get_submission(submission_id)
         if not current_submission:
             logger.warning("Submission %s not found for Phase B merge", submission_id)
@@ -187,6 +227,13 @@ async def run_phase_b_verification(
             auto_check_passed=merged["passed"],
             auto_check_details=merged,
         )
+        logger.info(
+            "Phase B [%s] DB updated: passed=%s score=%.3f phase=%s",
+            sid,
+            merged["passed"],
+            merged["score"],
+            merged["phase"],
+        )
 
         # Store AI verification result separately
         ai_check = next((c for c in phase_b_checks if c.name == "ai_semantic"), None)
@@ -199,6 +246,12 @@ async def run_phase_b_verification(
                     "reason": ai_check.reason,
                     "details": ai_check.details,
                 },
+            )
+            logger.info(
+                "Phase B [%s] ai_verification_result written: score=%.3f passed=%s",
+                sid,
+                ai_check.score,
+                ai_check.passed,
             )
 
         # 6. Store perceptual hashes
@@ -218,10 +271,12 @@ async def run_phase_b_verification(
             )
 
         logger.info(
-            "Phase B complete for %s: score=%.3f, checks=%d, phase=%s",
-            submission_id,
+            "Phase B [%s] COMPLETE: score=%.3f, passed=%s, checks=%d/%d, phase=%s",
+            sid,
             merged["score"],
-            len(merged["checks"]),
+            merged["passed"],
+            len(phase_b_checks),
+            len(check_names),
             merged["phase"],
         )
 
@@ -552,9 +607,21 @@ async def _run_ai_semantic_check(
                 provider_name = os.environ.get("AI_VERIFICATION_PROVIDER", "gemini")
                 verifier = AIVerifier(provider_name=provider_name)
                 if not verifier.is_available:
+                    logger.warning(
+                        "Phase B [%s] ai_semantic: no provider available at %s",
+                        submission_id[:8],
+                        current_tier,
+                    )
                     break
             else:
                 verifier = AIVerifier(provider=provider)
+
+            logger.info(
+                "Phase B [%s] ai_semantic: calling %s at %s...",
+                submission_id[:8],
+                verifier.provider_name,
+                current_tier,
+            )
 
             timer = InferenceTimer()
             try:
@@ -566,8 +633,25 @@ async def _run_ai_semantic_check(
                         exif_context=exif_context,
                         rekognition_context=rekognition_context,
                     )
+                logger.info(
+                    "Phase B [%s] ai_semantic: %s/%s responded in %dms "
+                    "(decision=%s confidence=%.2f)",
+                    submission_id[:8],
+                    result.provider,
+                    result.model,
+                    timer.latency_ms,
+                    result.decision.value,
+                    result.confidence,
+                )
             except Exception as e:
-                logger.warning("[AUDIT] Tier %s failed: %s", current_tier, str(e)[:100])
+                logger.warning(
+                    "Phase B [%s] ai_semantic: %s FAILED at %s after %dms: %s",
+                    submission_id[:8],
+                    verifier.provider_name,
+                    current_tier,
+                    timer.latency_ms,
+                    str(e)[:200],
+                )
                 # Don't include failed tier in consensus — try next
                 next_tier = should_escalate(current_tier, 0.0, 0.0)
                 if next_tier is None or tier_exceeds(next_tier, selection.max_tier):

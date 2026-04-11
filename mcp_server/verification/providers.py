@@ -16,6 +16,7 @@ Configuration via environment variables:
   AI_VERIFICATION_MODEL=<model-id>  (optional override)
 """
 
+import asyncio
 import os
 import json
 import base64
@@ -27,6 +28,11 @@ from typing import Optional, List
 import httpx
 
 logger = logging.getLogger(__name__)
+
+# Default timeout for all LLM inference calls (seconds).
+# Gemini Flash typically responds in 5-15s; 60s is generous enough for
+# large images on tier_3/tier_4 models while still preventing infinite hangs.
+LLM_INFERENCE_TIMEOUT = int(os.environ.get("LLM_INFERENCE_TIMEOUT", "60"))
 
 
 @dataclass
@@ -114,11 +120,20 @@ class AnthropicProvider(VerificationProvider):
             )
         content.append({"type": "text", "text": request.prompt})
 
-        message = await client.messages.create(
-            model=self.model_id,
-            max_tokens=request.max_tokens,
-            messages=[{"role": "user", "content": content}],
-        )
+        try:
+            message = await asyncio.wait_for(
+                client.messages.create(
+                    model=self.model_id,
+                    max_tokens=request.max_tokens,
+                    messages=[{"role": "user", "content": content}],
+                ),
+                timeout=LLM_INFERENCE_TIMEOUT,
+            )
+        except asyncio.TimeoutError:
+            raise TimeoutError(
+                f"Anthropic inference timed out after {LLM_INFERENCE_TIMEOUT}s "
+                f"(model={self.model_id})"
+            )
 
         return VisionResponse(
             text=message.content[0].text,
@@ -211,8 +226,6 @@ class BedrockProvider(VerificationProvider):
             return False
 
     async def analyze(self, request: VisionRequest) -> VisionResponse:
-        import asyncio
-
         import boto3
 
         client = boto3.client("bedrock-runtime", region_name=self.region)
@@ -240,13 +253,23 @@ class BedrockProvider(VerificationProvider):
         )
 
         # boto3 is synchronous — run in thread to avoid blocking the event loop.
-        response = await asyncio.to_thread(
-            client.invoke_model,
-            modelId=self.model_id,
-            contentType="application/json",
-            accept="application/json",
-            body=body,
-        )
+        # Wrapped in wait_for to prevent infinite hangs.
+        try:
+            response = await asyncio.wait_for(
+                asyncio.to_thread(
+                    client.invoke_model,
+                    modelId=self.model_id,
+                    contentType="application/json",
+                    accept="application/json",
+                    body=body,
+                ),
+                timeout=LLM_INFERENCE_TIMEOUT,
+            )
+        except asyncio.TimeoutError:
+            raise TimeoutError(
+                f"Bedrock inference timed out after {LLM_INFERENCE_TIMEOUT}s "
+                f"(model={self.model_id})"
+            )
 
         result = json.loads(response["body"].read())
 
@@ -278,8 +301,6 @@ class GeminiProvider(VerificationProvider):
         return bool(self.api_key)
 
     async def analyze(self, request: VisionRequest) -> VisionResponse:
-        import asyncio
-
         import google.generativeai as genai
 
         genai.configure(api_key=self.api_key)
@@ -296,9 +317,20 @@ class GeminiProvider(VerificationProvider):
 
         # google-generativeai SDK is synchronous — run in thread to avoid
         # blocking the asyncio event loop (Phase B runs as background task).
-        response = await asyncio.to_thread(
-            model.generate_content, parts, generation_config=gen_config
-        )
+        # Wrapped in wait_for to prevent infinite hangs (the root cause of
+        # the silent Phase B stall when Gemini API is unresponsive).
+        try:
+            response = await asyncio.wait_for(
+                asyncio.to_thread(
+                    model.generate_content, parts, generation_config=gen_config
+                ),
+                timeout=LLM_INFERENCE_TIMEOUT,
+            )
+        except asyncio.TimeoutError:
+            raise TimeoutError(
+                f"Gemini inference timed out after {LLM_INFERENCE_TIMEOUT}s "
+                f"(model={self.model_id})"
+            )
 
         usage = {}
         if hasattr(response, "usage_metadata") and response.usage_metadata:
