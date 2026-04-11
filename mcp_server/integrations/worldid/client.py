@@ -65,12 +65,22 @@ class VerificationResult:
 
 
 def _keccak256(data: bytes) -> bytes:
-    """Compute keccak256 hash."""
-    from Crypto.Hash import keccak
+    """Compute keccak256 hash (Ethereum-compatible, NOT SHA3-256).
 
-    k = keccak.new(digest_bits=256)
-    k.update(data)
-    return k.digest()
+    Uses pysha3 or pycryptodome. Note: keccak256 != sha3_256 (pre-NIST vs NIST).
+    Bandit B413 flags `from Crypto.Hash` as pycrypto — we use pycryptodome which
+    is actively maintained. The `# nosec B413` suppresses the false positive.
+    """
+    try:
+        import sha3  # pysha3 — preferred if installed
+
+        return sha3.keccak_256(data).digest()
+    except ImportError:
+        from Crypto.Hash import keccak  # nosec B413 — pycryptodome, not pycrypto
+
+        k = keccak.new(digest_bits=256)
+        k.update(data)
+        return k.digest()
 
 
 def _hash_to_field(input_bytes: bytes) -> bytes:
