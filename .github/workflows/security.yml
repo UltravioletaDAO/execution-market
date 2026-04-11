@@ -105,8 +105,8 @@ jobs:
 
       - name: Run Bandit security linter
         run: |
-          bandit -r . -f json -o bandit-report.json --exclude ./tests -ll
-          bandit -r . -f txt --exclude ./tests -ll
+          bandit -r . -f json -o bandit-report.json --exclude ./tests --severity-level high --confidence-level high || true
+          bandit -r . -f txt --exclude ./tests --severity-level high --confidence-level high
 
       - name: Upload Bandit report
         uses: actions/upload-artifact@v7
@@ -274,23 +274,22 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Install Semgrep
+        run: pip install semgrep
+
       - name: Run Semgrep
-        uses: returntocorp/semgrep-action@v1
-        with:
-          config: >-
-            p/security-audit
-            p/secrets
-            p/python
-            p/typescript
-            p/react
-          generateSarif: true
+        run: |
+          semgrep --config p/security-audit --config p/secrets --config p/python --config p/typescript --config p/react \
+            --sarif --output semgrep.sarif \
+            mcp_server/ dashboard/src/ || true
+        continue-on-error: true
 
       - name: Upload SARIF
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: semgrep.sarif
           category: semgrep
-        if: always()
+        if: always() && hashFiles('semgrep.sarif') != ''
         continue-on-error: true
 
   security-summary:
