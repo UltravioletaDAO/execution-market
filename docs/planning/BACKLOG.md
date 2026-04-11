@@ -21,6 +21,7 @@ Items captured during conversations to avoid context drift. Review at end of ses
 | 2026-04-03 | WorldCoin bug fix not deployed | User reports WorldCoin-related fix not visible in production. Blocked by Terraform deploy failure. Verify which commit has the fix and ensure it deploys. | P1 | pending |
 | 2026-04-03 | Terraform deploy pipeline broken | `Cannot apply incomplete plan` error in CI/CD Deploy job. Blocks ALL deploys to production. Commit `88e8cccb` (ECS task def changes) may be the trigger. Pre-existed before rating fix. Needs diagnosis. | P0 | pending |
 | 2026-04-03 | Evidence visibility not deployed | Commit `65cea1ed` surfaces PHOTINT AI analysis in submission views but hasn't reached production due to Terraform failure. | P1 | pending |
+| 2026-04-11 | Cancel API should handle expired tasks with escrow | `POST /tasks/{id}/cancel` returns 409 for expired status. If escrow was locked and task expired without submission, agent's funds are stuck. API should either: (1) accept cancel for expired+escrow tasks and trigger refund, or (2) expose `POST /tasks/{id}/refund` endpoint. Currently agents must call `refund_via_facilitator()` directly with saved PaymentInfo. Discovered during E2E testing — documented workaround in skill.md v9.1.0. | P1 | pending |
 
 ---
 
