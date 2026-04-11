@@ -22,11 +22,21 @@ class GenAIResult:
     """Result of AI-generated image detection."""
 
     is_ai_generated: bool
-    confidence: float  # 0.0 to 1.0
+    confidence: float  # 0.0 to 1.0 (how likely AI-generated)
     model_hint: Optional[str]  # Detected AI model (e.g., "midjourney", "dall-e")
     signals: List[str]  # List of detected signals
     details: Dict[str, Any]  # Detailed findings
     reason: Optional[str]  # Human-readable explanation
+
+    @property
+    def normalized_score(self) -> float:
+        """Normalized score 0.0-1.0 where 1.0 = not AI-generated (passed).
+
+        Inverts confidence: low AI confidence -> high score (good).
+        A real photo (confidence=0) scores 1.0,
+        a confirmed AI image (confidence=1) scores 0.0.
+        """
+        return round(1.0 - self.confidence, 4)
 
 
 # Known AI generator signatures

@@ -23,10 +23,20 @@ class TamperingResult:
     """Result of tampering detection analysis."""
 
     is_suspicious: bool
-    confidence: float  # 0.0 to 1.0
+    confidence: float  # 0.0 to 1.0 (how likely tampered)
     signals: list[str]  # List of detected tampering signals
     details: dict  # Detailed analysis data
     reason: Optional[str]  # Human-readable summary if suspicious
+
+    @property
+    def normalized_score(self) -> float:
+        """Normalized score 0.0-1.0 where 1.0 = no tampering detected (passed).
+
+        Inverts confidence: low tampering confidence -> high score (good).
+        An untampered photo (confidence=0) scores 1.0,
+        a confirmed tampered photo (confidence=1) scores 0.0.
+        """
+        return round(1.0 - self.confidence, 4)
 
 
 def check_tampering(image_path: str) -> TamperingResult:

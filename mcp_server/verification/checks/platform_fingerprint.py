@@ -28,6 +28,32 @@ class PlatformFingerprint:
     signals: list  # Evidence supporting the detection
     reason: str = ""
 
+    @property
+    def normalized_score(self) -> float:
+        """Normalized score 0.0-1.0 where 1.0 = original camera photo (passed).
+
+        Score depends on platform type and number of hops:
+        original  -> 1.0 (best: unprocessed camera photo).
+        1 hop (whatsapp, telegram) -> 0.6 (metadata stripped, but common).
+        screenshot -> 0.2 (very suspicious).
+        unknown -> 0.5 (uncertain).
+        """
+        platform_scores = {
+            "original": 1.0,
+            "whatsapp": 0.6,
+            "whatsapp_hd": 0.7,
+            "telegram": 0.6,
+            "instagram": 0.5,
+            "twitter": 0.5,
+            "screenshot": 0.2,
+            "unknown": 0.5,
+        }
+        base = platform_scores.get(self.platform, 0.5)
+        # Penalize extra hops beyond the first
+        if self.hops_estimate > 1:
+            base = max(0.0, base - 0.1 * (self.hops_estimate - 1))
+        return round(base, 4)
+
     def to_context(self) -> str:
         """Format for prompt injection."""
         if self.platform == "original":

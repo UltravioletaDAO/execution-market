@@ -23,6 +23,24 @@ class PhotoSourceResult:
     reason: Optional[str]
     details: dict
 
+    @property
+    def normalized_score(self) -> float:
+        """Normalized score 0.0-1.0 where 1.0 = camera source verified (passed).
+
+        1.0 = camera source confirmed.
+        0.3 = unknown source (suspicious but not proven bad).
+        0.1 = gallery source (likely reused photo).
+        0.0 = screenshot or error (definite failure).
+        """
+        source_scores = {
+            "camera": 1.0,
+            "unknown": 0.3,
+            "gallery": 0.1,
+            "screenshot": 0.0,
+            "error": 0.0,
+        }
+        return source_scores.get(self.source, 0.0)
+
 
 def check_photo_source(image_path: str, max_age_minutes: int = 5) -> PhotoSourceResult:
     """

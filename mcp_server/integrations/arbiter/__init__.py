@@ -24,10 +24,14 @@ from .types import (
     ArbiterDecision,
     ArbiterTier,
     ArbiterVerdict,
+    CheckDetail,
+    EvidenceScore,
 )
 
 __all__ = [
     "ArbiterDecision",
     "ArbiterTier",
     "ArbiterVerdict",
+    "CheckDetail",
+    "EvidenceScore",
 ]

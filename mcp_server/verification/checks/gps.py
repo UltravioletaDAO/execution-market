@@ -20,6 +20,21 @@ class GPSResult:
     max_distance: float
     reason: Optional[str]
 
+    @property
+    def normalized_score(self) -> float:
+        """Normalized score 0.0-1.0 where 1.0 = GPS matches perfectly (passed).
+
+        Proportional: distance=0 -> 1.0, distance>=max_distance -> 0.0.
+        No GPS coordinates at all -> 0.0 (failed check).
+        """
+        if self.distance_meters is None:
+            return 0.0  # No GPS data = failed
+        if self.max_distance <= 0:
+            return 1.0 if self.distance_meters == 0 else 0.0
+        # Linear decay: at max_distance score is 0.0
+        ratio = max(0.0, 1.0 - (self.distance_meters / self.max_distance))
+        return round(ratio, 4)
+
 
 def check_gps_location(
     photo_lat: Optional[float],

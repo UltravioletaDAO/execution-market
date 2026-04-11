@@ -30,6 +30,27 @@ class OcrResult:
     method: str = "none"  # "rekognition", "pillow", "none"
     error: Optional[str] = None
 
+    @property
+    def normalized_score(self) -> float:
+        """Normalized score 0.0-1.0 where 1.0 = text successfully extracted (passed).
+
+        OCR is informational -- text presence is positive for receipts/documents.
+        1.0 = text found with high confidence.
+        0.5 = no text found (neutral for non-document tasks).
+        0.0 = error during extraction.
+        """
+        if self.error:
+            return 0.0
+        if not self.has_text:
+            return 0.5  # Neutral -- absence of text is not a failure
+        # Average confidence of text blocks, normalized to 0-1
+        if self.text_blocks:
+            avg_conf = sum(b.get("confidence", 50) for b in self.text_blocks) / len(
+                self.text_blocks
+            )
+            return round(min(1.0, avg_conf / 100.0), 4)
+        return 0.5
+
     def to_context(self) -> str:
         """Format OCR results for prompt injection."""
         if not self.has_text:

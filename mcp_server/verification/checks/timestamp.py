@@ -21,6 +21,26 @@ class TimestampResult:
     age_seconds: Optional[float]
     reason: Optional[str]
 
+    @property
+    def normalized_score(self) -> float:
+        """Normalized score 0.0-1.0 where 1.0 = timestamp valid (passed).
+
+        1.0 = valid and recent. Decays with age.
+        0.0 = no timestamp, future timestamp, or outside task window.
+        Proportional decay based on age relative to a 5-minute window.
+        """
+        if not self.is_valid:
+            return 0.0
+        if self.age_seconds is None:
+            return 0.0  # No timestamp data
+        # Valid -- score decays with age (fresher = better)
+        # 0 seconds = 1.0, 300 seconds (5 min) = 0.7, older decays further
+        max_ideal_age = 300.0  # 5 minutes
+        if self.age_seconds <= 0:
+            return 1.0
+        decay = min(self.age_seconds / max_ideal_age, 1.0) * 0.3
+        return round(max(0.5, 1.0 - decay), 4)
+
 
 def check_timestamp(
     photo_timestamp: Optional[datetime],

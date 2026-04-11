@@ -17,6 +17,53 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
+# Two-axis blend weights: authenticity (Ring 1) vs completion (Ring 2)
+#
+# Guidelines:
+#   - Physical proof categories: authenticity 70%, completion 30%
+#   - Knowledge/content categories: authenticity 30%, completion 70%
+#   - Balanced categories: 50/50
+#   - Authority/bureaucratic categories: authenticity 60%, completion 40%
+#   - Digital/agent categories: authenticity 20%, completion 80%
+#     (no photo expected; completion quality matters most)
+# ---------------------------------------------------------------------------
+
+BlendWeights = Dict[str, float]  # {"authenticity": float, "completion": float}
+
+BLEND_WEIGHTS: Dict[str, BlendWeights] = {
+    # Physical-world categories -- authenticity matters more
+    "physical_presence": {"authenticity": 0.70, "completion": 0.30},
+    "location_based": {"authenticity": 0.70, "completion": 0.30},
+    "sensory": {"authenticity": 0.70, "completion": 0.30},
+    "emergency": {"authenticity": 0.70, "completion": 0.30},
+    # Balanced categories
+    "simple_action": {"authenticity": 0.50, "completion": 0.50},
+    "digital_physical": {"authenticity": 0.50, "completion": 0.50},
+    "social": {"authenticity": 0.50, "completion": 0.50},
+    "social_proof": {"authenticity": 0.50, "completion": 0.50},
+    "proxy": {"authenticity": 0.50, "completion": 0.50},
+    "verification": {"authenticity": 0.50, "completion": 0.50},
+    # Authority/bureaucratic -- authenticity still matters
+    "human_authority": {"authenticity": 0.60, "completion": 0.40},
+    "bureaucratic": {"authenticity": 0.60, "completion": 0.40},
+    # Knowledge/content categories -- completion matters more
+    "knowledge_access": {"authenticity": 0.30, "completion": 0.70},
+    "data_collection": {"authenticity": 0.30, "completion": 0.70},
+    "creative": {"authenticity": 0.30, "completion": 0.70},
+    # Digital/agent categories -- completion dominates
+    "data_processing": {"authenticity": 0.20, "completion": 0.80},
+    "api_integration": {"authenticity": 0.20, "completion": 0.80},
+    "content_generation": {"authenticity": 0.20, "completion": 0.80},
+    "code_execution": {"authenticity": 0.20, "completion": 0.80},
+    "research": {"authenticity": 0.20, "completion": 0.80},
+    "multi_step_workflow": {"authenticity": 0.20, "completion": 0.80},
+}
+
+# Fallback blend weights for unknown categories -- conservative 50/50
+GENERIC_BLEND_WEIGHTS: BlendWeights = {"authenticity": 0.50, "completion": 0.50}
+
+
+# ---------------------------------------------------------------------------
 # Per-category configurations
 # ---------------------------------------------------------------------------
 
@@ -196,8 +243,15 @@ class ArbiterRegistry:
     runtime overrides via PlatformConfig (Phase 1 Task 1.5 wires this).
     """
 
-    def __init__(self, configs: Optional[Dict[str, ArbiterConfig]] = None):
+    def __init__(
+        self,
+        configs: Optional[Dict[str, ArbiterConfig]] = None,
+        blend_weights: Optional[Dict[str, BlendWeights]] = None,
+    ):
         self._configs = configs if configs is not None else CATEGORY_CONFIGS
+        self._blend_weights = (
+            blend_weights if blend_weights is not None else BLEND_WEIGHTS
+        )
 
     def get(self, category: str) -> ArbiterConfig:
         """Return config for category, or fallback if unknown."""
@@ -214,6 +268,15 @@ class ArbiterRegistry:
             )
             return GENERIC_FALLBACK
         return config
+
+    def get_blend_weights(self, category: str) -> BlendWeights:
+        """Return authenticity/completion blend weights for a category.
+
+        Falls back to GENERIC_BLEND_WEIGHTS (50/50) for unknown categories.
+        """
+        if not category:
+            return GENERIC_BLEND_WEIGHTS
+        return self._blend_weights.get(category, GENERIC_BLEND_WEIGHTS)
 
     def all_categories(self) -> List[str]:
         """Return list of all configured categories (for testing/debug)."""

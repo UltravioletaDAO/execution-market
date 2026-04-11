@@ -22,6 +22,15 @@ class DuplicateResult:
     phash: str  # Perceptual hash for storage
     reason: Optional[str]
 
+    @property
+    def normalized_score(self) -> float:
+        """Normalized score 0.0-1.0 where 1.0 = no duplicate found (passed).
+
+        Inverts similarity: a unique image (similarity=0) scores 1.0,
+        a perfect duplicate (similarity=1) scores 0.0.
+        """
+        return round(1.0 - self.similarity, 4)
+
 
 class DuplicateDetector:
     """

@@ -123,6 +123,98 @@ class ArbiterVerdict:
         return self.decision == ArbiterDecision.INCONCLUSIVE
 
 
+# ---------------------------------------------------------------------------
+# Unified Evidence Scoring (V3-A)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class CheckDetail:
+    """Individual check result with human-readable detail."""
+
+    check: str  # "exif", "gps", "tampering", etc.
+    passed: bool
+    score: float  # 0.0 - 1.0
+    weight: float  # weight in the category blend
+    details: str  # human-readable: "Canon EOS R5, 2026-04-10 14:32"
+    issues: list  # empty if passed  (list[str])
+
+
+@dataclass
+class EvidenceScore:
+    """Unified two-axis evidence score.
+
+    Produced by `DualRingConsensus.decide_v2()`.  Replaces the flat
+    `ConsensusResult` for callers that need richer per-check breakdown,
+    category-aware blending, and human-readable summaries.
+
+    Two axes:
+        - **authenticity** (Ring 1 / PHOTINT): "Is this evidence real?"
+        - **completion** (Ring 2 / Arbiter LLM): "Does it prove the task was done?"
+
+    The `aggregate_score` is a category-weighted blend of both axes
+    (see `BLEND_WEIGHTS` in registry.py).
+    """
+
+    # Ring 1 -- Authenticity
+    authenticity_score: float  # 0.0 - 1.0
+    authenticity_checks: List[CheckDetail] = field(default_factory=list)
+
+    # Ring 2 -- Completion
+    completion_score: float = 0.0  # 0.0 - 1.0
+    completion_assessment: Optional[Dict[str, Any]] = (
+        None  # {completed, confidence, reason, model}
+    )
+
+    # Combined
+    aggregate_score: float = 0.0  # 0.0 - 1.0 (category-weighted blend)
+    verdict: str = "inconclusive"  # "pass" | "fail" | "inconclusive"
+    tier: str = "cheap"  # "cheap" | "standard" | "max"
+
+    # User-facing
+    summary: str = ""  # clear 1-2 sentence summary
+    rejection_reasons: List[str] = field(default_factory=list)  # empty if passed
+    grade: str = "C"  # "A" | "B" | "C" | "D" | "F"
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize for JSONB storage or API response."""
+        return {
+            "authenticity_score": round(self.authenticity_score, 4),
+            "authenticity_checks": [
+                {
+                    "check": c.check,
+                    "passed": c.passed,
+                    "score": round(c.score, 4),
+                    "weight": round(c.weight, 4),
+                    "details": c.details[:200] if c.details else "",
+                    "issues": c.issues[:5],
+                }
+                for c in self.authenticity_checks
+            ],
+            "completion_score": round(self.completion_score, 4),
+            "completion_assessment": self.completion_assessment,
+            "aggregate_score": round(self.aggregate_score, 4),
+            "verdict": self.verdict,
+            "tier": self.tier,
+            "summary": self.summary[:500] if self.summary else "",
+            "rejection_reasons": self.rejection_reasons[:10],
+            "grade": self.grade,
+        }
+
+    @staticmethod
+    def compute_grade(score: float) -> str:
+        """Map aggregate score to letter grade."""
+        if score >= 0.90:
+            return "A"
+        if score >= 0.80:
+            return "B"
+        if score >= 0.65:
+            return "C"
+        if score >= 0.50:
+            return "D"
+        return "F"
+
+
 @dataclass
 class ArbiterConfig:
     """Per-category thresholds and inference settings.

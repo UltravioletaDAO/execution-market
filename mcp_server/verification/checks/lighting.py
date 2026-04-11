@@ -30,6 +30,18 @@ class LightingResult:
     is_consistent_with_time: Optional[bool] = None  # Cross-reference with claimed time
     reason: str = ""
 
+    @property
+    def normalized_score(self) -> float:
+        """Normalized score 0.0-1.0 where 1.0 = lighting consistent (passed).
+
+        1.0 = consistent with claimed time.
+        0.0 = inconsistent with claimed time.
+        0.5 = no claimed time to cross-reference (uncertain).
+        """
+        if self.is_consistent_with_time is None:
+            return 0.5  # Uncertain -- no claimed time available
+        return 1.0 if self.is_consistent_with_time else 0.0
+
 
 def check_lighting(
     image_path: str,

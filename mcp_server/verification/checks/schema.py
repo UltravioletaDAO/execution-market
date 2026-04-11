@@ -35,6 +35,25 @@ class SchemaValidationResult:
     warnings: List[str]
     reason: Optional[str]
 
+    @property
+    def normalized_score(self) -> float:
+        """Normalized score 0.0-1.0 where 1.0 = schema fully valid (passed).
+
+        Proportional to how many required fields are present and valid.
+        Warnings reduce score slightly but don't cause failure.
+        """
+        if self.is_valid and not self.warnings:
+            return 1.0
+        if self.is_valid and self.warnings:
+            # Valid but with warnings -- slight deduction
+            return max(0.8, 1.0 - 0.05 * len(self.warnings))
+        # Invalid -- proportional to severity
+        issues = len(self.missing_required) + len(self.invalid_fields)
+        if issues == 0:
+            return 0.5  # Shouldn't happen but defensive
+        # Each missing/invalid field reduces score
+        return round(max(0.0, 1.0 - 0.25 * issues), 4)
+
 
 def validate_evidence_schema(
     evidence: Dict[str, Any],

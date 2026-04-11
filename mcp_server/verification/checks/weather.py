@@ -36,6 +36,21 @@ class WeatherResult:
     is_available: bool = False
     error: Optional[str] = None
 
+    @property
+    def normalized_score(self) -> float:
+        """Normalized score 0.0-1.0 where 1.0 = weather data retrieved (passed).
+
+        Weather is informational context, not pass/fail.
+        1.0 = weather data available for cross-reference.
+        0.5 = data unavailable (neutral -- does not penalize).
+        0.0 = error fetching data.
+        """
+        if self.error:
+            return 0.5  # API errors are neutral, not failures
+        if self.is_available:
+            return 1.0
+        return 0.5  # Not available but no error = neutral
+
     def to_context(self) -> str:
         """Format weather data for prompt injection."""
         if not self.is_available:
