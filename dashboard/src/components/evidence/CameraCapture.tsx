@@ -19,6 +19,10 @@ export interface CapturedPhoto {
   height: number
   timestamp: Date
   facingMode: 'user' | 'environment'
+  /** True when captured via native camera input (EXIF preserved) */
+  hasExif: boolean
+  /** Original file from native camera input — use this for uploads to preserve EXIF */
+  originalFile?: File
 }
 
 export interface CameraCaptureProps {
@@ -59,6 +63,7 @@ export function CameraCapture({
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
+  const nativeInputRef = useRef<HTMLInputElement>(null)
 
   const [state, setState] = useState<CameraState>('idle')
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>(preferredCamera)
@@ -80,6 +85,43 @@ export function CameraCapture({
         return 'aspect-[4/3]'
     }
   }, [aspectRatio])
+
+  // Handle native camera capture (mobile) — file returned with full EXIF metadata
+  const handleNativeCapture = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const objectUrl = URL.createObjectURL(file)
+
+    const img = new Image()
+    img.onload = () => {
+      const photo: CapturedPhoto = {
+        blob: file,
+        dataUrl: objectUrl,
+        width: img.naturalWidth,
+        height: img.naturalHeight,
+        timestamp: new Date(),
+        facingMode: preferredCamera,
+        hasExif: true,
+        originalFile: file,
+      }
+      setCapturedPhoto(photo)
+      setState('captured')
+    }
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl)
+      const message = t('camera.captureError', 'Error al capturar foto')
+      setError(message)
+      setState('error')
+      onError?.(message)
+    }
+    img.src = objectUrl
+
+    // Reset the input so the same file can be re-selected
+    if (nativeInputRef.current) {
+      nativeInputRef.current.value = ''
+    }
+  }, [preferredCamera, t, onError])
 
   // Check for multiple cameras
   useEffect(() => {
@@ -149,9 +191,11 @@ export function CameraCapture({
     }
   }, [facingMode, onError, t])
 
-  // Start camera on mount
+  // Start camera on mount (desktop only — mobile uses native <input capture>)
   useEffect(() => {
-    initCamera()
+    if (!isMobile) {
+      initCamera()
+    }
 
     return () => {
       if (streamRef.current) {
@@ -242,6 +286,7 @@ export function CameraCapture({
           height: canvas.height,
           timestamp: new Date(),
           facingMode,
+          hasExif: false,
         }
 
         setCapturedPhoto(photo)
@@ -255,8 +300,9 @@ export function CameraCapture({
   // Retake photo
   const retakePhoto = useCallback(() => {
     setCapturedPhoto(null)
-    setState('ready')
-  }, [])
+    // On mobile, go back to idle (native input). On desktop, resume video feed.
+    setState(isMobile ? 'idle' : 'ready')
+  }, [isMobile])
 
   // Confirm photo
   const confirmPhoto = useCallback(() => {
@@ -278,6 +324,53 @@ export function CameraCapture({
     }
     onCancel?.()
   }, [onCancel])
+
+  // Render mobile native capture UI (uses <input capture> to preserve EXIF)
+  if (isMobile && state !== 'captured' && state !== 'error') {
+    return (
+      <div className={`bg-gray-900 rounded-lg overflow-hidden ${className}`}>
+        {/* Hidden native file input — opens device camera directly */}
+        <input
+          ref={nativeInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleNativeCapture}
+          className="hidden"
+        />
+
+        <div className={`${getAspectRatioClass()} flex items-center justify-center bg-gray-800`}>
+          <div className="text-center p-6">
+            <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-blue-500/20 flex items-center justify-center">
+              <svg className="w-10 h-10 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+            <p className="text-white text-sm font-medium mb-4">
+              {t('camera.takePhotoNative', 'Toma una foto con la camara de tu dispositivo')}
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => nativeInputRef.current?.click()}
+                className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors touch-manipulation"
+              >
+                {t('camera.takePhoto', 'Tomar Foto')}
+              </button>
+              {onCancel && (
+                <button
+                  onClick={handleCancel}
+                  className="w-full px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors touch-manipulation"
+                >
+                  {t('common.cancel', 'Cancelar')}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   // Render error state
   if (state === 'error') {

@@ -177,7 +177,9 @@ export function EvidenceUpload({
     const id = generateId()
     const timestamp = new Date()
     const filename = `evidence_${timestamp.toISOString().replace(/[:.]/g, '-')}.jpg`
-    const file = await blobToFile(photo.blob, filename)
+    // Use original file when available (native camera capture preserves EXIF metadata).
+    // Fall back to creating a File from the canvas blob (desktop getUserMedia — no EXIF).
+    const file = photo.originalFile ?? await blobToFile(photo.blob, filename)
 
     // Calculate distance if task location provided (used later during verification)
     void (currentGps ? calculateDistance(currentGps) : undefined)
