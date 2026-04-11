@@ -534,6 +534,11 @@ async def _persist_verdict(
             # (the underlying _settle_submission_payment has its own idempotency).
             return True
 
+        # Build human-readable summary and scoring (V3-B)
+        from .messages import extract_scoring_fields
+
+        scoring = extract_scoring_fields(verdict)
+
         update_data = {
             "arbiter_verdict": verdict.decision.value,
             "arbiter_tier": verdict.tier.value,
@@ -541,7 +546,14 @@ async def _persist_verdict(
             "arbiter_confidence": round(float(verdict.confidence), 4),
             "arbiter_evidence_hash": verdict.evidence_hash,
             "arbiter_commitment_hash": verdict.commitment_hash,
-            "arbiter_verdict_data": verdict.to_dict(),
+            "arbiter_verdict_data": {
+                **verdict.to_dict(),
+                "grade": scoring.get("grade"),
+                "summary": scoring.get("summary"),
+                "authenticity_score": scoring.get("authenticity_score"),
+                "completion_score": scoring.get("completion_score"),
+                "check_details": scoring.get("check_details"),
+            },
             "arbiter_cost_usd": round(float(verdict.cost_usd), 6),
             "arbiter_latency_ms": int(verdict.latency_ms),
             "arbiter_evaluated_at": verdict.evaluated_at.isoformat(),

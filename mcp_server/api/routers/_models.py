@@ -247,6 +247,15 @@ class SubmissionResponse(BaseModel):
         None,
         description="AI verification analysis from Phase B (contains explanation, decision, confidence, task_specific_checks). Null until async AI verification completes.",
     )
+    # Unified scoring from arbiter (V3-B)
+    arbiter_grade: Optional[str] = Field(
+        None,
+        description="Letter grade from arbiter evaluation: A, B, C, D, or F",
+    )
+    arbiter_summary: Optional[str] = Field(
+        None,
+        description="Human-readable arbiter verdict summary (max 500 chars)",
+    )
 
 
 class SubmissionListResponse(BaseModel):

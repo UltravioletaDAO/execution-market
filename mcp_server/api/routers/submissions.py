@@ -93,6 +93,14 @@ async def get_submissions(
         if isinstance(auto_check_details, dict) and "score" in auto_check_details:
             pre_check_score = auto_check_details["score"]
 
+        # Extract arbiter scoring (V3-B)
+        arbiter_grade = None
+        arbiter_summary = None
+        arbiter_data = sub.get("arbiter_verdict_data")
+        if isinstance(arbiter_data, dict):
+            arbiter_grade = arbiter_data.get("grade")
+            arbiter_summary = arbiter_data.get("summary")
+
         result.append(
             SubmissionResponse(
                 id=sub["id"],
@@ -112,6 +120,8 @@ async def get_submissions(
                 if sub.get("verified_at")
                 else None,
                 ai_verification_result=sub.get("ai_verification_result"),
+                arbiter_grade=arbiter_grade,
+                arbiter_summary=arbiter_summary,
             )
         )
 

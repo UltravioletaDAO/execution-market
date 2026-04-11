@@ -176,6 +176,28 @@ class ArbiterVerifyResponse(BaseModel):
     cost_usd: float
     latency_ms: int
 
+    # Unified scoring (V3-B)
+    grade: Optional[str] = Field(
+        default=None,
+        description="Letter grade: A (>=90), B (>=80), C (>=70), D (>=60), F (<60)",
+    )
+    authenticity_score: Optional[float] = Field(
+        default=None,
+        description="Ring 1 (PHOTINT) authenticity score (0.0-1.0)",
+    )
+    completion_score: Optional[float] = Field(
+        default=None,
+        description="Ring 2 semantic completion score (0.0-1.0, avg of Ring 2 providers)",
+    )
+    summary: Optional[str] = Field(
+        default=None,
+        description="Human-readable verdict message (max 500 chars)",
+    )
+    check_details: Optional[list[dict]] = Field(
+        default=None,
+        description="Individual check results with status (OK/FAIL/WARN), label, and detail",
+    )
+
 
 # ============================================================================
 # Rate limiting (in-memory for MVP; Redis for production)
@@ -333,7 +355,12 @@ async def verify_evidence(
             ),
         )
 
-    # 6. Serialize for the response
+    # 6. Extract unified scoring fields (V3-B)
+    from integrations.arbiter.messages import extract_scoring_fields
+
+    scoring = extract_scoring_fields(verdict)
+
+    # 7. Serialize for the response
     return ArbiterVerifyResponse(
         verdict=verdict.decision.value,
         tier=verdict.tier.value,
@@ -357,6 +384,11 @@ async def verify_evidence(
         disagreement=verdict.disagreement,
         cost_usd=round(verdict.cost_usd, 6),
         latency_ms=verdict.latency_ms,
+        grade=scoring.get("grade"),
+        authenticity_score=scoring.get("authenticity_score"),
+        completion_score=scoring.get("completion_score"),
+        summary=scoring.get("summary"),
+        check_details=scoring.get("check_details"),
     )
 
 
