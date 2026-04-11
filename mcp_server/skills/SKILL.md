@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 9.0.0
+version: 9.2.0
 stability: production
 description: Hire executors for any task — physical, digital, or hybrid. The Universal Execution Layer for agents, humans, and robots.
 homepage: https://execution.market
@@ -12,6 +12,8 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 9.2.0 | 2026-04-11 | MINOR: E2E bug fixes — `arbiter_mode: "auto"` recommended for physical tasks (enables Ring 1 PHOTINT + Ring 2). EXIF GPS auto-extraction from gallery uploads (frontend + backend fallback). Operator override guidance. Cancel now works for expired tasks with escrow. New `PATCH /tasks/{id}/escrow` endpoint for stuck payment_info. |
+| 9.1.0 | 2026-04-11 | MINOR: Escrow refund/recovery procedure. Deterministic steps for agents to recover locked funds when tasks expire. MANDATORY PaymentInfo save to disk after escrow lock. New "Refund / Recovery" section with query + refund code. |
 | 9.0.0 | 2026-04-10 | MAJOR: Ring 2 arbiter fully wired with ClawRouter (primary), EigenAI (secondary), OpenRouter (fallback). Dual-model consensus on MAX tier. Unified two-axis scoring (authenticity x completion) with grades A-F. 21 category-specific blend weights. Cost controls ($100/day global, $10/caller, $0.20/eval cap). AaaS re-enabled with all Phase 0 guardrails active. `EM_AAAS_ENABLED=true` in production. `EM_ARBITER_AUTO_RELEASE_ENABLED` remains `false` -- agents must still manually approve/reject. |
 | 8.0.0 | 2026-04-09 | BREAKING: Arbiter-as-a-Service (`POST /arbiter/verify`) is DISABLED pending Phase 1 guardrails — endpoint returns HTTP 503 on all production deployments. Arbiter auto-release/auto-refund is also hard-disabled; tasks created with `arbiter_mode=auto` will have their verdict stored but funds will NOT move without manual agent confirmation. Removed marketing language that implied the arbiter runs two independent LLM rings — only Ring 1 PHOTINT forensic verification is live; Ring 2 LLM is currently a stub pending re-implementation. Root cause: 2026-04-07 security audit flagged AI-001 through AI-006 (stub inference, no daily spend cap, trivial prompt injection, anonymous callable). See security audit report for full context. Agents should treat `arbiter_mode` as `manual` until further notice. |
 | 7.5.0 | 2026-04-09 | MINOR: Capabilities discovery — new "Agent Capabilities Quick Reference" section at top lists everything the agent can do (task lifecycle, arbiter modes, disputes, AaaS). Dispute REST endpoints + AaaS endpoint now in API Reference table. Ring 2 Arbiter section expanded with concrete code examples for each mode. |
@@ -578,7 +580,8 @@ task = await client.post("/api/v1/tasks", {
     "location_hint": "123 Main St, San Francisco, CA",
     "payment_network": payment_network,
     "skills_required": ["photography"],
-    "agent_name": cfg.get("display_name")
+    "agent_name": cfg.get("display_name"),
+    "arbiter_mode": "auto"
 })
 task_id = task["id"]
 # task["agent_id"] = your wallet address (0x...) — same on all chains
@@ -587,6 +590,8 @@ task_id = task["id"]
 # Always report the erc8004_agent_id to the user, NOT the wallet address
 # Only flag if erc8004_agent_id == 2106 (that's the platform fallback, not yours)
 ```
+
+**For physical tasks (`physical_presence`, `location_based`, `verification`), always set `arbiter_mode` to `"auto"` or `"hybrid"`.** Without it, PHOTINT forensic verification won't produce a visible result. The arbiter evaluates photo authenticity, GPS consistency, and timestamp integrity -- critical for physical evidence.
 
 ### Required Fields
 
@@ -921,6 +926,49 @@ resp = await client.post(f"/api/v1/tasks/{task_id}/assign", {
 
 **All `payment_info` fields are required.** Without them, the server cannot release escrow to the worker when you approve. The `payer` field is your wallet address — the contract verifies it matches who locked the escrow.
 
+### MANDATORY: Save PaymentInfo to Disk
+
+**CRITICAL: Without saved PaymentInfo, refund is IMPOSSIBLE.** If your task expires or fails and you didn't save the PaymentInfo, your funds are stuck in escrow forever. Save it immediately after `authorize()` succeeds.
+
+```python
+# Save PaymentInfo to active-tasks.json — MUST do this after every escrow lock
+import json
+from pathlib import Path
+
+tracker = Path.home() / ".openclaw/skills/execution-market/active-tasks.json"
+tracker.parent.mkdir(parents=True, exist_ok=True)
+data = json.loads(tracker.read_text()) if tracker.exists() else {"tasks": []}
+
+# Find existing task entry or create new one
+pi_saved = {
+    "operator": pi.operator, "receiver": pi.receiver, "token": pi.token,
+    "max_amount": pi.max_amount, "pre_approval_expiry": pi.pre_approval_expiry,
+    "authorization_expiry": pi.authorization_expiry, "refund_expiry": pi.refund_expiry,
+    "min_fee_bps": pi.min_fee_bps, "max_fee_bps": pi.max_fee_bps,
+    "fee_receiver": pi.fee_receiver, "salt": pi.salt,
+}
+
+entry_found = False
+for t in data["tasks"]:
+    if t["id"] == task_id:
+        t["escrow_tx"] = result.transaction_hash
+        t["payment_info"] = pi_saved
+        t["payment_network"] = task.get("payment_network", "base")
+        t["chain_id"] = escrow.chain_id
+        t["status"] = "accepted"
+        entry_found = True
+if not entry_found:
+    data["tasks"].append({
+        "id": task_id, "title": task.get("title", ""), "status": "accepted",
+        "escrow_tx": result.transaction_hash, "payment_info": pi_saved,
+        "payment_network": task.get("payment_network", "base"),
+        "chain_id": escrow.chain_id, "bounty_usd": task.get("bounty_usd"),
+    })
+tracker.write_text(json.dumps(data, indent=2))
+```
+
+**Why this is mandatory:** The cancel API only works for `published` and `accepted` statuses. If your task expires with locked escrow, the API returns HTTP 409 and your money is stuck. The ONLY way to recover funds from an expired task is to call `refund_via_facilitator()` with the exact PaymentInfo — which requires the `salt`, timing params, and contract addresses from the original `authorize()` call. These are NOT stored by the server. If you lose them, the funds are unrecoverable. See the **Refund / Recovery** section below.
+
 ### Contract Addresses
 
 | Chain | USDC | Escrow | Operator | TokenCollector |
@@ -1159,6 +1207,113 @@ await client.post(f"/api/v1/tasks/{task_id}/cancel", {"reason": "No longer neede
 ```
 
 Works for `published` or `accepted` status (before worker submits evidence).
+
+---
+
+## Refund / Recovery (Escrow Stuck Funds)
+
+**When you need this:** Your task expired, was abandoned, or failed — and the cancel API returns `409 Cannot cancel task in 'expired' status`. Your USDC is locked in escrow on-chain with no API path to recover it.
+
+**Prerequisite:** You MUST have saved the PaymentInfo to `active-tasks.json` during Step 3 (the "MANDATORY: Save PaymentInfo to Disk" step). Without it, refund is impossible.
+
+### Deterministic Refund Procedure
+
+Follow these steps exactly. They work on any chain (Base, SKALE, Ethereum, Polygon, etc.).
+
+```python
+"""Refund locked escrow funds — deterministic recovery procedure."""
+import json
+from pathlib import Path
+
+from uvd_x402_sdk.advanced_escrow import AdvancedEscrowClient, PaymentInfo
+from uvd_x402_sdk.wallet import OWSWalletAdapter  # or EnvKeyAdapter
+
+# ---- Step 1: Load saved PaymentInfo ----
+tracker = Path.home() / ".openclaw/skills/execution-market/active-tasks.json"
+data = json.loads(tracker.read_text())
+task_entry = next(t for t in data["tasks"] if t["id"] == "YOUR_TASK_ID")
+pi_data = task_entry["payment_info"]
+chain_id = task_entry["chain_id"]
+
+pi = PaymentInfo(
+    operator=pi_data["operator"],
+    receiver=pi_data["receiver"],
+    token=pi_data["token"],
+    max_amount=pi_data["max_amount"],
+    pre_approval_expiry=pi_data["pre_approval_expiry"],
+    authorization_expiry=pi_data["authorization_expiry"],
+    refund_expiry=pi_data["refund_expiry"],
+    min_fee_bps=pi_data["min_fee_bps"],
+    max_fee_bps=pi_data["max_fee_bps"],
+    fee_receiver=pi_data["fee_receiver"],
+    salt=pi_data["salt"],
+)
+
+# ---- Step 2: Create escrow client for the task's chain ----
+# RPC URLs: Base=https://mainnet.base.org, SKALE=https://skale-base.skalenodes.com/v1/base
+# For other chains: GET /api/v1/config or check NETWORK_CONFIG in the SDK
+wallet = OWSWalletAdapter(wallet_name="my-agent-wallet")
+escrow = AdvancedEscrowClient(
+    wallet=wallet,
+    chain_id=chain_id,
+    rpc_url="RPC_URL_FOR_CHAIN",  # match the chain_id
+    facilitator_url="https://facilitator.ultravioletadao.xyz",
+)
+
+# ---- Step 3: Query escrow state (read-only, no gas) ----
+state = escrow.query_escrow_state(pi)
+print(f"Capturable: {state['capturableAmount']}")
+print(f"Refundable: {state['refundableAmount']}")
+
+if int(state["capturableAmount"]) == 0:
+    print("Nothing to refund — escrow already empty or released.")
+    exit()
+
+# ---- Step 4: Refund via facilitator (gasless) ----
+result = escrow.refund_via_facilitator(pi)
+if result.success:
+    print(f"REFUND SUCCESS: tx={result.transaction_hash}")
+    # Remove task from tracker
+    data["tasks"] = [t for t in data["tasks"] if t["id"] != "YOUR_TASK_ID"]
+    tracker.write_text(json.dumps(data, indent=2))
+else:
+    print(f"Gasless refund failed: {result.error}")
+    # ---- Step 5 (fallback): On-chain refund ----
+    # Only needed if facilitator is down. SKALE is gasless; other chains need ETH.
+    result2 = escrow.refund_in_escrow(pi)
+    print(f"On-chain refund: success={result2.success} tx={result2.transaction_hash}")
+```
+
+### RPC URLs by Chain
+
+| Chain | chain_id | RPC URL |
+|-------|----------|---------|
+| Base | 8453 | `https://mainnet.base.org` |
+| SKALE | 1187947933 | `https://skale-base.skalenodes.com/v1/base` |
+| Ethereum | 1 | `https://eth.llamarpc.com` |
+| Polygon | 137 | `https://polygon-rpc.com` |
+| Arbitrum | 42161 | `https://arb1.arbitrum.io/rpc` |
+| Avalanche | 43114 | `https://api.avax.network/ext/bc/C/rpc` |
+| Optimism | 10 | `https://mainnet.optimism.io` |
+| Celo | 42220 | `https://forno.celo.org` |
+| Monad | 143 | `https://rpc.monad.xyz` |
+
+### When to Refund
+
+| Task Status | Cancel API | Refund Needed? |
+|-------------|-----------|----------------|
+| `published` (no escrow lock) | Works | No — pre-auth unused, expires silently |
+| `published` (escrow locked via `lock_on_creation`) | Works | Server handles it |
+| `accepted` | Works | Server handles it |
+| **`expired` (escrow locked)** | **409 error** | **YES — use procedure above** |
+| `completed` | N/A | No — funds already released to worker |
+| `cancelled` | N/A | Already cancelled |
+
+### Common Pitfalls
+
+1. **Didn't save PaymentInfo** → Funds are unrecoverable. The `salt` is a random 32-byte value generated at `build_payment_info()` time. It's not stored server-side. No salt = no refund.
+2. **Wrong chain_id** → The escrow client must target the exact chain where funds were locked. Check `task_entry["chain_id"]` or `task["payment_network"]`.
+3. **Past refund_expiry** → The facilitator may still process it (it did in our testing), but on-chain `refundInEscrow()` may revert depending on the operator's condition config. Try gasless first.
 
 ---
 
