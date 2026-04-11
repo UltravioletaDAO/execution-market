@@ -21,7 +21,9 @@ from typing import Any, Dict, List, Optional
 from .checks.schema import validate_evidence_schema, SchemaValidationResult
 from .checks.gps import check_gps_location, GPSResult
 from .checks.timestamp import validate_submission_window
+from .exif_extractor import extract_exif_from_bytes
 from .gps_antispoofing import GPSAntiSpoofing, GPSData, DeviceInfo, SensorData
+from .image_downloader import extract_photo_urls
 from .attestation import (
     AttestationLevel,
     get_attestation_requirement,
@@ -121,7 +123,7 @@ async def run_verification_pipeline(
     checks.append(schema_result)
 
     # --- Check 2: GPS proximity (only for physical categories) ---
-    gps_result = _run_gps_check(evidence, task, category)
+    gps_result = await _run_gps_check(evidence, task, category)
     if gps_result:
         checks.append(gps_result)
 
@@ -236,7 +238,7 @@ def _run_schema_check(
     )
 
 
-def _run_gps_check(
+async def _run_gps_check(
     evidence: Dict[str, Any],
     task: Dict[str, Any],
     category: str,
@@ -252,8 +254,17 @@ def _run_gps_check(
     task_lat = task.get("location_lat")
     task_lng = task.get("location_lng")
 
-    # Extract GPS from evidence
+    # Extract GPS from evidence metadata
     photo_lat, photo_lng = _extract_gps_from_evidence(evidence)
+    gps_source = "evidence_metadata" if photo_lat is not None else None
+
+    # Fallback: if no GPS in metadata, try downloading image and extracting EXIF
+    if photo_lat is None or photo_lng is None:
+        exif_lat, exif_lng = await _extract_gps_from_exif_fallback(evidence)
+        if exif_lat is not None and exif_lng is not None:
+            photo_lat, photo_lng = exif_lat, exif_lng
+            gps_source = "exif_fallback"
+
     logger.info(
         "[AUDIT] _run_gps_check photo_gps=%s task_gps=%s",
         "present" if photo_lat is not None else "absent",
@@ -285,11 +296,15 @@ def _run_gps_check(
         # Case: task has NO reference coords
         if photo_lat is not None and photo_lng is not None:
             # Evidence has GPS even though task doesn't require specific location
+            details = {}
+            if gps_source:
+                details["source"] = gps_source
             return CheckResult(
                 name="gps",
                 passed=True,
                 score=0.7,
                 reason="GPS coordinates present in evidence (no task reference location to compare)",
+                details=details,
             )
 
         # No GPS anywhere
@@ -335,17 +350,21 @@ def _run_gps_check(
         else:
             score = 0.0
 
+    details = {
+        "distance_meters": result.distance_meters,
+        "max_distance_meters": max_distance,
+        "photo_coords": list(result.photo_coords) if result.photo_coords else None,
+        "task_coords": list(result.task_coords) if result.task_coords else None,
+    }
+    if gps_source:
+        details["source"] = gps_source
+
     return CheckResult(
         name="gps",
         passed=result.is_valid,
         score=round(score, 3),
         reason=result.reason,
-        details={
-            "distance_meters": result.distance_meters,
-            "max_distance_meters": max_distance,
-            "photo_coords": list(result.photo_coords) if result.photo_coords else None,
-            "task_coords": list(result.task_coords) if result.task_coords else None,
-        },
+        details=details,
     )
 
 
@@ -523,6 +542,76 @@ def _extract_gps_from_evidence(evidence: Dict[str, Any]) -> tuple:
         else "not_dict",
     )
     return None, None
+
+
+async def _extract_gps_from_exif_fallback(
+    evidence: Dict[str, Any],
+) -> tuple:
+    """
+    Fallback GPS extraction: download the first evidence image and read EXIF GPS.
+
+    Only called when _extract_gps_from_evidence() found no GPS in the JSON metadata.
+    Downloads at most one image (first URL found), with a 10s timeout and 10MB cap.
+
+    Returns:
+        (latitude, longitude) or (None, None) if extraction fails.
+    """
+    import httpx
+
+    MAX_DOWNLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
+    DOWNLOAD_TIMEOUT = 10.0  # seconds
+
+    try:
+        urls = extract_photo_urls(evidence)
+        if not urls:
+            return None, None
+
+        # Try the first image URL only (defense-in-depth, not full scan)
+        file_url = urls[0]
+        logger.info("GPS fallback: extracting EXIF from %s", file_url)
+
+        async with httpx.AsyncClient(
+            timeout=DOWNLOAD_TIMEOUT, follow_redirects=True
+        ) as client:
+            response = await client.get(file_url)
+            response.raise_for_status()
+
+            # Enforce max file size
+            content_length = response.headers.get("content-length")
+            if content_length and int(content_length) > MAX_DOWNLOAD_BYTES:
+                logger.warning(
+                    "GPS fallback: image too large (%s bytes), skipping %s",
+                    content_length,
+                    file_url,
+                )
+                return None, None
+
+            image_bytes = response.content
+            if len(image_bytes) > MAX_DOWNLOAD_BYTES:
+                logger.warning(
+                    "GPS fallback: downloaded image exceeds 10MB (%d bytes), skipping",
+                    len(image_bytes),
+                )
+                return None, None
+
+            # Extract EXIF GPS from image bytes
+            exif_data = extract_exif_from_bytes(image_bytes, filename=file_url)
+            if (
+                exif_data.gps_latitude is not None
+                and exif_data.gps_longitude is not None
+            ):
+                logger.info(
+                    "GPS fallback: EXIF GPS found (source=exif_fallback) from %s",
+                    file_url,
+                )
+                return exif_data.gps_latitude, exif_data.gps_longitude
+
+        logger.info("GPS fallback: no EXIF GPS in image %s", file_url)
+        return None, None
+
+    except Exception as e:
+        logger.warning("GPS fallback: failed to extract EXIF GPS: %s", e)
+        return None, None
 
 
 def _run_timestamp_check(

@@ -14,6 +14,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import exifr from 'exifr'
 import { supabase } from '../../lib/supabase'
 import type { EvidenceType } from '../../types/database'
 import { CameraCapture, type CapturedPhoto } from './CameraCapture'
@@ -112,6 +113,31 @@ async function blobToFile(blob: Blob, filename: string): Promise<File> {
   })
 }
 
+/**
+ * Extract GPS coordinates from image EXIF data.
+ * Returns a GPSPosition if EXIF GPS is present, null otherwise.
+ * Never throws — silently returns null on any failure (stripped metadata,
+ * non-JPEG, permission issues, etc.).
+ */
+async function extractExifGps(file: File | Blob): Promise<GPSPosition | null> {
+  try {
+    const gps = await exifr.gps(file)
+    if (gps?.latitude != null && gps?.longitude != null) {
+      return {
+        latitude: gps.latitude,
+        longitude: gps.longitude,
+        accuracy: 0, // EXIF does not carry accuracy — mark as unknown
+        timestamp: Date.now(),
+      }
+    }
+    return null
+  } catch {
+    // EXIF extraction can fail for many valid reasons (no EXIF, HEIC without
+    // parser, corrupted metadata). This is a bonus feature — never crash.
+    return null
+  }
+}
+
 // ============================================================================
 // Component
 // ============================================================================
@@ -181,8 +207,17 @@ export function EvidenceUpload({
     // Fall back to creating a File from the canvas blob (desktop getUserMedia — no EXIF).
     const file = photo.originalFile ?? await blobToFile(photo.blob, filename)
 
+    // Extract EXIF GPS from the captured photo. Native camera captures on
+    // mobile typically embed GPS in EXIF. Prefer it over browser geolocation.
+    const exifGps = await extractExifGps(file)
+    const resolvedGps = exifGps ?? currentGps ?? undefined
+
+    if (exifGps && !currentGps) {
+      setCurrentGps(exifGps)
+    }
+
     // Calculate distance if task location provided (used later during verification)
-    void (currentGps ? calculateDistance(currentGps) : undefined)
+    void (resolvedGps ? calculateDistance(resolvedGps) : undefined)
 
     // Map EvidenceType to EvidenceItem.type (limited set)
     const mapToPreviewType = (et: EvidenceType): EvidenceItem['type'] => {
@@ -197,7 +232,7 @@ export function EvidenceUpload({
       file,
       dataUrl: photo.dataUrl,
       timestamp,
-      gps: currentGps || undefined,
+      gps: resolvedGps,
       uploadStatus: 'pending',
       metadata: {
         width: photo.width,
@@ -251,6 +286,18 @@ export function EvidenceUpload({
         img.src = dataUrl
       })
 
+      // Extract EXIF GPS from the image file (gallery photos often have it).
+      // Prefer EXIF GPS over currentGps — it comes from the actual photo and
+      // is more accurate than a separately-captured browser geolocation.
+      const exifGps = await extractExifGps(file)
+      const resolvedGps = exifGps ?? currentGps ?? undefined
+
+      // If EXIF gave us GPS that the GPSCapture component doesn't have yet,
+      // propagate it so the UI shows the position badge immediately.
+      if (exifGps && !currentGps) {
+        setCurrentGps(exifGps)
+      }
+
       // Map EvidenceType to EvidenceItem.type (limited set)
       const previewType: EvidenceItem['type'] =
         currentEvidenceType === 'photo' || currentEvidenceType === 'photo_geo' ||
@@ -263,7 +310,7 @@ export function EvidenceUpload({
         file,
         dataUrl,
         timestamp: new Date(file.lastModified),
-        gps: currentGps || undefined,
+        gps: resolvedGps,
         uploadStatus: 'pending',
         metadata: {
           width: img.width,
