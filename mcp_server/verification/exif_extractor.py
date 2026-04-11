@@ -288,6 +288,82 @@ def extract_exif_from_bytes(image_bytes: bytes, filename: str = "unknown") -> Ex
 # ---------------------------------------------------------------------------
 
 
+def extract_exif_multi(file_paths: List[str]) -> List[ExifData]:
+    """
+    Extract EXIF metadata from ALL images in a list.
+
+    Unlike extract_exif() which processes a single file, this function
+    processes every image and returns a list of ExifData results.
+    Useful for multi-image evidence submissions.
+
+    Args:
+        file_paths: List of paths to image files.
+
+    Returns:
+        List of ExifData, one per file (in the same order).
+        Failed extractions return an ExifData with has_exif=False.
+    """
+    results = []
+    for path in file_paths:
+        try:
+            data = extract_exif(path)
+            results.append(data)
+        except Exception as e:
+            logger.warning("EXIF multi-extraction failed for %s: %s", path, e)
+            results.append(ExifData())
+    return results
+
+
+def extract_exif_multi_from_bytes(
+    images: List[tuple],
+) -> List[ExifData]:
+    """
+    Extract EXIF from multiple in-memory images.
+
+    Args:
+        images: List of (image_bytes, filename) tuples.
+
+    Returns:
+        List of ExifData, one per image.
+    """
+    results = []
+    for image_bytes, filename in images:
+        try:
+            data = extract_exif_from_bytes(image_bytes, filename)
+            results.append(data)
+        except Exception as e:
+            logger.warning(
+                "EXIF multi-extraction from bytes failed for %s: %s", filename, e
+            )
+            results.append(ExifData())
+    return results
+
+
+def merge_exif_to_prompt_context(exif_list: List[ExifData]) -> str:
+    """
+    Merge multiple EXIF results into a single prompt context string.
+
+    Args:
+        exif_list: List of ExifData from extract_exif_multi().
+
+    Returns:
+        Combined prompt context with image numbering.
+    """
+    if not exif_list:
+        return "No EXIF data available."
+
+    if len(exif_list) == 1:
+        return exif_list[0].to_prompt_context()
+
+    sections = []
+    for i, exif in enumerate(exif_list, 1):
+        context = exif.to_prompt_context()
+        if context:
+            sections.append(f"[Image {i}]\n{context}")
+
+    return "\n\n".join(sections) if sections else "No EXIF data available."
+
+
 def _detect_jpeg_container(file_path: str) -> str:
     """Detect JPEG container type: EXIF or JFIF."""
     try:

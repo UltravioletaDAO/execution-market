@@ -11,6 +11,8 @@ Usage:
     # result.passed, result.score, result.details
 """
 
+import hashlib
+import json
 import logging
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
@@ -19,6 +21,11 @@ from typing import Any, Dict, List, Optional
 from .checks.schema import validate_evidence_schema, SchemaValidationResult
 from .checks.gps import check_gps_location, GPSResult
 from .checks.timestamp import validate_submission_window
+from .gps_antispoofing import GPSAntiSpoofing, GPSData, DeviceInfo, SensorData
+from .attestation import (
+    AttestationLevel,
+    get_attestation_requirement,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -27,20 +34,24 @@ PHYSICAL_CATEGORIES = {"physical_presence", "simple_action"}
 
 # Phase A weights (sync checks, subtotal = 0.50)
 PHASE_A_WEIGHTS = {
-    "schema": 0.15,
-    "gps": 0.15,
-    "timestamp": 0.10,
+    "schema": 0.12,
+    "gps": 0.12,
+    "gps_antispoofing": 0.06,
+    "timestamp": 0.08,
     "evidence_hash": 0.05,
-    "metadata": 0.05,
+    "metadata": 0.04,
+    "attestation": 0.03,
 }
 
 # Phase B weights (async checks, subtotal = 0.50)
 PHASE_B_WEIGHTS = {
-    "ai_semantic": 0.25,
+    "ai_semantic": 0.20,
     "tampering": 0.10,
     "genai_detection": 0.05,
     "photo_source": 0.05,
-    "duplicate": 0.05,
+    "duplicate": 0.03,
+    "weather": 0.04,
+    "platform_fingerprint": 0.03,
 }
 
 # Combined weights for full scoring
@@ -113,6 +124,14 @@ async def run_verification_pipeline(
     gps_result = _run_gps_check(evidence, task, category)
     if gps_result:
         checks.append(gps_result)
+
+        # --- Check 2b: GPS anti-spoofing (only if basic GPS passed) ---
+        if gps_result.passed:
+            antispoof_result = await _run_gps_antispoofing_check(
+                evidence, submission, task
+            )
+            if antispoof_result:
+                checks.append(antispoof_result)
     elif category in PHYSICAL_CATEGORIES:
         warnings.append(
             "GPS check skipped: task has no location coordinates. Agent should include location_lat/location_lng or location_hint when publishing tasks requiring physical presence."
@@ -131,6 +150,11 @@ async def run_verification_pipeline(
     # --- Check 5: Metadata presence ---
     metadata_result = _run_metadata_check(evidence, category)
     checks.append(metadata_result)
+
+    # --- Check 6: Hardware attestation (optional, no-penalty) ---
+    attestation_result = _run_attestation_check(evidence, task)
+    if attestation_result:
+        checks.append(attestation_result)
 
     # --- Aggregate score (Phase A only — Phase B runs async) ---
     total_weight = 0.0
@@ -558,7 +582,7 @@ def _run_timestamp_check(
 
 
 def _run_evidence_hash_check(evidence: Dict[str, Any]) -> Optional[CheckResult]:
-    """Check if evidence includes integrity hashes (from frontend SHA-256)."""
+    """Check evidence integrity hash — verify if possible, not just presence."""
     # Look for hash fields that the frontend may have computed
     hash_value = (
         evidence.get("evidence_hash")
@@ -571,19 +595,50 @@ def _run_evidence_hash_check(evidence: Dict[str, Any]) -> Optional[CheckResult]:
         return CheckResult(
             name="evidence_hash",
             passed=True,
-            score=0.5,  # Neutral — no hash to verify
+            score=0.5,  # Neutral — no hash to verify (older clients)
             reason="No evidence hash provided (integrity unverified)",
         )
 
-    # We have a hash — we can't verify it server-side without downloading
-    # the file, but its presence indicates the frontend computed it
-    return CheckResult(
-        name="evidence_hash",
-        passed=True,
-        score=0.8,
-        reason="Evidence hash present (server-side verification pending)",
-        details={"hash": str(hash_value)[:16] + "..."},
-    )
+    # Attempt server-side verification: compute hash of the evidence payload
+    # and compare against the claimed hash.
+    computed_hash = _compute_evidence_hash(evidence)
+    if computed_hash and computed_hash == str(hash_value):
+        return CheckResult(
+            name="evidence_hash",
+            passed=True,
+            score=1.0,
+            reason="Evidence hash verified — integrity confirmed",
+            details={
+                "hash": str(hash_value)[:16] + "...",
+                "verified": True,
+            },
+        )
+    elif computed_hash and computed_hash != str(hash_value):
+        # Hash mismatch — possible tampering
+        return CheckResult(
+            name="evidence_hash",
+            passed=False,
+            score=0.0,
+            reason="Evidence hash mismatch — possible tampering",
+            details={
+                "claimed_hash": str(hash_value)[:16] + "...",
+                "computed_hash": computed_hash[:16] + "...",
+                "verified": False,
+            },
+        )
+    else:
+        # Could not recompute (e.g., hash covers downloaded file bytes).
+        # Hash presence is still a positive signal.
+        return CheckResult(
+            name="evidence_hash",
+            passed=True,
+            score=0.8,
+            reason="Evidence hash present (file-level verification deferred to Phase B)",
+            details={
+                "hash": str(hash_value)[:16] + "...",
+                "verified": False,
+            },
+        )
 
 
 def _run_metadata_check(
@@ -646,6 +701,222 @@ def _parse_datetime(value: Any) -> Optional[datetime]:
             pass
 
     return None
+
+
+def _compute_evidence_hash(evidence: Dict[str, Any]) -> Optional[str]:
+    """
+    Compute a SHA-256 hash of the evidence payload for verification.
+
+    The frontend hashes the JSON-serialized evidence (sorted keys, no whitespace).
+    We replicate that here. If the hash covers file bytes (not JSON), we cannot
+    recompute server-side without downloading — return None.
+    """
+    try:
+        # Exclude hash fields themselves from the payload to hash
+        hashable = {
+            k: v
+            for k, v in evidence.items()
+            if k not in ("evidence_hash", "sha256", "file_hash", "integrity_hash")
+        }
+        # Canonical JSON: sorted keys, no whitespace, ensure_ascii for determinism
+        canonical = json.dumps(
+            hashable, sort_keys=True, separators=(",", ":"), ensure_ascii=True
+        )
+        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    except (TypeError, ValueError) as e:
+        logger.debug("Could not compute evidence hash: %s", e)
+        return None
+
+
+async def _run_gps_antispoofing_check(
+    evidence: Dict[str, Any],
+    submission: Dict[str, Any],
+    task: Dict[str, Any],
+) -> Optional[CheckResult]:
+    """
+    Run GPS anti-spoofing analysis after basic GPS check passed.
+
+    Uses movement patterns, sensor fusion, and device fingerprinting
+    to detect GPS spoofing.
+    """
+    try:
+        # Extract GPS coordinates from evidence
+        photo_lat, photo_lng = _extract_gps_from_evidence(evidence)
+        if photo_lat is None or photo_lng is None:
+            return None  # No GPS to anti-spoof
+
+        executor_id = submission.get("executor_id") or "unknown"
+
+        # Build GPSData
+        gps_data = GPSData(
+            latitude=photo_lat,
+            longitude=photo_lng,
+        )
+
+        # Extract device info if available
+        forensics = (
+            evidence.get("forensic_metadata") or evidence.get("device_info") or {}
+        )
+        device_info = DeviceInfo(
+            device_id=forensics.get("device_id"),
+            user_agent=forensics.get("user_agent"),
+            screen_width=forensics.get("screen_width"),
+            screen_height=forensics.get("screen_height"),
+            platform=forensics.get("platform"),
+            timezone=forensics.get("timezone"),
+            language=forensics.get("language"),
+        )
+
+        # Extract sensor data if available
+        sensor_data = None
+        accel = forensics.get("accelerometer")
+        gyro = forensics.get("gyroscope")
+        if accel or gyro:
+            sensor_data = SensorData(
+                accelerometer=tuple(accel) if accel and len(accel) == 3 else None,
+                gyroscope=tuple(gyro) if gyro and len(gyro) == 3 else None,
+            )
+
+        # Extract IP if available (from submission metadata)
+        ip_address = submission.get("ip_address") or submission.get("client_ip")
+
+        detector = GPSAntiSpoofing()
+        result = await detector.detect_spoofing(
+            gps_data=gps_data,
+            device_info=device_info,
+            executor_id=executor_id,
+            ip_address=ip_address,
+            sensor_data=sensor_data,
+        )
+
+        # Convert SpoofingResult to CheckResult
+        # risk_score 0.0 (safe) -> score 1.0 (good)
+        # risk_score 1.0 (spoofed) -> score 0.0 (bad)
+        score = max(0.0, 1.0 - result.risk_score)
+
+        return CheckResult(
+            name="gps_antispoofing",
+            passed=not result.is_spoofed,
+            score=round(score, 3),
+            reason=(
+                "; ".join(result.reasons)
+                if result.reasons
+                else "GPS anti-spoofing: no anomalies detected"
+            ),
+            details={
+                "risk_level": result.risk_level.value,
+                "risk_score": result.risk_score,
+                "confidence": result.confidence,
+                "checks_performed": result.checks_performed,
+            },
+        )
+
+    except Exception as e:
+        logger.warning("GPS anti-spoofing check failed: %s", e)
+        # Failure of anti-spoofing should not block pipeline
+        return CheckResult(
+            name="gps_antispoofing",
+            passed=True,
+            score=0.5,
+            reason=f"GPS anti-spoofing check error (non-blocking): {e}",
+        )
+
+
+def _run_attestation_check(
+    evidence: Dict[str, Any],
+    task: Dict[str, Any],
+) -> Optional[CheckResult]:
+    """
+    Check for hardware attestation data in evidence.
+
+    This is an optional bonus check. When attestation data is present
+    and valid, it boosts the score. When absent, it does NOT penalize
+    — returns a neutral score. This avoids punishing older clients or
+    devices without hardware security modules.
+    """
+    # Look for attestation data in evidence
+    attestation_data = (
+        evidence.get("attestation")
+        or evidence.get("device_attestation")
+        or evidence.get("hardware_attestation")
+    )
+
+    # Check if attestation is required for this task
+    category = task.get("category", "")
+    bounty = task.get("bounty", 0)
+    try:
+        bounty_usd = float(bounty)
+    except (TypeError, ValueError):
+        bounty_usd = 0.0
+
+    requirement = get_attestation_requirement(category, bounty_usd)
+
+    if not attestation_data:
+        if requirement.required:
+            # High-value task without attestation — partial penalty
+            return CheckResult(
+                name="attestation",
+                passed=False,
+                score=0.3,
+                reason=f"Hardware attestation required for {category} tasks with bounty ${bounty_usd:.2f} but not provided",
+                details={
+                    "required": True,
+                    "provided": False,
+                    "min_level": requirement.min_level.value,
+                },
+            )
+        elif requirement.recommended:
+            # Recommended but not provided — neutral
+            return CheckResult(
+                name="attestation",
+                passed=True,
+                score=0.6,
+                reason="Hardware attestation recommended but not provided",
+                details={"required": False, "recommended": True, "provided": False},
+            )
+        else:
+            # Not required, not provided — fully neutral, skip weight
+            return None
+
+    # Attestation data is present — validate its structure
+    if isinstance(attestation_data, dict):
+        platform = attestation_data.get("platform", "unknown")
+        level = attestation_data.get("level", "basic")
+
+        try:
+            att_level = AttestationLevel(level)
+        except ValueError:
+            att_level = AttestationLevel.BASIC
+
+        # Score based on attestation level
+        level_scores = {
+            AttestationLevel.NONE: 0.3,
+            AttestationLevel.BASIC: 0.6,
+            AttestationLevel.STRONG: 0.85,
+            AttestationLevel.VERIFIED: 1.0,
+        }
+        score = level_scores.get(att_level, 0.5)
+
+        return CheckResult(
+            name="attestation",
+            passed=True,
+            score=score,
+            reason=f"Hardware attestation present ({platform}, level: {level})",
+            details={
+                "platform": platform,
+                "level": level,
+                "required": requirement.required,
+            },
+        )
+
+    # Attestation present but unrecognized format
+    return CheckResult(
+        name="attestation",
+        passed=True,
+        score=0.5,
+        reason="Hardware attestation data present but format unrecognized",
+        details={"provided": True, "format": type(attestation_data).__name__},
+    )
 
 
 def recompute_aggregate(

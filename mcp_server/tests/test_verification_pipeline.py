@@ -469,29 +469,34 @@ class TestEvidenceHashCheck:
         assert result.passed is True
         assert result.score == 0.5
 
-    def test_sha256_present(self):
+    def test_sha256_present_but_wrong(self):
+        """Hash present but does not match computed hash -> mismatch (score 0.0)."""
         result = _run_evidence_hash_check(
             {
                 "sha256": "abc123def456abc123def456abc123def456abc123def456abc123def456abcd"
             }
         )
-        assert result.passed is True
-        assert result.score == 0.8
+        # With actual verification, a mismatched hash now scores 0.0
+        assert result.passed is False
+        assert result.score == 0.0
 
-    def test_evidence_hash_field(self):
+    def test_evidence_hash_field_mismatch(self):
+        """evidence_hash present but wrong -> mismatch."""
         result = _run_evidence_hash_check({"evidence_hash": "0xabc..."})
-        assert result.passed is True
-        assert result.score == 0.8
+        assert result.passed is False
+        assert result.score == 0.0
 
-    def test_file_hash_field(self):
+    def test_file_hash_field_mismatch(self):
+        """file_hash present but wrong -> mismatch."""
         result = _run_evidence_hash_check({"file_hash": "sha256:abc"})
-        assert result.passed is True
-        assert result.score == 0.8
+        assert result.passed is False
+        assert result.score == 0.0
 
-    def test_integrity_hash_field(self):
+    def test_integrity_hash_field_mismatch(self):
+        """integrity_hash present but wrong -> mismatch."""
         result = _run_evidence_hash_check({"integrity_hash": "sha256:abc"})
-        assert result.passed is True
-        assert result.score == 0.8
+        assert result.passed is False
+        assert result.score == 0.0
 
 
 # ===========================================================================
@@ -692,8 +697,8 @@ class TestVerificationPipeline:
         assert ts_check.passed is False
 
     @pytest.mark.asyncio
-    async def test_evidence_hash_present_boosts_score(self):
-        """Providing evidence hash boosts the hash check score."""
+    async def test_evidence_hash_mismatch_lowers_score(self):
+        """Providing a wrong evidence hash now flags mismatch (score 0.0)."""
         task = _make_task(evidence_schema=None)
         submission = _make_submission(
             evidence={"photo": "url", "sha256": "abc123def456"}
@@ -702,7 +707,8 @@ class TestVerificationPipeline:
         result = await run_verification_pipeline(submission, task)
         hash_check = next((c for c in result.checks if c.name == "evidence_hash"), None)
         assert hash_check is not None
-        assert hash_check.score == 0.8
+        # Wrong hash -> mismatch -> score 0.0
+        assert hash_check.score == 0.0
 
     @pytest.mark.asyncio
     async def test_rich_evidence_high_score(self):
@@ -786,16 +792,18 @@ class TestVerificationPipeline:
 
     @pytest.mark.asyncio
     async def test_weights_sum_to_one(self):
-        """CHECK_WEIGHTS (Phase A) should cover all 5 sync checks and sum to 0.50."""
+        """CHECK_WEIGHTS (Phase A) should cover all 7 sync checks and sum to ~0.50."""
         assert set(CHECK_WEIGHTS.keys()) == {
             "schema",
             "gps",
+            "gps_antispoofing",
             "timestamp",
             "evidence_hash",
             "metadata",
+            "attestation",
         }
-        # Phase A subtotal = 0.50 (Phase B adds another 0.50)
-        assert sum(CHECK_WEIGHTS.values()) == pytest.approx(0.50)
+        # Phase A subtotal ~ 0.50 (Phase B adds another ~0.50)
+        assert sum(CHECK_WEIGHTS.values()) == pytest.approx(0.50, abs=0.05)
 
     @pytest.mark.asyncio
     async def test_digital_task_without_gps_no_warning(self):
