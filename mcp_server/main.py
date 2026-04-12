@@ -35,7 +35,6 @@ from jobs.task_expiration import run_task_expiration_loop
 from jobs.auto_payment import run_auto_payment_loop
 from jobs.fee_sweep import run_fee_sweep_loop
 from jobs.phase_b_recovery import (
-    recover_orphaned_phase_b,
     graceful_shutdown_phase_b,
     inflight_count as phase_b_inflight_count,
 )
@@ -267,11 +266,11 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning("Provider validation failed (non-fatal): %s", e)
 
-    # Recover orphaned Phase B verifications (non-blocking, runs as background tasks)
-    try:
-        await recover_orphaned_phase_b()
-    except Exception as e:
-        logger.warning("Phase B orphan recovery failed (non-fatal): %s", e)
+    # Phase B orphan recovery DISABLED at startup.
+    # Was saturating the event loop with 25+ stale recovery jobs, blocking
+    # new submissions. Needs proper job queue (SQS/Celery) before re-enabling.
+    # The periodic cleanup in task_expiration_loop still marks stale events.
+    logger.info("Phase B orphan recovery: DISABLED (use job queue for production)")
 
     # Start background jobs
     expiration_task = asyncio.create_task(run_task_expiration_loop())
