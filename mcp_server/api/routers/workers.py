@@ -15,6 +15,8 @@ from ..auth import verify_worker_auth, WorkerAuth, _enforce_worker_identity
 
 from verification.pipeline import run_verification_pipeline
 from verification.background_runner import run_phase_b_verification
+from verification.sqs_publisher import is_sqs_mode, publish_ring1
+from verification.image_downloader import extract_photo_urls
 from jobs.phase_b_recovery import track_phase_b_task
 
 from ._models import (
@@ -745,14 +747,56 @@ async def submit_work(
                     or True  # Keep unconditional launch as safety net
                 )
                 if should_launch_phase_b:
-                    _pb_task = asyncio.create_task(
-                        run_phase_b_verification(
+                    if is_sqs_mode():
+                        # SQS mode: Lambda handles Ring 1 + Ring 2
+                        logger.info(
+                            "Verification backend: SQS — publishing submission=%s",
+                            submission_id,
+                        )
+                        photo_urls = extract_photo_urls(
+                            submission_data.get("evidence") or {}
+                        )
+                        phase_a_dict = (
+                            verification_result.to_dict()
+                            if verification_result
+                            else None
+                        )
+                        sqs_ok = await publish_ring1(
                             submission_id=submission_id,
+                            task_id=task_id,
                             submission=submission_data,
                             task=task,
+                            photo_urls=photo_urls,
+                            phase_a_result=phase_a_dict,
                         )
-                    )
-                    track_phase_b_task(_pb_task, submission_id)
+                        if not sqs_ok:
+                            # Fallback to asyncio if SQS publish failed
+                            logger.warning(
+                                "SQS publish failed — falling back to ECS asyncio for %s",
+                                submission_id,
+                            )
+                            _pb_task = asyncio.create_task(
+                                run_phase_b_verification(
+                                    submission_id=submission_id,
+                                    submission=submission_data,
+                                    task=task,
+                                )
+                            )
+                            track_phase_b_task(_pb_task, submission_id)
+                    else:
+                        # ECS mode: existing asyncio background processing
+                        logger.info(
+                            "Verification backend: ECS (asyncio) — submission=%s",
+                            submission_id,
+                        )
+                        _pb_task = asyncio.create_task(
+                            run_phase_b_verification(
+                                submission_id=submission_id,
+                                submission=submission_data,
+                                task=task,
+                            )
+                        )
+                        track_phase_b_task(_pb_task, submission_id)
         except Exception as verify_err:
             logger.warning(
                 "Evidence verification failed for submission %s: %s",
