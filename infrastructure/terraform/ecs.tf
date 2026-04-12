@@ -240,6 +240,10 @@ resource "aws_ecs_task_definition" "mcp_server" {
           valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/google:GOOGLE_API_KEY::"
         },
         {
+          name      = "OPENROUTER_API_KEY"
+          valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/openrouter:OPENROUTER_API_KEY::"
+        },
+        {
           name      = "WALLET_PRIVATE_KEY"
           valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/x402:PRIVATE_KEY::"
         },
