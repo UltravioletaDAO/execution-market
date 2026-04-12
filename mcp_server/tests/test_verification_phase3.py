@@ -5,6 +5,7 @@ Covers: GeminiProvider, image_downloader, background_runner, weight system,
 Phase B checks, auto-approve logic, merge_phase_b, commitment hashes.
 """
 
+import asyncio
 import os
 import tempfile
 from datetime import datetime, timezone, timedelta
@@ -92,23 +93,30 @@ class TestGeminiProvider:
 
         provider = GeminiProvider()
 
-        mock_response = MagicMock()
-        mock_response.text = '{"decision": "approved"}'
-        mock_response.usage_metadata = MagicMock()
-        mock_response.usage_metadata.prompt_token_count = 100
-        mock_response.usage_metadata.candidates_token_count = 50
+        # Mock httpx response matching Gemini REST API structure
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [{"text": '{"decision": "approved"}'}],
+                    }
+                }
+            ],
+            "usageMetadata": {
+                "promptTokenCount": 100,
+                "candidatesTokenCount": 50,
+            },
+        }
 
-        mock_model = MagicMock()
-        mock_model.generate_content.return_value = mock_response
+        mock_client = AsyncMock()
+        mock_client.post.return_value = mock_resp
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
 
-        mock_genai = MagicMock()
-        mock_genai.GenerativeModel.return_value = mock_model
-        mock_genai.types.GenerationConfig.return_value = {}
-
-        mock_google = MagicMock()
-        mock_google.generativeai = mock_genai
-        with patch.dict(
-            "sys.modules", {"google": mock_google, "google.generativeai": mock_genai}
+        with patch(
+            "verification.providers.httpx.AsyncClient", return_value=mock_client
         ):
             result = await provider.analyze(
                 VisionRequest(
@@ -120,6 +128,7 @@ class TestGeminiProvider:
 
         assert result.text == '{"decision": "approved"}'
         assert result.provider == "gemini"
+        assert result.usage == {"input_tokens": 100, "output_tokens": 50}
 
     def test_fallback_chain_prefers_gemini(self, monkeypatch):
         monkeypatch.setenv("GOOGLE_API_KEY", "gkey")
@@ -1001,3 +1010,140 @@ class TestBackgroundRunner:
         assert result.phase == "A"
         d = result.to_dict()
         assert d["phase"] == "A"
+
+
+# ---------------------------------------------------------------------------
+# TestAnalyzeWithFallback
+# ---------------------------------------------------------------------------
+
+
+class TestAnalyzeWithFallback:
+    """Tests for the provider fallback chain (analyze_with_fallback)."""
+
+    @pytest.mark.asyncio
+    async def test_fallback_primary_timeout_second_succeeds(self, monkeypatch):
+        """Primary (Gemini) times out, secondary (OpenAI) succeeds."""
+        monkeypatch.setenv("GOOGLE_API_KEY", "gkey")
+        monkeypatch.setenv("OPENAI_API_KEY", "okey")
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+
+        from verification.providers import (
+            VisionRequest,
+            VisionResponse,
+            analyze_with_fallback,
+            GeminiProvider,
+            OpenAIProvider,
+        )
+
+        request = VisionRequest(
+            prompt="Check this",
+            images=[b"fake"],
+            image_types=["image/jpeg"],
+        )
+
+        # Gemini raises TimeoutError, OpenAI succeeds
+        async def gemini_analyze(self, req):
+            raise TimeoutError("Gemini timed out")
+
+        openai_response = VisionResponse(
+            text='{"decision": "approved"}',
+            model="gpt-4o",
+            provider="openai",
+            usage={"input_tokens": 50, "output_tokens": 20},
+        )
+
+        async def openai_analyze(self, req):
+            return openai_response
+
+        with patch.object(GeminiProvider, "analyze", gemini_analyze):
+            with patch.object(OpenAIProvider, "analyze", openai_analyze):
+                response, attempts = await analyze_with_fallback(request)
+
+        assert response is not None
+        assert response.provider == "openai"
+        assert len(attempts) == 2
+        assert attempts[0]["provider"] == "gemini"
+        assert attempts[0]["status"] == "timeout"
+        assert attempts[1]["provider"] == "openai"
+        assert attempts[1]["status"] == "success"
+
+    @pytest.mark.asyncio
+    async def test_fallback_all_fail(self, monkeypatch):
+        """All providers fail; returns (None, attempts) with error entries."""
+        monkeypatch.setenv("GOOGLE_API_KEY", "gkey")
+        monkeypatch.setenv("OPENAI_API_KEY", "okey")
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+
+        from verification.providers import (
+            VisionRequest,
+            analyze_with_fallback,
+            GeminiProvider,
+            OpenAIProvider,
+        )
+
+        request = VisionRequest(
+            prompt="Check this",
+            images=[b"fake"],
+            image_types=["image/jpeg"],
+        )
+
+        async def always_fail(self, req):
+            raise RuntimeError("Provider unavailable")
+
+        with patch.object(GeminiProvider, "analyze", always_fail):
+            with patch.object(OpenAIProvider, "analyze", always_fail):
+                response, attempts = await analyze_with_fallback(request)
+
+        assert response is None
+        assert len(attempts) >= 2
+        for attempt in attempts:
+            assert attempt["status"] in ("error", "timeout", "skipped_chain_timeout")
+
+    @pytest.mark.asyncio
+    async def test_fallback_chain_timeout(self, monkeypatch):
+        """Overall chain timeout stops iteration early."""
+        monkeypatch.setenv("GOOGLE_API_KEY", "gkey")
+        monkeypatch.setenv("OPENAI_API_KEY", "okey")
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+
+        import verification.providers as providers_mod
+        from verification.providers import (
+            VisionRequest,
+            GeminiProvider,
+            OpenAIProvider,
+        )
+
+        request = VisionRequest(
+            prompt="Check this",
+            images=[b"fake"],
+            image_types=["image/jpeg"],
+        )
+
+        # Make each provider slow enough to exceed chain timeout
+        async def slow_provider(self, req):
+            await asyncio.sleep(5)
+            raise TimeoutError("timed out")
+
+        # Set chain timeout very low so it triggers before providers finish
+        original_timeout = providers_mod.FALLBACK_CHAIN_TIMEOUT
+        providers_mod.FALLBACK_CHAIN_TIMEOUT = 1
+        # Also set per-provider timeout low
+        original_llm_timeout = providers_mod.LLM_INFERENCE_TIMEOUT
+        providers_mod.LLM_INFERENCE_TIMEOUT = 2
+
+        try:
+            with patch.object(GeminiProvider, "analyze", slow_provider):
+                with patch.object(OpenAIProvider, "analyze", slow_provider):
+                    response, attempts = await providers_mod.analyze_with_fallback(
+                        request
+                    )
+        finally:
+            providers_mod.FALLBACK_CHAIN_TIMEOUT = original_timeout
+            providers_mod.LLM_INFERENCE_TIMEOUT = original_llm_timeout
+
+        assert response is None
+        # At least one attempt should have been made
+        assert len(attempts) >= 1
+        # Either the first provider timed out or the chain timeout was hit
+        statuses = {a["status"] for a in attempts}
+        assert statuses & {"timeout", "skipped_chain_timeout"}
