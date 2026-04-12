@@ -181,3 +181,4 @@ docs/reports/
 # Obsidian vault (internal knowledge graph)
 vault/
 .claude/worktrees/
+mempalace.yaml

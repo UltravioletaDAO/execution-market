@@ -50,10 +50,10 @@ resource "aws_ecr_lifecycle_policy" "mcp_server" {
         rulePriority = 1
         description  = "Keep last 5 tagged images"
         selection = {
-          tagStatus   = "tagged"
+          tagStatus     = "tagged"
           tagPrefixList = ["latest", "v"]
-          countType   = "imageCountMoreThan"
-          countNumber = 5
+          countType     = "imageCountMoreThan"
+          countNumber   = 5
         }
         action = {
           type = "expire"
@@ -63,9 +63,9 @@ resource "aws_ecr_lifecycle_policy" "mcp_server" {
         rulePriority = 2
         description  = "Expire untagged images after 1 day"
         selection = {
-          tagStatus  = "untagged"
-          countType  = "sinceImagePushed"
-          countUnit  = "days"
+          tagStatus   = "untagged"
+          countType   = "sinceImagePushed"
+          countUnit   = "days"
           countNumber = 1
         }
         action = {
@@ -85,10 +85,10 @@ resource "aws_ecr_lifecycle_policy" "dashboard" {
         rulePriority = 1
         description  = "Keep last 5 tagged images"
         selection = {
-          tagStatus   = "tagged"
+          tagStatus     = "tagged"
           tagPrefixList = ["latest", "v"]
-          countType   = "imageCountMoreThan"
-          countNumber = 5
+          countType     = "imageCountMoreThan"
+          countNumber   = 5
         }
         action = {
           type = "expire"
@@ -98,9 +98,9 @@ resource "aws_ecr_lifecycle_policy" "dashboard" {
         rulePriority = 2
         description  = "Expire untagged images after 1 day"
         selection = {
-          tagStatus  = "untagged"
-          countType  = "sinceImagePushed"
-          countUnit  = "days"
+          tagStatus   = "untagged"
+          countType   = "sinceImagePushed"
+          countUnit   = "days"
           countNumber = 1
         }
         action = {

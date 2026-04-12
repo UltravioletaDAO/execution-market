@@ -13,7 +13,10 @@ Items captured during conversations to avoid context drift. Review at end of ses
 | 2026-03-26 | Brand shortname brainstorm: eMarket / exMarket | Shorter name for social/verbal use. Candidates: `eMarket`, `exMarket`, `EM`, `eM`. Decision pending. | P2 | pending |
 | 2026-03-31 | INC-2026-03-30 remediation: fund remaining chains | Wallet rotated + ECS deployed (done). 3/8 chains funded (Base, Polygon, Avalanche). Remaining: Ethereum, Arbitrum, Celo, Monad, verify Optimism. Scripts at `scripts/bridge/`. | P1 | in-progress |
 | 2026-04-12 | Ring 2: add CLAWROUTER_WALLET_KEY to ECS | OPENROUTER_API_KEY already set. CLAWROUTER_WALLET_KEY missing from ECS task def — Ring 2 ClawRouter provider unavailable. Add to Secrets Manager + Terraform ecs.tf. | P1 | pending |
-| 2026-04-11 | Task dedup: X-Idempotency header for task creation | Business logic dedup (status checks) exists for approve/cancel. Missing: HTTP-level X-Idempotency header to prevent duplicate task *creation* on 429 retry. | P1 | partial |
+| 2026-04-11 | Task dedup: X-Idempotency header for task creation | Server done (`7108339b`), Python + TS SDKs done (`2568f4f7`). Full E2E dedup. | P1 | done |
+| 2026-04-12 | Worktree: Arbiter Track R — cost tracker, bounty cap | Branch `worktree-agent-a1a6b4b7` (1 commit, not in main). Cost tracker + bounty cap + AaaS guardrails. | P2 | pending |
+| 2026-04-12 | Worktree: Ring 2 wire real LLM providers | Branch `worktree-agent-abc8ec4a` (1 commit, not in main). Wire Ring 2 LLM inference to real providers. | P1 | pending |
+| 2026-04-12 | Worktree: Plugin SDK | Branch `feat/plugin-sdk` (2 commits, not in main). Sync client, idempotency, logging, README. Related to MASTER_PLAN_EM_PLUGIN_SDK. | P2 | pending |
 
 ---
 
