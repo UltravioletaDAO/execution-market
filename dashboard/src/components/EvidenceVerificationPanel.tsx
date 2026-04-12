@@ -302,15 +302,26 @@ export function EvidenceVerificationPanel({ details, onRefresh }: EvidenceVerifi
               {t('autoCheck.ring.polling', 'Updating...')}
             </span>
           )}
-          <span className={`text-xs font-mono px-2 py-0.5 rounded-full ${scoreColorClass}`}>
-            {scorePercent}%
-          </span>
+          {verification.phase === 'AB' ? (
+            <span className={`text-xs font-mono px-2 py-0.5 rounded-full ${scoreColorClass}`}>
+              {scorePercent}%
+            </span>
+          ) : (
+            <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+              {t('autoCheck.ring.running', 'Processing...')}
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Summary text */}
-      {verification.summary && (
+      {/* Summary text — hide misleading Phase A summary while Ring 1+2 process */}
+      {verification.phase === 'AB' && verification.summary && (
         <p className="text-sm text-gray-600 mb-3">{verification.summary}</p>
+      )}
+      {verification.phase !== 'AB' && (
+        <p className="text-sm text-blue-600 mb-3">
+          {t('autoCheck.phaseBPending', 'AI verification in progress. Results will update automatically.')}
+        </p>
       )}
 
       {/* Individual checks */}
