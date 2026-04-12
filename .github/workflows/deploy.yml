@@ -305,12 +305,24 @@ jobs:
           task-definition: ${{ steps.task-def.outputs.task-definition }}
           service: ${{ env.MCP_SERVER_SERVICE }}
           cluster: ${{ env.ECS_CLUSTER }}
-          wait-for-service-stability: true
+          wait-for-service-stability: false
           wait-for-minutes: 15
 
-      # ── Wait for stability (terraform path) ─────────────────────
+      # ── Force new deployment (ALWAYS — ensures old container is replaced) ──
+      # Without this, ECS may keep the old container running indefinitely
+      # even after registering a new task definition.
+      - name: Force new ECS deployment
+        run: |
+          echo "Forcing ECS to replace running container with new task definition..."
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ env.MCP_SERVER_SERVICE }} \
+            --force-new-deployment \
+            --query 'service.deployments[0].{status:status,desired:desiredCount,running:runningCount}' \
+            --output table
+
+      # ── Wait for stability (all paths) ─────────────────────────
       - name: Wait for service stability
-        if: needs.detect-changes.outputs.infra == 'true'
         run: |
           echo "Waiting for ECS service to stabilize..."
           aws ecs wait services-stable \
