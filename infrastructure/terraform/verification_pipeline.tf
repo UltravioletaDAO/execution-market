@@ -349,6 +349,7 @@ resource "aws_lambda_function" "ring1_worker" {
       LLM_INFERENCE_TIMEOUT    = "120"
       EVIDENCE_BUCKET          = local.evidence_bucket_name
       RING                     = "1"
+      RING2_QUEUE_URL          = aws_sqs_queue.ring2.url
       GIT_SHA                  = var.git_sha
       BUILD_TIMESTAMP          = var.build_timestamp
     }
