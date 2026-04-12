@@ -338,8 +338,8 @@ resource "aws_lambda_function" "ring1_worker" {
   package_type  = "Image"
   image_uri     = "${aws_ecr_repository.ring1_worker.repository_url}:latest"
 
-  memory_size                    = 1024
-  timeout                        = 300 # 5 min — EXIF extraction + AI inference
+  memory_size                    = 2048 # PIL + image buffers + LLM SDK need headroom
+  timeout                        = 300  # 5 min — EXIF extraction + AI inference
   reserved_concurrent_executions = 5
 
   environment {

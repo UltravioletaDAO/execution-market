@@ -174,6 +174,7 @@ async def create_task(
     location_radius_km: Optional[float] = None,
     skill_version: Optional[str] = None,
     arbiter_mode: str = "manual",
+    idempotency_key: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Create a new task in the database.
 
@@ -217,12 +218,35 @@ async def create_task(
         task_data["location_radius_km"] = location_radius_km
     if skill_version:
         task_data["skill_version"] = skill_version
+    if idempotency_key:
+        task_data["idempotency_key"] = idempotency_key
 
     result = client.table("tasks").insert(task_data).execute()
 
     if result.data and len(result.data) > 0:
         return result.data[0]
     raise Exception("Failed to create task")
+
+
+async def get_task_by_idempotency_key(
+    idempotency_key: str, agent_id: str
+) -> Optional[Dict[str, Any]]:
+    """Look up an existing task by idempotency key and agent.
+
+    Returns the task dict if found, None otherwise.
+    """
+    client = get_client()
+    result = (
+        client.table("tasks")
+        .select("*")
+        .eq("idempotency_key", idempotency_key)
+        .eq("agent_id", agent_id)
+        .limit(1)
+        .execute()
+    )
+    if result.data and len(result.data) > 0:
+        return result.data[0]
+    return None
 
 
 async def get_tasks(

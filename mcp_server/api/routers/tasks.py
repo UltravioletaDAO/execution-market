@@ -449,8 +449,70 @@ async def create_task(
 
     Creates a new task that will be visible to workers. Requires authenticated API key
     and payment authorization via x402 protocol.
+
+    Supports ``X-Idempotency-Key`` header: if the same key + agent pair already
+    produced a task, the existing task is returned (HTTP 200) instead of creating
+    a duplicate (HTTP 201).
     """
     try:
+        # ── Idempotency check ─────────────────────────────────────
+        idempotency_key = http_request.headers.get(
+            "X-Idempotency-Key"
+        ) or http_request.headers.get("x-idempotency-key")
+
+        if idempotency_key:
+            task_agent_id_for_lookup = (
+                getattr(auth, "wallet_address", None) or auth.agent_id
+            )
+            existing = await db.get_task_by_idempotency_key(
+                idempotency_key, task_agent_id_for_lookup
+            )
+            if existing:
+                logger.info(
+                    "Idempotent hit: key=%s, task=%s",
+                    idempotency_key,
+                    existing["id"],
+                )
+                metadata = existing.get("metadata") or {}
+                if isinstance(metadata, str):
+                    metadata = json.loads(metadata)
+                resolved_name = metadata.get("erc8004", {}).get("name") or metadata.get(
+                    "agent_name"
+                )
+
+                resp = TaskResponse(
+                    id=existing["id"],
+                    title=existing["title"],
+                    status=existing["status"],
+                    category=existing["category"],
+                    bounty_usd=existing["bounty_usd"],
+                    deadline=datetime.fromisoformat(
+                        existing["deadline"].replace("Z", "+00:00")
+                    ),
+                    created_at=datetime.fromisoformat(
+                        existing["created_at"].replace("Z", "+00:00")
+                    ),
+                    agent_id=existing["agent_id"],
+                    instructions=existing.get("instructions"),
+                    evidence_schema=existing.get("evidence_schema"),
+                    location_hint=existing.get("location_hint"),
+                    min_reputation=existing.get("min_reputation", 0),
+                    erc8004_agent_id=existing.get("erc8004_agent_id"),
+                    payment_network=existing.get("payment_network", "base"),
+                    payment_token=existing.get("payment_token", "USDC"),
+                    escrow_tx=existing.get("escrow_tx"),
+                    refund_tx=existing.get("refund_tx"),
+                    target_executor_type=existing.get("target_executor_type"),
+                    agent_name=resolved_name,
+                    skills_required=existing.get("required_capabilities"),
+                    skill_version=existing.get("skill_version"),
+                )
+                return JSONResponse(
+                    status_code=200,
+                    content=resp.model_dump(mode="json"),
+                    headers={"X-Idempotent": "true"},
+                )
+
         # Get configurable platform fee
         platform_fee_pct = await get_platform_fee_percent()
         min_bounty = await get_min_bounty()
@@ -762,6 +824,7 @@ async def create_task(
             location_radius_km=location_radius_km,
             skill_version=request.skill_version,
             arbiter_mode=getattr(request, "arbiter_mode", "manual") or "manual",
+            idempotency_key=idempotency_key,
         )
 
         # ---- Persist ERC-8004 identity on the task record ---------------

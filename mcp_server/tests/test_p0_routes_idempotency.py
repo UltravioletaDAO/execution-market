@@ -1,5 +1,6 @@
 """
-Focused P0 tests for approve/cancel idempotency and refund behavior.
+Focused P0 tests for approve/cancel idempotency and refund behavior,
+plus X-Idempotency-Key header support for task creation.
 """
 
 from types import SimpleNamespace
@@ -12,6 +13,7 @@ from fastapi import HTTPException
 
 from ..api import routes
 from ..api.auth import WorkerAuth
+from ..api.routers import tasks as tasks_router
 
 
 def _mock_request():
@@ -1277,3 +1279,147 @@ async def test_feature_flags_disable_side_effects(monkeypatch):
     assert result.data["payment_tx"] == release_tx
     # Side effects were called but did nothing — approval unaffected
     noop_side_fx.assert_awaited_once()
+
+
+# =====================================================================
+# X-Idempotency-Key tests for task creation
+# =====================================================================
+
+
+def _mock_http_request(idempotency_key=None, extra_headers=None):
+    """Create a mock FastAPI Request with optional idempotency key header."""
+    headers = {}
+    if idempotency_key:
+        headers["X-Idempotency-Key"] = idempotency_key
+    if extra_headers:
+        headers.update(extra_headers)
+    mock = MagicMock()
+    mock.headers = headers
+    mock.url.path = "/api/v1/tasks"
+    return mock
+
+
+def _existing_task(task_id="task-existing-123", agent_id="0xAgent1"):
+    """Return a realistic task dict as would be stored in the DB."""
+    return {
+        "id": task_id,
+        "title": "Test idempotent task",
+        "status": "published",
+        "category": "simple_action",
+        "bounty_usd": 0.10,
+        "deadline": "2026-04-13T00:00:00+00:00",
+        "created_at": "2026-04-12T12:00:00+00:00",
+        "agent_id": agent_id,
+        "instructions": "Take a screenshot of the store.",
+        "evidence_schema": {"required": ["photo"], "optional": []},
+        "location_hint": None,
+        "min_reputation": 0,
+        "erc8004_agent_id": None,
+        "payment_network": "base",
+        "payment_token": "USDC",
+        "escrow_tx": "0xescrow123",
+        "refund_tx": None,
+        "target_executor_type": None,
+        "metadata": None,
+        "required_capabilities": None,
+        "skill_version": "9.1.0",
+    }
+
+
+@pytest.mark.asyncio
+async def test_create_task_idempotent_returns_existing(monkeypatch):
+    """When X-Idempotency-Key matches an existing task, return it (HTTP 200)."""
+    key = "idem-key-abc-123"
+    agent_id = "0xAgent1"
+    existing = _existing_task(agent_id=agent_id)
+
+    monkeypatch.setattr(
+        tasks_router.db,
+        "get_task_by_idempotency_key",
+        AsyncMock(return_value=existing),
+    )
+    create_task_mock = AsyncMock()
+    monkeypatch.setattr(tasks_router.db, "create_task", create_task_mock)
+
+    auth = SimpleNamespace(
+        agent_id=agent_id, wallet_address=agent_id, auth_method="erc8128"
+    )
+    req_body = MagicMock()  # CreateTaskRequest (won't be used)
+
+    result = await tasks_router.create_task(
+        http_request=_mock_http_request(idempotency_key=key),
+        request=req_body,
+        auth=auth,
+    )
+
+    # Should return JSONResponse with 200 + idempotent header
+    assert result.status_code == 200
+    assert result.headers.get("X-Idempotent") == "true"
+    import json as _json
+
+    body = _json.loads(result.body.decode())
+    assert body["id"] == existing["id"]
+    assert body["title"] == existing["title"]
+
+    # create_task should NOT have been called
+    create_task_mock.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_create_task_no_idempotency_key_creates_normally(monkeypatch):
+    """Without X-Idempotency-Key, task creation proceeds as normal."""
+    lookup_mock = AsyncMock(return_value=None)
+    monkeypatch.setattr(tasks_router.db, "get_task_by_idempotency_key", lookup_mock)
+
+    # The function will proceed past the idempotency check and hit
+    # get_platform_fee_percent — we verify it was NOT short-circuited.
+    fee_mock = AsyncMock(return_value=0)
+    monkeypatch.setattr(tasks_router, "get_platform_fee_percent", fee_mock)
+
+    auth = SimpleNamespace(
+        agent_id="0xAgent2", wallet_address="0xAgent2", auth_method="erc8128"
+    )
+
+    # Without the header, lookup should never be called
+    try:
+        await tasks_router.create_task(
+            http_request=_mock_http_request(idempotency_key=None),
+            request=MagicMock(bounty_usd=0.10),
+            auth=auth,
+        )
+    except Exception:
+        pass  # We expect it to fail further down — we only care about the idempotency path
+
+    # Idempotency lookup was NOT called (no header)
+    lookup_mock.assert_not_called()
+    # Normal flow proceeded (fee was fetched)
+    fee_mock.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_create_task_idempotency_key_miss_proceeds_normally(monkeypatch):
+    """With X-Idempotency-Key but no match, normal creation continues."""
+    key = "idem-key-new-456"
+    lookup_mock = AsyncMock(return_value=None)
+    monkeypatch.setattr(tasks_router.db, "get_task_by_idempotency_key", lookup_mock)
+
+    fee_mock = AsyncMock(return_value=0)
+    monkeypatch.setattr(tasks_router, "get_platform_fee_percent", fee_mock)
+
+    auth = SimpleNamespace(
+        agent_id="0xAgent3", wallet_address="0xAgent3", auth_method="erc8128"
+    )
+
+    try:
+        await tasks_router.create_task(
+            http_request=_mock_http_request(idempotency_key=key),
+            request=MagicMock(bounty_usd=0.10),
+            auth=auth,
+        )
+    except Exception:
+        pass  # Will fail downstream — we only test the idempotency path
+
+    # Lookup WAS called (header present) but returned None
+    lookup_mock.assert_awaited_once_with(key, "0xAgent3")
+    # Normal flow proceeded
+    fee_mock.assert_awaited_once()
