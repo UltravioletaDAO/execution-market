@@ -1,15 +1,24 @@
 FROM public.ecr.aws/lambda/python:3.12
 
 # Install dependencies (lighter than Ring 1 — no image processing)
-COPY requirements.txt .
+COPY lambda/ring2/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy arbiter modules from mcp_server
+# Copy arbiter modules from mcp_server (Ring 2 core)
+COPY mcp_server/integrations/__init__.py ${LAMBDA_TASK_ROOT}/integrations/__init__.py
+COPY mcp_server/integrations/arbiter/ ${LAMBDA_TASK_ROOT}/integrations/arbiter/
+
+# Copy verification events module (used by ArbiterService for live event log)
 COPY mcp_server/verification/ ${LAMBDA_TASK_ROOT}/verification/
+
+# Copy supabase_client.py (imported by arbiter modules and verification/events.py)
 COPY mcp_server/supabase_client.py ${LAMBDA_TASK_ROOT}/
+
+# Copy config module (PlatformConfig used by arbiter/config.py)
 COPY mcp_server/config/ ${LAMBDA_TASK_ROOT}/config/
 
-# Copy Lambda handler
+# Copy Lambda handler + supabase helper
 COPY lambda/ring2/handler.py ${LAMBDA_TASK_ROOT}/
+COPY lambda/ring2/supabase_helper.py ${LAMBDA_TASK_ROOT}/
 
 CMD ["handler.lambda_handler"]
