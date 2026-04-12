@@ -743,6 +743,85 @@ async def api_version():
 
 
 @router.get(
+    "/version/all",
+    responses={
+        200: {"description": "Versions of all deployed components"},
+    },
+    summary="All Component Versions",
+    description=(
+        "Returns deployed versions of MCP server, Lambda Ring 1, and Lambda Ring 2. "
+        "CI calls this after deploy to verify all components match the expected commit."
+    ),
+    tags=["System"],
+)
+async def api_version_all():
+    """
+    Aggregate version endpoint — invokes each Lambda with {"action": "version"}
+    and returns a consolidated view. Public, no auth.
+    """
+    import json as _json
+
+    import boto3
+
+    git_sha = os.environ.get("GIT_SHA", "unknown")
+    build_ts = os.environ.get("BUILD_TIMESTAMP", "unknown")
+    environment = os.environ.get("ENVIRONMENT", "production")
+    region = os.environ.get("AWS_REGION", "us-east-2")
+    name_prefix = os.environ.get("EM_NAME_PREFIX", "em-production")
+
+    mcp_version = {
+        "component": "mcp-server",
+        "git_sha": git_sha,
+        "git_sha_short": git_sha[:7] if git_sha != "unknown" else "unknown",
+        "build_timestamp": build_ts,
+    }
+
+    components = {"mcp_server": mcp_version}
+
+    # Invoke Lambdas for their version info
+    lambda_functions = {
+        "ring1_worker": f"{name_prefix}-ring1-worker",
+        "ring2_worker": f"{name_prefix}-ring2-worker",
+    }
+
+    try:
+        client = boto3.client("lambda", region_name=region)
+        for key, fn_name in lambda_functions.items():
+            try:
+                resp = client.invoke(
+                    FunctionName=fn_name,
+                    InvocationType="RequestResponse",
+                    Payload=_json.dumps({"action": "version"}).encode(),
+                )
+                payload = _json.loads(resp["Payload"].read())
+                components[key] = payload
+            except Exception as exc:
+                logger.warning("Failed to invoke %s for version: %s", fn_name, exc)
+                components[key] = {
+                    "component": key,
+                    "git_sha": "error",
+                    "error": str(exc),
+                }
+    except Exception as exc:
+        logger.warning("Failed to create Lambda client: %s", exc)
+
+    # Check if all components match
+    sha_set = {
+        v.get("git_sha")
+        for v in components.values()
+        if v.get("git_sha") not in ("unknown", "error", None)
+    }
+    all_match = len(sha_set) == 1
+
+    return {
+        "environment": environment,
+        "all_match": all_match,
+        "expected_sha": git_sha,
+        "components": components,
+    }
+
+
+@router.get(
     "/health",
     responses={
         200: {"description": "API is healthy and operational"},

@@ -13,6 +13,7 @@ that read credentials from Secrets Manager instead of env vars.
 import json
 import logging
 import os
+import time as _time
 from typing import Any, Dict, Optional
 
 import boto3
@@ -247,3 +248,37 @@ def write_error_to_submission(submission_id: str, error_msg: str) -> None:
         ).eq("id", submission_id).execute()
     except Exception as e:
         logger.error("Failed to write error to submission %s: %s", submission_id, e)
+
+
+def emit_verification_event(
+    submission_id: str,
+    ring: int,
+    step: str,
+    status: str,
+    detail: Optional[Dict[str, Any]] = None,
+) -> None:
+    """Append a verification event to auto_check_details.verification_events.
+
+    Read-modify-write cycle (sync). Cosmetic only — failures are logged
+    but never block the arbiter pipeline.
+    """
+    try:
+        sub = get_submission(submission_id)
+        current = (sub or {}).get("auto_check_details") or {}
+        events = current.get("verification_events", [])
+        events.append(
+            {
+                "ts": int(_time.time()),
+                "ring": ring,
+                "step": step,
+                "status": status,
+                "detail": detail or {},
+            }
+        )
+        current["verification_events"] = events
+        client = get_client()
+        client.table("submissions").update({"auto_check_details": current}).eq(
+            "id", submission_id
+        ).execute()
+    except Exception as e:
+        logger.warning("emit_verification_event %s/%s failed: %s", step, status, e)

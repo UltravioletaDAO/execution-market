@@ -188,6 +188,38 @@ jobs:
 
           echo "Both Lambda functions updated successfully"
 
+      - name: Verify Lambda versions
+        run: |
+          EXPECTED_SHA="${{ github.sha }}"
+          echo "Expected git_sha: $EXPECTED_SHA"
+
+          for FUNC in "${{ env.LAMBDA_RING1_ECR_REPO }}" "${{ env.LAMBDA_RING2_ECR_REPO }}"; do
+            echo "Checking $FUNC..."
+            RESPONSE=$(aws lambda invoke \
+              --function-name "$FUNC" \
+              --payload '{"action":"version"}' \
+              --cli-binary-format raw-in-base64-out \
+              /tmp/lambda-version-$FUNC.json \
+              --query 'StatusCode' --output text)
+
+            if [ "$RESPONSE" != "200" ]; then
+              echo "ERROR: $FUNC invoke failed with status $RESPONSE"
+              exit 1
+            fi
+
+            DEPLOYED_SHA=$(python3 -c "import json; print(json.load(open('/tmp/lambda-version-$FUNC.json')).get('git_sha',''))")
+            echo "$FUNC: deployed=$DEPLOYED_SHA"
+
+            if [ "$DEPLOYED_SHA" != "$EXPECTED_SHA" ]; then
+              echo "ERROR: $FUNC version mismatch: deployed=$DEPLOYED_SHA expected=$EXPECTED_SHA"
+              exit 1
+            fi
+
+            echo "$FUNC version verified"
+          done
+
+          echo "All Lambda versions match $EXPECTED_SHA"
+
   # ── Terraform Apply (when infrastructure/ changed) ───────────────
   # Terraform Plan runs on EVERY deploy to catch broken config early.
   # If infra files changed, it also applies. If not, it only validates.

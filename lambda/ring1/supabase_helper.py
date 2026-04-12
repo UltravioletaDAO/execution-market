@@ -6,10 +6,12 @@ supabase-py client.  Secrets are injected at cold-start via init().
 
 This module mirrors the subset of mcp_server/supabase_client.py that
 the background_runner needs: get_submission, update_auto_check,
-update_ai_verification, update_perceptual_hashes, get_existing_hashes.
+update_ai_verification, update_perceptual_hashes, get_existing_hashes,
+and emit_verification_event.
 """
 
 import logging
+import time as _time
 from typing import Any, Dict, List, Optional
 
 import httpx
@@ -133,3 +135,39 @@ async def update_perceptual_hashes(
         r = await c.patch(url, json={"perceptual_hashes": hashes}, headers=_headers())
         r.raise_for_status()
     logger.debug("update_perceptual_hashes %s", submission_id[:8])
+
+
+async def emit_verification_event(
+    submission_id: str,
+    ring: int,
+    step: str,
+    status: str,
+    detail: Optional[Dict[str, Any]] = None,
+) -> None:
+    """Append a verification event to auto_check_details.verification_events.
+
+    Read-modify-write cycle. Events are append-only and cosmetic — if this
+    fails the verification pipeline continues unaffected.
+    """
+    try:
+        sub = await get_submission(submission_id)
+        current = (sub or {}).get("auto_check_details") or {}
+        events = current.get("verification_events", [])
+        events.append(
+            {
+                "ts": int(_time.time()),
+                "ring": ring,
+                "step": step,
+                "status": status,
+                "detail": detail or {},
+            }
+        )
+        current["verification_events"] = events
+        url = _rest_url(f"submissions?id=eq.{submission_id}")
+        async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
+            r = await c.patch(
+                url, json={"auto_check_details": current}, headers=_headers()
+            )
+            r.raise_for_status()
+    except Exception as e:
+        logger.warning("emit_verification_event %s/%s failed: %s", step, status, e)

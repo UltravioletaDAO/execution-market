@@ -73,9 +73,20 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         - ring1_result: Ring 1 PHOTINT result (score, passed, ai_semantic)
         - enqueued_at: ISO timestamp when the message was enqueued
 
+    Also responds to ``{"action": "version"}`` for deploy verification.
+
     Returns:
         Lambda response with statusCode and processed count.
     """
+    # ── Version probe (direct invoke, not SQS) ──────────────────────
+    if event.get("action") == "version":
+        return {
+            "component": "ring2-worker",
+            "git_sha": _GIT_SHA,
+            "git_sha_short": _GIT_SHA[:7] if _GIT_SHA != "unknown" else "unknown",
+            "build_timestamp": _BUILD_TS,
+        }
+
     _ensure_cold_start()
 
     records = event.get("Records", [])
@@ -185,6 +196,7 @@ async def _process_record(body: Dict[str, Any]) -> Dict[str, Any]:
             - {"error": "..."} for permanent errors written to DB
     """
     from supabase_helper import (
+        emit_verification_event,
         get_submission,
         get_task,
         is_arbiter_enabled,
@@ -195,6 +207,12 @@ async def _process_record(body: Dict[str, Any]) -> Dict[str, Any]:
     denormalized_task = body.get("task", {})
     ring1_result = body.get("ring1_result", {})
     _enqueued_at = body.get("enqueued_at", "")  # preserved for future metrics
+
+    def _emit(step: str, status: str, detail: dict | None = None) -> None:
+        try:
+            emit_verification_event(submission_id, 2, step, status, detail)
+        except Exception:
+            pass  # cosmetic, never block pipeline
 
     if not submission_id or not task_id:
         return {"error": "Missing submission_id or task_id in SQS message"}
@@ -250,6 +268,7 @@ async def _process_record(body: Dict[str, Any]) -> Dict[str, Any]:
             }
 
     # ---- Step 4: Run arbiter evaluation ----
+    _emit("tier_routing", "running")
     logger.info(
         "Ring 2 step 4: running ArbiterService.evaluate() for submission=%s "
         "category=%s bounty=%s",
@@ -262,12 +281,20 @@ async def _process_record(body: Dict[str, Any]) -> Dict[str, Any]:
         from integrations.arbiter.service import ArbiterService
 
         arbiter = ArbiterService.from_defaults()
+        _emit("llm_primary", "running")
         verdict = await arbiter.evaluate(task=task, submission=submission)
     except Exception as e:
         error_msg = f"ArbiterService.evaluate() failed: {type(e).__name__}: {e}"
         logger.exception("Ring 2: %s", error_msg)
+        _emit("llm_primary", "failed", {"error": str(e)[:200]})
         _write_permanent_error(submission_id, error_msg)
         return {"error": error_msg}
+
+    _emit(
+        "llm_primary",
+        "complete",
+        {"verdict": verdict.decision.value, "score": round(verdict.aggregate_score, 3)},
+    )
 
     logger.info(
         "Ring 2 step 4 complete: verdict=%s tier=%s score=%.3f conf=%.2f "
@@ -319,6 +346,16 @@ async def _process_record(body: Dict[str, Any]) -> Dict[str, Any]:
             submission_id,
             verdict.reason,
         )
+
+    _emit(
+        "ring2_complete",
+        "complete",
+        {
+            "verdict": verdict.decision.value,
+            "tier": verdict.tier.value,
+            "score": round(verdict.aggregate_score, 3),
+        },
+    )
 
     return {
         "verdict": verdict.decision.value,

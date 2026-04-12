@@ -631,9 +631,23 @@ async def _process_submission(body: Dict[str, Any]) -> Dict[str, Any]:
     temp_paths = _write_temp_files(downloaded)
     logger.info("[Ring1 %s] Downloaded %d images to temp", sid, len(temp_paths))
 
+    async def _emit(step: str, status: str, detail: Optional[Dict] = None) -> None:
+        try:
+            await supabase_helper.emit_verification_event(
+                submission_id, 1, step, status, detail
+            )
+        except Exception:
+            pass  # cosmetic, never block pipeline
+
     try:
         # ── 5. EXIF extraction (not a scored check, feeds AI) ───────
+        await _emit("exif_extraction", "running")
         exif_context, exif_metadata = await _run_exif_check(temp_paths)
+        await _emit(
+            "exif_extraction",
+            "complete",
+            {"has_exif": exif_metadata.get("has_exif", False)},
+        )
 
         # ── 6. Run 5 checks concurrently with timeouts ─────────────
         category = task.get("category", "")
@@ -660,6 +674,10 @@ async def _process_submission(body: Dict[str, Any]) -> Dict[str, Any]:
             ),
         }
 
+        # Emit "running" for all 5 checks before starting
+        for check_name in check_coros:
+            await _emit(check_name, "running")
+
         results: Dict[str, Any] = {}
         gathered = await asyncio.gather(
             *[_run_named_check(name, coro) for name, coro in check_coros.items()],
@@ -667,6 +685,16 @@ async def _process_submission(body: Dict[str, Any]) -> Dict[str, Any]:
         )
         for name, outcome in zip(check_coros.keys(), gathered):
             results[name] = outcome
+            # Emit completion/failure for each check
+            if isinstance(outcome, Exception):
+                await _emit(name, "failed", {"error": str(outcome)[:200]})
+            elif isinstance(outcome, tuple):
+                cr, _ = outcome
+                await _emit(name, "complete", {"passed": cr.passed, "score": cr.score})
+            elif hasattr(outcome, "passed"):
+                await _emit(
+                    name, "complete", {"passed": outcome.passed, "score": outcome.score}
+                )
 
         # ── 7. Collect results ──────────────────────────────────────
         phase_b_checks: List[CheckResult] = []
@@ -754,7 +782,14 @@ async def _process_submission(body: Dict[str, Any]) -> Dict[str, Any]:
                     "[Ring1 %s] Failed to write perceptual_hashes: %s", sid, e
                 )
 
-        # ── 10. Publish to Ring 2 ──────────────────────────────────
+        # ── 10. Emit ring1_complete event ──────────────────────────
+        await _emit(
+            "ring1_complete",
+            "complete",
+            {"passed": merged["passed"], "score": merged["score"]},
+        )
+
+        # ── 11. Publish to Ring 2 ──────────────────────────────────
         try:
             _publish_to_ring2(submission_id, task_id, merged)
         except Exception as e:
@@ -821,7 +856,17 @@ def lambda_handler(event, context):
     """Process Ring 1 verification messages from SQS.
 
     Expects exactly 1 record per invocation (Lambda batch size = 1).
+    Also responds to ``{"action": "version"}`` for deploy verification.
     """
+    # ── Version probe (direct invoke, not SQS) ──────────────────────
+    if event.get("action") == "version":
+        return {
+            "component": "ring1-worker",
+            "git_sha": _GIT_SHA,
+            "git_sha_short": _GIT_SHA[:7] if _GIT_SHA != "unknown" else "unknown",
+            "build_timestamp": _BUILD_TS,
+        }
+
     _load_secrets()
 
     records = event.get("Records", [])

@@ -520,5 +520,26 @@ resource "aws_iam_role_policy" "ecs_task_sqs" {
     ]
   })
 }
+
+# ECS task role: invoke Lambda for /version/all health endpoint
+resource "aws_iam_role_policy" "ecs_task_lambda_invoke" {
+  name = "${local.name_prefix}-ecs-task-lambda-invoke"
+  role = aws_iam_role.ecs_task.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "InvokeLambdaVersionCheck"
+        Effect = "Allow"
+        Action = ["lambda:InvokeFunction"]
+        Resource = [
+          aws_lambda_function.ring1_worker.arn,
+          aws_lambda_function.ring2_worker.arn
+        ]
+      }
+    ]
+  })
+}
 # trigger terraform apply
 # force terraform 1776022422
