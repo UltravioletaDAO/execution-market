@@ -90,6 +90,36 @@ async def run_phase_b_verification(
         )
         return
 
+    # ── Ring 2 (Arbiter) — launch INDEPENDENTLY of Ring 1 ──
+    # Ring 2 must NEVER wait for Ring 1. If Ring 1 hangs/fails (bad API key,
+    # timeout, provider down), Ring 2 still produces a verdict from the raw
+    # evidence. Both write to different DB columns independently.
+    _PHYSICAL_CATEGORIES = {
+        "physical_presence",
+        "location_based",
+        "verification",
+        "sensory",
+        "data_collection",
+    }
+    is_physical = task.get("category") in _PHYSICAL_CATEGORIES
+    has_explicit_arbiter = task.get("arbiter_enabled") and task.get(
+        "arbiter_mode"
+    ) not in (None, "", "manual")
+    if is_physical or has_explicit_arbiter:
+        logger.info(
+            "Ring 2 [%s] launched INDEPENDENTLY (physical=%s arbiter=%s)",
+            submission_id[:8],
+            is_physical,
+            has_explicit_arbiter,
+        )
+        asyncio.create_task(
+            _run_arbiter_for_submission(
+                submission_id=submission_id,
+                task=task,
+                merged_phase_b={},  # Ring 2 re-reads from DB, doesn't need Ring 1 output
+            )
+        )
+
     temp_paths: List[str] = []
     try:
         evidence = submission.get("evidence") or {}
@@ -280,37 +310,9 @@ async def run_phase_b_verification(
             merged["phase"],
         )
 
-        # 8. Run Ring 2 ArbiterService
-        # For physical categories, ALWAYS run the arbiter (PHOTINT forensic
-        # analysis is critical for photo authenticity, GPS consistency, and
-        # timestamp integrity).  For other categories, require explicit
-        # arbiter_enabled + non-manual arbiter_mode.
-        # Fire-and-forget: never blocks Phase B response, never raises.
-        _PHYSICAL_CATEGORIES = {
-            "physical_presence",
-            "location_based",
-            "verification",
-            "sensory",
-            "data_collection",
-        }
-        try:
-            is_physical = task.get("category") in _PHYSICAL_CATEGORIES
-            has_explicit_arbiter = task.get("arbiter_enabled") and task.get(
-                "arbiter_mode"
-            ) not in (None, "", "manual")
-            if is_physical or has_explicit_arbiter:
-                await _run_arbiter_for_submission(
-                    submission_id=submission_id,
-                    task=task,
-                    merged_phase_b=merged,
-                )
-        except Exception as arbiter_err:
-            logger.error(
-                "Arbiter post-Phase-B failed for %s: %s",
-                submission_id,
-                arbiter_err,
-                exc_info=True,
-            )
+        # 8. Ring 2 already launched independently at the top of this function.
+        # It runs in parallel with Ring 1 and writes to arbiter_verdict/grade/summary
+        # columns independently. No action needed here.
 
     except Exception as e:
         logger.error(
