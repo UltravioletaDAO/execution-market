@@ -15,6 +15,7 @@ import os
 from typing import Any, Dict, List, Optional, Tuple
 
 import supabase_client as db
+from .events import emit_verification_event
 from .pipeline import CheckResult, merge_phase_b
 from .image_downloader import (
     extract_photo_urls,
@@ -230,11 +231,56 @@ async def run_phase_b_verification(
         async def _run_with_timeout(name: str, coro, timeout: int):
             logger.info("Phase B [%s] starting %s...", sid, name)
             try:
+                await emit_verification_event(
+                    submission_id,
+                    1,
+                    name,
+                    "running",
+                )
+            except Exception:
+                pass  # never block the pipeline
+            try:
                 result = await asyncio.wait_for(coro, timeout=timeout)
                 logger.info("Phase B [%s] %s complete", sid, name)
+                try:
+                    # Build a concise detail dict from the check result
+                    _detail: dict = {}
+                    if isinstance(result, CheckResult):
+                        _detail = {
+                            "passed": result.passed,
+                            "score": round(result.score, 4),
+                        }
+                    elif (
+                        isinstance(result, tuple)
+                        and result
+                        and isinstance(result[0], CheckResult)
+                    ):
+                        _detail = {
+                            "passed": result[0].passed,
+                            "score": round(result[0].score, 4),
+                        }
+                    await emit_verification_event(
+                        submission_id,
+                        1,
+                        name,
+                        "complete",
+                        _detail,
+                    )
+                except Exception:
+                    pass
                 return result
             except asyncio.TimeoutError:
                 logger.error("Phase B [%s] %s TIMED OUT after %ds", sid, name, timeout)
+                try:
+                    await emit_verification_event(
+                        submission_id,
+                        1,
+                        name,
+                        "failed",
+                        {"error": f"timed out after {timeout}s"},
+                    )
+                except Exception:
+                    pass
                 raise TimeoutError(f"{name} timed out after {timeout}s")
 
         wrapped_tasks = [
@@ -307,6 +353,22 @@ async def run_phase_b_verification(
             merged["score"],
             merged["phase"],
         )
+
+        # Emit Ring 1 complete event
+        try:
+            await emit_verification_event(
+                submission_id,
+                1,
+                "ring1_complete",
+                "complete",
+                {
+                    "score": round(merged.get("score", 0.0), 4),
+                    "checks_passed": len(phase_b_checks),
+                    "checks_total": len(check_names),
+                },
+            )
+        except Exception:
+            pass
 
         # Store AI verification result separately
         ai_check = next((c for c in phase_b_checks if c.name == "ai_semantic"), None)
@@ -566,6 +628,15 @@ async def _run_ai_semantic_check(
         has_exif = True
         if temp_paths:
             try:
+                await emit_verification_event(
+                    submission_id,
+                    1,
+                    "exif_extraction",
+                    "running",
+                )
+            except Exception:
+                pass
+            try:
                 exif_data = extract_exif(temp_paths[0])
                 exif_context = exif_data.to_prompt_context()
                 has_exif = exif_data.has_exif
@@ -590,8 +661,32 @@ async def _run_ai_semantic_check(
                     exif_data.metadata_stripped,
                     exif_data.has_editing_software,
                 )
+                try:
+                    await emit_verification_event(
+                        submission_id,
+                        1,
+                        "exif_extraction",
+                        "complete",
+                        {
+                            "has_exif": exif_data.has_exif,
+                            "stripped": exif_data.metadata_stripped,
+                            "editing": exif_data.has_editing_software,
+                        },
+                    )
+                except Exception:
+                    pass
             except Exception as e:
                 logger.warning("EXIF extraction failed for %s: %s", submission_id, e)
+                try:
+                    await emit_verification_event(
+                        submission_id,
+                        1,
+                        "exif_extraction",
+                        "failed",
+                        {"error": str(e)[:200]},
+                    )
+                except Exception:
+                    pass
 
         # --- Step 2: AWS Rekognition (if enabled, fire-and-forget) ---
         rekognition_context = ""
@@ -671,13 +766,31 @@ async def _run_ai_semantic_check(
             else:
                 verifier = AIVerifier(provider=provider)
 
+            _prov_name = verifier.provider_name
+            _model_name = getattr(verifier, "model_name", "?")
+
             logger.info(
                 "Ring 1 [%s] trying %s/%s at %s...",
                 submission_id[:8],
-                verifier.provider_name,
-                getattr(verifier, "model_name", "?"),
+                _prov_name,
+                _model_name,
                 current_tier,
             )
+
+            try:
+                await emit_verification_event(
+                    submission_id,
+                    1,
+                    "ai_semantic",
+                    "running",
+                    {
+                        "provider": _prov_name,
+                        "tier": current_tier,
+                        "fallback": _attempt > 0,
+                    },
+                )
+            except Exception:
+                pass
 
             timer = InferenceTimer()
             try:
@@ -708,6 +821,22 @@ async def _run_ai_semantic_check(
                     result.decision.value,
                     result.confidence,
                 )
+                try:
+                    await emit_verification_event(
+                        submission_id,
+                        1,
+                        "ai_semantic",
+                        "complete",
+                        {
+                            "provider": result.provider,
+                            "model": result.model,
+                            "decision": result.decision.value,
+                            "confidence": result.confidence,
+                            "latency_ms": timer.latency_ms,
+                        },
+                    )
+                except Exception:
+                    pass
             except Exception as e:
                 provider_attempts.append(
                     {
@@ -729,6 +858,19 @@ async def _run_ai_semantic_check(
                     timer.latency_ms,
                     str(e)[:200],
                 )
+                try:
+                    await emit_verification_event(
+                        submission_id,
+                        1,
+                        "ai_semantic",
+                        "failed",
+                        {
+                            "provider": _prov_name,
+                            "error": str(e)[:200],
+                        },
+                    )
+                except Exception:
+                    pass
                 # Don't include failed tier in consensus — try next
                 next_tier = should_escalate(current_tier, 0.0, 0.0)
                 if next_tier is None or tier_exceeds(next_tier, selection.max_tier):

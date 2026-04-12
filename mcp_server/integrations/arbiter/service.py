@@ -25,6 +25,8 @@ from typing import Any, Dict, List, Optional
 
 from web3 import Web3
 
+from verification.events import emit_verification_event
+
 from .consensus import DualRingConsensus, get_default_consensus
 from .registry import ArbiterRegistry, get_default_registry
 from .tier_router import TierRouter, get_default_router
@@ -81,6 +83,7 @@ class ArbiterService:
             ArbiterVerdict ready for persistence and downstream processing.
         """
         start_time = time.monotonic()
+        submission_id = submission.get("id", "")
 
         # 1. Lookup per-category config
         category = task.get("category", "")
@@ -116,6 +119,21 @@ class ArbiterService:
             tier_decision.max_cost_allowed_usd,
         )
 
+        try:
+            await emit_verification_event(
+                submission_id,
+                2,
+                "tier_routing",
+                "complete",
+                {
+                    "tier": tier_decision.tier.value,
+                    "reason": tier_decision.reason,
+                    "bounty": bounty_usd,
+                },
+            )
+        except Exception:
+            pass
+
         # 5. Run Ring 2 inference (depends on tier)
         # Phase 1 Task 1.6 will wire actual LLM calls here. For now, the
         # orchestration framework supports it but the inference call returns
@@ -128,6 +146,7 @@ class ArbiterService:
             tier=tier_decision.tier,
             config=config,
             cost_cap_usd=tier_decision.max_cost_allowed_usd,
+            submission_id=submission_id,
         )
 
         # 6. Combine via consensus engine
@@ -137,6 +156,21 @@ class ArbiterService:
             tier=tier_decision.tier,
             config=config,
         )
+
+        try:
+            await emit_verification_event(
+                submission_id,
+                2,
+                "consensus",
+                "complete",
+                {
+                    "decision": consensus_result.decision.value,
+                    "score": round(consensus_result.aggregate_score, 4),
+                    "confidence": round(consensus_result.confidence, 4),
+                },
+            )
+        except Exception:
+            pass
 
         # 7. Compute commitment hash for on-chain auditability
         commitment_hash = self._compute_commitment_hash(
@@ -183,6 +217,20 @@ class ArbiterService:
             verdict.cost_usd,
             verdict.latency_ms,
         )
+
+        try:
+            await emit_verification_event(
+                submission_id,
+                2,
+                "ring2_complete",
+                "complete",
+                {
+                    "verdict": verdict.decision.value,
+                    "cost_usd": round(total_cost, 6),
+                },
+            )
+        except Exception:
+            pass
 
         return verdict
 
@@ -255,6 +303,7 @@ class ArbiterService:
         tier: ArbiterTier,
         config: ArbiterConfig,
         cost_cap_usd: float,
+        submission_id: str = "",
     ) -> List[RingScore]:
         """Run Ring 2 LLM inference(s) based on tier.
 
@@ -288,8 +337,20 @@ class ArbiterService:
 
         # Primary provider (STANDARD + MAX)
         try:
+            await emit_verification_event(
+                submission_id,
+                2,
+                "llm_primary",
+                "running",
+                {"provider": "ring2_primary"},
+            )
+        except Exception:
+            pass
+        try:
             primary = get_ring2_provider()
+            _t0 = time.monotonic()
             result = await primary.evaluate(prompt, tier)
+            _latency = int((time.monotonic() - _t0) * 1000)
             scores.append(
                 RingScore(
                     ring="ring2_primary",
@@ -310,14 +371,51 @@ class ArbiterService:
                 result.confidence,
                 result.cost_usd,
             )
+            try:
+                await emit_verification_event(
+                    submission_id,
+                    2,
+                    "llm_primary",
+                    "complete",
+                    {
+                        "provider": result.provider,
+                        "decision": "pass" if result.completed else "fail",
+                        "score": round(result.confidence, 4),
+                        "latency_ms": _latency,
+                    },
+                )
+            except Exception:
+                pass
         except Exception as e:
             logger.error("Ring 2 primary provider failed: %s", e)
+            try:
+                await emit_verification_event(
+                    submission_id,
+                    2,
+                    "llm_primary",
+                    "failed",
+                    {"error": str(e)[:200]},
+                )
+            except Exception:
+                pass
 
         # Secondary provider (MAX only -- dual consensus)
         if tier == ArbiterTier.MAX and scores:
             try:
+                await emit_verification_event(
+                    submission_id,
+                    2,
+                    "llm_secondary",
+                    "running",
+                    {"provider": "ring2_secondary"},
+                )
+            except Exception:
+                pass
+            try:
                 secondary = get_ring2_secondary_provider()
+                _t1 = time.monotonic()
                 result2 = await secondary.evaluate(prompt, tier)
+                _latency2 = int((time.monotonic() - _t1) * 1000)
                 scores.append(
                     RingScore(
                         ring="ring2_secondary",
@@ -338,8 +436,33 @@ class ArbiterService:
                     result2.confidence,
                     result2.cost_usd,
                 )
+                try:
+                    await emit_verification_event(
+                        submission_id,
+                        2,
+                        "llm_secondary",
+                        "complete",
+                        {
+                            "provider": result2.provider,
+                            "decision": "pass" if result2.completed else "fail",
+                            "score": round(result2.confidence, 4),
+                            "latency_ms": _latency2,
+                        },
+                    )
+                except Exception:
+                    pass
             except Exception as e:
                 logger.error("Ring 2 secondary provider failed: %s", e)
+                try:
+                    await emit_verification_event(
+                        submission_id,
+                        2,
+                        "llm_secondary",
+                        "failed",
+                        {"error": str(e)[:200]},
+                    )
+                except Exception:
+                    pass
 
         if not scores:
             logger.warning(
