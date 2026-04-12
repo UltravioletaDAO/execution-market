@@ -8,15 +8,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 > **NEVER use quick fixes, hardcodes, or workarounds.** Always find and fix the root cause. If you need more logs/traces to diagnose, add them. If the fix requires changing the skill, change the skill. If it requires changing the contract interface, document what needs to change. Quick fixes create debt that compounds into production outages. See INC-2026-03-24 for the cascading failures caused by incomplete ADR-001 migration.
 
-> **NEVER hardcode private keys, API keys, or secrets in ANY source file.** This is a ZERO-TOLERANCE rule. Two incidents (INC-2026-03-23, INC-2026-03-30) resulted in wallet drains because private keys were hardcoded in debug/test scripts that got committed to the public repo. **ALL secrets MUST be read from:** (1) Environment variables (`process.env.*`, `os.environ.*`), (2) AWS Secrets Manager, or (3) `.env.local` (gitignored). **NEVER create throwaway/debug scripts with inline keys** — not even "temporarily". The pre-commit hook in `.git/hooks/pre-commit` scans for `0x` + 64 hex chars and blocks the commit. If you need to test with a key, use `.env.local` and `dotenv`. If Clawd Bot or any agent produces a file with a hardcoded key, DELETE IT and rewrite to use env vars before committing.
+> **ZERO-TOLERANCE: NEVER hardcode OR display private keys, API keys, or secrets.** Two incidents (INC-2026-03-23, INC-2026-03-30) resulted in wallet drains from hardcoded keys in committed files. **ALL secrets MUST be read from:** (1) Environment variables (`process.env.*`, `os.environ.*`), (2) AWS Secrets Manager, or (3) `.env.local` (gitignored). **NEVER create throwaway/debug scripts with inline keys** — not even "temporarily". The pre-commit hook scans for `0x` + 64 hex chars and blocks the commit. **NEVER show/log key values in terminal output** — user is ALWAYS streaming. To check existence: `echo "KEY is ${VAR:+set}"`.
 
 > **NEVER use broad `git add -A` or `git add .`** when committing. Always stage specific files by name. Broad staging is how throwaway debug scripts with secrets get accidentally committed. See INC-2026-03-30.
 
+> **NEVER ship mediocre fixes to "get past" a problem.** If a system needs proper architecture (job queue, separate service, Lambda), build that — don't hack asyncio.create_task() and call it done. INC-2026-04-12: Phase B verification as fire-and-forget asyncio tasks caused container restarts killing in-flight jobs, 25+ stale jobs blocking all new work. The correct architecture was SQS + Lambda from day 1. **If the fix requires infrastructure, build the infrastructure.**
+
 ## Open Items — Remind Me
 
-> **[RESOLVED 2026-03-27] API key auth disabled by default** — `EM_API_KEYS_ENABLED=false` (default). All API key auth (x-api-key, Bearer) returns HTTP 403. Only ERC-8128 wallet signing is accepted. This closes the security hole where external agents could use API keys to create tasks as Agent #2106 (platform identity), potentially spending the platform wallet. To re-enable for internal testing: set `EM_API_KEYS_ENABLED=true` in ECS task definition. See INC-2026-03-27.
+> **[RESOLVED] API key auth disabled** — `EM_API_KEYS_ENABLED=false` (default). Only ERC-8128 wallet signing accepted. Set `true` for internal testing only. See INC-2026-03-27.
 
-> **[PARTIALLY RESOLVED 2026-03-22] ERC-8004 identity enforcement** — `EM_REQUIRE_ERC8004=true` deployed on ECS rev 256. Server now returns HTTP 403 for unregistered ERC-8128 agents at `POST /tasks`. `EM_REQUIRE_ERC8004_WORKER=true` deployed on ECS rev 257 — workers auto-register gaslessly at apply time. Phase 4 em-* skills guard also complete (6 skills updated, em-browse-tasks skipped as read-only). skill.md bumped to v3.5.0 with hard enforcement text. See `docs/planning/MASTER_PLAN_ERC8004_ENFORCEMENT.md`. **Remaining**: audit after OWS integration ships to verify no silent fallback to Agent #2106.
+> **[PARTIALLY RESOLVED] ERC-8004 identity enforcement** — `EM_REQUIRE_ERC8004=true` + `EM_REQUIRE_ERC8004_WORKER=true` deployed. Workers auto-register gaslessly. skill.md v3.5.0 with hard enforcement. **Remaining**: audit after OWS integration to verify no silent fallback to Agent #2106.
 
 ## Skill Versioning (IMPORTANT)
 
@@ -32,7 +34,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Current version**: check `dashboard/public/skill.md` frontmatter — `version: x.x.x`
 **Served at**: `https://execution.market/skill.md` (canonical) and `https://api.execution.market/skill.md` (backend copy)
-**Agents check for updates by comparing their installed version against the `version` field in the live file.**
 **CI enforces sync**: The `skill-sync-check` job fails if `dashboard/public/skill.md` != `mcp_server/skills/SKILL.md`. Always edit the canonical and copy to backend.
 **NEVER edit `mcp_server/skills/SKILL.md` directly** — it's a copy. Edit `dashboard/public/skill.md` and sync.
 
@@ -50,7 +51,7 @@ Execution Market is the **Universal Execution Layer** — the infrastructure tha
 | Blockchain Scripts | TypeScript + viem |
 | Payments | x402 SDK + Facilitator (10 networks: 9 EVM + Solana, gasless) |
 | Evidence Storage | S3 + CloudFront CDN (presigned uploads) |
-| Agent Identity | ERC-8004 Registry (16 networks via Facilitator) |
+| Agent Identity | ERC-8004 Registry (**16 networks**: 10 mainnets + 6 testnets, all via Facilitator) |
 | Proof of Humanity | World ID 4.0 (Cloud API v4, RP signing, IDKit) |
 | Agent Wallet | [Open Wallet Standard](https://openwallet.sh) (OWS) — MCP server in `ows-mcp-server/` |
 | SDKs | Python `uvd-x402-sdk[wallet]>=0.21.0` / TypeScript `uvd-x402-sdk@2.36.0` |
@@ -72,9 +73,6 @@ execution-market/
 │   ├── planning/        # TODOs, progress, roadmaps
 │   └── internal/        # Internal notes, messages
 ├── videos/              # Video assets (Remotion projects)
-│   ├── v1/              # Original video
-│   ├── v18/             # Version 18
-│   └── v34/             # Version 34
 ├── landing/             # Landing page
 ├── admin-dashboard/     # Admin panel
 ├── tests/               # Integration tests
@@ -92,93 +90,38 @@ execution-market/
 
 **Rationale**: Pushing triggers CI/CD pipelines (GitHub Actions) which take ~20 minutes. User wants control over when deployments happen.
 
-**Workflow:** Make changes → commit locally → user tests → user says "push" → then `git push`.
-
 ## Working Style - Be Proactive
 
 **IMPORTANT: Default to implementation, not questions.**
 
-When you know something will be needed or is a logical next step:
-- ✅ **DO**: Implement it directly and notify the user
-- ❌ **DON'T**: Ask "Should I also do X?" when you know X is needed
+When you know something will be needed or is a logical next step, implement it directly and notify the user. If you fix a bug, check similar files for the same issue. If you update a component, update its tests. If you see an obvious improvement, implement it.
 
-**Examples:**
-- If you add a Python pre-commit hook, also add one for TypeScript (don't ask)
-- If you fix a bug in one file, check similar files for the same issue (don't ask)
-- If you update a component, update its tests too (don't ask)
-- If you see an obvious improvement or missing piece, implement it (don't ask)
-
-**When to ask:**
+**When to ask (use AskUserQuestion tool):**
 - Multiple valid approaches with trade-offs
 - User preference needed (design, naming, architecture)
 - Breaking changes or risky operations
 - Unclear requirements
 
-**How to ask: USE AskUserQuestion TOOL**
-When presenting decisions with multiple options (architecture questions, config choices, master plan open questions), **always use the AskUserQuestion tool** instead of listing options in plain text. This gives the user structured choices that are faster to respond to.
-
 **Rule of thumb**: If the answer is "obviously yes", don't ask—just do it and report what you did.
 
 ### Viral Monologue Reflex (Standing Instruction)
 
-During any working session (planning, debugging, research, concept validation, incident post-mortem), Claude watches for moments where a fact, a kill, a receipt, or a contrarian insight could become a viral 60-second monologue. When such a moment occurs, Claude MUST proactively:
-
-1. **Draft the monologue in one shot** using `vault/_templates/tpl-monologue.md`. Fill in hook (0-3s), tension (3-15s), reveal (15-35s), receipts (35-50s), and punchline (50-60s) in the template's exact structure. Pick ONE hook-type from the library (number-shock | graveyard | contrarian | i-was-wrong | curiosity-gap | receipt-drop). Cite only facts with primary sources — no fabricated numbers (see Tesla Fleet lesson in `[[meta-validation-framework]]`).
-
-2. **Save it to `vault/18-content/monologues/YYYY-MM-DD-<topic-slug>.md`** using kebab-case. The slug MUST match the source concept's slug in `vault/20-concepts/` or `vault/21-graveyard/`. If the source concept has no vault note yet, create a stub concept file FIRST so the wikilinks resolve.
-
-3. **Wikilink it to the source concept** in the frontmatter `related` field AND in the body at the first mention. Bidirectional: add a backlink stub in the concept note's "Monologues" section (Obsidian will auto-populate via backlinks, but an explicit mention keeps Dataview queries cleaner).
-
-4. **Notify the user in ONE line** at the end of the turn. Format: `Drafted monologue vault/18-content/monologues/<filename>.md — hook: <hook-type>, length: 60s, topic: [[<concept>]].` Nothing more. No ceremony. Do not interrupt the flow of the current task.
-
-Claude does NOT ask permission before drafting. The user has already consented via this standing instruction. Claude does NOT stop the current task to do this — the monologue draft is a side-effect, dropped into the vault, flagged in one line, and the main task continues immediately. Budget: max 2 monologues per session. Overflow goes to `vault/18-content/drafts/_backlog.md` with one-line pitches. Over time, drafts accumulate in `vault/18-content/drafts/` (if rough) or `vault/18-content/monologues/` (if publishable), and the user reviews them when ready to stream.
+**Use the `draft-monologue` skill** when a viral moment surfaces during work (a contrarian insight, a receipt, a kill). Draft proactively without asking — save to `vault/18-content/monologues/YYYY-MM-DD-<topic-slug>.md` with wikilinks. Budget: **max 2 per session**, overflow to `vault/18-content/drafts/_backlog.md`. Notify in ONE line at end of turn. Don't interrupt the current task.
 
 ## Focus Discipline — One Thread at a Time
 
-**CRITICAL: Protect the conversation context from topic drift.**
+> **CRITICAL: One topic per conversation. Finish X before starting Y.**
 
-The user tends to branch into new ideas mid-conversation. This is natural but poisons the context and derails progress. Claude's job is to **keep the train on the rails**.
+The user tends to branch into new ideas. Claude is the guardrail. When off-topic input is detected: acknowledge briefly (*"Anotado."*), append to the **backlog**, and redirect: *"Eso lo anoté en el backlog. Sigamos con [current task] — nos falta [X]."* If urgent, create a handoff note with priority tag (P0/P1/P2). Review backlog at conversation end.
 
-### Rules
-
-1. **One topic per conversation.** When a conversation starts working on X, finish X before switching.
-2. **Detect off-topic input.** If the user mentions something unrelated to the current task, do NOT engage with it immediately. Instead:
-   - Acknowledge it briefly: *"Anotado."*
-   - Append it to the **backlog file** (see below)
-   - Continue with the current task
-3. **Never let the user derail without consent.** If the user starts going down a rabbit hole, gently redirect: *"Eso lo anoté en el backlog. Sigamos con [current task] — nos falta [X]."*
-4. **Handoffs, not context switches.** If the off-topic item is urgent or complex, create a **handoff note** instead of switching context:
-   - Write a brief description in the backlog with enough context for the next conversation to pick it up
-   - Tag it with priority if obvious (P0 = do next, P1 = soon, P2 = eventually)
-5. **Backlog review.** At the END of a conversation (or when the user explicitly asks), summarize what's in the backlog so the user can prioritize the next session.
-
-### Backlog File
-
-Location: `docs/planning/BACKLOG.md`
-
-Format:
+**Backlog File**: `docs/planning/BACKLOG.md`
 ```markdown
-## Backlog
-
 | Date | Item | Context | Priority | Status |
 |------|------|---------|----------|--------|
 | 2026-03-19 | Add Solana escrow support | Came up during XMTP bug fix | P2 | pending |
 ```
 
-- Append-only during a conversation (never delete items mid-session)
-- User decides what to promote to a Master Plan or tackle next
-- Clean up completed items periodically
-
-### What counts as "off-topic"
-- New features unrelated to the current task
-- Ideas for other parts of the system
-- "Oh, also we should..." tangents
-- Questions about unrelated components
-
-### What does NOT count as "off-topic"
-- Directly related follow-ups ("now that X is fixed, update the test too")
-- Necessary context ("this file also has the same bug")
-- Blockers ("we can't do X until Y is fixed" — Y becomes the task)
+**Not off-topic**: direct follow-ups, related context ("this file has the same bug"), blockers.
 
 ---
 
@@ -316,16 +259,6 @@ AI Agent → MCP Server → Supabase → Dashboard → Human Worker
 | `ows_sign_eip3009` | Sign USDC escrow authorization for Execution Market (7 EVM chains) |
 | `ows_register_identity` | Register ERC-8004 on-chain identity (gasless via Facilitator) |
 
-### Task Categories
-
-| Category | Example Tasks |
-|----------|---------------|
-| `physical_presence` | Verify if store is open, take photos of location |
-| `knowledge_access` | Scan book pages, photograph documents |
-| `human_authority` | Notarize documents, certified translations |
-| `simple_action` | Buy specific item, deliver package |
-| `digital_physical` | Print and deliver, configure IoT device |
-
 ### Task Lifecycle
 
 ```
@@ -333,6 +266,8 @@ PUBLISHED → ACCEPTED → IN_PROGRESS → SUBMITTED → VERIFYING → COMPLETED
                                           ↓
                                       DISPUTED
 ```
+
+Task categories: `physical_presence`, `knowledge_access`, `human_authority`, `simple_action`, `digital_physical`. See `SPEC.md` for full definitions and examples.
 
 ## Database Schema
 
@@ -361,19 +296,18 @@ Required in `.env.local` (project root):
 Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 
 ### Auth Config
-- `EM_API_KEYS_ENABLED` - Enable/disable API key auth (default: `false`). When false, ALL API key requests (x-api-key, Bearer) return HTTP 403. Only ERC-8128 wallet signing is accepted. Set to `true` only for internal testing.
+- `EM_API_KEYS_ENABLED` - Enable/disable API key auth (default: `false`). When false, ALL API key requests return HTTP 403. Only ERC-8128 wallet signing accepted.
 - `EM_REQUIRE_ERC8004` - Require ERC-8004 identity for task creation (default: `true` in production)
 - `EM_REQUIRE_ERC8004_WORKER` - Require ERC-8004 identity for workers (default: `true` in production)
-- `EM_WORLD_ID_ENABLED` - Enable/disable World ID enforcement on task applications (default: `true`). When true, tasks with bounty >= $500 require Orb-level World ID verification. Threshold is configurable via `worldid.min_bounty_for_orb_usd` in PlatformConfig (single source of truth — frontend reads it from `/api/v1/config`).
+- `EM_WORLD_ID_ENABLED` - Enable/disable World ID enforcement on task applications (default: `true`). Tasks with bounty >= $500 require Orb-level World ID verification. Threshold configurable via `worldid.min_bounty_for_orb_usd` in PlatformConfig.
 
 ### Multichain Payment Config
 - `EM_ENABLED_NETWORKS` - Comma-separated list of enabled payment networks (default: `base,ethereum,polygon,arbitrum,celo,monad,avalanche,optimism,skale,solana`)
 - `X402_NETWORK` - Default payment network (default: `base`)
-- **To add a new chain or stablecoin**: Use the **`add-network` skill** (`.claude/skills/add-network/SKILL.md`) — it has the complete step-by-step checklist
-- **To deploy/redeploy PaymentOperators**: Use the **`deploy-operator` skill** (`.claude/skills/deploy-operator/SKILL.md`) — deploys Fase 5 operators on any supported chain
-- **Solana**: Uses Fase 1 only (direct SPL transfers, no escrow/operator). USDC + AUSD supported. No PaymentOperator on Solana.
-- Token registry lives in `mcp_server/integrations/x402/sdk_client.py` (`NETWORK_CONFIG` dict — single source of truth, 16 EVM networks + Solana, 6 stablecoins, 11 with x402r escrow)
-- Other Python files (facilitator_client, tests, platform_config) **auto-derive** from sdk_client.py — no manual updates needed
+- **To add a new chain or stablecoin**: Use the **`add-network` skill**
+- **To deploy/redeploy PaymentOperators**: Use the **`deploy-operator` skill**
+- **Solana**: **Fase 1 ONLY** (direct SPL transfers, no escrow/operator/refund). USDC + AUSD supported. ERC-8004 identity via QuantuLabs 8004-solana Anchor programs (future).
+- **Token registry**: `mcp_server/integrations/x402/sdk_client.py` (`NETWORK_CONFIG` dict) — **SINGLE SOURCE OF TRUTH** for all networks, stablecoins, and escrow addresses. 16 EVM networks + Solana, 6 stablecoins, 11 with x402r escrow. Other Python files auto-derive from it.
 
 ## On-Chain Contracts
 
@@ -400,7 +334,8 @@ Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 | Facilitator EOA | All | `0x103040545AC5031A11E8C03dd11324C7333a13C7` |
 | Execution Market Agent ID | **Base** | `2106` |
 | Execution Market Agent ID | Sepolia (legacy) | `469` |
-| *Solana — no escrow contracts* | *Solana Mainnet* | *Fase 1 only (SPL transfers). ERC-8004 identity via QuantuLabs 8004-solana Anchor programs.* |
+
+Registration and reputation via Facilitator (`POST /register`, `POST /feedback`) — gasless. Network naming: `"base"`, `"polygon"`, `"solana"`, etc. (`"base-mainnet"` kept as alias).
 
 ## Key Documentation
 
@@ -411,7 +346,7 @@ Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 
 ## Infrastructure & Deployment
 
-**IMPORTANT**: Always use the **default AWS account** (`<YOUR_AWS_ACCOUNT_ID>`, user `<YOUR_IAM_USER>`). Do NOT use account `<OTHER_AWS_ACCOUNT_ID>` — it is not the deployment target and lacks proper permissions for Execution Market infrastructure.
+**IMPORTANT**: Always use the **default AWS account** (`<YOUR_AWS_ACCOUNT_ID>`, user `<YOUR_IAM_USER>`). Do NOT use account `<OTHER_AWS_ACCOUNT_ID>` — it is not the deployment target.
 
 | Resource | Details |
 |----------|---------|
@@ -423,8 +358,6 @@ Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 | Load Balancer | ALB with HTTPS (ACM wildcard cert) |
 | DNS | Route53 `execution.market` (dashboard), `mcp.execution.market` (MCP) |
 | CI/CD | GitHub Actions `deploy.yml` (auto-deploy on push to `main`) |
-
-Dashboard Docker build: `docker build --no-cache -f dashboard/Dockerfile -t em-dashboard ./dashboard`
 
 ## File Organization Rules
 
@@ -453,9 +386,9 @@ Dashboard Docker build: `docker build --no-cache -f dashboard/Dockerfile -t em-d
 
 ### Obsidian-Compatible Markdown (MANDATORY)
 
-**ALL `.md` files created or modified MUST follow Obsidian vault conventions.** This ensures every document is interconnected and navigable in the Obsidian knowledge graph.
+**ALL `.md` files MUST follow Obsidian vault conventions** — frontmatter, wikilinks, kebab-case filenames.
 
-**YAML Frontmatter** — Every `.md` file MUST start with frontmatter:
+**YAML Frontmatter** — Every `.md` file MUST start with:
 ```yaml
 ---
 date: YYYY-MM-DD
@@ -463,56 +396,40 @@ tags:
   - type/<type>       # concept, adr, incident, runbook, report, plan, guide
   - domain/<domain>   # payments, identity, infrastructure, blockchain, testing, agents, business, integrations, security, operations
 status: active        # draft | active | completed | archived | deprecated
-aliases:
-  - alternate name    # Optional: other names for this concept
-related-files:        # Optional: source code paths
-  - mcp_server/path/to/file.py
+aliases: []           # Optional
+related-files: []     # Optional: source code paths
 ---
 ```
 
-**Wikilinks** — Use `[[wikilinks]]` to connect related concepts:
-- When mentioning a concept that has (or should have) its own note, wrap it: `[[x402r-escrow]]`, `[[golden-flow]]`, `[[erc-8004]]`
-- Use aliases for display: `[[erc-8004|ERC-8004 Identity Registry]]`
-- Every note should link to at least 2-3 related notes
+**Wikilinks** — Use `[[wikilinks]]` to connect related concepts. Every note should link to 2-3 related notes.
 
-**Naming** — kebab-case for all filenames:
-- Concepts: `x402r-escrow.md`, `payment-operator.md`
-- ADRs: `ADR-NNN-short-title.md`
-- Runbooks: `runbook-short-title.md`
-- Incidents: `INC-YYYY-MM-DD-title.md`
-- Reports: `REPORT-YYYY-MM-DD-title.md` (existing `UPPER_SNAKE` reports in `docs/reports/` are grandfathered)
+**Naming** — kebab-case: `x402r-escrow.md`, `ADR-NNN-short-title.md`, `INC-YYYY-MM-DD-title.md`
 
-**Tags taxonomy**:
-- `type/` → concept, adr, incident, runbook, meeting, sprint, moc, report, plan, guide
-- `domain/` → payments, identity, infrastructure, blockchain, testing, agents, business, integrations, security, operations
-- `chain/` → base, ethereum, polygon, arbitrum, avalanche, monad, celo, optimism
-- `status/` → draft, active, completed, archived, deprecated
-- `priority/` → p0, p1, p2
+**Tags**: `type/` (concept, adr, incident, runbook, report, plan, guide), `domain/` (payments, identity, infrastructure, etc.), `chain/` (base, ethereum, polygon...), `status/` (draft, active, completed, archived), `priority/` (p0, p1, p2)
 
-**Vault location**: `vault/` — Obsidian knowledge graph lives here. When creating new documentation, prefer creating in the vault with proper interlinking. Update the relevant MOC in `vault/01-moc/` when adding new notes.
+**Vault location**: `vault/` — Obsidian knowledge graph. Update relevant MOC in `vault/01-moc/` when adding notes.
 
 ### Mermaid Diagrams
-**All docs describing flows, state machines, or architecture MUST include Mermaid diagrams** (GitHub-flavored, triple-backtick `mermaid` blocks). Use `sequenceDiagram` for multi-actor flows, `stateDiagram-v2` for state machines, `graph LR/TD` for architecture. Reference: `docs/planning/PAYMENT_ARCHITECTURE.md`.
+**All docs describing flows, state machines, or architecture MUST include Mermaid diagrams** (GitHub-flavored). Reference: `docs/planning/PAYMENT_ARCHITECTURE.md`.
 
 
 ## Feature Parity (Web + Mobile)
 
-**IMPORTANT**: When adding features to either the web dashboard or mobile app, update the feature parity document at `docs/planning/FEATURE_PARITY_WEB_MOBILE.md`. Both platforms should stay synchronized. See the document for the current feature matrix and planned work.
+**IMPORTANT**: When adding features to either the web dashboard or mobile app, update `docs/planning/FEATURE_PARITY_WEB_MOBILE.md`. Both platforms should stay synchronized.
 
 Mobile app lives in `em-mobile/` — Expo SDK 54 + React Native + NativeWind + Dynamic.xyz auth.
 
-## Strategic Validation & Content Skills (NEW, 2026-04-08)
+## Strategic Validation & Content Skills
 
-Four reusable skills for strategic work (brainstorming, validation, content generation):
+Four reusable skills for strategic work:
 
-- **`validate-concept`** — Apply the Meta-Validation Framework (5 failure modes, 6 axes, 3 kill-switches) to any new concept. Produces a 1-page scorecard with GO/CAUTION/KILL verdict. Use BEFORE writing strategy docs. Framework doc: `.unused/future/META_VALIDATION_FRAMEWORK.md` (or `vault/19-validation/framework/` after migration).
-- **`draft-monologue`** — Draft a 60-90s viral monologue when a concept has viral potential. Auto-saves to `vault/18-content/monologues/` with frontmatter, wikilinks, and delivery notes. Budget: 2 per session. 7 hook types, 7 triggers. Reference: `.unused/future/viral-factory/03-MONOLOGUE-TEMPLATES.md`.
-- **`fact-check`** — Verify any numerical or factual claim against primary sources. Use BEFORE posting anything public (tweets, LinkedIn, pitches, mayor outreach). Known fact-check patterns (Tesla Fleet API, Option B tweet, CITYaaS figures) in skill doc.
-- **`launch-validation-team`** — Spawn a standardized multi-agent team (PM + HR + specialists + devil's advocate) in parallel to ruthlessly validate a concept. Used successfully for Tesla Fleet (killed), Option B (rewritten), CARRIERaaS (CAUTION), CITYaaS (fact-checked).
+- **`validate-concept`** — Meta-Validation Framework (5 failure modes, 6 axes, 3 kill-switches). GO/CAUTION/KILL verdict. Use BEFORE writing strategy docs.
+- **`draft-monologue`** — Viral monologue drafting (see Viral Monologue Reflex above). 7 hook types, 7 triggers.
+- **`fact-check`** — Verify claims against primary sources. Use BEFORE posting anything public.
+- **`launch-validation-team`** — Multi-agent team (PM + HR + specialists + devil's advocate) to validate concepts in parallel.
 
-**Active master plan:** `.unused/future/MASTER_PLAN_SESSION_CLOSURE.md` — 8-phase execution plan for closing open work and bootstrapping the viral content factory.
-
-**Session handoff:** `.unused/future/HANDOFF_2026-04-08.md` — full context for continuing work across sessions.
+**Active master plan:** `.unused/future/MASTER_PLAN_SESSION_CLOSURE.md`
+**Session handoff:** `.unused/future/HANDOFF_2026-04-08.md`
 
 ## Operational State (as of 2026-02-28)
 
@@ -521,7 +438,7 @@ Four reusable skills for strategic work (brainstorming, validation, content gene
 - **Use the `deploy-mcp` skill** for all deployments — it handles build, ECR push, force deploy, and health verification.
 - **Use the `deploy-check` skill** to verify deployment state without deploying.
 
-**ECR deploy** (use skill or manual):
+**ECR deploy** (prefer `deploy-mcp` skill; manual commands in `CLAUDE.md.local`):
 ```bash
 MSYS_NO_PATHCONV=1 aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-2.amazonaws.com
 # MCP Server
@@ -540,12 +457,6 @@ See `.env.example` files for required environment variables.
 **ECS Task Definition Secrets Checklist**: When adding new features that require env vars, ALWAYS verify they are in the ECS task definition. Missing secrets cause silent 500 errors.
 
 **Deploy scripts**: All TS scripts in `scripts/` auto-load `.env.local` (`WALLET_PRIVATE_KEY` aliased as `PRIVATE_KEY`).
-
-**>>> CRITICAL: NEVER SHOW PRIVATE KEYS IN LOGS <<<**
-To use master wallet key from your secrets manager:
-```bash
-# Retrieve secrets from your secrets manager and pass as env vars
-```
 
 ### x402 Payment Architecture
 
@@ -567,52 +478,45 @@ Wrong Flow (DO NOT USE):
 | **Facilitator URL** | `https://facilitator.ultravioletadao.xyz` |
 | **Facilitator Endpoints** | `POST /verify`, `POST /settle`, `POST /register`, `POST /feedback` |
 | **Network** | Base Mainnet (chain 8453) for production payments |
-| **ERC-8004 Networks** | 16 total: 10 mainnets + 6 testnets (all via Facilitator) |
 
 **Wallet Roles (CRITICAL — read this before touching payments)**:
 - **Dev wallet** (`<YOUR_DEV_WALLET>`): Used by local scripts and tests. Key in `.env.local`.
-- **Platform wallet** (`<YOUR_PLATFORM_WALLET>`): Used by ECS MCP server. Key in AWS Secrets Manager (see `.env.example`). **This is the settlement transit point** — agent funds settle here at approval, then immediately disburse to worker (87%) + treasury (13%). No funds should accumulate here long-term.
-- **Treasury** (`<YOUR_TREASURY_WALLET>`): Cold wallet (Ledger). **ONLY receives 13% platform fee** on successful task completion (treasury = remainder after worker payment; absorbs x402r protocol fee automatically). **NEVER a settlement target.** If funds land here during task creation, it's a bug.
-- `EM_SETTLEMENT_ADDRESS` env var (optional): Overrides the platform wallet for settlement. Defaults to address derived from `WALLET_PRIVATE_KEY`.
-- `EM_REPUTATION_RELAY_KEY` env var (optional): Private key for a dedicated relay wallet used when workers rate agents. Platform wallet can't rate Agent #2106 (self-feedback revert). Relay wallet must NOT own any agent NFTs and needs ~0.001 ETH on Base for gas. If not set, worker→agent feedback falls back to Facilitator.
-- **Test worker wallet** (`<YOUR_TEST_WORKER_WALLET>`): Used by Golden Flow for worker-side operations. Key in AWS Secrets Manager (see `.env.example`). Set as `EM_WORKER_PRIVATE_KEY` for worker→agent reputation in multichain Golden Flow tests.
+- **Platform wallet** (`<YOUR_PLATFORM_WALLET>`): Used by ECS MCP server. Key in AWS Secrets Manager. **Settlement transit point** — agent funds settle here at approval, then immediately disburse to worker (87%) + treasury (13%). No funds should accumulate here long-term.
+- **Treasury** (`<YOUR_TREASURY_WALLET>`): Cold wallet (Ledger). **ONLY receives 13% platform fee** on successful task completion. **NEVER a settlement target.** If funds land here during task creation, it's a bug.
+- `EM_SETTLEMENT_ADDRESS` env var (optional): Overrides platform wallet for settlement.
+- `EM_REPUTATION_RELAY_KEY` env var (optional): Relay wallet for worker→agent ratings. Must NOT own any agent NFTs. Needs ~0.001 ETH on Base for gas.
+- **Test worker wallet** (`<YOUR_TEST_WORKER_WALLET>`): For Golden Flow worker-side ops. Set as `EM_WORKER_PRIVATE_KEY`.
 - **Testing budget**: Always use amounts **< $0.30** for test tasks. ~$5 per chain must last through all testing cycles.
+
+**>>> CANONICAL FEE MODEL: 13% of bounty (1300 BPS) <<<**
+Credit card convention — fee deducted on-chain at release. Agent pays $0.10 → worker gets $0.087, treasury gets $0.013. StaticFeeCalculator splits atomically. `distributeFees(USDC)` flushes to treasury. x402r protocol fee (up to 5%, BackTrack controlled, 7-day timelock) absorbed from treasury share automatically.
 
 **Payment Mode** (`EM_PAYMENT_MODE`, default: `fase2`):
 - **`fase2`** (default, production): Agent-signed on-chain escrow. See ADR-001 flow below.
-- **`fase1`** (DEPRECATED): Server-signed EIP-3009 settlements. Only works with `EM_SERVER_SIGNING=true`.
-- **`preauth`** (DEPRECATED): Auth at creation, settled at approval through platform wallet.
-- **`x402r`** (DEPRECATED): Do not use — caused fund loss bug.
+- `fase1`, `preauth`, `x402r`: **ALL DEPRECATED.** `fase1` requires `EM_SERVER_SIGNING=true` for testing only. `x402r` caused fund loss — never use.
 
 **>>> CRITICAL: EM NEVER SIGNS PAYMENTS IN PRODUCTION (ADR-001) <<<**
-The server is a marketplace — it never touches funds. External agents sign their own
-escrow operations via `X-Payment-Auth` header. `EM_SERVER_SIGNING=true` enables server-side
-signing for internal testing ONLY. Not set in production ECS.
+The server is a marketplace — it never touches funds. External agents sign their own escrow operations via `X-Payment-Auth` header. `EM_SERVER_SIGNING=true` enables server-side signing for internal testing ONLY.
 
-**Payment Flow for Tasks** (ADR-001 — Agent-Signed Escrow, PRODUCTION):
+**Payment Flow (ADR-001 — Agent-Signed Escrow, PRODUCTION):**
 1. **Agent signs pre-auth** (task creation): Agent sends `X-Payment-Auth` header with EIP-3009 `ReceiveWithAuthorization` signature. Funds stay in agent's wallet.
 2. **Escrow timing** (configurable via `X-Escrow-Timing` header or `EM_ESCROW_TIMING`):
    - `lock_on_assignment` (DEFAULT): Pre-auth stored in DB. Escrow locks when worker is assigned. Cancel before assignment = free (no-op).
    - `lock_on_creation`: Escrow locks immediately at task creation. Cancel always requires on-chain refund.
 3. **Escrow lock** (at assignment or creation): Server relays agent's signed auth to Facilitator `/settle`. Facilitator executes on-chain lock. Worker set as receiver. If lock fails: assignment rolled back, task stays published.
-4. **Release** (task approval): **1 TX only** — gasless release via facilitator. StaticFeeCalculator(1300 BPS) splits atomically: worker gets 87% (net), operator holds 13% (fee). `distributeFees()` flushes fee to treasury.
+4. **Release** (task approval): **1 TX only** — gasless release via facilitator. Fee split is atomic on-chain (see canonical fee model above).
 5. **Cancel**: Published + lock_on_assignment → no-op (pre-auth unused). Accepted → refund full bounty from escrow to agent.
 6. **Pre-auth expiry**: `validBefore = task.deadline + 1 hour`. If no worker assigned by then, pre-auth expires silently. Zero cost.
 - **Architecture doc**: `docs/planning/ADR-001-payment-architecture-v2.md`
-- **Fee model**: Credit card convention — fee is 13% of gross (bounty), deducted on-chain. Agent pays $0.10, worker gets $0.087, treasury gets $0.013.
 - **Trust model**: Fully trustless — EM never touches funds. Agent signs, escrow holds, worker receives directly.
 
-**Payment Flow for Tasks** (Fase 1, DEPRECATED — testing only with `EM_SERVER_SIGNING=true`):
-1. **Balance check** (task creation): `balanceOf(agent)` via RPC — advisory only, task creates regardless. No auth signed, no funds move.
-2. **Direct settlement** (task approval): Server signs 2 fresh EIP-3009 auths → Facilitator settles both: agent→worker (bounty) + agent→treasury (13% fee). No platform wallet intermediary.
-3. **Cancel** (task cancellation): No-op — no auth was ever signed, nothing to refund.
-4. **Platform fee**: Configurable via `EM_PLATFORM_FEE` env var (default 13%). Uses 6-decimal USDC precision with $0.01 minimum fee. Treasury absorbs any x402r protocol fee automatically via `_compute_treasury_remainder()`.
+**Fase 1 (DEPRECATED — testing only)**: Server signs EIP-3009 at approval, settles agent→worker + agent→treasury directly. No escrow, no pre-auth, cancel = no-op. Requires `EM_SERVER_SIGNING=true`. Fee configurable via `EM_PLATFORM_FEE` (default 13%, 6-decimal USDC precision, $0.01 minimum).
 
-**Audit Trail**: All payment events are logged to `payment_events` table (migration 027). Tracks verify, store_auth, settle, disburse_worker, disburse_fee, refund, cancel, error events with tx hashes and amounts.
+**Audit Trail**: All payment events logged to `payment_events` table (migration 027). Tracks verify, store_auth, settle, disburse_worker, disburse_fee, refund, cancel, error events with tx hashes and amounts.
 
 **Manual Refund**: If `payment_events` shows `settle` success without `disburse_worker`, funds are stuck. Check `escrows.metadata.agent_settle_tx` and manually refund from receiving wallet to agent.
 
-### x402r Escrow System (Fase 2 — In Progress)
+### x402r Escrow System (Fase 2)
 
 **Full reference:** [`docs/planning/X402R_REFERENCE.md`](docs/planning/X402R_REFERENCE.md) — architecture, ABIs, all contract addresses, condition system, deployment guide.
 
@@ -621,7 +525,7 @@ signing for internal testing ONLY. Not set in production ECS.
 - **Layer 2:** `PaymentOperator` — per-config contract with pluggable conditions (who can authorize/release/refund)
 - **Layer 3:** `Facilitator` — off-chain server, pays gas, enforces business logic
 
-**Fase 5 Operators deployed on 9 EVM chains** (all active in Facilitator allowlist, Golden Flow 7/8 PASS). Solana uses Fase 1 (no operator). Addresses in On-Chain Contracts table above. StaticFeeCalculator(1300 BPS = 13%) auto-splits at release: worker 87%, operator 13%. `distributeFees(USDC)` flushes to treasury. Deploy script: `scripts/deploy-payment-operator.ts`.
+**Fase 5 Operators deployed on 9 EVM chains** (all active in Facilitator allowlist, Golden Flow 7/8 PASS). Addresses in On-Chain Contracts table above. Deploy script: `scripts/deploy-payment-operator.ts`.
 
 **Key upstream repos:**
 | Repo | URL | Stack |
@@ -655,20 +559,12 @@ The **Golden Flow** is the definitive acceptance test — if it passes, the plat
 **Script**: `python scripts/e2e_golden_flow.py`
 **Reports**: `docs/reports/GOLDEN_FLOW_REPORT.md` (EN) / `GOLDEN_FLOW_REPORT.es.md` (ES)
 
-### x402r Protocol Fee (Automatic Handling)
-
-BackTrack controls `ProtocolFeeConfig` (`0x59314674...`) — up to 5% hard cap, 7-day timelock. Our code reads it from chain dynamically. When enabled: agent still pays 13% total, x402r deducts their %, worker gets 100% bounty, treasury gets `13% - protocol_fee%`. Fully automatic.
-
 ### Task Factory Guidelines
 
 - **Bounties**: **ALWAYS under $0.20** for testing (~$4 USDC per chain). E2E uses `TEST_BOUNTY = 0.10`. Deadlines: 5-15 minutes.
 - **Script**: `cd scripts && npx tsx task-factory.ts --preset screenshot --bounty 0.10 --deadline 10`
 - **E2E script**: `python scripts/e2e_mcp_api.py` — full lifecycle through REST API
 - **Production wallet**: `<YOUR_PLATFORM_WALLET>` (funded on all 9 EVM chains + Solana wallet for SPL)
-
-### ERC-8004 Identity
-
-Agent ID **2106** on Base. Registration and reputation via Facilitator (`POST /register`, `POST /feedback`) — gasless. **16 EVM networks**: 10 mainnets + 6 testnets. On Solana, ERC-8004 identity via QuantuLabs 8004-solana Anchor programs (future). Network naming: `"base"`, `"polygon"`, `"solana"`, etc. (`"base-mainnet"` kept as alias).
 
 ### Production URLs
 
@@ -685,10 +581,9 @@ Agent ID **2106** on Base. Registration and reputation via Facilitator (`POST /r
 
 | File | Purpose |
 |------|---------|
-| `mcp_server/integrations/x402/sdk_client.py` | x402 SDK wrapper + multichain token registry (12 EVM + Solana, 6 stablecoins) — **USE THIS for all payments** |
+| `mcp_server/integrations/x402/sdk_client.py` | x402 SDK wrapper + multichain token registry — **USE THIS for all payments** |
 | `mcp_server/integrations/x402/client.py` | Direct HTTP facilitator client (fallback) |
-| `mcp_server/integrations/x402/advanced_escrow_integration.py` | Advanced escrow flows documentation |
-| `mcp_server/integrations/erc8004/facilitator_client.py` | ERC-8004 identity, reputation, registration (16 networks) |
+| `mcp_server/integrations/erc8004/facilitator_client.py` | ERC-8004 identity, reputation, registration |
 | `mcp_server/integrations/erc8004/identity.py` | Worker identity check + gasless registration |
 | `mcp_server/api/routes.py` | REST API endpoints (task CRUD, submissions, escrow) |
 | `mcp_server/api/reputation.py` | Reputation + registration endpoints |
@@ -697,7 +592,7 @@ Agent ID **2106** on Base. Registration and reputation via Facilitator (`POST /r
 | `dashboard/src/components/SubmissionForm.tsx` | Evidence upload (uses `submitWork()` service) |
 | `dashboard/src/hooks/useProfileUpdate.ts` | Profile update with executor ID resolution |
 | `dashboard/src/context/AuthContext.tsx` | Auth state with wallet-based executor lookup |
-| `mcp_server/integrations/worldid/client.py` | World ID 4.0 RP signing (secp256k1 + EIP-191) + Cloud API v4 verify |
+| `mcp_server/integrations/worldid/client.py` | World ID 4.0 RP signing + Cloud API v4 verify |
 | `mcp_server/api/routers/worldid.py` | World ID endpoints (GET /rp-signature, POST /verify) |
 | `dashboard/src/components/WorldIdVerification.tsx` | IDKit v4 widget + WorldIdBadge component |
-| `ows-mcp-server/src/server.ts` | OWS MCP Server — 9 wallet tools, ERC-8004 identity, EIP-3009 USDC signing |
+| `ows-mcp-server/src/server.ts` | OWS MCP Server — 9 wallet tools, ERC-8004 identity, EIP-3009 signing |
