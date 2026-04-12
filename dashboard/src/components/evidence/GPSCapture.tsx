@@ -13,11 +13,13 @@ export interface GPSPosition {
   latitude: number
   longitude: number
   accuracy: number
-  altitude?: number
+  altitude?: number | null
   altitudeAccuracy?: number
   heading?: number
   speed?: number
   timestamp: number
+  /** How this position was obtained: 'exif', 'browser', 'browser_fallback', or 'watch'. */
+  source?: string
 }
 
 export interface GPSCaptureProps {
@@ -475,7 +477,7 @@ export function GPSCapture({
                   </div>
                 </div>
                 {/* Altitude if available — only when coords visible */}
-                {showCoords && position.altitude !== undefined && (
+                {showCoords && position.altitude != null && (
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                     {t('gps.altitude', 'Altitud')}: {position.altitude.toFixed(0)}m
                     {position.altitudeAccuracy && ` (+/-${position.altitudeAccuracy.toFixed(0)}m)`}

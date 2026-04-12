@@ -290,7 +290,34 @@ export function EvidenceUpload({
       // Prefer EXIF GPS over currentGps — it comes from the actual photo and
       // is more accurate than a separately-captured browser geolocation.
       const exifGps = await extractExifGps(file)
-      const resolvedGps = exifGps ?? currentGps ?? undefined
+
+      // Fallback: if EXIF GPS is absent (iOS Safari strips it from gallery picks)
+      // and GPSCapture hasn't resolved yet, try browser Geolocation API directly.
+      let browserGpsFallback: GPSPosition | undefined
+      if (!exifGps && !currentGps && 'geolocation' in navigator) {
+        try {
+          const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true,
+              timeout: 8000,
+              maximumAge: 30000,
+            })
+          })
+          browserGpsFallback = {
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            accuracy: pos.coords.accuracy,
+            altitude: pos.coords.altitude,
+            timestamp: pos.timestamp,
+            source: 'browser_fallback' as const,
+          }
+          setCurrentGps(browserGpsFallback)
+        } catch {
+          // GPS fallback failed — continue without GPS
+        }
+      }
+
+      const resolvedGps = exifGps ?? currentGps ?? browserGpsFallback ?? undefined
 
       // If EXIF gave us GPS that the GPSCapture component doesn't have yet,
       // propagate it so the UI shows the position badge immediately.
