@@ -76,7 +76,7 @@
     {
       "Sid": "TerraformExtra",
       "Effect": "Allow",
-      "Action": ["dynamodb:*", "sns:*", "wafv2:*", "elasticfilesystem:*"],
+      "Action": ["dynamodb:*", "sns:*", "wafv2:*", "elasticfilesystem:*", "cloudwatch:*", "application-autoscaling:*"],
       "Resource": "*"
     }
   ]
