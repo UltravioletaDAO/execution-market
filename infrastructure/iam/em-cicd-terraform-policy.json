@@ -8,40 +8,27 @@
       "Resource": ["arn:aws:s3:::ultravioleta-terraform-state", "arn:aws:s3:::ultravioleta-terraform-state/*"]
     },
     {
-      "Sid": "TerraformECSFull",
+      "Sid": "TerraformECS",
       "Effect": "Allow",
       "Action": ["ecs:*"],
-      "Resource": "*",
-      "Condition": {"StringEquals": {"aws:ResourceTag/Project": "execution-market"}}
-    },
-    {
-      "Sid": "TerraformECSGlobal",
-      "Effect": "Allow",
-      "Action": ["ecs:DescribeTaskDefinition", "ecs:RegisterTaskDefinition", "ecs:DeregisterTaskDefinition", "ecs:ListTaskDefinitions", "ecs:ListClusters", "ecs:ListServices", "ecs:DescribeClusters", "ecs:DescribeServices"],
       "Resource": "*"
     },
     {
       "Sid": "TerraformECR",
       "Effect": "Allow",
       "Action": ["ecr:*"],
-      "Resource": ["arn:aws:ecr:us-east-2:518898403364:repository/em-production-*"]
-    },
-    {
-      "Sid": "TerraformALB",
-      "Effect": "Allow",
-      "Action": ["elasticloadbalancing:*"],
       "Resource": "*"
     },
     {
-      "Sid": "TerraformRoute53",
+      "Sid": "TerraformNetworkALB",
       "Effect": "Allow",
-      "Action": ["route53:*"],
+      "Action": ["elasticloadbalancing:*", "ec2:Describe*", "ec2:*SecurityGroup*", "ec2:CreateTags", "ec2:DeleteTags"],
       "Resource": "*"
     },
     {
-      "Sid": "TerraformACM",
+      "Sid": "TerraformDNSCerts",
       "Effect": "Allow",
-      "Action": ["acm:*"],
+      "Action": ["route53:*", "acm:*"],
       "Resource": "*"
     },
     {
@@ -51,7 +38,7 @@
       "Resource": ["arn:aws:s3:::em-production-*", "arn:aws:s3:::em-production-*/*"]
     },
     {
-      "Sid": "TerraformCloudFront",
+      "Sid": "TerraformCDN",
       "Effect": "Allow",
       "Action": ["cloudfront:*"],
       "Resource": "*"
@@ -59,25 +46,25 @@
     {
       "Sid": "TerraformSecrets",
       "Effect": "Allow",
-      "Action": ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret", "secretsmanager:ListSecrets", "secretsmanager:CreateSecret", "secretsmanager:UpdateSecret", "secretsmanager:PutSecretValue", "secretsmanager:DeleteSecret", "secretsmanager:TagResource"],
+      "Action": ["secretsmanager:*"],
       "Resource": ["arn:aws:secretsmanager:us-east-2:518898403364:secret:em/*"]
     },
     {
       "Sid": "TerraformIAM",
       "Effect": "Allow",
-      "Action": ["iam:GetRole", "iam:GetRolePolicy", "iam:ListRolePolicies", "iam:ListAttachedRolePolicies", "iam:PassRole", "iam:CreateRole", "iam:DeleteRole", "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:AttachRolePolicy", "iam:DetachRolePolicy", "iam:TagRole", "iam:ListInstanceProfilesForRole"],
-      "Resource": ["arn:aws:iam::518898403364:role/em-*", "arn:aws:iam::518898403364:role/ecsTaskExecutionRole"]
+      "Action": ["iam:Get*", "iam:List*", "iam:PassRole", "iam:CreateRole", "iam:DeleteRole", "iam:*RolePolicy", "iam:TagRole", "iam:UntagRole"],
+      "Resource": ["arn:aws:iam::518898403364:role/em-*", "arn:aws:iam::518898403364:role/ecsTaskExecutionRole", "arn:aws:iam::518898403364:policy/em-*"]
     },
     {
       "Sid": "TerraformLogs",
       "Effect": "Allow",
       "Action": ["logs:*"],
-      "Resource": ["arn:aws:logs:us-east-2:518898403364:log-group:/ecs/em-*", "arn:aws:logs:us-east-2:518898403364:log-group:/ecs/em-*:*"]
+      "Resource": "*"
     },
     {
-      "Sid": "TerraformAPIGateway",
+      "Sid": "TerraformAPIGW",
       "Effect": "Allow",
-      "Action": ["apigateway:GET", "apigateway:POST", "apigateway:PUT", "apigateway:PATCH", "apigateway:DELETE"],
+      "Action": ["apigateway:*"],
       "Resource": ["arn:aws:apigateway:us-east-2::*"]
     },
     {
@@ -87,9 +74,9 @@
       "Resource": ["arn:aws:lambda:us-east-2:518898403364:function:em-*"]
     },
     {
-      "Sid": "TerraformEC2Network",
+      "Sid": "TerraformExtra",
       "Effect": "Allow",
-      "Action": ["ec2:Describe*", "ec2:CreateSecurityGroup", "ec2:DeleteSecurityGroup", "ec2:AuthorizeSecurityGroupIngress", "ec2:RevokeSecurityGroupIngress", "ec2:AuthorizeSecurityGroupEgress", "ec2:RevokeSecurityGroupEgress", "ec2:CreateTags", "ec2:DeleteTags"],
+      "Action": ["dynamodb:*", "sns:*", "wafv2:*", "elasticfilesystem:*"],
       "Resource": "*"
     }
   ]
