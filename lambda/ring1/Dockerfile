@@ -1,5 +1,11 @@
 FROM public.ecr.aws/lambda/python:3.12
 
+# Build-time version metadata (injected by CI)
+ARG GIT_SHA=unknown
+ARG BUILD_TIMESTAMP=unknown
+ENV GIT_SHA=${GIT_SHA} \
+    BUILD_TIMESTAMP=${BUILD_TIMESTAMP}
+
 # Install dependencies
 COPY lambda/ring1/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt

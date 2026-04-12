@@ -24,6 +24,11 @@ import httpx
 logger = logging.getLogger()
 logger.setLevel("INFO")
 
+# ── Build version (injected by CI via Dockerfile ARG) ────────────────────
+_GIT_SHA = os.environ.get("GIT_SHA", "unknown")
+_BUILD_TS = os.environ.get("BUILD_TIMESTAMP", "unknown")
+logger.info("Ring 1 cold start: git_sha=%s build_timestamp=%s", _GIT_SHA[:7], _BUILD_TS)
+
 # ── Module-level cold-start caches ───────────────────────────────────────
 
 _secrets_loaded = False

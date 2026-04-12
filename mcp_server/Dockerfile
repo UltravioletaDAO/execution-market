@@ -43,6 +43,10 @@ RUN sed -i 's/timeout=120/timeout=900/g' \
     /usr/local/lib/python3.11/site-packages/uvd_x402_sdk/advanced_escrow.py \
     && python -c "import uvd_x402_sdk.advanced_escrow; print('SDK timeout patched OK')"
 
+# Build-time version metadata (injected by CI)
+ARG GIT_SHA=unknown
+ARG BUILD_TIMESTAMP=unknown
+
 # Copy application code
 COPY . .
 
@@ -55,7 +59,9 @@ USER em
 # Environment variables
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PORT=8000
+    PORT=8000 \
+    GIT_SHA=${GIT_SHA} \
+    BUILD_TIMESTAMP=${BUILD_TIMESTAMP}
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \

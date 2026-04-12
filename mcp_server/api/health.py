@@ -968,25 +968,32 @@ async def invalidate_cache() -> Dict[str, Any]:
 
 @router.get(
     "/version",
-    summary="API Version Info",
-    description="Get the API version, environment, build date, git commit, and uptime.",
+    summary="Build Version Info",
+    description=(
+        "Get the deployed build version: git SHA, build timestamp, component name, "
+        "and environment. Use this to confirm which commit is running after a deploy."
+    ),
     responses={
         200: {"description": "Version and build information"},
     },
 )
 async def version_info() -> Dict[str, Any]:
     """
-    Get API version and build information.
+    Build version endpoint -- confirms which commit is currently deployed.
+
+    Returns git_sha, build_timestamp, component, and environment so CI
+    can verify the deploy landed the expected code.
     """
     checker = get_health_checker()
+    git_sha = os.getenv("GIT_SHA", "unknown")
+    build_ts = os.getenv("BUILD_TIMESTAMP", "unknown")
     return {
-        "name": "Execution Market API",
-        "version": checker.version,
+        "version": build_ts,
+        "git_sha": git_sha,
+        "git_sha_short": git_sha[:7] if git_sha != "unknown" else "unknown",
+        "component": "mcp-server",
+        "build_timestamp": build_ts,
         "environment": checker.environment,
-        "build_date": os.getenv("BUILD_DATE", "unknown"),
-        "git_commit": os.getenv("GIT_COMMIT", "unknown")[:8]
-        if os.getenv("GIT_COMMIT")
-        else "unknown",
         "uptime_seconds": round(
             (datetime.now(timezone.utc) - checker.start_time).total_seconds(), 2
         ),

@@ -145,6 +145,19 @@ variable "waf_blocked_ips" {
   default     = ["104.244.78.233/32"]
 }
 
+# Build metadata (injected by CI, used in Lambda env vars for version tracking)
+variable "git_sha" {
+  description = "Git commit SHA of the deployed code (set by CI)"
+  type        = string
+  default     = "unknown"
+}
+
+variable "build_timestamp" {
+  description = "ISO 8601 build timestamp (set by CI)"
+  type        = string
+  default     = "unknown"
+}
+
 # Monitoring
 variable "alert_email" {
   description = "Email for CloudWatch alarm notifications (SNS subscription created automatically)"

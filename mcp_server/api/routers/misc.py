@@ -711,6 +711,38 @@ async def get_erc8128_info():
 
 
 @router.get(
+    "/version",
+    responses={
+        200: {"description": "Build version and git SHA"},
+    },
+    summary="Build Version",
+    description=(
+        "Returns the deployed git SHA and build timestamp. "
+        "Use to verify which commit is running after a deploy."
+    ),
+    tags=["System"],
+)
+async def api_version():
+    """
+    Build version endpoint (public, no auth).
+
+    CI calls this after deploy to confirm the expected commit landed.
+    Also available at /health/version.
+    """
+    git_sha = os.environ.get("GIT_SHA", "unknown")
+    build_ts = os.environ.get("BUILD_TIMESTAMP", "unknown")
+    environment = os.environ.get("ENVIRONMENT", "production")
+    return {
+        "version": build_ts,
+        "git_sha": git_sha,
+        "git_sha_short": git_sha[:7] if git_sha != "unknown" else "unknown",
+        "component": "mcp-server",
+        "build_timestamp": build_ts,
+        "environment": environment,
+    }
+
+
+@router.get(
     "/health",
     responses={
         200: {"description": "API is healthy and operational"},

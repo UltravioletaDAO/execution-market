@@ -2,9 +2,35 @@
 // Dashboard build — execution.market SPA
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { writeFileSync, mkdirSync } from 'fs'
+import { resolve } from 'path'
+
+/**
+ * Vite plugin: writes version.json into dist/ at build time.
+ * CI sets VITE_GIT_SHA and VITE_BUILD_TIMESTAMP; local builds fall back to "dev".
+ */
+function versionJsonPlugin() {
+  return {
+    name: 'version-json',
+    closeBundle() {
+      const gitSha = process.env.VITE_GIT_SHA || 'dev'
+      const buildTs = process.env.VITE_BUILD_TIMESTAMP || new Date().toISOString()
+      const data = {
+        version: buildTs,
+        git_sha: gitSha,
+        git_sha_short: gitSha.slice(0, 7),
+        component: 'dashboard',
+        build_timestamp: buildTs,
+      }
+      const outDir = resolve(__dirname, 'dist')
+      mkdirSync(outDir, { recursive: true })
+      writeFileSync(resolve(outDir, 'version.json'), JSON.stringify(data, null, 2))
+    },
+  }
+}
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), versionJsonPlugin()],
   server: {
     port: 3000,
     open: true,

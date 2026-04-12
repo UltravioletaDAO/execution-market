@@ -349,6 +349,8 @@ resource "aws_lambda_function" "ring1_worker" {
       LLM_INFERENCE_TIMEOUT    = "120"
       EVIDENCE_BUCKET          = local.evidence_bucket_name
       RING                     = "1"
+      GIT_SHA                  = var.git_sha
+      BUILD_TIMESTAMP          = var.build_timestamp
     }
   }
 
@@ -390,6 +392,8 @@ resource "aws_lambda_function" "ring2_worker" {
       LOG_LEVEL             = "INFO"
       LLM_INFERENCE_TIMEOUT = "90"
       RING                  = "2"
+      GIT_SHA               = var.git_sha
+      BUILD_TIMESTAMP       = var.build_timestamp
     }
   }
 

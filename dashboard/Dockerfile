@@ -24,6 +24,8 @@ ARG VITE_API_URL
 ARG VITE_DYNAMIC_ENVIRONMENT_ID
 ARG VITE_EVIDENCE_API_URL
 ARG VITE_REQUIRE_AGENT_API_KEY
+ARG VITE_GIT_SHA=unknown
+ARG VITE_BUILD_TIMESTAMP=unknown
 
 # Increase Node heap for Vite build (default is too low for large bundles)
 ENV NODE_OPTIONS="--max_old_space_size=4096"
@@ -35,6 +37,8 @@ RUN if [ -n "$VITE_SUPABASE_URL" ]; then export VITE_SUPABASE_URL="$VITE_SUPABAS
     if [ -n "$VITE_DYNAMIC_ENVIRONMENT_ID" ]; then export VITE_DYNAMIC_ENVIRONMENT_ID="$VITE_DYNAMIC_ENVIRONMENT_ID"; fi && \
     if [ -n "$VITE_EVIDENCE_API_URL" ]; then export VITE_EVIDENCE_API_URL="$VITE_EVIDENCE_API_URL"; fi && \
     if [ -n "$VITE_REQUIRE_AGENT_API_KEY" ]; then export VITE_REQUIRE_AGENT_API_KEY="$VITE_REQUIRE_AGENT_API_KEY"; fi && \
+    export VITE_GIT_SHA="$VITE_GIT_SHA" && \
+    export VITE_BUILD_TIMESTAMP="$VITE_BUILD_TIMESTAMP" && \
     npm run build
 
 # Production stage with nginx

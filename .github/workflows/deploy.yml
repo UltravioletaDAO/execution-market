@@ -79,6 +79,10 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
+      - name: Generate build timestamp
+        id: timestamp
+        run: echo "value=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
       - name: Build and push MCP Server
         uses: docker/build-push-action@v7
         with:
@@ -88,6 +92,9 @@ jobs:
           tags: |
             ${{ env.ECR_REGISTRY }}/${{ env.MCP_SERVER_ECR_REPO }}:${{ github.sha }}
             ${{ env.ECR_REGISTRY }}/${{ env.MCP_SERVER_ECR_REPO }}:latest
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            BUILD_TIMESTAMP=${{ steps.timestamp.outputs.value }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64
@@ -119,15 +126,23 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
+      - name: Generate build timestamp
+        id: timestamp
+        run: echo "value=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
       - name: Build and push Ring 1
         uses: docker/build-push-action@v7
         with:
           context: .
           file: ./lambda/ring1/Dockerfile
           push: true
+          provenance: false
           tags: |
             ${{ env.ECR_REGISTRY }}/${{ env.LAMBDA_RING1_ECR_REPO }}:${{ github.sha }}
             ${{ env.ECR_REGISTRY }}/${{ env.LAMBDA_RING1_ECR_REPO }}:latest
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            BUILD_TIMESTAMP=${{ steps.timestamp.outputs.value }}
           cache-from: type=gha,scope=ring1
           cache-to: type=gha,mode=max,scope=ring1
           platforms: linux/amd64
@@ -138,9 +153,13 @@ jobs:
           context: .
           file: ./lambda/ring2/Dockerfile
           push: true
+          provenance: false
           tags: |
             ${{ env.ECR_REGISTRY }}/${{ env.LAMBDA_RING2_ECR_REPO }}:${{ github.sha }}
             ${{ env.ECR_REGISTRY }}/${{ env.LAMBDA_RING2_ECR_REPO }}:latest
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            BUILD_TIMESTAMP=${{ steps.timestamp.outputs.value }}
           cache-from: type=gha,scope=ring2
           cache-to: type=gha,mode=max,scope=ring2
           platforms: linux/amd64
@@ -212,6 +231,10 @@ jobs:
             TF_VARS="$TF_VARS -var=mcp_server_image=$IMAGE_TAG"
           fi
 
+          # Pass build metadata for Lambda env vars
+          TF_VARS="$TF_VARS -var=git_sha=${{ github.sha }}"
+          TF_VARS="$TF_VARS -var=build_timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
           terraform plan -input=false -no-color $TF_VARS \
             -out=tfplan 2>&1 | tee /tmp/plan-output.txt
         env:
@@ -252,6 +275,10 @@ jobs:
           cache: 'npm'
           cache-dependency-path: dashboard/package-lock.json
 
+      - name: Generate build timestamp
+        id: timestamp
+        run: echo "value=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
       - name: Install dependencies
         working-directory: dashboard
         run: npm ci
@@ -267,6 +294,8 @@ jobs:
           VITE_API_URL: ${{ secrets.VITE_API_URL || env.API_URL }}
           VITE_REQUIRE_AGENT_API_KEY: ${{ secrets.VITE_REQUIRE_AGENT_API_KEY || 'true' }}
           VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS: ${{ secrets.VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS || 'false' }}
+          VITE_GIT_SHA: ${{ github.sha }}
+          VITE_BUILD_TIMESTAMP: ${{ steps.timestamp.outputs.value }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
@@ -418,6 +447,23 @@ jobs:
             echo "Attempt $i: $HTTP_STATUS, retrying..."; sleep 10
           done
           echo "Backend health check failed"; exit 1
+
+      - name: Verify deployed version
+        run: |
+          echo "Verifying deployed version matches expected commit..."
+          for i in {1..5}; do
+            VERSION_JSON=$(curl -sf "${{ env.API_URL }}/api/v1/version" || echo '{}')
+            DEPLOYED_SHA=$(echo "$VERSION_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin).get('git_sha',''))" 2>/dev/null || echo "")
+            if [ "$DEPLOYED_SHA" == "${{ github.sha }}" ]; then
+              echo "Version verified: $DEPLOYED_SHA"
+              exit 0
+            fi
+            echo "Attempt $i: deployed=$DEPLOYED_SHA expected=${{ github.sha }}, retrying..."
+            sleep 15
+          done
+          echo "WARNING: Deployed version ($DEPLOYED_SHA) does not match expected (${{ github.sha }})"
+          echo "The container may still be rolling out. Check /api/v1/version manually."
+          exit 1
 
       - name: Verify AI providers
         if: success()
