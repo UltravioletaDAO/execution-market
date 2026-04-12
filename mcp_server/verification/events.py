@@ -20,7 +20,9 @@ import supabase_client as db
 
 logger = logging.getLogger(__name__)
 
-_events_lock = asyncio.Lock()
+# Timeout for the entire emit operation (DB read + append + DB write).
+# If Supabase is slow, we give up rather than blocking the verification pipeline.
+_EMIT_TIMEOUT_SECONDS = 10
 
 
 async def emit_verification_event(
@@ -32,7 +34,11 @@ async def emit_verification_event(
 ) -> None:
     """Append a verification event to auto_check_details.verification_events.
 
-    Thread-safe via asyncio.Lock.  Never raises -- errors are logged.
+    Uses a timeout instead of a lock — if the DB is slow, the event is dropped
+    rather than blocking the entire Ring 1/Ring 2 pipeline.  Events are
+    append-only so a lost event is cosmetic, not fatal.
+
+    Never raises -- errors and timeouts are logged.
 
     Args:
         submission_id: The submission being verified.
@@ -42,24 +48,46 @@ async def emit_verification_event(
         detail: Optional dict with step-specific summary fields.
     """
     try:
-        async with _events_lock:
-            current_sub = await db.get_submission(submission_id)
-            current = (current_sub or {}).get("auto_check_details") or {}
-            events = current.get("verification_events", [])
-            events.append(
-                {
-                    "ts": int(_time.time()),
-                    "ring": ring,
-                    "step": step,
-                    "status": status,
-                    "detail": detail or {},
-                }
-            )
-            current["verification_events"] = events
-            await db.update_submission_auto_check(
-                submission_id=submission_id,
-                auto_check_passed=current.get("passed", False),
-                auto_check_details=current,
-            )
+        await asyncio.wait_for(
+            _emit_inner(submission_id, ring, step, status, detail),
+            timeout=_EMIT_TIMEOUT_SECONDS,
+        )
+    except asyncio.TimeoutError:
+        logger.warning(
+            "Verification event emit timed out after %ds: ring=%d step=%s status=%s sub=%s",
+            _EMIT_TIMEOUT_SECONDS,
+            ring,
+            step,
+            status,
+            submission_id[:8],
+        )
     except Exception as e:
         logger.warning("Failed to emit verification event %s/%s: %s", step, status, e)
+
+
+async def _emit_inner(
+    submission_id: str,
+    ring: int,
+    step: str,
+    status: str,
+    detail: Optional[dict],
+) -> None:
+    """Inner emit — reads current events, appends, writes back."""
+    current_sub = await db.get_submission(submission_id)
+    current = (current_sub or {}).get("auto_check_details") or {}
+    events = current.get("verification_events", [])
+    events.append(
+        {
+            "ts": int(_time.time()),
+            "ring": ring,
+            "step": step,
+            "status": status,
+            "detail": detail or {},
+        }
+    )
+    current["verification_events"] = events
+    await db.update_submission_auto_check(
+        submission_id=submission_id,
+        auto_check_passed=current.get("passed", False),
+        auto_check_details=current,
+    )
