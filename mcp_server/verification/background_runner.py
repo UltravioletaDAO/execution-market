@@ -230,16 +230,15 @@ async def run_phase_b_verification(
         # check cannot block the entire Phase B pipeline forever.
         async def _run_with_timeout(name: str, coro, timeout: int):
             logger.info("Phase B [%s] starting %s...", sid, name)
+            # Skip event emission — it was causing hangs due to DB contention.
+            # The check results will be written to DB when all checks complete.
             try:
-                await emit_verification_event(
-                    submission_id,
-                    1,
+                logger.info(
+                    "Phase B [%s] %s: awaiting check (timeout=%ds)...",
+                    sid,
                     name,
-                    "running",
+                    timeout,
                 )
-            except Exception:
-                pass  # never block the pipeline
-            try:
                 result = await asyncio.wait_for(coro, timeout=timeout)
                 logger.info("Phase B [%s] %s complete", sid, name)
                 try:

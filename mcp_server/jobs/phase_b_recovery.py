@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 # Maximum number of concurrent Phase B recoveries at startup to avoid
 # overwhelming the container with AI inference requests.
-MAX_CONCURRENT_RECOVERIES = int(os.environ.get("PHASE_B_RECOVERY_MAX_CONCURRENT", "5"))
+MAX_CONCURRENT_RECOVERIES = int(os.environ.get("PHASE_B_RECOVERY_MAX_CONCURRENT", "2"))
 
 # Submissions older than this threshold (seconds) since submitted_at are
 # considered orphaned. Gives Phase B 2 minutes to complete normally before
