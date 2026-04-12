@@ -2229,6 +2229,7 @@ async def reprocess_phase_b(
     import asyncio
 
     from verification.background_runner import run_phase_b_verification
+    from jobs.phase_b_recovery import track_phase_b_task
 
     client = db.get_client()
 
@@ -2257,13 +2258,14 @@ async def reprocess_phase_b(
             "submitted_at": sub.get("submitted_at"),
         }
 
-        asyncio.create_task(
+        _pb_task = asyncio.create_task(
             run_phase_b_verification(
                 submission_id=sub["id"],
                 submission=submission_data,
                 task=task,
             )
         )
+        track_phase_b_task(_pb_task, sub["id"])
         queued += 1
         logger.info("Queued Phase B reprocessing for submission %s", sub["id"])
 

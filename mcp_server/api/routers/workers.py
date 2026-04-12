@@ -15,6 +15,7 @@ from ..auth import verify_worker_auth, WorkerAuth, _enforce_worker_identity
 
 from verification.pipeline import run_verification_pipeline
 from verification.background_runner import run_phase_b_verification
+from jobs.phase_b_recovery import track_phase_b_task
 
 from ._models import (
     WorkerRegisterRequest,
@@ -744,13 +745,14 @@ async def submit_work(
                     or True  # Keep unconditional launch as safety net
                 )
                 if should_launch_phase_b:
-                    asyncio.create_task(
+                    _pb_task = asyncio.create_task(
                         run_phase_b_verification(
                             submission_id=submission_id,
                             submission=submission_data,
                             task=task,
                         )
                     )
+                    track_phase_b_task(_pb_task, submission_id)
         except Exception as verify_err:
             logger.warning(
                 "Evidence verification failed for submission %s: %s",

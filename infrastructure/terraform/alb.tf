@@ -65,7 +65,13 @@ resource "aws_lb_target_group" "mcp_server" {
   vpc_id      = aws_vpc.main.id
   target_type = "ip"
 
-  deregistration_delay = 60
+  # Must be <= stopTimeout (120s) in the container definition.
+  # ALB stops sending NEW requests immediately, but keeps existing connections
+  # open for this duration.  Phase B tasks are not HTTP connections (they're
+  # internal asyncio tasks), but the container must stay alive for them.
+  # 30s is enough for HTTP drain; the stopTimeout (120s) is what actually
+  # keeps the container alive for Phase B.
+  deregistration_delay = 30
 
   health_check {
     enabled             = true

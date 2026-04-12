@@ -335,6 +335,12 @@ resource "aws_ecs_task_definition" "mcp_server" {
         }
       }
 
+      # Give Phase B verification + Ring 2 arbiter time to finish on deploys.
+      # ECS sends SIGTERM, waits stopTimeout, then SIGKILL.
+      # Phase B worst case: 120s (AI semantic) + DB writes.  With 10s buffer
+      # for the Python shutdown handler, 120s is sufficient.
+      stopTimeout = 120
+
       healthCheck = {
         command     = ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
         interval    = 30
