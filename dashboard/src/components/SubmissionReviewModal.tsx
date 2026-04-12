@@ -16,6 +16,8 @@ import { AIAnalysisDetails } from './AIAnalysisDetails'
 import type { AIAnalysisResult } from './AIAnalysisDetails'
 import type { SubmissionWithDetails } from '../services/types'
 import { ArbiterVerdictBadge } from './ArbiterVerdictBadge'
+import { ForensicEventLog } from './ForensicEventLog'
+import type { VerificationEvent } from './ForensicEventLog'
 import { safeHref, safeSrc } from '../lib/safeHref'
 
 // --------------------------------------------------------------------------
@@ -34,6 +36,7 @@ interface AutoCheckDetails {
   score?: number
   phase?: string
   checks?: Record<string, boolean>
+  verification_events?: VerificationEvent[]
   [key: string]: unknown
 }
 
@@ -130,10 +133,17 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
   const hasVerdict = submission?.agent_verdict
   const hasAiResult = submission?.ai_verification_result
 
+  // Check forensic event log completion
+  const forensicEvents = (submission?.auto_check_details as AutoCheckDetails | null)?.verification_events
+  const forensicComplete = Array.isArray(forensicEvents) && forensicEvents.length > 0 &&
+    forensicEvents.some((e) => e.step === 'ring1_complete' && (e.status === 'complete' || e.status === 'failed')) &&
+    (!forensicEvents.some((e) => e.ring === 2) ||
+      forensicEvents.some((e) => e.step === 'ring2_complete' && (e.status === 'complete' || e.status === 'failed')))
+
   useEffect(() => {
     if (!submission) return
-    // Stop polling if Phase B is already complete or submission has verdict
-    if (currentPhase === 'AB' || hasVerdict || hasAiResult) return
+    // Stop polling if Phase B is already complete, submission has verdict, or forensic events are done
+    if (currentPhase === 'AB' || hasVerdict || hasAiResult || forensicComplete) return
 
     pollingRef.current = setInterval(async () => {
       try {
@@ -141,7 +151,12 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
         if (!updated) return
         setSubmission(updated)
         const updatedPhase = (updated.auto_check_details as { phase?: string } | null)?.phase
-        if (updatedPhase === 'AB' || updated.ai_verification_result) {
+        const updatedEvents = (updated.auto_check_details as AutoCheckDetails | null)?.verification_events
+        const updatedForensicDone = Array.isArray(updatedEvents) && updatedEvents.length > 0 &&
+          updatedEvents.some((e) => e.step === 'ring1_complete' && (e.status === 'complete' || e.status === 'failed')) &&
+          (!updatedEvents.some((e) => e.ring === 2) ||
+            updatedEvents.some((e) => e.step === 'ring2_complete' && (e.status === 'complete' || e.status === 'failed')))
+        if (updatedPhase === 'AB' || updated.ai_verification_result || updatedForensicDone) {
           if (pollingRef.current) clearInterval(pollingRef.current)
         }
       } catch {
@@ -527,6 +542,14 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                   </div>
                 </div>
                 )
+              })()}
+
+              {/* Forensic Event Log — granular verification timeline */}
+              {(() => {
+                const details = submission.auto_check_details as AutoCheckDetails | null
+                const vEvents = details?.verification_events
+                if (!Array.isArray(vEvents) || vEvents.length === 0) return null
+                return <ForensicEventLog events={vEvents} />
               })()}
 
               {/* Ring 1: AI Analysis / PHOTINT (Phase B) */}

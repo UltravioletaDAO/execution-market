@@ -1972,6 +1972,45 @@
       "notRequested": "Anillo 2: No solicitado (modo manual)"
     }
   },
+  "forensic": {
+    "title": "Registro de Verificacion Forense",
+    "waiting": "Esperando que inicie la verificacion...",
+    "failedAttempt": "fallido",
+    "unknownError": "error desconocido",
+    "ring1Title": "Anillo 1: Analisis PHOTINT",
+    "ring2Title": "Anillo 2: Evaluacion Arbitro",
+    "steps": {
+      "exif_extraction": "Extraccion EXIF",
+      "tampering": "Deteccion de Manipulacion",
+      "genai_detection": "Deteccion de IA Generativa",
+      "ai_semantic": "Analisis Semantico IA",
+      "duplicate": "Verificacion de Duplicados",
+      "photo_source": "Origen de Foto",
+      "ring1_complete": "Resumen Anillo 1",
+      "tier_routing": "Enrutamiento de Nivel",
+      "llm_primary": "LLM Primario",
+      "llm_secondary": "LLM Secundario",
+      "ring2_complete": "Resumen Anillo 2",
+      "gps_check": "Verificacion GPS",
+      "timestamp_check": "Verificacion de Tiempo",
+      "schema_check": "Verificacion de Esquema"
+    },
+    "detail": {
+      "exifClean": "tiene_exif, sin ediciones",
+      "exifStripped": "tiene_exif, eliminado",
+      "noExif": "sin datos EXIF",
+      "clean": "Limpio",
+      "suspicious": "Sospechoso",
+      "realPhoto": "Foto real",
+      "aiGenerated": "Generada por IA",
+      "noDupes": "Sin duplicados",
+      "duplicateFound": "Duplicado encontrado",
+      "score": "Puntaje",
+      "checksPassed": "checks aprobados",
+      "verdict": "Veredicto",
+      "cost": "Costo"
+    }
+  },
   "kkSwarm": {
     "subtitle": "Agentes autonomos de Ultravioleta DAO",
     "active": "activos",

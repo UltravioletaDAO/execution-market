@@ -1972,6 +1972,45 @@
       "notRequested": "Ring 2: Not requested (manual mode)"
     }
   },
+  "forensic": {
+    "title": "Forensic Verification Log",
+    "waiting": "Waiting for verification to start...",
+    "failedAttempt": "failed",
+    "unknownError": "unknown error",
+    "ring1Title": "Ring 1: PHOTINT Analysis",
+    "ring2Title": "Ring 2: Arbiter Evaluation",
+    "steps": {
+      "exif_extraction": "EXIF Extraction",
+      "tampering": "Tampering Detection",
+      "genai_detection": "AI-Generated Check",
+      "ai_semantic": "AI Semantic Analysis",
+      "duplicate": "Duplicate Check",
+      "photo_source": "Photo Source",
+      "ring1_complete": "Ring 1 Summary",
+      "tier_routing": "Tier Routing",
+      "llm_primary": "LLM Primary",
+      "llm_secondary": "LLM Secondary",
+      "ring2_complete": "Ring 2 Summary",
+      "gps_check": "GPS Check",
+      "timestamp_check": "Timestamp Check",
+      "schema_check": "Schema Check"
+    },
+    "detail": {
+      "exifClean": "has_exif, no edits",
+      "exifStripped": "has_exif, stripped",
+      "noExif": "no EXIF data",
+      "clean": "Clean",
+      "suspicious": "Suspicious",
+      "realPhoto": "Real photo",
+      "aiGenerated": "AI generated",
+      "noDupes": "No dupes",
+      "duplicateFound": "Duplicate found",
+      "score": "Score",
+      "checksPassed": "checks passed",
+      "verdict": "Verdict",
+      "cost": "Cost"
+    }
+  },
   "kkSwarm": {
     "subtitle": "Autonomous agents of Ultravioleta DAO",
     "active": "active",

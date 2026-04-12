@@ -222,8 +222,14 @@ export function SubmissionForm({
             setAiVerificationResult(data.ai_verification_result as Record<string, unknown>)
           }
 
-          // Stop polling when Phase B is complete
-          if (details.phase === 'AB') {
+          // Stop polling when Phase B is complete or forensic events are done
+          const vEvents = details.verification_events as Array<{ step: string; status: string; ring: number }> | undefined
+          const forensicDone = Array.isArray(vEvents) && vEvents.length > 0 &&
+            vEvents.some((e) => e.step === 'ring1_complete' && (e.status === 'complete' || e.status === 'failed')) &&
+            (!vEvents.some((e) => e.ring === 2) ||
+              vEvents.some((e) => e.step === 'ring2_complete' && (e.status === 'complete' || e.status === 'failed')))
+
+          if (details.phase === 'AB' || forensicDone) {
             if (phaseBPollRef.current) {
               clearInterval(phaseBPollRef.current)
               phaseBPollRef.current = null

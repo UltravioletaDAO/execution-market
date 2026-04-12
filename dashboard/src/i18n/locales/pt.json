@@ -1924,6 +1924,45 @@
       "notRequested": "Anel 2: Nao solicitado (modo manual)"
     }
   },
+  "forensic": {
+    "title": "Registro de Verificacao Forense",
+    "waiting": "Aguardando inicio da verificacao...",
+    "failedAttempt": "falhou",
+    "unknownError": "erro desconhecido",
+    "ring1Title": "Anel 1: Analise PHOTINT",
+    "ring2Title": "Anel 2: Avaliacao Arbitro",
+    "steps": {
+      "exif_extraction": "Extracao EXIF",
+      "tampering": "Deteccao de Adulteracao",
+      "genai_detection": "Deteccao de IA Generativa",
+      "ai_semantic": "Analise Semantica IA",
+      "duplicate": "Verificacao de Duplicatas",
+      "photo_source": "Origem da Foto",
+      "ring1_complete": "Resumo Anel 1",
+      "tier_routing": "Roteamento de Nivel",
+      "llm_primary": "LLM Primario",
+      "llm_secondary": "LLM Secundario",
+      "ring2_complete": "Resumo Anel 2",
+      "gps_check": "Verificacao GPS",
+      "timestamp_check": "Verificacao de Horario",
+      "schema_check": "Verificacao de Esquema"
+    },
+    "detail": {
+      "exifClean": "tem_exif, sem edicoes",
+      "exifStripped": "tem_exif, removido",
+      "noExif": "sem dados EXIF",
+      "clean": "Limpo",
+      "suspicious": "Suspeito",
+      "realPhoto": "Foto real",
+      "aiGenerated": "Gerada por IA",
+      "noDupes": "Sem duplicatas",
+      "duplicateFound": "Duplicata encontrada",
+      "score": "Pontuacao",
+      "checksPassed": "verificacoes aprovadas",
+      "verdict": "Veredicto",
+      "cost": "Custo"
+    }
+  },
   "ratingsHistory": {
     "title": "Historico de Avaliacoes",
     "subtitle": "Feedback de tarefas concluidas",

@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getCheckLabel } from '../constants/checkLabels'
+import { ForensicEventLog } from './ForensicEventLog'
+import type { VerificationEvent } from './ForensicEventLog'
 
 // ---------------------------------------------------------------------------
 // Ring attempt type — one entry per provider tried
@@ -47,6 +49,9 @@ export interface AutoCheckDetails {
 
   // Arbiter mode (from task config, sometimes echoed here)
   arbiter_mode?: 'manual' | 'auto' | 'hybrid'
+
+  // Forensic event log — granular verification timeline
+  verification_events?: VerificationEvent[]
 }
 
 interface EvidenceVerificationPanelProps {
@@ -218,7 +223,20 @@ export function EvidenceVerificationPanel({ details, onRefresh }: EvidenceVerifi
   const anyRingActive = ring1Active || ring2Active
   // Also consider phase_b_status pending (existing behavior)
   const phaseBActive = verification.phase_b_status === 'pending' && verification.phase !== 'AB'
-  const shouldPoll = anyRingActive || phaseBActive
+
+  // Check verification_events for completion (forensic event log)
+  const vEvents = Array.isArray(verification.verification_events) ? verification.verification_events : []
+  const hasEventLog = vEvents.length > 0
+  const ring1EventDone = vEvents.some(
+    (e) => e.step === 'ring1_complete' && (e.status === 'complete' || e.status === 'failed'),
+  )
+  const ring2EventDone = vEvents.some(
+    (e) => e.step === 'ring2_complete' && (e.status === 'complete' || e.status === 'failed'),
+  )
+  const hasRing2Events = vEvents.some((e) => e.ring === 2)
+  // If event log is present, use it for polling decisions
+  const eventLogComplete = hasEventLog && ring1EventDone && (!hasRing2Events || ring2EventDone)
+  const shouldPoll = eventLogComplete ? false : anyRingActive || phaseBActive
 
   // ---------------------------------------------------------------------------
   // Auto-refresh polling (3 s interval while verification is in-progress)
@@ -442,6 +460,11 @@ export function EvidenceVerificationPanel({ details, onRefresh }: EvidenceVerifi
             {t('autoCheck.ring2.notRequested', 'Ring 2: Not requested (manual mode)')}
           </span>
         </div>
+      )}
+
+      {/* Forensic Event Log — rich timeline of every verification step */}
+      {hasEventLog && (
+        <ForensicEventLog events={vEvents} />
       )}
 
       {/* Phase indicator (existing: phase_b_status pending + not yet AB) */}
