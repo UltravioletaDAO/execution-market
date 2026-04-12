@@ -43,6 +43,7 @@ export class TasksAPI {
    * ```
    */
   async create(params: TaskCreateParams): Promise<Task> {
+    const idempotencyKey = crypto.randomUUID();
     const response = await this.http.post<Record<string, unknown>>('/tasks', {
       title: params.title,
       instructions: params.instructions,
@@ -56,7 +57,7 @@ export class TasksAPI {
       payment_token: params.paymentToken,
       verification_tier: params.verificationTier,
       metadata: params.metadata,
-    });
+    }, { 'X-Idempotency-Key': idempotencyKey });
 
     return this.transformTask(response);
   }

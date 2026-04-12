@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import os
 import time
+import uuid
 from datetime import datetime, timezone
 from typing import Any
 
@@ -136,9 +137,7 @@ class ExecutionMarketClient:
             evidence=data["evidence"],
             status=data["status"],
             pre_check_score=float(data.get("pre_check_score", 0.5)),
-            submitted_at=datetime.fromisoformat(
-                data["submitted_at"].replace("Z", "+00:00")
-            ),
+            submitted_at=datetime.fromisoformat(data["submitted_at"].replace("Z", "+00:00")),
             notes=data.get("notes"),
         )
 
@@ -206,7 +205,12 @@ class ExecutionMarketClient:
             "metadata": metadata or {},
         }
 
-        response = self._client.post("/tasks", json=payload)
+        idempotency_key = str(uuid.uuid4())
+        response = self._client.post(
+            "/tasks",
+            json=payload,
+            headers={"X-Idempotency-Key": idempotency_key},
+        )
         data = self._handle_response(response)
         return self._parse_task(data)
 
@@ -397,9 +401,7 @@ class ExecutionMarketClient:
 
             time.sleep(poll_interval)
 
-        raise TimeoutError(
-            f"Task {task_id} did not complete within {timeout_hours} hours"
-        )
+        raise TimeoutError(f"Task {task_id} did not complete within {timeout_hours} hours")
 
     def batch_create(
         self,

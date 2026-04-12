@@ -35,7 +35,8 @@ export class HttpClient {
     method: string,
     path: string,
     body?: Record<string, unknown>,
-    params?: Record<string, unknown>
+    params?: Record<string, unknown>,
+    extraHeaders?: Record<string, string>
   ): Promise<T> {
     const url = new URL(path, this.config.baseUrl);
 
@@ -51,6 +52,7 @@ export class HttpClient {
       'Authorization': `Bearer ${this.config.apiKey}`,
       'Content-Type': 'application/json',
       'User-Agent': '@execution-market/sdk-typescript/0.1.0',
+      ...extraHeaders,
     };
 
     let lastError: Error | null = null;
@@ -117,8 +119,8 @@ export class HttpClient {
     return this.request('GET', path, undefined, params);
   }
 
-  async post<T>(path: string, body?: Record<string, unknown>): Promise<T> {
-    return this.request('POST', path, body);
+  async post<T>(path: string, body?: Record<string, unknown>, extraHeaders?: Record<string, string>): Promise<T> {
+    return this.request('POST', path, body, undefined, extraHeaders);
   }
 
   async put<T>(path: string, body?: Record<string, unknown>): Promise<T> {
