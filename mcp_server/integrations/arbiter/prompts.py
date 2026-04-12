@@ -307,7 +307,8 @@ def build_ring2_prompt(
     # Category-specific checks
     checks = CATEGORY_CHECKS.get(category, GENERIC_CHECKS)
 
-    # Build PHOTINT assessment section
+    # Build PHOTINT assessment section — include full analysis so Ring 2
+    # has the same information quality as Ring 1, not just a numeric score.
     photint_section = ""
     if ring1_score is not None:
         conf_str = f"{ring1_confidence:.2f}" if ring1_confidence is not None else "N/A"
@@ -316,7 +317,20 @@ def build_ring2_prompt(
 PHOTINT authenticity score: {ring1_score:.2f}
 PHOTINT confidence: {conf_str}
 PHOTINT decision: {ring1_decision or "N/A"}
-PHOTINT findings: {ring1_reason or "N/A"}
+PHOTINT detailed analysis: {ring1_reason or "N/A"}
+
+IMPORTANT: PHOTINT (Ring 1) performed forensic image analysis including:
+- EXIF metadata extraction (camera model, GPS, timestamp, editing software)
+- Tampering detection (compression artifacts, lighting consistency)
+- AI-generated image detection (texture, shadows, lens artifacts)
+- Duplicate detection (perceptual hash comparison)
+- AI semantic analysis of the photo content via vision model
+
+Ring 1 score of {ring1_score:.2f} means the evidence is {"likely authentic" if ring1_score >= 0.7 else "partially verified" if ring1_score >= 0.5 else "suspicious"}.
+Your job is to determine if this evidence PROVES THE TASK WAS COMPLETED,
+given Ring 1's forensic assessment. If Ring 1 gave a high score, you should
+generally agree UNLESS you find a clear mismatch between the task
+instructions and the evidence description.
 </photint_assessment>
 """
 
@@ -343,10 +357,10 @@ No other text."""
 
 
 def _summarize_evidence(evidence: Dict[str, Any]) -> str:
-    """Create a text summary of the evidence for the Ring 2 prompt.
+    """Create a human-readable summary of the evidence for Ring 2.
 
-    Handles various evidence formats (dict with evidence_type keys,
-    flat dicts, string values, etc.) and truncates to MAX_EVIDENCE_LENGTH.
+    Extracts key facts (file type, size, GPS, timestamp, device, source,
+    verification status) instead of dumping raw JSON.
     """
     if not evidence:
         return "No evidence provided."
@@ -355,9 +369,60 @@ def _summarize_evidence(evidence: Dict[str, Any]) -> str:
 
     for key, value in evidence.items():
         if isinstance(value, dict):
-            # Nested evidence (e.g., {json_response: {...}})
-            value_str = json.dumps(value, default=str)[:1000]
-            parts.append(f"  {key}: {value_str}")
+            # Extract human-readable fields from evidence items
+            ev_type = value.get("type", key)
+            filename = value.get("filename", "")
+            mime = value.get("mimeType", "")
+            meta = value.get("metadata", {})
+
+            desc_parts = [f"  Evidence type: {ev_type}"]
+            if filename:
+                desc_parts.append(f"  File: {filename} ({mime})")
+            if meta.get("size"):
+                desc_parts.append(f"  Size: {meta['size']} bytes")
+            if meta.get("source"):
+                desc_parts.append(
+                    f"  Source: {meta['source']} (camera/gallery/screenshot)"
+                )
+            if meta.get("imageWidth"):
+                desc_parts.append(
+                    f"  Resolution: {meta['imageWidth']}x{meta.get('imageHeight', '?')}"
+                )
+            if meta.get("captureTimestamp"):
+                desc_parts.append(f"  Captured at: {meta['captureTimestamp']}")
+
+            # GPS
+            gps = meta.get("gps") or {}
+            if gps.get("latitude") or gps.get("lat"):
+                lat = gps.get("latitude") or gps.get("lat")
+                lng = gps.get("longitude") or gps.get("lng") or gps.get("lon")
+                desc_parts.append(f"  GPS: {lat}, {lng}")
+
+            # Device info
+            device = meta.get("deviceInfo", {})
+            if device.get("platform"):
+                desc_parts.append(
+                    f"  Device: {device.get('vendor', '')} {device.get('platform', '')}"
+                )
+
+            # Verification
+            verif = meta.get("verification", {})
+            integrity = verif.get("integrity", {})
+            if integrity:
+                desc_parts.append(
+                    f"  Integrity: verified={integrity.get('verified')}, intact={integrity.get('metadataIntact')}, suspicious_edits={integrity.get('suspiciousEdits')}"
+                )
+            ts_verif = verif.get("timestamp", {})
+            if ts_verif:
+                desc_parts.append(
+                    f"  Timestamp: verified={ts_verif.get('verified')}, within_deadline={ts_verif.get('withinDeadline')}"
+                )
+
+            # Text response or other value fields
+            if value.get("value"):
+                desc_parts.append(f"  Content: {str(value['value'])[:500]}")
+
+            parts.append("\n".join(desc_parts))
         elif isinstance(value, str):
             parts.append(f"  {key}: {value[:500]}")
         elif isinstance(value, list):
@@ -365,7 +430,7 @@ def _summarize_evidence(evidence: Dict[str, Any]) -> str:
         else:
             parts.append(f"  {key}: {value}")
 
-    summary = "\n".join(parts)
+    summary = "\n\n".join(parts)
     if len(summary) > MAX_EVIDENCE_LENGTH:
         summary = summary[:MAX_EVIDENCE_LENGTH] + "\n  ... (truncated)"
 

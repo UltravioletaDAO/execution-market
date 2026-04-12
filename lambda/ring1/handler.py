@@ -525,11 +525,14 @@ def _publish_to_ring2(
         "enqueued_at": time.time(),
     }
 
-    _sqs_client.send_message(
-        QueueUrl=RING2_QUEUE_URL,
-        MessageBody=json.dumps(body),
-        MessageGroupId=submission_id if ".fifo" in RING2_QUEUE_URL else None,
-    )
+    kwargs = {
+        "QueueUrl": RING2_QUEUE_URL,
+        "MessageBody": json.dumps(body, default=str),
+    }
+    if ".fifo" in RING2_QUEUE_URL:
+        kwargs["MessageGroupId"] = submission_id
+        kwargs["MessageDeduplicationId"] = f"r2-{submission_id}"
+    _sqs_client.send_message(**kwargs)
     logger.info(
         "Published to Ring 2: submission=%s score=%.3f",
         submission_id[:8],

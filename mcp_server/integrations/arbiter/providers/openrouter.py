@@ -40,7 +40,9 @@ from ..prompts import RING2_SYSTEM_PROMPT, parse_ring2_response
 logger = logging.getLogger(__name__)
 
 DEFAULT_BASE_URL = "https://openrouter.ai/api/v1"
-DEFAULT_MODEL_STANDARD = "anthropic/claude-haiku-4-5"
+DEFAULT_MODEL_STANDARD = (
+    "anthropic/claude-sonnet-4-6"  # Haiku lacks vision quality for physical evidence
+)
 DEFAULT_MODEL_MAX = "anthropic/claude-sonnet-4-6"
 TIMEOUT_SECONDS = 30
 MAX_TOKENS = 512
