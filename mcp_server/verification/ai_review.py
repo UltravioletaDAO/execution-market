@@ -118,7 +118,19 @@ class AIVerifier:
         Returns:
             VerificationResult with decision and explanation
         """
+        import time as _t
+
+        _sid = id(self)  # trace ID
+        logger.info(
+            "[AIVerifier %x] verify_evidence START provider=%s model=%s urls=%d",
+            _sid,
+            self._provider.name if self._provider else "NONE",
+            self.model_name,
+            len(photo_urls),
+        )
+
         if not self._provider:
+            logger.warning("[AIVerifier %x] NO PROVIDER — returning NEEDS_HUMAN", _sid)
             return VerificationResult(
                 decision=VerificationDecision.NEEDS_HUMAN,
                 confidence=0.0,
@@ -130,15 +142,39 @@ class AIVerifier:
         # Download images
         images = []
         image_types = []
-        for url in photo_urls[:4]:  # Max 4 images
+        for i, url in enumerate(photo_urls[:4]):  # Max 4 images
+            _dl_start = _t.time()
             try:
+                logger.info(
+                    "[AIVerifier %x] downloading image %d/%d: %s",
+                    _sid,
+                    i + 1,
+                    min(len(photo_urls), 4),
+                    url[:100],
+                )
                 image_data = await self._download_image(url)
                 images.append(image_data)
                 image_types.append(self._get_media_type(url))
+                logger.info(
+                    "[AIVerifier %x] image %d downloaded: %d bytes in %.1fs",
+                    _sid,
+                    i + 1,
+                    len(image_data),
+                    _t.time() - _dl_start,
+                )
             except Exception as e:
-                logger.warning("Failed to download image %s: %s", url, e)
+                logger.warning(
+                    "[AIVerifier %x] image %d FAILED after %.1fs: %s",
+                    _sid,
+                    i + 1,
+                    _t.time() - _dl_start,
+                    e,
+                )
 
         if not images:
+            logger.warning(
+                "[AIVerifier %x] NO IMAGES downloaded — returning NEEDS_HUMAN", _sid
+            )
             return VerificationResult(
                 decision=VerificationDecision.NEEDS_HUMAN,
                 confidence=0.0,
@@ -148,6 +184,11 @@ class AIVerifier:
             )
 
         # Build prompt using PHOTINT prompt library
+        logger.info(
+            "[AIVerifier %x] building prompt for category=%s",
+            _sid,
+            task.get("category", "?"),
+        )
         from .prompts import get_prompt_library
 
         prompt_lib = get_prompt_library()
@@ -160,7 +201,13 @@ class AIVerifier:
             rekognition_context=rekognition_context,
         )
         prompt = prompt_result.text
+        logger.info(
+            "[AIVerifier %x] prompt built: %d chars. Calling provider.analyze()...",
+            _sid,
+            len(prompt),
+        )
 
+        _analyze_start = _t.time()
         try:
             response = await self._provider.analyze(
                 VisionRequest(
@@ -169,6 +216,12 @@ class AIVerifier:
                     image_types=image_types,
                     max_tokens=1024,
                 )
+            )
+            logger.info(
+                "[AIVerifier %x] provider.analyze() returned in %.1fs: %d chars",
+                _sid,
+                _t.time() - _analyze_start,
+                len(response.text) if response.text else 0,
             )
 
             result = self._parse_response(response.text)
