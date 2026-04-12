@@ -31,6 +31,8 @@ from .providers import (
     BedrockProvider,
     GeminiProvider,
     get_provider,
+    get_provider_chain,
+    analyze_with_fallback,
     list_available_providers,
 )
 from .image_downloader import (
@@ -81,6 +83,8 @@ __all__ = [
     "BedrockProvider",
     "GeminiProvider",
     "get_provider",
+    "get_provider_chain",
+    "analyze_with_fallback",
     "list_available_providers",
     # Image download + Phase B
     "extract_photo_urls",

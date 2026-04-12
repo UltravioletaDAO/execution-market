@@ -43,6 +43,49 @@ VERIFICATION_AI_MAX_IMAGES = int(os.environ.get("VERIFICATION_AI_MAX_IMAGES", "2
 TIER_WEIGHTS = {"tier_1": 1.0, "tier_2": 2.0, "tier_3": 3.0, "tier_4": 4.0}
 
 
+async def _update_verification_progress(
+    submission_id: str, ring: str, status: str, details: dict
+) -> None:
+    """Write intermediate Ring 1/Ring 2 progress to submissions.auto_check_details.
+
+    Reads the current ``auto_check_details`` JSON, merges in the ring status
+    fields, and writes back.  Safe to call multiple times -- each call updates
+    only the keys for the specified ring.
+
+    Args:
+        submission_id: The submission being verified.
+        ring: ``"ring1"`` or ``"ring2"``.
+        status: ``"pending"`` | ``"running"`` | ``"complete"`` | ``"failed"``.
+        details: Extra key/value pairs to merge under the ring prefix, e.g.
+                 ``{"provider": "openai", "model": "gpt-4o", "latency_ms": 3200}``.
+    """
+    try:
+        current = await db.get_submission(submission_id)
+        existing = (current or {}).get("auto_check_details") or {}
+
+        ring_updates = {f"{ring}_status": status}
+        for key, value in details.items():
+            ring_updates[f"{ring}_{key}"] = value
+
+        merged = {**existing, **ring_updates}
+
+        await db.update_submission_auto_check(
+            submission_id=submission_id,
+            auto_check_passed=existing.get("passed", False),
+            auto_check_details=merged,
+        )
+        logger.debug(
+            "[AUDIT] %s progress for %s: status=%s", ring, submission_id[:8], status
+        )
+    except Exception as e:
+        logger.error(
+            "[AUDIT] Failed to update %s progress for %s: %s",
+            ring,
+            submission_id[:8],
+            e,
+        )
+
+
 async def _report_phase_b_error(submission_id: str, error_msg: str) -> None:
     """Write Phase B error to submission so dashboard can display it."""
     try:
@@ -601,6 +644,16 @@ async def _run_ai_semantic_check(
 
         tier_results = []  # Collect (tier, score, confidence, result) from all tiers
         tiers_tried = []
+        provider_attempts: list = []  # Tracks every provider attempt across all tiers
+
+        # Write Ring 1 running status to DB immediately
+        if submission_id:
+            await _update_verification_progress(
+                submission_id,
+                "ring1",
+                "running",
+                {"provider": None, "model": None},
+            )
 
         for _attempt in range(4):  # Max 4 tiers
             provider = get_provider_for_tier(current_tier)
@@ -619,9 +672,10 @@ async def _run_ai_semantic_check(
                 verifier = AIVerifier(provider=provider)
 
             logger.info(
-                "Phase B [%s] ai_semantic: calling %s at %s...",
+                "Ring 1 [%s] trying %s/%s at %s...",
                 submission_id[:8],
                 verifier.provider_name,
+                getattr(verifier, "model_name", "?"),
                 current_tier,
             )
 
@@ -635,9 +689,18 @@ async def _run_ai_semantic_check(
                         exif_context=exif_context,
                         rekognition_context=rekognition_context,
                     )
+                provider_attempts.append(
+                    {
+                        "provider": result.provider,
+                        "model": result.model,
+                        "tier": current_tier,
+                        "status": "success",
+                        "latency_ms": timer.latency_ms,
+                        "error": None,
+                    }
+                )
                 logger.info(
-                    "Phase B [%s] ai_semantic: %s/%s responded in %dms "
-                    "(decision=%s confidence=%.2f)",
+                    "Ring 1 [%s] %s/%s responded in %dms (decision=%s confidence=%.2f)",
                     submission_id[:8],
                     result.provider,
                     result.model,
@@ -646,8 +709,20 @@ async def _run_ai_semantic_check(
                     result.confidence,
                 )
             except Exception as e:
+                provider_attempts.append(
+                    {
+                        "provider": verifier.provider_name,
+                        "model": getattr(verifier, "model_name", None),
+                        "tier": current_tier,
+                        "status": "timeout"
+                        if "timed out" in str(e).lower()
+                        else "error",
+                        "latency_ms": timer.latency_ms,
+                        "error": str(e)[:200],
+                    }
+                )
                 logger.warning(
-                    "Phase B [%s] ai_semantic: %s FAILED at %s after %dms: %s",
+                    "Ring 1 [%s] %s failed at %s after %dms: %s. Trying next...",
                     submission_id[:8],
                     verifier.provider_name,
                     current_tier,
@@ -752,12 +827,44 @@ async def _run_ai_semantic_check(
 
         # --- Step 7: Build final CheckResult ---
         if final_result is None:
+            # All tiers failed — write Ring 1 failed status
+            if submission_id:
+                await _update_verification_progress(
+                    submission_id,
+                    "ring1",
+                    "failed",
+                    {
+                        "provider": None,
+                        "model": None,
+                        "latency_ms": 0,
+                        "attempts": provider_attempts,
+                    },
+                )
             return CheckResult(
                 name="ai_semantic",
                 passed=True,
                 score=0.5,
                 reason="No AI provider available — skipped",
-                details={"provider": "none"},
+                details={
+                    "provider": "none",
+                    "provider_attempts": provider_attempts,
+                },
+            )
+
+        # Write Ring 1 complete status to DB immediately
+        if submission_id:
+            await _update_verification_progress(
+                submission_id,
+                "ring1",
+                "complete",
+                {
+                    "provider": final_result.provider,
+                    "model": final_result.model,
+                    "latency_ms": sum(
+                        a.get("latency_ms", 0) for a in provider_attempts
+                    ),
+                    "attempts": provider_attempts,
+                },
             )
 
         return CheckResult(
@@ -778,11 +885,26 @@ async def _run_ai_semantic_check(
                 "start_tier": selection.start_tier,
                 "max_tier": selection.max_tier,
                 "routing_reason": selection.reason,
+                "provider_attempts": provider_attempts,
             },
         )
 
     except Exception as e:
         logger.warning("AI semantic check failed: %s", e)
+        # Write Ring 1 failed status on unexpected exception
+        if submission_id:
+            await _update_verification_progress(
+                submission_id,
+                "ring1",
+                "failed",
+                {
+                    "provider": None,
+                    "model": None,
+                    "latency_ms": 0,
+                    "attempts": [],
+                    "error": str(e)[:200],
+                },
+            )
         return CheckResult(
             name="ai_semantic",
             passed=True,
@@ -837,14 +959,13 @@ async def _run_tampering_check(temp_paths: List[str]) -> CheckResult:
 async def _confirm_genai_with_vision(
     temp_paths: List[str],
 ) -> Optional[dict]:
-    """Use vision model to confirm/deny AI-generated detection."""
-    try:
-        from .providers import get_provider, VisionRequest
+    """Use vision model to confirm/deny AI-generated detection.
 
-        try:
-            provider = get_provider()
-        except ValueError:
-            return None
+    Uses the provider fallback chain so that if the primary provider is
+    down, cheaper alternatives are tried automatically.
+    """
+    try:
+        from .providers import VisionRequest, analyze_with_fallback
 
         prompt = (
             "Analyze this image carefully. Is it AI-generated "
@@ -873,7 +994,7 @@ async def _confirm_genai_with_vision(
         }
         mime_type = mime_map.get(ext, "image/jpeg")
 
-        response = await provider.analyze(
+        response, _attempts = await analyze_with_fallback(
             VisionRequest(
                 prompt=prompt,
                 images=[image_bytes],
@@ -881,6 +1002,9 @@ async def _confirm_genai_with_vision(
                 max_tokens=256,
             )
         )
+        if response is None:
+            logger.warning("[AUDIT] genai vision confirmation: all providers failed")
+            return None
 
         import json as _json
 
