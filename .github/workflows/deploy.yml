@@ -19,6 +19,8 @@ env:
   MCP_SERVER_SERVICE: em-production-mcp-server
   MCP_SERVER_CONTAINER: mcp-server
   DASHBOARD_S3_BUCKET: em-production-dashboard
+  LAMBDA_RING1_ECR_REPO: em-production-ring1-worker
+  LAMBDA_RING2_ECR_REPO: em-production-ring2-worker
   CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.DASHBOARD_CLOUDFRONT_ID }}
   BASE_URL: https://execution.market
   API_URL: https://api.execution.market
@@ -33,6 +35,7 @@ jobs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
       infra: ${{ steps.filter.outputs.infra }}
+      lambda: ${{ steps.filter.outputs.lambda }}
     steps:
       - uses: actions/checkout@v6
       - uses: dorny/paths-filter@v4
@@ -46,6 +49,10 @@ jobs:
               - 'dashboard/**'
             infra:
               - 'infrastructure/terraform/**'
+            lambda:
+              - 'lambda/**'
+              - 'mcp_server/verification/**'
+              - 'mcp_server/integrations/arbiter/**'
 
   # ── Build & Push Backend (Docker → ECR) ──────────────────────────
   build-and-push-backend:
@@ -88,6 +95,79 @@ jobs:
       - name: Output image tag
         id: image-tag
         run: echo "image=${{ env.ECR_REGISTRY }}/${{ env.MCP_SERVER_ECR_REPO }}:${{ github.sha }}" >> "$GITHUB_OUTPUT"
+
+  # ── Build & Push Lambda Images (Docker → ECR → Lambda Update) ───
+  build-and-push-lambdas:
+    name: Build & Push Lambdas
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.lambda == 'true'
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build and push Ring 1
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./lambda/ring1/Dockerfile
+          push: true
+          tags: |
+            ${{ env.ECR_REGISTRY }}/${{ env.LAMBDA_RING1_ECR_REPO }}:${{ github.sha }}
+            ${{ env.ECR_REGISTRY }}/${{ env.LAMBDA_RING1_ECR_REPO }}:latest
+          cache-from: type=gha,scope=ring1
+          cache-to: type=gha,mode=max,scope=ring1
+          platforms: linux/amd64
+
+      - name: Build and push Ring 2
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./lambda/ring2/Dockerfile
+          push: true
+          tags: |
+            ${{ env.ECR_REGISTRY }}/${{ env.LAMBDA_RING2_ECR_REPO }}:${{ github.sha }}
+            ${{ env.ECR_REGISTRY }}/${{ env.LAMBDA_RING2_ECR_REPO }}:latest
+          cache-from: type=gha,scope=ring2
+          cache-to: type=gha,mode=max,scope=ring2
+          platforms: linux/amd64
+
+      - name: Update Lambda function code
+        run: |
+          echo "Updating Ring 1 Lambda..."
+          aws lambda update-function-code \
+            --function-name ${{ env.LAMBDA_RING1_ECR_REPO }} \
+            --image-uri ${{ env.ECR_REGISTRY }}/${{ env.LAMBDA_RING1_ECR_REPO }}:${{ github.sha }}
+
+          echo "Updating Ring 2 Lambda..."
+          aws lambda update-function-code \
+            --function-name ${{ env.LAMBDA_RING2_ECR_REPO }} \
+            --image-uri ${{ env.ECR_REGISTRY }}/${{ env.LAMBDA_RING2_ECR_REPO }}:${{ github.sha }}
+
+      - name: Wait for Lambda updates
+        run: |
+          echo "Waiting for Ring 1 update to complete..."
+          aws lambda wait function-updated \
+            --function-name ${{ env.LAMBDA_RING1_ECR_REPO }}
+
+          echo "Waiting for Ring 2 update to complete..."
+          aws lambda wait function-updated \
+            --function-name ${{ env.LAMBDA_RING2_ECR_REPO }}
+
+          echo "Both Lambda functions updated successfully"
 
   # ── Terraform Apply (when infrastructure/ changed) ───────────────
   # Terraform Plan runs on EVERY deploy to catch broken config early.
@@ -366,7 +446,7 @@ jobs:
   notify:
     name: Notify on Failure
     runs-on: ubuntu-latest
-    needs: [deploy-backend, deploy-frontend, terraform-apply]
+    needs: [deploy-backend, deploy-frontend, terraform-apply, build-and-push-lambdas]
     if: failure()
     steps:
       - name: Send failure notification

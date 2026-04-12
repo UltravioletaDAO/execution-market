@@ -42,6 +42,8 @@ resource "aws_iam_policy" "em_cicd_deploy" {
         Resource = [
           "arn:aws:ecr:${local.aws_region}:${local.aws_account_id}:repository/em-production-mcp-server",
           "arn:aws:ecr:${local.aws_region}:${local.aws_account_id}:repository/em-production-dashboard",
+          "arn:aws:ecr:${local.aws_region}:${local.aws_account_id}:repository/em-production-ring1-worker",
+          "arn:aws:ecr:${local.aws_region}:${local.aws_account_id}:repository/em-production-ring2-worker",
         ]
       },
       {
@@ -112,6 +114,11 @@ resource "aws_iam_user_policy_attachment" "cicd_deploy" {
 #
 # Updated 2026-04-04: Added TerraformWAFv2 + TerraformWAFLogDelivery statements
 # to support waf.tf resources (IP blocklist, Web ACL, association, logging).
+#
+# Updated 2026-04-07: Added write/delete permissions for S3 bucket properties,
+# API Gateway, Lambda, Secrets Manager, IAM roles, and CloudFront — required
+# when evidence pipeline toggle (enable_evidence_pipeline) changes and Terraform
+# needs to create/destroy the full evidence stack (S3 + Lambda + APIGW + CF).
 
 resource "aws_iam_policy" "em_cicd_terraform" {
   name        = "em-cicd-terraform"
