@@ -2238,6 +2238,11 @@ async def reprocess_phase_b(
 
     use_sqs = is_sqs_mode()
     backend = "SQS" if use_sqs else "ECS (asyncio)"
+    if not use_sqs:
+        logger.warning(
+            "reprocess-phase-b: ECS (asyncio) backend is DEPRECATED — "
+            "use EM_VERIFICATION_BACKEND=sqs"
+        )
     logger.info("reprocess-phase-b: verification backend=%s", backend)
 
     client = db.get_client()
@@ -2299,6 +2304,9 @@ async def reprocess_phase_b(
                 track_phase_b_task(_pb_task, sub["id"])
                 queued += 1
         else:
+            # DEPRECATED: ECS in-process verification.
+            # SQS + Lambda is the primary path since Phase 3.
+            # This fallback will be removed in a future release.
             _pb_task = asyncio.create_task(
                 run_phase_b_verification(
                     submission_id=sub["id"],

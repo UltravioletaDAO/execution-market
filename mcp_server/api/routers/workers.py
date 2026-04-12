@@ -784,9 +784,12 @@ async def submit_work(
                             )
                             track_phase_b_task(_pb_task, submission_id)
                     else:
-                        # ECS mode: existing asyncio background processing
-                        logger.info(
-                            "Verification backend: ECS (asyncio) — submission=%s",
+                        # DEPRECATED: ECS in-process verification.
+                        # SQS + Lambda is the primary path since Phase 3.
+                        # This fallback will be removed in a future release.
+                        logger.warning(
+                            "Verification backend: ECS (asyncio) is DEPRECATED — "
+                            "use EM_VERIFICATION_BACKEND=sqs. submission=%s",
                             submission_id,
                         )
                         _pb_task = asyncio.create_task(

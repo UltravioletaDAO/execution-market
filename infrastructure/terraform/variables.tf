@@ -34,15 +34,15 @@ variable "availability_zones" {
 # ECS — MCP Server
 # Dashboard is served via S3+CloudFront (dashboard-cdn.tf), no ECS task needed.
 variable "mcp_server_cpu" {
-  description = "CPU units for MCP server task (1024 = 1 vCPU). Doubled from 512 after OOM kills when AI verification (S3 image download + Anthropic API) runs concurrently with background jobs."
+  description = "CPU units for MCP server task (512 = 0.5 vCPU). Halved from 1024 after AI verification offloaded to Lambda (SQS pipeline). ECS now only runs web server + background jobs."
   type        = number
-  default     = 1024
+  default     = 512
 }
 
 variable "mcp_server_memory" {
-  description = "Memory (MB) for MCP server task. Doubled from 1024 after OOM kills during concurrent AI verification + background job spikes (rev 298 incident)."
+  description = "Memory (MB) for MCP server task. Halved from 2048 to 1024 after AI verification offloaded to Lambda (SQS pipeline). ECS now only runs web server + background jobs."
   type        = number
-  default     = 2048
+  default     = 1024
 }
 
 variable "mcp_desired_count" {

@@ -134,35 +134,12 @@ async def run_phase_b_verification(
         )
         return
 
-    # ── Ring 2 (Arbiter) — launch INDEPENDENTLY of Ring 1 ──
-    # Ring 2 must NEVER wait for Ring 1. If Ring 1 hangs/fails (bad API key,
-    # timeout, provider down), Ring 2 still produces a verdict from the raw
-    # evidence. Both write to different DB columns independently.
-    _PHYSICAL_CATEGORIES = {
-        "physical_presence",
-        "location_based",
-        "verification",
-        "sensory",
-        "data_collection",
-    }
-    is_physical = task.get("category") in _PHYSICAL_CATEGORIES
-    has_explicit_arbiter = task.get("arbiter_enabled") and task.get(
-        "arbiter_mode"
-    ) not in (None, "", "manual")
-    if is_physical or has_explicit_arbiter:
-        logger.info(
-            "Ring 2 [%s] launched INDEPENDENTLY (physical=%s arbiter=%s)",
-            submission_id[:8],
-            is_physical,
-            has_explicit_arbiter,
-        )
-        asyncio.create_task(
-            _run_arbiter_for_submission(
-                submission_id=submission_id,
-                task=task,
-                merged_phase_b={},  # Ring 2 re-reads from DB, doesn't need Ring 1 output
-            )
-        )
+    # ── Ring 2 (Arbiter) — handled by SQS + Lambda ──
+    # Ring 2 is now triggered by the Ring 1 Lambda publishing to the Ring 2
+    # SQS queue after Ring 1 completes.  The old asyncio.create_task launch
+    # was removed in Phase 5 cleanup (SQS is primary, ECS fallback path
+    # here only runs Ring 1 checks).  See _run_arbiter_for_submission()
+    # below — still importable but only invoked by the Lambda handler.
 
     temp_paths: List[str] = []
     try:

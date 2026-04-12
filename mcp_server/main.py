@@ -203,10 +203,10 @@ async def lifespan(app: FastAPI):
     Graceful shutdown flow (ECS deploy / SIGTERM):
       1. SIGTERM received -- sets shutdown flag via ``graceful_shutdown_phase_b``
       2. FastAPI lifespan exits yield -- shutdown section begins
-      3. Drain in-flight Phase B / Ring 2 tasks (up to 110s)
+      3. Drain any in-flight Phase B fallback tasks (SQS failure path only)
       4. Cancel periodic background jobs
       5. Teardown subsystems (MeshRelay, chat, Supabase)
-      6. Process exits before ECS SIGKILL (stopTimeout = 120s)
+      6. Process exits before ECS SIGKILL (stopTimeout = 60s)
     """
     logger.info("Starting Execution Market MCP Server with Streamable HTTP transport")
 

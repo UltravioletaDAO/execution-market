@@ -146,9 +146,11 @@ resource "aws_cloudwatch_log_group" "mcp_server" {
 }
 
 # MCP Server Task Definition
-# cpu/memory: 1024 CPU (1 vCPU) + 2048 MB — headroom for FastMCP + concurrent AI verification
-# (S3 image download + Anthropic API) + background jobs (escrow polling, task expiry).
-# History: 256/512 → OOM kills. 512/1024 → still tight under load. Doubled to 1024/2048 (rev 298 incident).
+# cpu/memory: 512 CPU (0.5 vCPU) + 1024 MB — AI verification offloaded to Lambda
+# (SQS + Lambda pipeline handles Ring 1 + Ring 2 inference since Phase 3).
+# ECS only runs the web server, background jobs (escrow polling, task expiry),
+# and the SQS publish path.  Halved from 1024/2048 (rev 298) after Lambda offload.
+# History: 256/512 → OOM kills. 512/1024 → tight. 1024/2048 → rev 298. 512/1024 → Lambda offload.
 resource "aws_ecs_task_definition" "mcp_server" {
   family                   = "${local.name_prefix}-mcp-server"
   network_mode             = "awsvpc"
@@ -341,11 +343,11 @@ resource "aws_ecs_task_definition" "mcp_server" {
         }
       }
 
-      # Give Phase B verification + Ring 2 arbiter time to finish on deploys.
       # ECS sends SIGTERM, waits stopTimeout, then SIGKILL.
-      # Phase B worst case: 120s (AI semantic) + DB writes.  With 10s buffer
-      # for the Python shutdown handler, 120s is sufficient.
-      stopTimeout = 120
+      # With AI verification offloaded to Lambda (SQS pipeline), the ECS
+      # container only needs time to drain HTTP connections and cancel
+      # background jobs.  Reduced from 120s (when Phase B ran in-process).
+      stopTimeout = 60
 
       healthCheck = {
         command     = ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
