@@ -11,6 +11,10 @@ Default thresholds (override-able via PlatformConfig):
 
 Thresholds can be overridden per-category via ArbiterConfig.consensus_required
 (forces MAX even on low bounty for high-stakes categories like human_authority).
+
+Additionally, categories in CATEGORIES_MIN_STANDARD always get at least STANDARD
+tier regardless of bounty, because PHOTINT analysis (Ring 2 LLM review) is
+critical for verifying physical-world evidence even on low-bounty tasks.
 """
 
 import logging
@@ -27,6 +31,18 @@ logger = logging.getLogger(__name__)
 #   arbiter.tier.standard_max_usd
 DEFAULT_CHEAP_MAX_USD = Decimal("1.00")
 DEFAULT_STANDARD_MAX_USD = Decimal("10.00")
+
+# Categories where PHOTINT / Ring 2 LLM analysis is critical for evidence
+# verification.  Even on sub-$1 bounties these MUST get at least STANDARD
+# tier (one LLM call) so the arbiter doesn't return a blind echo of Ring 1.
+CATEGORIES_MIN_STANDARD = frozenset(
+    {
+        "physical_presence",
+        "location_based",
+        "verification",
+        "sensory",
+    }
+)
 
 
 @dataclass
@@ -116,7 +132,12 @@ class TierRouter:
                 f"Max safety tier: bounty ${bounty_usd:.2f} >= ${self.standard_max_usd}"
             )
 
-        # 4. Cap by category max_tier (e.g., a category may forbid MAX)
+        # 4. Category minimum tier floor: physical/verification categories
+        #    need at least STANDARD so the arbiter runs an LLM call instead of
+        #    echoing Ring 1 with low confidence (see CATEGORIES_MIN_STANDARD).
+        tier, reason = self._apply_min_tier_floor(tier, reason, config.category)
+
+        # 5. Cap by category max_tier (e.g., a category may forbid MAX)
         tier = self._apply_max_tier_cap(tier, config.max_tier)
 
         return TierDecision(
@@ -125,6 +146,32 @@ class TierRouter:
             bounty_usd=bounty_usd,
             max_cost_allowed_usd=self._compute_cost_cap(bounty_usd, config),
         )
+
+    @staticmethod
+    def _apply_min_tier_floor(
+        selected: ArbiterTier, reason: str, category: str
+    ) -> tuple:
+        """Promote CHEAP -> STANDARD for categories that need LLM analysis.
+
+        Physical-world and verification categories require at least one Ring 2
+        LLM call to produce a meaningful verdict.  Without it, the arbiter
+        echoes the Phase A score at low confidence, which always results in
+        INCONCLUSIVE -- useless for the worker and the agent.
+
+        Returns:
+            (tier, reason) tuple -- reason is updated if promotion occurred.
+        """
+        if selected == ArbiterTier.CHEAP and category in CATEGORIES_MIN_STANDARD:
+            logger.info(
+                "Tier promoted CHEAP -> STANDARD for category '%s' "
+                "(PHOTINT analysis required regardless of bounty)",
+                category,
+            )
+            return (
+                ArbiterTier.STANDARD,
+                f"Promoted to standard: category '{category}' requires LLM analysis",
+            )
+        return selected, reason
 
     @staticmethod
     def _apply_max_tier_cap(

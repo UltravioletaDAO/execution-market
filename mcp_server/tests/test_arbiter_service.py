@@ -197,6 +197,60 @@ class TestTierRouter:
         decision = router.select_tier(bounty_usd=0.60, config=self._config())
         assert decision.tier == ArbiterTier.STANDARD
 
+    def test_min_tier_floor_physical_presence(self):
+        """physical_presence tasks get promoted from CHEAP to STANDARD."""
+        router = TierRouter()
+        config = self._config(category="physical_presence")
+        decision = router.select_tier(bounty_usd=0.10, config=config)
+        assert decision.tier == ArbiterTier.STANDARD
+        assert "Promoted to standard" in decision.reason
+
+    def test_min_tier_floor_location_based(self):
+        """location_based tasks get promoted from CHEAP to STANDARD."""
+        router = TierRouter()
+        config = self._config(category="location_based")
+        decision = router.select_tier(bounty_usd=0.05, config=config)
+        assert decision.tier == ArbiterTier.STANDARD
+
+    def test_min_tier_floor_verification(self):
+        """verification tasks get promoted from CHEAP to STANDARD."""
+        router = TierRouter()
+        config = self._config(category="verification")
+        decision = router.select_tier(bounty_usd=0.50, config=config)
+        assert decision.tier == ArbiterTier.STANDARD
+
+    def test_min_tier_floor_sensory(self):
+        """sensory tasks get promoted from CHEAP to STANDARD."""
+        router = TierRouter()
+        config = self._config(category="sensory")
+        decision = router.select_tier(bounty_usd=0.01, config=config)
+        assert decision.tier == ArbiterTier.STANDARD
+
+    def test_min_tier_floor_does_not_affect_other_categories(self):
+        """Non-physical categories stay CHEAP when bounty is low."""
+        router = TierRouter()
+        for cat in ("data_processing", "content_generation", "research", "social"):
+            config = self._config(category=cat)
+            decision = router.select_tier(bounty_usd=0.10, config=config)
+            assert decision.tier == ArbiterTier.CHEAP, f"{cat} should remain CHEAP"
+
+    def test_min_tier_floor_no_op_when_already_standard(self):
+        """If bounty already qualifies for STANDARD, floor is a no-op."""
+        router = TierRouter()
+        config = self._config(category="physical_presence")
+        decision = router.select_tier(bounty_usd=5.0, config=config)
+        assert decision.tier == ArbiterTier.STANDARD
+        # Reason should be the normal bounty-based reason, not the promotion reason
+        assert "Promoted" not in decision.reason
+
+    def test_min_tier_floor_respects_max_tier_cap(self):
+        """If category has max_tier=CHEAP, the cap takes precedence over floor."""
+        router = TierRouter()
+        config = self._config(category="physical_presence", max_tier=ArbiterTier.CHEAP)
+        decision = router.select_tier(bounty_usd=0.10, config=config)
+        # Floor promotes to STANDARD, but max_tier cap brings it back to CHEAP
+        assert decision.tier == ArbiterTier.CHEAP
+
 
 # ============================================================================
 # DualRingConsensus tests
@@ -369,7 +423,9 @@ class TestArbiterService:
         }
         verdict = await service.evaluate(task, submission)
         assert verdict.decision == ArbiterDecision.PASS
-        assert verdict.tier == ArbiterTier.CHEAP  # bounty < $1
+        assert (
+            verdict.tier == ArbiterTier.STANDARD
+        )  # physical_presence promoted from CHEAP
         assert verdict.aggregate_score == pytest.approx(0.90, abs=0.01)
 
     @pytest.mark.asyncio
