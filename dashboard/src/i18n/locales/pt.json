@@ -1897,6 +1897,31 @@
       "genai_detection": "Deteccao de IA",
       "photo_source": "Origem da foto",
       "duplicate": "Duplicatas"
+    },
+    "ring": {
+      "pending": "Pendente",
+      "running": "Executando...",
+      "complete": "Completo",
+      "failed": "Falhou",
+      "approved": "Aprovado",
+      "rejected": "Rejeitado",
+      "needsReview": "Requer revisao",
+      "inconclusive": "Inconclusivo",
+      "attempts": "{{count}} tentativas",
+      "withFallbacks": "com alternativas",
+      "polling": "Atualizando..."
+    },
+    "ring1": {
+      "title": "Anel 1: Analise PHOTINT",
+      "confidence": "confianca",
+      "allFailed": "Todos os provedores falharam. A evidencia nao pude ser analisada por IA."
+    },
+    "ring2": {
+      "title": "Anel 2: Avaliacao Arbitro",
+      "score": "pontuacao",
+      "tier": "nivel",
+      "failed": "A avaliacao do arbitro falhou.",
+      "notRequested": "Anel 2: Nao solicitado (modo manual)"
     }
   },
   "ratingsHistory": {

@@ -178,6 +178,26 @@ export function SubmissionForm({
     }
   }, [submitted, task.id])
 
+  // Refresh callback for EvidenceVerificationPanel auto-poll
+  const refreshVerificationDetails = useCallback(async () => {
+    if (!submissionId) return
+    try {
+      const { data } = await supabase
+        .from('submissions')
+        .select('auto_check_details, ai_verification_result')
+        .eq('id', submissionId)
+        .single()
+      if (data?.auto_check_details) {
+        setVerificationDetails(data.auto_check_details as Record<string, unknown>)
+        if (data.ai_verification_result) {
+          setAiVerificationResult(data.ai_verification_result as Record<string, unknown>)
+        }
+      }
+    } catch {
+      // Silently ignore
+    }
+  }, [submissionId])
+
   // Phase B polling: fetch submission auto_check_details until phase === 'AB' (max 60s)
   useEffect(() => {
     if (!submitted || !submissionId) return
@@ -754,7 +774,7 @@ export function SubmissionForm({
         {/* Verification panel — always show when available */}
         {verificationDetails && (
           <div className="border-t border-gray-200 p-4 space-y-3">
-            <EvidenceVerificationPanel details={verificationDetails} />
+            <EvidenceVerificationPanel details={verificationDetails} onRefresh={refreshVerificationDetails} />
             {(() => {
               // Prefer the dedicated ai_verification_result (populated by Phase B)
               if (aiVerificationResult) {

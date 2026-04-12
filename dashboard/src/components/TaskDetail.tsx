@@ -843,7 +843,7 @@ export function TaskDetail({
                   {/* Auto-check verification results */}
                   {sub.auto_check_details && (
                     <div className="mt-3 space-y-3">
-                      <EvidenceVerificationPanel details={sub.auto_check_details} />
+                      <EvidenceVerificationPanel details={sub.auto_check_details} onRefresh={fetchSubmissions} />
                       {(() => {
                         // Prefer the dedicated ai_verification_result column (populated by Phase B)
                         if (sub.ai_verification_result) {

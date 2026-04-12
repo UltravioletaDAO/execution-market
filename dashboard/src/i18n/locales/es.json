@@ -1945,6 +1945,31 @@
       "genai_detection": "Deteccion IA",
       "photo_source": "Origen de foto",
       "duplicate": "Duplicados"
+    },
+    "ring": {
+      "pending": "Pendiente",
+      "running": "Ejecutando...",
+      "complete": "Completo",
+      "failed": "Fallido",
+      "approved": "Aprobado",
+      "rejected": "Rechazado",
+      "needsReview": "Requiere revision",
+      "inconclusive": "Inconcluso",
+      "attempts": "{{count}} intentos",
+      "withFallbacks": "con respaldos",
+      "polling": "Actualizando..."
+    },
+    "ring1": {
+      "title": "Anillo 1: Analisis PHOTINT",
+      "confidence": "confianza",
+      "allFailed": "Todos los proveedores fallaron. La evidencia no pudo ser analizada por IA."
+    },
+    "ring2": {
+      "title": "Anillo 2: Evaluacion Arbitro",
+      "score": "puntaje",
+      "tier": "nivel",
+      "failed": "La evaluacion del arbitro fallo.",
+      "notRequested": "Anillo 2: No solicitado (modo manual)"
     }
   },
   "kkSwarm": {
