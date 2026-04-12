@@ -184,7 +184,7 @@ async def recover_orphaned_phase_b() -> None:
         result = (
             client.table("submissions")
             .select("id, task_id, evidence, submitted_at, auto_check_details")
-            .in_("status", ["pending", "submitted"])
+            .in_("agent_verdict", ["pending", "submitted"])
             .is_("ai_verification_result", "null")
             .lt("submitted_at", cutoff)
             .execute()
