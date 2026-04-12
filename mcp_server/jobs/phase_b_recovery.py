@@ -179,14 +179,17 @@ async def recover_orphaned_phase_b() -> None:
             datetime.now(timezone.utc) - timedelta(seconds=ORPHAN_AGE_THRESHOLD_SECONDS)
         ).isoformat()
 
-        # Supabase PostgREST: filter on JSONB field via arrow operator
-        # auto_check_details->>'phase' = 'A'
+        # Only recover submissions from the last 2 hours — older ones are
+        # stale and would flood the event loop with 100+ hanging coroutines.
+        max_age = (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat()
+
         result = (
             client.table("submissions")
             .select("id, task_id, evidence, submitted_at, auto_check_details")
             .in_("agent_verdict", ["pending", "submitted"])
             .is_("ai_verification_result", "null")
             .lt("submitted_at", cutoff)
+            .gt("submitted_at", max_age)
             .execute()
         )
 
