@@ -451,6 +451,11 @@ async def _process_submitted_timeout_task(client, task: dict) -> bool:
 
 STALE_EVENT_THRESHOLD_SECONDS = 300  # 5 minutes
 
+# Phase B orphan threshold for periodic re-queue (seconds).  Submissions
+# stuck in phase='A' longer than this with no ai_verification_result are
+# candidates for re-queuing Phase B.
+ORPHAN_PHASE_B_THRESHOLD_SECONDS = 300  # 5 minutes
+
 
 async def _cleanup_stale_verification_events(client) -> None:
     """Append a 'failed' event to submissions with stale 'running' verification events.
@@ -459,6 +464,10 @@ async def _cleanup_stale_verification_events(client) -> None:
     ``status="running"`` forever.  This function detects events older than
     ``STALE_EVENT_THRESHOLD_SECONDS`` and marks them as failed so the
     frontend does not show a spinner indefinitely.
+
+    Also detects orphaned Phase B submissions (phase='A', older than
+    ORPHAN_PHASE_B_THRESHOLD_SECONDS, no ai_verification_result) and
+    re-queues them.
 
     Operates on all submissions with ``auto_check_details`` containing at
     least one ``verification_events`` entry.  Runs once per expiration
@@ -469,7 +478,10 @@ async def _cleanup_stale_verification_events(client) -> None:
     try:
         result = (
             client.table("submissions")
-            .select("id, auto_check_details")
+            .select(
+                "id, task_id, evidence, submitted_at, auto_check_details, "
+                "ai_verification_result, status"
+            )
             .not_.is_("auto_check_details", "null")
             .execute()
         )
@@ -479,43 +491,136 @@ async def _cleanup_stale_verification_events(client) -> None:
 
     rows = result.data or []
     patched = 0
+    requeued = 0
 
     for row in rows:
         details = row.get("auto_check_details") or {}
+
+        # ── Part 1: Stale running events ──
         events = details.get("verification_events")
-        if not events or not isinstance(events, list):
-            continue
+        if events and isinstance(events, list):
+            last_event = events[-1]
+            if (
+                last_event.get("status") == "running"
+                and last_event.get("ts", 0) <= cutoff_ts
+            ):
+                # Append a failed event so the frontend stops showing a spinner
+                events.append(
+                    {
+                        "ts": int(_time.time()),
+                        "ring": last_event.get("ring", 0),
+                        "step": last_event.get("step", "unknown"),
+                        "status": "failed",
+                        "detail": {"reason": "timeout -- verification step stalled"},
+                    }
+                )
+                details["verification_events"] = events
 
-        last_event = events[-1]
-        if last_event.get("status") != "running":
-            continue
-        if last_event.get("ts", 0) > cutoff_ts:
-            continue  # Not stale yet
+                try:
+                    client.table("submissions").update(
+                        {"auto_check_details": details}
+                    ).eq("id", row["id"]).execute()
+                    patched += 1
+                except Exception as exc:
+                    logger.warning(
+                        "[stale-events] Failed to patch submission %s: %s",
+                        row["id"],
+                        exc,
+                    )
 
-        # Append a failed event so the frontend stops showing a spinner
-        events.append(
-            {
-                "ts": int(_time.time()),
-                "ring": last_event.get("ring", 0),
-                "step": last_event.get("step", "unknown"),
-                "status": "failed",
-                "detail": {"reason": "timeout -- verification step stalled"},
-            }
-        )
-        details["verification_events"] = events
+        # ── Part 2: Orphaned Phase B re-queue ──
+        # Only re-queue if:
+        #   - phase == 'A' (Phase A done, Phase B never finished)
+        #   - ai_verification_result is None
+        #   - status is still 'pending' or 'submitted'
+        #   - submitted_at is older than ORPHAN_PHASE_B_THRESHOLD_SECONDS
+        if (
+            details.get("phase") == "A"
+            and row.get("ai_verification_result") is None
+            and row.get("status") in ("pending", "submitted")
+        ):
+            submitted_at = row.get("submitted_at")
+            if submitted_at:
+                try:
+                    from datetime import datetime, timezone
 
-        try:
-            client.table("submissions").update({"auto_check_details": details}).eq(
-                "id", row["id"]
-            ).execute()
-            patched += 1
-        except Exception as exc:
-            logger.warning(
-                "[stale-events] Failed to patch submission %s: %s", row["id"], exc
-            )
+                    if isinstance(submitted_at, str):
+                        # Handle both ISO formats with and without Z
+                        ts = submitted_at.replace("Z", "+00:00")
+                        sub_dt = datetime.fromisoformat(ts)
+                    else:
+                        sub_dt = submitted_at
+                    age_seconds = (datetime.now(timezone.utc) - sub_dt).total_seconds()
+                except Exception:
+                    age_seconds = 0
+
+                if age_seconds > ORPHAN_PHASE_B_THRESHOLD_SECONDS:
+                    requeued += await _requeue_orphaned_phase_b(row)
 
     if patched:
         logger.info("[stale-events] Patched %d stale verification event(s)", patched)
+    if requeued:
+        logger.info(
+            "[stale-events] Re-queued %d orphaned Phase B submission(s)", requeued
+        )
+
+
+async def _requeue_orphaned_phase_b(row: dict) -> int:
+    """Re-queue a single orphaned Phase B verification.
+
+    Returns 1 on success, 0 on skip/failure.
+    """
+    submission_id = row["id"]
+    task_id = row["task_id"]
+    sid = submission_id[:8]
+
+    try:
+        from jobs.phase_b_recovery import is_shutting_down
+
+        if is_shutting_down():
+            return 0
+
+        import supabase_client as sdb
+        from verification.background_runner import run_phase_b_verification
+
+        submission = await sdb.get_submission(submission_id)
+        if not submission:
+            logger.debug("[stale-events] Submission %s gone, skipping re-queue", sid)
+            return 0
+
+        # Double-check: if Phase B completed between the query and now, skip
+        current_details = submission.get("auto_check_details") or {}
+        if current_details.get("phase") != "A":
+            return 0
+        if submission.get("ai_verification_result") is not None:
+            return 0
+
+        task = await sdb.get_task(task_id)
+        if not task:
+            logger.debug(
+                "[stale-events] Task %s for submission %s gone, skipping", task_id, sid
+            )
+            return 0
+
+        logger.info(
+            "[stale-events] Re-queuing orphaned Phase B for submission %s "
+            "(submitted %s)",
+            sid,
+            row.get("submitted_at", "unknown"),
+        )
+
+        asyncio.create_task(
+            run_phase_b_verification(
+                submission_id=submission_id,
+                submission=submission,
+                task=task,
+            )
+        )
+        return 1
+
+    except Exception as exc:
+        logger.warning("[stale-events] Failed to re-queue Phase B for %s: %s", sid, exc)
+        return 0
 
 
 async def run_task_expiration_loop() -> None:

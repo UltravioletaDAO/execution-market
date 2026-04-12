@@ -17,6 +17,7 @@ MCP Transport: Streamable HTTP (2025-03-26 spec)
 import os
 import asyncio
 import logging
+import signal
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
@@ -33,6 +34,11 @@ import supabase_client as db
 from jobs.task_expiration import run_task_expiration_loop
 from jobs.auto_payment import run_auto_payment_loop
 from jobs.fee_sweep import run_fee_sweep_loop
+from jobs.phase_b_recovery import (
+    recover_orphaned_phase_b,
+    graceful_shutdown_phase_b,
+    inflight_count as phase_b_inflight_count,
+)
 from audit.escrow_reconciler import run_escrow_reconciliation_loop
 
 # Import MCP server for Streamable HTTP mounting
@@ -194,8 +200,42 @@ async def lifespan(app: FastAPI):
 
     Manages MCP session manager, background jobs, and other async resources.
     Required for Streamable HTTP transport to work correctly.
+
+    Graceful shutdown flow (ECS deploy / SIGTERM):
+      1. SIGTERM received -- sets shutdown flag via ``graceful_shutdown_phase_b``
+      2. FastAPI lifespan exits yield -- shutdown section begins
+      3. Drain in-flight Phase B / Ring 2 tasks (up to 110s)
+      4. Cancel periodic background jobs
+      5. Teardown subsystems (MeshRelay, chat, Supabase)
+      6. Process exits before ECS SIGKILL (stopTimeout = 120s)
     """
     logger.info("Starting Execution Market MCP Server with Streamable HTTP transport")
+
+    # ── Install SIGTERM handler ──────────────────────────────────────────
+    # ECS sends SIGTERM before stopping a container.  Uvicorn catches it and
+    # initiates a graceful shutdown, which triggers the lifespan teardown
+    # below.  We also set the ``is_shutting_down`` flag so background loops
+    # and new Phase B launches can exit early.
+    loop = asyncio.get_running_loop()
+
+    def _on_sigterm() -> None:
+        logger.info("[shutdown] SIGTERM received -- starting graceful shutdown")
+        from jobs.phase_b_recovery import is_shutting_down
+        import jobs.phase_b_recovery as _pbr
+
+        if not is_shutting_down():
+            _pbr._shutting_down = True
+        n = phase_b_inflight_count()
+        if n:
+            logger.info("[shutdown] %d in-flight Phase B task(s) will be drained", n)
+
+    try:
+        loop.add_signal_handler(signal.SIGTERM, _on_sigterm)
+    except NotImplementedError:
+        # Windows does not support add_signal_handler for SIGTERM.
+        # On Windows (local dev), graceful shutdown still works via the
+        # lifespan teardown path; the flag just won't be set as early.
+        pass
 
     # Start MeshRelay webhook adapter
     meshrelay_adapter = None
@@ -226,6 +266,12 @@ async def lifespan(app: FastAPI):
         await validate_all_providers()
     except Exception as e:
         logger.warning("Provider validation failed (non-fatal): %s", e)
+
+    # Recover orphaned Phase B verifications (non-blocking, runs as background tasks)
+    try:
+        await recover_orphaned_phase_b()
+    except Exception as e:
+        logger.warning("Phase B orphan recovery failed (non-fatal): %s", e)
 
     # Start background jobs
     expiration_task = asyncio.create_task(run_task_expiration_loop())
@@ -273,6 +319,12 @@ async def lifespan(app: FastAPI):
             yield
     else:
         yield
+
+    # Graceful shutdown: wait for in-flight Phase B verifications
+    try:
+        await graceful_shutdown_phase_b()
+    except Exception as e:
+        logger.warning("Phase B graceful shutdown failed (non-fatal): %s", e)
 
     # Cancel background jobs on shutdown
     _bg_tasks = [expiration_task, auto_payment_task, fee_sweep_task, reconciler_task]
