@@ -601,6 +601,40 @@ def get_provider_chain() -> List[VerificationProvider]:
     return chain
 
 
+async def validate_all_providers() -> None:
+    """Log health status of all verification providers at startup.
+
+    Iterates the provider chain (cost order) and checks each provider's
+    availability.  For providers with a ``validate_key`` classmethod
+    (e.g. Gemini), performs a lightweight API probe.
+
+    Never raises -- purely informational for startup diagnostics.
+    """
+    chain = get_provider_chain()
+    if not chain:
+        logger.critical(
+            "[STARTUP] No verification providers available! "
+            "Ring 1 will fail for all submissions."
+        )
+        return
+
+    results: List[str] = []
+    for provider in chain:
+        try:
+            # GeminiProvider exposes validate_key as a classmethod
+            if hasattr(type(provider), "validate_key") and callable(
+                getattr(type(provider), "validate_key")
+            ):
+                ok = await type(provider).validate_key()
+                results.append(f"{provider.name}={'OK' if ok else 'INVALID'}")
+            else:
+                results.append(f"{provider.name}=available")
+        except Exception as e:
+            results.append(f"{provider.name}=ERROR({e})")
+
+    logger.info("[STARTUP] Provider health: %s", ", ".join(results))
+
+
 async def analyze_with_fallback(
     request: VisionRequest,
 ) -> Tuple[Optional[VisionResponse], List[Dict[str, Any]]]:

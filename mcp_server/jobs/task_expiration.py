@@ -449,6 +449,75 @@ async def _process_submitted_timeout_task(client, task: dict) -> bool:
         return True
 
 
+STALE_EVENT_THRESHOLD_SECONDS = 300  # 5 minutes
+
+
+async def _cleanup_stale_verification_events(client) -> None:
+    """Append a 'failed' event to submissions with stale 'running' verification events.
+
+    If a Phase B verification step crashes, the last event will remain in
+    ``status="running"`` forever.  This function detects events older than
+    ``STALE_EVENT_THRESHOLD_SECONDS`` and marks them as failed so the
+    frontend does not show a spinner indefinitely.
+
+    Operates on all submissions with ``auto_check_details`` containing at
+    least one ``verification_events`` entry.  Runs once per expiration
+    cycle and is intentionally simple (no batching).
+    """
+    cutoff_ts = int(_time.time()) - STALE_EVENT_THRESHOLD_SECONDS
+
+    try:
+        result = (
+            client.table("submissions")
+            .select("id, auto_check_details")
+            .not_.is_("auto_check_details", "null")
+            .execute()
+        )
+    except Exception as exc:
+        logger.debug("[stale-events] Query failed: %s", exc)
+        return
+
+    rows = result.data or []
+    patched = 0
+
+    for row in rows:
+        details = row.get("auto_check_details") or {}
+        events = details.get("verification_events")
+        if not events or not isinstance(events, list):
+            continue
+
+        last_event = events[-1]
+        if last_event.get("status") != "running":
+            continue
+        if last_event.get("ts", 0) > cutoff_ts:
+            continue  # Not stale yet
+
+        # Append a failed event so the frontend stops showing a spinner
+        events.append(
+            {
+                "ts": int(_time.time()),
+                "ring": last_event.get("ring", 0),
+                "step": last_event.get("step", "unknown"),
+                "status": "failed",
+                "detail": {"reason": "timeout -- verification step stalled"},
+            }
+        )
+        details["verification_events"] = events
+
+        try:
+            client.table("submissions").update({"auto_check_details": details}).eq(
+                "id", row["id"]
+            ).execute()
+            patched += 1
+        except Exception as exc:
+            logger.warning(
+                "[stale-events] Failed to patch submission %s: %s", row["id"], exc
+            )
+
+    if patched:
+        logger.info("[stale-events] Patched %d stale verification event(s)", patched)
+
+
 async def run_task_expiration_loop() -> None:
     """
     Background loop that checks for expired tasks every CHECK_INTERVAL seconds.
@@ -530,6 +599,12 @@ async def run_task_expiration_loop() -> None:
                     "Health check will report unhealthy.",
                     _consecutive_failures,
                 )
+
+        # Clean up stale verification events (safety net for Phase B crashes)
+        try:
+            await _cleanup_stale_verification_events(client)
+        except Exception as exc:
+            logger.warning("[expiration] Stale verification cleanup failed: %s", exc)
 
         from audit import audit_log
 

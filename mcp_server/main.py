@@ -219,6 +219,14 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.warning("Chat relay init failed (non-fatal): %s", e)
 
+    # Validate verification providers at startup (non-blocking diagnostic)
+    try:
+        from verification.providers import validate_all_providers
+
+        await validate_all_providers()
+    except Exception as e:
+        logger.warning("Provider validation failed (non-fatal): %s", e)
+
     # Start background jobs
     expiration_task = asyncio.create_task(run_task_expiration_loop())
     logger.info("Task expiration background job scheduled")
