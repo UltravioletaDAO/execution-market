@@ -575,13 +575,9 @@ async def _requeue_orphaned_phase_b(row: dict) -> int:
     sid = submission_id[:8]
 
     try:
-        from jobs.phase_b_recovery import is_shutting_down
-
-        if is_shutting_down():
-            return 0
-
         import supabase_client as sdb
-        from verification.background_runner import run_phase_b_verification
+        from verification.sqs_publisher import publish_ring1
+        from verification.image_downloader import extract_photo_urls
 
         submission = await sdb.get_submission(submission_id)
         if not submission:
@@ -603,19 +599,26 @@ async def _requeue_orphaned_phase_b(row: dict) -> int:
             return 0
 
         logger.info(
-            "[stale-events] Re-queuing orphaned Phase B for submission %s "
+            "[stale-events] Re-queuing orphaned Phase B via SQS for submission %s "
             "(submitted %s)",
             sid,
             row.get("submitted_at", "unknown"),
         )
 
-        asyncio.create_task(
-            run_phase_b_verification(
-                submission_id=submission_id,
-                submission=submission,
-                task=task,
-            )
+        photo_urls = extract_photo_urls(submission.get("evidence") or {})
+        sqs_ok = await publish_ring1(
+            submission_id=submission_id,
+            task_id=task_id,
+            submission=submission,
+            task=task,
+            photo_urls=photo_urls,
+            phase_a_result=current_details,
         )
+        if not sqs_ok:
+            logger.error(
+                "[stale-events] SQS publish failed for orphaned submission %s", sid
+            )
+            return 0
         return 1
 
     except Exception as exc:

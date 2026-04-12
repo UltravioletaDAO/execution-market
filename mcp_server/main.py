@@ -34,10 +34,6 @@ import supabase_client as db
 from jobs.task_expiration import run_task_expiration_loop
 from jobs.auto_payment import run_auto_payment_loop
 from jobs.fee_sweep import run_fee_sweep_loop
-from jobs.phase_b_recovery import (
-    graceful_shutdown_phase_b,
-    inflight_count as phase_b_inflight_count,
-)
 from audit.escrow_reconciler import run_escrow_reconciliation_loop
 
 # Import MCP server for Streamable HTTP mounting
@@ -201,12 +197,11 @@ async def lifespan(app: FastAPI):
     Required for Streamable HTTP transport to work correctly.
 
     Graceful shutdown flow (ECS deploy / SIGTERM):
-      1. SIGTERM received -- sets shutdown flag via ``graceful_shutdown_phase_b``
+      1. SIGTERM received -- logged
       2. FastAPI lifespan exits yield -- shutdown section begins
-      3. Drain any in-flight Phase B fallback tasks (SQS failure path only)
-      4. Cancel periodic background jobs
-      5. Teardown subsystems (MeshRelay, chat, Supabase)
-      6. Process exits before ECS SIGKILL (stopTimeout = 60s)
+      3. Cancel periodic background jobs
+      4. Teardown subsystems (MeshRelay, chat, Supabase)
+      5. Process exits before ECS SIGKILL (stopTimeout = 60s)
     """
     logger.info("Starting Execution Market MCP Server with Streamable HTTP transport")
 
@@ -219,14 +214,6 @@ async def lifespan(app: FastAPI):
 
     def _on_sigterm() -> None:
         logger.info("[shutdown] SIGTERM received -- starting graceful shutdown")
-        from jobs.phase_b_recovery import is_shutting_down
-        import jobs.phase_b_recovery as _pbr
-
-        if not is_shutting_down():
-            _pbr._shutting_down = True
-        n = phase_b_inflight_count()
-        if n:
-            logger.info("[shutdown] %d in-flight Phase B task(s) will be drained", n)
 
     try:
         loop.add_signal_handler(signal.SIGTERM, _on_sigterm)
@@ -318,12 +305,6 @@ async def lifespan(app: FastAPI):
             yield
     else:
         yield
-
-    # Graceful shutdown: wait for in-flight Phase B verifications
-    try:
-        await graceful_shutdown_phase_b()
-    except Exception as e:
-        logger.warning("Phase B graceful shutdown failed (non-fatal): %s", e)
 
     # Cancel background jobs on shutdown
     _bg_tasks = [expiration_task, auto_payment_task, fee_sweep_task, reconciler_task]

@@ -1,12 +1,8 @@
 """SQS publisher for verification pipeline.
 
-When EM_VERIFICATION_BACKEND=sqs, the submit endpoint publishes to SQS
-instead of launching asyncio.create_task(). Lambda workers process the
-messages.
-
-Feature flag: EM_VERIFICATION_BACKEND (default: "ecs")
-  - "ecs"  -> current asyncio path (no behaviour change)
-  - "sqs"  -> publish Ring 1 / Ring 2 messages to SQS queues
+The submit endpoint publishes to SQS. Lambda workers process Ring 1
+(PHOTINT) and Ring 2 (Arbiter) messages.  This is the only verification
+path — the legacy asyncio.create_task() path was removed in Phase 5.
 """
 
 import json
@@ -35,13 +31,11 @@ def _get_sqs():
 
 
 def is_sqs_mode() -> bool:
-    """Return True when the verification backend is set to SQS."""
-    return os.environ.get("EM_VERIFICATION_BACKEND", "ecs").lower() == "sqs"
+    """Return True. SQS is the only verification backend since Phase 5.
 
-
-def _backend_label() -> str:
-    """Human-readable label for logging which backend is active."""
-    return "SQS" if is_sqs_mode() else "ECS (asyncio)"
+    Kept for backward compatibility with any code that still checks.
+    """
+    return True
 
 
 def _serialise_task(task: Dict[str, Any]) -> Dict[str, Any]:

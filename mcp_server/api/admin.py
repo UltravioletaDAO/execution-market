@@ -2229,21 +2229,10 @@ async def reprocess_phase_b(
     Respects EM_VERIFICATION_BACKEND: when ``sqs``, publishes to SQS
     instead of launching asyncio tasks.
     """
-    import asyncio
-
-    from verification.background_runner import run_phase_b_verification
-    from verification.sqs_publisher import is_sqs_mode, publish_ring1
+    from verification.sqs_publisher import publish_ring1
     from verification.image_downloader import extract_photo_urls
-    from jobs.phase_b_recovery import track_phase_b_task
 
-    use_sqs = is_sqs_mode()
-    backend = "SQS" if use_sqs else "ECS (asyncio)"
-    if not use_sqs:
-        logger.warning(
-            "reprocess-phase-b: ECS (asyncio) backend is DEPRECATED — "
-            "use EM_VERIFICATION_BACKEND=sqs"
-        )
-    logger.info("reprocess-phase-b: verification backend=%s", backend)
+    logger.info("reprocess-phase-b: verification backend=SQS")
 
     client = db.get_client()
 
@@ -2272,56 +2261,32 @@ async def reprocess_phase_b(
             "submitted_at": sub.get("submitted_at"),
         }
 
-        if use_sqs:
-            photo_urls = extract_photo_urls(submission_data.get("evidence") or {})
-            sqs_ok = await publish_ring1(
-                submission_id=sub["id"],
-                task_id=sub["task_id"],
-                submission=submission_data,
-                task=task,
-                photo_urls=photo_urls,
-                phase_a_result=None,  # reprocessing has no Phase A result
-            )
-            if sqs_ok:
-                queued += 1
-                logger.info(
-                    "Published Phase B reprocessing to SQS for submission %s",
-                    sub["id"],
-                )
-            else:
-                # Fallback to asyncio on SQS failure
-                logger.warning(
-                    "SQS publish failed for %s — falling back to asyncio",
-                    sub["id"],
-                )
-                _pb_task = asyncio.create_task(
-                    run_phase_b_verification(
-                        submission_id=sub["id"],
-                        submission=submission_data,
-                        task=task,
-                    )
-                )
-                track_phase_b_task(_pb_task, sub["id"])
-                queued += 1
-        else:
-            # DEPRECATED: ECS in-process verification.
-            # SQS + Lambda is the primary path since Phase 3.
-            # This fallback will be removed in a future release.
-            _pb_task = asyncio.create_task(
-                run_phase_b_verification(
-                    submission_id=sub["id"],
-                    submission=submission_data,
-                    task=task,
-                )
-            )
-            track_phase_b_task(_pb_task, sub["id"])
+        photo_urls = extract_photo_urls(submission_data.get("evidence") or {})
+        sqs_ok = await publish_ring1(
+            submission_id=sub["id"],
+            task_id=sub["task_id"],
+            submission=submission_data,
+            task=task,
+            photo_urls=photo_urls,
+            phase_a_result=None,  # reprocessing has no Phase A result
+        )
+        if sqs_ok:
             queued += 1
+            logger.info(
+                "Published Phase B reprocessing to SQS for submission %s",
+                sub["id"],
+            )
+        else:
+            logger.error(
+                "SQS publish failed for %s — submission will not be reprocessed",
+                sub["id"],
+            )
 
         logger.info("Queued Phase B reprocessing for submission %s", sub["id"])
 
     return {
         "queued": queued,
         "total_found": len(submissions),
-        "backend": backend,
-        "message": f"Queued {queued} submissions for Phase B reprocessing via {backend}",
+        "backend": "SQS",
+        "message": f"Queued {queued} submissions for Phase B reprocessing via SQS",
     }

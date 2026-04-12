@@ -41,7 +41,6 @@ from .image_downloader import (
     download_images_to_temp,
     cleanup_temp_files,
 )
-from .background_runner import run_phase_b_verification
 from .events import emit_verification_event
 from .gps_antispoofing import (
     GPSAntiSpoofing,
@@ -93,7 +92,6 @@ __all__ = [
     "extract_photo_urls",
     "download_images_to_temp",
     "cleanup_temp_files",
-    "run_phase_b_verification",
     "emit_verification_event",
     # GPS anti-spoofing (NOW-108, NOW-109, NOW-111)
     "GPSAntiSpoofing",
