@@ -125,7 +125,7 @@ jobs:
       - name: Terraform Plan
         working-directory: ${{ env.TF_DIR }}
         run: |
-          TF_VARS="-var=enable_evidence_pipeline=false"  # Disabled: deployer lacks IAM perms for Lambda authorizer (Phase 1 GR-0.4)
+          TF_VARS="-var=enable_evidence_pipeline=false"  # Disabled: evidence pipeline not yet needed in production (Phase 1 GR-0.4). IAM perms are now in place — flip to true when ready.
 
           # If a new backend image was built, tell Terraform to use it
           if [ -n "$IMAGE_TAG" ]; then

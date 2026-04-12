@@ -32,8 +32,8 @@ resource "aws_security_group" "alb" {
   }
 }
 
-# ALB access logs (Task 5.4) — DEFERRED: deployer IAM lacks s3:CreateBucket.
-# Create the S3 bucket manually or add IAM permission, then uncomment.
+# ALB access logs (Task 5.4) — DEFERRED: not yet implemented.
+# Deployer now has s3:CreateBucket. Uncomment when ready.
 
 # Application Load Balancer
 resource "aws_lb" "main" {
