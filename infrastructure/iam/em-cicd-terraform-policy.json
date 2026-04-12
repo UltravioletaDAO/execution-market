@@ -83,7 +83,8 @@
         "lambda:ListEventSourceMappings",
         "lambda:UpdateEventSourceMapping",
         "lambda:TagResource",
-        "lambda:UntagResource"
+        "lambda:UntagResource",
+        "lambda:ListTags"
       ],
       "Resource": "*"
     },
