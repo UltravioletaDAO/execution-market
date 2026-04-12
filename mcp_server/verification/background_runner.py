@@ -619,7 +619,7 @@ async def _run_ai_semantic_check(
         )
         from .model_router import select_tier, should_escalate, tier_exceeds
         from .prompts import get_prompt_library
-        from .providers import get_provider_for_tier
+        from .providers import get_providers_for_tier
         from .providers_aws import analyze_with_rekognition
 
         # --- Step 1: Extract EXIF ---
@@ -751,8 +751,12 @@ async def _run_ai_semantic_check(
             )
 
         for _attempt in range(4):  # Max 4 tiers
-            provider = get_provider_for_tier(current_tier)
-            if not provider:
+            # Get ALL available providers for this tier so we can retry
+            # within the tier when the primary provider fails (timeout,
+            # error, rate limit) instead of silently dropping to the next
+            # tier or giving up entirely.
+            tier_providers = get_providers_for_tier(current_tier)
+            if not tier_providers:
                 # Fallback: try default provider
                 provider_name = os.environ.get("AI_VERIFICATION_PROVIDER", "gemini")
                 verifier = AIVerifier(provider_name=provider_name)
@@ -763,115 +767,145 @@ async def _run_ai_semantic_check(
                         current_tier,
                     )
                     break
+                tier_providers = []  # will use verifier directly below
             else:
-                verifier = AIVerifier(provider=provider)
+                verifier = None  # will be set per-provider in the loop
 
-            _prov_name = verifier.provider_name
-            _model_name = getattr(verifier, "model_name", "?")
-
-            logger.info(
-                "Ring 1 [%s] trying %s/%s at %s...",
-                submission_id[:8],
-                _prov_name,
-                _model_name,
-                current_tier,
+            # Try each provider in the tier's fallback chain
+            tier_succeeded = False
+            providers_to_try = (
+                tier_providers
+                if tier_providers
+                else [None]  # sentinel: use the default verifier
             )
+            for _prov_idx, provider in enumerate(providers_to_try):
+                if provider is not None:
+                    verifier = AIVerifier(provider=provider)
 
-            try:
-                await emit_verification_event(
-                    submission_id,
-                    1,
-                    "ai_semantic",
-                    "running",
-                    {
-                        "provider": _prov_name,
-                        "tier": current_tier,
-                        "fallback": _attempt > 0,
-                    },
-                )
-            except Exception:
-                pass
+                _prov_name = verifier.provider_name
+                _model_name = verifier.model_name
 
-            timer = InferenceTimer()
-            try:
-                with timer:
-                    result = await verifier.verify_evidence(
-                        task=task,
-                        evidence=evidence,
-                        photo_urls=photo_urls[:VERIFICATION_AI_MAX_IMAGES],
-                        exif_context=exif_context,
-                        rekognition_context=rekognition_context,
-                    )
-                provider_attempts.append(
-                    {
-                        "provider": result.provider,
-                        "model": result.model,
-                        "tier": current_tier,
-                        "status": "success",
-                        "latency_ms": timer.latency_ms,
-                        "error": None,
-                    }
-                )
                 logger.info(
-                    "Ring 1 [%s] %s/%s responded in %dms (decision=%s confidence=%.2f)",
+                    "Ring 1 [%s] trying %s/%s at %s (provider %d/%d)...",
                     submission_id[:8],
-                    result.provider,
-                    result.model,
-                    timer.latency_ms,
-                    result.decision.value,
-                    result.confidence,
+                    _prov_name,
+                    _model_name,
+                    current_tier,
+                    _prov_idx + 1,
+                    len(providers_to_try),
                 )
+
                 try:
                     await emit_verification_event(
                         submission_id,
                         1,
                         "ai_semantic",
-                        "complete",
+                        "running",
+                        {
+                            "provider": _prov_name,
+                            "model": _model_name,
+                            "tier": current_tier,
+                            "fallback": _attempt > 0 or _prov_idx > 0,
+                        },
+                    )
+                except Exception:
+                    pass
+
+                timer = InferenceTimer()
+                try:
+                    with timer:
+                        result = await verifier.verify_evidence(
+                            task=task,
+                            evidence=evidence,
+                            photo_urls=photo_urls[:VERIFICATION_AI_MAX_IMAGES],
+                            exif_context=exif_context,
+                            rekognition_context=rekognition_context,
+                        )
+                    provider_attempts.append(
                         {
                             "provider": result.provider,
                             "model": result.model,
-                            "decision": result.decision.value,
-                            "confidence": result.confidence,
+                            "tier": current_tier,
+                            "status": "success",
                             "latency_ms": timer.latency_ms,
-                        },
+                            "error": None,
+                        }
                     )
-                except Exception:
-                    pass
-            except Exception as e:
-                provider_attempts.append(
-                    {
-                        "provider": verifier.provider_name,
-                        "model": getattr(verifier, "model_name", None),
-                        "tier": current_tier,
-                        "status": "timeout"
-                        if "timed out" in str(e).lower()
-                        else "error",
-                        "latency_ms": timer.latency_ms,
-                        "error": str(e)[:200],
-                    }
-                )
-                logger.warning(
-                    "Ring 1 [%s] %s failed at %s after %dms: %s. Trying next...",
-                    submission_id[:8],
-                    verifier.provider_name,
-                    current_tier,
-                    timer.latency_ms,
-                    str(e)[:200],
-                )
-                try:
-                    await emit_verification_event(
-                        submission_id,
-                        1,
-                        "ai_semantic",
-                        "failed",
+                    logger.info(
+                        "Ring 1 [%s] %s/%s responded in %dms (decision=%s confidence=%.2f)",
+                        submission_id[:8],
+                        result.provider,
+                        result.model,
+                        timer.latency_ms,
+                        result.decision.value,
+                        result.confidence,
+                    )
+                    try:
+                        await emit_verification_event(
+                            submission_id,
+                            1,
+                            "ai_semantic",
+                            "complete",
+                            {
+                                "provider": result.provider,
+                                "model": result.model,
+                                "decision": result.decision.value,
+                                "confidence": result.confidence,
+                                "latency_ms": timer.latency_ms,
+                            },
+                        )
+                    except Exception:
+                        pass
+                    tier_succeeded = True
+                    break  # Provider succeeded, stop trying others in this tier
+
+                except Exception as e:
+                    provider_attempts.append(
                         {
-                            "provider": _prov_name,
+                            "provider": verifier.provider_name,
+                            "model": verifier.model_name,
+                            "tier": current_tier,
+                            "status": "timeout"
+                            if "timed out" in str(e).lower()
+                            else "error",
+                            "latency_ms": timer.latency_ms,
                             "error": str(e)[:200],
-                        },
+                        }
                     )
-                except Exception:
-                    pass
-                # Don't include failed tier in consensus — try next
+                    logger.warning(
+                        "Ring 1 [%s] %s/%s failed at %s after %dms: %s. "
+                        "Trying next provider in tier...",
+                        submission_id[:8],
+                        verifier.provider_name,
+                        verifier.model_name,
+                        current_tier,
+                        timer.latency_ms,
+                        str(e)[:200],
+                    )
+                    try:
+                        await emit_verification_event(
+                            submission_id,
+                            1,
+                            "ai_semantic",
+                            "failed",
+                            {
+                                "provider": _prov_name,
+                                "model": _model_name,
+                                "error": str(e)[:200],
+                            },
+                        )
+                    except Exception:
+                        pass
+                    continue  # Try next provider in the same tier
+
+            if not tier_succeeded:
+                # All providers in this tier failed — escalate to next tier
+                logger.warning(
+                    "Ring 1 [%s] all %d providers failed at %s, escalating...",
+                    submission_id[:8],
+                    len(providers_to_try),
+                    current_tier,
+                )
                 next_tier = should_escalate(current_tier, 0.0, 0.0)
                 if next_tier is None or tier_exceeds(next_tier, selection.max_tier):
                     break

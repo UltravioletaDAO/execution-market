@@ -86,6 +86,13 @@ class AIVerifier:
         return self._provider.name if self._provider else "none"
 
     @property
+    def model_name(self) -> str:
+        """Return the model ID from the underlying provider."""
+        if self._provider and hasattr(self._provider, "model_id"):
+            return self._provider.model_id
+        return "unknown"
+
+    @property
     def is_available(self) -> bool:
         return self._provider is not None and self._provider.is_available()
 

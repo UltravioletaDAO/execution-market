@@ -551,6 +551,43 @@ def get_provider_for_tier(
     return None
 
 
+def get_providers_for_tier(
+    tier: str,
+    exclude_providers: Optional[List[str]] = None,
+) -> List[VerificationProvider]:
+    """
+    Get ALL available providers for a verification tier, in preference order.
+
+    Unlike ``get_provider_for_tier`` which returns only the first match,
+    this returns the full fallback chain so callers can retry within a tier
+    when the primary provider fails (timeout, error, rate limit).
+
+    Args:
+        tier: "tier_1", "tier_2", "tier_3", or "tier_4"
+        exclude_providers: Provider names to skip (for consensus/diversity)
+
+    Returns:
+        List of available providers, ordered by tier preference. May be empty.
+    """
+    exclude = set(exclude_providers or [])
+    candidates = TIER_MODELS.get(tier, TIER_MODELS["tier_2"])
+    result: List[VerificationProvider] = []
+
+    for provider_name, model_id in candidates:
+        if provider_name in exclude:
+            continue
+        if provider_name not in PROVIDERS:
+            continue
+        try:
+            provider = PROVIDERS[provider_name](model=model_id)
+            if provider.is_available():
+                result.append(provider)
+        except Exception:
+            continue
+
+    return result
+
+
 def list_available_providers() -> List[dict]:
     """List all providers and their availability status."""
     result = []

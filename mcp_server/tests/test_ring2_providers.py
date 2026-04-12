@@ -385,10 +385,7 @@ class TestOpenRouterProvider:
         monkeypatch.delenv("OPENROUTER_MODEL_STANDARD", raising=False)
         monkeypatch.delenv("OPENROUTER_MODEL_MAX", raising=False)
         p = OpenRouterProvider()
-        assert (
-            p._select_model(ArbiterTier.STANDARD)
-            == "anthropic/claude-haiku-4-5-20251001"
-        )
+        assert p._select_model(ArbiterTier.STANDARD) == "anthropic/claude-haiku-4-5"
 
     def test_model_selection_max(self, monkeypatch):
         monkeypatch.setenv("OPENROUTER_API_KEY", "test")
@@ -414,6 +411,7 @@ class TestOpenRouterProvider:
 
         mock_client = AsyncMock()
         mock_response = MagicMock()
+        mock_response.status_code = 200
         mock_response.json.return_value = mock_data
         mock_response.raise_for_status = MagicMock()
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
@@ -439,6 +437,7 @@ class TestOpenRouterProvider:
 
         mock_client = AsyncMock()
         mock_response = MagicMock()
+        mock_response.status_code = 200
         mock_response.json.return_value = mock_data
         mock_response.raise_for_status = MagicMock()
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
