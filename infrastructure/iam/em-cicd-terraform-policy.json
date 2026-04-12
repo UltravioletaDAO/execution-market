@@ -74,6 +74,24 @@
       "Resource": ["arn:aws:lambda:us-east-2:518898403364:function:em-*"]
     },
     {
+      "Sid": "TerraformLambdaEventSourceMapping",
+      "Effect": "Allow",
+      "Action": [
+        "lambda:CreateEventSourceMapping",
+        "lambda:DeleteEventSourceMapping",
+        "lambda:GetEventSourceMapping",
+        "lambda:ListEventSourceMappings",
+        "lambda:UpdateEventSourceMapping"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "TerraformSQS",
+      "Effect": "Allow",
+      "Action": ["sqs:*"],
+      "Resource": ["arn:aws:sqs:us-east-2:518898403364:em-*"]
+    },
+    {
       "Sid": "TerraformExtra",
       "Effect": "Allow",
       "Action": ["dynamodb:*", "sns:*", "wafv2:*", "elasticfilesystem:*", "cloudwatch:*", "application-autoscaling:*"],

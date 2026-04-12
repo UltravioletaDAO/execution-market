@@ -204,6 +204,12 @@ resource "aws_ecs_task_definition" "mcp_server" {
         { name = "EM_ARBITER_AUTO_RELEASE_ENABLED", value = "false" }, # Stays false: auto-release requires more testing before enabling
         { name = "ARBITER_DAILY_BUDGET_USD", value = "100" },
         { name = "ARBITER_PER_CALLER_BUDGET_USD", value = "10" },
+        # Verification pipeline: SQS queue URLs for Ring 1/2 offload (Phase 1)
+        # EM_VERIFICATION_BACKEND controls routing: "ecs" (in-process, default)
+        # or "sqs" (Lambda workers). Set to "sqs" after Phase 3 migration.
+        { name = "EM_VERIFICATION_BACKEND", value = "ecs" },
+        { name = "RING1_QUEUE_URL", value = aws_sqs_queue.ring1.url },
+        { name = "RING2_QUEUE_URL", value = aws_sqs_queue.ring2.url },
       ]
 
       secrets = [

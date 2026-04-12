@@ -1,0 +1,23 @@
+# Ring 2 Arbiter LLM Evaluation Lambda Dependencies
+# Lighter than Ring 1 — no image processing libraries needed.
+# Versions pinned to match mcp_server/requirements.txt
+
+# HTTP client (AI provider API calls, Supabase REST)
+httpx>=0.26.0
+
+# Blockchain (wallet address validation)
+web3>=6.15.0
+
+# AWS SDK (Secrets Manager for API keys)
+boto3>=1.34.0
+
+# Database (Supabase client for verdict writes)
+supabase>=2.0.0
+
+# AI providers (dual-inference arbiter)
+google-generativeai>=0.8.0
+anthropic>=0.30.0
+openai>=1.0.0
+
+# Utils
+python-dateutil>=2.8.0
