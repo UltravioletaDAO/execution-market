@@ -188,6 +188,31 @@ jobs:
 
           echo "Both Lambda functions updated successfully"
 
+      - name: Sync Lambda version env vars
+        run: |
+          # GIT_SHA and BUILD_TIMESTAMP are managed by Terraform, which only
+          # runs when infrastructure files change. When only lambda code changes,
+          # we must update them here so version probes return the correct sha.
+          BUILD_TS="${{ steps.timestamp.outputs.value }}"
+          GIT_SHA="${{ github.sha }}"
+
+          for FUNC in "${{ env.LAMBDA_RING1_ECR_REPO }}" "${{ env.LAMBDA_RING2_ECR_REPO }}"; do
+            echo "Syncing version env vars for $FUNC..."
+            CURRENT_VARS=$(aws lambda get-function-configuration \
+              --function-name "$FUNC" \
+              --query 'Environment.Variables' \
+              --output json)
+            UPDATED_VARS=$(echo "$CURRENT_VARS" | \
+              jq --arg sha "$GIT_SHA" --arg ts "$BUILD_TS" \
+              '. + {GIT_SHA: $sha, BUILD_TIMESTAMP: $ts}')
+            aws lambda update-function-configuration \
+              --function-name "$FUNC" \
+              --environment "Variables=$UPDATED_VARS" \
+              --output none
+            aws lambda wait function-updated --function-name "$FUNC"
+            echo "$FUNC version env vars synced"
+          done
+
       - name: Verify Lambda versions
         run: |
           EXPECTED_SHA="${{ github.sha }}"
