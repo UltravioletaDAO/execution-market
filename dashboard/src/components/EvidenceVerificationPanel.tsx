@@ -253,13 +253,13 @@ export function EvidenceVerificationPanel({ details, onRefresh }: EvidenceVerifi
       onRefresh()
     }, 3000)
 
-    // Safety: stop polling after 120 s regardless
+    // Safety: stop polling after 600 s regardless (Ring 1 can take ~300s)
     const timeout = setTimeout(() => {
       if (pollRef.current) {
         clearInterval(pollRef.current)
         pollRef.current = null
       }
-    }, 120_000)
+    }, 600_000)
 
     return () => {
       if (pollRef.current) {
@@ -319,10 +319,21 @@ export function EvidenceVerificationPanel({ details, onRefresh }: EvidenceVerifi
       {verification.phase === 'AB' && verification.summary && (
         <p className="text-sm text-gray-600 mb-3">{verification.summary}</p>
       )}
-      {verification.phase !== 'AB' && (
-        <p className="text-sm text-blue-600 mb-3">
-          {t('autoCheck.phaseBPending', 'AI verification in progress. Results will update automatically.')}
-        </p>
+      {(anyRingActive || (verification.phase !== 'AB' && !hasRing1)) && (
+        <div className="flex items-start gap-3 rounded-lg border border-blue-300 bg-blue-50 px-4 py-3 mb-3">
+          <svg className="w-5 h-5 animate-spin text-blue-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <div>
+            <p className="text-sm font-semibold text-blue-800">
+              {t('autoCheck.ring.analysisInProgress', 'PHOTINT analysis in progress')}
+            </p>
+            <p className="text-xs text-blue-600 mt-0.5">
+              {t('autoCheck.phaseBPending', 'AI verification in progress. Results will update automatically.')}
+            </p>
+          </div>
+        </div>
       )}
 
       {/* Individual checks */}

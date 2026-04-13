@@ -235,18 +235,25 @@ function detailSummary(event: VerificationEvent, t: ReturnType<typeof useTransla
     case 'llm_primary':
     case 'llm_secondary': {
       const parts: string[] = []
-      if (d.provider) parts.push(String(d.provider))
-      if (d.decision) {
-        const score = d.score != null ? ` (${Math.round(Number(d.score) * 100)}%)` : ''
-        parts.push(`${String(d.decision).toUpperCase()}${score}`)
+      if (d.provider) {
+        const model = d.model ? `/${String(d.model)}` : ''
+        parts.push(`${String(d.provider)}${model}`)
       }
+      if (d.decision) {
+        const conf = d.confidence != null ? ` ${Math.round(Number(d.confidence) * 100)}%` : ''
+        const score = d.score != null ? ` (${Math.round(Number(d.score) * 100)}%)` : ''
+        parts.push(`${String(d.decision).toUpperCase()}${score}${conf}`)
+      }
+      // Fallback: if we have latency data but no other fields, show the tier
+      if (parts.length === 0 && d.tier) parts.push(String(d.tier))
       return parts.length > 0 ? parts.join('  ') : null
     }
     case 'ring2_complete': {
       const parts: string[] = []
       if (d.verdict) parts.push(`${t('forensic.detail.verdict', 'Verdict')}: ${String(d.verdict).toUpperCase()}`)
       if (d.score != null) parts.push(`${t('forensic.detail.score', 'Score')}: ${Math.round(Number(d.score) * 100)}%`)
-      if (d.cost_usd != null) parts.push(`${t('forensic.detail.cost', 'Cost')}: $${Number(d.cost_usd).toFixed(3)}`)
+      if (d.confidence != null) parts.push(`${t('forensic.detail.confidence', 'Confidence')}: ${Math.round(Number(d.confidence) * 100)}%`)
+      if (d.cost_usd != null) parts.push(`${t('forensic.detail.cost', 'Ring 2 cost')}: $${Number(d.cost_usd).toFixed(3)}`)
       return parts.length > 0 ? parts.join(' \u00B7 ') : null
     }
     default: {
@@ -411,11 +418,13 @@ function RingSection({
                 <span className="text-xs text-gray-700 font-medium w-36 sm:w-40 truncate flex-shrink-0">
                   {getStepLabel(ev.step, t)}
                 </span>
-                {latency && (
-                  <span className="text-[11px] text-gray-400 font-mono flex-shrink-0">{latency}</span>
-                )}
                 {summary && (
-                  <span className="text-[11px] text-gray-500 truncate">{summary}</span>
+                  <span className="text-[11px] text-gray-500 min-w-0 break-words">{summary}</span>
+                )}
+                {latency && (
+                  <span className="text-[11px] text-gray-400 font-mono flex-shrink-0 ml-auto pl-2" title="Inference latency">
+                    {latency}
+                  </span>
                 )}
               </div>
 
