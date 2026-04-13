@@ -324,15 +324,29 @@ class AIVerifier:
 
         Handles both PHOTINT schema (with 'forensic' field) and
         legacy schema (flat task_checks only) for backward compatibility.
+        Robustly extracts JSON from markdown-wrapped responses.
         """
+        import re as _re
+
         try:
-            json_start = response_text.find("{")
-            json_end = response_text.rfind("}") + 1
+            # Strip markdown code blocks (Gemini sometimes returns ```json...```)
+            block_match = _re.search(
+                r"```(?:json)?\s*(\{.*?\})\s*```", response_text, _re.DOTALL
+            )
+            if block_match:
+                json_str = block_match.group(1)
+            else:
+                json_start = response_text.find("{")
+                json_end = response_text.rfind("}") + 1
+                if json_start == -1 or json_end <= json_start:
+                    logger.warning(
+                        "_parse_response: no JSON found (len=%d) preview=%r",
+                        len(response_text),
+                        response_text[:300],
+                    )
+                    raise ValueError("No JSON found in response")
+                json_str = response_text[json_start:json_end]
 
-            if json_start == -1 or json_end <= json_start:
-                raise ValueError("No JSON found in response")
-
-            json_str = response_text[json_start:json_end]
             data = json.loads(json_str)
 
             decision_map = {

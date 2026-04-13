@@ -111,6 +111,26 @@ SYNTHID_PATTERNS = {
 }
 
 
+def _has_real_camera_exif(img: Image.Image) -> bool:
+    """Return True if image EXIF contains real camera Make/Model data.
+
+    Used to suppress false positives on photos from real cameras (iPhone,
+    Android, DSLR) where computational photography pipelines produce
+    JPEG artifacts that mimic AI-generation signals.
+    """
+    try:
+        exif_raw = img._getexif()
+        if not exif_raw:
+            return False
+        for tag_id, value in exif_raw.items():
+            tag = TAGS.get(tag_id, "")
+            if tag in ("Make", "Model") and value and str(value).strip():
+                return True
+    except Exception:
+        pass
+    return False
+
+
 def check_genai(image_path: str) -> GenAIResult:
     """
     Main function to detect if an image is AI-generated.
@@ -133,6 +153,10 @@ def check_genai(image_path: str) -> GenAIResult:
         with open(image_path, "rb") as f:
             raw_bytes = f.read()
 
+        # Detect real camera EXIF to suppress false positives from
+        # computational photography pipelines (Apple, Google, Samsung).
+        has_camera_exif = _has_real_camera_exif(img)
+
         # 1. C2PA metadata check
         c2pa_result = _check_c2pa_metadata(raw_bytes, img)
         if c2pa_result["detected"]:
@@ -145,11 +169,18 @@ def check_genai(image_path: str) -> GenAIResult:
         # 2. Steganographic watermark detection
         watermark_result = _check_steganographic_watermarks(img, raw_bytes)
         if watermark_result["detected"]:
-            signals.append("ai_watermark_detected")
-            details["watermark"] = watermark_result
-            confidence += 0.35
-            if watermark_result.get("type"):
-                model_hint = model_hint or watermark_result["type"]
+            # qt_watermark is a known false positive for iPhone/Android photos:
+            # Apple's optimized JPEG quantization tables have qt_variance < 20
+            # due to their computational photography pipeline, not AI generation.
+            wm_type = watermark_result.get("type", "")
+            if has_camera_exif and wm_type == "qt_watermark":
+                pass  # Suppress: camera EXIF present, QT artifact is not an AI signal
+            else:
+                signals.append("ai_watermark_detected")
+                details["watermark"] = watermark_result
+                confidence += 0.35
+                if watermark_result.get("type"):
+                    model_hint = model_hint or watermark_result["type"]
 
         # 3. AI artifact analysis
         artifact_result = _check_ai_artifacts(img)
