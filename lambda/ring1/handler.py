@@ -788,10 +788,21 @@ async def _process_submission(body: Dict[str, Any]) -> Dict[str, Any]:
                 )
 
         # ── 10. Emit ring1_complete event ──────────────────────────
+        # Include per-check summary so the dashboard can show each check outcome.
+        # Only expose name/passed/score — no raw pixel data or PII.
+        checks_summary = [
+            {"name": c["name"], "passed": c["passed"], "score": round(c["score"], 3)}
+            for c in merged.get("checks", [])
+            if c.get("name") not in ("schema",)
+        ]
         await _emit(
             "ring1_complete",
             "complete",
-            {"passed": merged["passed"], "score": merged["score"]},
+            {
+                "passed": merged["passed"],
+                "score": merged["score"],
+                "checks": checks_summary,
+            },
         )
 
         # ── 11. Publish to Ring 2 ──────────────────────────────────
