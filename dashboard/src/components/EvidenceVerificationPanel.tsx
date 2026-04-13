@@ -209,9 +209,8 @@ export function EvidenceVerificationPanel({ details, onRefresh }: EvidenceVerifi
   const { t } = useTranslation()
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  if (!details || typeof details !== 'object') return null
-
-  const verification = details as unknown as AutoCheckDetails
+  const hasDetails = !!details && typeof details === 'object'
+  const verification = hasDetails ? (details as unknown as AutoCheckDetails) : ({} as AutoCheckDetails)
   const score = verification.score ?? 0
   const passed = verification.passed ?? score >= 0.7
   const checks = Array.isArray(verification.checks) ? verification.checks : []
@@ -236,7 +235,7 @@ export function EvidenceVerificationPanel({ details, onRefresh }: EvidenceVerifi
   const hasRing2Events = vEvents.some((e) => e.ring === 2)
   // If event log is present, use it for polling decisions
   const eventLogComplete = hasEventLog && ring1EventDone && (!hasRing2Events || ring2EventDone)
-  const shouldPoll = eventLogComplete ? false : anyRingActive || phaseBActive
+  const shouldPoll = hasDetails && (eventLogComplete ? false : anyRingActive || phaseBActive)
 
   // ---------------------------------------------------------------------------
   // Auto-refresh polling (3 s interval while verification is in-progress)
@@ -270,6 +269,8 @@ export function EvidenceVerificationPanel({ details, onRefresh }: EvidenceVerifi
       clearTimeout(timeout)
     }
   }, [shouldPoll, onRefresh])
+
+  if (!hasDetails) return null
 
   // No checks and no score — nothing to display
   if (checks.length === 0 && score === 0) return null

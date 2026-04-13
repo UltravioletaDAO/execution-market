@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-var-requires, no-undef */
 /** @type {import('tailwindcss').Config} */
 const monoScale = {
   50: '#fafafa',
