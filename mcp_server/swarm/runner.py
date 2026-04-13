@@ -547,7 +547,7 @@ class SwarmRunner:
         try:
             signal.signal(signal.SIGTERM, _handle_sigterm)
             signal.signal(signal.SIGUSR1, _handle_sigusr1)
-        except (OSError, ValueError):
+        except (OSError, ValueError, AttributeError):
             # Signals may not be available in all environments
             pass
 

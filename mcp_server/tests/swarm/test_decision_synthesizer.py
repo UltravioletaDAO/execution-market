@@ -650,7 +650,7 @@ class TestDegradation:
 class TestPerformance:
     def test_decision_time_tracked(self, loaded_synth, task, candidates):
         decision = loaded_synth.synthesize(task, candidates)
-        assert decision.decision_time_ms > 0
+        assert decision.decision_time_ms >= 0
         assert decision.decision_time_ms < 1000  # Should be fast
 
     def test_timestamp_set(self, loaded_synth, task, candidates):

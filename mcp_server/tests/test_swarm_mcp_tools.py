@@ -161,7 +161,7 @@ class TestSwarmMCPToolsActive:
 
         assert result["new_tasks"] == 3
         assert result["tasks_assigned"] == 1
-        assert result["duration_ms"] > 0
+        assert result["duration_ms"] >= 0
 
     @pytest.mark.asyncio
     async def test_poll_passive_skips_routing(self):

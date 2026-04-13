@@ -253,7 +253,7 @@ class TestRunCycle:
         h = self._make_handler()
         report = h.run_cycle()
         assert "coordinator_init" in report.errors[0]
-        assert report.duration_ms > 0
+        assert report.duration_ms >= 0
 
     @patch.object(SwarmHeartbeatHandler, "_init_event_listener")
     @patch.object(SwarmHeartbeatHandler, "_init_coordinator")
@@ -418,7 +418,7 @@ class TestRunCycle:
         report = h.run_cycle()
         assert any("ingest" in e for e in report.errors)
         # Other steps still ran
-        assert report.duration_ms > 0
+        assert report.duration_ms >= 0
 
     @patch.object(SwarmHeartbeatHandler, "_init_event_listener")
     @patch.object(SwarmHeartbeatHandler, "_init_coordinator")

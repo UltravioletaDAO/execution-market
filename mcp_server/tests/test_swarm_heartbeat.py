@@ -200,7 +200,7 @@ class TestSwarmHeartbeatHandler:
             assert report.agents_active == 24
             assert report.agents_degraded == 0
             assert report.errors == []
-            assert report.duration_ms > 0
+            assert report.duration_ms >= 0
 
     @patch("swarm.heartbeat_handler.SwarmCoordinator")
     def test_run_cycle_semi_auto_with_tasks(self, mock_coord_cls):

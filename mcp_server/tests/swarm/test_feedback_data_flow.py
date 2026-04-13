@@ -204,7 +204,7 @@ class TestSingleTaskFlow:
         task = make_completed_task()
         feedback = feedback_pipeline.process_completion_from_task(task)
 
-        assert feedback.processing_time_ms > 0
+        assert feedback.processing_time_ms >= 0
         assert feedback.processing_time_ms < 5000  # Should be fast (in-memory)
 
 

@@ -507,6 +507,7 @@ class TestSnapshots:
                     quality_rating=4.0,
                 )
             )
+            time.sleep(0.02)  # Ensure distinct timestamps for snapshots
         snaps = a.get_snapshots()
         s = snaps[-1]
         assert s["total_agents"] == 3

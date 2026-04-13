@@ -224,9 +224,10 @@ class TestTrends:
 
     def test_trend_with_data(self):
         m = MetricsCollector()
-        # Record some events
+        # Record some events with small delays to ensure distinct timestamps
         for _ in range(5):
             m.record_routing("t", "0xA", 80.0)
+            time.sleep(0.02)
         trend = m.trend("routing", "task_routed", buckets=4, window_seconds=60)
         # All events are recent — they should land in the window.
         # Due to floating-point bucket boundary timing, events might span

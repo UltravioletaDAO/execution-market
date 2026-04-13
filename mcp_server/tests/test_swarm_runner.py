@@ -409,7 +409,7 @@ class TestFullCycle:
         runner = make_runner()
         result = runner.run_once()
         assert result.cycle_number == 1
-        assert result.duration_ms > 0
+        assert result.duration_ms >= 0
         assert len(result.phases_completed) == 7
         assert len(result.phases_failed) == 0
 

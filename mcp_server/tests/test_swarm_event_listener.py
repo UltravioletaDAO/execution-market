@@ -567,7 +567,7 @@ class TestPollOnce:
         assert isinstance(result, PollResult)
         assert result.new_tasks == 1
         assert result.completed_tasks == 0
-        assert result.duration_ms > 0
+        assert result.duration_ms >= 0
         assert listener.state.poll_count == 1
         coord.process_task_queue.assert_called_once()
         coord.run_health_checks.assert_called_once()

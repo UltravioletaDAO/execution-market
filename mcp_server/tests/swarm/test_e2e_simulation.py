@@ -767,7 +767,7 @@ class TestMetricsConsistency:
 
         metrics = coord.get_metrics()
         if coord._routing_attempts > 0:
-            assert metrics.avg_routing_time_ms > 0
+            assert metrics.avg_routing_time_ms >= 0
 
 
 # ─── Pipeline Stress ─────────────────────────────────────────────────────

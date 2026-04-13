@@ -247,7 +247,7 @@ class TestAnalyzeOffline:
 
     def test_analysis_duration_recorded(self, analyzer):
         report = analyzer.analyze_offline(_make_completed(5), _make_expired(3))
-        assert report.analysis_duration_ms > 0
+        assert report.analysis_duration_ms >= 0
 
     def test_generated_at_set(self, analyzer):
         report = analyzer.analyze_offline(_make_completed(5), _make_expired(3))

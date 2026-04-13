@@ -614,7 +614,7 @@ class SwarmAnalytics:
 
         with open(tmp_path, "w") as f:
             json.dump(state, f, indent=2)
-        tmp_path.rename(final_path)
+        tmp_path.replace(final_path)
 
     def _load_state(self) -> None:
         """Load persisted analytics state."""
