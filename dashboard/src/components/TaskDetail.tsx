@@ -806,7 +806,26 @@ export function TaskDetail({
                           return (
                             <div key={key}>
                               <span className="text-xs font-semibold text-gray-600 uppercase">{key.replace(/_/g, ' ')}</span>
-                              <p className="text-sm text-gray-700 mt-1">{typeof ev === 'object' ? JSON.stringify(ev) : String(ev)}</p>
+                              {typeof ev === 'object' ? (
+                                <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 mt-1 text-xs">
+                                  {Object.entries(ev as Record<string, unknown>).map(([fk, fv]) => (
+                                    <span key={fk} className="contents">
+                                      <span className="text-gray-400">{fk.replace(/_/g, ' ')}</span>
+                                      <span className="text-gray-600 truncate">
+                                        {typeof fv === 'boolean'
+                                          ? (fv ? t('common.yes', 'Yes') : t('common.no', 'No'))
+                                          : typeof fv === 'number'
+                                            ? (fk.includes('score') || fk.includes('confidence') ? `${Math.round(fv * 100)}%` : String(fv))
+                                            : typeof fv === 'string' && fv.length > 40
+                                              ? `${fv.slice(0, 40)}…`
+                                              : String(fv ?? '')}
+                                      </span>
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-sm text-gray-700 mt-1">{String(ev)}</p>
+                              )}
                             </div>
                           )
                         }

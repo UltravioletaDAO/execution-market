@@ -34,14 +34,17 @@ export function AIAnalysisDetails({ result }: AIAnalysisDetailsProps) {
     approved: {
       label: t('aiAnalysis.approved', 'Approved'),
       bg: 'bg-green-100 text-green-700',
+      note: null as string | null,
     },
     needs_human: {
-      label: t('aiAnalysis.needsReview', 'Needs Review'),
-      bg: 'bg-amber-100 text-amber-700',
+      label: t('aiAnalysis.escalated', 'Escalated to Ring 2'),
+      bg: 'bg-blue-100 text-blue-700',
+      note: t('aiAnalysis.escalatedNote', 'Ring 1 confidence below threshold — forwarded to Ring 2 for deeper analysis.'),
     },
     rejected: {
       label: t('aiAnalysis.rejected', 'Rejected'),
       bg: 'bg-red-100 text-red-700',
+      note: null as string | null,
     },
   }
   const config =
@@ -55,19 +58,19 @@ export function AIAnalysisDetails({ result }: AIAnalysisDetailsProps) {
         onClick={() => setExpanded(!expanded)}
         className="w-full p-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <span
-            className={`text-xs font-medium px-2 py-0.5 rounded-full ${config.bg}`}
+            className={`text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${config.bg}`}
           >
             {config.label}
           </span>
-          {confidence != null && (
+          {confidence != null && confidence > 0 && (
             <span className="text-xs text-gray-500">
               {Math.round(confidence * 100)}%{' '}
               {t('aiAnalysis.confidence', 'confidence')}
             </span>
           )}
-          {model && <span className="text-xs text-gray-400">{model}</span>}
+          {model && <span className="text-xs text-gray-400 truncate">{model}</span>}
         </div>
         <svg
           className={`w-4 h-4 text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`}
@@ -87,6 +90,11 @@ export function AIAnalysisDetails({ result }: AIAnalysisDetailsProps) {
       {/* Expanded content */}
       {expanded && (
         <div className="p-3 pt-0 border-t border-gray-100 space-y-3">
+          {config.note && (
+            <p className="text-xs text-blue-600 bg-blue-50 rounded px-2 py-1.5">
+              {config.note}
+            </p>
+          )}
           {explanation && (
             <div>
               <h4 className="text-xs font-medium text-gray-500 uppercase mb-1">
