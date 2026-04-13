@@ -14,6 +14,9 @@ Combine profiles:
     pytest -m "core or payments"        # Core + payments
 """
 
+import urllib.error
+import urllib.request
+
 import pytest
 import sys
 from pathlib import Path
@@ -24,23 +27,64 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
 # ---------------------------------------------------------------------------
+# sys.modules isolation -- prevent cross-test pollution
+# ---------------------------------------------------------------------------
+#
+# 30+ test files manipulate sys.modules at module level to stub heavy
+# dependencies (web3, httpx, supabase, etc.).  These stubs can leak to
+# other test files, causing failures in the full suite that don't
+# reproduce in isolation.
+#
+# Defense in depth:
+#   1. Function-scoped autouse fixture snapshots/restores sys.modules
+#      around every test, catching per-test modifications (e.g. a test
+#      that deletes or replaces a module entry).
+#   2. Arbiter test reordering pushes the heaviest module-level polluters
+#      to the end of the collection order.
+#
+# Module-level stubs installed at import/collection time are PRESERVED
+# within their own file's tests (the snapshot includes them).  They are
+# only cleaned up if a DIFFERENT test modifies the same entry.
+
+
+@pytest.fixture(autouse=True)
+def _isolate_sys_modules():
+    """Snapshot sys.modules before each test; restore after.
+
+    This prevents per-test sys.modules changes from leaking to subsequent
+    tests.  Module-level stubs (installed at import time) are part of the
+    snapshot and thus preserved for tests within the same file.
+    """
+    snapshot = dict(sys.modules)
+    snapshot_keys = set(sys.modules.keys())
+
+    yield
+
+    # Remove modules that were added during this test
+    added = set(sys.modules.keys()) - snapshot_keys
+    for mod_name in added:
+        sys.modules.pop(mod_name, None)
+
+    # Restore modules that were replaced or removed during this test
+    for mod_name, original_mod in snapshot.items():
+        current = sys.modules.get(mod_name)
+        if current is not original_mod:
+            sys.modules[mod_name] = original_mod
+
+
+# ---------------------------------------------------------------------------
 # Arbiter test isolation (Phase 1-5 of commerce scheme + arbiter integration)
 # ---------------------------------------------------------------------------
 #
 # The arbiter test files install sys.modules stubs at module-load time to
 # mock api.routers._helpers, events.bus, integrations.x402.payment_dispatcher,
-# and supabase_client. This is necessary because the real modules either
+# and supabase_client.  This is necessary because the real modules either
 # have unrelated import issues (web3 version) or would hit the real DB / API.
 #
-# Problem: module-level sys.modules manipulation leaks to OTHER test files
-# that run AFTER the arbiter tests (e.g., test_event_bus.py gets a fake
-# events.bus module and crashes).
-#
-# Fix: reorder test collection so arbiter tests run LAST, after all other
-# tests have had a chance to import the real modules into sys.modules.
-# This way the arbiter stubs (which use setdefault in most cases) don't
-# pollute the import cache of subsequent tests -- because there are no
-# subsequent tests.
+# Even with _isolate_sys_modules above, arbiter tests benefit from running
+# last: their module-level stubs are installed at collection time, and if
+# they run before other tests, those stubs become part of the "clean"
+# snapshot that other tests inherit.
 
 
 def pytest_collection_modifyitems(config, items):
@@ -59,6 +103,52 @@ def pytest_collection_modifyitems(config, items):
         else:
             non_arbiter_items.append(item)
     items[:] = non_arbiter_items + arbiter_items
+
+
+@pytest.fixture(autouse=True)
+def _mock_swarm_network_for_top_level_tests(request, monkeypatch):
+    """Prevent real network calls in top-level test_swarm_* test files.
+
+    Only activates when the test module name starts with 'test_swarm_'.
+    Patches urlopen in every swarm module to raise URLError immediately so
+    AutoJobClient / AffinityAdapter / etc. don't block for 5-8s per call.
+    """
+    module_name = request.module.__name__.rsplit(".", 1)[-1]
+    if not module_name.startswith("test_swarm_"):
+        return
+
+    # All swarm modules that do `from urllib.request import urlopen`.
+    # Some top-level test files import via `from swarm.*` (bare), others via
+    # `from mcp_server.swarm.*`. Both paths end up as separate sys.modules
+    # entries, so we must patch both.
+    _base_modules = [
+        "autojob_client",
+        "affinity_adapter",
+        "coordinator",
+        "outcome_adapter",
+        "market_intelligence_adapter",
+        "preflight",
+        "xmtp_bridge",
+        "feedback_pipeline",
+        "expiry_analyzer",
+        "decomposition_adapter",
+        "retention_adapter",
+        "performance_adapter",
+        "pricing_adapter",
+    ]
+    swarm_modules_with_urlopen = [f"swarm.{m}" for m in _base_modules] + [
+        f"mcp_server.swarm.{m}" for m in _base_modules
+    ]
+
+    def _fake_urlopen(*args, **kwargs):
+        raise urllib.error.URLError("mocked - no AutoJob/EM server in tests")
+
+    monkeypatch.setattr(urllib.request, "urlopen", _fake_urlopen)
+
+    for mod_path in swarm_modules_with_urlopen:
+        mod = sys.modules.get(mod_path)
+        if mod and hasattr(mod, "urlopen"):
+            monkeypatch.setattr(mod, "urlopen", _fake_urlopen)
 
 
 @pytest.fixture

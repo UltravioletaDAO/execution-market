@@ -69,7 +69,32 @@ for _mod_name, _attrs in _LEAF_STUBS.items():
             setattr(_stub, _k, _v)
         sys.modules[_mod_name] = _stub
 
+# Load the REAL facilitator_client module.  Other test files may have
+# installed minimal stubs that lack the CrossChainReputationResult
+# dataclass we need.  To import the real module we must ensure all its
+# transitive dependencies are either real or have sufficient attributes.
 _fc_mod = sys.modules.get("integrations.erc8004.facilitator_client")
+if _fc_mod is not None and not hasattr(_fc_mod, "CrossChainReputationResult"):
+    # Stub from another test file -- remove it and all transitive stubs
+    # that would prevent the real module from loading.
+    for _stale in [
+        "integrations.erc8004.facilitator_client",
+    ]:
+        sys.modules.pop(_stale, None)
+    _fc_mod = None
+
+    # Ensure parent packages have __path__ for import_module to work
+    for _pname, _ppath in _PACKAGES.items():
+        _ppkg = sys.modules.get(_pname)
+        if _ppkg is not None and not hasattr(_ppkg, "__path__"):
+            _ppkg.__path__ = [_ppath]
+
+    # Ensure feedback_store stub has FEEDBACK_PUBLIC_URL (used by the real
+    # facilitator_client at import time)
+    _fs = sys.modules.get("integrations.erc8004.feedback_store")
+    if _fs is not None and not hasattr(_fs, "FEEDBACK_PUBLIC_URL"):
+        _fs.FEEDBACK_PUBLIC_URL = "https://cdn.test.com"
+
 if _fc_mod is None:
     _fc_mod = importlib.import_module("integrations.erc8004.facilitator_client")
     importlib.reload(_fc_mod)
