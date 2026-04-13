@@ -244,7 +244,7 @@ async def _run_tampering_check(temp_paths: List[str]) -> Any:
         )
 
     try:
-        result = check_tampering(temp_paths[0])
+        result = await asyncio.to_thread(check_tampering, temp_paths[0])
         score = max(0.0, 1.0 - result.confidence) if result.is_suspicious else 1.0
         return CheckResult(
             name="tampering",
@@ -278,7 +278,7 @@ async def _run_genai_check(temp_paths: List[str]) -> Any:
         )
 
     try:
-        result = check_genai(temp_paths[0])
+        result = await asyncio.to_thread(check_genai, temp_paths[0])
         if result.is_ai_generated:
             score = max(0.1, 1.0 - result.confidence)
         else:
@@ -674,27 +674,32 @@ async def _process_submission(body: Dict[str, Any]) -> Dict[str, Any]:
             ),
         }
 
-        # Emit "running" for all 5 checks before starting
-        for check_name in check_coros:
-            await _emit(check_name, "running")
+        # Emit "running" for all 5 checks in parallel — cosmetic, never blocks pipeline
+        await asyncio.gather(
+            *[_emit(check_name, "running") for check_name in check_coros],
+            return_exceptions=True,
+        )
 
         results: Dict[str, Any] = {}
         gathered = await asyncio.gather(
             *[_run_named_check(name, coro) for name, coro in check_coros.items()],
             return_exceptions=False,
         )
+        _emit_tasks = []
         for name, outcome in zip(check_coros.keys(), gathered):
             results[name] = outcome
-            # Emit completion/failure for each check
+            # Collect completion/failure emits for parallel dispatch
             if isinstance(outcome, Exception):
-                await _emit(name, "failed", {"error": str(outcome)[:200]})
+                _emit_tasks.append(_emit(name, "failed", {"error": str(outcome)[:200]}))
             elif isinstance(outcome, tuple):
                 cr, _ = outcome
-                await _emit(name, "complete", {"passed": cr.passed, "score": cr.score})
+                _emit_tasks.append(_emit(name, "complete", {"passed": cr.passed, "score": cr.score}))
             elif hasattr(outcome, "passed"):
-                await _emit(
-                    name, "complete", {"passed": outcome.passed, "score": outcome.score}
+                _emit_tasks.append(
+                    _emit(name, "complete", {"passed": outcome.passed, "score": outcome.score})
                 )
+        if _emit_tasks:
+            await asyncio.gather(*_emit_tasks, return_exceptions=True)
 
         # ── 7. Collect results ──────────────────────────────────────
         phase_b_checks: List[CheckResult] = []
