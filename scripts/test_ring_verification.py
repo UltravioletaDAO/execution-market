@@ -211,7 +211,7 @@ def sign_escrow(worker_wallet: str, bounty_usd: float, network: str) -> Dict[str
             "usdc": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
             "escrow": "0xb9488351E48b23D798f24e8174514F28B741Eb4f",
             "operator": "0x271f9fa7f8907aCf178CCFB470076D9129D8F0Eb",
-            "token_collector": "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8",
+            "token_collector": "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8",  # gitleaks:allow
         },
         "skale": {
             "chain_id": 1564830818,
@@ -222,7 +222,7 @@ def sign_escrow(worker_wallet: str, bounty_usd: float, network: str) -> Dict[str
             "usdc": "0x7Cf76E740Cb23b99337b21F392F22c47Ad910c67",
             "escrow": "0xBC151792f80C0EB1973d56b0235e6bee2A60e245",
             "operator": "0x43E46d4587fCCc382285C52012227555ed78D183",
-            "token_collector": "0x43E46d4587fCCc382285C52012227555ed78D183",
+            "token_collector": "0x43E46d4587fCCc382285C52012227555ed78D183",  # gitleaks:allow
         },
     }
 
