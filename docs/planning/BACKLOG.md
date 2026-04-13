@@ -13,10 +13,8 @@ Items captured during conversations to avoid context drift. Review at end of ses
 | 2026-03-26 | Brand shortname brainstorm: eMarket / exMarket | Shorter name for social/verbal use. Candidates: `eMarket`, `exMarket`, `EM`, `eM`. Decision pending. | P2 | pending |
 | 2026-03-31 | INC-2026-03-30 remediation: fund remaining chains | Wallet rotated + ECS deployed (done). 3/8 chains funded (Base, Polygon, Avalanche). Remaining: Ethereum, Arbitrum, Celo, Monad, verify Optimism. Scripts at `scripts/bridge/`. | P1 | in-progress |
 | 2026-04-12 | Ring 2: add CLAWROUTER_WALLET_KEY to ECS | OPENROUTER_API_KEY already set. CLAWROUTER_WALLET_KEY missing from ECS task def — Ring 2 ClawRouter provider unavailable. Add to Secrets Manager + Terraform ecs.tf. | P1 | pending |
-| 2026-04-11 | Task dedup: X-Idempotency header for task creation | Server done (`7108339b`), Python + TS SDKs done (`2568f4f7`). Full E2E dedup. | P1 | done |
-| 2026-04-12 | Worktree: Arbiter Track R — cost tracker, bounty cap | Branch `worktree-agent-a1a6b4b7` (1 commit, not in main). Cost tracker + bounty cap + AaaS guardrails. | P2 | pending |
-| 2026-04-12 | Worktree: Ring 2 wire real LLM providers | Branch `worktree-agent-abc8ec4a` (1 commit, not in main). Wire Ring 2 LLM inference to real providers. | P1 | pending |
 | 2026-04-12 | Worktree: Plugin SDK | Branch `feat/plugin-sdk` (2 commits, not in main). Sync client, idempotency, logging, README. Related to MASTER_PLAN_EM_PLUGIN_SDK. | P2 | pending |
+| 2026-04-12 | Test suite audit: fix 27 failing + dead code cleanup | 27 tests failing pre-existentes: (1) `_run_gps_check` async llamado sync en `TestGPSRadiusFromTask` + `TestGPSCheck`, (2) `test_roundtrip` Windows `pathlib.rename` bug, (3) `test_verify_pass_path` assumes `cheap` tier sin API keys. Además: limpiar tests de código muerto post-Phase 5 (asyncio verification removido, `phase_b_recovery` eliminado, `background_runner` reducido). Posible reducción de 14min CI. | P1 | pending |
 
 ---
 
@@ -37,6 +35,7 @@ Items verified as implemented by codebase audit. Removed from active backlog.
 | 2026-03-28 | Reduce `as any` casts (P2) | Done — 3 remaining (1 Leaflet, 2 test fixtures). Target was 12. |
 | 2026-03-22 | Balance check bug in skill.md (P2) | Resolved — advisory no longer present in skill.md |
 | 2026-03-22 | Ultra Wallet / uvw CLI (P1) | **Superseded** by OWS MCP Server (`ows-mcp-server/`) — 9 tools, multi-chain, production |
+| 2026-04-11 | Task dedup: X-Idempotency header (P1) | Server (`7108339b`) + Python/TS SDKs (`2568f4f7`). Full E2E dedup on task creation. |
 
 ---
 

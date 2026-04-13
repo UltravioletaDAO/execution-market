@@ -300,7 +300,8 @@ async def test_expired_task_fase5_failed_refund_logs_warning(monkeypatch):
     # Should not raise
     await task_expiration._process_expired_task(client, task)
 
-    refund_mock.assert_awaited_once()
+    # Refund retries up to 3 times on failure (max_retries=3 in source)
+    assert refund_mock.await_count == 3
     # No payment record should be inserted on failure
     insert_calls = [c for c in client.payments_mock.calls if c[0] == "insert"]
     assert len(insert_calls) == 0

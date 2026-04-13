@@ -385,7 +385,7 @@ class TestOpenRouterProvider:
         monkeypatch.delenv("OPENROUTER_MODEL_STANDARD", raising=False)
         monkeypatch.delenv("OPENROUTER_MODEL_MAX", raising=False)
         p = OpenRouterProvider()
-        assert p._select_model(ArbiterTier.STANDARD) == "anthropic/claude-haiku-4-5"
+        assert p._select_model(ArbiterTier.STANDARD) == "anthropic/claude-sonnet-4-6"
 
     def test_model_selection_max(self, monkeypatch):
         monkeypatch.setenv("OPENROUTER_API_KEY", "test")

@@ -295,9 +295,10 @@ class TestSchemaCheck:
 
 
 class TestGPSCheck:
-    def test_no_task_coords_with_evidence_gps_partial_pass(self):
+    @pytest.mark.asyncio
+    async def test_no_task_coords_with_evidence_gps_partial_pass(self):
         """Task has no coords but evidence has GPS -> partial pass (score 0.7)."""
-        result = _run_gps_check(
+        result = await _run_gps_check(
             evidence={"gps": {"lat": 4.711, "lng": -74.072}},
             task={"location_lat": None, "location_lng": None},
             category="physical_presence",
@@ -307,9 +308,10 @@ class TestGPSCheck:
         assert result.score == 0.7
         assert "no task reference location" in result.reason
 
-    def test_no_task_coords_no_evidence_gps_physical_fails(self):
+    @pytest.mark.asyncio
+    async def test_no_task_coords_no_evidence_gps_physical_fails(self):
         """Task has no coords AND evidence has no GPS for physical task -> fail."""
-        result = _run_gps_check(
+        result = await _run_gps_check(
             evidence={"photo": "url"},
             task={"location_lat": None, "location_lng": None},
             category="physical_presence",
@@ -319,18 +321,20 @@ class TestGPSCheck:
         assert result.score == 0.0
         assert "No GPS coordinates found" in result.reason
 
-    def test_no_task_coords_no_evidence_gps_nonphysical_skips(self):
+    @pytest.mark.asyncio
+    async def test_no_task_coords_no_evidence_gps_nonphysical_skips(self):
         """Task has no coords AND evidence has no GPS for non-physical task -> None (skip)."""
-        result = _run_gps_check(
+        result = await _run_gps_check(
             evidence={"photo": "url"},
             task={"location_lat": None, "location_lng": None},
             category="knowledge_access",
         )
         assert result is None
 
-    def test_no_task_coords_with_evidence_gps_nonphysical_partial_pass(self):
+    @pytest.mark.asyncio
+    async def test_no_task_coords_with_evidence_gps_nonphysical_partial_pass(self):
         """Non-physical task has no coords but evidence has GPS -> partial pass."""
-        result = _run_gps_check(
+        result = await _run_gps_check(
             evidence={"gps": {"lat": 4.711, "lng": -74.072}},
             task={"location_lat": None, "location_lng": None},
             category="knowledge_access",
@@ -339,8 +343,9 @@ class TestGPSCheck:
         assert result.passed is True
         assert result.score == 0.7
 
-    def test_physical_task_no_evidence_gps_fails(self):
-        result = _run_gps_check(
+    @pytest.mark.asyncio
+    async def test_physical_task_no_evidence_gps_fails(self):
+        result = await _run_gps_check(
             evidence={"photo": "url"},
             task={"location_lat": 4.711, "location_lng": -74.072},
             category="physical_presence",
@@ -349,8 +354,9 @@ class TestGPSCheck:
         assert result.passed is False
         assert result.score == 0.0
 
-    def test_nonphysical_task_no_evidence_gps_passes(self):
-        result = _run_gps_check(
+    @pytest.mark.asyncio
+    async def test_nonphysical_task_no_evidence_gps_passes(self):
+        result = await _run_gps_check(
             evidence={"photo": "url"},
             task={"location_lat": 4.711, "location_lng": -74.072},
             category="knowledge_access",
@@ -359,9 +365,10 @@ class TestGPSCheck:
         assert result.passed is True
         assert result.score == 0.7
 
-    def test_evidence_within_range(self):
+    @pytest.mark.asyncio
+    async def test_evidence_within_range(self):
         # Same point = 0m distance
-        result = _run_gps_check(
+        result = await _run_gps_check(
             evidence={"gps": {"lat": 4.711, "lng": -74.072}},
             task={"location_lat": 4.711, "location_lng": -74.072},
             category="physical_presence",
@@ -370,9 +377,10 @@ class TestGPSCheck:
         assert result.passed is True
         assert result.score >= 0.9
 
-    def test_evidence_out_of_range(self):
+    @pytest.mark.asyncio
+    async def test_evidence_out_of_range(self):
         # Bogota to Medellin ~400km
-        result = _run_gps_check(
+        result = await _run_gps_check(
             evidence={"gps": {"lat": 6.2442, "lng": -75.5812}},
             task={"location_lat": 4.711, "location_lng": -74.072},
             category="physical_presence",
@@ -380,15 +388,16 @@ class TestGPSCheck:
         assert result is not None
         assert result.passed is False
 
-    def test_simple_action_larger_threshold(self):
+    @pytest.mark.asyncio
+    async def test_simple_action_larger_threshold(self):
         # 800m away — should pass for simple_action (1000m threshold) but fail physical_presence (500m)
         # ~800m north of task
-        result_simple = _run_gps_check(
+        result_simple = await _run_gps_check(
             evidence={"gps": {"lat": 4.7182, "lng": -74.072}},
             task={"location_lat": 4.711, "location_lng": -74.072},
             category="simple_action",
         )
-        result_physical = _run_gps_check(
+        result_physical = await _run_gps_check(
             evidence={"gps": {"lat": 4.7182, "lng": -74.072}},
             task={"location_lat": 4.711, "location_lng": -74.072},
             category="physical_presence",

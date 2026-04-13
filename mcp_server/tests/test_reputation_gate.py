@@ -301,11 +301,54 @@ async def test_assign_score_50_vs_min_50_passes_rep_check(monkeypatch):
 # ---------------------------------------------------------------------------
 
 
+def _mock_db_dependencies(monkeypatch):
+    """Mock all DB dependencies that apply_to_task touches before the final DB call.
+
+    The endpoint calls db.get_task(), db.get_executor_stats(), db.get_client(),
+    World AgentKit, World ID eligibility, etc. before reaching db.apply_to_task.
+    """
+    from api import routes
+
+    # Mock the supabase client to prevent real DB initialization
+    mock_client = MagicMock()
+    mock_client.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value = MagicMock(
+        data=[]
+    )
+    mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock(
+        data=[]
+    )
+    monkeypatch.setattr(routes.db, "get_client", lambda: mock_client)
+
+    # Mock get_task (used by World ID eligibility check)
+    monkeypatch.setattr(
+        routes.db,
+        "get_task",
+        AsyncMock(
+            return_value={
+                "id": TASK_ID,
+                "status": "published",
+                "bounty_usd": 0.10,
+                "payment_network": "base",
+            }
+        ),
+    )
+
+    # Mock get_executor_stats (used by ERC-8004 + World AgentKit)
+    monkeypatch.setattr(
+        routes.db,
+        "get_executor_stats",
+        AsyncMock(return_value={"wallet_address": None}),
+    )
+
+    return routes
+
+
 @pytest.mark.asyncio
 async def test_apply_endpoint_returns_403_for_insufficient_reputation(monkeypatch):
     """The /tasks/{task_id}/apply endpoint should return 403 when reputation is insufficient."""
-    from api import routes
     from fastapi import HTTPException
+
+    routes = _mock_db_dependencies(monkeypatch)
 
     monkeypatch.setattr(
         routes.db,
@@ -335,7 +378,7 @@ async def test_apply_endpoint_returns_403_for_insufficient_reputation(monkeypatc
 @pytest.mark.asyncio
 async def test_apply_endpoint_returns_200_for_sufficient_reputation(monkeypatch):
     """The /tasks/{task_id}/apply endpoint should return 200 when reputation is sufficient."""
-    from api import routes
+    routes = _mock_db_dependencies(monkeypatch)
 
     monkeypatch.setattr(
         routes.db,

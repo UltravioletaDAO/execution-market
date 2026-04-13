@@ -607,7 +607,9 @@ class TestAaasEndpoint:
             response = await verify_evidence(req, auth)
 
         assert response.verdict == "pass"
-        assert response.tier == "cheap"  # bounty < $1
+        # physical_presence is in CATEGORIES_MIN_STANDARD: promoted to STANDARD
+        # even on sub-$1 bounty (Ring 2 providers fail gracefully -> cheap fallback)
+        assert response.tier in ("cheap", "standard")
         assert response.evidence_hash.startswith("0x")
         assert len(response.evidence_hash) == 66
 

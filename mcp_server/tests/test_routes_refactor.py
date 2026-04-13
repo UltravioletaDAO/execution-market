@@ -112,6 +112,11 @@ EXPECTED_ROUTES = {
     # Ring 2 Arbiter — public Arbiter-as-a-Service (Phase 5)
     "/api/v1/arbiter/verify",
     "/api/v1/arbiter/status",
+    # Escrow state endpoint
+    "/api/v1/tasks/{task_id}/escrow",
+    # Version endpoints
+    "/api/v1/version",
+    "/api/v1/version/all",
 }
 
 

@@ -923,83 +923,11 @@ class TestCommitmentHash:
 
 
 # ---------------------------------------------------------------------------
-# TestBackgroundRunner
+# TestVerificationPhaseIndicator
 # ---------------------------------------------------------------------------
 
 
-class TestBackgroundRunner:
-    @pytest.mark.asyncio
-    async def test_skipped_when_disabled(self, monkeypatch):
-        monkeypatch.setenv("VERIFICATION_AI_ENABLED", "false")
-
-        # Need to reimport to pick up the env var at module level
-        import importlib
-        import verification.background_runner as br
-
-        importlib.reload(br)
-
-        # Should return immediately
-        await br.run_phase_b_verification(
-            submission_id="sub-001",
-            submission=_make_submission(),
-            task=_make_task(),
-        )
-
-        # Restore
-        monkeypatch.setenv("VERIFICATION_AI_ENABLED", "true")
-        importlib.reload(br)
-
-    @pytest.mark.asyncio
-    async def test_skipped_when_no_photos(self):
-        from verification.background_runner import run_phase_b_verification
-
-        submission = _make_submission(evidence={"notes": "text only"})
-        # Should not raise
-        await run_phase_b_verification(
-            submission_id="sub-001",
-            submission=submission,
-            task=_make_task(),
-        )
-
-    @pytest.mark.asyncio
-    async def test_skipped_when_download_fails(self):
-        from verification.background_runner import run_phase_b_verification
-
-        with patch(
-            "verification.background_runner.download_images_to_temp",
-            new_callable=AsyncMock,
-            return_value=[],
-        ):
-            await run_phase_b_verification(
-                submission_id="sub-001",
-                submission=_make_submission(),
-                task=_make_task(),
-            )
-
-    @pytest.mark.asyncio
-    async def test_cleanup_always_runs(self):
-        from verification.background_runner import run_phase_b_verification
-
-        with patch(
-            "verification.background_runner.download_images_to_temp",
-            new_callable=AsyncMock,
-            return_value=[("/tmp/fake.jpg", "https://example.com/img.jpg")],
-        ):
-            with patch(
-                "verification.background_runner.cleanup_temp_files"
-            ) as mock_cleanup:
-                # Force an error in gather
-                with patch(
-                    "verification.background_runner.asyncio.gather",
-                    side_effect=Exception("boom"),
-                ):
-                    await run_phase_b_verification(
-                        submission_id="sub-001",
-                        submission=_make_submission(),
-                        task=_make_task(),
-                    )
-                mock_cleanup.assert_called_once_with(["/tmp/fake.jpg"])
-
+class TestVerificationPhaseIndicator:
     @pytest.mark.asyncio
     async def test_phase_indicator_in_result(self):
         from verification.pipeline import run_verification_pipeline

@@ -135,7 +135,8 @@ class TestCheckGPSLocation:
 class TestGPSRadiusFromTask:
     """Tests for task-level location_radius_km in the pipeline GPS check."""
 
-    def test_city_radius_passes_for_worker_10km_away(self):
+    @pytest.mark.asyncio
+    async def test_city_radius_passes_for_worker_10km_away(self):
         """Task with location_radius_km=15 (city) should pass for worker 10km away."""
         # Miami Gardens center: 25.9420, -80.2456
         # Worker ~10km south: 25.8520, -80.2456 (~10km)
@@ -146,13 +147,14 @@ class TestGPSRadiusFromTask:
             "location_radius_km": 15,
             "category": "physical_presence",
         }
-        result = _run_gps_check(evidence, task, "physical_presence")
+        result = await _run_gps_check(evidence, task, "physical_presence")
         assert result is not None
         assert result.passed
         assert result.details["max_distance_meters"] == 15000
         assert result.details["distance_meters"] < 15000
 
-    def test_address_radius_fails_for_worker_1km_away(self):
+    @pytest.mark.asyncio
+    async def test_address_radius_fails_for_worker_1km_away(self):
         """Task with location_radius_km=0.5 (specific address) should fail for worker 1km away."""
         # Task at specific address: 25.7617, -80.1918 (Miami)
         # Worker ~1km away: 25.7707, -80.1918
@@ -163,13 +165,14 @@ class TestGPSRadiusFromTask:
             "location_radius_km": 0.5,
             "category": "physical_presence",
         }
-        result = _run_gps_check(evidence, task, "physical_presence")
+        result = await _run_gps_check(evidence, task, "physical_presence")
         assert result is not None
         assert not result.passed
         assert result.details["max_distance_meters"] == 500
         assert result.details["distance_meters"] > 500
 
-    def test_no_radius_falls_back_to_category_physical_presence(self):
+    @pytest.mark.asyncio
+    async def test_no_radius_falls_back_to_category_physical_presence(self):
         """Task without location_radius_km uses 500m default for physical_presence."""
         # Worker ~200m away — should pass with 500m default
         evidence = {"gps": {"lat": 40.7128, "lng": -74.0060}}
@@ -178,12 +181,13 @@ class TestGPSRadiusFromTask:
             "location_lng": -74.0065,
             "category": "physical_presence",
         }
-        result = _run_gps_check(evidence, task, "physical_presence")
+        result = await _run_gps_check(evidence, task, "physical_presence")
         assert result is not None
         assert result.passed
         assert result.details["max_distance_meters"] == 500
 
-    def test_no_radius_falls_back_to_category_simple_action(self):
+    @pytest.mark.asyncio
+    async def test_no_radius_falls_back_to_category_simple_action(self):
         """Task without location_radius_km uses 1000m default for simple_action."""
         # Worker ~800m away — should pass with 1000m default, fail with 500m
         evidence = {"gps": {"lat": 40.7128, "lng": -74.0060}}
@@ -192,12 +196,13 @@ class TestGPSRadiusFromTask:
             "location_lng": -74.0060,
             "category": "simple_action",
         }
-        result = _run_gps_check(evidence, task, "simple_action")
+        result = await _run_gps_check(evidence, task, "simple_action")
         assert result is not None
         assert result.passed
         assert result.details["max_distance_meters"] == 1000
 
-    def test_zero_radius_falls_back_to_category_default(self):
+    @pytest.mark.asyncio
+    async def test_zero_radius_falls_back_to_category_default(self):
         """Task with location_radius_km=0 should fall back to category defaults."""
         evidence = {"gps": {"lat": 40.7128, "lng": -74.0060}}
         task = {
@@ -206,11 +211,12 @@ class TestGPSRadiusFromTask:
             "location_radius_km": 0,
             "category": "physical_presence",
         }
-        result = _run_gps_check(evidence, task, "physical_presence")
+        result = await _run_gps_check(evidence, task, "physical_presence")
         assert result is not None
         assert result.details["max_distance_meters"] == 500
 
-    def test_negative_radius_falls_back_to_category_default(self):
+    @pytest.mark.asyncio
+    async def test_negative_radius_falls_back_to_category_default(self):
         """Task with negative location_radius_km should fall back to category defaults."""
         evidence = {"gps": {"lat": 40.7128, "lng": -74.0060}}
         task = {
@@ -219,6 +225,6 @@ class TestGPSRadiusFromTask:
             "location_radius_km": -5,
             "category": "simple_action",
         }
-        result = _run_gps_check(evidence, task, "simple_action")
+        result = await _run_gps_check(evidence, task, "simple_action")
         assert result is not None
         assert result.details["max_distance_meters"] == 1000

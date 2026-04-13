@@ -122,8 +122,12 @@ class TestRing2EndToEnd:
 
     @pytest.mark.asyncio
     async def test_cheap_tier_ring1_only(self, arbiter):
-        """Bounty < $1: only Ring 1 runs, Ring 2 skipped."""
-        task = _make_task(bounty_usd=0.50)
+        """Bounty < $1 with non-physical category: only Ring 1 runs, Ring 2 skipped.
+
+        Note: physical_presence is in CATEGORIES_MIN_STANDARD so it gets promoted
+        to STANDARD even on sub-$1 bounty. Use knowledge_access for a true CHEAP test.
+        """
+        task = _make_task(bounty_usd=0.50, category="knowledge_access")
         submission = _make_submission(photint_score=0.90)
 
         verdict = await arbiter.evaluate(task, submission)
@@ -256,6 +260,10 @@ class TestRing2EndToEnd:
 
         The AaaS endpoint caps bounty_usd to _EXTERNAL_BOUNTY_CAP_USD ($0.99)
         for external callers, forcing CHEAP tier routing (< $1 boundary).
+
+        Note: uses knowledge_access because physical_presence is in
+        CATEGORIES_MIN_STANDARD and would be promoted to STANDARD regardless
+        of bounty amount.
         """
         from api.routers.arbiter_public import _EXTERNAL_BOUNTY_CAP_USD
 
@@ -267,7 +275,7 @@ class TestRing2EndToEnd:
         # $0.99 bounty routes to CHEAP tier (< $1 threshold in tier router)
         router = TierRouter()
         registry = get_default_registry()
-        config = registry.get("physical_presence")
+        config = registry.get("knowledge_access")
         decision = router.select_tier(
             bounty_usd=effective, config=config, is_disputed=False
         )
