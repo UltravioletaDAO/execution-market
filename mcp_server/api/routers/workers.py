@@ -304,6 +304,14 @@ async def get_submission_detail(
             "auto_check_passed": submission.get("auto_check_passed"),
             "auto_check_details": submission.get("auto_check_details"),
             "ai_verification_result": submission.get("ai_verification_result"),
+            # Ring 2 Arbiter verdict fields
+            "arbiter_verdict": submission.get("arbiter_verdict"),
+            "arbiter_tier": submission.get("arbiter_tier"),
+            "arbiter_score": submission.get("arbiter_score"),
+            "arbiter_confidence": submission.get("arbiter_confidence"),
+            "arbiter_evidence_hash": submission.get("arbiter_evidence_hash"),
+            "arbiter_commitment_hash": submission.get("arbiter_commitment_hash"),
+            "arbiter_cost_usd": submission.get("arbiter_cost_usd"),
             "submitted_at": submission.get("submitted_at")
             or submission.get("created_at"),
             "verified_at": submission.get("verified_at")

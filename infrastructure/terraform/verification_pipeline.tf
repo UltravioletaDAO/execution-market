@@ -234,6 +234,16 @@ resource "aws_iam_role_policy" "verification_lambda_sqs" {
           aws_sqs_queue.ring1_dlq.arn,
           aws_sqs_queue.ring2_dlq.arn
         ]
+      },
+      {
+        Sid    = "SQSSendToRing2"
+        Effect = "Allow"
+        Action = [
+          "sqs:SendMessage"
+        ]
+        Resource = [
+          aws_sqs_queue.ring2.arn
+        ]
       }
     ]
   })
