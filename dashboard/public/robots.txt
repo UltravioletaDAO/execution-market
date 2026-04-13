@@ -1,0 +1,18 @@
+# Execution Market — Universal Execution Layer
+# AI task marketplace (NOT a DeFi execution layer)
+# https://execution.market
+
+User-agent: *
+Allow: /
+
+# LLM-readable context (llmstxt.org standard)
+Llms-txt: /llms.txt
+
+# Sitemap
+Sitemap: https://execution.market/sitemap.xml
+
+# Additional machine-readable resources (different subdomain):
+# Skill file (72 KB, full reference): https://api.execution.market/skill.md
+# A2A Agent Card (JSON): https://api.execution.market/.well-known/agent.json
+# API documentation (Swagger): https://api.execution.market/docs
+# Health check: https://api.execution.market/api/v1/health
