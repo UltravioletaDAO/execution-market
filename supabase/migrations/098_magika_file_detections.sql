@@ -67,7 +67,7 @@ CREATE INDEX IF NOT EXISTS idx_submissions_magika_fraud_score
 
 -- 5. Partial index for critical mismatches (admin dashboard query, compliance reports)
 CREATE INDEX IF NOT EXISTS idx_submissions_magika_critical
-  ON submissions(id, created_at)
+  ON submissions(id, submitted_at)
   WHERE magika_max_fraud_score >= 0.8;
 
 
