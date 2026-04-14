@@ -287,6 +287,43 @@ async def _validate_images_with_magika(
     return validated, magika_context, rejected, payload
 
 
+async def _emit_magika_cloudwatch_metric(
+    files_analyzed: int, files_rejected: int
+) -> None:
+    """Emit MagikaRejectionRate to CloudWatch (fire-and-forget, never raises).
+
+    Namespace: ExecutionMarket/Verification
+    Metric:    MagikaRejectionRate (percent of downloaded files rejected)
+    Used by terraform/monitoring.tf alarm to detect false-positive surges.
+    """
+    if files_analyzed == 0:
+        return
+    try:
+        import boto3  # already in requirements.txt
+
+        rejection_rate = (files_rejected / files_analyzed) * 100.0
+        cw = await asyncio.to_thread(
+            lambda: boto3.client("cloudwatch", region_name="us-east-2")
+        )
+        await asyncio.to_thread(
+            cw.put_metric_data,
+            Namespace="ExecutionMarket/Verification",
+            MetricData=[
+                {
+                    "MetricName": "MagikaRejectionRate",
+                    "Value": rejection_rate,
+                    "Unit": "Percent",
+                }
+            ],
+        )
+        logger.debug(
+            "[MAGIKA] CloudWatch metric emitted: rejection_rate=%.1f%%", rejection_rate
+        )
+    except Exception as _e:
+        # Never block verification over a metrics emit failure
+        logger.debug("[MAGIKA] CloudWatch metric emit failed (non-fatal): %s", _e)
+
+
 async def run_phase_b_verification(
     submission_id: str,
     submission: Dict[str, Any],
@@ -372,6 +409,14 @@ async def run_phase_b_verification(
             _magika_rejected,
             magika_payload,
         ) = await _validate_images_with_magika(downloaded)
+
+        # Emit CloudWatch rejection rate metric (fire-and-forget, non-blocking)
+        asyncio.create_task(
+            _emit_magika_cloudwatch_metric(
+                files_analyzed=magika_payload.get("files_analyzed", 0),
+                files_rejected=magika_payload.get("files_rejected", 0),
+            )
+        )
 
         # Use validated images for all downstream checks
         # (images with fraud_score >= 0.8 are excluded)

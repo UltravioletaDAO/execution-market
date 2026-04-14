@@ -253,6 +253,24 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning("Provider validation failed (non-fatal): %s", e)
 
+    # Pre-load Magika ONNX model to avoid cold-start delay on first Phase B run
+    # (~150-300 MB model, ~300ms init). Non-fatal if magika not installed.
+    try:
+        import time as _time
+
+        from verification.magika_validator import MagikaValidator
+
+        _t0 = _time.monotonic()
+        _validator = MagikaValidator.get_instance()
+        if _validator._magika is not None:
+            _validator.validate_bytes(
+                b"\xff\xd8\xff\xe0" + b"\x00" * 100, "image/jpeg", "warmup.jpg"
+            )
+        _elapsed_ms = int((_time.monotonic() - _t0) * 1000)
+        logger.info("[MAGIKA] Warmup complete: %dms", _elapsed_ms)
+    except Exception as _e:
+        logger.warning("[MAGIKA] Warmup failed (non-fatal): %s", _e)
+
     # Phase B orphan recovery DISABLED at startup.
     # Was saturating the event loop with 25+ stale recovery jobs, blocking
     # new submissions. Needs proper job queue (SQS/Celery) before re-enabling.

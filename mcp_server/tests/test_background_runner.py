@@ -207,6 +207,74 @@ async def test_text_evidence_skips_magika():
 
 
 # ---------------------------------------------------------------------------
+# Feature flag tests (Tarea 4.4 — platform_config toggle)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.magika
+@pytest.mark.asyncio
+async def test_magika_disabled_via_config_passes_all_images():
+    """feature.magika.enabled=False → all images pass, no validation runs."""
+    path = _make_temp_jpg()
+    url = "https://cdn.example.com/photo.jpg"
+    downloaded = [(path, url)]
+
+    try:
+        with patch(_CFG_PATCH, new=AsyncMock(return_value={"enabled": False})):
+            with patch(
+                "verification.magika_validator.MagikaValidator.validate_bytes",
+                side_effect=AssertionError("validate_bytes should NOT be called"),
+            ):
+                (
+                    validated,
+                    magika_context,
+                    rejected,
+                    payload,
+                ) = await _validate_images_with_magika(downloaded)
+
+        # Feature disabled: all images pass, no context built
+        assert len(validated) == 1
+        assert validated[0] == (path, url)
+        assert magika_context == {}
+        assert rejected == []
+        assert payload.get("analyzed") is False
+        assert payload.get("skipped_reason") == "feature_disabled"
+    finally:
+        os.unlink(path)
+
+
+@pytest.mark.magika
+@pytest.mark.asyncio
+async def test_magika_enabled_via_config_runs_validation():
+    """feature.magika.enabled=True → validate_bytes() is called per image."""
+    path = _make_temp_jpg()
+    url = "https://cdn.example.com/photo.jpg"
+    downloaded = [(path, url)]
+    clean_result = _make_magika_result(fraud_score=0.0)
+
+    try:
+        with patch(_CFG_PATCH, new=AsyncMock(return_value={"enabled": True})):
+            with patch(
+                "verification.magika_validator.MagikaValidator.validate_bytes",
+                return_value=clean_result,
+            ) as mock_validate:
+                (
+                    validated,
+                    magika_context,
+                    rejected,
+                    payload,
+                ) = await _validate_images_with_magika(downloaded)
+
+        # Feature enabled: validation ran, context populated
+        mock_validate.assert_called_once()
+        assert len(validated) == 1
+        assert url in magika_context
+        assert payload.get("analyzed") is True
+    finally:
+        os.unlink(path)
+
+
+# ---------------------------------------------------------------------------
 # Unit tests for helpers (no async, no patches needed)
 # ---------------------------------------------------------------------------
 
