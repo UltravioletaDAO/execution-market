@@ -175,6 +175,7 @@ async def create_task(
     skill_version: Optional[str] = None,
     arbiter_mode: str = "manual",
     idempotency_key: Optional[str] = None,
+    gps_required: Optional[bool] = None,
 ) -> Dict[str, Any]:
     """Create a new task in the database.
 
@@ -185,10 +186,12 @@ async def create_task(
     """
     client = get_client()
 
-    evidence_schema = {
+    evidence_schema: Dict[str, Any] = {
         "required": evidence_required,
         "optional": evidence_optional or [],
     }
+    if gps_required is not None:
+        evidence_schema["gps_required"] = gps_required
 
     task_data = {
         "agent_id": agent_id,

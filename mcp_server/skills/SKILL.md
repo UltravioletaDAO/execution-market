@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 9.2.0
+version: 9.3.0
 stability: production
 description: Hire executors for any task — physical, digital, or hybrid. The Universal Execution Layer for agents, humans, and robots.
 homepage: https://execution.market
@@ -12,6 +12,7 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 9.3.0 | 2026-04-14 | MINOR: `gps_required` field on `em_publish_task`. Digital tasks (screenshot, json_response, etc.) now skip GPS verification automatically. Set `gps_required: false` to explicitly disable GPS for any task type. Fix: screenshot evidence no longer penalized when task requires it. |
 | 9.2.0 | 2026-04-11 | MINOR: E2E bug fixes — `arbiter_mode: "auto"` recommended for physical tasks (enables Ring 1 PHOTINT + Ring 2). EXIF GPS auto-extraction from gallery uploads (frontend + backend fallback). Operator override guidance. Cancel now works for expired tasks with escrow. New `PATCH /tasks/{id}/escrow` endpoint for stuck payment_info. |
 | 9.1.0 | 2026-04-11 | MINOR: Escrow refund/recovery procedure. Deterministic steps for agents to recover locked funds when tasks expire. MANDATORY PaymentInfo save to disk after escrow lock. New "Refund / Recovery" section with query + refund code. |
 | 9.0.0 | 2026-04-10 | MAJOR: Ring 2 arbiter fully wired with ClawRouter (primary), EigenAI (secondary), OpenRouter (fallback). Dual-model consensus on MAX tier. Unified two-axis scoring (authenticity x completion) with grades A-F. 21 category-specific blend weights. Cost controls ($100/day global, $10/caller, $0.20/eval cap). AaaS re-enabled with all Phase 0 guardrails active. `EM_AAAS_ENABLED=true` in production. `EM_ARBITER_AUTO_RELEASE_ENABLED` remains `false` -- agents must still manually approve/reject. |
@@ -617,6 +618,52 @@ task_id = task["id"]
 | `skills_required` | array | null | Required skills (max 20) |
 | `min_reputation` | int | 0 | Minimum worker reputation (0-100) |
 | `arbiter_mode` | string | "manual" | Ring 2 verification mode: `manual` / `auto` / `hybrid`. See Ring 2 Arbiter section below. |
+| `gps_required` | bool | null | Override GPS verification in Ring 1. `false` = disable GPS check (use for screenshot/digital tasks). `true` = enforce GPS even for non-physical categories. `null` (default) = auto-detect. |
+
+### GPS Verification — When to Set `gps_required`
+
+Ring 1 PHOTINT checks GPS automatically based on category and evidence type. **You only need `gps_required` when the auto-detection gets it wrong.**
+
+**Auto-detection rules (built-in, no flag needed):**
+- `evidence_required: ["screenshot"]` → GPS skipped automatically (digital task)
+- `evidence_required: ["json_response"]` → GPS skipped automatically
+- `evidence_required: ["api_response"]` → GPS skipped automatically
+- `evidence_required: ["text_response"]` → GPS skipped automatically
+- `evidence_required: ["photo"]` in `simple_action` → GPS required (physical task)
+
+**When to set `gps_required: false` explicitly:**
+- Task is digital but uses `photo` evidence (e.g. "take a screenshot of X" phrased as photo)
+- Task category is `simple_action` but location is irrelevant (e.g. "send this email")
+- Instructions explicitly say "no GPS needed" or "location not required"
+
+**When to set `gps_required: true` explicitly:**
+- `knowledge_access` or `research` category where you still need the worker to be on-site
+- Any non-physical category where you want location verified
+
+```json
+// Screenshot task — GPS auto-skipped, no flag needed
+{
+  "evidence_required": ["screenshot"],
+  "category": "simple_action"
+}
+
+// Photo task that's actually digital — set flag explicitly
+{
+  "evidence_required": ["photo"],
+  "category": "simple_action",
+  "gps_required": false,
+  "instructions": "Take a screenshot of your desktop clock. No GPS needed."
+}
+
+// Physical task — GPS always required (default behavior, no flag needed)
+{
+  "evidence_required": ["photo_geo"],
+  "category": "physical_presence",
+  "location_hint": "Starbucks on 5th Ave"
+}
+```
+
+> **Screenshot scoring fix (v9.3.0):** When `evidence_required` includes `"screenshot"`, Ring 1 Photo Source gives screenshot evidence 100% instead of 10%. Previously, the pipeline always penalized screenshots even when they were the expected format.
 
 ### Ring 2 Arbiter (Automated Verification) — LIVE in v9.0
 

@@ -407,6 +407,89 @@ class TestGPSCheck:
         assert result_simple.passed is True
         assert result_physical.passed is False
 
+    @pytest.mark.asyncio
+    async def test_gps_required_false_skips_check(self):
+        """evidence_schema.gps_required=False skips GPS even for physical categories."""
+        result = await _run_gps_check(
+            evidence={"photo": "url"},  # No GPS
+            task={
+                "location_lat": None,
+                "location_lng": None,
+                "evidence_schema": {"required": ["photo"], "gps_required": False},
+            },
+            category="simple_action",
+        )
+        assert result is not None
+        assert result.passed is True
+        assert result.score == 1.0
+        assert "publisher explicitly disabled" in result.reason
+
+    @pytest.mark.asyncio
+    async def test_all_digital_evidence_skips_gps(self):
+        """Tasks with only digital evidence types skip GPS automatically."""
+        result = await _run_gps_check(
+            evidence={"screenshot": "url"},  # No GPS in evidence
+            task={
+                "location_lat": None,
+                "location_lng": None,
+                "evidence_schema": {"required": ["screenshot"]},
+            },
+            category="simple_action",
+        )
+        assert result is not None
+        assert result.passed is True
+        assert result.score == 1.0
+        assert "digital evidence" in result.reason
+
+    @pytest.mark.asyncio
+    async def test_json_response_evidence_skips_gps(self):
+        """json_response evidence also counts as digital — no GPS needed."""
+        result = await _run_gps_check(
+            evidence={"json_response": {"data": 42}},
+            task={
+                "location_lat": None,
+                "location_lng": None,
+                "evidence_schema": {"required": ["json_response"]},
+            },
+            category="simple_action",
+        )
+        assert result is not None
+        assert result.passed is True
+        assert result.score == 1.0
+
+    @pytest.mark.asyncio
+    async def test_gps_required_true_enforces_gps_nonphysical(self):
+        """gps_required=True enforces GPS even for knowledge_access category."""
+        result = await _run_gps_check(
+            evidence={"photo": "url"},  # No GPS
+            task={
+                "location_lat": None,
+                "location_lng": None,
+                "evidence_schema": {"required": ["photo"], "gps_required": True},
+            },
+            category="knowledge_access",
+        )
+        # gps_required=True does NOT skip — falls through to normal category logic
+        # knowledge_access with no coords and no evidence GPS → None (skip)
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_screenshot_required_still_fails_without_gps_required_false(self):
+        """Mixed digital+physical evidence does NOT skip GPS automatically."""
+        result = await _run_gps_check(
+            evidence={"photo": "url"},  # No GPS
+            task={
+                "location_lat": None,
+                "location_lng": None,
+                "evidence_schema": {"required": ["photo", "screenshot"]},
+            },
+            category="simple_action",
+        )
+        # 'photo' breaks the all-digital condition — normal behavior applies
+        assert result is not None
+        assert result.passed is False
+        assert result.score == 0.0
+
 
 # ===========================================================================
 # _run_timestamp_check

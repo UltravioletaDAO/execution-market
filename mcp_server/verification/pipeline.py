@@ -250,7 +250,35 @@ async def _run_gps_check(
     2. Task has coords + evidence has no GPS -> fail (physical) or pass (non-physical)
     3. Task has NO coords + evidence has GPS -> partial pass (score 0.7)
     4. Task has NO coords + evidence has no GPS -> fail (physical) or skip (non-physical)
+
+    GPS check is skipped when:
+    - evidence_schema.gps_required == False (explicit publisher override), OR
+    - all required evidence types are digital (screenshot, json_response, etc.)
     """
+    # --- Early exit: check if GPS is relevant for this task ---
+    evidence_schema = task.get("evidence_schema") or {}
+    gps_required_flag = evidence_schema.get(
+        "gps_required"
+    )  # None=auto, False=skip, True=enforce
+
+    # Digital evidence types that never need physical GPS
+    _DIGITAL_TYPES = {"screenshot", "json_response", "api_response", "text_response"}
+    required_types = {str(t).lower() for t in (evidence_schema.get("required") or [])}
+    all_digital = bool(required_types) and required_types.issubset(_DIGITAL_TYPES)
+
+    if gps_required_flag is False or (gps_required_flag is None and all_digital):
+        reason = (
+            "GPS not required (publisher explicitly disabled)"
+            if gps_required_flag is False
+            else "GPS not required (task only requires digital evidence)"
+        )
+        return CheckResult(
+            name="gps",
+            passed=True,
+            score=1.0,
+            reason=reason,
+        )
+
     task_lat = task.get("location_lat")
     task_lng = task.get("location_lng")
 

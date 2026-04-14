@@ -192,7 +192,9 @@ async def run_phase_b_verification(
             ),
             _run_tampering_check(temp_paths),
             _run_genai_detection_check(temp_paths),
-            _run_photo_source_check(temp_paths, task.get("category", "")),
+            _run_photo_source_check(
+                temp_paths, task.get("category", ""), task.get("evidence_schema") or {}
+            ),
             _run_duplicate_check(temp_paths, submission_id, task.get("id", "")),
         ]
         check_timeouts = [
@@ -1244,8 +1246,13 @@ async def _run_genai_detection_check(temp_paths: List[str]) -> CheckResult:
 async def _run_photo_source_check(
     temp_paths: List[str],
     category: str,
+    evidence_schema: Optional[Dict[str, Any]] = None,
 ) -> CheckResult:
-    """Verify photo source (camera vs gallery vs screenshot)."""
+    """Verify photo source (camera vs gallery vs screenshot).
+
+    If the task's evidence_schema lists 'screenshot' as a required type,
+    screenshots are expected and receive a full score instead of being penalized.
+    """
     try:
         from .checks.photo_source import check_photo_source
 
@@ -1257,8 +1264,28 @@ async def _run_photo_source_check(
                 reason="No images to check",
             )
 
+        # Determine allowed sources from task evidence schema
+        schema = evidence_schema or {}
+        required_types = {str(t).lower() for t in (schema.get("required") or [])}
+        screenshot_required = "screenshot" in required_types
+
         # Use generous max_age for Phase B (evidence might be minutes old by now)
         result = check_photo_source(temp_paths[0], max_age_minutes=60)
+
+        # If screenshot is the expected format, it gets full score
+        if screenshot_required and result.source == "screenshot":
+            return CheckResult(
+                name="photo_source",
+                passed=True,
+                score=1.0,
+                reason="Screenshot accepted — task requires screenshot evidence",
+                details={
+                    "source": result.source,
+                    "timestamp": result.timestamp.isoformat()
+                    if result.timestamp
+                    else None,
+                },
+            )
 
         source_scores = {
             "camera": 1.0,

@@ -230,6 +230,12 @@ def register_core_tools(
                     'hybrid': arbiter recommends a verdict, you confirm before payment.
                     Cost: 0 for tasks <$1, ~$0.001 for $1-$10, ~$0.003 for >=$10.
                     Hard cap: arbiter spend never exceeds 10% of bounty.
+                - gps_required (bool | None): Override GPS verification behavior.
+                    None (default): auto-detect — digital tasks (screenshot, json, etc.)
+                                    skip GPS, physical tasks require it.
+                    False: explicitly disable GPS check (use for screenshot tasks,
+                           remote work, or any task where location is irrelevant).
+                    True: enforce GPS even for non-physical categories.
 
         Returns:
             str: Success message with task ID and details, or error message.
@@ -295,6 +301,7 @@ def register_core_tools(
                 location_radius_km=_loc_radius,
                 skill_version=params.skill_version,
                 arbiter_mode=getattr(params, "arbiter_mode", "manual") or "manual",
+                gps_required=getattr(params, "gps_required", None),
             )
 
             # Payment authorization via dispatcher

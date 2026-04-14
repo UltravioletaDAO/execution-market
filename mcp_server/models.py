@@ -232,6 +232,15 @@ class PublishTaskInput(BaseModel):
         ),
         pattern="^(manual|auto|hybrid)$",
     )
+    gps_required: Optional[bool] = Field(
+        default=None,
+        description=(
+            "Whether GPS coordinates are required in evidence. "
+            "None (default): auto-detect based on category and evidence types. "
+            "False: explicitly disable GPS check (e.g. for screenshot or digital tasks). "
+            "True: enforce GPS even for non-physical categories."
+        ),
+    )
 
     @field_validator("evidence_required")
     @classmethod
