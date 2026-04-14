@@ -128,7 +128,11 @@ class TestGeminiProvider:
 
         assert result.text == '{"decision": "approved"}'
         assert result.provider == "gemini"
-        assert result.usage == {"input_tokens": 100, "output_tokens": 50}
+        assert result.usage == {
+            "input_tokens": 100,
+            "output_tokens": 50,
+            "finish_reason": "STOP",
+        }
 
     def test_fallback_chain_prefers_gemini(self, monkeypatch):
         monkeypatch.setenv("GOOGLE_API_KEY", "gkey")
