@@ -8,7 +8,45 @@ This base is shared across all task categories. Category-specific prompts
 extend it with specialized checks.
 """
 
+import re
+
 from .schemas import VERIFICATION_OUTPUT_SCHEMA
+
+
+def _sanitize_for_prompt(text: str, max_len: int = 500) -> str:
+    """Sanitize free-text evidence fields before LLM prompt interpolation.
+
+    Removes prompt-injection patterns (VECTOR-007: evidence fields go
+    directly into the PHOTINT prompt template).
+
+    Applies to: worker notes, task instructions, location, and any other
+    free-text field interpolated into the prompt.
+
+    Args:
+        text: Raw user/agent-provided string.
+        max_len: Maximum characters kept after sanitization (default 500).
+
+    Returns:
+        Sanitized string, safe for direct prompt interpolation.
+    """
+    if not text:
+        return ""
+    # Remove [SYSTEM ...] / [INST ...] injection markers
+    text = re.sub(
+        r"\[(?:SYSTEM|INST|ASSISTANT|USER).*?\]",
+        "[REDACTED]",
+        text,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    # Remove "ignore/override/bypass/forget ... instructions/rules/prompt" patterns
+    text = re.sub(
+        r"(?:ignore|override|bypass|forget|disregard).{0,60}(?:instruction|prompt|rule|guideline|context|above)",
+        "[REDACTED]",
+        text,
+        flags=re.IGNORECASE,
+    )
+    # Truncate to max_len and ensure valid UTF-8
+    return text[:max_len].encode("utf-8", errors="ignore").decode("utf-8")
 
 
 def build_base_prompt(
@@ -33,8 +71,14 @@ def build_base_prompt(
     """
     task_type = task.get("task_type", task.get("category", "general"))
     title = task.get("title", "Unknown")
-    instructions = task.get("instructions", task.get("description", "No description"))
-    location = task.get("location", task.get("location_text", "Not specified"))
+    # Sanitize free-text fields to prevent prompt injection (VECTOR-007)
+    instructions = _sanitize_for_prompt(
+        task.get("instructions", task.get("description", "No description")),
+        max_len=1000,
+    )
+    location = _sanitize_for_prompt(
+        task.get("location", task.get("location_text", "Not specified")), max_len=200
+    )
     deadline = task.get("deadline", "Not specified")
 
     # Format evidence requirements
@@ -42,10 +86,10 @@ def build_base_prompt(
         task.get("evidence_schema", task.get("evidence_required", {}))
     )
 
-    # Format evidence metadata
+    # Format evidence metadata — sanitize worker-submitted free text
     gps = evidence.get("gps", "Not provided")
     timestamp = evidence.get("timestamp", "Not provided")
-    notes = evidence.get("notes", "None")
+    notes = _sanitize_for_prompt(evidence.get("notes", "None"), max_len=500)
 
     # Build optional context sections
     metadata_section = ""
