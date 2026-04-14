@@ -95,6 +95,11 @@ class InferenceRecord:
     evidence_types: Optional[List[str]] = None
     photo_count: Optional[int] = None
     commitment_hash: Optional[str] = None
+    # Magika file type detection audit fields (Fase 2 — MASTER_PLAN_MAGIKA_INTEGRATION)
+    magika_detections: Optional[dict] = None  # snapshot of magika_detections payload
+    magika_max_fraud_score: Optional[float] = (
+        None  # highest fraud_score in this submission
+    )
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 

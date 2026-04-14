@@ -59,6 +59,11 @@ imagehash>=4.3.0
 piexif>=1.1.3
 
 # ===================
+# File Type Validation (Magika — Content-Based Detection)
+# ===================
+magika>=0.5.1
+
+# ===================
 # AI (Multi-Provider Evidence Verification)
 # ===================
 anthropic>=0.30.0

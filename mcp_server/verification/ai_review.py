@@ -104,6 +104,7 @@ class AIVerifier:
         *,
         exif_context: str = "",
         rekognition_context: str = "",
+        magika_context: Optional[dict] = None,
     ) -> VerificationResult:
         """
         Verify evidence against task requirements.
@@ -114,6 +115,8 @@ class AIVerifier:
             photo_urls: List of photo URLs to analyze
             exif_context: Pre-extracted EXIF metadata summary (optional)
             rekognition_context: AWS Rekognition labels/text (optional)
+            magika_context: Magika file-type detection results keyed by URL (optional).
+                            Injected into LLM prompt as a forensic signal when mismatches found.
 
         Returns:
             VerificationResult with decision and explanation
@@ -201,10 +204,17 @@ class AIVerifier:
             rekognition_context=rekognition_context,
         )
         prompt = prompt_result.text
+
+        # Append Magika forensic context if available
+        magika_section = self._build_magika_prompt_section(magika_context, photo_urls)
+        if magika_section:
+            prompt = prompt + "\n\n" + magika_section
+
         logger.info(
-            "[AIVerifier %x] prompt built: %d chars. Calling provider.analyze()...",
+            "[AIVerifier %x] prompt built: %d chars (magika=%s). Calling provider.analyze()...",
             _sid,
             len(prompt),
+            "yes" if magika_section else "no",
         )
 
         _analyze_start = _t.time()
@@ -307,6 +317,66 @@ class AIVerifier:
                         )
                     chunks.append(chunk)
                 return b"".join(chunks)
+
+    def _build_magika_prompt_section(
+        self,
+        magika_context: Optional[dict],
+        photo_urls: List[str],
+    ) -> str:
+        """Build Magika forensic section to append to the PHOTINT prompt.
+
+        Returns empty string if no context or all files are clean.
+        Injects warning for mismatches, confidence note for low-confidence results,
+        and a clean confirmation when all files verified OK.
+        """
+        if not magika_context:
+            return ""
+
+        lines = ["## FILE TYPE FORENSICS (Magika Content Analysis)"]
+
+        for url in photo_urls:
+            result = magika_context.get(url)
+            if result is None:
+                continue
+
+            # Use evidence type key (last path segment) as label
+            label = url.split("/")[-1][:60] or url[:60]
+
+            if result.fraud_score >= 0.8:
+                lines.append(
+                    f"ALERT: File type mismatch detected for evidence file '{label}':"
+                )
+                lines.append(f"  - Declared: {result.claimed_mime}")
+                lines.append(
+                    f"  - Detected by content analysis: {result.detected_mime}"
+                )
+                lines.append(
+                    f"  - Fraud signal: HIGH (score: {result.fraud_score:.1f}/1.0)"
+                )
+                lines.append(
+                    "  This is strong evidence of deliberate file manipulation. "
+                    "Weight this heavily in your authenticity assessment."
+                )
+            elif result.is_mismatch and result.fraud_score >= 0.3:
+                lines.append(
+                    f"NOTE: Minor file type mismatch for '{label}': "
+                    f"declared={result.claimed_mime}, detected={result.detected_mime}. "
+                    f"Likely benign (score: {result.fraud_score:.1f}/1.0). Low concern."
+                )
+            elif not result.is_mismatch and result.confidence < 0.85:
+                lines.append(
+                    f"NOTE: File type confidence is LOW for '{label}' "
+                    f"(confidence: {result.confidence:.2f}). Exercise additional scrutiny."
+                )
+
+        if len(lines) == 1:
+            # No mismatches or uncertainty — confirm clean
+            lines.append(
+                "All submitted files verified clean (Magika content analysis). "
+                "Declared types match detected types with high confidence."
+            )
+
+        return "\n".join(lines)
 
     def _get_media_type(self, url: str) -> str:
         """Determine media type from URL."""

@@ -11,7 +11,10 @@ Never blocks the HTTP response — failures are logged, not raised.
 import asyncio
 import dataclasses
 import logging
+import mimetypes
 import os
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import supabase_client as db
@@ -108,6 +111,182 @@ async def _report_phase_b_error(submission_id: str, error_msg: str) -> None:
         )
 
 
+# ---------------------------------------------------------------------------
+# Magika file type validation helpers (Fase 2 — MASTER_PLAN_MAGIKA_INTEGRATION)
+# ---------------------------------------------------------------------------
+
+
+def _get_claimed_mime(path: str) -> str:
+    """Derive claimed MIME type from file path extension.
+
+    Extension was set from HTTP Content-Type during download_images_to_temp(),
+    so it reflects what the server sent (not the client's original claim).
+    """
+    mime, _ = mimetypes.guess_type(path)
+    return mime or "application/octet-stream"
+
+
+def _build_magika_detections_payload(
+    magika_context: Dict[str, Any],
+    rejected: List[dict],
+) -> dict:
+    """Build flat JSONB payload for submissions.magika_detections column.
+
+    Uses flat root fields (max_fraud_score, has_critical_mismatch) for
+    efficient B-tree indexing via the computed column in migration 098.
+    """
+    if not magika_context:
+        return {
+            "analyzed": True,
+            "files_analyzed": 0,
+            "files_rejected": 0,
+            "max_fraud_score": 0.0,
+            "has_critical_mismatch": False,
+            "analyzed_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+    max_score = max((r.fraud_score for r in magika_context.values()), default=0.0)
+    has_critical = any(r.fraud_score >= 0.8 for r in magika_context.values())
+
+    return {
+        "analyzed": True,
+        "max_fraud_score": round(max_score, 4),
+        "has_critical_mismatch": has_critical,
+        "files_analyzed": len(magika_context),
+        "files_rejected": len(rejected),
+        "analyzed_at": datetime.now(timezone.utc).isoformat(),
+        "details": {
+            url: {
+                "detected_mime": r.detected_mime,
+                "claimed_mime": r.claimed_mime,
+                "is_mismatch": r.is_mismatch,
+                "confidence": round(r.confidence, 4),
+                "fraud_score": round(r.fraud_score, 4),
+            }
+            for url, r in magika_context.items()
+        },
+    }
+
+
+async def _validate_images_with_magika(
+    downloaded: List[Tuple[str, str]],
+) -> Tuple[List[Tuple[str, str]], Dict[str, Any], List[dict], dict]:
+    """Run Magika content-type validation on downloaded evidence files.
+
+    Runs AFTER download_images_to_temp(), BEFORE the 5 parallel checks.
+    Kept as a separate step from image_downloader.py (SRP: I/O != validation).
+
+    Feature flag: reads feature.magika from platform_config. Defaults to
+    disabled (fail-open) if DB is unreachable or flag missing.
+
+    Args:
+        downloaded: List of (temp_file_path, original_url) tuples.
+
+    Returns:
+        (validated, magika_context, rejected, payload)
+        - validated: images that passed Magika check (same tuple format)
+        - magika_context: url -> MagikaResult (injected into LLM prompt)
+        - rejected: list of info dicts for blocked images
+        - payload: ready to persist to submissions.magika_detections
+    """
+    # Feature flag check — default disabled until explicitly enabled
+    try:
+        from config.platform_config import PlatformConfig
+
+        cfg = await PlatformConfig.get(
+            "feature.magika",
+            {"enabled": False, "hard_block": False, "min_fraud_score_block": 0.8},
+        )
+        magika_enabled = bool((cfg or {}).get("enabled", False))
+    except Exception as _cfg_exc:
+        logger.debug("[MAGIKA] Config unavailable (%s), skipping", _cfg_exc)
+        magika_enabled = False
+
+    if not magika_enabled:
+        logger.debug("[MAGIKA] Disabled via platform_config, passing all images")
+        return (
+            downloaded,
+            {},
+            [],
+            {
+                "analyzed": False,
+                "skipped_reason": "feature_disabled",
+                "files_analyzed": 0,
+            },
+        )
+
+    try:
+        from .magika_validator import MagikaValidator
+    except ImportError as exc:
+        logger.warning("[MAGIKA] Import failed (%s) — skipping validation", exc)
+        return (
+            downloaded,
+            {},
+            [],
+            {
+                "analyzed": False,
+                "skipped_reason": "import_error",
+                "files_analyzed": 0,
+            },
+        )
+
+    validator = MagikaValidator.get_instance()
+    validated: List[Tuple[str, str]] = []
+    magika_context: Dict[str, Any] = {}
+    rejected: List[dict] = []
+
+    for path, url in downloaded:
+        try:
+            claimed_mime = _get_claimed_mime(path)
+            data = Path(path).read_bytes()
+            result = await asyncio.to_thread(
+                validator.validate_bytes, data, claimed_mime, os.path.basename(url)
+            )
+            magika_context[url] = result
+
+            if result.fraud_score >= 0.8:
+                logger.warning(
+                    "[MAGIKA] Blocked: claimed=%s detected=%s fraud_score=%.2f url=%s",
+                    result.claimed_mime,
+                    result.detected_mime,
+                    result.fraud_score,
+                    url[:80],
+                )
+                rejected.append(
+                    {
+                        "url": url,
+                        "reason": result.detected_mime,
+                        "fraud_score": result.fraud_score,
+                    }
+                )
+            else:
+                if result.is_mismatch:
+                    logger.info(
+                        "[MAGIKA] Benign mismatch: claimed=%s detected=%s url=%s",
+                        result.claimed_mime,
+                        result.detected_mime,
+                        url[:80],
+                    )
+                validated.append((path, url))
+
+        except Exception as exc:
+            # CIRCUIT BREAKER: any exception → image passes (fail open)
+            logger.error(
+                "[MAGIKA] Exception, failing open for url=%s: %s", url[:80], exc
+            )
+            validated.append((path, url))
+
+    logger.info(
+        "[MAGIKA] %d/%d images passed (%d rejected)",
+        len(validated),
+        len(downloaded),
+        len(rejected),
+    )
+
+    payload = _build_magika_detections_payload(magika_context, rejected)
+    return validated, magika_context, rejected, payload
+
+
 async def run_phase_b_verification(
     submission_id: str,
     submission: Dict[str, Any],
@@ -151,6 +330,22 @@ async def run_phase_b_verification(
             logger.info(
                 "Phase B skipped for %s: no photo URLs in evidence", submission_id
             )
+            # Persist Magika skip indicator (text/JSON evidence has no binary files)
+            try:
+                import supabase_client as _db
+
+                _db.get_client().table("submissions").update(
+                    {
+                        "magika_detections": {
+                            "analyzed": False,
+                            "skipped_reason": "no_binary_files",
+                            "evidence_types": list(evidence.keys()),
+                            "files_analyzed": 0,
+                        }
+                    }
+                ).eq("id", submission_id).execute()
+            except Exception as _e:
+                logger.debug("[MAGIKA] Failed to persist skip indicator: %s", _e)
             await _report_phase_b_error(
                 submission_id, "No photo URLs found in evidence"
             )
@@ -170,7 +365,17 @@ async def run_phase_b_verification(
             )
             return
 
-        temp_paths = [path for path, _ in downloaded]
+        # 2b. Magika content-type validation — separate step after download, before analysis
+        (
+            validated_downloaded,
+            magika_context,
+            _magika_rejected,
+            magika_payload,
+        ) = await _validate_images_with_magika(downloaded)
+
+        # Use validated images for all downstream checks
+        # (images with fraud_score >= 0.8 are excluded)
+        temp_paths = [path for path, _ in validated_downloaded]
         sid = submission_id[:8]
 
         # 3. Run 5 checks concurrently (each wrapped with a timeout)
@@ -186,9 +391,17 @@ async def run_phase_b_verification(
             "photo_source",
             "duplicate",
         ]
+        # Restrict photo_urls to validated images only (keeps URL list in sync with temp_paths)
+        validated_photo_urls = [url for _, url in validated_downloaded]
+
         check_coros = [
             _run_ai_semantic_check(
-                task, evidence, photo_urls, submission_id, temp_paths
+                task,
+                evidence,
+                validated_photo_urls,
+                submission_id,
+                temp_paths,
+                magika_context=magika_context,
             ),
             _run_tampering_check(temp_paths),
             _run_genai_detection_check(temp_paths),
@@ -393,7 +606,24 @@ async def run_phase_b_verification(
             merged["phase"],
         )
 
-        # 8. Ring 2 already launched independently at the top of this function.
+        # 8. Persist Magika detections (non-blocking — never fails Phase B)
+        try:
+            db.get_client().table("submissions").update(
+                {"magika_detections": magika_payload}
+            ).eq("id", submission_id).execute()
+            logger.debug(
+                "Phase B [%s] magika_detections persisted (max_fraud=%.2f)",
+                sid,
+                float(magika_payload.get("max_fraud_score", 0.0)),
+            )
+        except Exception as _e:
+            logger.warning(
+                "Phase B [%s] Failed to persist magika_detections (non-critical): %s",
+                sid,
+                _e,
+            )
+
+        # 9. Ring 2 already launched independently at the top of this function.
         # It runs in parallel with Ring 1 and writes to arbiter_verdict/grade/summary
         # columns independently. No action needed here.
 
@@ -575,6 +805,7 @@ async def _run_ai_semantic_check(
     photo_urls: List[str],
     submission_id: str = "",
     temp_paths: Optional[List[str]] = None,
+    magika_context: Optional[Dict[str, Any]] = None,
 ) -> CheckResult:
     """
     Run AI vision verification with tiered model routing.
@@ -798,6 +1029,7 @@ async def _run_ai_semantic_check(
                             photo_urls=photo_urls[:VERIFICATION_AI_MAX_IMAGES],
                             exif_context=exif_context,
                             rekognition_context=rekognition_context,
+                            magika_context=magika_context,
                         )
                     provider_attempts.append(
                         {
