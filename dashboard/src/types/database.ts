@@ -35,6 +35,7 @@ export type EvidenceType =
   | 'notarized'
   | 'timestamp_proof'
   | 'text_response'
+  | 'description'
   | 'measurement'
   | 'screenshot'
   | 'json_response'

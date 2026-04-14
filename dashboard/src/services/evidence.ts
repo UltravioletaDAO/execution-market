@@ -75,17 +75,15 @@ async function getPresignedUrl(params: {
   checksum?: string
 }): Promise<PresignedUploadResult> {
   const qs = new URLSearchParams({
-    taskId: params.taskId,
-    actorId: params.actorId,
+    task_id: params.taskId,
+    executor_id: params.actorId,
     filename: params.filename,
-    contentType: params.contentType,
-    evidenceType: params.evidenceType,
-    mode: 'put',
+    content_type: params.contentType,
+    evidence_type: params.evidenceType,
   })
-  if (params.submissionId) qs.set('submissionId', params.submissionId)
   if (params.checksum) qs.set('checksum', params.checksum)
 
-  const res = await fetch(`${EVIDENCE_API_URL}/upload-url?${qs.toString()}`)
+  const res = await fetch(`${EVIDENCE_API_URL}/presign-upload?${qs.toString()}`)
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }))
     throw new Error(err.error || `Presigned URL request failed: ${res.status}`)

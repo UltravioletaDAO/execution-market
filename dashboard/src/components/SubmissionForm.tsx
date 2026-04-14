@@ -946,6 +946,7 @@ export function SubmissionForm({
 function isTextType(type: EvidenceType): boolean {
   return (
     type === 'text_response' ||
+    type === 'description' ||
     type === 'measurement' ||
     type === 'json_response' ||
     type === 'code_output' ||
