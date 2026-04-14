@@ -332,6 +332,12 @@ resource "aws_ecs_task_definition" "mcp_server" {
           name      = "WORLD_ID_SIGNING_KEY"
           valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/worldid:WORLD_ID_SIGNING_KEY::"
         },
+        # Relay wallet for worker→agent ERC-8004 reputation feedback (gasless, pays gas on Base)
+        # Must NOT own any agent NFTs. Needs ~0.001 ETH on Base for gas.
+        {
+          name      = "EM_REPUTATION_RELAY_KEY"
+          valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/reputation-relay:EM_REPUTATION_RELAY_KEY::"
+        },
       ]
 
       logConfiguration = {
