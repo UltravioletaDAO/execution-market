@@ -2,13 +2,16 @@
  * Evidence Upload Service
  *
  * Supports two backends:
- * 1. S3 presigned URLs via evidence Lambda (when VITE_EVIDENCE_API_URL is set)
- * 2. Supabase Storage direct upload (fallback)
+ * 1. S3 presigned URLs via /api/v1/evidence/presign-upload (primary)
+ * 2. Supabase Storage direct upload (fallback when S3 fails)
  *
  * Also computes SHA-256 checksums and collects forensic metadata.
  */
 
+import { supabase } from '../lib/supabase'
+
 const EVIDENCE_API_URL = import.meta.env.VITE_EVIDENCE_API_URL || ''
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || ''
 
 export interface EvidenceMetadata {
   gps?: {
@@ -64,7 +67,7 @@ export function isS3PipelineEnabled(): boolean {
   return !!EVIDENCE_API_URL
 }
 
-/** Get a presigned upload URL from the evidence Lambda. */
+/** Get a presigned upload URL from the backend. */
 async function getPresignedUrl(params: {
   taskId: string
   submissionId?: string
@@ -120,7 +123,6 @@ async function uploadToS3(
     xhr.open('PUT', presigned.upload_url)
     xhr.setRequestHeader('Content-Type', presigned.content_type)
 
-    // Add metadata headers for PUT mode
     if (presigned.metadata) {
       for (const [k, v] of Object.entries(presigned.metadata)) {
         xhr.setRequestHeader(`x-amz-meta-${k}`, v)
@@ -132,9 +134,41 @@ async function uploadToS3(
 }
 
 /**
- * Upload evidence file via S3 presigned URLs.
- * Direct Supabase Storage uploads are no longer allowed (DB-008 security lockdown).
- * The S3 presigned URL pipeline (VITE_EVIDENCE_API_URL) is required.
+ * Upload evidence file to Supabase Storage (fallback).
+ * Path is scoped to executor/task so RLS can enforce ownership.
+ */
+async function uploadToSupabase(
+  file: File,
+  executorId: string,
+  taskId: string,
+  evidenceType: string,
+  onProgress?: (pct: number) => void,
+): Promise<{ path: string; public_url: string | null }> {
+  const ext = file.name.includes('.') ? file.name.split('.').pop() : 'bin'
+  const path = `${executorId}/${taskId}/${evidenceType}_${Date.now()}.${ext}`
+
+  // Use Supabase Storage JS client — respects RLS policies on the bucket
+  const { data, error } = await supabase.storage
+    .from('evidence')
+    .upload(path, file, {
+      contentType: file.type || 'application/octet-stream',
+      upsert: false,
+    })
+
+  if (error) throw new Error(`Supabase upload failed: ${error.message}`)
+
+  onProgress?.(100)
+
+  const { data: urlData } = supabase.storage.from('evidence').getPublicUrl(data.path)
+  const public_url = urlData?.publicUrl || `${SUPABASE_URL}/storage/v1/object/public/evidence/${data.path}`
+
+  return { path: data.path, public_url }
+}
+
+/**
+ * Upload evidence file.
+ * Primary: S3 via presigned URL.
+ * Fallback: Supabase Storage (when S3 is unavailable or fails).
  */
 export async function uploadEvidenceFile(params: {
   file: File
@@ -146,35 +180,43 @@ export async function uploadEvidenceFile(params: {
 }): Promise<UploadResult> {
   const { file, taskId, executorId, evidenceType, submissionId, onProgress } = params
 
-  if (!isS3PipelineEnabled()) {
-    throw new Error(
-      'Evidence upload requires VITE_EVIDENCE_API_URL to be configured. ' +
-      'Direct Supabase Storage uploads are disabled for security (DB-008).'
-    )
-  }
-
-  // Compute checksum
   const checksum = await computeChecksum(file)
 
-  // S3 presigned URL flow
-  const presigned = await getPresignedUrl({
-    taskId,
-    submissionId,
-    actorId: executorId,
-    filename: file.name,
-    contentType: file.type || 'application/octet-stream',
-    evidenceType,
-    checksum,
-  })
+  // --- Primary: S3 presigned URL pipeline ---
+  if (isS3PipelineEnabled()) {
+    try {
+      const presigned = await getPresignedUrl({
+        taskId,
+        submissionId,
+        actorId: executorId,
+        filename: file.name,
+        contentType: file.type || 'application/octet-stream',
+        evidenceType,
+        checksum,
+      })
 
-  await uploadToS3(presigned, file, onProgress)
+      await uploadToS3(presigned, file, onProgress)
+
+      return {
+        key: presigned.key,
+        public_url: presigned.public_url,
+        backend: 's3',
+        checksum,
+        nonce: presigned.nonce,
+      }
+    } catch (s3Error) {
+      console.warn('[Evidence] S3 upload failed, falling back to Supabase Storage:', s3Error)
+    }
+  }
+
+  // --- Fallback: Supabase Storage ---
+  const { path, public_url } = await uploadToSupabase(file, executorId, taskId, evidenceType, onProgress)
 
   return {
-    key: presigned.key,
-    public_url: presigned.public_url,
-    backend: 's3',
+    key: path,
+    public_url,
+    backend: 'supabase',
     checksum,
-    nonce: presigned.nonce,
   }
 }
 
@@ -188,7 +230,6 @@ export async function collectForensicMetadata(): Promise<EvidenceMetadata> {
     source: 'unknown',
   }
 
-  // Try to get GPS
   try {
     const position = await new Promise<GeolocationPosition>((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(resolve, reject, {
@@ -205,7 +246,7 @@ export async function collectForensicMetadata(): Promise<EvidenceMetadata> {
       timestamp: position.timestamp,
     }
   } catch {
-    // GPS not available — that's fine, not all tasks require it
+    // GPS not available — that's fine
   }
 
   metadata.capture_timestamp = new Date().toISOString()
