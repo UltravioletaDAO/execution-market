@@ -214,7 +214,7 @@ class AIVerifier:
                     prompt=prompt,
                     images=images,
                     image_types=image_types,
-                    max_tokens=1024,
+                    max_tokens=2048,
                 )
             )
             logger.info(
@@ -324,7 +324,8 @@ class AIVerifier:
 
         Handles both PHOTINT schema (with 'forensic' field) and
         legacy schema (flat task_checks only) for backward compatibility.
-        Robustly extracts JSON from markdown-wrapped responses.
+        Robustly extracts JSON from markdown-wrapped responses, including
+        truncated responses from safety/recitation filters.
         """
         import re as _re
 
@@ -344,6 +345,41 @@ class AIVerifier:
                         len(response_text),
                         response_text[:300],
                     )
+                    # Try to salvage decision/confidence from truncated JSON
+                    # (happens when Gemini stops due to SAFETY/RECITATION filter)
+                    if json_start != -1:
+                        partial = response_text[json_start:]
+                        d_match = _re.search(r'"decision"\s*:\s*"(\w+)"', partial)
+                        c_match = _re.search(r'"confidence"\s*:\s*([\d.]+)', partial)
+                        e_match = _re.search(r'"explanation"\s*:\s*"([^"]*)', partial)
+                        if d_match:
+                            decision_map = {
+                                "approved": VerificationDecision.APPROVED,
+                                "rejected": VerificationDecision.REJECTED,
+                                "needs_human": VerificationDecision.NEEDS_HUMAN,
+                            }
+                            decision = decision_map.get(
+                                d_match.group(1), VerificationDecision.NEEDS_HUMAN
+                            )
+                            confidence = float(c_match.group(1)) if c_match else 0.5
+                            explanation = (
+                                e_match.group(1) + "…"
+                                if e_match
+                                else "AI response truncated (safety/recitation filter)"
+                            )
+                            logger.info(
+                                "_parse_response: salvaged from truncated JSON — "
+                                "decision=%s confidence=%.2f",
+                                d_match.group(1),
+                                confidence,
+                            )
+                            return VerificationResult(
+                                decision=decision,
+                                confidence=confidence,
+                                explanation=explanation,
+                                issues=["AI response truncated by content filter"],
+                                task_specific_checks={},
+                            )
                     raise ValueError("No JSON found in response")
                 json_str = response_text[json_start:json_end]
 

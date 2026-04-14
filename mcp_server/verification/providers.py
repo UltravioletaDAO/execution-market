@@ -376,17 +376,29 @@ class GeminiProvider(VerificationProvider):
         # --- Parse response ------------------------------------------------
         data = resp.json()
         try:
-            text = data["candidates"][0]["content"]["parts"][0]["text"]
+            candidate = data["candidates"][0]
+            text = candidate["content"]["parts"][0]["text"]
         except (KeyError, IndexError) as exc:
             raise ValueError(
                 f"Unexpected Gemini response structure: {exc}. "
                 f"Response: {json.dumps(data)[:500]}"
             )
 
+        # Log finishReason so we know when safety/recitation filters truncate output
+        finish_reason = candidate.get("finishReason", "STOP")
+        if finish_reason not in ("STOP", "END_OF_TURN"):
+            logger.warning(
+                "Gemini HTTP: %s finishReason=%s (output may be truncated, len=%d)",
+                self.model_id,
+                finish_reason,
+                len(text),
+            )
+
         usage_meta = data.get("usageMetadata", {})
         usage = {
             "input_tokens": usage_meta.get("promptTokenCount", 0),
             "output_tokens": usage_meta.get("candidatesTokenCount", 0),
+            "finish_reason": finish_reason,
         }
 
         return VisionResponse(
