@@ -431,18 +431,27 @@ class TestConfirmFeedback:
 
 
 class TestRateAgentPendingSignature:
-    """Tests that rate_agent() returns pending when no relay key (no Facilitator fallback)."""
+    """Tests that rate_agent() routes through Facilitator SDK (correct architecture)."""
 
     @pytest.mark.asyncio
-    async def test_rate_agent_returns_pending(self):
-        """rate_agent() without relay key returns pending_worker_signature=True."""
+    async def test_rate_agent_uses_facilitator(self):
+        """rate_agent() always calls submit_feedback via Facilitator SDK (gasless)."""
         _fc_mod = importlib.import_module("integrations.erc8004.facilitator_client")
         importlib.reload(_fc_mod)
 
-        with patch(
-            "integrations.erc8004.feedback_store.persist_and_hash_feedback",
-            new_callable=AsyncMock,
-            return_value=("https://cdn/feedback.json", "0x" + "aa" * 32),
+        from integrations.erc8004.facilitator_client import FeedbackResult
+
+        mock_submit = AsyncMock(
+            return_value=FeedbackResult(success=True, transaction_hash="0xfac_tx")
+        )
+
+        with (
+            patch.object(_fc_mod, "submit_feedback", mock_submit),
+            patch(
+                "integrations.erc8004.feedback_store.persist_and_hash_feedback",
+                new_callable=AsyncMock,
+                return_value=("https://cdn/feedback.json", "0x" + "aa" * 32),
+            ),
         ):
             result = await _fc_mod.rate_agent(
                 agent_id=2106,
@@ -451,22 +460,24 @@ class TestRateAgentPendingSignature:
             )
 
         assert result.success is True
-        assert result.transaction_hash is None
-        # No Facilitator fallback — tx hash is None
+        assert result.transaction_hash == "0xfac_tx"
+        mock_submit.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_rate_agent_no_relay_key_no_facilitator(self):
-        """rate_agent() without relay key does NOT call Facilitator (trust violation)."""
-        import os
-
-        os.environ.pop("EM_REPUTATION_RELAY_KEY", None)
-
+    async def test_rate_agent_submit_feedback_called(self):
+        """rate_agent() calls submit_feedback() (Facilitator), not get_facilitator_client()."""
         _fc_mod = importlib.import_module("integrations.erc8004.facilitator_client")
         importlib.reload(_fc_mod)
 
+        from integrations.erc8004.facilitator_client import FeedbackResult
+
+        mock_submit = AsyncMock(
+            return_value=FeedbackResult(success=True, transaction_hash="0xfac_tx_2")
+        )
         mock_client = AsyncMock()
 
         with (
+            patch.object(_fc_mod, "submit_feedback", mock_submit),
             patch(
                 "integrations.erc8004.feedback_store.persist_and_hash_feedback",
                 new_callable=AsyncMock,
@@ -485,6 +496,7 @@ class TestRateAgentPendingSignature:
             )
 
         assert result.success is True
-        assert result.transaction_hash is None
-        # Facilitator should NOT have been called
+        # submit_feedback() (Facilitator) was called
+        mock_submit.assert_called_once()
+        # get_facilitator_client() was NOT used
         mock_client.submit_feedback.assert_not_called()

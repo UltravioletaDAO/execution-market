@@ -480,15 +480,27 @@ class TestRateWorkerDirectPath:
 
 
 class TestRateAgentPendingSignature:
-    """Tests that rate_agent() returns pending when no relay key (no Facilitator fallback)."""
+    """Tests that rate_agent() routes through Facilitator SDK (correct architecture)."""
 
     @pytest.mark.asyncio
-    async def test_rate_agent_returns_pending_no_relay_key(self):
-        """rate_agent() without relay key returns pending_worker_signature=True."""
-        with patch(
-            "integrations.erc8004.feedback_store.persist_and_hash_feedback",
-            new_callable=AsyncMock,
-            return_value=("https://cdn/feedback.json", "0x" + "bb" * 32),
+    async def test_rate_agent_uses_facilitator_sdk(self):
+        """rate_agent() always calls submit_feedback (Facilitator path, gasless)."""
+        from integrations.erc8004.facilitator_client import FeedbackResult
+
+        mock_submit = AsyncMock(
+            return_value=FeedbackResult(success=True, transaction_hash="0xfac_tx")
+        )
+
+        with (
+            patch(
+                "integrations.erc8004.facilitator_client.submit_feedback",
+                mock_submit,
+            ),
+            patch(
+                "integrations.erc8004.feedback_store.persist_and_hash_feedback",
+                new_callable=AsyncMock,
+                return_value=("https://cdn/feedback.json", "0x" + "bb" * 32),
+            ),
         ):
             from integrations.erc8004.facilitator_client import rate_agent
 
@@ -499,18 +511,27 @@ class TestRateAgentPendingSignature:
             )
 
         assert result.success is True
-        assert result.transaction_hash is None
-        # No Facilitator fallback — tx hash is None
+        assert result.transaction_hash == "0xfac_tx"
+        mock_submit.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_rate_agent_does_not_call_facilitator(self):
-        """rate_agent() without relay key does NOT fall through to Facilitator."""
+    async def test_rate_agent_does_not_use_get_facilitator_client(self):
+        """rate_agent() uses submit_feedback() directly, not get_facilitator_client()."""
+        from integrations.erc8004.facilitator_client import FeedbackResult
+
         mock_client = AsyncMock()
+        mock_submit = AsyncMock(
+            return_value=FeedbackResult(success=True, transaction_hash="0xtx")
+        )
 
         with (
             patch(
                 "integrations.erc8004.facilitator_client.get_facilitator_client",
                 return_value=mock_client,
+            ),
+            patch(
+                "integrations.erc8004.facilitator_client.submit_feedback",
+                mock_submit,
             ),
             patch(
                 "integrations.erc8004.feedback_store.persist_and_hash_feedback",
@@ -526,21 +547,25 @@ class TestRateAgentPendingSignature:
                 score=88,
             )
 
-        # Facilitator should NOT have been called (trust violation)
+        # submit_feedback() called directly; get_facilitator_client() never invoked
+        mock_submit.assert_called_once()
         mock_client.submit_feedback.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_rate_agent_uses_relay_key_when_provided(self):
-        """rate_agent() with relay key calls give_feedback_direct (not Facilitator)."""
+    async def test_rate_agent_relay_key_ignored(self):
+        """relay_private_key is accepted for API compat but ignored — Facilitator always used."""
         from integrations.erc8004.facilitator_client import FeedbackResult
 
-        mock_direct = AsyncMock(
-            return_value=FeedbackResult(
-                success=True, transaction_hash="0xrelay_tx_hash"
-            )
+        mock_submit = AsyncMock(
+            return_value=FeedbackResult(success=True, transaction_hash="0xfac_tx_2")
         )
+        mock_direct = AsyncMock()
 
         with (
+            patch(
+                "integrations.erc8004.facilitator_client.submit_feedback",
+                mock_submit,
+            ),
             patch(
                 "integrations.erc8004.direct_reputation.give_feedback_direct",
                 mock_direct,
@@ -560,9 +585,12 @@ class TestRateAgentPendingSignature:
                 relay_private_key="0x" + "dd" * 32,
             )
 
+        # give_feedback_direct is NOT called (relay key ignored)
+        mock_direct.assert_not_called()
+        # Facilitator submit_feedback IS called
+        mock_submit.assert_called_once()
         assert result.success is True
-        assert result.transaction_hash == "0xrelay_tx_hash"
-        mock_direct.assert_called_once()
+        assert result.transaction_hash == "0xfac_tx_2"
 
 
 # ============================================================================
