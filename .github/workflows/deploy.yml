@@ -208,7 +208,7 @@ jobs:
             aws lambda update-function-configuration \
               --function-name "$FUNC" \
               --environment "Variables=$UPDATED_VARS" \
-              --output none
+              > /dev/null
             aws lambda wait function-updated --function-name "$FUNC"
             echo "$FUNC version env vars synced"
           done
