@@ -31,6 +31,9 @@ def _sanitize_for_prompt(text: str, max_len: int = 500) -> str:
     """
     if not text:
         return ""
+    # Coerce non-string inputs (e.g. location dict) to string
+    if not isinstance(text, str):
+        text = str(text)
     # Remove [SYSTEM ...] / [INST ...] injection markers
     text = re.sub(
         r"\[(?:SYSTEM|INST|ASSISTANT|USER).*?\]",
