@@ -89,13 +89,15 @@ COMMENT ON COLUMN verification_inferences.magika_detections IS
 --    hard_block:          false = soft signal only (ring 2 penalizes score)
 --                         true  = reject submission immediately at fraud_score >= threshold
 --    min_fraud_score_block: score threshold for hard block (only used if hard_block=true)
-INSERT INTO platform_config (key, value, description, updated_at)
+INSERT INTO platform_config (key, value, description, category, is_public, updated_at)
 VALUES (
   'feature.magika',
   '{"enabled": false, "hard_block": false, "min_fraud_score_block": 0.8}'::jsonb,
   'Magika content-based file type validation. enabled=false is safe default (fail-open). '
   'Set enabled=true to activate. hard_block=false = soft signal (recommended for rollout). '
   'Toggle without ECS redeploy.',
+  'features',
+  false,
   NOW()
 )
 ON CONFLICT (key) DO NOTHING;
