@@ -461,15 +461,20 @@ See `.env.example` files for required environment variables.
 ### x402 Payment Architecture
 
 **>>> CRITICAL — ALWAYS USE SDK + FACILITATOR <<<**
-Always use the **x402 SDK** (`uvd-x402-sdk`) and the **Ultravioleta Facilitator** for ALL payment operations. **NEVER call contracts directly. NEVER send raw transactions to escrow contracts.** If you're writing `contract.functions.` or `cast send` to a payment contract, you're doing it wrong.
+Always use the **x402 SDK** (`uvd-x402-sdk`) and the **Ultravioleta Facilitator** for ALL payment AND reputation operations. **NEVER call contracts directly. NEVER send raw transactions.** This applies equally to x402 escrow AND ERC-8004 reputation feedback. If you're writing `contract.functions.`, `cast send`, `give_feedback_direct`, or adding a relay-wallet private key to ECS, you're doing it wrong.
 
 ```
-Correct Flow (gasless):
+Correct Flow — payments (gasless):
   Agent signs EIP-3009 auth → SDK → Facilitator → On-chain TX (Facilitator pays gas)
 
-Wrong Flow (DO NOT USE):
-  Agent → Direct contract call (pays gas from wallet)
+Correct Flow — ERC-8004 reputation feedback (gasless):
+  Backend → submit_feedback() in facilitator_client.py → SDK → Facilitator → On-chain TX
+
+Wrong Flow (DO NOT USE — for either payments or reputation):
+  Backend → give_feedback_direct() / direct contract call → pays gas from relay wallet
 ```
+
+> **ERC-8004 Reputation Rule**: `rate_agent()` and `rate_worker()` MUST route through `submit_feedback()` which uses `_sdk_client` (the `Erc8004Client` singleton pointed at the Facilitator). No relay wallets, no `EM_REPUTATION_RELAY_KEY`, no `direct_reputation.give_feedback_direct()`. The Facilitator pays gas.
 
 | Component | Details |
 |-----------|---------|

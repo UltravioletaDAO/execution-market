@@ -796,40 +796,24 @@ async def rate_agent(
         logger.warning("Feedback persistence failed (continuing): %s", exc)
         feedback_uri = f"{FEEDBACK_PUBLIC_URL}/feedback/{task_id}"
 
-    # Autonomous path: relay wallet signs giveFeedback() directly on-chain
-    if relay_private_key:
-        logger.info(
-            "Agent rating via relay wallet (autonomous): agent=%d, task=%s",
-            agent_id,
-            task_id,
-        )
-        from integrations.erc8004.direct_reputation import give_feedback_direct
-
-        return await give_feedback_direct(
-            agent_id=agent_id,
-            value=score,
-            tag1="agent_rating",
-            tag2=f"task:{task_id[:8]}",
-            endpoint=f"task:{task_id}",
-            feedback_uri=feedback_uri,
-            feedback_hash=feedback_hash,
-            private_key=relay_private_key,
-            network=network,
-        )
-
-    # No relay key available — return pending result.
-    # The worker must sign the on-chain TX via their own wallet (dashboard flow)
-    # or the relay key must be configured in ECS (EM_REPUTATION_RELAY_KEY).
-    # We do NOT fall through to Facilitator because Facilitator becomes msg.sender
-    # on-chain, which misrepresents who gave the feedback (trust violation).
-    logger.warning(
-        "Agent rating pending — no relay key available: agent=%d, task=%s",
+    # Correct architecture: use Facilitator via SDK (gasless).
+    # Facilitator pays gas; no relay wallet or private key in ECS needed.
+    # The actual rater identity is recorded in feedbackURI content + tags.
+    # (relay_private_key param kept for API compatibility but is intentionally unused)
+    logger.info(
+        "Agent rating via Facilitator (SDK, gasless): agent=%d, task=%s",
         agent_id,
         task_id,
     )
-    return FeedbackResult(
-        success=True,
-        transaction_hash=None,
+    return await submit_feedback(
+        agent_id=agent_id,
+        value=score,
+        tag1="agent_rating",
+        tag2=f"task:{task_id[:8]}",
+        endpoint=f"task:{task_id}",
+        feedback_uri=feedback_uri,
+        feedback_hash=feedback_hash,
+        network=network,
     )
 
 
