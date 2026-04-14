@@ -23,6 +23,7 @@ V3-A adds `decide_v2()` — two-axis consensus with category-specific blend weig
 and hard-floor safety rules. Produces an `EvidenceScore` instead of `ConsensusResult`.
 """
 
+import dataclasses
 import logging
 from dataclasses import dataclass
 from typing import Dict, List, Optional
@@ -84,6 +85,11 @@ class DualRingConsensus:
         Returns:
             ConsensusResult with PASS/FAIL/INCONCLUSIVE.
         """
+        # Magika soft penalty — NEVER causes hard FAIL.
+        # Degrades Ring 1 score so LLM evidence sees the forensic signal.
+        # Rule: fraud_score >= 0.8 → 30% penalty; >= 0.4 → 15% penalty.
+        ring1_score = self._apply_magika_penalty(ring1_score)
+
         if tier == ArbiterTier.CHEAP:
             return self._decide_cheap(ring1_score, config)
         elif tier == ArbiterTier.STANDARD:
@@ -108,6 +114,48 @@ class DualRingConsensus:
             )
         else:
             raise ValueError(f"Unknown tier: {tier}")
+
+    # ------------------------------------------------------------------
+    # Magika penalty (Fase 3 — MASTER_PLAN_MAGIKA_INTEGRATION)
+    # ------------------------------------------------------------------
+
+    def _apply_magika_penalty(self, ring1: "RingScore") -> "RingScore":
+        """Apply soft Magika fraud score penalty to Ring 1 score.
+
+        Magika NEVER causes a hard FAIL. It degrades the Ring 1 score
+        so the consensus engine is more conservative when file-type
+        fraud signals are present. The LLM prompt already received the
+        ALERT inline (via ai_review._build_magika_prompt_section).
+
+        Penalty table:
+            max_fraud_score >= 0.8  -> score * 0.70  (30% reduction)
+            max_fraud_score >= 0.4  -> score * 0.85  (15% reduction)
+            otherwise               -> no change
+        """
+        signals = getattr(ring1, "magika_fraud_signals", None)
+        if not signals:
+            return ring1
+
+        max_fraud = max(s.get("fraud_score", 0.0) for s in signals)
+
+        if max_fraud >= 0.8:
+            factor = 0.70
+            note = f"[magika] fraud_score={max_fraud:.2f} → -30% penalty"
+        elif max_fraud >= 0.4:
+            factor = 0.85
+            note = f"[magika] fraud_score={max_fraud:.2f} → -15% penalty"
+        else:
+            return ring1
+
+        new_score = round(ring1.score * factor, 4)
+        new_reason = f"{ring1.reason or ''} | {note}".lstrip(" |")
+        logger.info(
+            "Magika soft penalty applied: ring1 %.3f → %.3f (max_fraud=%.2f)",
+            ring1.score,
+            new_score,
+            max_fraud,
+        )
+        return dataclasses.replace(ring1, score=new_score, reason=new_reason)
 
     # ------------------------------------------------------------------
     # V3-A: Two-axis consensus with category-specific blend weights

@@ -281,6 +281,10 @@ class ArbiterService:
         else:
             decision = "inconclusive"
 
+        # Extract Magika fraud signals (Fase 3 — MASTER_PLAN_MAGIKA_INTEGRATION)
+        # Passed to consensus engine for soft score penalty without hard blocking.
+        magika_fraud_signals = self._extract_magika_signals(submission)
+
         return RingScore(
             ring="ring1",
             score=float(combined),
@@ -289,7 +293,35 @@ class ArbiterService:
             provider="photint",
             model="phase_a+b",
             reason=reason,
+            magika_fraud_signals=magika_fraud_signals or None,
         )
+
+    def _extract_magika_signals(
+        self, submission: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
+        """Build magika_fraud_signals list from submission.magika_detections.
+
+        Returns only entries with fraud_score > 0 to avoid signal noise.
+        Empty list (not None) when no detections or all files are clean.
+        """
+        magika = submission.get("magika_detections") or {}
+        if not isinstance(magika, dict) or not magika.get("analyzed"):
+            return []
+
+        details = magika.get("details") or {}
+        signals = []
+        for url, info in details.items():
+            fraud_score = float(info.get("fraud_score", 0.0))
+            if fraud_score > 0.0:
+                signals.append(
+                    {
+                        "url": url,
+                        "fraud_score": fraud_score,
+                        "detected_mime": info.get("detected_mime", ""),
+                        "claimed_mime": info.get("claimed_mime", ""),
+                    }
+                )
+        return signals
 
     # ------------------------------------------------------------------
     # Ring 2 inference (placeholder -- Task 1.6 will wire LLM calls)

@@ -46,6 +46,9 @@ class RingScore:
     reason: Optional[str] = None
     raw_response: Optional[str] = None
     inference_id: Optional[str] = None  # FK into verification_inferences table
+    # Magika file-type forensic signals (Fase 3 — MASTER_PLAN_MAGIKA_INTEGRATION)
+    # Each entry: {"url": str, "fraud_score": float, "detected_mime": str, "claimed_mime": str}
+    magika_fraud_signals: Optional[List[dict]] = None
 
 
 @dataclass
