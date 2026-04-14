@@ -985,29 +985,53 @@ async def rate_agent_endpoint(
             status_code=409, detail=f"Task status {task_status} cannot be rated yet"
         )
 
-    # Dedup: check if agent_rating feedback already exists for this task
+    # Dedup: check if agent_rating feedback already exists for this task.
+    # EXCEPTION: if the existing entry has reputation_tx="" (auto-rating that failed
+    # on-chain, e.g. from WS-2 auto-rate), allow the worker to override with a manual
+    # rating. Workers must always have the ability to give their own rating.
     try:
         existing = (
             db.get_client()
             .table("feedback_documents")
-            .select("id")
+            .select("id, reputation_tx")
             .eq("task_id", request.task_id)
             .eq("feedback_type", "agent_rating")
             .limit(1)
             .execute()
         )
         if existing.data:
-            logger.warning(
-                "Duplicate agent_rating feedback attempt for task=%s, returning existing",
-                request.task_id,
-            )
-            return FeedbackResponse(
-                success=True,
-                transaction_hash=None,
-                feedback_index=None,
-                network=ERC8004_NETWORK if ERC8004_AVAILABLE else "base",
-                error="Feedback already submitted for this task",
-            )
+            existing_tx = existing.data[0].get("reputation_tx") or ""
+            if existing_tx:
+                # A real on-chain tx exists — block duplicate
+                logger.warning(
+                    "Duplicate agent_rating feedback attempt for task=%s (tx=%s), blocking",
+                    request.task_id,
+                    existing_tx[:16],
+                )
+                return FeedbackResponse(
+                    success=True,
+                    transaction_hash=existing_tx,
+                    feedback_index=None,
+                    network=ERC8004_NETWORK if ERC8004_AVAILABLE else "base",
+                    error="Feedback already submitted for this task",
+                )
+            else:
+                # Auto-rating with no on-chain tx — delete and allow manual override
+                logger.info(
+                    "Replacing failed auto-rating (reputation_tx empty) with manual rating "
+                    "for task=%s, existing_id=%s",
+                    request.task_id,
+                    existing.data[0]["id"],
+                )
+                try:
+                    db.get_client().table("feedback_documents").delete().eq(
+                        "id", existing.data[0]["id"]
+                    ).execute()
+                    db.get_client().table("ratings").delete().eq(
+                        "task_id", request.task_id
+                    ).eq("rater_type", "worker").execute()
+                except Exception as _del_e:
+                    logger.warning("Failed to delete stale auto-rating: %s", _del_e)
     except Exception as e:
         logger.warning("Dedup check failed (proceeding): %s", e)
 

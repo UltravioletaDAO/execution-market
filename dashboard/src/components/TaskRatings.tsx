@@ -120,9 +120,23 @@ export function TaskRatings({ taskId, executorId, paymentNetwork, taskTitle, age
     const API_BASE = import.meta.env.VITE_API_URL || 'https://api.execution.market'
     fetch(`${API_BASE}/api/v1/tasks/${taskId}`)
       .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (data?.erc8004_agent_id) {
+      .then(async data => {
+        if (!data) return
+        if (data.erc8004_agent_id) {
           setResolvedAgentId(Number(data.erc8004_agent_id))
+          return
+        }
+        // Fallback: resolve from agent wallet (handles tasks where ERC-8004
+        // lookup failed at creation time and erc8004_agent_id was not stored)
+        const agentWallet = data.agent_id
+        if (!agentWallet || !agentWallet.startsWith('0x')) return
+        const identityRes = await fetch(
+          `${API_BASE}/api/v1/reputation/identity/wallet/${agentWallet}`,
+        ).catch(() => null)
+        if (!identityRes?.ok) return
+        const identity = await identityRes.json().catch(() => null)
+        if (identity?.agent_id) {
+          setResolvedAgentId(Number(identity.agent_id))
         }
       })
       .catch(() => {})

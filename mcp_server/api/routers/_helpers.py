@@ -660,6 +660,35 @@ async def _send_reputation_feedback(
                     ).execute()
                 except Exception:
                     pass  # Best-effort
+
+            # Persist to ratings table so mobile/dashboard can display it
+            executor_id = (executor or {}).get("id") or task.get("executor_id")
+            if executor_id:
+                try:
+                    import supabase_client as _db
+
+                    task_agent_id = (
+                        task.get("erc8004_agent_id") or task.get("agent_id") or ""
+                    )
+                    _db.get_client().table("ratings").upsert(
+                        {
+                            "executor_id": str(executor_id),
+                            "task_id": task["id"],
+                            "rater_id": str(task_agent_id),
+                            "rater_type": "agent",
+                            "rating": reputation_score,
+                            "stars": float(round(reputation_score / 20, 1)),
+                            "comment": f"Task completed and paid: {task.get('title', '')[:50]}",
+                            "task_value_usdc": float(task.get("bounty_usd", 0)),
+                            "is_public": True,
+                        },
+                        on_conflict="executor_id,task_id,rater_type",
+                    ).execute()
+                except Exception as e:
+                    logger.warning(
+                        "WS-2b: failed to persist agent->worker rating to ratings table: %s",
+                        e,
+                    )
         else:
             logger.warning(
                 "ERC-8004 reputation failed (rating_tx will be null): task=%s, worker=%s, error=%s. "
@@ -1148,6 +1177,33 @@ async def _ws2_auto_rate_agent(
                 tx_hash=feedback_result.transaction_hash,
                 score=score,
             )
+
+            # Persist to ratings table so mobile/dashboard can display it
+            executor_id = executor.get("id") if executor else None
+            if executor_id and task_id:
+                try:
+                    import supabase_client as _db2
+
+                    worker_wallet = executor.get("wallet_address") or str(executor_id)
+                    _db2.get_client().table("ratings").upsert(
+                        {
+                            "executor_id": str(executor_id),
+                            "task_id": task_id,
+                            "rater_id": worker_wallet,
+                            "rater_type": "worker",
+                            "rating": score,
+                            "stars": float(round(score / 20, 1)),
+                            "comment": None,
+                            "task_value_usdc": float(task.get("bounty_usd", 0)),
+                            "is_public": True,
+                        },
+                        on_conflict="executor_id,task_id,rater_type",
+                    ).execute()
+                except Exception as _e:
+                    logger.warning(
+                        "WS-2: failed to persist worker->agent rating to ratings table: %s",
+                        _e,
+                    )
 
             logger.info(
                 "WS-2 success: worker rated agent %d with score=%d, tx=%s",
