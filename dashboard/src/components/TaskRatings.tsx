@@ -154,12 +154,16 @@ export function TaskRatings({ taskId, executorId, paymentNetwork, taskTitle, age
   const agentToWorker = taskRatings?.agentRating ?? null
   const workerToAgent = taskRatings?.workerRating ?? null
 
-  // Check if current user is the worker and hasn't rated yet
+  // Check if current user is the worker and hasn't submitted a confirmed on-chain rating.
+  // A rating is only "done" if it has a reputation_tx (real on-chain ERC-8004 TX).
+  // Auto-generated placeholder ratings (reputation_tx = null/empty) are NOT considered
+  // complete — the worker must still be able to manually rate the agent.
   const currentIsWorker = executor?.id && executorId && executor.id === executorId
-  const canRateAgent = currentIsWorker && !workerToAgent
+  const workerRatingConfirmed = workerToAgent && !!workerToAgent.reputation_tx
+  const canRateAgent = currentIsWorker && !workerRatingConfirmed
 
-  // Show nothing only if no ratings exist AND user can't rate
-  if (!agentToWorker && !workerToAgent && !canRateAgent) {
+  // Show nothing only if no confirmed ratings exist AND user can't rate
+  if (!agentToWorker && !workerRatingConfirmed && !canRateAgent) {
     return null
   }
 
@@ -181,9 +185,9 @@ export function TaskRatings({ taskId, executorId, paymentNetwork, taskTitle, age
       ) : null}
 
       {/* Worker rated Agent */}
-      {workerToAgent ? (
+      {workerRatingConfirmed ? (
         <RatingCard
-          rating={workerToAgent}
+          rating={workerToAgent!}
           label={t('ratings.workerToAgent', 'Worker rated Agent')}
           network={paymentNetwork}
         />

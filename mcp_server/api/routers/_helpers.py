@@ -757,23 +757,12 @@ async def _execute_post_approval_side_effects(
         )
 
     # ---- WS-2: Worker auto-rates agent ----------------------------------
-    try:
-        ws2_enabled = await PlatformConfig.is_feature_enabled("erc8004_auto_rate_agent")
-        if ws2_enabled:
-            await _ws2_auto_rate_agent(
-                submission_id=submission_id,
-                submission=submission,
-                task=task,
-                executor=executor,
-                release_tx=release_tx,
-                task_id=task_id,
-            )
-    except Exception as e:
-        logger.error(
-            "WS-2 auto-rate error (non-blocking): submission=%s, error=%s",
-            submission_id,
-            e,
-        )
+    # DISABLED: Worker→agent rating must always be manual (worker clicks "Rate Agent"
+    # in the dashboard). Auto-rating here creates a placeholder in the ratings table
+    # that hides the "Rate Agent" button even though no real on-chain TX exists.
+    # The _ws2_auto_rate_agent function is kept for potential future KK swarm use
+    # but must NOT run in the human-worker flow.
+    # See: rate_agent_endpoint in reputation.py — that is the correct entry point.
 
     # ---- WS-2b: Agent rates worker (on-chain reputation) -----------------
     try:
