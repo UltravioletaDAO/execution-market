@@ -184,6 +184,7 @@ async def get_public_config():
                 preferred_network=config.get("preferred_network", "base"),
                 require_api_key=require_api_key,
                 worldid_min_bounty_for_orb_usd=worldid_threshold,
+                valid_categories=sorted(c.value for c in TaskCategory),
             )
         except Exception as e:
             logger.warning(f"Error loading public config: {e}")
@@ -196,6 +197,7 @@ async def get_public_config():
         preferred_network="base",
         require_api_key=require_api_key,
         worldid_min_bounty_for_orb_usd=worldid_threshold,
+        valid_categories=sorted(c.value for c in TaskCategory),
     )
 
 
@@ -1491,6 +1493,21 @@ async def create_task(
     except HTTPException:
         raise
     except Exception as e:
+        error_str = str(e)
+        if "invalid input value for enum" in error_str:
+            import re as _re
+
+            m = _re.search(r'invalid input value for enum \w+: "([^"]+)"', error_str)
+            bad_value = m.group(1) if m else "unknown"
+            valid_cats = sorted(c.value for c in TaskCategory)
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "error": "invalid_category",
+                    "message": f"Category '{bad_value}' is not a valid task category",
+                    "valid_categories": valid_cats,
+                },
+            )
         logger.error("Failed to create task: %s", str(e), exc_info=True)
         raise HTTPException(
             status_code=500, detail="Internal error while creating task"

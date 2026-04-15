@@ -503,6 +503,10 @@ class PublicConfigResponse(BaseModel):
         ...,
         description="Minimum bounty (USD) that requires World ID Orb verification",
     )
+    valid_categories: List[str] = Field(
+        default_factory=list,
+        description="All valid task categories accepted by the platform",
+    )
 
 
 class PublicPlatformMetricsResponse(BaseModel):
