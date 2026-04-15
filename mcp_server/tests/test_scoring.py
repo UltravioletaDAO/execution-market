@@ -113,7 +113,7 @@ class TestSpeedScoring:
         )
         sub = _make_submission(created_at=_NOW - timedelta(hours=2))
         score = _score_speed(task, sub)
-        assert 20 <= score <= SPEED_MAX
+        assert round(SPEED_MAX * 0.80) <= score <= SPEED_MAX
 
     def test_late_delivery(self):
         """Delivered after deadline -> low score."""
