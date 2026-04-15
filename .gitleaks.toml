@@ -1,0 +1,20 @@
+title = "Execution Market — Gitleaks Config"
+
+[allowlist]
+description = "Test fixtures, docs, and skill examples contain placeholder values and public contract addresses — not real secrets"
+
+paths = [
+    # Backend test suite — fake addresses, placeholder payloads, test fixtures
+    '''mcp_server/tests/''',
+    # Test scripts (scripts/test_*.py)
+    '''scripts/test_''',
+    # All documentation — example values, curl snippets, guides
+    '''docs/''',
+    # Skill files — usage examples for AI agents, not real credentials
+    '''skill\.md$''',
+    # Lock files — package hashes occasionally trigger generic-api-key rule
+    '''package-lock\.json$''',
+    '''yarn\.lock$''',
+    # Example env files — templates with placeholder values
+    '''\.env\.example''',
+]
