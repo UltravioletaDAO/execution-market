@@ -40,11 +40,30 @@ class TaskStatus(str, Enum):
 class TaskCategory(str, Enum):
     """Categories of tasks that humans can execute."""
 
+    # Physical-world categories (original 5)
     PHYSICAL_PRESENCE = "physical_presence"
     KNOWLEDGE_ACCESS = "knowledge_access"
     HUMAN_AUTHORITY = "human_authority"
     SIMPLE_ACTION = "simple_action"
     DIGITAL_PHYSICAL = "digital_physical"
+    # Extended physical categories (migration 088)
+    LOCATION_BASED = "location_based"
+    VERIFICATION = "verification"
+    SOCIAL_PROOF = "social_proof"
+    DATA_COLLECTION = "data_collection"
+    SENSORY = "sensory"
+    SOCIAL = "social"
+    PROXY = "proxy"
+    BUREAUCRATIC = "bureaucratic"
+    EMERGENCY = "emergency"
+    CREATIVE = "creative"
+    # Digital/agent categories (migration 031)
+    DATA_PROCESSING = "data_processing"
+    API_INTEGRATION = "api_integration"
+    CONTENT_GENERATION = "content_generation"
+    CODE_EXECUTION = "code_execution"
+    RESEARCH = "research"
+    MULTI_STEP_WORKFLOW = "multi_step_workflow"
 
 
 class EvidenceType(str, Enum):
