@@ -10,6 +10,7 @@ extend it with specialized checks.
 
 import re
 
+from ..gps_utils import format_gps_for_prompt
 from .schemas import VERIFICATION_OUTPUT_SCHEMA
 
 
@@ -89,8 +90,13 @@ def build_base_prompt(
         task.get("evidence_schema", task.get("evidence_required", {}))
     )
 
-    # Format evidence metadata — sanitize worker-submitted free text
-    gps = evidence.get("gps", "Not provided")
+    # Format evidence metadata — sanitize worker-submitted free text.
+    # GPS lookup delegates to the shared helper so this mirrors the
+    # extraction logic used by the Phase A pipeline; prior to WS-1
+    # (see docs/planning/MASTER_PLAN_GEO_MATCHING_2026_04_16.md) this
+    # was a flat `evidence.get("gps")` and missed browser-captured
+    # GPS stored at `evidence.photo_geo.metadata.gps`.
+    gps = format_gps_for_prompt(evidence)
     timestamp = evidence.get("timestamp", "Not provided")
     notes = _sanitize_for_prompt(evidence.get("notes", "None"), max_len=500)
 
