@@ -32,6 +32,24 @@ class VerificationMode(str, Enum):
     ORACLE = "oracle"
 
 
+class GeoMatchMode(str, Enum):
+    """How strictly a worker's location must match the task location.
+
+    Drives the geo-matching pipeline (WS-3 of geo-matching plan):
+      * ``strict``  — worker must be within ``location_radius_m`` of task GPS.
+      * ``city``    — worker's resolved city must match the task's city.
+      * ``region``  — worker's region/state must match.
+      * ``country`` — worker's country must match.
+      * ``any``     — no location matching (default when not set).
+    """
+
+    STRICT = "strict"
+    CITY = "city"
+    REGION = "region"
+    COUNTRY = "country"
+    ANY = "any"
+
+
 class TaskCategory(str, Enum):
     """Categories of tasks that executors can complete."""
 
@@ -190,6 +208,25 @@ class PublishTaskInput(BaseModel):
     location_radius_km: Optional[float] = Field(
         default=None,
         description="Geofencing radius in kilometers. Defaults to 10km for cities, 1km for addresses.",
+        gt=0,
+    )
+    geo_match_mode: Optional[GeoMatchMode] = Field(
+        default=None,
+        description=(
+            "Worker/task location matching strictness. "
+            "'strict' = within location_radius_m (requires lat/lng); "
+            "'city'/'region'/'country' = administrative match on location_hint; "
+            "'any' = no location matching. "
+            "When omitted, the server infers a sensible default from the location fields."
+        ),
+    )
+    location_radius_m: Optional[int] = Field(
+        default=None,
+        description=(
+            "Override geofence radius in METERS for geo_match_mode='strict'. "
+            "Defaults to 500m when strict mode is inferred but this field is omitted. "
+            "Ignored for non-strict modes."
+        ),
         gt=0,
     )
     min_reputation: Optional[int] = Field(

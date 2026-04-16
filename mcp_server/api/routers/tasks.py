@@ -139,6 +139,71 @@ def _auto_register_agent_executor(
 
 
 # =============================================================================
+# GEO MATCHING (WS-3)
+# =============================================================================
+
+# Default geofence radius (meters) used when a task is inferred as 'strict' and
+# the publisher did not provide location_radius_m.
+DEFAULT_STRICT_RADIUS_M = 500
+
+# Compiled once — detects "City, ST" (US state codes) and "City, Country" forms.
+# Examples that should match:
+#   "Miami, FL, USA"          → second token "FL" is a 2-letter code
+#   "San Francisco, CA"       → "CA" is 2-letter code
+#   "Paris, France"           → "France" is a country-shaped token (> 2 chars, title-case)
+#   "Mexico City, Mexico"     → "Mexico" is title-case token
+# Heuristic only — real geocoding happens downstream. Good enough for inference.
+import re as _geo_re
+
+_CITY_LIKE_PATTERN = _geo_re.compile(
+    r"""
+    ^\s*
+    (?P<city>[^,]+?)                 # first segment (city)
+    \s*,\s*
+    (?P<qualifier>
+        [A-Za-z]{2}                  # 2-letter code (US state, ISO country)
+        |
+        [A-Z][A-Za-z\.\-\s]{2,}      # or title-cased country/region name (3+ chars)
+    )
+    (?:\s*,\s*.+)?                   # optional trailing segment (e.g. ", USA")
+    \s*$
+    """,
+    _geo_re.VERBOSE,
+)
+
+
+def _looks_city_like(hint: Optional[str]) -> bool:
+    """Return True if `hint` parses as 'City, ST' / 'City, Country'."""
+    if not hint or not isinstance(hint, str):
+        return False
+    return bool(_CITY_LIKE_PATTERN.match(hint.strip()))
+
+
+def infer_geo_match_mode(
+    location_lat: Optional[float],
+    location_lng: Optional[float],
+    location_hint: Optional[str],
+) -> str:
+    """Infer a default geo_match_mode from the task's location fields.
+
+    Rules (WS-3 of geo-matching plan):
+      * lat + lng set                   → 'strict'
+      * hint parses as 'City, ST/Country' → 'city'
+      * hint set but not city-like      → 'region'
+      * no location fields at all       → 'any'
+
+    Returns the raw string value (matches the DB CHECK constraint set).
+    """
+    if location_lat is not None and location_lng is not None:
+        return "strict"
+    if location_hint:
+        if _looks_city_like(location_hint):
+            return "city"
+        return "region"
+    return "any"
+
+
+# =============================================================================
 # CONFIG ENDPOINTS (PUBLIC)
 # =============================================================================
 
@@ -508,6 +573,8 @@ async def create_task(
                     agent_name=resolved_name,
                     skills_required=existing.get("required_capabilities"),
                     skill_version=existing.get("skill_version"),
+                    geo_match_mode=existing.get("geo_match_mode"),
+                    location_radius_m=existing.get("location_radius_m"),
                 )
                 return JSONResponse(
                     status_code=200,
@@ -775,6 +842,43 @@ async def create_task(
         # Calculate deadline
         deadline = datetime.now(timezone.utc) + timedelta(hours=request.deadline_hours)
 
+        # ---- Geo-match mode validation (WS-3) ------------------------------
+        # Evaluate user-supplied geo_match_mode against the provided location
+        # fields BEFORE any geocoding, so "strict without coords" fails loudly
+        # instead of silently upgrading to geocoded coords.
+        _req_geo_mode = getattr(request, "geo_match_mode", None)
+        _req_radius_m = getattr(request, "location_radius_m", None)
+        _req_geo_mode_value = (
+            _req_geo_mode.value if hasattr(_req_geo_mode, "value") else _req_geo_mode
+        )
+
+        if _req_geo_mode_value == "strict" and (
+            request.location_lat is None or request.location_lng is None
+        ):
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "error": "invalid_geo_match_mode",
+                    "message": (
+                        "geo_match_mode='strict' requires both location_lat and "
+                        "location_lng. Provide explicit coordinates or use "
+                        "'city'/'region'/'country'/'any' instead."
+                    ),
+                    "field": "geo_match_mode",
+                },
+            )
+
+        if _req_radius_m is not None and _req_geo_mode_value not in (None, "strict"):
+            # Explicit override of radius only makes sense in strict mode.
+            # Log a warning and drop the radius — per WS-3 acceptance criteria.
+            logger.warning(
+                "[Task] location_radius_m=%s ignored because geo_match_mode=%s "
+                "is not 'strict'",
+                _req_radius_m,
+                _req_geo_mode_value,
+            )
+            _req_radius_m = None
+
         # Auto-geocode location_hint if no explicit coordinates provided
         location_lat = request.location_lat
         location_lng = request.location_lng
@@ -799,6 +903,33 @@ async def create_task(
                 logger.warning(
                     "[Task] Geocoding failed for '%s': %s", request.location_hint, e
                 )
+
+        # ---- Resolve final geo_match_mode + radius -------------------------
+        # Inference runs on the ORIGINAL request fields (pre-geocoding), so
+        # that tasks created with only a city name don't accidentally become
+        # 'strict' just because the server managed to geocode them.
+        if _req_geo_mode_value is not None:
+            final_geo_mode = _req_geo_mode_value
+        else:
+            final_geo_mode = infer_geo_match_mode(
+                location_lat=request.location_lat,
+                location_lng=request.location_lng,
+                location_hint=request.location_hint,
+            )
+
+        if final_geo_mode == "strict":
+            final_radius_m = (
+                _req_radius_m if _req_radius_m is not None else DEFAULT_STRICT_RADIUS_M
+            )
+        else:
+            final_radius_m = None
+
+        logger.info(
+            "[Task] geo_match_mode resolved: mode=%s, radius_m=%s (requested=%s)",
+            final_geo_mode,
+            final_radius_m,
+            _req_geo_mode_value,
+        )
 
         # Create task — use wallet address as agent_id (cross-chain consistent).
         # auth.agent_id may be a numeric Base agent ID (e.g. "37500") resolved
@@ -827,6 +958,8 @@ async def create_task(
             skill_version=request.skill_version,
             arbiter_mode=getattr(request, "arbiter_mode", "manual") or "manual",
             idempotency_key=idempotency_key,
+            geo_match_mode=final_geo_mode,
+            location_radius_m=final_radius_m,
         )
 
         # ---- Persist ERC-8004 identity on the task record ---------------
@@ -1356,6 +1489,8 @@ async def create_task(
             agent_name=resolved_agent_name,
             skills_required=task.get("required_capabilities"),
             skill_version=task.get("skill_version"),
+            geo_match_mode=task.get("geo_match_mode"),
+            location_radius_m=task.get("location_radius_m"),
         )
 
     except HTTPException:
@@ -1636,6 +1771,8 @@ async def get_task(
         payment_tx=resolved_payment_tx,
         escrow_status=task.get("escrow_status"),
         skill_version=task.get("skill_version"),
+        geo_match_mode=task.get("geo_match_mode"),
+        location_radius_m=task.get("location_radius_m"),
     )
 
 
@@ -2336,6 +2473,8 @@ async def list_tasks(
                 escrow_tx=task.get("escrow_tx"),
                 refund_tx=task.get("refund_tx"),
                 skill_version=task.get("skill_version"),
+                geo_match_mode=task.get("geo_match_mode"),
+                location_radius_m=task.get("location_radius_m"),
             )
         )
 

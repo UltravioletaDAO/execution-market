@@ -176,6 +176,8 @@ async def create_task(
     arbiter_mode: str = "manual",
     idempotency_key: Optional[str] = None,
     gps_required: Optional[bool] = None,
+    geo_match_mode: Optional[str] = None,
+    location_radius_m: Optional[int] = None,
 ) -> Dict[str, Any]:
     """Create a new task in the database.
 
@@ -223,6 +225,10 @@ async def create_task(
         task_data["skill_version"] = skill_version
     if idempotency_key:
         task_data["idempotency_key"] = idempotency_key
+    if geo_match_mode is not None:
+        task_data["geo_match_mode"] = geo_match_mode
+    if location_radius_m is not None:
+        task_data["location_radius_m"] = location_radius_m
 
     result = client.table("tasks").insert(task_data).execute()
 

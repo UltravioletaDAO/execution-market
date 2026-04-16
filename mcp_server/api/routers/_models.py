@@ -9,7 +9,7 @@ from typing import Optional, List, Dict, Any
 
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 
-from models import TaskCategory, EvidenceType, TargetExecutorType
+from models import TaskCategory, EvidenceType, TargetExecutorType, GeoMatchMode
 
 
 # =============================================================================
@@ -65,6 +65,25 @@ class CreateTaskRequest(BaseModel):
         description="Expected longitude for GPS verification",
         ge=-180,
         le=180,
+    )
+    geo_match_mode: Optional[GeoMatchMode] = Field(
+        default=None,
+        description=(
+            "Worker/task location matching strictness. "
+            "'strict' requires lat/lng and uses location_radius_m as geofence radius. "
+            "'city'/'region'/'country' perform administrative matching on location_hint. "
+            "'any' disables location matching. "
+            "Omit to let the server infer the mode from the location fields."
+        ),
+    )
+    location_radius_m: Optional[int] = Field(
+        default=None,
+        description=(
+            "Geofence radius in METERS for geo_match_mode='strict'. "
+            "Defaults to 500m when strict mode is inferred but this field is omitted. "
+            "Ignored (with a warning log) for non-strict modes."
+        ),
+        gt=0,
     )
     min_reputation: int = Field(
         default=0, description="Minimum reputation score required to apply", ge=0
@@ -199,6 +218,20 @@ class TaskResponse(BaseModel):
     skill_version: Optional[str] = Field(
         None,
         description="Version of skill.md used when this task was created",
+    )
+    geo_match_mode: Optional[str] = Field(
+        None,
+        description=(
+            "Geo-matching strictness for this task: strict, city, region, country, or any. "
+            "Null means the task did not specify a mode (treated as 'any' by the pipeline)."
+        ),
+    )
+    location_radius_m: Optional[int] = Field(
+        None,
+        description=(
+            "Geofence radius in meters when geo_match_mode='strict'. "
+            "Null means the strict-mode default (500m) applies."
+        ),
     )
 
 
