@@ -21,7 +21,6 @@ async def reconcile_escrows() -> dict:
 
         client = db.get_client()
 
-        # Get all active escrows (deposited or pending)
         result = (
             client.table("escrows")
             .select("id, task_id, status, total_amount_usdc, metadata, funding_tx")

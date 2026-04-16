@@ -389,7 +389,6 @@ class LifecycleManager:
         """Get agents that are ready for task assignment."""
         available = []
         for record in self._agents.values():
-            # Check cooldown expiry for cooldown agents
             if record.state == AgentState.COOLDOWN:
                 self.check_cooldown_expiry(record.agent_id)
 

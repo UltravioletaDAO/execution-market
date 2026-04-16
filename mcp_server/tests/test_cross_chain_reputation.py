@@ -22,7 +22,7 @@ import pytest
 pytestmark = pytest.mark.erc8004
 
 # ---------------------------------------------------------------------------
-# Module stubbing (same pattern as test_direct_reputation.py)
+# Module stubbing
 # ---------------------------------------------------------------------------
 sys.path.insert(0, str(Path(__file__).parent.parent))
 

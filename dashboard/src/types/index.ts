@@ -15,26 +15,3 @@ export type {
   Database,
 } from './database'
 
-// Notification types
-export type {
-  NotificationType,
-  NotificationPriority,
-  ToastSeverity,
-  Notification,
-  NotificationRow,
-  NotificationInsert,
-  Toast,
-  ToastAction,
-  ToastOptions,
-  NotificationFilter,
-  NotificationState,
-  NotificationActions,
-  NotificationContextValue,
-  NotificationEvent,
-  WebSocketStatus,
-  NotificationTypeConfig,
-  NotificationTypeConfigMap,
-  NotificationComponentProps,
-  OnNotificationClick,
-  NotificationPaginationParams,
-} from './notification'

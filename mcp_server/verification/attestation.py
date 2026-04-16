@@ -1205,7 +1205,6 @@ class AttestationVerifier:
         fingerprint = self._device_fingerprints.get(device_id)
 
         if fingerprint:
-            # Check if device belongs to different worker
             if fingerprint.worker_id != worker_id:
                 result["is_fraud"] = True
                 result["risk_score"] = 0.95

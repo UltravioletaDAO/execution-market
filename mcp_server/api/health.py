@@ -539,12 +539,9 @@ class HealthChecker:
         for name, check_fn in self._custom_checks.items():
             checks.append((name, check_fn()))
 
-        # Run all checks concurrently
         results = await asyncio.gather(
             *[check for _, check in checks], return_exceptions=True
         )
-
-        # Process results
         components: Dict[str, ComponentHealth] = {}
         for (name, _), result in zip(checks, results):
             if isinstance(result, ComponentHealth):

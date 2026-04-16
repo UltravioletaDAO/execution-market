@@ -371,7 +371,6 @@ class FeedbackPipeline:
                     except Exception as e:
                         logger.warning(f"Feedback callback error: {e}")
 
-            # Compute averages
             if quality_scores:
                 result.avg_quality_score = sum(quality_scores) / len(quality_scores)
 
@@ -473,7 +472,6 @@ class FeedbackPipeline:
                 dna, assessment, task_categories=categories
             )
 
-            # Update internal reputation scores
             reputation_delta = self._update_internal_reputation(
                 worker_id, task, assessment, dna
             )

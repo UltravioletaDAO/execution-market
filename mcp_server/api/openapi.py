@@ -17,69 +17,8 @@ from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 from pydantic import BaseModel, Field, ConfigDict
 
-
-# =============================================================================
-# ENUMS (for documentation)
-# =============================================================================
-
-
-class TaskStatus(str, Enum):
-    """Status of a task in the Execution Market system."""
-
-    PUBLISHED = "published"
-    ACCEPTED = "accepted"
-    IN_PROGRESS = "in_progress"
-    SUBMITTED = "submitted"
-    VERIFYING = "verifying"
-    COMPLETED = "completed"
-    DISPUTED = "disputed"
-    EXPIRED = "expired"
-    CANCELLED = "cancelled"
-
-
-class TaskCategory(str, Enum):
-    """Categories of tasks that humans can execute."""
-
-    # Physical-world categories (original 5)
-    PHYSICAL_PRESENCE = "physical_presence"
-    KNOWLEDGE_ACCESS = "knowledge_access"
-    HUMAN_AUTHORITY = "human_authority"
-    SIMPLE_ACTION = "simple_action"
-    DIGITAL_PHYSICAL = "digital_physical"
-    # Extended physical categories (migration 088)
-    LOCATION_BASED = "location_based"
-    VERIFICATION = "verification"
-    SOCIAL_PROOF = "social_proof"
-    DATA_COLLECTION = "data_collection"
-    SENSORY = "sensory"
-    SOCIAL = "social"
-    PROXY = "proxy"
-    BUREAUCRATIC = "bureaucratic"
-    EMERGENCY = "emergency"
-    CREATIVE = "creative"
-    # Digital/agent categories (migration 031)
-    DATA_PROCESSING = "data_processing"
-    API_INTEGRATION = "api_integration"
-    CONTENT_GENERATION = "content_generation"
-    CODE_EXECUTION = "code_execution"
-    RESEARCH = "research"
-    MULTI_STEP_WORKFLOW = "multi_step_workflow"
-
-
-class EvidenceType(str, Enum):
-    """Types of evidence that can be required for task completion."""
-
-    PHOTO = "photo"
-    PHOTO_GEO = "photo_geo"
-    VIDEO = "video"
-    DOCUMENT = "document"
-    RECEIPT = "receipt"
-    SIGNATURE = "signature"
-    NOTARIZED = "notarized"
-    TIMESTAMP_PROOF = "timestamp_proof"
-    TEXT_RESPONSE = "text_response"
-    MEASUREMENT = "measurement"
-    SCREENSHOT = "screenshot"
+# Import canonical enums and models from the single source of truth
+from models import TaskStatus, TaskCategory, EvidenceType, BatchTaskDefinition  # noqa: F401
 
 
 class SubmissionVerdict(str, Enum):
@@ -284,20 +223,6 @@ class WebhookCreateRequest(BaseModel):
         None,
         description="Custom webhook secret. If not provided, one will be generated.",
     )
-
-
-class BatchTaskDefinition(BaseModel):
-    """Single task definition for batch creation."""
-
-    title: str = Field(..., min_length=5, max_length=255)
-    instructions: str = Field(..., min_length=20, max_length=5000)
-    category: TaskCategory
-    bounty_usd: float = Field(..., gt=0, le=10000)
-    deadline_hours: int = Field(..., ge=1, le=720)
-    evidence_required: List[EvidenceType] = Field(..., min_length=1, max_length=5)
-    evidence_optional: Optional[List[EvidenceType]] = None
-    location_hint: Optional[str] = None
-    min_reputation: int = 0
 
 
 class BatchCreateRequest(BaseModel):

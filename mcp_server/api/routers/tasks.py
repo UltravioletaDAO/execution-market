@@ -438,7 +438,7 @@ async def get_public_platform_metrics():
         },
     },
     summary="Create Task",
-    description="Create a new task with payment escrow (supports preauth, x402r, fase1, and fase2 modes)",
+    description="Create a new task with payment escrow (fase2 production, fase1 for local testing)",
     tags=["Tasks", "Agent"],
 )
 async def create_task(
@@ -1178,91 +1178,6 @@ async def create_task(
                             detail=f"Escrow lock failed. Task cancelled (ref: {_ref}).",
                         )
 
-                elif dispatcher and dispatcher.get_mode() == "x402r":
-                    auth_result = await dispatcher.authorize_payment(
-                        task_id=task["id"],
-                        receiver=payment_result.payer_address,
-                        amount_usdc=total_required,
-                        x_payment_header=x_payment_header,
-                    )
-
-                    escrow_status = auth_result.get("escrow_status", "failed")
-                    escrow_tx = auth_result.get("tx_hash")
-                    agent_settle_tx = auth_result.get("agent_settle_tx")
-
-                    escrow_updates = {
-                        "escrow_id": escrow_ref,
-                        "escrow_tx": escrow_tx or payment_reference,
-                        "escrow_amount_usdc": float(total_required),
-                        "escrow_created_at": datetime.now(timezone.utc).isoformat(),
-                    }
-                    await db.update_task(task["id"], escrow_updates)
-                    task.update(escrow_updates)
-
-                    _insert_escrow_record(
-                        {
-                            "task_id": task["id"],
-                            "agent_id": auth.agent_id,
-                            "escrow_id": escrow_ref,
-                            "funding_tx": escrow_tx,
-                            "status": escrow_status,
-                            "total_amount_usdc": float(total_required),
-                            "platform_fee_usdc": float(total_required - bounty),
-                            "beneficiary_address": auth_result.get(
-                                "payer_address", payment_result.payer_address
-                            ),
-                            "network": payment_result.network,
-                            "metadata": {
-                                "payment_mode": "x402r",
-                                "x_payment_header": x_payment_header,
-                                "payment_reference": payment_reference,
-                                "agent_settle_tx": agent_settle_tx,
-                                "escrow_lock_tx": escrow_tx,
-                                "payment_info": auth_result.get(
-                                    "payment_info_serialized"
-                                ),
-                            },
-                            "created_at": datetime.now(timezone.utc).isoformat(),
-                        }
-                    )
-
-                    if auth_result.get("success"):
-                        logger.info(
-                            "x402r escrow deposited: task=%s, escrow=%s, amount=%.2f, "
-                            "settle_tx=%s, lock_tx=%s",
-                            task["id"],
-                            escrow_ref,
-                            float(total_required),
-                            agent_settle_tx,
-                            escrow_tx,
-                        )
-                    else:
-                        escrow_error = auth_result.get("error", "Unknown escrow error")
-                        logger.error(
-                            "x402r escrow lock failed for task %s: %s",
-                            task["id"],
-                            escrow_error,
-                        )
-                        try:
-                            await db.cancel_task(task["id"], auth.agent_id)
-                        except Exception:
-                            try:
-                                await db.update_task(
-                                    task["id"], {"status": "cancelled"}
-                                )
-                            except Exception:
-                                pass
-                        _ref = str(_uuid.uuid4())[:8]
-                        logger.error(
-                            "Payment escrow failed for task %s [ref=%s]: %s",
-                            task["id"],
-                            _ref,
-                            escrow_error,
-                        )
-                        raise HTTPException(
-                            status_code=402,
-                            detail=f"Payment escrow failed. Task has been cancelled (ref: {_ref}).",
-                        )
                 elif dispatcher and dispatcher.get_mode() == "fase1":
                     auth_result = await dispatcher.authorize_payment(
                         task_id=task["id"],
@@ -1317,53 +1232,6 @@ async def create_task(
                         escrow_ref,
                         float(total_required),
                         auth_result.get("escrow_status"),
-                    )
-                else:
-                    # preauth: Store header for later settlement
-                    escrow_updates = {
-                        "escrow_id": escrow_ref,
-                        "escrow_tx": payment_reference,
-                        "escrow_amount_usdc": float(total_required),
-                        "escrow_created_at": datetime.now(timezone.utc).isoformat(),
-                    }
-                    await db.update_task(task["id"], escrow_updates)
-                    task.update(escrow_updates)
-
-                    _insert_escrow_record(
-                        {
-                            "task_id": task["id"],
-                            "agent_id": auth.agent_id,
-                            "escrow_id": escrow_ref,
-                            "funding_tx": None,
-                            "status": "authorized",
-                            "total_amount_usdc": float(total_required),
-                            "platform_fee_usdc": float(total_required - bounty),
-                            "beneficiary_address": payment_result.payer_address,
-                            "network": payment_result.network,
-                            "metadata": {
-                                "payment_mode": "preauth",
-                                "x_payment_header": x_payment_header,
-                                "payment_reference": payment_reference,
-                            },
-                            "created_at": datetime.now(timezone.utc).isoformat(),
-                        }
-                    )
-
-                    await log_payment_event(
-                        task_id=task["id"],
-                        event_type="store_auth",
-                        status="success",
-                        from_address=payment_result.payer_address,
-                        amount_usdc=total_required,
-                        network=payment_result.network,
-                        metadata={"mode": "preauth", "escrow_ref": escrow_ref},
-                    )
-                    logger.info(
-                        "preauth payment authorized: task=%s, escrow=%s, amount=%.2f, payer=%s",
-                        task["id"],
-                        escrow_ref,
-                        float(total_required),
-                        payment_result.payer_address[:10] + "...",
                     )
             except HTTPException:
                 raise
@@ -3699,8 +3567,10 @@ async def assign_task_to_worker(
                 },
                 owner_id=auth.agent_id,
             )
-        except Exception:
-            pass  # Never block the assign flow
+        except Exception as _wh_err:
+            logger.warning(
+                "Webhook dispatch failed for task.assigned (non-blocking): %s", _wh_err
+            )
 
         # Event Bus publish (coexists with legacy — Strangler Fig)
         try:
@@ -3720,8 +3590,11 @@ async def assign_task_to_worker(
                     },
                 )
             )
-        except Exception:
-            pass
+        except Exception as _bus_err:
+            logger.warning(
+                "Event bus publish failed for task.assigned (non-blocking): %s",
+                _bus_err,
+            )
 
         # Notify via WebSocket
         try:
@@ -3731,8 +3604,10 @@ async def assign_task_to_worker(
                 task=task,
                 worker=executor,
             )
-        except Exception:
-            pass  # Never block the assign flow
+        except Exception as _ws_err:
+            logger.warning(
+                "WebSocket notify failed for task.assigned (non-blocking): %s", _ws_err
+            )
 
         # ── ESCROW GUARD: Never assign without on-chain escrow ──────
         # Code is law. If bounty > 0, a real blockchain tx hash MUST exist

@@ -78,7 +78,6 @@ _TEST_OPERATOR = "0xOperator1234567890abcdef1234567890abcdef12"
 def _make_dispatcher():
     """Create a PaymentDispatcher in fase2/direct_release mode."""
     with (
-        patch(f"{DISPATCHER_MODULE}.ADVANCED_ESCROW_AVAILABLE", False),
         patch(f"{DISPATCHER_MODULE}.FASE2_SDK_AVAILABLE", True),
         patch(f"{DISPATCHER_MODULE}.SDK_AVAILABLE", True),
         patch(

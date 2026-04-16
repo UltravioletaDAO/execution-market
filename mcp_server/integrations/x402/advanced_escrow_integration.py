@@ -704,13 +704,17 @@ def authorize_task_bounty(
     return escrow.authorize_task(task_id, receiver, amount_usdc, strategy, tier)
 
 
-def release_to_worker(task_id: str, amount_usdc: Optional[Decimal] = None) -> Any:
+def release_to_worker(
+    task_id: str, amount_usdc: Optional[Decimal] = None
+) -> TransactionResult:
     """Release escrowed funds to worker (convenience function)."""
     escrow = get_advanced_escrow()
     return escrow.release_to_worker(task_id, amount_usdc)
 
 
-def refund_to_agent(task_id: str, amount_usdc: Optional[Decimal] = None) -> Any:
+def refund_to_agent(
+    task_id: str, amount_usdc: Optional[Decimal] = None
+) -> TransactionResult:
     """Refund escrowed funds to agent (convenience function)."""
     escrow = get_advanced_escrow()
     return escrow.refund_to_agent(task_id, amount_usdc)

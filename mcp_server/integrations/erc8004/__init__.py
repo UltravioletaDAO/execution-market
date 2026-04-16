@@ -3,9 +3,7 @@ Execution Market ERC-8004 Integration
 
 On-chain identity and reputation for the Execution Market platform.
 
-Two approaches available:
-1. Direct on-chain (register.py, reputation.py) - for full control
-2. Via Facilitator (facilitator_client.py) - PRODUCTION RECOMMENDED
+Production path: Via Facilitator (facilitator_client.py) — gasless, no relay wallet needed.
 
 Facilitator: https://facilitator.ultravioletadao.xyz
 
@@ -50,9 +48,6 @@ from .facilitator_client import (
     ERC8004_SUPPORTED_NETWORKS,
     FACILITATOR_URL,
 )
-
-# Direct on-chain reputation (bypasses Facilitator)
-from .direct_reputation import give_feedback_direct
 
 # Identity verification (non-blocking, always fresh) & worker registration
 from .identity import (
@@ -101,8 +96,6 @@ __all__ = [
     "ERC8004_NETWORK",
     "ERC8004_SUPPORTED_NETWORKS",
     "FACILITATOR_URL",
-    # Direct reputation
-    "give_feedback_direct",
     # Identity verification
     "verify_agent_identity",
     # Worker identity

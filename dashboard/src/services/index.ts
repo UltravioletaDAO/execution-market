@@ -47,19 +47,6 @@ export {
   uploadEvidenceFile,
 } from './submissions'
 
-// Payment services
-export {
-  getEarnings,
-  getPaymentHistory,
-  getRecentPayments,
-  getEscrowStatus,
-  requestWithdrawal,
-  getWithdrawalHistory,
-  getAgentPaymentStats,
-  getFeeStructure,
-  calculateFee,
-} from './payments'
-
 // Types
 export type {
   // Database types (re-exported)

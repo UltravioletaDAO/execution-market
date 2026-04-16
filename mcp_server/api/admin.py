@@ -2019,7 +2019,6 @@ async def retry_submission_payment(
 
         supabase = db.get_supabase_client()
 
-        # Fetch the submission with task/executor joins
         result = (
             supabase.table("submissions")
             .select(

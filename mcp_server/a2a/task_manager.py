@@ -480,7 +480,7 @@ class A2ATaskManager:
                 include_artifacts=True,
             )
         except Exception as e:
-            logger.error(f"Failed to get A2A task {task_id}: {e}")
+            logger.error("Failed to get A2A task %s: %s", task_id, e, exc_info=True)
             return None
 
     async def cancel_task(self, task_id: str) -> Optional[A2ATask]:
@@ -508,7 +508,6 @@ class A2ATaskManager:
                 )
                 return None
 
-            # Check if cancellable
             cancellable_states = {"published", "accepted"}
             if task.get("status") not in cancellable_states:
                 logger.info(
@@ -538,7 +537,7 @@ class A2ATaskManager:
             task["updated_at"] = now_iso()
             return _em_task_to_a2a(task)
         except Exception as e:
-            logger.error(f"Failed to cancel A2A task {task_id}: {e}")
+            logger.error("Failed to cancel A2A task %s: %s", task_id, e, exc_info=True)
             return None
 
     async def list_tasks(
@@ -583,7 +582,12 @@ class A2ATaskManager:
 
             return [_em_task_to_a2a(t) for t in (tasks or [])]
         except Exception as e:
-            logger.error(f"Failed to list A2A tasks: {e}")
+            logger.error(
+                "Failed to list A2A tasks for agent %s: %s",
+                self.agent_id,
+                e,
+                exc_info=True,
+            )
             return []
 
     async def send_message(
@@ -683,5 +687,7 @@ class A2ATaskManager:
 
             return _em_task_to_a2a(task, include_history=True)
         except Exception as e:
-            logger.error(f"Failed to send message to A2A task {task_id}: {e}")
+            logger.error(
+                "Failed to send message to A2A task %s: %s", task_id, e, exc_info=True
+            )
             return None

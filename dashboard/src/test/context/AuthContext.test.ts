@@ -52,20 +52,16 @@ describe('AuthContext isProfileComplete', () => {
   it('returns false for auto-generated name', () => {
     expect(
       checkProfileComplete({
-        id: '1',
         display_name: 'Worker_2b50111b',
-        wallet_address: '0xabc',
-      } as any)
+      })
     ).toBe(false)
   })
 
   it('returns true for manually set name', () => {
     expect(
       checkProfileComplete({
-        id: '1',
         display_name: 'Maria',
-        wallet_address: '0xabc',
-      } as any)
+      })
     ).toBe(true)
   })
 })

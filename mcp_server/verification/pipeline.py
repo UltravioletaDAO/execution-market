@@ -16,7 +16,7 @@ import json
 import logging
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from .checks.schema import validate_evidence_schema, SchemaValidationResult
 from .checks.gps import check_gps_location, GPSResult
@@ -801,7 +801,7 @@ def _run_metadata_check(
     )
 
 
-def _parse_datetime(value: Any) -> Optional[datetime]:
+def _parse_datetime(value: Union[str, datetime, None]) -> Optional[datetime]:
     """Parse a datetime from various formats."""
     if isinstance(value, datetime):
         if value.tzinfo is None:

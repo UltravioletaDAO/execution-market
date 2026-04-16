@@ -111,7 +111,6 @@ class BountyEscalator:
             if task.get("bounty_usd", 0) < self.escalation.min_bounty_usd:
                 continue
 
-            # Check if needs escalation
             result = self._check_task_escalation(task, now)
             if result:
                 results.append(result)
@@ -241,7 +240,6 @@ class BountyEscalator:
             current_bounty / original_bounty if original_bounty > 0 else 1.0
         )
 
-        # Check if at max
         if current_multiplier >= self.escalation.max_multiplier:
             return None
 

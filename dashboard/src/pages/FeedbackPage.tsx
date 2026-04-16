@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { safeHref } from '../lib/safeHref'
+import { TxLink as CanonicalTxLink } from '../components/TxLink'
 
 const API_BASE_URL = (
   import.meta.env.VITE_API_URL || 'https://api.execution.market'
@@ -56,31 +57,10 @@ function ScoreBadge({ score, maxScore }: { score: number; maxScore: number }) {
   )
 }
 
+/** Local adapter: FeedbackPage uses `hash` prop; canonical TxLink uses `txHash`. */
 function TxLink({ hash, network }: { hash: string; network: string }) {
   if (!hash) return <span className="text-gray-400">-</span>
-
-  const explorers: Record<string, string> = {
-    base: 'https://basescan.org/tx/',
-    ethereum: 'https://etherscan.io/tx/',
-    polygon: 'https://polygonscan.com/tx/',
-    arbitrum: 'https://arbiscan.io/tx/',
-    avalanche: 'https://snowtrace.io/tx/',
-    celo: 'https://celoscan.io/tx/',
-    optimism: 'https://optimistic.etherscan.io/tx/',
-  }
-  const base = explorers[network] || explorers.base
-  const short = `${hash.slice(0, 10)}...${hash.slice(-6)}`
-
-  return (
-    <a
-      href={`${base}${hash}`}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="text-blue-600 hover:text-blue-800 font-mono text-sm underline"
-    >
-      {short}
-    </a>
-  )
+  return <CanonicalTxLink txHash={hash} network={network} />
 }
 
 export function FeedbackPage() {

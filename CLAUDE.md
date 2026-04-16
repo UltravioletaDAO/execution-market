@@ -553,7 +553,7 @@ The server is a marketplace — it never touches funds. External agents sign the
 
 ### Known Bugs & TODOs
 
-- [ ] `EvidenceUpload.tsx` (camera, GPS, EXIF) is unused — `SubmissionForm.tsx` is a simpler version
+- [ ] `EvidenceUpload.tsx` (camera, GPS, EXIF) is actively used by `SubmissionForm.tsx:883` — evaluate if the camera/GPS/EXIF capabilities should be exposed in the submission flow
 - [ ] Small USDC amount stuck in vault from direct relay deposit. Needs refund or contract expiry
 - [ ] Incident Feb 2026: Tasks settled to treasury `<YOUR_TREASURY_WALLET>` instead of platform wallet. Pending refund to `<REFUND_TARGET>` on Base
 

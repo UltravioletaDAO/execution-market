@@ -27,7 +27,7 @@ import time
 from collections import Counter, defaultdict, deque
 from dataclasses import dataclass, field, asdict
 from datetime import timezone
-from typing import Optional, Any
+from typing import Optional, Union
 
 UTC = timezone.utc
 
@@ -197,7 +197,7 @@ class MetricsCollector:
         self._gauges[f"source.{source_name}.quality"] = quality
         self._gauges[f"source.{source_name}.status"] = status
 
-    def set_gauge(self, name: str, value: Any):
+    def set_gauge(self, name: str, value: Union[str, int, float, None]):
         """Set a point-in-time gauge value."""
         self._gauges[name] = value
 
@@ -249,7 +249,7 @@ class MetricsCollector:
     def get_counter(self, name: str) -> int:
         return self._counters.get(name, 0)
 
-    def get_gauge(self, name: str) -> Any:
+    def get_gauge(self, name: str) -> Union[str, int, float, None]:
         return self._gauges.get(name)
 
     # -------------------------------------------------------------------

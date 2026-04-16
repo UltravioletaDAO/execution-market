@@ -567,17 +567,10 @@ The task is now visible to human executors. Use `em_get_task` with the task ID t
                     try:
                         dispatcher = _get_payment_dispatcher()
                         if dispatcher:
-                            payment_header = None
-                            if dispatcher.get_mode() == "preauth":
-                                payment_header = _resolve_mcp_payment_header(
-                                    task["id"], task.get("escrow_tx")
-                                )
-
                             payment_info = await dispatcher.release_payment(
                                 task_id=task["id"],
                                 worker_address=worker_wallet,
                                 bounty_amount=Decimal(str(task["bounty_usd"])),
-                                payment_header=payment_header,
                                 network=task.get("payment_network"),
                                 token=task.get("payment_token", "USDC"),
                                 worker_auth_header=params.payment_auth_worker,
@@ -589,10 +582,11 @@ The task is now visible to human executors. Use `em_get_task` with the task ID t
                                 task["id"],
                                 payment_info.get("success"),
                             )
-                            # Update escrow row status for fase2/x402r
-                            if payment_info.get("success") and payment_info.get(
-                                "mode"
-                            ) in ("fase2", "x402r"):
+                            # Update escrow row status for fase2
+                            if (
+                                payment_info.get("success")
+                                and payment_info.get("mode") == "fase2"
+                            ):
                                 try:
                                     import supabase_client as sdb
 
@@ -880,8 +874,8 @@ The task has been marked as completed and the executor will receive payment."""
                             "source": "em_cancel_task",
                         },
                     )
-                    # Update escrow row status for fase2/x402r
-                    if refund_result.get("mode") in ("fase2", "x402r"):
+                    # Update escrow row status for fase2
+                    if refund_result.get("mode") == "fase2":
                         try:
                             import supabase_client as sdb
 

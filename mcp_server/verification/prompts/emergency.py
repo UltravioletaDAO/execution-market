@@ -14,20 +14,6 @@ be less polished than in non-emergency categories.
 
 
 def get_category_checks(task: dict) -> str:
-    """Return category-specific verification instructions for emergency tasks.
-
-    These instructions are injected into Layer 5 (Task Completion Assessment)
-    of the PHOTINT base prompt. The vision model uses them to evaluate whether
-    the submitted photo evidence proves the worker responded to the emergency
-    promptly, handled it safely, and resolved the situation.
-
-    Args:
-        task: Task dict with title, description/instructions, category,
-              location, deadline, evidence_schema, etc.
-
-    Returns:
-        Multi-line string with forensic verification checks.
-    """
     title = task.get("title", "Unknown task")
     location = task.get("location", task.get("location_text", "Not specified"))
     instructions = task.get("instructions", task.get("description", ""))

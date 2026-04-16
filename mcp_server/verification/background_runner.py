@@ -1844,7 +1844,6 @@ async def _run_arbiter_for_submission(
         if not current.get("task"):
             current["task"] = task
 
-        # Run the arbiter
         arbiter = ArbiterService.from_defaults()
         verdict = await arbiter.evaluate(task=task, submission=current)
 

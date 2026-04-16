@@ -15,10 +15,10 @@ const noOpLock = async <R>(_name: string, _timeout: number, fn: () => Promise<R>
   return await fn()
 }
 
-// Temporary escape hatch for shipping:
-// schema/type drift between runtime DB and static TS types currently breaks
-// query builder inference across the app. Re-enable strict DB generics once
-// types are regenerated from the canonical production schema.
+// Intentional escape hatch: schema/type drift between runtime DB and static TS
+// types breaks query builder inference across the app. Re-enable strict
+// `SupabaseClient<Database>` once types are regenerated from production schema.
+// TODO(WS5): run `supabase gen types typescript` and replace `any` here.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const supabase: any = createClient<any>(supabaseUrl, supabaseAnonKey, {
   auth: {

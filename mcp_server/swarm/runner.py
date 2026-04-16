@@ -381,7 +381,6 @@ class SwarmRunner:
         if not autojob:
             return
 
-        # Check AutoJob availability
         try:
             health = autojob.health_check()
             if health.get("status") == "ok":
@@ -493,7 +492,6 @@ class SwarmRunner:
 
     def _phase_report(self, result: CycleResult):
         """Phase 7: Emit metrics, check EM health, persist state."""
-        # Check EM API health
         if self.coordinator.em_client:
             try:
                 health = self.coordinator.em_client.get_health()

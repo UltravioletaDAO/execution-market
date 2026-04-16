@@ -296,15 +296,11 @@ async def lifespan(app: FastAPI):
         os.environ.get("EM_RECONCILE_INTERVAL", "900"),
     )
 
-    # Initialize MCP session manager
     # The session manager must be running for Streamable HTTP to work
     if MCP_HTTP_AVAILABLE:
         try:
-            # Get the session manager after app is created
             session_manager = mcp_server.session_manager
             logger.info("Initializing MCP session manager...")
-
-            # Run the session manager as async context manager
             async with session_manager.run():
                 logger.info("MCP session manager started successfully")
                 app.state.mcp_session_healthy = True

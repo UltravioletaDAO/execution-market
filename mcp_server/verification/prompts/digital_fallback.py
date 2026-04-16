@@ -11,20 +11,6 @@ absence of physical-world photography.
 
 
 def get_category_checks(task: dict) -> str:
-    """Return category-specific verification instructions for digital tasks.
-
-    These instructions are injected into Layer 5 (Task Completion Assessment)
-    of the PHOTINT base prompt. The vision model uses them to evaluate whether
-    the submitted evidence (screenshots or text/data output) proves the worker
-    completed the requested digital task.
-
-    Args:
-        task: Task dict with title, description/instructions, category,
-              location, deadline, evidence_schema, etc.
-
-    Returns:
-        Multi-line string with forensic verification checks.
-    """
     title = task.get("title", "Unknown task")
     instructions = task.get("instructions", task.get("description", ""))
     category = task.get("category", task.get("task_type", "digital"))

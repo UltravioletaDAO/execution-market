@@ -19,6 +19,9 @@ from enum import Enum
 
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 
+# Import canonical enums from the single source of truth
+from models import TaskCategory, EvidenceType  # noqa: F401
+
 logger = logging.getLogger(__name__)
 
 
@@ -115,32 +118,6 @@ class TaskAnalytics:
 
 
 # ============== INPUT MODELS ==============
-
-
-class TaskCategory(str, Enum):
-    """Categories of tasks that humans can execute."""
-
-    PHYSICAL_PRESENCE = "physical_presence"
-    KNOWLEDGE_ACCESS = "knowledge_access"
-    HUMAN_AUTHORITY = "human_authority"
-    SIMPLE_ACTION = "simple_action"
-    DIGITAL_PHYSICAL = "digital_physical"
-
-
-class EvidenceType(str, Enum):
-    """Types of evidence that can be required for task completion."""
-
-    PHOTO = "photo"
-    PHOTO_GEO = "photo_geo"
-    VIDEO = "video"
-    DOCUMENT = "document"
-    RECEIPT = "receipt"
-    SIGNATURE = "signature"
-    NOTARIZED = "notarized"
-    TIMESTAMP_PROOF = "timestamp_proof"
-    TEXT_RESPONSE = "text_response"
-    MEASUREMENT = "measurement"
-    SCREENSHOT = "screenshot"
 
 
 class ResponseFormat(str, Enum):
@@ -996,10 +973,7 @@ No tasks were created due to atomic mode.{rollback_note}"""
         try:
             client = db.get_client()
 
-            # Calculate date range
             start_date = datetime.now(timezone.utc) - timedelta(days=params.days)
-
-            # Get all tasks for agent in date range
             query = (
                 client.table("tasks")
                 .select("*")

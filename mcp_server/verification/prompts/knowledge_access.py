@@ -14,14 +14,6 @@ satisfies the task requirements.
 
 
 def get_category_checks(task: dict) -> str:
-    """Return category-specific verification instructions for knowledge access tasks.
-
-    Args:
-        task: Task dict with title, description, evidence requirements, etc.
-
-    Returns:
-        Multi-line string of forensic checks for injection into Layer 5.
-    """
     title = task.get("title", "Unknown")
     description = task.get("instructions", task.get("description", ""))
 

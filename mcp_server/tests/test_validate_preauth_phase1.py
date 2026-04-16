@@ -88,7 +88,6 @@ def _dispatcher_patches():
     from contextlib import ExitStack
 
     stack = ExitStack()
-    stack.enter_context(patch(f"{DISPATCHER_MODULE}.ADVANCED_ESCROW_AVAILABLE", False))
     stack.enter_context(patch(f"{DISPATCHER_MODULE}.FASE2_SDK_AVAILABLE", True))
     stack.enter_context(patch(f"{DISPATCHER_MODULE}.SDK_AVAILABLE", True))
     stack.enter_context(

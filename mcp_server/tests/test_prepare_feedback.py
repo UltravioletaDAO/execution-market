@@ -74,7 +74,6 @@ _erc8004_pkg.ERC8004FacilitatorClient = MagicMock()
 _erc8004_pkg.AgentIdentity = MagicMock()
 _erc8004_pkg.FeedbackResult = MagicMock()
 _erc8004_pkg.ReputationSummary = MagicMock()
-_erc8004_pkg.give_feedback_direct = AsyncMock()
 _erc8004_pkg.verify_agent_identity = AsyncMock()
 _erc8004_pkg.check_worker_identity = AsyncMock()
 _erc8004_pkg.register_worker_gasless = AsyncMock()
@@ -127,11 +126,6 @@ _LEAF_STUBS = {
         "ERC8004_SUPPORTED_NETWORKS": ["base"],
         "FACILITATOR_URL": "https://facilitator.ultravioletadao.xyz",
     },
-    "integrations.erc8004.direct_reputation": {
-        "give_feedback_direct": AsyncMock(),
-        "REPUTATION_REGISTRY_ADDRESS": "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63",
-        "GIVE_FEEDBACK_ABI": [],
-    },
     "integrations.x402.sdk_client": {
         "NETWORK_CONFIG": {
             "base": {
@@ -139,6 +133,19 @@ _LEAF_STUBS = {
                 "usdc": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
             },
         },
+        "get_enabled_networks": MagicMock(return_value=["base"]),
+        "get_rpc_url": MagicMock(return_value="https://mainnet.base.org"),
+        "is_svm_network": MagicMock(return_value=False),
+        "get_token_address": MagicMock(return_value=None),
+        "get_token_decimals": MagicMock(return_value=6),
+        "get_operator_address": MagicMock(return_value=None),
+        "FACILITATOR_URL": "https://facilitator.ultravioletadao.xyz",
+        "EM_TREASURY": "0xTreasury",
+        "SDK_AVAILABLE": True,
+        "PLATFORM_FEE_PERCENT": __import__("decimal").Decimal("0.13"),
+        "EMX402SDK": MagicMock(),
+        "get_sdk": MagicMock(),
+        "verify_x402_payment": AsyncMock(),
     },
 }
 for _mod_name, _attrs in _LEAF_STUBS.items():

@@ -6,7 +6,7 @@ Uses the official uvd-x402-sdk for all payment operations via the Facilitator.
 
 Active modules:
 - sdk_client: EMX402SDK wrapper + multichain token registry (single source of truth)
-- payment_dispatcher: PaymentDispatcher (escrow vs preauth mode selector)
+- payment_dispatcher: PaymentDispatcher (fase1 testing / fase2 production)
 - payment_events: Payment audit trail logging
 - advanced_escrow_integration: PaymentOperator via SDK (Fase 5 trustless)
 """
@@ -50,7 +50,7 @@ try:
 except ImportError:
     ADVANCED_ESCROW_AVAILABLE = False
 
-# Payment Dispatcher (x402r escrow vs preauth mode selector)
+# Payment Dispatcher (fase1 testing / fase2 production)
 try:
     from .payment_dispatcher import (
         PaymentDispatcher,
@@ -58,7 +58,7 @@ try:
         EM_PAYMENT_MODE,
     )
 except ImportError:
-    EM_PAYMENT_MODE = "preauth"
+    EM_PAYMENT_MODE = "fase2"
 
 __all__ = [
     # SDK Integration (NOW-202)

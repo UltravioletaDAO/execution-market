@@ -18,15 +18,9 @@ Usage:
         em_api_url="https://api.execution.market",
         autojob_url="http://localhost:8765",
     )
-
-    # Bootstrap the swarm from ERC-8004 registry
     await coordinator.bootstrap_from_registry()
-
-    # Run the coordination loop
     coordinator.process_task_queue()
     coordinator.run_health_checks()
-
-    # Get operational dashboard
     dashboard = coordinator.get_dashboard()
 """
 
@@ -353,7 +347,6 @@ class SwarmCoordinator:
         task_expiry_hours: float = 24.0,
         health_check_interval_seconds: int = 300,
     ):
-        # Core components
         self.bridge = bridge
         self.lifecycle = lifecycle
         self.orchestrator = orchestrator
@@ -362,11 +355,9 @@ class SwarmCoordinator:
         self.enriched = enriched_orchestrator
         self.default_strategy = default_strategy
 
-        # Configuration
         self.task_expiry_hours = task_expiry_hours
         self.health_check_interval = health_check_interval_seconds
 
-        # Task queue
         self._task_queue: dict[str, QueuedTask] = {}
         self._completed_tasks: deque[QueuedTask] = deque(maxlen=1000)
 
@@ -381,7 +372,6 @@ class SwarmCoordinator:
         self._last_health_check: Optional[datetime] = None
         self._last_api_poll: Optional[datetime] = None
 
-        # Counters
         self._total_ingested = 0
         self._total_assigned = 0
         self._total_completed = 0
@@ -459,7 +449,6 @@ class SwarmCoordinator:
         Returns:
             The registered AgentRecord
         """
-        # Register with lifecycle manager
         record = self.lifecycle.register_agent(
             agent_id=agent_id,
             name=name,
@@ -469,7 +458,6 @@ class SwarmCoordinator:
             tags=tags,
         )
 
-        # Register reputation data
         on_chain = on_chain or OnChainReputation(
             agent_id=agent_id,
             wallet_address=wallet_address,
@@ -482,7 +470,6 @@ class SwarmCoordinator:
             internal=internal,
         )
 
-        # Transition to IDLE, then optionally ACTIVE
         self.lifecycle.transition(agent_id, AgentState.IDLE, "coordinator registration")
         if activate:
             self.lifecycle.transition(agent_id, AgentState.ACTIVE, "auto-activated")
@@ -600,7 +587,6 @@ class SwarmCoordinator:
             if not task_id or task_id in self._task_queue:
                 continue
 
-            # Map EM task to queued task
             title = task_data.get("title", "Untitled")
             categories = []
             if task_data.get("category"):
@@ -610,7 +596,6 @@ class SwarmCoordinator:
 
             bounty = float(task_data.get("bounty_usd", task_data.get("bounty", 0)))
 
-            # Auto-priority based on bounty
             priority = TaskPriority.NORMAL
             if auto_priority:
                 if bounty >= 100:
@@ -647,7 +632,6 @@ class SwarmCoordinator:
         strategy = strategy or self.default_strategy
         results = []
 
-        # Get pending tasks sorted by priority then age
         pending = [
             t
             for t in self._task_queue.values()
@@ -669,7 +653,6 @@ class SwarmCoordinator:
             start_time = time.monotonic()
             request = task.to_task_request()
 
-            # Use enriched orchestrator if available, otherwise standard
             if self.enriched and self.autojob and self.autojob.is_available():
                 result = self.enriched.route_task(request, strategy=strategy)
                 self._autojob_enrichments += 1
@@ -737,28 +720,23 @@ class SwarmCoordinator:
             logger.warning(f"Task {task_id} not in queue")
             return False
 
-        # Complete in orchestrator (handles lifecycle transition)
         agent_id = self.orchestrator.complete_task(task_id)
         if agent_id is None:
             logger.warning(f"Task {task_id} not claimed in orchestrator")
             return False
 
-        # Update queue status
         task.status = "completed"
         self._total_completed += 1
 
-        # Track earnings
         bounty = bounty_earned_usd or task.bounty_usd
         self._total_bounty_earned += bounty
 
-        # Record spend against agent budget
         if bounty > 0:
             try:
-                self.lifecycle.record_spend(agent_id, bounty)  # Record actual task cost
+                self.lifecycle.record_spend(agent_id, bounty)
             except BudgetExceededError:
                 pass
 
-        # Update internal reputation (successful completion)
         if agent_id in self.orchestrator._internal:
             internal = self.orchestrator._internal[agent_id]
             internal.total_tasks += 1
@@ -766,9 +744,8 @@ class SwarmCoordinator:
             internal.consecutive_failures = 0
             for cat in task.categories:
                 current = internal.category_scores.get(cat, 0)
-                internal.category_scores[cat] = min(100, current + 5)  # Reward
+                internal.category_scores[cat] = min(100, current + 5)
 
-        # Move to completed list
         self._completed_tasks.append(task)
 
         self._emit(
@@ -839,7 +816,6 @@ class SwarmCoordinator:
                     report["agents"]["recovered"] += 1
                     self._emit(CoordinatorEvent.AGENT_RECOVERED, {"agent_id": agent_id})
 
-            # Check heartbeat health
             was_healthy = record.health.is_healthy
             is_healthy = self.lifecycle.check_heartbeat(agent_id)
 
@@ -850,7 +826,6 @@ class SwarmCoordinator:
                 if was_healthy:
                     self._emit(CoordinatorEvent.AGENT_DEGRADED, {"agent_id": agent_id})
 
-            # Check budget warnings
             try:
                 budget = self.lifecycle.get_budget_status(agent_id)
                 if budget["at_warning"] and not budget["at_limit"]:
@@ -875,7 +850,6 @@ class SwarmCoordinator:
                 self._emit(CoordinatorEvent.TASK_EXPIRED, {"task_id": task_id})
 
             elif task.status == "assigned":
-                # Check for stale assignments (assigned but not progressing)
                 assigned_hours = (
                     now - (task.last_attempt_at or task.ingested_at)
                 ).total_seconds() / 3600
@@ -924,7 +898,6 @@ class SwarmCoordinator:
             uptime_seconds=(now - self._started_at).total_seconds(),
         )
 
-        # Compute averages
         if self._routing_times:
             metrics.avg_routing_time_ms = sum(self._routing_times) / len(
                 self._routing_times
@@ -958,7 +931,6 @@ class SwarmCoordinator:
         metrics = self.get_metrics()
         swarm_status = self.lifecycle.get_swarm_status()
 
-        # Queue breakdown
         queue_status = {
             "pending": 0,
             "assigned": 0,
@@ -969,7 +941,6 @@ class SwarmCoordinator:
         for task in self._task_queue.values():
             queue_status[task.status] = queue_status.get(task.status, 0) + 1
 
-        # Per-agent status
         agent_fleet = []
         for agent_id, record in self.lifecycle.agents.items():
             budget = self.lifecycle.get_budget_status(agent_id)
@@ -1021,9 +992,7 @@ class SwarmCoordinator:
             timestamp=datetime.now(timezone.utc),
             data=data or {},
         )
-        self._events.append(record)  # deque(maxlen=1000) auto-evicts oldest
-
-        # Call hooks
+        self._events.append(record)
         for callback in self._event_hooks.get(event, []):
             try:
                 callback(record)

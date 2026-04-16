@@ -28,7 +28,7 @@ import logging
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 logger = logging.getLogger("em.swarm.lifecycle_bridge")
 
@@ -561,7 +561,7 @@ class LifecycleBridge:
     # ── Helpers ──────────────────────────────────────────────────
 
     @staticmethod
-    def _parse_ts(ts: Any) -> Optional[datetime]:
+    def _parse_ts(ts: Union[str, datetime, None]) -> Optional[datetime]:
         """Parse ISO timestamp."""
         if ts is None:
             return None

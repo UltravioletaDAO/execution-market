@@ -6,7 +6,6 @@
  */
 
 import {
-  createContext,
   useState,
   useEffect,
   useCallback,
@@ -23,10 +22,11 @@ import { clearAuthToken } from '../services/api'
 import i18nInstance, { getCurrentLanguage, type SupportedLanguage, SUPPORTED_LANGUAGES } from '../i18n'
 
 // --------------------------------------------------------------------------
-// Types
+// Types — imported from neutral module to avoid circular dep with hooks.ts
 // --------------------------------------------------------------------------
 
-export type UserType = 'worker' | 'agent' | null
+export type { UserType } from './AuthContextDef'
+import type { UserType } from './AuthContextDef'
 
 // --------------------------------------------------------------------------
 // E2E Test Escape Hatch
@@ -46,22 +46,13 @@ declare global {
   }
 }
 
-interface AuthContextValue {
-  // State
-  walletAddress: string | null
-  executor: Executor | null
-  userType: UserType
-  isAuthenticated: boolean
-  isProfileComplete: boolean
-  loading: boolean
-  error: Error | null
+// AuthContextValue and AuthContext are defined in AuthContextDef.ts (neutral module)
+// to avoid the circular dep: AuthContext.tsx <-> hooks.ts
+import { AuthContext } from './AuthContextDef'
+import type { AuthContextValue } from './AuthContextDef'
 
-  // Actions
-  logout: () => Promise<void>
-  setUserType: (type: UserType) => void
-  refreshExecutor: () => Promise<void>
-  openAuthModal: () => void
-}
+export { AuthContext }
+export type { AuthContextValue }
 
 // --------------------------------------------------------------------------
 // Constants
@@ -77,16 +68,6 @@ const isAbortError = (err: unknown): boolean => {
 }
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
-
-// --------------------------------------------------------------------------
-// Context
-// --------------------------------------------------------------------------
-
-const AuthContext = createContext<AuthContextValue | undefined>(undefined)
-
-// Export context for use in hooks
-export { AuthContext }
-export type { AuthContextValue }
 
 // --------------------------------------------------------------------------
 // Provider Component

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useXMTP } from "../context/XMTPContext";
 import type { XMTPMessage } from "../types/xmtp";
+import type { Conversation, DecodedMessage } from "@xmtp/browser-sdk";
 
 export function useMessages(peerAddress: string | null) {
   const { client } = useXMTP();
@@ -8,8 +9,8 @@ export function useMessages(peerAddress: string | null) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   // Keep conversation in both ref (for callbacks) and state (for effect deps)
-  const conversationRef = useRef<any>(null);
-  const [conversation, setConversation] = useState<any>(null);
+  const conversationRef = useRef<Conversation | null>(null);
+  const [conversation, setConversation] = useState<Conversation | null>(null);
 
   // Initialize conversation and load messages
   useEffect(() => {
@@ -92,7 +93,7 @@ export function useMessages(peerAddress: string | null) {
   return { messages, isLoading, isSending, sendMessage, loadMore };
 }
 
-function normalizeMessage(msg: any): XMTPMessage {
+function normalizeMessage(msg: DecodedMessage): XMTPMessage {
   return {
     id: msg.id,
     content: typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content),

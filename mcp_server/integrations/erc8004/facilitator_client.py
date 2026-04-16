@@ -711,13 +711,9 @@ async def rate_worker(
         logger.warning("Feedback persistence failed (continuing): %s", exc)
         feedback_uri = f"{FEEDBACK_PUBLIC_URL}/feedback/{task_id}"
 
-    # Direct on-chain call — platform wallet rates worker's identity.
-    # Platform wallet doesn't own worker agents, so self-feedback check passes.
-    # This bypasses the Facilitator, eliminating nonce races and ensuring
-    # correct msg.sender attribution (our wallet = our agent).
-    from integrations.erc8004.direct_reputation import give_feedback_direct
-
-    return await give_feedback_direct(
+    # Submit via Facilitator (gasless). Same pattern as rate_agent().
+    # Facilitator pays gas; no relay wallet or private key in ECS needed.
+    return await submit_feedback(
         agent_id=target_agent_id,
         value=score,
         tag1="worker_rating",
@@ -726,7 +722,6 @@ async def rate_worker(
         feedback_uri=feedback_uri,
         feedback_hash=feedback_hash,
         network=network,
-        # private_key=None -> defaults to WALLET_PRIVATE_KEY (platform wallet)
     )
 
 
@@ -747,14 +742,8 @@ async def rate_agent(
 
     Persists feedback document to S3 with keccak256 hash.
 
-    If relay_private_key is provided, submits the on-chain giveFeedback() TX
-    autonomously using the relay wallet (a secondary wallet at BIP-44 index+100
-    that does NOT own any agent NFT, avoiding the self-feedback revert).
-    This enables fully autonomous agent rating in the KK V2 swarm flow.
-
-    If relay_private_key is NOT provided, returns pending_worker_signature=True
-    -- the actual on-chain TX must be signed by the worker's wallet directly
-    via the dashboard (trustless, original behavior).
+    Submits feedback via Facilitator (gasless). No relay wallet needed.
+    Facilitator pays gas; rater identity is recorded in feedbackURI + tags.
 
     Args:
         agent_id: Agent's ERC-8004 token ID
@@ -765,12 +754,10 @@ async def rate_agent(
         task_title: Task title for context
         task_category: Task category
         bounty_usd: Task bounty amount
-        relay_private_key: Optional relay wallet private key for autonomous
-            on-chain signing. If provided, giveFeedback() is called directly.
+        relay_private_key: Ignored (kept for API compatibility).
 
     Returns:
-        FeedbackResult with transaction_hash if relay key provided,
-        or pending (transaction_hash=None) if not.
+        FeedbackResult with transaction_hash on success.
     """
     # Persist feedback document to S3 and compute hash
     feedback_uri = ""

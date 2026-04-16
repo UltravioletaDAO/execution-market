@@ -376,7 +376,6 @@ class EnrichedOrchestrator:
     def _enrich_before_routing(self, task):
         """Pre-flight enrichment: update internal reputation with AutoJob data."""
 
-        # Get all registered agent wallets
         available = self.orchestrator.lifecycle.get_available_agents()
         wallets = [a.wallet_address for a in available if a.wallet_address]
 

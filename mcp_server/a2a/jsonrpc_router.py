@@ -10,7 +10,7 @@ Mount this router at /a2a/v1 in the main FastAPI app.
 import logging
 import json
 import asyncio
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Union
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -175,7 +175,9 @@ async def _handle_tasks_list(
         try:
             state_filter = A2ATaskState(state_str)
         except ValueError:
-            pass
+            logger.debug(
+                "Invalid A2A state filter %r — ignoring, returning all tasks", state_str
+            )
 
     manager = A2ATaskManager(agent_id=agent_id)
     tasks = await manager.list_tasks(limit=limit, state_filter=state_filter)
@@ -284,7 +286,7 @@ async def _dispatch(
 async def _stream_task_updates(
     task_id: str,
     agent_id: Optional[str],
-    req_id: Any,
+    req_id: Union[str, int, None],
     poll_interval: float = 2.0,
     max_polls: int = 150,  # 5 min at 2s intervals
 ):

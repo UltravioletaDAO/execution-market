@@ -5,12 +5,26 @@ Validates that submitted evidence matches task requirements.
 """
 
 from dataclasses import dataclass
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional, Union
 from enum import Enum
+
+# EvidenceValue covers all accepted evidence payload shapes:
+# - str: URL, IPFS hash, ISO timestamp, QR/barcode content
+# - dict: structured evidence (GPS coords, photo metadata, etc.)
+# - int/float: Unix timestamps, measurement values
+EvidenceValue = Union[str, int, float, dict, None]
 
 
 class EvidenceType(str, Enum):
-    """Supported evidence types."""
+    """Supported evidence types for schema validation.
+
+    NOTE: This is intentionally a DIFFERENT, NARROWER enum than models.EvidenceType.
+    It covers only the types that the schema validator can structurally validate
+    (GPS, QR_CODE, BARCODE, AUDIO have distinct field validators here).
+    The canonical API-facing enum lives in models.EvidenceType.
+    Do NOT merge these — schema.EvidenceType has extra types (GPS, QR_CODE,
+    BARCODE, AUDIO) with dedicated validators not needed at the API layer.
+    """
 
     PHOTO = "photo"
     GPS = "gps"
@@ -58,7 +72,7 @@ class SchemaValidationResult:
 def validate_evidence_schema(
     evidence: Dict[str, Any],
     required: List[str],
-    optional: List[str] = None,
+    optional: Optional[List[str]] = None,
     strict: bool = True,
 ) -> SchemaValidationResult:
     """
@@ -110,7 +124,7 @@ def validate_evidence_schema(
     )
 
 
-def validate_field(field_type: str, value: Any) -> bool:
+def validate_field(field_type: str, value: EvidenceValue) -> bool:
     """
     Validate a single evidence field.
 
@@ -146,7 +160,7 @@ def validate_field(field_type: str, value: Any) -> bool:
     return validator(value)
 
 
-def validate_photo(value: Any) -> bool:
+def validate_photo(value: EvidenceValue) -> bool:
     """Validate photo evidence."""
     if isinstance(value, str):
         # URL or IPFS hash
@@ -157,7 +171,7 @@ def validate_photo(value: Any) -> bool:
     return False
 
 
-def validate_gps(value: Any) -> bool:
+def validate_gps(value: EvidenceValue) -> bool:
     """Validate GPS evidence."""
     if isinstance(value, dict):
         lat = value.get("lat") or value.get("latitude")
@@ -172,7 +186,7 @@ def validate_gps(value: Any) -> bool:
     return False
 
 
-def validate_timestamp(value: Any) -> bool:
+def validate_timestamp(value: EvidenceValue) -> bool:
     """Validate timestamp evidence."""
     if isinstance(value, str):
         # ISO format or Unix timestamp
@@ -194,7 +208,7 @@ def validate_timestamp(value: Any) -> bool:
     return False
 
 
-def validate_video(value: Any) -> bool:
+def validate_video(value: EvidenceValue) -> bool:
     """Validate video evidence."""
     if isinstance(value, str):
         return value.startswith(("http", "ipfs://"))
@@ -203,7 +217,7 @@ def validate_video(value: Any) -> bool:
     return False
 
 
-def validate_document(value: Any) -> bool:
+def validate_document(value: EvidenceValue) -> bool:
     """Validate document evidence."""
     if isinstance(value, str):
         return value.startswith(("http", "ipfs://"))
@@ -212,12 +226,12 @@ def validate_document(value: Any) -> bool:
     return False
 
 
-def validate_text(value: Any) -> bool:
+def validate_text(value: EvidenceValue) -> bool:
     """Validate text evidence."""
     return isinstance(value, str) and len(value) > 0
 
 
-def validate_signature(value: Any) -> bool:
+def validate_signature(value: EvidenceValue) -> bool:
     """Validate signature evidence."""
     if isinstance(value, str):
         # Image or base64
@@ -227,13 +241,13 @@ def validate_signature(value: Any) -> bool:
     return False
 
 
-def validate_receipt(value: Any) -> bool:
+def validate_receipt(value: EvidenceValue) -> bool:
     """Validate receipt evidence."""
     # Same as photo
     return validate_photo(value)
 
 
-def validate_qr_code(value: Any) -> bool:
+def validate_qr_code(value: EvidenceValue) -> bool:
     """Validate QR code evidence."""
     if isinstance(value, str):
         return len(value) > 0  # QR code content
@@ -242,7 +256,7 @@ def validate_qr_code(value: Any) -> bool:
     return False
 
 
-def validate_barcode(value: Any) -> bool:
+def validate_barcode(value: EvidenceValue) -> bool:
     """Validate barcode evidence."""
     if isinstance(value, str):
         return len(value) > 0  # Barcode number/content
@@ -251,7 +265,7 @@ def validate_barcode(value: Any) -> bool:
     return False
 
 
-def validate_audio(value: Any) -> bool:
+def validate_audio(value: EvidenceValue) -> bool:
     """Validate audio evidence."""
     if isinstance(value, str):
         return value.startswith(("http", "ipfs://", "data:audio"))

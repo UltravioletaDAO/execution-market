@@ -8,7 +8,6 @@ Network: configurable via `ERC8004_NETWORK` (Base-first default).
 """
 
 import logging
-import os
 from typing import Optional, List, Dict, Any
 
 from fastapi import APIRouter, HTTPException, Depends, Path, Query, Request
@@ -679,8 +678,12 @@ async def lookup_identity_by_wallet(
                 "wallet": wallet_lower,
                 "source": "db",
             }
-    except Exception:
-        pass
+    except Exception as _db_err:
+        logger.warning(
+            "DB identity check failed for %s, falling through to on-chain: %s",
+            wallet_lower[:10],
+            _db_err,
+        )
 
     # On-chain check
     try:
@@ -1121,11 +1124,6 @@ async def rate_agent_endpoint(
                 detail=f"Task agent ({task_agent_addr}) does not match rated agent identity ({request.agent_id})",
             )
 
-    # Use relay wallet for on-chain signing (worker→agent reputation).
-    # Relay wallet is a separate key that does NOT own Agent #2106, so no
-    # self-feedback revert. The relay wallet pays gas and signs directly.
-    # This keeps the worker as the intended rater (via relay), NOT the Facilitator.
-    relay_key = os.environ.get("EM_REPUTATION_RELAY_KEY")
     task_network = task.get("payment_network") or "base"
     result = await rate_agent(
         agent_id=request.agent_id,
@@ -1133,7 +1131,6 @@ async def rate_agent_endpoint(
         score=request.score,
         comment=request.comment or "",
         proof_tx=request.proof_tx,
-        relay_private_key=relay_key,
         network=task_network,
     )
 

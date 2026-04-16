@@ -273,7 +273,6 @@ class SwarmHeartbeatHandler:
             report.agents_active = agents.get("healthy", 0)
             report.agents_degraded = agents.get("degraded", 0)
 
-            # Check AutoJob
             systems = health_report.get("systems", {})
             report.autojob_available = systems.get("autojob") == "available"
         except Exception as e:

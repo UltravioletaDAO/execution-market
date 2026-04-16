@@ -805,7 +805,6 @@ async def api_version_all():
     except Exception as exc:
         logger.warning("Failed to create Lambda client: %s", exc)
 
-    # Check if all components match
     sha_set = {
         v.get("git_sha")
         for v in components.values()

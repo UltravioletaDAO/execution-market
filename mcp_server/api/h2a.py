@@ -39,31 +39,14 @@ from models import (
 # Payment event audit trail
 from integrations.x402.payment_events import log_payment_event
 
-# Platform configuration
-try:
-    from config import PlatformConfig
-
-    CONFIG_AVAILABLE = True
-except ImportError:
-    CONFIG_AVAILABLE = False
+# Re-use canonical fee helper from routers (avoids duplication)
+from .routers._helpers import get_platform_fee_percent
 
 logger = logging.getLogger(__name__)
 
-# Default fee (overridden by config system when available)
-DEFAULT_PLATFORM_FEE_PERCENT = Decimal("0.13")
 TREASURY_ADDRESS = os.environ.get(
     "EM_TREASURY_ADDRESS", "0xae07B067934975cF3DA0aa1D09cF373b0FED3661"
 )
-
-
-async def get_platform_fee_percent() -> Decimal:
-    """Get platform fee from config system with fallback."""
-    if CONFIG_AVAILABLE:
-        try:
-            return await PlatformConfig.get_fee_pct()
-        except Exception:
-            pass
-    return DEFAULT_PLATFORM_FEE_PERCENT
 
 
 # ---------------------------------------------------------------------------
@@ -281,8 +264,10 @@ async def _get_h2a_bounty_limits() -> tuple[Decimal, Decimal]:
                     min_bounty = Decimal(row["value"])
                 elif row["key"] == "feature.h2a_max_bounty":
                     max_bounty = Decimal(row["value"])
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(
+            "Failed to load H2A bounty limits from config, using defaults: %s", e
+        )
     return min_bounty, max_bounty
 
 

@@ -5,7 +5,6 @@ export { TaskList, CategoryFilter } from './TaskList'
 export { TaskDetail } from './TaskDetail'
 export { SubmissionForm } from './SubmissionForm'
 export { GeofenceAlert, type GeofenceAlertProps } from './GeofenceAlert'
-export { SkillSelector, type Skill } from './SkillSelector'
 export { LanguageSwitcher, LanguageSwitcherDropdown } from './LanguageSwitcher'
 export {
   PaymentStatus,

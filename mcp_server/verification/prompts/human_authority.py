@@ -14,14 +14,6 @@ These tasks involve legal instruments where fraud can have serious consequences.
 
 
 def get_category_checks(task: dict) -> str:
-    """Return category-specific verification instructions for human authority tasks.
-
-    Args:
-        task: Task dict with title, description, evidence requirements, etc.
-
-    Returns:
-        Multi-line string of forensic checks for injection into Layer 5.
-    """
     title = task.get("title", "Unknown")
     description = task.get("instructions", task.get("description", ""))
     location = task.get("location", task.get("location_text", ""))

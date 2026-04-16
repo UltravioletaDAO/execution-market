@@ -708,7 +708,6 @@ async def update_inference_agent_feedback(
     """
     client = get_client()
     try:
-        # Get all inferences for this submission
         inferences = await get_inferences_for_submission(submission_id)
         updated = 0
         for inf in inferences:
@@ -926,12 +925,9 @@ async def _update_executor_reputation(
     current_score = executor.data.get("reputation_score", 0)
     new_score = min(100, max(0, current_score + delta))
 
-    # Update score
     client.table("executors").update({"reputation_score": new_score}).eq(
         "id", executor_id
     ).execute()
-
-    # Log the change
     client.table("reputation_log").insert(
         {
             "executor_id": executor_id,
@@ -1283,13 +1279,11 @@ async def get_executor_earnings(executor_id: str) -> Dict[str, Any]:
     """Get earnings summary for an executor."""
     client = get_client()
 
-    # Get all payments
     payments_result = (
         client.table("payments").select("*").eq("executor_id", executor_id).execute()
     )
     payments = payments_result.data or []
 
-    # Calculate totals
     completed = [p for p in payments if p.get("status") == "completed"]
     pending = [p for p in payments if p.get("status") == "pending"]
     available = [p for p in payments if p.get("status") == "available"]
@@ -1302,7 +1296,7 @@ async def get_executor_earnings(executor_id: str) -> Dict[str, Any]:
         "total_earned": total_earned,
         "pending": total_pending,
         "available": total_available,
-        "payments": payments[-10:],  # Last 10 payments
+        "payments": payments[-10:],
     }
 
 
@@ -1522,7 +1516,6 @@ async def get_agent_analytics(
     # Calculate date range
     start_date = datetime.now(timezone.utc) - timedelta(days=days)
 
-    # Get all tasks for agent in date range
     tasks_result = (
         client.table("tasks")
         .select("*")
@@ -1533,14 +1526,12 @@ async def get_agent_analytics(
 
     tasks = tasks_result.data or []
 
-    # Calculate totals
     total = len(tasks)
     by_status: Dict[str, int] = {}
     by_category: Dict[str, int] = {}
     total_paid = 0.0
 
     for task in tasks:
-        # Count by status
         status = task.get("status", "unknown")
         by_status[status] = by_status.get(status, 0) + 1
 

@@ -765,7 +765,6 @@ class PipelineOptimizer:
             profile.latency_share = share
             shares[stage] = share
 
-        # Find the stage with highest share
         bottleneck_stage = max(shares, key=shares.get)
         bottleneck_share = shares[bottleneck_stage]
 

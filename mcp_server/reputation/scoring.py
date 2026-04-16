@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Union
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ FORENSIC_NEUTRAL = 10
 APPROVED_FLOOR = 75
 
 
-def _parse_iso(value: Any) -> datetime | None:
+def _parse_iso(value: Union[str, datetime, None]) -> datetime | None:
     """Best-effort parse of an ISO-8601 string into a tz-aware datetime."""
     if isinstance(value, datetime):
         if value.tzinfo is None:

@@ -522,7 +522,6 @@ class EventListener:
             [f for f in failures if f.get("status") == "expired"]
         )
 
-        # Process the task queue after ingestion
         if result.new_tasks > 0:
             try:
                 self.coordinator.process_task_queue()

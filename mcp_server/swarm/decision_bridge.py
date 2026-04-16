@@ -755,7 +755,6 @@ class DecisionBridge:
                 excluded_agents=0,
             )
 
-        # Find the best candidate's agent_id
         best_id = decision.best_candidate
         try:
             agent_id = int(best_id)
@@ -880,7 +879,6 @@ class DecisionBridge:
         if not self.feedback_enabled:
             return
 
-        # Find the decision that led to this outcome
         matching_results = [r for r in self._results if r.task_id == task_id]
 
         record = FeedbackRecord(

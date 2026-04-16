@@ -261,7 +261,6 @@ TOOL_TAGS = {
     },
 }
 
-# Initialize the MCP server with metadata
 # streamable_http_path="/" makes endpoint at mount root
 # When mounted at /mcp, the full URL is /mcp/ (trailing slash required by Starlette)
 mcp = FastMCP(

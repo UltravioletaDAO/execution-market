@@ -7,11 +7,13 @@ Contains payment, escrow, reputation, and utility helpers.
 
 import logging
 import json
-import os
 import re
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Optional, List, Dict, Any
+from typing import TYPE_CHECKING, Optional, List, Dict, Any, Union
+
+if TYPE_CHECKING:
+    from webhooks.events import WebhookEventType
 
 import supabase_client as db
 
@@ -32,14 +34,14 @@ except ImportError:
         return None
 
 
-# Payment dispatcher (x402r escrow vs preauth)
+# Payment dispatcher
 try:
     from integrations.x402.payment_dispatcher import (
         get_dispatcher as get_payment_dispatcher,
         EM_PAYMENT_MODE,
     )
 except ImportError:
-    EM_PAYMENT_MODE = "preauth"
+    EM_PAYMENT_MODE = "fase2"
 
     def get_payment_dispatcher():  # type: ignore[misc]
         return None
@@ -85,8 +87,12 @@ async def get_platform_fee_percent() -> Decimal:
     if CONFIG_AVAILABLE:
         try:
             return await PlatformConfig.get_fee_pct()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(
+                "Failed to load platform fee from config, using default %s: %s",
+                DEFAULT_PLATFORM_FEE_PERCENT,
+                e,
+            )
     return DEFAULT_PLATFORM_FEE_PERCENT
 
 
@@ -95,8 +101,10 @@ async def get_min_bounty() -> Decimal:
     if CONFIG_AVAILABLE:
         try:
             return await PlatformConfig.get_min_bounty()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(
+                "Failed to load min_bounty from config, using default 0.01: %s", e
+            )
     return Decimal("0.01")
 
 
@@ -105,8 +113,10 @@ async def get_max_bounty() -> Decimal:
     if CONFIG_AVAILABLE:
         try:
             return await PlatformConfig.get_max_bounty()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(
+                "Failed to load max_bounty from config, using default 10000.00: %s", e
+            )
     return Decimal("10000.00")
 
 
@@ -138,7 +148,7 @@ def _normalize_status(value: Optional[str]) -> str:
     return str(value or "").strip().lower()
 
 
-def _as_amount(value: Any) -> float:
+def _as_amount(value: Union[str, int, float, None]) -> float:
     try:
         return float(value)
     except (TypeError, ValueError):
@@ -189,7 +199,7 @@ def _extract_missing_column_name(error_msg: str) -> Optional[str]:
     return None
 
 
-def _sanitize_for_json(obj: Any) -> Any:
+def _sanitize_for_json(obj: Any) -> Union[float, str, dict, list, None]:
     """Recursively convert Decimal/non-JSON-serializable types to JSON-safe equivalents."""
     if isinstance(obj, Decimal):
         return float(obj)
@@ -457,7 +467,9 @@ def _is_probable_x402_header(value: Optional[str]) -> bool:
     return False
 
 
-def _extract_x402_header_from_metadata(metadata: Any) -> Optional[str]:
+def _extract_x402_header_from_metadata(
+    metadata: Union[str, dict, None],
+) -> Optional[str]:
     if not metadata:
         return None
 
@@ -1137,17 +1149,12 @@ async def _ws2_auto_rate_agent(
         from integrations.erc8004.facilitator_client import rate_agent
 
         task_network = task.get("payment_network", "base")
-        # Use relay wallet to avoid self-feedback revert when platform wallet
-        # owns Agent #2106.  The REST endpoint (reputation.py) already reads
-        # EM_REPUTATION_RELAY_KEY -- the auto-rate path must do the same.
-        relay_key = os.environ.get("EM_REPUTATION_RELAY_KEY")
         feedback_result = await rate_agent(
             agent_id=agent_erc8004_id,
             task_id=task_id or "",
             score=score,
             proof_tx=release_tx,
             network=task_network,
-            relay_private_key=relay_key,
         )
 
         if feedback_result.success:
@@ -1328,13 +1335,11 @@ async def _settle_submission_payment(
         return {"payment_tx": release_tx, "payment_error": None}
 
     payment_header = _resolve_task_payment_header(task_id, task.get("escrow_tx"))
-    # For x402r/fase1/fase2 mode, payment header is not needed at settlement time.
-    # Only block if we're in preauth mode and have no header.
+    # For fase1/fase2 mode, payment header is not needed at settlement time.
     dispatcher = get_payment_dispatcher()
-    is_x402r = dispatcher and dispatcher.get_mode() == "x402r"
     is_fase1 = dispatcher and dispatcher.get_mode() == "fase1"
     is_fase2 = dispatcher and dispatcher.get_mode() == "fase2"
-    if not payment_header and not is_x402r and not is_fase1 and not is_fase2:
+    if not payment_header and not is_fase1 and not is_fase2:
         return {
             "payment_tx": None,
             "payment_error": f"No x402 payment header found for task {task_id}",
@@ -1351,7 +1356,7 @@ async def _settle_submission_payment(
         }
 
     # Prevent self-payment: compare worker wallet vs agent's actual wallet.
-    # For x402r mode, payment_header may be None (settled at task creation),
+    # Payment header may be None (settled at task creation in fase2),
     # so fall back to escrow beneficiary_address from the task record.
     agent_wallet = _extract_agent_wallet_from_header(payment_header)
     if not agent_wallet and task:
@@ -1398,7 +1403,7 @@ async def _settle_submission_payment(
         }
 
     try:
-        # Use PaymentDispatcher to route to x402r escrow, preauth, or fase1
+        # Use PaymentDispatcher to route to fase1 or fase2
         dispatcher = get_payment_dispatcher()
         task_network = task.get("payment_network") or "base"
         task_token = task.get("payment_token") or "USDC"
@@ -1816,7 +1821,7 @@ def _build_explorer_url(
 
 
 async def dispatch_webhook(
-    event_type: Any,
+    event_type: "WebhookEventType",
     payload: Dict[str, Any],
     owner_id: Optional[str] = None,
 ) -> None:

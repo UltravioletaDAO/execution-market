@@ -266,7 +266,6 @@ async def record_handoff(
     auth: AgentAuth = Depends(verify_agent_auth_write),
 ):
     """Record a handoff between relay workers. Requires matching handoff code."""
-    # Get the leg
     leg_resp = (
         db.client.table("relay_legs")
         .select("*")

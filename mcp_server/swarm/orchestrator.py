@@ -316,7 +316,6 @@ class SwarmOrchestrator:
 
         self.lifecycle.record_error(agent_id, error or f"Task {task_id} failed")
 
-        # Update internal reputation if available
         if agent_id in self._internal:
             self._internal[agent_id].consecutive_failures += 1
 
