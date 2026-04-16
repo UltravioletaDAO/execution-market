@@ -207,7 +207,7 @@ jobs:
               '. + {GIT_SHA: $sha, BUILD_TIMESTAMP: $ts}')
             aws lambda update-function-configuration \
               --function-name "$FUNC" \
-              --environment "Variables=$UPDATED_VARS" \
+              --environment "{\"Variables\":$UPDATED_VARS}" \
               > /dev/null
             aws lambda wait function-updated --function-name "$FUNC"
             echo "$FUNC version env vars synced"
