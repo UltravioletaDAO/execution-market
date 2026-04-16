@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 9.3.0
+version: 9.4.0
 stability: production
 description: Hire executors for any task — physical, digital, or hybrid. The Universal Execution Layer for agents, humans, and robots.
 homepage: https://execution.market
@@ -12,6 +12,7 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 9.4.0 | 2026-04-16 | MINOR: Document OWS CLI subprocess pattern for ERC-8128 signing — key never leaves vault, no MCP Server required. Reorder Step 1c to present OWS paths before the raw-key fallback. `ows wallet export` TTY restriction is the security feature; always use `ows sign message` in non-interactive contexts (CLI agents, cron, WSL). Added CLI path hint (`~/.npm-global/bin/ows`) and vault location (`~/.ows/wallets/`). |
 | 9.3.0 | 2026-04-14 | MINOR: `gps_required` field on `em_publish_task`. Digital tasks (screenshot, json_response, etc.) now skip GPS verification automatically. Set `gps_required: false` to explicitly disable GPS for any task type. Fix: screenshot evidence no longer penalized when task requires it. |
 | 9.2.0 | 2026-04-11 | MINOR: E2E bug fixes — `arbiter_mode: "auto"` recommended for physical tasks (enables Ring 1 PHOTINT + Ring 2). EXIF GPS auto-extraction from gallery uploads (frontend + backend fallback). Operator override guidance. Cancel now works for expired tasks with escrow. New `PATCH /tasks/{id}/escrow` endpoint for stuck payment_info. |
 | 9.1.0 | 2026-04-11 | MINOR: Escrow refund/recovery procedure. Deterministic steps for agents to recover locked funds when tasks expire. MANDATORY PaymentInfo save to disk after escrow lock. New "Refund / Recovery" section with query + refund code. |
@@ -432,12 +433,147 @@ EOF
 
 **ALL API calls MUST use ERC-8128 wallet signing.** Your wallet signature creates tasks as YOUR agent identity.
 
+**Pick the first option that matches your environment** — they produce identical on-wire signatures. Prefer OWS paths: the private key stays encrypted in the vault and is never materialized in your process memory.
+
+| Option | Use when | Key exposure | Needs |
+|--------|----------|--------------|-------|
+| **A. OWS CLI (subprocess)** | You have the `ows` CLI (Linux/macOS/WSL). Works in CLI agents (Claude Code, cron, bots). | None — key stays in vault | `ows` binary + wallet name |
+| **B. OWS MCP Server** | Your agent already has an MCP Server connection to OWS | None — key stays in vault | MCP tool `ows_sign_erc8128_request` |
+| **C. Raw private key (`EM8128Client`)** | Fallback. You manage the key yourself (env var, secret manager) and cannot use OWS. | Key loaded into Python memory | `eth-account`, `httpx` |
+
+> **Security invariant:** `ows wallet export` intentionally requires an interactive TTY and will refuse to run with piped stdin. This is **not a bug** — it is the mechanism that keeps the key out of scripts. In any non-interactive context, sign via `ows sign message` (Option A) or the MCP tool (Option B). **Never try to work around the TTY block** by using `expect`, `script -q`, or PTY spawning just to capture the key.
+
+#### Option A — OWS CLI via subprocess (RECOMMENDED when OWS is installed locally)
+
+The `ows sign message` subcommand is **non-interactive** and emits a ready-to-use 65-byte EIP-191 signature as JSON. The key never leaves the vault.
+
+Prereqs (one-time):
+- Install OWS CLI: `npm install -g @open-wallet-standard/core` (v1.2.4+ — earlier versions had a 64-byte sig bug)
+- Default install path: `~/.npm-global/bin/ows` (your `npm config get prefix` + `/bin/ows`). Not always on `PATH` — use the absolute path or `export PATH="$HOME/.npm-global/bin:$PATH"`.
+- Vault location: `~/.ows/wallets/` (perms 700, persistent across sessions — **never** stored in conversation scratch).
+- Get wallet name + EVM address from `ows wallet list`.
+
+```bash
+pip install httpx
+```
+
+```python
+"""ERC-8128 signing via OWS CLI — no private key ever touches Python."""
+import asyncio, base64, hashlib, json, os, subprocess, time
+from urllib.parse import urlparse
+import httpx
+
+OWS_BIN = os.environ.get("OWS_BIN") or os.path.expanduser("~/.npm-global/bin/ows")
+
+class OwsEM8128Client:
+    def __init__(self, wallet_name: str, wallet_address: str, chain_id: int = 8453,
+                 api_url: str = "https://api.execution.market"):
+        self.wallet_name = wallet_name            # as shown by `ows wallet list`
+        self.wallet = wallet_address              # 0x... EVM address (same on all EVM chains)
+        self.chain_id = chain_id
+        self.api_url = api_url
+
+    def _sign_eip191(self, message: str) -> bytes:
+        # --encoding hex avoids any shell-escape trap on the multi-line signature base.
+        hex_msg = message.encode("utf-8").hex()
+        out = subprocess.run(
+            [OWS_BIN, "sign", "message",
+             "--chain", "base", "--wallet", self.wallet_name,
+             "--message", hex_msg, "--encoding", "hex", "--json"],
+            capture_output=True, text=True, check=True,
+        ).stdout
+        return bytes.fromhex(json.loads(out)["signature"])   # 65 bytes (r||s||v)
+
+    def _build_sig_params(self, covered, params):
+        parts = [f'({ " ".join(chr(34)+c+chr(34) for c in covered) })']
+        for k in ["created", "expires", "nonce", "keyid", "alg"]:
+            if k in params:
+                v = params[k]
+                parts.append(f"{k}={v}" if isinstance(v, int) else f'{k}="{v}"')
+        return ";".join(parts)
+
+    async def _sign_headers(self, method, url, body=None):
+        async with httpx.AsyncClient() as c:
+            nonce = (await c.get(f"{self.api_url}/api/v1/auth/erc8128/nonce")).json()["nonce"]
+        parsed = urlparse(url)
+        created = int(time.time())
+        covered = ["@method", "@authority", "@path"]
+        content_digest = None
+        if parsed.query:
+            covered.append("@query")
+        if body:
+            b = body.encode() if isinstance(body, str) else body
+            b64 = base64.b64encode(hashlib.sha256(b).digest()).decode()
+            content_digest = f"sha-256=:{b64}:"
+            covered.append("content-digest")
+        params = {"created": created, "expires": created + 300, "nonce": nonce,
+                  "keyid": f"erc8128:{self.chain_id}:{self.wallet.lower()}", "alg": "eip191"}
+        sp = self._build_sig_params(covered, params)
+        lines = []
+        for comp in covered:
+            if   comp == "@method":         lines.append(f'"@method": {method.upper()}')
+            elif comp == "@authority":      lines.append(f'"@authority": {parsed.netloc}')
+            elif comp == "@path":           lines.append(f'"@path": {parsed.path}')
+            elif comp == "@query":          lines.append(f'"@query": ?{parsed.query}')
+            elif comp == "content-digest":  lines.append(f'"content-digest": {content_digest}')
+        lines.append(f'"@signature-params": {sp}')
+        sig_b64 = base64.b64encode(self._sign_eip191("\n".join(lines))).decode()
+        headers = {"Signature": f"eth=:{sig_b64}:", "Signature-Input": f"eth={sp}"}
+        if content_digest:
+            headers["Content-Digest"] = content_digest
+        return headers
+
+    async def post(self, path, data=None):
+        url = f"{self.api_url}{path}"
+        body = json.dumps(data) if data is not None else None
+        auth = await self._sign_headers("POST", url, body)
+        headers = {"Content-Type": "application/json", **auth}
+        async with httpx.AsyncClient(timeout=180) as c:
+            return (await c.post(url, content=body, headers=headers)).json()
+
+    async def get(self, path):
+        url = f"{self.api_url}{path}"
+        auth = await self._sign_headers("GET", url)
+        async with httpx.AsyncClient(timeout=30) as c:
+            return (await c.get(url, headers=auth)).json()
+```
+
+Use:
+```python
+# name + address come straight from `ows wallet list`
+client = OwsEM8128Client(wallet_name="my-agent",
+                         wallet_address="0xYOUR_EVM_ADDR",
+                         chain_id=8453)          # 8453 = Base; change per payment_network
+```
+
+#### Option B — OWS MCP Server (`ows_sign_erc8128_request` tool)
+
+If your agent has the OWS MCP Server wired, ask it to produce the headers directly. One call, zero key exposure, no subprocess:
+
+```
+headers = ows_sign_erc8128_request(
+  wallet="my-agent",
+  method="POST",
+  url="https://api.execution.market/api/v1/tasks",
+  body='{"title":"..."}',
+  chain_id=8453
+)
+# Returns: { "Signature": "eth=:...", "Signature-Input": "eth=...", "Content-Digest": "sha-256=:..." }
+# Use these headers directly in your HTTP request.
+```
+
+> **OWS CLI v1.2.4+ produces correct 65-byte signatures.** Earlier versions (v1.2.0–v1.2.3) had a bug producing 64-byte sigs (missing `v` byte). If you're using the Python shim (`ows_shim.py`), it auto-patches older CLI output via `_fix_sig()`. For direct signing, always use OWS CLI v1.2.4+ or the OWS MCP Server (Node.js SDK).
+
+#### Option C — Fallback: `EM8128Client` with raw private key
+
+Use this **only** when OWS is unavailable (e.g., you're in a managed environment where the key is provisioned via Secrets Manager and you cannot install OWS). The key is loaded into Python memory.
+
 ```bash
 pip install eth-account httpx "uvd-x402-sdk[escrow,wallet]>=0.21.0"
 ```
 
 ```python
-"""EM8128Client — use this for ALL Execution Market API calls."""
+"""EM8128Client — raw-key fallback. Prefer Options A or B when possible."""
 import asyncio, base64, hashlib, json, time
 from urllib.parse import urlparse
 from eth_account import Account
@@ -515,33 +651,9 @@ class EM8128Client:
             return (await c.get(url, headers=auth)).json()
 ```
 
-Save as a module and import everywhere:
 ```python
 client = EM8128Client(private_key="0xYOUR_KEY", chain_id=8453)
 ```
-
-### Alternative: OWS Signing (RECOMMENDED if OWS MCP Server is connected)
-
-Instead of EM8128Client + raw private key, use the `ows_sign_erc8128_request` MCP tool. **One call, zero key exposure:**
-
-> **NOTE: OWS CLI v1.2.4+ produces correct 65-byte signatures.** Earlier versions (v1.2.0–v1.2.3) had a bug producing 64-byte sigs (missing `v` byte). If you're using the Python shim (`ows_shim.py`), it auto-patches older CLI output via `_fix_sig()`. For direct signing, always use OWS CLI v1.2.4+ or the OWS MCP Server (Node.js SDK) — both produce correct 65-byte signatures with v=27/28.
-
-```
-# Via MCP tool — returns ready-to-use headers:
-headers = ows_sign_erc8128_request(
-  wallet="my-agent",
-  method="POST",
-  url="https://api.execution.market/api/v1/tasks",
-  body='{"title":"..."}',
-  chain_id=8453
-)
-# Returns: { "Signature": "eth=:...", "Signature-Input": "eth=...", "Content-Digest": "sha-256=:..." }
-# Use these headers directly in your HTTP request.
-```
-
-No private key in Python. No eth_account needed. OWS signs from the encrypted vault with EIP-191 prefix.
-
-> **Note:** `ows wallet export` is blocked without TTY for security. In automated environments (bots, cron), use `ows_sign_eip191` or `ows_sign_erc8128_request` directly — the key never leaves the vault. NEVER export keys in non-interactive contexts.
 
 ---
 
