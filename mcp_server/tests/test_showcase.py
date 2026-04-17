@@ -86,14 +86,31 @@ def _client(response: MagicMock) -> MagicMock:
 
 GOOD_ROW = {
     "id": "sub-1",
-    "evidence_files": ["https://cdn.execution.market/evidence/photo1.jpg"],
+    # Prod schema: URLs live inside the `evidence` jsonb, keyed by capture type.
+    # `evidence_files` array is legacy and never populated in practice.
+    "evidence": {
+        "photo_geo": {
+            "type": "photo_geo",
+            "fileUrl": "https://cdn.execution.market/evidence/photo1.jpg",
+            "filename": "storefront.jpg",
+            "mimeType": "image/jpeg",
+            "metadata": {
+                "size": 342775,
+                "backend": "supabase",
+                "forensic": {
+                    # PII that MUST NOT leak to the response:
+                    "gps": {"latitude": 4.711, "longitude": -74.072, "accuracy": 96},
+                    "device": {"platform": "Win32", "userAgent": "Mozilla/5.0"},
+                    "capture_timestamp": "2026-04-16T12:00:00Z",
+                },
+            },
+        },
+    },
     "evidence_metadata": {
         # PII that MUST NOT leak to the response:
-        "gps": {"lat": 4.711, "lng": -74.072, "verified": True},
         "exif": {"camera": "iPhone 15", "verified": True, "raw": "<blob>"},
         "device": {"fingerprint": "abc123"},
         # Legitimate public fields:
-        "capture_timestamp": "2026-04-16T12:00:00Z",
         "blurhash": "L6PZfSi_.AyE_3t7t7R**0o#DgR4",
     },
     "ai_verification_result": {"world_id_verified": True, "timestamp_verified": True},
@@ -121,7 +138,8 @@ GOOD_ROW = {
 
 ROW_NO_IMAGE = {
     "id": "sub-2",
-    "evidence_files": [],
+    # Text-only submission — no image keys, should be filtered out by _serialize_item.
+    "evidence": {"text_response": "completed via skill, no photo"},
     "evidence_metadata": {},
     "ai_verification_result": None,
     "paid_at": "2026-04-16T11:00:00Z",

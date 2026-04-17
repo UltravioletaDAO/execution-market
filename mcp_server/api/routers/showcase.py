@@ -217,31 +217,97 @@ def _sanitize_display_name(raw: Optional[str], fallback: str) -> str:
     return cleaned[:_DISPLAY_NAME_MAX]
 
 
-def _primary_image_url(files: Any) -> Optional[str]:
-    if not isinstance(files, list):
+_IMAGE_EVIDENCE_KEYS: Tuple[str, ...] = ("photo_geo", "photo", "screenshot")
+
+
+def _primary_image_url(evidence_jsonb: Any) -> Optional[str]:
+    """Extract a displayable image URL from the `evidence` jsonb column.
+
+    Historical `evidence_files` array was never populated in practice —
+    the real storage shape is `{<type>: {fileUrl, filename, metadata, ...}}`
+    where <type> is one of photo_geo | photo | screenshot (or non-image
+    keys like text_response / json_response which we skip).
+    """
+    if not isinstance(evidence_jsonb, dict):
         return None
-    for url in files:
+    for key in _IMAGE_EVIDENCE_KEYS:
+        node = evidence_jsonb.get(key)
+        if not isinstance(node, dict):
+            continue
+        url = node.get("fileUrl") or node.get("url")
         if isinstance(url, str) and url.startswith(("http://", "https://")):
             return url
     return None
 
 
-def _extract_verification(ai_result: Any, evidence_metadata: Any) -> VerificationBadges:
+def _image_count(evidence_jsonb: Any) -> int:
+    if not isinstance(evidence_jsonb, dict):
+        return 0
+    count = 0
+    for key in _IMAGE_EVIDENCE_KEYS:
+        node = evidence_jsonb.get(key)
+        if not isinstance(node, dict):
+            continue
+        url = node.get("fileUrl") or node.get("url")
+        if isinstance(url, str) and url.startswith(("http://", "https://")):
+            count += 1
+    return count
+
+
+def _primary_forensic_metadata(evidence_jsonb: Any) -> Dict[str, Any]:
+    """Pull the forensic sub-tree from whichever image key is present.
+
+    Structure observed in prod: `evidence[<type>].metadata.forensic = {gps, device, capture_timestamp, source}`.
+    We only surface pass-flag booleans downstream, never raw values.
+    """
+    if not isinstance(evidence_jsonb, dict):
+        return {}
+    for key in _IMAGE_EVIDENCE_KEYS:
+        node = evidence_jsonb.get(key)
+        if not isinstance(node, dict):
+            continue
+        metadata = node.get("metadata")
+        if isinstance(metadata, dict):
+            forensic = metadata.get("forensic")
+            if isinstance(forensic, dict):
+                return forensic
+    return {}
+
+
+def _extract_verification(
+    ai_result: Any,
+    evidence_metadata: Any,
+    forensic: Optional[Dict[str, Any]] = None,
+) -> VerificationBadges:
     """Read only the boolean pass flags. Never surface scores, reasons,
-    provider names, or raw GPS/EXIF — those are internal audit data."""
+    provider names, or raw GPS/EXIF — those are internal audit data.
+
+    Prod submissions keep forensic data at
+    `evidence.<type>.metadata.forensic.{gps, capture_timestamp, ...}`.
+    Presence of GPS coords or a capture timestamp is treated as "captured",
+    which is what the badges signal to the public viewer.
+    """
     badges = VerificationBadges()
 
     ai = ai_result if isinstance(ai_result, dict) else {}
     meta = evidence_metadata if isinstance(evidence_metadata, dict) else {}
+    fore = forensic if isinstance(forensic, dict) else {}
 
-    gps = meta.get("gps") if isinstance(meta.get("gps"), dict) else None
-    badges.gps_verified = bool(gps and gps.get("verified"))
+    gps_meta = meta.get("gps") if isinstance(meta.get("gps"), dict) else None
+    gps_fore = fore.get("gps") if isinstance(fore.get("gps"), dict) else None
+    badges.gps_verified = bool(
+        (gps_meta and (gps_meta.get("verified") or gps_meta.get("latitude") is not None))
+        or (gps_fore and gps_fore.get("latitude") is not None)
+    )
 
-    exif = meta.get("exif") if isinstance(meta.get("exif"), dict) else None
-    badges.exif_verified = bool(exif and exif.get("verified"))
+    exif_meta = meta.get("exif") if isinstance(meta.get("exif"), dict) else None
+    badges.exif_verified = bool(exif_meta and exif_meta.get("verified"))
 
-    timestamp_pass = ai.get("timestamp_verified") or meta.get("capture_timestamp")
-    badges.timestamp_verified = bool(timestamp_pass)
+    badges.timestamp_verified = bool(
+        ai.get("timestamp_verified")
+        or meta.get("capture_timestamp")
+        or fore.get("capture_timestamp")
+    )
 
     badges.world_id_verified = bool(
         ai.get("world_id_verified") or meta.get("world_id_verified")
@@ -281,7 +347,8 @@ def _serialize_item(row: Dict[str, Any]) -> Optional[ShowcaseEvidence]:
     if isinstance(executor, list):
         executor = executor[0] if executor else {}
 
-    primary = _primary_image_url(row.get("evidence_files"))
+    evidence_jsonb = row.get("evidence")
+    primary = _primary_image_url(evidence_jsonb)
     if not primary:
         return None
 
@@ -294,6 +361,8 @@ def _serialize_item(row: Dict[str, Any]) -> Optional[ShowcaseEvidence]:
         rating = round(float(rating_raw), 2) if rating_raw is not None else None
     except (TypeError, ValueError):
         rating = None
+
+    forensic = _primary_forensic_metadata(evidence_jsonb)
 
     return ShowcaseEvidence(
         id=str(row["id"]),
@@ -314,13 +383,12 @@ def _serialize_item(row: Dict[str, Any]) -> Optional[ShowcaseEvidence]:
         ),
         evidence=EvidencePreview(
             primary_image_url=primary,
-            image_count=sum(
-                1 for f in (row.get("evidence_files") or []) if isinstance(f, str)
-            ),
+            image_count=_image_count(evidence_jsonb),
             blurhash=_blurhash(row.get("evidence_metadata")),
             verification=_extract_verification(
                 row.get("ai_verification_result"),
                 row.get("evidence_metadata"),
+                forensic=forensic,
             ),
         ),
     )
@@ -342,7 +410,7 @@ def _build_query(
 
     select_expr = (
         "id,"
-        "evidence_files,"
+        "evidence,"
         "evidence_metadata,"
         "ai_verification_result,"
         "paid_at,"
@@ -360,6 +428,7 @@ def _build_query(
         .select(select_expr)
         .eq("agent_verdict", "accepted")
         .not_.is_("paid_at", "null")
+        .not_.is_("evidence", "null")
         .or_("show_in_showcase.is.null,show_in_showcase.eq.true")
     )
 
@@ -390,8 +459,11 @@ def _build_query(
         # an OR: paid_at < cursor.paid_at, or (paid_at == cursor.paid_at AND id < cursor.id).
         q = q.or_(f"paid_at.lt.{paid_at},and(paid_at.eq.{paid_at},id.lt.{sub_id})")
 
-    # +1 sentinel row so we can tell whether a next page exists.
-    q = q.limit(limit + 1)
+    # Over-fetch so we can filter out submissions whose `evidence` jsonb only
+    # holds text_response / json_response (no displayable image). Factor of 3
+    # covers the observed ratio (~1/3 of paid accepted submissions are
+    # text-only) with headroom. The HTTP response still honours `limit`.
+    q = q.limit(max((limit + 1) * 3, 15))
     return q
 
 
@@ -410,14 +482,17 @@ def _fetch_items(
         raise HTTPException(status_code=503, detail="Showcase unavailable") from exc
 
     rows = list(result.data or [])
-    has_more = len(rows) > limit
-    rows = rows[:limit]
 
     items: List[ShowcaseEvidence] = []
     for row in rows:
         item = _serialize_item(row)
         if item is not None:
             items.append(item)
+        if len(items) > limit:
+            break
+
+    has_more = len(items) > limit
+    items = items[:limit]
 
     next_cursor: Optional[str] = None
     if has_more and items:
