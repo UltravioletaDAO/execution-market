@@ -11,6 +11,8 @@ from typing import Optional, Dict, Any
 from fastapi import APIRouter, HTTPException, Depends, Path, Query
 from pydantic import BaseModel, Field
 
+import supabase_client as db
+
 # x402 SDK (facilitator-backed, gasless)
 try:
     from integrations.x402.sdk_client import get_sdk, SDK_AVAILABLE
@@ -312,6 +314,48 @@ async def refund_to_agent(
     """
     if not X402_SDK_AVAILABLE:
         raise HTTPException(status_code=503, detail="x402 SDK not available")
+
+    # Ownership check: escrow must belong to the calling agent (P0-1).
+    # Any authenticated agent could previously refund any deposit_id.
+    try:
+        client = db.get_client()
+        lookup = (
+            client.table("escrows")
+            .select("agent_id, status")
+            .eq("escrow_id", request.deposit_id)
+            .limit(1)
+            .execute()
+        )
+        rows = lookup.data or []
+    except HTTPException:
+        raise
+    except Exception as db_err:
+        logger.error("Escrow ownership lookup failed: %s", db_err)
+        raise HTTPException(status_code=500, detail="Ownership check failed")
+
+    if not rows:
+        raise HTTPException(status_code=404, detail="Escrow not found")
+
+    owner_agent_id = rows[0].get("agent_id")
+    if owner_agent_id != auth.agent_id:
+        logger.warning(
+            "Refund denied: agent=%s attempted refund of escrow owned by=%s (deposit=%s)",
+            auth.agent_id,
+            owner_agent_id,
+            request.deposit_id[:16],
+        )
+        raise HTTPException(
+            status_code=403,
+            detail="Escrow does not belong to authenticated agent",
+        )
+
+    # Only allow refund from a fundable/refundable state
+    current_status = rows[0].get("status")
+    if current_status not in ("funded", "locked", "deposited", "pending"):
+        raise HTTPException(
+            status_code=409,
+            detail=f"Escrow not refundable in status={current_status}",
+        )
 
     try:
         sdk = get_sdk()
