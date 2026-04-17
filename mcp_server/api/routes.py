@@ -28,6 +28,7 @@ from .routers.worldid import router as worldid_router
 from .routers.ens import router as ens_router
 from .routers.disputes import router as disputes_router
 from .routers.arbiter_public import router as arbiter_public_router
+from .routers.showcase import router as showcase_router
 
 # ---------------------------------------------------------------------------
 # Aggregated router — imported by api/__init__.py as ``api_router``
@@ -50,6 +51,7 @@ router.include_router(worldid_router)
 router.include_router(ens_router)
 router.include_router(disputes_router)
 router.include_router(arbiter_public_router)
+router.include_router(showcase_router)
 
 # ---------------------------------------------------------------------------
 # Backward-compatible re-exports used by tests and jobs

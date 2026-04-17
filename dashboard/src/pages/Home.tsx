@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, lazy, Suspense } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
@@ -14,6 +14,13 @@ import { ERC8128Section } from '../components/landing/ERC8128Section'
 import { OWSSection } from '../components/landing/OWSSection'
 import { H2ASection } from '../components/landing/H2ASection'
 import { ActivityFeed } from '../components/feed'
+import { CarouselSkeleton } from '../components/landing/showcase/CarouselSkeleton'
+
+// Lazy-loaded so Embla + blurhash stay out of the LCP bundle.
+const EvidenceCarousel = lazy(() => import('../components/landing/EvidenceCarousel'))
+
+const EVIDENCE_CAROUSEL_ENABLED =
+  import.meta.env.VITE_ENABLE_EVIDENCE_CAROUSEL === 'true'
 
 export function Home() {
   const navigate = useNavigate()
@@ -127,6 +134,12 @@ export function Home() {
           ref={taskSectionRef}
           onAuthRequired={handleConnectWallet}
         />
+
+        {EVIDENCE_CAROUSEL_ENABLED && (
+          <Suspense fallback={<CarouselSkeleton />}>
+            <EvidenceCarousel />
+          </Suspense>
+        )}
 
         <HowItWorks
           onConnectWallet={handleConnectWallet}

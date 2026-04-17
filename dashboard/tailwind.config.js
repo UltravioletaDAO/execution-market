@@ -227,6 +227,10 @@ export default {
           '60%': { opacity: '1', transform: 'translateY(0)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
+        scanline: {
+          '0%': { transform: 'translateY(0)', opacity: '0.9' },
+          '100%': { transform: 'translateY(100%)', opacity: '0' },
+        },
       },
       boxShadow: {
         'glow': '0 0 20px rgba(0, 0, 0, 0.2)',
