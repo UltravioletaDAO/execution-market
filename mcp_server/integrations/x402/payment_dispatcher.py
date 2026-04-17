@@ -1211,6 +1211,31 @@ class PaymentDispatcher:
         if missing_pi:
             raise ValueError(f"X-Payment-Auth paymentInfo missing fields: {missing_pi}")
 
+        # Temporal validity check (prevents expired/premature pre-auth relay)
+        import time
+
+        now = int(time.time())
+
+        try:
+            valid_after = int(auth["validAfter"])
+            valid_before = int(auth["validBefore"])
+        except (ValueError, TypeError) as e:
+            raise ValueError(f"X-Payment-Auth validAfter/validBefore not integer: {e}")
+
+        if valid_before <= now:
+            raise ValueError(
+                f"X-Payment-Auth expired: validBefore={valid_before} <= now={now} "
+                f"(expired {now - valid_before}s ago)"
+            )
+
+        if valid_after > now:
+            # Small clock skew tolerance: 30s
+            if valid_after - now > 30:
+                raise ValueError(
+                    f"X-Payment-Auth not yet valid: validAfter={valid_after} > now={now} "
+                    f"(not valid for {valid_after - now}s)"
+                )
+
         # ── SC-001: Validate against NETWORK_CONFIG ──────────────────
         # Prevents attacker from routing funds to a malicious operator
         # or unauthorized token contract.
@@ -1318,6 +1343,34 @@ class PaymentDispatcher:
                     f"Operator mismatch: signed {signed_operator[:10]}... "
                     f"does not match expected {expected_operator[:10]}... for {network}"
                 ),
+            }
+
+        # SC-010: Defensive — worker cannot be treasury, operator, zero address,
+        # or the payer itself. Prevents upstream bugs (like INC Feb 2026) from
+        # routing funds to prohibited destinations with no refund path.
+        from_address = (inner.get("authorization", {}).get("from") or "").lower()
+        worker_lower = (worker_address or "").lower()
+
+        forbidden_receivers = {
+            EM_TREASURY.lower(): "EM_TREASURY",
+            operator.lower(): "operator",
+            "0x0000000000000000000000000000000000000000": "zero address",
+        }
+        if from_address:
+            forbidden_receivers[from_address] = "payer (wash trade)"
+
+        if worker_lower in forbidden_receivers:
+            reason = forbidden_receivers[worker_lower]
+            logger.error(
+                "SC-010 REJECT: worker_address=%s is forbidden (%s), refusing to relay",
+                worker_address,
+                reason,
+            )
+            return {
+                "success": False,
+                "tx_hash": None,
+                "escrow_status": "forbidden_receiver",
+                "error": f"worker_address cannot be {reason}",
             }
 
         pi["receiver"] = worker_address
