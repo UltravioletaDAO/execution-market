@@ -17,11 +17,16 @@ RUN pip wheel --no-cache-dir --no-deps --wheel-dir /app/wheels -r requirements.t
 
 # Download geo_match datasets (cached layer — invalidates only if this block changes)
 # Dataset details: mcp_server/verification/geo_match/data/README.md
+# Geonames occasionally rate-limits anonymous curl → retry with UA + backoff.
 RUN mkdir -p /app/geo_data && cd /app/geo_data \
-    && curl -fsSL -o cities500.zip https://download.geonames.org/export/dump/cities500.zip \
+    && curl -fsSL --retry 5 --retry-delay 10 --retry-all-errors \
+        -A "Mozilla/5.0 (X11; Linux x86_64) ExecutionMarketBuilder/1.0" \
+        -o cities500.zip https://download.geonames.org/export/dump/cities500.zip \
     && python -c "import zipfile; zipfile.ZipFile('cities500.zip').extract('cities500.txt', '.')" \
     && rm cities500.zip \
-    && curl -fsSL -o us_zips.zip https://simplemaps.com/static/data/us-zips/1.86/basic/simplemaps_uszips_basicv1.86.zip \
+    && curl -fsSL --retry 5 --retry-delay 10 --retry-all-errors \
+        -A "Mozilla/5.0 (X11; Linux x86_64) ExecutionMarketBuilder/1.0" \
+        -o us_zips.zip https://simplemaps.com/static/data/us-zips/1.86/basic/simplemaps_uszips_basicv1.86.zip \
     && python -c "import zipfile; zipfile.ZipFile('us_zips.zip').extract('uszips.csv', '.')" \
     && mv uszips.csv us_zips.csv \
     && rm us_zips.zip \
