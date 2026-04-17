@@ -17,11 +17,19 @@ Scenarios covered:
 No live network calls — Nominatim is mocked. Static datasets are
 monkey-patched via `reset_index_for_tests` so the test runs in CI
 environments that don't ship the data files.
+
+Flag toggling: tests use `monkeypatch.setattr` on the module-level
+`EM_GEO_MATCH_ENABLED` constant. This deliberately avoids
+`importlib.reload(pipeline)` — reload rebuilds the `VerificationResult`
+class identity, which breaks `isinstance()` checks in sibling tests that
+imported the ORIGINAL class at module load time (see CI regression where
+`tests/test_verification_pipeline.py` started failing after WS-5 landed).
+`monkeypatch.setattr` auto-restores on teardown, so no custom reset
+fixture is needed.
 """
 
 from __future__ import annotations
 
-import importlib
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -33,6 +41,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from verification.geo_match import MatchMode  # noqa: E402
 from verification.geo_match.static_us import USZipEntry  # noqa: E402
+import verification.pipeline as pipeline  # noqa: E402
 
 
 pytestmark = [pytest.mark.verification]
@@ -168,18 +177,14 @@ def patched_static_datasets():
         _GLOBAL_ENTRIES.clear()
 
 
-def _reload_pipeline_with_flag(value: str):
-    """Re-import verification.pipeline with EM_GEO_MATCH_ENABLED at the given value.
+def _set_flag(monkeypatch, value: bool) -> None:
+    """Toggle the module-level `EM_GEO_MATCH_ENABLED` flag for the test.
 
-    The flag is read once at module import time. This helper mutates the
-    env var, reloads the module, and returns the reloaded module.
+    The pipeline reads the flag as a module global at call time (inside
+    `_run_geo_match`), so patching the attribute is sufficient — no
+    reload required. `monkeypatch.setattr` auto-restores on teardown.
     """
-    import os
-
-    os.environ["EM_GEO_MATCH_ENABLED"] = value
-    import verification.pipeline as pipeline_module
-
-    return importlib.reload(pipeline_module)
+    monkeypatch.setattr(pipeline, "EM_GEO_MATCH_ENABLED", value)
 
 
 # ---------------------------------------------------------------------------
@@ -188,9 +193,11 @@ def _reload_pipeline_with_flag(value: str):
 
 
 @pytest.mark.asyncio
-async def test_flag_off_pipeline_has_no_match_result(patched_static_datasets):
+async def test_flag_off_pipeline_has_no_match_result(
+    patched_static_datasets, monkeypatch
+):
     """With EM_GEO_MATCH_ENABLED=false, pipeline result has no match_result."""
-    pipeline = _reload_pipeline_with_flag("false")
+    _set_flag(monkeypatch, False)
 
     # Patch the EXIF fallback so it doesn't try to download the fake URL.
     with patch.object(
@@ -215,9 +222,9 @@ async def test_flag_off_pipeline_has_no_match_result(patched_static_datasets):
 
 
 @pytest.mark.asyncio
-async def test_flag_on_miami_city_match_passes(patched_static_datasets):
+async def test_flag_on_miami_city_match_passes(patched_static_datasets, monkeypatch):
     """With flag on + mode=city + Miami hint, matcher returns passed=True."""
-    pipeline = _reload_pipeline_with_flag("true")
+    _set_flag(monkeypatch, True)
 
     sub = _submission()
     task = _task(geo_match_mode="city", location_hint="Miami, FL, USA")
@@ -251,7 +258,9 @@ async def test_flag_on_miami_city_match_passes(patched_static_datasets):
 
 
 @pytest.mark.asyncio
-async def test_flag_on_tokyo_hint_with_miami_coords_fails(patched_static_datasets):
+async def test_flag_on_tokyo_hint_with_miami_coords_fails(
+    patched_static_datasets, monkeypatch
+):
     """Cross-country mismatch (Miami GPS + Tokyo hint) → passed=False."""
     from verification.geo_match.static_global import GlobalCity
 
@@ -266,11 +275,10 @@ async def test_flag_on_tokyo_hint_with_miami_coords_fails(patched_static_dataset
         population=8_336_599,
     )
     # Inject Tokyo into the shared registry so the matcher's global lookup
-    # returns it — this must happen BEFORE reloading the pipeline, but the
-    # registry is mutable so the reload is independent of it.
+    # returns it.
     _GLOBAL_ENTRIES["tokyo"] = tokyo
 
-    pipeline = _reload_pipeline_with_flag("true")
+    _set_flag(monkeypatch, True)
 
     sub = _submission()
     task = _task(geo_match_mode="city", location_hint="Tokyo, Japan")
@@ -293,9 +301,9 @@ async def test_flag_on_tokyo_hint_with_miami_coords_fails(patched_static_dataset
 
 
 @pytest.mark.asyncio
-async def test_flag_on_mode_any_skips_match(patched_static_datasets):
+async def test_flag_on_mode_any_skips_match(patched_static_datasets, monkeypatch):
     """mode=any must not call the matcher — pipeline.match_result is None."""
-    pipeline = _reload_pipeline_with_flag("true")
+    _set_flag(monkeypatch, True)
 
     sub = _submission()
     task = _task(geo_match_mode="any")
@@ -317,9 +325,9 @@ async def test_flag_on_mode_any_skips_match(patched_static_datasets):
 
 
 @pytest.mark.asyncio
-async def test_flag_on_no_mode_skips_match(patched_static_datasets):
+async def test_flag_on_no_mode_skips_match(patched_static_datasets, monkeypatch):
     """Missing geo_match_mode (NULL in DB) must fall through to baseline."""
-    pipeline = _reload_pipeline_with_flag("true")
+    _set_flag(monkeypatch, True)
 
     sub = _submission()
     task = _task(geo_match_mode=None, location_hint="Miami, FL, USA")
@@ -337,9 +345,11 @@ async def test_flag_on_no_mode_skips_match(patched_static_datasets):
 # ---------------------------------------------------------------------------
 
 
-def test_prompt_splices_match_summary_when_stashed(patched_static_datasets):
+def test_prompt_splices_match_summary_when_stashed(
+    patched_static_datasets, monkeypatch
+):
     """The Phase B prompt builder must include MatchResult.prompt_summary."""
-    pipeline = _reload_pipeline_with_flag("true")
+    _set_flag(monkeypatch, True)
 
     from verification.geo_match import GeoMatcher
     from verification.prompts.base import build_base_prompt
@@ -379,20 +389,3 @@ def test_prompt_without_match_keeps_legacy_shape():
     # WS-1 behaviour preserved: coords present, no "GPS match:" line.
     assert "25.970220" in prompt
     assert "GPS match:" not in prompt
-
-
-# ---------------------------------------------------------------------------
-# Teardown — reset flag so other tests don't inherit it
-# ---------------------------------------------------------------------------
-
-
-@pytest.fixture(autouse=True)
-def _reset_flag_after_test():
-    yield
-    import os
-
-    os.environ.pop("EM_GEO_MATCH_ENABLED", None)
-    # Reload pipeline one more time so subsequent modules see the default.
-    import verification.pipeline as pipeline_module
-
-    importlib.reload(pipeline_module)
