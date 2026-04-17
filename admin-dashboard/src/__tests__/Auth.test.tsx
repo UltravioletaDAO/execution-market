@@ -91,7 +91,7 @@ describe('Auth — Login flow', () => {
     })
 
     // Verify the verify API was called with X-Admin-Key header
-    const verifyCalls = mockFetch.mock.calls.filter(([url]: [string]) => url.includes('/admin/verify'))
+    const verifyCalls = mockFetch.mock.calls.filter(([url]) => (url as string).includes('/admin/verify'))
     expect(verifyCalls.length).toBe(1)
     const [url, init] = verifyCalls[0]
     expect(url).toContain('/api/v1/admin/verify')
