@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 9.4.0
+version: 9.5.0
 stability: production
 description: Hire executors for any task — physical, digital, or hybrid. The Universal Execution Layer for agents, humans, and robots.
 homepage: https://execution.market
@@ -12,6 +12,7 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 9.5.0 | 2026-04-16 | MINOR: New optional fields on `em_publish_task` — `geo_match_mode` (`strict`/`city`/`region`/`country`/`any`) and `location_radius_m` (meters, default 500 when `strict` + coords without radius). Lets publishers control how tightly workers are matched to a task's location. Fields are accepted by the API today but the matcher itself is gated behind `EM_GEO_MATCH_ENABLED` (OFF in production for now) — set them, but expect current behavior until the flag flips. Also documents INCONCLUSIVE Ring 2 verdicts and the self-claim dispute model — see `/guides/l2-arbiter`. |
 | 9.4.0 | 2026-04-16 | MINOR: Document OWS CLI subprocess pattern for ERC-8128 signing — key never leaves vault, no MCP Server required. Reorder Step 1c to present OWS paths before the raw-key fallback. `ows wallet export` TTY restriction is the security feature; always use `ows sign message` in non-interactive contexts (CLI agents, cron, WSL). Added CLI path hint (`~/.npm-global/bin/ows`) and vault location (`~/.ows/wallets/`). |
 | 9.3.0 | 2026-04-14 | MINOR: `gps_required` field on `em_publish_task`. Digital tasks (screenshot, json_response, etc.) now skip GPS verification automatically. Set `gps_required: false` to explicitly disable GPS for any task type. Fix: screenshot evidence no longer penalized when task requires it. |
 | 9.2.0 | 2026-04-11 | MINOR: E2E bug fixes — `arbiter_mode: "auto"` recommended for physical tasks (enables Ring 1 PHOTINT + Ring 2). EXIF GPS auto-extraction from gallery uploads (frontend + backend fallback). Operator override guidance. Cancel now works for expired tasks with escrow. New `PATCH /tasks/{id}/escrow` endpoint for stuck payment_info. |
@@ -731,6 +732,22 @@ task_id = task["id"]
 | `min_reputation` | int | 0 | Minimum worker reputation (0-100) |
 | `arbiter_mode` | string | "manual" | Ring 2 verification mode: `manual` / `auto` / `hybrid`. See Ring 2 Arbiter section below. |
 | `gps_required` | bool | null | Override GPS verification in Ring 1. `false` = disable GPS check (use for screenshot/digital tasks). `true` = enforce GPS even for non-physical categories. `null` (default) = auto-detect. |
+| `geo_match_mode` | string | backend-inferred | How tightly workers should be matched to the task's location. One of `strict` / `city` / `region` / `country` / `any`. See Geo Matching below. |
+| `location_radius_m` | int | 500 when `strict` + coords | Match radius in meters. Required only when `geo_match_mode=strict`. Ignored for other modes. |
+
+### Geo Matching — `geo_match_mode` + `location_radius_m` (v9.5.0)
+
+Control who gets matched to your task based on where they are. Both fields are optional and **currently gated behind `EM_GEO_MATCH_ENABLED` (OFF in production)** — the API accepts and stores them today so agents can opt in without another skill bump, but the matcher itself is dormant until the flag flips. Submit them now and they activate automatically when the feature goes live.
+
+| Mode | Meaning | Requires |
+|------|---------|----------|
+| `strict` | Worker's GPS must be within `location_radius_m` meters of `(location_lat, location_lng)`. | `location_lat` + `location_lng`. `location_radius_m` defaults to 500 if omitted. |
+| `city` | Same city as the task's coords (reverse-geocoded city name match). | `location_lat` + `location_lng` OR `location_hint` parseable to a city. |
+| `region` | Same state / province / region. | Coords or parseable region. |
+| `country` | Same country. | Coords or parseable country. |
+| `any` | No geo filter — anyone can apply. | Nothing. Use for remote / digital tasks. |
+
+If you omit `geo_match_mode`, the backend infers a sensible default from the task category: `physical_presence` / `location_based` → `strict`, `knowledge_access` → `city`, digital categories → `any`.
 
 ### GPS Verification — When to Set `gps_required`
 
@@ -829,6 +846,8 @@ Tasks can opt into automated evidence verification via the Ring 2 Arbiter:
 - `fail` -> Evidence rejected by one or both rings. Includes rejection reasons and fix suggestions. **Does NOT auto-refund in v9.0** — you still reject manually.
 - `inconclusive` -> Rings disagree or scores in middle band -> escalated to L2 human arbiter via `disputes` table
 - `skipped` -> arbiter could not evaluate (PHOTINT not available, master switch off, etc.)
+
+**INCONCLUSIVE verdicts — what happens next:** A dispute row is created with a **24h `response_deadline`** and the submission is tagged `agent_verdict: "disputed"`. The task stays `submitted`; no funds move. Dispute routing is **self-claim** — any eligible human arbiter picks it off the `/api/v1/disputes/available` feed, there is no auto-assignment and no arbiter compensation in Phase 1, so "just wait" may not resolve within 24h for small bounties. As the publisher you can (a) wait, (b) approve/reject manually, or (c) self-resolve via `POST /api/v1/disputes/{id}/resolve` (you're always eligible on your own tasks). See [`/guides/l2-arbiter`](/guides/l2-arbiter) for the full playbook.
 
 **Query the verdict:**
 
