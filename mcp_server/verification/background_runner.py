@@ -723,13 +723,77 @@ def _gps_proximity_score(evidence: Dict[str, Any], task: Dict[str, Any]) -> floa
     Returns 0.0 when evidence has no GPS.  Returns 0.7 when evidence has GPS
     but the task has no coordinates to compare against.  Otherwise uses a
     haversine distance with tiered scoring.
+
+    WS-5: when `EM_GEO_MATCH_ENABLED=true` AND the task has
+    `geo_match_mode in {city, region, country}`, delegate to GeoMatcher so
+    the score reflects the city/region/country resolution rather than a
+    hardcoded proximity threshold. `strict`, `any`, or missing mode all
+    fall through to the legacy haversine-tier logic.
     """
     # Lazy import to avoid circular imports
-    from .pipeline import _extract_gps_from_evidence
+    from .pipeline import (
+        EM_GEO_MATCH_ENABLED,
+        GEO_MATCH_EVIDENCE_KEY,
+        _extract_gps_from_evidence,
+    )
 
     photo_lat, photo_lng = _extract_gps_from_evidence(evidence)
     if photo_lat is None:
         return 0.0  # no GPS in evidence
+
+    # WS-5: broader-mode scoring via GeoMatcher.
+    if EM_GEO_MATCH_ENABLED:
+        mode_raw = task.get("geo_match_mode")
+        mode_str = mode_raw.value if hasattr(mode_raw, "value") else (mode_raw or "")
+        if isinstance(mode_str, str) and mode_str.lower() in {
+            "city",
+            "region",
+            "country",
+        }:
+            match = None
+            # Prefer a MatchResult already computed in the Phase A pipeline.
+            if isinstance(evidence, dict):
+                match = evidence.get(GEO_MATCH_EVIDENCE_KEY)
+            if match is None:
+                try:
+                    from .geo_match import GeoMatcher, MatchMode
+
+                    matcher = GeoMatcher()
+                    match = matcher.match(
+                        submission_lat=float(photo_lat),
+                        submission_lng=float(photo_lng),
+                        mode=MatchMode(mode_str.lower()),
+                        location_hint=task.get("location_hint") or task.get("location"),
+                        location_lat=_coerce_float(task.get("location_lat")),
+                        location_lng=_coerce_float(task.get("location_lng")),
+                        location_radius_m=_coerce_int(task.get("location_radius_m")),
+                    )
+                except Exception as exc:
+                    logger.warning(
+                        "geo_match proximity scoring fell back to haversine (%s)",
+                        exc,
+                    )
+                    match = None
+
+            if match is not None:
+                if getattr(match, "passed", False):
+                    # Scale within the resolved radius: centre = 1.0,
+                    # edge ≈ 0.6. Mirrors the legacy distance falloff
+                    # but now driven by the matcher's dynamic radius.
+                    distance_km = getattr(match, "distance_km", None)
+                    radius_km = getattr(match, "radius_used_km", None)
+                    if distance_km is not None and radius_km and radius_km > 0:
+                        ratio = min(1.0, float(distance_km) / float(radius_km))
+                        return round(max(0.6, 1.0 - ratio * 0.4), 3)
+                    return 1.0
+                # Out of area — partial credit based on the overshoot.
+                distance_km = getattr(match, "distance_km", None)
+                radius_km = getattr(match, "radius_used_km", None)
+                if distance_km is not None and radius_km and radius_km > 0:
+                    overshoot = float(distance_km) / float(radius_km)
+                    # 1x radius = 0.5, 2x = 0.25, 10x ~0.0
+                    return round(max(0.0, 0.5 - (overshoot - 1.0) * 0.25), 3)
+                return 0.1
 
     task_lat = task.get("location_lat")
     task_lng = task.get("location_lng")
@@ -757,6 +821,24 @@ def _gps_proximity_score(evidence: Dict[str, Any], task: Dict[str, Any]) -> floa
         return 0.4
     else:
         return 0.1
+
+
+def _coerce_float(value: Any) -> Optional[float]:
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _coerce_int(value: Any) -> Optional[int]:
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def _compute_ai_semantic_score(

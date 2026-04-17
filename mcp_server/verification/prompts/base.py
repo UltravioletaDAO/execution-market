@@ -13,6 +13,12 @@ import re
 from ..gps_utils import format_gps_for_prompt
 from .schemas import VERIFICATION_OUTPUT_SCHEMA
 
+# Reserved key used by the Phase A pipeline (WS-5) to hand a MatchResult to
+# this prompt builder without changing the public signature. Kept in sync
+# with `verification.pipeline.GEO_MATCH_EVIDENCE_KEY`; redefining here
+# (instead of importing) avoids an import cycle between pipeline and prompt.
+_GEO_MATCH_EVIDENCE_KEY = "__geo_match_result__"
+
 
 def _sanitize_for_prompt(text: str, max_len: int = 500) -> str:
     """Sanitize free-text evidence fields before LLM prompt interpolation.
@@ -97,6 +103,14 @@ def build_base_prompt(
     # was a flat `evidence.get("gps")` and missed browser-captured
     # GPS stored at `evidence.photo_geo.metadata.gps`.
     gps = format_gps_for_prompt(evidence)
+    # WS-5: when the Phase A pipeline computed a geo-match result, append
+    # its human-readable summary so the model sees "GPS match: PASS (23 km
+    # from Miami metro — within 40 km city radius)" alongside the raw
+    # coordinates. Falls through cleanly when no MatchResult is present
+    # (flag off, or mode=any, or no task hint).
+    match_summary = _format_match_summary(evidence)
+    if match_summary:
+        gps = f"{gps}\n  - {match_summary}"
     timestamp = evidence.get("timestamp", "Not provided")
     notes = _sanitize_for_prompt(evidence.get("notes", "None"), max_len=500)
 
@@ -212,6 +226,36 @@ Respond with ONLY this JSON (no other text before or after):
 ```
 
 The task_checks object should include these category-relevant checks as boolean values. Be strict but fair."""
+
+
+def _format_match_summary(evidence: dict) -> str:
+    """Extract the WS-5 MatchResult.prompt_summary from evidence, if present.
+
+    Returns the empty string when:
+      - evidence is not a dict,
+      - the reserved key is missing (flag off, or mode=any, or pipeline
+        skipped the match step),
+      - the stored object has no `prompt_summary` attribute / key.
+
+    The reserved key is `__geo_match_result__` — see
+    `verification.pipeline.GEO_MATCH_EVIDENCE_KEY`. We accept both the
+    MatchResult dataclass and a plain dict (for tests that stash a dict
+    directly rather than constructing the dataclass).
+    """
+    if not isinstance(evidence, dict):
+        return ""
+    match = evidence.get(_GEO_MATCH_EVIDENCE_KEY)
+    if match is None:
+        return ""
+    summary = getattr(match, "prompt_summary", None)
+    if summary is None and isinstance(match, dict):
+        summary = match.get("prompt_summary")
+    if not summary:
+        return ""
+    # Sanitize just in case a malicious location_hint percolated all the
+    # way into the summary string (defence in depth — the hint is already
+    # sanitized once at task-creation).
+    return _sanitize_for_prompt(str(summary), max_len=400)
 
 
 def _format_requirements(requirements) -> str:
