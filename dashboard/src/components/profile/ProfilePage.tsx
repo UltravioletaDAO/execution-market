@@ -10,6 +10,7 @@ import { ENSLinkSection } from '../ENSLinkSection'
 import { useEarnings, useReputation, useTaskHistory } from '../../hooks/useProfile'
 import type { Executor } from '../../types/database'
 import { safeSrc } from '../../lib/safeHref'
+import { isWorldIdEnabled } from '../../utils/featureFlags'
 
 interface ProfilePageProps {
   executor: Executor
@@ -211,14 +212,16 @@ export function ProfilePage({ executor, onBack, onEditProfile, onLogout }: Profi
         )}
       </div>
 
-      {/* Identity: World ID + ENS side by side */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-          <h3 className="text-gray-900 font-semibold mb-3">
-            {t('profile.humanVerification', 'Human Verification')}
-          </h3>
-          <WorldIdVerification />
-        </div>
+      {/* Identity: World ID (flag-gated) + ENS */}
+      <div className={`grid grid-cols-1 ${isWorldIdEnabled() ? 'md:grid-cols-2' : ''} gap-4`}>
+        {isWorldIdEnabled() && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <h3 className="text-gray-900 font-semibold mb-3">
+              {t('profile.humanVerification', 'Human Verification')}
+            </h3>
+            <WorldIdVerification />
+          </div>
+        )}
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
           <h3 className="text-gray-900 font-semibold mb-3">

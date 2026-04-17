@@ -352,6 +352,7 @@ jobs:
           VITE_REQUIRE_AGENT_API_KEY: ${{ secrets.VITE_REQUIRE_AGENT_API_KEY || 'true' }}
           VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS: ${{ secrets.VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS || 'false' }}
           VITE_ENABLE_EVIDENCE_CAROUSEL: ${{ secrets.VITE_ENABLE_EVIDENCE_CAROUSEL || 'false' }}
+          VITE_WORLD_ID_ENABLED: ${{ secrets.VITE_WORLD_ID_ENABLED || 'false' }}
           VITE_GIT_SHA: ${{ github.sha }}
           VITE_BUILD_TIMESTAMP: ${{ steps.timestamp.outputs.value }}
 
