@@ -14,6 +14,7 @@ Usage:
 import hashlib
 import json
 import logging
+import os
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Union
@@ -34,6 +35,28 @@ logger = logging.getLogger(__name__)
 
 # Categories that require physical presence (GPS verification)
 PHYSICAL_CATEGORIES = {"physical_presence", "simple_action"}
+
+# ---------------------------------------------------------------------------
+# WS-5: Geo-matching feature flag
+# ---------------------------------------------------------------------------
+# Read once at module import time (per master plan rollout instructions).
+# When False (the default), the pipeline behaves exactly like pre-WS-5 main.
+# When True, `GeoMatcher` runs after GPS extraction and the `MatchResult` is
+# exposed on VerificationResult + stashed into evidence for the Phase B
+# prompt builder to splice into the AI prompt.
+#
+# Restart the process to pick up a new value.
+EM_GEO_MATCH_ENABLED = os.environ.get("EM_GEO_MATCH_ENABLED", "false").lower() in (
+    "true",
+    "1",
+    "yes",
+    "on",
+)
+
+# Reserved evidence key used to carry the MatchResult from the Phase A
+# pipeline into the Phase B prompt builder without changing the pipeline's
+# public (submission, task) input contract.
+GEO_MATCH_EVIDENCE_KEY = "__geo_match_result__"
 
 # Phase A weights (sync checks, subtotal = 0.50)
 PHASE_A_WEIGHTS = {
@@ -84,16 +107,29 @@ class VerificationResult:
     checks: List[CheckResult] = field(default_factory=list)
     warnings: List[str] = field(default_factory=list)
     phase: str = "A"  # "A", "B", or "AB"
+    # WS-5: optional geo-matching outcome. Only populated when
+    # EM_GEO_MATCH_ENABLED=true AND the task has a non-`any` geo_match_mode
+    # AND the submission carries a resolved GPS. Downstream consumers can
+    # use it (e.g. the Phase B prompt builder), but it never participates
+    # in the aggregate score — proximity scoring is handled separately.
+    match_result: Optional[Any] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to dict for JSONB storage."""
-        return {
+        d: Dict[str, Any] = {
             "passed": self.passed,
             "score": round(self.score, 3),
             "checks": [asdict(c) for c in self.checks],
             "warnings": self.warnings,
             "phase": self.phase,
         }
+        if self.match_result is not None:
+            try:
+                d["match_result"] = asdict(self.match_result)
+            except TypeError:
+                # Not a dataclass — caller must be handling serialisation.
+                d["match_result"] = None
+        return d
 
 
 async def run_verification_pipeline(
@@ -140,6 +176,16 @@ async def run_verification_pipeline(
             "GPS check skipped: task has no location coordinates. Agent should include location_lat/location_lng or location_hint when publishing tasks requiring physical presence."
         )
 
+    # --- WS-5: Geographic matching (feature-flagged, non-scoring) ---
+    # After the strict GPS proximity check above, run the broader geo matcher
+    # when the task opts into it. This complements (does not replace) the
+    # strict check: `strict` mode reuses the radius check above; `city`,
+    # `region`, `country` modes use GeoMatcher to resolve a metro/admin area
+    # and compare. Result is attached to the evidence dict (for the Phase B
+    # prompt) and to the VerificationResult. It never feeds the aggregate
+    # score — scoring adjustments live in background_runner._gps_proximity_score.
+    match_result = _run_geo_match(evidence, task)
+
     # --- Check 3: Timestamp / submission window ---
     timestamp_result = _run_timestamp_check(submission, task)
     if timestamp_result:
@@ -180,6 +226,7 @@ async def run_verification_pipeline(
         checks=checks,
         warnings=warnings,
         phase="A",
+        match_result=match_result,
     )
 
     logger.info(
@@ -237,6 +284,112 @@ def _run_schema_check(
             "warnings": result.warnings,
         },
     )
+
+
+def _run_geo_match(
+    evidence: Dict[str, Any],
+    task: Dict[str, Any],
+) -> Optional[Any]:
+    """Run the WS-2 GeoMatcher when the feature flag + task mode allow.
+
+    Returns `None` (and makes zero side effects) when:
+      - `EM_GEO_MATCH_ENABLED` is false (default),
+      - the task has no `geo_match_mode` or mode == `any`,
+      - the submission has no resolved GPS.
+
+    Otherwise runs the matcher, stashes the result into
+    `evidence[GEO_MATCH_EVIDENCE_KEY]` so the Phase B prompt builder can
+    splice its `prompt_summary`, and returns the `MatchResult`.
+
+    This function NEVER raises — any matcher error is logged and the
+    caller gets `None`.
+    """
+    if not EM_GEO_MATCH_ENABLED:
+        return None
+
+    mode_raw = task.get("geo_match_mode")
+    if mode_raw is None:
+        return None
+
+    # Normalise to a comparable string — task dicts sometimes carry the
+    # enum instance, sometimes the raw string from Supabase.
+    try:
+        mode_str = (
+            mode_raw.value if hasattr(mode_raw, "value") else str(mode_raw)
+        ).lower()
+    except Exception:
+        return None
+
+    if mode_str == "any":
+        return None
+
+    # Lazy import — keeps the pipeline importable in environments where the
+    # geo_match data files are absent (module is still importable, matcher
+    # just degrades). Also avoids any import-time cost when the flag is off.
+    try:
+        from .geo_match import GeoMatcher, MatchMode
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.warning("geo_match module unavailable (%s) — skipping", exc)
+        return None
+
+    # Coerce the submission GPS. `extract_gps_from_evidence` returns floats
+    # already, but this keeps us resilient if a caller hands in a different
+    # coordinate source.
+    sub_lat, sub_lng = _extract_gps_from_evidence(evidence)
+    if sub_lat is None or sub_lng is None:
+        # No resolved GPS — the matcher would just return unresolved;
+        # skip to keep the audit log clean.
+        return None
+
+    try:
+        matcher = GeoMatcher()
+        result = matcher.match(
+            submission_lat=float(sub_lat),
+            submission_lng=float(sub_lng),
+            mode=MatchMode(mode_str),
+            location_hint=task.get("location_hint") or task.get("location"),
+            location_lat=_to_float(task.get("location_lat")),
+            location_lng=_to_float(task.get("location_lng")),
+            location_radius_m=_to_int(task.get("location_radius_m")),
+        )
+    except Exception as exc:
+        logger.warning("geo_match failed (%s) — dropping result", exc)
+        return None
+
+    # Stash on evidence so the Phase B prompt builder can pick it up
+    # without needing a new parameter plumbed through multiple layers.
+    try:
+        if isinstance(evidence, dict):
+            evidence[GEO_MATCH_EVIDENCE_KEY] = result
+    except Exception:  # pragma: no cover - defensive
+        pass
+
+    logger.info(
+        "[AUDIT] geo_match mode=%s passed=%s source=%s distance_km=%s",
+        mode_str,
+        result.passed,
+        result.source,
+        result.distance_km,
+    )
+    return result
+
+
+def _to_float(value: Any) -> Optional[float]:
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _to_int(value: Any) -> Optional[int]:
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
 
 
 async def _run_gps_check(
