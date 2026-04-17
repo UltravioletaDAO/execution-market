@@ -35,6 +35,11 @@ export default defineConfig({
     // Base URL for the app
     baseURL: process.env.BASE_URL || 'http://localhost:5173',
 
+    // Bypass the app's CSP <meta> so page.route() can intercept cross-origin
+    // API calls during E2E. Dev-only — production CSP is still enforced by
+    // real browsers at runtime.
+    bypassCSP: true,
+
     // Collect trace when retrying the failed test
     trace: 'on-first-retry',
 
