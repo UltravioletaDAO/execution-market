@@ -147,6 +147,11 @@ mcp_server/coverage.xml
 # KK agent workspace data (generated)
 scripts/kk/data/workspaces/
 
+# geo_match static datasets (populate locally — see module README)
+mcp_server/verification/geo_match/data/us_zips.csv
+mcp_server/verification/geo_match/data/cities500.txt
+mcp_server/verification/geo_match/data/*.zip
+
 # Private keys and secrets (NEVER commit)
 *.keys.json
 *private*.json
