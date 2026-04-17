@@ -8,11 +8,24 @@ WORKDIR /app
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for caching
 COPY requirements.txt .
 RUN pip wheel --no-cache-dir --no-deps --wheel-dir /app/wheels -r requirements.txt
+
+# Download geo_match datasets (cached layer — invalidates only if this block changes)
+# Dataset details: mcp_server/verification/geo_match/data/README.md
+RUN mkdir -p /app/geo_data && cd /app/geo_data \
+    && curl -fsSL -o cities500.zip https://download.geonames.org/export/dump/cities500.zip \
+    && python -c "import zipfile; zipfile.ZipFile('cities500.zip').extract('cities500.txt', '.')" \
+    && rm cities500.zip \
+    && curl -fsSL -o us_zips.zip https://simplemaps.com/static/data/us-zips/1.86/basic/simplemaps_uszips_basicv1.86.zip \
+    && python -c "import zipfile; zipfile.ZipFile('us_zips.zip').extract('uszips.csv', '.')" \
+    && mv uszips.csv us_zips.csv \
+    && rm us_zips.zip \
+    && ls -lh /app/geo_data/
 
 # Production stage
 FROM python:3.11-slim
@@ -49,6 +62,10 @@ ARG BUILD_TIMESTAMP=unknown
 
 # Copy application code
 COPY . .
+
+# Copy geo_match datasets baked into the builder stage
+COPY --from=builder /app/geo_data/cities500.txt /app/verification/geo_match/data/cities500.txt
+COPY --from=builder /app/geo_data/us_zips.csv   /app/verification/geo_match/data/us_zips.csv
 
 # Set ownership
 RUN chown -R em:em /app
