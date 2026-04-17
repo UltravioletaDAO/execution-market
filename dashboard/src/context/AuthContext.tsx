@@ -426,12 +426,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // --------------------------------------------------------------------------
   // Effect: Track Dynamic.xyz initialization via sdkHasLoaded
-  // No more race-prone setTimeout — we rely on the SDK's own readiness signal
+  // Primary path: SDK emits sdkHasLoaded=true when ready.
+  // Safety net: if the SDK never signals readiness (script blocked, network
+  // outage, Dynamic.xyz down), force initialization after 10s so the UI
+  // doesn't get stuck on "Restoring session..." forever. Once forced, the
+  // wallet-change effect will clear stale localStorage and stop loading.
   // --------------------------------------------------------------------------
   useEffect(() => {
     if (sdkHasLoaded && !dynamicInitialized) {
       setDynamicInitialized(true)
       console.log('[Auth] Dynamic SDK loaded, initialized')
+      return
+    }
+
+    if (!sdkHasLoaded && !dynamicInitialized) {
+      const sdkTimeout = setTimeout(() => {
+        console.warn(
+          '[Auth] Dynamic SDK did not load within 10s — forcing init. ' +
+          'Check network, script blockers, or Dynamic.xyz status.'
+        )
+        setDynamicInitialized(true)
+      }, 10_000)
+      return () => clearTimeout(sdkTimeout)
     }
   }, [sdkHasLoaded, dynamicInitialized])
 
@@ -579,6 +595,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
           logoutDebounceRef.current = null
           setExecutor(null)
           setLoading(false)
+          // Clear stale persisted wallet hint. Without this, if the SDK ever
+          // fails to load again (or was forced-init by the safety timeout),
+          // the UI shows "Restoring session..." for another 10s on refresh.
+          if (localStorage.getItem(WALLET_STORAGE_KEY)) {
+            localStorage.removeItem(WALLET_STORAGE_KEY)
+            setPersistedWalletAddress(null)
+          }
           if (lastWalletRef.current) {
             lastWalletRef.current = null
             linkedWalletRef.current = null

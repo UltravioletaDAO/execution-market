@@ -50,6 +50,11 @@ export function DynamicProvider({ children }: DynamicProviderProps) {
     <DynamicContextProvider
       settings={{
         environmentId: DYNAMIC_ENVIRONMENT_ID,
+        // @ts-expect-error — node_modules has two versions of
+        // @dynamic-labs/wallet-connector-core (4.71.0 via base-account-evm
+        // and 4.77.2 via the rest). EthereumWalletConnectors ships against
+        // 4.77.2 but walletConnectors prop type resolves to 4.71.0. At
+        // runtime the APIs are compatible. Fix upstream via overrides.
         walletConnectors: [EthereumWalletConnectors],
         cssOverrides: dynamicCssOverrides,
         // connect-and-sign: wallet connects + signs SIWE message → Dynamic creates
