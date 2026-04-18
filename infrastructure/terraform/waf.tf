@@ -268,7 +268,7 @@ resource "aws_wafv2_web_acl" "main" {
 
 resource "aws_cloudwatch_log_group" "waf" {
   name              = "aws-waf-logs-${local.name_prefix}"
-  retention_in_days = 30
+  retention_in_days = 90
 
   tags = {
     Name = "aws-waf-logs-${local.name_prefix}"

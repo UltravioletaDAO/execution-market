@@ -322,7 +322,7 @@ resource "aws_iam_role_policy" "verification_lambda_s3" {
 
 resource "aws_cloudwatch_log_group" "ring1_worker" {
   name              = "/aws/lambda/${local.name_prefix}-ring1-worker"
-  retention_in_days = 14
+  retention_in_days = 90
 
   tags = {
     Name = "${local.name_prefix}-ring1-worker-logs"
@@ -332,7 +332,7 @@ resource "aws_cloudwatch_log_group" "ring1_worker" {
 
 resource "aws_cloudwatch_log_group" "ring2_worker" {
   name              = "/aws/lambda/${local.name_prefix}-ring2-worker"
-  retention_in_days = 14
+  retention_in_days = 90
 
   tags = {
     Name = "${local.name_prefix}-ring2-worker-logs"

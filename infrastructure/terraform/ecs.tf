@@ -142,7 +142,7 @@ resource "aws_security_group" "ecs" {
 # CloudWatch Log Groups
 resource "aws_cloudwatch_log_group" "mcp_server" {
   name              = "/ecs/${local.name_prefix}/mcp-server"
-  retention_in_days = 14
+  retention_in_days = 90
 }
 
 # MCP Server Task Definition

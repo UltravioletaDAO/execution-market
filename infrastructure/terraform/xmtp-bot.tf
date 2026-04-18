@@ -300,7 +300,7 @@ resource "aws_secretsmanager_secret_version" "meshrelay" {
 
 resource "aws_cloudwatch_log_group" "xmtp_bot" {
   name              = "/ecs/${local.name_prefix}/xmtp-bot"
-  retention_in_days = 7
+  retention_in_days = 90
 
   tags = {
     Service = "xmtp-bot"
