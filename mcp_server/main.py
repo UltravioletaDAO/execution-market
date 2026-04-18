@@ -95,6 +95,26 @@ if _SENTRY_DSN:
         _SENTRY_INITIALIZED = False
 
 
+# ---------------------------------------------------------------------------
+# Structured logging (Phase 2.3 SAAS_PRODUCTION_HARDENING)
+# ---------------------------------------------------------------------------
+# Configure JSON formatter + ContextFilter BEFORE ANY downstream import so
+# modules that call ``logging.basicConfig()`` at import time (e.g. server.py)
+# land on our root handler instead of installing a plain-text one.
+#
+# ``configure_logging()`` is idempotent and strips any pre-existing root
+# handlers, so the order isn't load-bearing for correctness — but doing it
+# here keeps the very first records (imports, module-level warnings) in
+# JSON too, which matters for CloudWatch Insights coverage.
+#
+# Escape hatch: set EM_JSON_LOGS=false for human-readable text (local dev).
+# See mcp_server/logging_config.py for full docs + CloudWatch query examples.
+# ---------------------------------------------------------------------------
+from logging_config import configure_logging  # noqa: E402
+
+configure_logging(level=os.environ.get("LOG_LEVEL", "INFO"))
+
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware

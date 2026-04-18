@@ -109,6 +109,14 @@ apscheduler>=3.10.0
 sentry-sdk[fastapi,httpx]>=2.0.0
 
 # ===================
+# Observability — Structured JSON logs (Phase 2.3 SAAS_PRODUCTION_HARDENING)
+# ===================
+# Configured in mcp_server/logging_config.py, wired from main.py after the
+# Sentry block. Enables CloudWatch Insights queries by request_id, agent_id,
+# task_id. Set EM_JSON_LOGS=false to fall back to text formatter locally.
+python-json-logger>=2.0.7
+
+# ===================
 # Testing (dev)
 # ===================
 pytest>=7.4.0
