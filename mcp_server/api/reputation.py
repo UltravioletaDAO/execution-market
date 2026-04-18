@@ -47,6 +47,15 @@ from .auth import (
     WorkerAuth,
 )
 from utils.pii import truncate_wallet
+from integrations.reputation.counterparty_proof import (
+    CounterpartyProofError,
+    ProofMismatch,
+    ProofMissing,
+    ProofRejected,
+    ProofUnverifiable,
+    counterparty_proof_required,
+    verify_counterparty_proof,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +76,117 @@ async def _get_task_or_404(task_id: str) -> Dict[str, Any]:
     if not task:
         raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
     return task
+
+
+def _verify_counterparty_proof_or_raise(
+    *,
+    proof_tx: Optional[str],
+    rater_wallet: Optional[str],
+    ratee_wallet: Optional[str],
+    network: str,
+    task_id: str,
+    direction: str,
+) -> None:
+    """Bridge ``verify_counterparty_proof`` exceptions to HTTPException.
+
+    SAAS hardening Task 5.2. When ``EM_REQUIRE_COUNTERPARTY_PROOF`` is
+    off (default), a missing ``proof_tx`` is allowed through so existing
+    clients do not break; invalid proofs that *were* supplied are still
+    logged as warnings. When the flag is on, every rating must carry a
+    valid proof_tx and mismatches return 400/403.
+
+    ``direction`` is purely for audit logs — it identifies whether this
+    is "agent_rates_worker" or "worker_rates_agent".
+    """
+    required = counterparty_proof_required()
+    if not proof_tx:
+        if required:
+            logger.warning(
+                "SECURITY_AUDIT action=rating.proof_missing direction=%s task=%s",
+                direction,
+                task_id,
+            )
+            raise HTTPException(
+                status_code=400,
+                detail="proof_tx is required when EM_REQUIRE_COUNTERPARTY_PROOF is enabled",
+            )
+        return
+
+    if not rater_wallet or not ratee_wallet:
+        # We can't verify without both wallets. Treat as ProofMismatch.
+        msg = "rater or ratee wallet missing for counterparty proof"
+        if required:
+            raise HTTPException(status_code=403, detail=msg)
+        logger.warning(
+            "SECURITY_AUDIT action=rating.proof_skip direction=%s task=%s reason=%s",
+            direction,
+            task_id,
+            msg,
+        )
+        return
+
+    try:
+        result = verify_counterparty_proof(
+            proof_tx=proof_tx,
+            rater_wallet=rater_wallet,
+            ratee_wallet=ratee_wallet,
+            network=network,
+        )
+        logger.info(
+            "SECURITY_AUDIT action=rating.proof_verified direction=%s task=%s "
+            "match=%s amount_raw=%s",
+            direction,
+            task_id,
+            result.get("match"),
+            result.get("amount_raw"),
+        )
+    except ProofMissing as exc:
+        if required:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        logger.warning(
+            "SECURITY_AUDIT action=rating.proof_invalid direction=%s task=%s error=%s",
+            direction,
+            task_id,
+            exc,
+        )
+    except ProofUnverifiable as exc:
+        # RPC failure — do NOT block ratings on infra blips unless the
+        # flag is on (strict mode).
+        if required:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        logger.warning(
+            "SECURITY_AUDIT action=rating.proof_unverifiable direction=%s task=%s error=%s",
+            direction,
+            task_id,
+            exc,
+        )
+    except ProofRejected as exc:
+        if required:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        logger.warning(
+            "SECURITY_AUDIT action=rating.proof_rejected direction=%s task=%s error=%s",
+            direction,
+            task_id,
+            exc,
+        )
+    except ProofMismatch as exc:
+        if required:
+            raise HTTPException(status_code=403, detail=str(exc)) from exc
+        logger.warning(
+            "SECURITY_AUDIT action=rating.proof_mismatch direction=%s task=%s error=%s",
+            direction,
+            task_id,
+            exc,
+        )
+    except CounterpartyProofError as exc:
+        if required:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        logger.warning(
+            "SECURITY_AUDIT action=rating.proof_error direction=%s task=%s error=%s",
+            direction,
+            task_id,
+            exc,
+        )
 
 
 # =============================================================================
@@ -822,6 +942,19 @@ async def rate_worker_endpoint(
     executor = task.get("executor") or {}
     if executor.get("erc8004_agent_id") and task_network == "base":
         worker_agent_id = int(executor["erc8004_agent_id"])
+
+    # SAAS hardening Task 5.2 — verify the rating is bound to the
+    # actual on-chain payment between this agent and worker. Gated by
+    # EM_REQUIRE_COUNTERPARTY_PROOF; otherwise logged as audit signal.
+    _verify_counterparty_proof_or_raise(
+        proof_tx=request.proof_tx,
+        rater_wallet=rater_wallet,
+        ratee_wallet=worker_address,
+        network=task_network,
+        task_id=request.task_id,
+        direction="agent_rates_worker",
+    )
+
     result = await rate_worker(
         task_id=request.task_id,
         score=request.score,
@@ -1128,6 +1261,23 @@ async def rate_agent_endpoint(
             )
 
     task_network = task.get("payment_network") or "base"
+
+    # SAAS hardening Task 5.2 — bind this rating to the actual payment
+    # TX between worker and agent. ratee wallet is the agent's operating
+    # wallet (falls back to NFT owner when agent_wallet is unset).
+    agent_ratee_wallet = _normalize_address(
+        getattr(agent_identity, "agent_wallet", None)
+        or getattr(agent_identity, "owner", None)
+    )
+    _verify_counterparty_proof_or_raise(
+        proof_tx=request.proof_tx,
+        rater_wallet=task_executor_wallet,
+        ratee_wallet=agent_ratee_wallet,
+        network=task_network,
+        task_id=request.task_id,
+        direction="worker_rates_agent",
+    )
+
     result = await rate_agent(
         agent_id=request.agent_id,
         task_id=request.task_id,
