@@ -227,9 +227,11 @@ jobs:
         with:
           path: ./
           base: ${{ github.event.repository.default_branch }}
-          # --fail makes the action exit non-zero when verified secrets are
-          # detected; without it TruffleHog only logs and exits 0.
-          extra_args: --only-verified --fail
+          # The action itself appends `--fail` to the trufflehog CLI. Adding it
+          # here a second time makes trufflehog abort with
+          # `error: flag 'fail' cannot be repeated`. Only pass flags the action
+          # does not already set. `--only-verified` is the extra knob we want.
+          extra_args: --only-verified
 
   license-check:
     name: License Compliance
