@@ -130,39 +130,8 @@ describe('TaskFilters interface', () => {
   })
 })
 
-// --------------------------------------------------------------------------
-// Agent auth header building
-// --------------------------------------------------------------------------
-
-describe('Agent auth headers', () => {
-  const buildAgentJsonHeaders = (apiKey?: string): Record<string, string> => {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-    if (apiKey) {
-      headers['Authorization'] = `Bearer ${apiKey}`
-      headers['X-API-Key'] = apiKey
-    }
-    return headers
-  }
-
-  it('includes Content-Type always', () => {
-    const h = buildAgentJsonHeaders()
-    expect(h['Content-Type']).toBe('application/json')
-  })
-
-  it('adds auth headers when API key is present', () => {
-    const h = buildAgentJsonHeaders('test-key-123')
-    expect(h['Authorization']).toBe('Bearer test-key-123')
-    expect(h['X-API-Key']).toBe('test-key-123')
-  })
-
-  it('omits auth headers when no API key', () => {
-    const h = buildAgentJsonHeaders()
-    expect(h['Authorization']).toBeUndefined()
-    expect(h['X-API-Key']).toBeUndefined()
-  })
-
-  it('omits auth headers for empty string API key', () => {
-    const h = buildAgentJsonHeaders('')
-    expect(h['Authorization']).toBeUndefined()
-  })
-})
+// Phase 4.4: the legacy `Agent auth headers` block (testing a local stub for
+// `buildAgentJsonHeaders(apiKey?)`) was removed together with VITE_API_KEY.
+// The real helper is now async and pulls a Supabase JWT / ERC-8128 signature
+// via `buildAuthHeaders`. It has no API-key branch to exercise, and header
+// assembly is covered end-to-end by the service-level fetch tests.

@@ -304,6 +304,75 @@ jobs:
         if: always() && hashFiles('semgrep.sarif') != ''
         continue-on-error: true
 
+  bundle-secrets-guard:
+    # Task 4.4 (SaaS Production Hardening) — prevent reintroduction of
+    # VITE_API_KEY / X-API-Key in the public dashboard bundle. The key was
+    # removed because any `import.meta.env.VITE_*` value ships verbatim in
+    # `dist/assets/*.js` and is trivially extractable by anyone viewing
+    # page source. All agent mutations now require either a Supabase JWT
+    # (signed-in humans) or ERC-8128 request signing (external agents).
+    #
+    # This job fails the build if either literal resurfaces in source or
+    # in the built bundle. Should be configured as a required status check
+    # in branch protection.
+    name: Bundle Secrets Guard
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
+    defaults:
+      run:
+        working-directory: dashboard
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f  # v6.3.0
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Source-level guard (VITE_API_KEY / X-API-Key)
+        run: |
+          set -e
+          # Match only LIVE code, not doc comments. The anchors below cover
+          # every real usage we removed in Phase 4.4:
+          #   - import.meta.env.VITE_API_KEY
+          #   - "VITE_API_KEY" / 'VITE_API_KEY' (env schema keys)
+          #   - "X-API-Key"   / 'X-API-Key'   (header literals)
+          PATTERN="import\\.meta\\.env\\.VITE_API_KEY|['\"]VITE_API_KEY['\"]|['\"]X-API-Key['\"]"
+          if grep -rnE "$PATTERN" src/ \
+              --include='*.ts' --include='*.tsx' \
+              --include='*.js' --include='*.jsx'; then
+            echo "::error::VITE_API_KEY / X-API-Key resurfaced in dashboard/src/. See Phase 4.4." >&2
+            echo "For agent auth, sign requests via ERC-8128 (lib/auth.ts buildAuthHeaders)." >&2
+            exit 1
+          fi
+          echo "[OK] dashboard/src/ is clean."
+
+      - name: Build dashboard
+        run: npm run build
+
+      - name: Bundle-level guard (dist/assets/*.js)
+        run: |
+          set -e
+          # The bundle is minified so comments are stripped — any literal
+          # appearance here is a live reference. VITE_REQUIRE_AGENT_API_KEY
+          # is a separate (feature-flag) identifier that does NOT contain
+          # VITE_API_KEY as a substring, so a plain grep is exact enough.
+          if grep -rEn 'VITE_API_KEY' dist/assets/ 2>/dev/null; then
+            echo "::error::VITE_API_KEY leaked into the built bundle. Phase 4.4 violated." >&2
+            exit 1
+          fi
+          if grep -rEn '"X-API-Key"' dist/assets/ 2>/dev/null; then
+            echo "::error::X-API-Key header literal leaked into the built bundle. Phase 4.4 violated." >&2
+            exit 1
+          fi
+          echo "[OK] dist/assets/ is clean."
+
   secret-scan-gate:
     # Task 4.1 — single required status check to configure in branch
     # protection. Hard-fails when the secret-scan job did not succeed, so a
@@ -326,7 +395,7 @@ jobs:
   security-summary:
     name: Security Summary
     runs-on: ubuntu-latest
-    needs: [detect-changes, codeql, python-security, npm-audit, container-scan, secret-scan, sast-semgrep]
+    needs: [detect-changes, codeql, python-security, npm-audit, container-scan, secret-scan, sast-semgrep, bundle-secrets-guard]
     if: always()
     steps:
       - name: Summary
@@ -341,3 +410,4 @@ jobs:
           echo "| Container Scan | ${{ needs.container-scan.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Secret Scan | ${{ needs.secret-scan.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Semgrep SAST | ${{ needs.sast-semgrep.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Bundle Secrets Guard | ${{ needs.bundle-secrets-guard.result }} |" >> $GITHUB_STEP_SUMMARY
