@@ -23,10 +23,21 @@ from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Depends, Query, Path, Header, Request
+from fastapi import (
+    APIRouter,
+    HTTPException,
+    Depends,
+    Query,
+    Path,
+    Header,
+    Request,
+    Response,
+)
 from pydantic import BaseModel
 
 import supabase_client as db
+
+from .routers._pagination import set_pagination_headers
 from models import (
     PublishH2ATaskRequest,
     ApproveH2ASubmissionRequest,
@@ -406,6 +417,8 @@ async def create_h2a_task(
     tags=["H2A Marketplace"],
 )
 async def list_h2a_tasks(
+    request: Request,
+    response: Response,
     status: Optional[str] = Query(None, description="Filter by status"),
     category: Optional[str] = Query(None, description="Filter by category"),
     my_tasks: bool = Query(
@@ -482,6 +495,9 @@ async def list_h2a_tasks(
                 t.pop("human_wallet", None)
                 t.pop("human_user_id", None)
 
+        set_pagination_headers(
+            response, request, total=total, offset=offset, limit=limit
+        )
         return {
             "tasks": tasks,
             "total": total,
