@@ -11,8 +11,15 @@ resource "aws_cloudtrail" "main" {
   include_global_service_events = true
   is_multi_region_trail         = true
   enable_logging                = true
+  enable_log_file_validation    = true
   cloud_watch_logs_group_arn    = "${aws_cloudwatch_log_group.cloudtrail.arn}:*"
   cloud_watch_logs_role_arn     = aws_iam_role.cloudtrail_cloudwatch.arn
+
+  # Capture management + data events across all regions
+  event_selector {
+    read_write_type           = "All"
+    include_management_events = true
+  }
 
   tags = {
     Name = "${local.name_prefix}-cloudtrail"
@@ -65,13 +72,16 @@ resource "aws_s3_bucket_lifecycle_configuration" "cloudtrail_logs" {
     id     = "expire-old-logs"
     status = "Enabled"
 
+    # Apply to all objects in bucket (required by aws provider >= 4.9)
+    filter {}
+
     expiration {
       days = 365
     }
 
     transition {
       days          = 90
-      storage_class = "STANDARD_IA"
+      storage_class = "GLACIER"
     }
   }
 }
