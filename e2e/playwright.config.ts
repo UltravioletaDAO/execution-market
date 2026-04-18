@@ -54,7 +54,12 @@ export default defineConfig({
     env: {
       VITE_DYNAMIC_ENVIRONMENT_ID: 'e2e-mock-env-id',
       VITE_SUPABASE_URL: 'http://localhost:54321',
-      VITE_SUPABASE_ANON_KEY: 'e2e-mock-anon-key',
+      // The zod env validator in dashboard/src/config/env.ts enforces
+      // VITE_SUPABASE_ANON_KEY.min(20). Any shorter string throws on boot
+      // and the React app never mounts — every Playwright test then
+      // "fails to find the UI" and retries three times for nothing. Keep
+      // this stub at or above 20 chars.
+      VITE_SUPABASE_ANON_KEY: 'e2e-mock-anon-key-0000000000',
     },
   },
 
