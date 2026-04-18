@@ -1,3 +1,7 @@
+// Validate env vars FIRST — throws synchronously if required vars are missing.
+// See dashboard/src/config/env.ts (Task 4.2 — SaaS Production Hardening).
+import './config/env'
+
 import { StrictMode, lazy, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'

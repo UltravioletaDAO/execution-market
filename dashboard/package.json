@@ -37,7 +37,8 @@
     "recharts": "^2.15.0",
     "tailwind-merge": "^2.6.0",
     "viem": "^2.44.4",
-    "wagmi": "^3.5.0"
+    "wagmi": "^3.5.0",
+    "zod": "^4.0.5"
   },
   "optionalDependencies": {
     "@rollup/rollup-linux-x64-gnu": "^4.57.0"
