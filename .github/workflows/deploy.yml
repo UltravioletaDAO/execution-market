@@ -482,6 +482,7 @@ jobs:
           image: ${{ env.ECR_REGISTRY }}/${{ env.MCP_SERVER_ECR_REPO }}:${{ github.sha }}
           environment-variables: |
             EM_BASE_URL=${{ env.API_URL }}
+            GIT_SHA=${{ github.sha }}
 
       - name: Deploy to ECS
         if: needs.detect-changes.outputs.infra != 'true'
