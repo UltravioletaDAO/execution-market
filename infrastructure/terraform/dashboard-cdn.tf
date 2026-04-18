@@ -109,6 +109,104 @@ resource "aws_acm_certificate_validation" "dashboard_cdn" {
   validation_record_fqdns = [for record in aws_route53_record.dashboard_cert_validation : record.fqdn]
 }
 
+# ─── CloudFront Response Headers Policy (SaaS Hardening Phase 1.2) ───
+#
+# Injects security headers on every response served by the dashboard CDN:
+#   - HSTS (2-year, includeSubDomains, preload)
+#   - Content-Type-Options: nosniff
+#   - X-Frame-Options: DENY (clickjacking — also enforced via CSP frame-ancestors 'none')
+#   - Referrer-Policy: strict-origin-when-cross-origin
+#   - Permissions-Policy: camera=(self), geolocation=(self) (EvidenceUpload needs them),
+#                         microphone=(), payment=() (not used)
+#   - Content-Security-Policy-Report-Only (Phase A):
+#       Deployed in Report-Only mode first so we can monitor violations for 1-2
+#       weeks via browser reports without breaking the app. A follow-up PR flips
+#       the `Content-Security-Policy-Report-Only` header to `Content-Security-Policy`
+#       (enforcing) once telemetry shows no legitimate requests are being blocked.
+#       No `'unsafe-eval'` in script-src — Vite production builds do not need it.
+#
+# Origins allowed in connect-src were derived from:
+#   - dashboard/src/lib/{supabase,dynamic}.ts                (Supabase + Dynamic)
+#   - dashboard/node_modules/@dynamic-labs/*                 (*.dynamicauth.com runtime APIs)
+#   - dashboard/src/context/XMTPContext.tsx                  (XMTP production network)
+#   - dashboard/node_modules/@xmtp/*                         (xmtp.network + ephemera)
+#   - dashboard/node_modules/@worldcoin/idkit*               (World ID bridge/assets)
+#   - dashboard/public/_headers (existing meta CSP)          (api, s3, cloudfront)
+resource "aws_cloudfront_response_headers_policy" "execution_market_security_headers" {
+  name    = "${local.name_prefix}-dashboard-security-headers"
+  comment = "Security headers for execution.market dashboard (HSTS, XFO, CSP-Report-Only)"
+
+  security_headers_config {
+    strict_transport_security {
+      access_control_max_age_sec = 63072000 # 2 years
+      include_subdomains         = true
+      preload                    = true
+      override                   = true
+    }
+
+    content_type_options {
+      override = true
+    }
+
+    frame_options {
+      frame_option = "DENY"
+      override     = true
+    }
+
+    referrer_policy {
+      referrer_policy = "strict-origin-when-cross-origin"
+      override        = true
+    }
+  }
+
+  # Permissions-Policy + Content-Security-Policy-Report-Only are not first-class
+  # fields in aws_cloudfront_response_headers_policy, so we emit them as custom
+  # headers. The built-in `content_security_policy` block only supports
+  # enforcing CSP, not Report-Only — we'll migrate to it in Phase B.
+  custom_headers_config {
+    items {
+      header   = "Permissions-Policy"
+      value    = "camera=(self), microphone=(), geolocation=(self), payment=()"
+      override = true
+    }
+
+    items {
+      header = "Content-Security-Policy-Report-Only"
+      value = join("; ", [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline'",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "font-src 'self' https://fonts.gstatic.com",
+        "img-src 'self' data: blob: https:",
+        join(" ", [
+          "connect-src 'self'",
+          "https://api.execution.market",
+          "https://mcp.execution.market",
+          "https://*.supabase.co",
+          "wss://*.supabase.co",
+          "https://*.dynamicauth.com",
+          "wss://*.dynamicauth.com",
+          "https://*.xmtp.network",
+          "wss://*.xmtp.network",
+          "https://*.ephemera.network",
+          "https://developer.worldcoin.org",
+          "https://world-id-assets.com",
+          "https://*.amazonaws.com",
+          "https://*.cloudfront.net",
+          "https://*.sentry.io",
+        ]),
+        "frame-src 'self' https://*.dynamicauth.com https://id.worldcoin.org",
+        "frame-ancestors 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+        "object-src 'none'",
+        "report-uri /csp-report",
+      ])
+      override = true
+    }
+  }
+}
+
 # ─── CloudFront Distribution ──────────────────────────────────────
 
 resource "aws_cloudfront_distribution" "dashboard" {
@@ -150,8 +248,9 @@ resource "aws_cloudfront_distribution" "dashboard" {
     compress               = true
     viewer_protocol_policy = "redirect-to-https"
 
-    cache_policy_id          = "658327ea-f89d-4fab-a63d-7e88639e58f6" # CachingOptimized
-    origin_request_policy_id = null
+    cache_policy_id            = "658327ea-f89d-4fab-a63d-7e88639e58f6" # CachingOptimized
+    origin_request_policy_id   = null
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.execution_market_security_headers.id
   }
 
   # Feedback JSON documents — served from evidence S3 bucket.
@@ -167,7 +266,8 @@ resource "aws_cloudfront_distribution" "dashboard" {
       compress               = true
       viewer_protocol_policy = "redirect-to-https"
 
-      cache_policy_id = "658327ea-f89d-4fab-a63d-7e88639e58f6" # CachingOptimized
+      cache_policy_id            = "658327ea-f89d-4fab-a63d-7e88639e58f6" # CachingOptimized
+      response_headers_policy_id = aws_cloudfront_response_headers_policy.execution_market_security_headers.id
     }
   }
 
@@ -183,6 +283,8 @@ resource "aws_cloudfront_distribution" "dashboard" {
     min_ttl     = 31536000 # 1 year
     default_ttl = 31536000
     max_ttl     = 31536000
+
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.execution_market_security_headers.id
 
     forwarded_values {
       query_string = false
