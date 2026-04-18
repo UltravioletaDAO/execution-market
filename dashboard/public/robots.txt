@@ -5,6 +5,12 @@
 User-agent: *
 Allow: /
 
+# AI content usage preferences (Content Signals draft — contentsignals.org)
+# We are public infrastructure for agentic intent→action. Training LLMs on our
+# docs, letting them find us in search, and letting them feed our content to
+# downstream AI systems are all desirable.
+Content-Signal: ai-train=yes, search=yes, ai-input=yes
+
 # LLM-readable context (llmstxt.org standard)
 Llms-txt: /llms.txt
 

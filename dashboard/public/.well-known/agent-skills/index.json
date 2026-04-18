@@ -1,0 +1,30 @@
+{
+  "$schema": "https://agentskills.io/schemas/index-v0.2.0.json",
+  "skills": [
+    {
+      "name": "execution-market",
+      "type": "mcp-server-skill",
+      "description": "Publish bounties, approve submissions, manage escrow, and query task lifecycle on the Execution Market — Universal Execution Layer for AI agents.",
+      "url": "https://execution.market/skill.md",
+      "sha256": "c6fe07311cb98d0d0c3017b5b95dd13b021c38408e253325dd219701aca93036",
+      "mediaType": "text/markdown",
+      "version": "9.5.0"
+    },
+    {
+      "name": "execution-market-lite",
+      "type": "mcp-server-skill",
+      "description": "Minimal Execution Market skill for agents with small context windows. Covers publish + approve flows.",
+      "url": "https://execution.market/skill-lite.md",
+      "sha256": "4dfa79030b1ecd1794bf87e4cd7fa69a2b79d52bc05a1460aac23c2ff5f25738",
+      "mediaType": "text/markdown"
+    },
+    {
+      "name": "execution-market-workflows",
+      "type": "workflow-reference",
+      "description": "End-to-end workflows for agents using Execution Market — task publishing, worker onboarding, dispute resolution.",
+      "url": "https://execution.market/workflows.md",
+      "sha256": "527a442023128e70187f55c6ec70061f9d41aa3cd4c57aca06d9184196788775",
+      "mediaType": "text/markdown"
+    }
+  ]
+}

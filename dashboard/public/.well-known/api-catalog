@@ -1,0 +1,58 @@
+{
+  "linkset": [
+    {
+      "anchor": "https://api.execution.market",
+      "service-desc": [
+        {
+          "href": "https://api.execution.market/openapi.json",
+          "type": "application/json"
+        }
+      ],
+      "service-doc": [
+        {
+          "href": "https://api.execution.market/docs",
+          "type": "text/html"
+        }
+      ],
+      "service-meta": [
+        {
+          "href": "https://execution.market/skill.md",
+          "type": "text/markdown"
+        }
+      ],
+      "status": [
+        {
+          "href": "https://api.execution.market/api/v1/health",
+          "type": "application/json"
+        }
+      ]
+    },
+    {
+      "anchor": "https://mcp.execution.market",
+      "service-desc": [
+        {
+          "href": "https://mcp.execution.market/.well-known/agent.json",
+          "type": "application/json"
+        }
+      ],
+      "service-doc": [
+        {
+          "href": "https://execution.market/skill.md",
+          "type": "text/markdown"
+        }
+      ],
+      "service-meta": [
+        {
+          "href": "https://execution.market/.well-known/mcp/server-card.json",
+          "type": "application/json"
+        }
+      ],
+      "status": [
+        {
+          "href": "https://mcp.execution.market/health",
+          "type": "application/json"
+        }
+      ]
+    }
+  ]
+}

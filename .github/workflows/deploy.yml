@@ -392,12 +392,29 @@ jobs:
             --cache-control "public, max-age=300" \
             --content-type "text/markdown"
 
+          # Agent discovery endpoints (RFC 9727, RFC 9728, SEP-1649, Agent Skills Discovery).
+          # These files are served without extension per spec. `aws s3 sync` sets
+          # content-type to binary/octet-stream for extensionless files, so we upload
+          # them explicitly with the correct MIME types.
+          if [ -f "dist/.well-known/api-catalog" ]; then
+            aws s3 cp dist/.well-known/api-catalog \
+              s3://${{ env.DASHBOARD_S3_BUCKET }}/.well-known/api-catalog \
+              --cache-control "public, max-age=300" \
+              --content-type "application/linkset+json"
+          fi
+          if [ -f "dist/.well-known/oauth-protected-resource" ]; then
+            aws s3 cp dist/.well-known/oauth-protected-resource \
+              s3://${{ env.DASHBOARD_S3_BUCKET }}/.well-known/oauth-protected-resource \
+              --cache-control "public, max-age=300" \
+              --content-type "application/json"
+          fi
+
       - name: Invalidate CloudFront cache
         if: env.CLOUDFRONT_DISTRIBUTION_ID != ''
         run: |
           aws cloudfront create-invalidation \
             --distribution-id ${{ env.CLOUDFRONT_DISTRIBUTION_ID }} \
-            --paths "/index.html" "/assets/*" "/*.json" "/*.md"
+            --paths "/index.html" "/assets/*" "/*.json" "/*.md" "/.well-known/*" "/robots.txt"
 
       - name: Health check
         run: |

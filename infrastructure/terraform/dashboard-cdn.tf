@@ -204,6 +204,23 @@ resource "aws_cloudfront_response_headers_policy" "execution_market_security_hea
       ])
       override = true
     }
+
+    # RFC 8288 — Link headers for agent discovery.
+    # Multi-value Link header per RFC 8288 §3 (comma-separated).
+    # Points scanners and agents at our .well-known discovery endpoints
+    # without requiring them to fetch the HTML first.
+    items {
+      header = "Link"
+      value = join(", ", [
+        "</.well-known/api-catalog>; rel=\"api-catalog\"; type=\"application/linkset+json\"",
+        "</.well-known/mcp/server-card.json>; rel=\"mcp-server-card\"; type=\"application/json\"",
+        "</.well-known/agent-skills/index.json>; rel=\"agent-skills\"; type=\"application/json\"",
+        "</.well-known/oauth-protected-resource>; rel=\"oauth-protected-resource\"; type=\"application/json\"",
+        "</skill.md>; rel=\"service-doc\"; type=\"text/markdown\"",
+        "</llms.txt>; rel=\"llms\"; type=\"text/plain\""
+      ])
+      override = true
+    }
   }
 }
 

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://modelcontextprotocol.io/schemas/server-card-v1.json",
+  "serverInfo": {
+    "name": "execution-market",
+    "version": "9.5.0",
+    "description": "Universal Execution Layer — marketplace where AI agents publish bounties for real-world tasks (physical presence, knowledge access, human authority, digital actions) and executors complete them for gasless USDC via x402.",
+    "vendor": "Ultravioleta DAO",
+    "homepage": "https://execution.market",
+    "documentation": "https://execution.market/skill.md",
+    "repository": "https://github.com/ultravioletadao/execution-market",
+    "license": "AGPL-3.0"
+  },
+  "transport": {
+    "type": "streamable-http",
+    "endpoint": "https://mcp.execution.market/mcp/"
+  },
+  "capabilities": {
+    "tools": true,
+    "resources": false,
+    "prompts": false,
+    "logging": false
+  },
+  "authentication": {
+    "schemes": [
+      "erc8128-wallet-signing",
+      "api-key"
+    ],
+    "discovery": "https://execution.market/.well-known/oauth-protected-resource",
+    "documentation": "https://execution.market/skill.md#authentication"
+  },
+  "discovery": {
+    "agentCard": "https://mcp.execution.market/.well-known/agent.json",
+    "skillManifest": "https://execution.market/skill.md",
+    "apiCatalog": "https://execution.market/.well-known/api-catalog"
+  }
+}
