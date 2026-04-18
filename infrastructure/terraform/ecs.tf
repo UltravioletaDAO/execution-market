@@ -215,6 +215,14 @@ resource "aws_ecs_task_definition" "mcp_server" {
         { name = "RING2_QUEUE_URL", value = aws_sqs_queue.ring2.url },
         # Build metadata for Sentry release tracking (Phase 1.5).
         { name = "GIT_SHA", value = var.git_sha },
+        # Phase 2.2 SAAS_PRODUCTION_HARDENING — cap on every HTTP call to
+        # the Ultravioleta Facilitator (payments + ERC-8004 reputation).
+        # Split connect/read/write keeps a stalled phase from exceeding this
+        # total.  Paired with @facilitator_retry (3 attempts, exp backoff) in
+        # integrations/_http_retry.py so transient transport issues still
+        # recover.  Previously a single facilitator call could freeze a
+        # request worker for 5 minutes (timeout=300 in payment_dispatcher).
+        { name = "FACILITATOR_TIMEOUT_SECONDS", value = "30" },
       ]
 
       secrets = [

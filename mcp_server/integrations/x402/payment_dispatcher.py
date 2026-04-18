@@ -21,6 +21,12 @@ from typing import Optional, Dict, Any
 from datetime import datetime, timezone
 
 from integrations.x402.payment_events import log_payment_event
+from integrations._http_retry import (
+    FACILITATOR_TIMEOUT_SECONDS,
+    facilitator_retry,
+    facilitator_timeout,
+    raise_for_status_if_no_tx,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -813,36 +819,59 @@ class PaymentDispatcher:
 
     @staticmethod
     def _authorize_with_extended_timeout(client, pi, timeout_seconds: int = 600):
-        """Authorize escrow with extended HTTP timeout for slow chains (Ethereum L1)."""
+        """Authorize escrow with an HTTP timeout capped at ``FACILITATOR_TIMEOUT_SECONDS``.
+
+        Phase 2.2 SAAS_PRODUCTION_HARDENING: the caller-requested ``timeout_seconds``
+        is clamped — a stuck facilitator call can no longer freeze a request worker
+        for minutes. If the call needs longer, the retry policy plus on-chain state
+        reconciliation (see release flow) is the recovery path.
+        """
         return PaymentDispatcher._call_with_extended_timeout(
             client.authorize, pi, timeout_seconds
         )
 
     @staticmethod
     def _call_with_extended_timeout(func, pi, timeout_seconds: int = 600):
-        """Call an SDK method with extended HTTP timeout for slow chains.
+        """Call an SDK method with an HTTP timeout capped at ``FACILITATOR_TIMEOUT_SECONDS``.
 
-        The SDK hardcodes httpx.post timeout=120. For Ethereum L1 (blocks ~12s),
-        the Facilitator may need up to 300s+ to confirm the TX on-chain. This
-        wrapper monkey-patches httpx.post temporarily.
+        Phase 2.2 SAAS_PRODUCTION_HARDENING: previously this wrapper
+        monkey-patched ``httpx.post`` to use a 300-900s timeout for Ethereum L1.
+        That let a single stalled facilitator call monopolise a request worker
+        for several minutes — exactly the pathology that motivated a timeout
+        cap. Now ``timeout_seconds`` is always clamped to
+        ``FACILITATOR_TIMEOUT_SECONDS`` (default 30s). Slow chains rely on the
+        on-chain reconciliation path (``query_escrow_state`` after HTTP timeout)
+        plus idempotent retries — not longer HTTP waits.
         """
         import httpx as _httpx
 
         _original_post = _httpx.post
 
-        logger.info(
-            "Applying extended timeout (%ds) for facilitator call (func=%s)",
-            timeout_seconds,
-            getattr(func, "__name__", str(func)),
-        )
+        # Clamp to the global facilitator timeout cap — see Phase 2.2.
+        capped_timeout = min(int(timeout_seconds), int(FACILITATOR_TIMEOUT_SECONDS))
+        if capped_timeout < int(timeout_seconds):
+            logger.info(
+                "Clamping requested facilitator timeout %ds -> %ds (cap=%ds)",
+                timeout_seconds,
+                capped_timeout,
+                FACILITATOR_TIMEOUT_SECONDS,
+            )
+        else:
+            logger.info(
+                "Applying facilitator timeout (%ds) for call (func=%s)",
+                capped_timeout,
+                getattr(func, "__name__", str(func)),
+            )
 
         def _patched_post(*args, **kwargs):
             old_timeout = kwargs.get("timeout")
-            kwargs["timeout"] = timeout_seconds
+            # Use a split Timeout so a stalled read/write phase cannot exceed
+            # the cap while the connect phase still gets a short budget.
+            kwargs["timeout"] = facilitator_timeout(capped_timeout)
             logger.info(
-                "httpx.post monkey-patch: overriding timeout %s -> %ds",
+                "httpx.post monkey-patch: overriding timeout %s -> %ds (capped)",
                 old_timeout,
-                timeout_seconds,
+                capped_timeout,
             )
             resp = _original_post(*args, **kwargs)
             if resp.status_code >= 400:
@@ -864,6 +893,35 @@ class PaymentDispatcher:
             return func(pi)
         finally:
             _httpx.post = _original_post
+
+    @staticmethod
+    @facilitator_retry
+    async def _post_facilitator_json(
+        url: str,
+        payload: Dict[str, Any],
+        total_timeout: Optional[float] = None,
+    ) -> "Any":
+        """Centralised POST to the facilitator with retry + capped timeout.
+
+        Phase 2 SAAS_PRODUCTION_HARDENING:
+          * Timeout capped at ``FACILITATOR_TIMEOUT_SECONDS`` (default 30s) via
+            ``facilitator_timeout()`` — caller-supplied ``total_timeout`` is
+            clamped, never expanded.
+          * Up to 3 attempts with exponential backoff (1s / 2s / 4s, max 10s)
+            via ``@facilitator_retry``.
+          * Retries only on transient transport issues (timeout / network /
+            remote-protocol) and 5xx responses. 4xx is never retried.
+          * If a 5xx response already contains a transaction hash (settle /
+            feedback half-success), retry is suppressed to avoid double-settle.
+        """
+        import httpx as _httpx
+
+        async with _httpx.AsyncClient(
+            timeout=facilitator_timeout(total_timeout)
+        ) as client:
+            response = await client.post(url, json=payload)
+        raise_for_status_if_no_tx(response)
+        return response
 
     async def authorize_escrow_for_worker(
         self,
@@ -1314,8 +1372,6 @@ class PaymentDispatcher:
         Returns:
             Dict with success, tx_hash, error.
         """
-        import httpx
-
         config = NETWORK_CONFIG.get(network, {})
         operator = _get_operator_for_network(network) or EM_OPERATOR
         chain_id = config.get("chain_id", 8453)
@@ -1430,17 +1486,20 @@ class PaymentDispatcher:
         logger.info("Relaying agent auth to facilitator: %s", debug_payload)
 
         try:
-            async with httpx.AsyncClient(timeout=120) as client:
-                response = await client.post(
-                    f"{FACILITATOR_URL}/settle",
-                    json=payload,
-                )
-                logger.info(
-                    "Facilitator /settle response: status=%d, body=%s",
-                    response.status_code,
-                    response.text[:500],
-                )
-                result = response.json()
+            # Phase 2.2 SAAS_PRODUCTION_HARDENING: was timeout=120, now capped at
+            # FACILITATOR_TIMEOUT_SECONDS (default 30s) with @facilitator_retry
+            # (3 attempts, exp backoff). Retries transient transport errors + 5xx,
+            # never 4xx, never if body has tx_hash (double-settle guard).
+            response = await self._post_facilitator_json(
+                f"{FACILITATOR_URL}/settle",
+                payload,
+            )
+            logger.info(
+                "Facilitator /settle response: status=%d, body=%s",
+                response.status_code,
+                response.text[:500],
+            )
+            result = response.json()
 
             if result.get("success"):
                 tx_hash = result.get("transaction", {}).get("hash") or result.get(
@@ -1708,20 +1767,22 @@ class PaymentDispatcher:
             stored_network,
         )
 
-        import httpx
-
         try:
-            async with httpx.AsyncClient(timeout=300) as http_client:
-                response = await http_client.post(
-                    f"{FACILITATOR_URL}/settle",
-                    json=release_payload,
-                )
-                logger.info(
-                    "Facilitator /settle release response: status=%d, body=%s",
-                    response.status_code,
-                    response.text[:500],
-                )
-                release_data = response.json()
+            # Phase 2.2 SAAS_PRODUCTION_HARDENING: was timeout=300 (froze workers
+            # for 5min on hung facilitator calls), now capped at
+            # FACILITATOR_TIMEOUT_SECONDS (default 30s). @facilitator_retry gives
+            # 3 attempts with exp backoff; on 5xx half-success (body has tx_hash)
+            # we skip retry to avoid double-settle.
+            response = await self._post_facilitator_json(
+                f"{FACILITATOR_URL}/settle",
+                release_payload,
+            )
+            logger.info(
+                "Facilitator /settle release response: status=%d, body=%s",
+                response.status_code,
+                response.text[:500],
+            )
+            release_data = response.json()
         except Exception as e:
             logger.error("Facilitator release HTTP failed for task %s: %s", task_id, e)
             release_data = {"success": False, "errorReason": str(e)}
