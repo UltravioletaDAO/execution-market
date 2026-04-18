@@ -157,7 +157,7 @@ async def create_report(
 async def list_reports(
     _admin=Depends(verify_admin_key),
     status: Optional[str] = Query(None, description="Filter by status"),
-    limit: int = Query(50, ge=1, le=200),
+    limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
 ):
     try:

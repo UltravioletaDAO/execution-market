@@ -12,8 +12,10 @@ from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from typing import Optional, List, Dict, Any
 
-from fastapi import APIRouter, HTTPException, Depends, Query, Path, Request
+from fastapi import APIRouter, HTTPException, Depends, Query, Path, Request, Response
 from fastapi.responses import JSONResponse
+
+from ._pagination import set_pagination_headers
 
 import supabase_client as db
 from models import TaskCategory, TaskStatus
@@ -2378,14 +2380,19 @@ async def get_task_transactions(
     tags=["Tasks"],
 )
 async def get_task_chat_history(
+    request: Request,
+    response: Response,
     task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
-    limit: int = Query(200, ge=1, le=1000, description="Max messages"),
+    limit: int = Query(100, ge=1, le=100, description="Max messages per page"),
+    offset: int = Query(0, ge=0, description="Pagination offset"),
     auth: AgentAuth = Depends(verify_agent_auth_read),
 ):
     """Get chat log from the task's IRC channel.
 
     Only available for task owner (publisher) or admin.
     Messages are only logged for #task-{id} channels.
+    Paginated per Task 6.4 cap — use ``Link`` header + ``offset`` to walk
+    longer histories.
     """
     # Verify task exists and caller owns it
     client = db.client
@@ -2404,19 +2411,29 @@ async def get_task_chat_history(
         )
 
     try:
-        result = (
+        query = (
             client.table("task_chat_log")
-            .select("nick, wallet_address, message, message_type, created_at")
+            .select(
+                "nick, wallet_address, message, message_type, created_at",
+                count="exact",
+            )
             .eq("task_id", task_id)
             .order("created_at", desc=False)
-            .limit(limit)
-            .execute()
+            .range(offset, offset + limit - 1)
+        )
+        result = query.execute()
+
+        total = getattr(result, "count", None)
+        set_pagination_headers(
+            response, request, total=total, offset=offset, limit=limit
         )
 
         return {
             "task_id": task_id,
             "messages": result.data or [],
             "count": len(result.data or []),
+            "total": total,
+            "offset": offset,
         }
     except Exception as e:
         logger.error("Chat history retrieval failed for task %s: %s", task_id[:8], e)
@@ -2438,6 +2455,8 @@ async def get_task_chat_history(
     tags=["Tasks", "Agent"],
 )
 async def list_tasks(
+    request: Request,
+    response: Response,
     status: Optional[TaskStatus] = Query(None, description="Filter by task status"),
     category: Optional[TaskCategory] = Query(None, description="Filter by category"),
     limit: int = Query(20, ge=1, le=100, description="Maximum results"),
@@ -2451,6 +2470,14 @@ async def list_tasks(
         category=category.value if category else None,
         limit=limit,
         offset=offset,
+    )
+
+    set_pagination_headers(
+        response,
+        request,
+        total=result.get("total"),
+        offset=offset,
+        limit=limit,
     )
 
     tasks = []

@@ -150,7 +150,7 @@ def _build_checkpoint_response(
 )
 async def get_audit_grid(
     page: int = Query(1, ge=1, description="Page number"),
-    limit: int = Query(50, ge=1, le=200, description="Tasks per page"),
+    limit: int = Query(50, ge=1, le=100, description="Tasks per page"),
     status: Optional[str] = Query(None, description="Filter by task status"),
     network: Optional[str] = Query(None, description="Filter by payment network"),
     skill_version: Optional[str] = Query(None, description="Filter by skill version"),

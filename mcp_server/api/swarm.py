@@ -609,7 +609,7 @@ async def update_config(
 
 @router.get("/events")
 async def list_events(
-    limit: int = Query(50, ge=1, le=500, description="Max events to return"),
+    limit: int = Query(50, ge=1, le=100, description="Max events to return"),
     event_type: Optional[str] = Query(None, description="Filter by event type"),
     api_key: APIKeyData = Depends(verify_api_key),
 ):
@@ -641,7 +641,7 @@ async def list_events(
 @router.get("/tasks")
 async def swarm_tasks(
     status: Optional[str] = Query(None, description="Filter by task status in queue"),
-    limit: int = Query(50, ge=1, le=200),
+    limit: int = Query(50, ge=1, le=100),
     api_key: APIKeyData = Depends(verify_api_key),
 ):
     """

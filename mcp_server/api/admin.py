@@ -327,7 +327,7 @@ async def get_all_config(admin: dict = Depends(verify_admin_key)) -> AllConfigRe
 )
 async def get_config_audit_log(
     key: Optional[str] = Query(None, description="Filter by config key"),
-    limit: int = Query(50, ge=1, le=500),
+    limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
     category: Optional[str] = Query(None, description="Filter by category prefix"),
     admin: dict = Depends(verify_admin_key),
@@ -850,7 +850,7 @@ class AdminActionsLogResponse(BaseModel):
 )
 async def get_admin_actions_log(
     action_type: Optional[str] = Query(None, description="Filter by action type"),
-    limit: int = Query(50, ge=1, le=500),
+    limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
     admin: dict = Depends(verify_admin_key),
 ) -> AdminActionsLogResponse:
@@ -1082,7 +1082,7 @@ async def list_tasks(
     },
 )
 async def get_phantom_tasks(
-    limit: int = Query(100, ge=1, le=500, description="Max tasks to scan"),
+    limit: int = Query(100, ge=1, le=100, description="Max tasks to scan"),
     admin: dict = Depends(verify_admin_key),
 ) -> Dict[str, Any]:
     """Find tasks where evidence was submitted/completed but escrow was never funded."""
