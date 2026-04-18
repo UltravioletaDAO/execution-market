@@ -14,10 +14,12 @@ from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from typing import Optional, List, Dict, Any
 
-from fastapi import APIRouter, HTTPException, Depends, Query, Header
+from fastapi import APIRouter, HTTPException, Depends, Query, Header, Request, Response
 from pydantic import BaseModel, Field
 
 import supabase_client as db
+
+from .routers._pagination import set_pagination_headers
 
 # Platform configuration
 try:
@@ -326,6 +328,8 @@ async def get_all_config(admin: dict = Depends(verify_admin_key)) -> AllConfigRe
     },
 )
 async def get_config_audit_log(
+    request: Request,
+    response: Response,
     key: Optional[str] = Query(None, description="Filter by config key"),
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
@@ -359,9 +363,13 @@ async def get_config_audit_log(
                 )
             )
 
+        total = getattr(result, "count", None)
+        set_pagination_headers(
+            response, request, total=total, offset=offset, limit=limit
+        )
         return AuditLogResponse(
             entries=entries,
-            count=result.count or len(entries),
+            count=total or len(entries),
             offset=offset,
         )
     except Exception as e:
@@ -849,6 +857,8 @@ class AdminActionsLogResponse(BaseModel):
     },
 )
 async def get_admin_actions_log(
+    request: Request,
+    response: Response,
     action_type: Optional[str] = Query(None, description="Filter by action type"),
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
@@ -880,9 +890,13 @@ async def get_admin_actions_log(
                 )
             )
 
+        total = getattr(result, "count", None)
+        set_pagination_headers(
+            response, request, total=total, offset=offset, limit=limit
+        )
         return AdminActionsLogResponse(
             entries=entries,
-            count=result.count or len(entries),
+            count=total or len(entries),
             offset=offset,
         )
     except Exception as e:
@@ -1027,6 +1041,8 @@ async def get_platform_stats(admin: dict = Depends(verify_admin_key)) -> Dict[st
     },
 )
 async def list_tasks(
+    request: Request,
+    response: Response,
     status: Optional[str] = Query(None, description="Filter by status"),
     search: Optional[str] = Query(None, description="Search in title/description"),
     limit: int = Query(20, ge=1, le=100),
@@ -1056,9 +1072,13 @@ async def list_tasks(
                 s = task.get("status", "unknown")
                 stats[s] = stats.get(s, 0) + 1
 
+        total = getattr(result, "count", None)
+        set_pagination_headers(
+            response, request, total=total, offset=offset, limit=limit
+        )
         return {
             "tasks": result.data or [],
-            "count": result.count or 0,
+            "count": total or 0,
             "offset": offset,
             "stats": stats,
         }
@@ -1306,6 +1326,8 @@ async def cancel_task(
     },
 )
 async def list_payments(
+    request: Request,
+    response: Response,
     period: str = Query("7d", description="Time period: 24h, 7d, 30d, 90d, all"),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
@@ -1360,9 +1382,13 @@ async def list_payments(
                 }
             )
 
+        total = getattr(result, "count", None)
+        set_pagination_headers(
+            response, request, total=total, offset=offset, limit=limit
+        )
         return {
             "transactions": transactions,
-            "count": result.count or 0,
+            "count": total or 0,
             "offset": offset,
         }
     except Exception as e:
@@ -1456,6 +1482,8 @@ async def get_payment_stats(
     },
 )
 async def list_agents(
+    request: Request,
+    response: Response,
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
     admin: dict = Depends(verify_admin_key),
@@ -1522,12 +1550,16 @@ async def list_agents(
                 }
             )
 
+        total = getattr(result, "count", None)
+        set_pagination_headers(
+            response, request, total=total, offset=offset, limit=limit
+        )
         return {
             "users": agents,
-            "count": result.count or len(agents),
+            "count": total or len(agents),
             "offset": offset,
             "stats": {
-                "total_agents": result.count or len(agents),
+                "total_agents": total or len(agents),
                 "active_agents": sum(1 for a in agents if a["status"] == "active"),
             },
         }
@@ -1546,6 +1578,8 @@ async def list_agents(
     },
 )
 async def list_workers(
+    request: Request,
+    response: Response,
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
     admin: dict = Depends(verify_admin_key),
@@ -1594,13 +1628,17 @@ async def list_workers(
                 }
             )
 
+        total = getattr(result, "count", None)
+        set_pagination_headers(
+            response, request, total=total, offset=offset, limit=limit
+        )
         return {
             "users": workers,
-            "count": result.count or len(workers),
+            "count": total or len(workers),
             "offset": offset,
             "stats": {
-                "total_workers": result.count or len(workers),
-                "active_workers": result.count or len(workers),
+                "total_workers": total or len(workers),
+                "active_workers": total or len(workers),
             },
         }
     except Exception as e:
