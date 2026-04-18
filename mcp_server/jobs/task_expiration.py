@@ -80,6 +80,16 @@ async def _process_expired_task(client, task: dict) -> None:
         logger.error("[expiration] Failed to update task %s: %s", task_id, exc)
         return  # Do not attempt refund if status update failed
 
+    # Business metrics (Phase 6.1). Best-effort — never blocks the refund flow.
+    try:
+        from metrics.prometheus import record_task_completed
+
+        record_task_completed("expired")
+    except Exception as metrics_exc:  # noqa: BLE001 — defensive
+        logger.debug(
+            "prometheus record_task_completed(expired) failed: %s", metrics_exc
+        )
+
     # 2. Refund escrow if applicable
     if not escrow_id:
         logger.info("[expiration] Task %s has no escrow_id, skipping refund", task_id)

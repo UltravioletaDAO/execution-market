@@ -400,6 +400,20 @@ async def approve_submission(
         if settlement.get(key) is not None:
             response_data[key] = settlement[key]
 
+    # Business metrics (Phase 6.1). Best-effort — never blocks the response.
+    try:
+        from metrics.prometheus import (
+            record_payment_settled,
+            record_task_completed,
+        )
+
+        record_task_completed("completed")
+        worker_net = settlement.get("worker_net_usdc")
+        if worker_net is not None:
+            record_payment_settled(task_network, float(worker_net))
+    except Exception as metrics_exc:  # noqa: BLE001 — defensive
+        logger.debug("prometheus record on approve failed: %s", metrics_exc)
+
     return SuccessResponse(
         message="Submission approved. Payment released to worker.", data=response_data
     )

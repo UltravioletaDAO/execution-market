@@ -1093,6 +1093,51 @@ class RequestTimeoutMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(RequestTimeoutMiddleware)
 
+# Prometheus metrics middleware (Phase 6.1 SAAS_PRODUCTION_HARDENING).
+# Records RED metrics (rate, errors, duration) per route. The /metrics
+# endpoint itself is excluded from instrumentation to avoid the classic
+# scraper-observes-itself feedback loop. Graceful no-op if the
+# prometheus-client dep is missing in the runtime image.
+try:
+    from metrics.prometheus import (
+        PrometheusMiddleware,
+        PROMETHEUS_AVAILABLE,
+        generate_metrics,
+    )
+
+    if PROMETHEUS_AVAILABLE:
+        app.add_middleware(PrometheusMiddleware)
+        logger.info("Prometheus middleware installed (RED metrics enabled)")
+    else:
+        logger.info(
+            "prometheus-client not installed — /metrics will return a placeholder"
+        )
+
+    from api.admin import verify_admin_key as _verify_admin_key_for_metrics
+    from fastapi import Depends as _MetricsDepends
+    from fastapi.responses import Response as _MetricsResponse
+
+    @app.get(
+        "/metrics",
+        include_in_schema=False,
+        tags=["Observability"],
+        summary="Prometheus metrics (admin)",
+    )
+    async def prometheus_metrics(
+        _admin: dict = _MetricsDepends(_verify_admin_key_for_metrics),
+    ):
+        """Render the Prometheus registry in the 0.0.4 text format.
+
+        Admin-protected: the scraper needs to send ``X-Admin-Key`` or
+        ``Authorization: Bearer <EM_ADMIN_KEY>``. Excluded from OpenAPI
+        so we don't advertise the endpoint on the public spec.
+        """
+        body, content_type = generate_metrics()
+        return _MetricsResponse(content=body, media_type=content_type)
+
+except ImportError as exc:
+    logger.warning("Prometheus metrics module unavailable: %s", exc)
+
 # Mount MCP Streamable HTTP app at /mcp
 # Note: Due to Starlette routing, the canonical URL is /mcp/ (with trailing slash)
 # Requests to /mcp will redirect to /mcp/

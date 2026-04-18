@@ -1471,6 +1471,14 @@ async def create_task(
             "agent_name"
         )
 
+        # Business metrics (Phase 6.1). Best-effort, never blocks the happy path.
+        try:
+            from metrics.prometheus import record_task_created
+
+            record_task_created(task.get("payment_network"))
+        except Exception as metrics_exc:  # noqa: BLE001 — defensive
+            logger.debug("prometheus record_task_created failed: %s", metrics_exc)
+
         return TaskResponse(
             id=task["id"],
             title=task["title"],
@@ -2930,6 +2938,17 @@ async def cancel_task(
             message_suffix = " Escrow was already released."
         elif status_label in {"refund_manual_required", "refund_failed"}:
             message_suffix = " Escrow refund requires manual intervention."
+
+        # Business metrics (Phase 6.1). Best-effort — never blocks the response.
+        try:
+            from metrics.prometheus import record_task_completed
+
+            record_task_completed("cancelled")
+        except Exception as metrics_exc:  # noqa: BLE001 — defensive
+            logger.debug(
+                "prometheus record_task_completed(cancelled) failed: %s",
+                metrics_exc,
+            )
 
         return SuccessResponse(
             message=f"Task cancelled successfully.{message_suffix}", data=response_data
