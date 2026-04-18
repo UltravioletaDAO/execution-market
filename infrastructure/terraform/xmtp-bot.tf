@@ -145,6 +145,18 @@ resource "aws_security_group" "xmtp_bot" {
     description = "IRC TLS (MeshRelay)"
   }
 
+  # NFS to EFS (sg-to-sg via cidr VPC is OK; real gate is ingress on EFS SG).
+  # MUST be inline — mixing inline egress{} with aws_security_group_rule for
+  # this SG causes the AWS provider to wipe the standalone rule on every
+  # reconciliation, blocking EFS mount. See INC-2026-04-02 / 2026-04-18.
+  egress {
+    from_port   = 2049
+    to_port     = 2049
+    protocol    = "tcp"
+    cidr_blocks = [aws_vpc.main.cidr_block]
+    description = "NFS to EFS"
+  }
+
   tags = {
     Name    = "${local.name_prefix}-xmtp-bot"
     Service = "xmtp-bot"
@@ -162,17 +174,7 @@ resource "aws_security_group" "efs_xmtp" {
   }
 }
 
-# Break SG cycle with standalone rules
-resource "aws_security_group_rule" "xmtp_bot_to_efs" {
-  type                     = "egress"
-  from_port                = 2049
-  to_port                  = 2049
-  protocol                 = "tcp"
-  security_group_id        = aws_security_group.xmtp_bot.id
-  source_security_group_id = aws_security_group.efs_xmtp.id
-  description              = "NFS to EFS"
-}
-
+# Standalone ingress rule (safe because efs_xmtp SG has no inline rules).
 resource "aws_security_group_rule" "efs_from_xmtp_bot" {
   type                     = "ingress"
   from_port                = 2049
