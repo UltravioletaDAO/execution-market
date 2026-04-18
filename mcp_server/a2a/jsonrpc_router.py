@@ -15,6 +15,8 @@ from typing import Optional, Dict, Any, Union
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
+from utils.net import get_client_ip as _trusted_get_client_ip
+
 from .models import (
     JSONRPCError,
     A2ATaskState,
@@ -390,9 +392,7 @@ async def a2a_jsonrpc_endpoint(request: Request):
             },
         )
 
-    _client_ip = request.headers.get(  # noqa: F841
-        "X-Forwarded-For", request.client.host if request.client else "unknown"
-    )
+    _client_ip = _trusted_get_client_ip(request)  # noqa: F841
     request_id = None  # noqa: F841
 
     try:

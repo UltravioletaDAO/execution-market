@@ -17,6 +17,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from security.rate_limits import RateLimiter, check_all_limits, RateLimitTier
+from utils.net import get_client_ip as _trusted_get_client_ip
 
 logger = logging.getLogger(__name__)
 
@@ -437,27 +438,18 @@ def add_api_middleware(app: FastAPI) -> None:
 
 
 def _get_client_ip(request: Request) -> str:
+    """Extract real client IP from request, respecting trusted-proxy boundary.
+
+    This is a thin wrapper around :func:`utils.net.get_client_ip` so that
+    existing callsites (``RequestLoggingMiddleware``, ``RateLimitMiddleware``)
+    keep working. The trusted-proxy logic lives in ``utils.net`` — see the
+    docstring there for the spoofing-resistance rules.
+
+    TL;DR: XFF is only honored when the TCP peer is inside
+    ``TRUSTED_PROXY_CIDRS``. For direct (untrusted) callers, the TCP peer
+    IP is returned and XFF is ignored.
     """
-    Extract real client IP from request.
-
-    Handles common proxy headers (X-Forwarded-For, X-Real-IP).
-    """
-    # Check X-Forwarded-For (from load balancers/proxies)
-    forwarded_for = request.headers.get("X-Forwarded-For")
-    if forwarded_for:
-        # Take the first IP (original client)
-        return forwarded_for.split(",")[0].strip()
-
-    # Check X-Real-IP (from nginx)
-    real_ip = request.headers.get("X-Real-IP")
-    if real_ip:
-        return real_ip.strip()
-
-    # Fall back to direct client
-    if request.client:
-        return request.client.host
-
-    return "unknown"
+    return _trusted_get_client_ip(request)
 
 
 def _extract_api_key(request: Request) -> Optional[str]:

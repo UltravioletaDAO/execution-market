@@ -27,6 +27,7 @@ try:
 except ImportError:  # pragma: no cover
     TTLCache = None
 
+from utils.net import get_client_ip as _trusted_get_client_ip
 from utils.pii import truncate_wallet
 
 logger = logging.getLogger(__name__)
@@ -748,16 +749,14 @@ def _check_nonce_rate_limit(ip: str) -> tuple[bool, int]:
 
 
 def _get_nonce_client_ip(request: Request) -> str:
-    """Extract client IP from request for nonce rate limiting."""
-    forwarded_for = request.headers.get("X-Forwarded-For")
-    if forwarded_for:
-        return forwarded_for.split(",")[0].strip()
-    real_ip = request.headers.get("X-Real-IP")
-    if real_ip:
-        return real_ip.strip()
-    if request.client:
-        return request.client.host
-    return "unknown"
+    """Extract client IP for nonce rate limiting, respecting trusted proxies.
+
+    Delegates to :func:`utils.net.get_client_ip` so that ``X-Forwarded-For``
+    is only honored when the TCP peer is inside ``TRUSTED_PROXY_CIDRS``.
+    Without this, an attacker could defeat per-IP nonce rate limiting by
+    rotating a spoofed XFF header on each request.
+    """
+    return _trusted_get_client_ip(request)
 
 
 async def generate_auth_nonce(request: Request) -> dict:
