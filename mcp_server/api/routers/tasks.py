@@ -1103,6 +1103,39 @@ async def create_task(
                             task["id"],
                             store_result.get("error"),
                         )
+                    else:
+                        # Phase 5.1: persist EIP-3009 nonce in payment_events so
+                        # the UNIQUE (nonce, token_address) index (migration 102)
+                        # can catch any future replay of the same signed auth.
+                        try:
+                            from integrations.x402.payment_events import (
+                                log_payment_event,
+                            )
+
+                            _preauth_payload = parsed_auth.get("payload", {})
+                            _preauth_auth = _preauth_payload.get("authorization", {})
+                            _preauth_pi = _preauth_payload.get("paymentInfo", {})
+                            await log_payment_event(
+                                task_id=task["id"],
+                                event_type="store_auth",
+                                status="success",
+                                from_address=agent_address,
+                                amount_usdc=total_required,
+                                network=network,
+                                nonce=_preauth_auth.get("nonce"),
+                                token_address=_preauth_pi.get("token"),
+                                metadata={
+                                    "payment_mode": "fase2",
+                                    "escrow_timing": "lock_on_assignment",
+                                    "valid_before": valid_before,
+                                },
+                            )
+                        except Exception as audit_exc:  # noqa: BLE001 — defensive
+                            logger.warning(
+                                "store_auth audit log failed for task %s: %s",
+                                task["id"],
+                                audit_exc,
+                            )
                     escrow_status = "pending_assignment"
                     funding_tx = None
 
