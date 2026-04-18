@@ -206,6 +206,10 @@ jobs:
   secret-scan:
     name: Secret Scanning
     runs-on: ubuntu-latest
+    # Task 4.1 (SaaS Production Hardening) — MUST be a required status check
+    # in branch protection. Source: INC-2026-03-23 + INC-2026-03-30 (hardcoded
+    # keys committed and drained). The gitleaks action exits non-zero on any
+    # finding; TruffleHog needs the explicit `--fail` flag.
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
@@ -215,13 +219,17 @@ jobs:
         uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7  # v2.3.9
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "true"
+          GITLEAKS_ENABLE_SUMMARY: "true"
 
       - name: Run TruffleHog
         uses: trufflesecurity/trufflehog@0d5afcefc50330bfd4a58909e85c6223c42ff619  # main @ 2026-04-17 (post-v3.94.3)
         with:
           path: ./
           base: ${{ github.event.repository.default_branch }}
-          extra_args: --only-verified
+          # --fail makes the action exit non-zero when verified secrets are
+          # detected; without it TruffleHog only logs and exits 0.
+          extra_args: --only-verified --fail
 
   license-check:
     name: License Compliance
@@ -295,6 +303,25 @@ jobs:
           category: semgrep
         if: always() && hashFiles('semgrep.sarif') != ''
         continue-on-error: true
+
+  secret-scan-gate:
+    # Task 4.1 — single required status check to configure in branch
+    # protection. Hard-fails when the secret-scan job did not succeed, so a
+    # leak-containing PR cannot merge even if somebody forgets to add every
+    # sub-check individually to branch protection.
+    name: Secret Scan Gate
+    runs-on: ubuntu-latest
+    needs: [secret-scan]
+    if: always()
+    steps:
+      - name: Enforce secret-scan success
+        run: |
+          result="${{ needs.secret-scan.result }}"
+          echo "secret-scan result: ${result}"
+          if [ "${result}" != "success" ]; then
+            echo "::error::Secret scan did not pass (result=${result}). Merge blocked." >&2
+            exit 1
+          fi
 
   security-summary:
     name: Security Summary
