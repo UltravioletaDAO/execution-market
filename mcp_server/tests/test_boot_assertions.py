@@ -167,3 +167,71 @@ class TestSettlementAddressBootAssertion:
         # Edge case: env var set to empty string should also be a no-op.
         monkeypatch.setenv("EM_TREASURY_ADDRESS", "")
         main_module._assert_settlement_not_treasury()
+
+
+# ---------------------------------------------------------------------------
+# Task 4.3: ERC-8004 fail-closed in production
+# ---------------------------------------------------------------------------
+
+
+class TestErc8004RequiredBootAssertion:
+    """Exercises ``_assert_erc8004_required_in_production``.
+
+    Prevents a production deploy from silently disabling ERC-8004 identity
+    enforcement and falling back to Agent #2106.
+    """
+
+    def test_passes_when_not_production(self, main_module, monkeypatch):
+        monkeypatch.setenv("ENVIRONMENT", "development")
+        monkeypatch.setenv("EM_REQUIRE_ERC8004", "false")
+        monkeypatch.setenv("EM_REQUIRE_ERC8004_WORKER", "false")
+        # Must not raise — gated on ENVIRONMENT=production.
+        main_module._assert_erc8004_required_in_production()
+
+    def test_passes_when_env_unset(self, main_module, monkeypatch):
+        monkeypatch.delenv("ENVIRONMENT", raising=False)
+        monkeypatch.setenv("EM_REQUIRE_ERC8004", "false")
+        monkeypatch.setenv("EM_REQUIRE_ERC8004_WORKER", "false")
+        # Default ENVIRONMENT is "development" — must not raise.
+        main_module._assert_erc8004_required_in_production()
+
+    def test_raises_when_production_and_agent_flag_false(
+        self, main_module, monkeypatch
+    ):
+        monkeypatch.setenv("ENVIRONMENT", "production")
+        monkeypatch.setenv("EM_REQUIRE_ERC8004", "false")
+        monkeypatch.setenv("EM_REQUIRE_ERC8004_WORKER", "true")
+        with pytest.raises(RuntimeError, match="ERC-8004 enforcement disabled"):
+            main_module._assert_erc8004_required_in_production()
+
+    def test_raises_when_production_and_worker_flag_false(
+        self, main_module, monkeypatch
+    ):
+        monkeypatch.setenv("ENVIRONMENT", "production")
+        monkeypatch.setenv("EM_REQUIRE_ERC8004", "true")
+        monkeypatch.setenv("EM_REQUIRE_ERC8004_WORKER", "false")
+        with pytest.raises(RuntimeError, match="ERC-8004 enforcement disabled"):
+            main_module._assert_erc8004_required_in_production()
+
+    def test_raises_when_production_and_both_flags_missing(
+        self, main_module, monkeypatch
+    ):
+        monkeypatch.setenv("ENVIRONMENT", "production")
+        monkeypatch.delenv("EM_REQUIRE_ERC8004", raising=False)
+        monkeypatch.delenv("EM_REQUIRE_ERC8004_WORKER", raising=False)
+        with pytest.raises(RuntimeError, match="ERC-8004 enforcement disabled"):
+            main_module._assert_erc8004_required_in_production()
+
+    def test_passes_when_production_and_both_flags_true(self, main_module, monkeypatch):
+        monkeypatch.setenv("ENVIRONMENT", "production")
+        monkeypatch.setenv("EM_REQUIRE_ERC8004", "true")
+        monkeypatch.setenv("EM_REQUIRE_ERC8004_WORKER", "true")
+        # Must not raise — happy path.
+        main_module._assert_erc8004_required_in_production()
+
+    def test_production_match_is_case_insensitive(self, main_module, monkeypatch):
+        monkeypatch.setenv("ENVIRONMENT", "PRODUCTION")
+        monkeypatch.setenv("EM_REQUIRE_ERC8004", "false")
+        monkeypatch.setenv("EM_REQUIRE_ERC8004_WORKER", "false")
+        with pytest.raises(RuntimeError, match="ERC-8004 enforcement disabled"):
+            main_module._assert_erc8004_required_in_production()

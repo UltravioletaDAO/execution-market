@@ -271,9 +271,36 @@ def _assert_settlement_not_treasury() -> None:
         )
 
 
+def _assert_erc8004_required_in_production() -> None:
+    """Task 4.3: refuse to boot if ERC-8004 enforcement is off in production.
+
+    CLAUDE.md says EM_REQUIRE_ERC8004 and EM_REQUIRE_ERC8004_WORKER should be
+    ``true`` in production, but both are env-gated with a silent fallback to
+    Agent #2106. Booting with either flag off downgrades identity enforcement
+    across every task and worker registration — catch it at startup instead of
+    in a post-incident audit.
+    """
+    env_name = os.environ.get("ENVIRONMENT", "development").lower()
+    if env_name != "production":
+        return
+    require_agent = os.environ.get("EM_REQUIRE_ERC8004", "false").lower() == "true"
+    require_worker = (
+        os.environ.get("EM_REQUIRE_ERC8004_WORKER", "false").lower() == "true"
+    )
+    if not (require_agent and require_worker):
+        raise RuntimeError(
+            "CRITICAL: ERC-8004 enforcement disabled in production "
+            f"(EM_REQUIRE_ERC8004={require_agent}, "
+            f"EM_REQUIRE_ERC8004_WORKER={require_worker}). "
+            "Refusing to start — set both to 'true' or change ENVIRONMENT. "
+            "SaaS Production Hardening Task 4.3."
+        )
+
+
 if _BOOT_ASSERTIONS_ENABLED and not _BOOT_IS_TESTING:
     _assert_jwt_secret_not_default()
     _assert_settlement_not_treasury()
+    _assert_erc8004_required_in_production()
 
 
 # Get Streamable HTTP configuration from environment
