@@ -28,7 +28,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Literal, Optional, Tuple
 
 from fastapi import APIRouter, HTTPException, Query, Response
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 import supabase_client as db
 
@@ -296,7 +296,10 @@ def _extract_verification(
     gps_meta = meta.get("gps") if isinstance(meta.get("gps"), dict) else None
     gps_fore = fore.get("gps") if isinstance(fore.get("gps"), dict) else None
     badges.gps_verified = bool(
-        (gps_meta and (gps_meta.get("verified") or gps_meta.get("latitude") is not None))
+        (
+            gps_meta
+            and (gps_meta.get("verified") or gps_meta.get("latitude") is not None)
+        )
         or (gps_fore and gps_fore.get("latitude") is not None)
     )
 

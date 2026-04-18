@@ -347,7 +347,7 @@ class TestQueryValidation:
 class TestCaching:
     def test_identical_request_hits_cache(self):
         db = _client(_resp([GOOD_ROW]))
-        with patch("api.routers.showcase.db.get_client", return_value=db) as p:
+        with patch("api.routers.showcase.db.get_client", return_value=db):
             client = TestClient(_make_app())
             r1 = client.get("/api/v1/showcase/evidence")
             r2 = client.get("/api/v1/showcase/evidence")
