@@ -252,6 +252,9 @@ resource "aws_cloudfront_distribution" "dashboard" {
   http_version        = "http2and3"
   wait_for_deployment = true
 
+  # WAFv2 (Phase 3.4 — SaaS Production Hardening). See waf-cloudfront.tf.
+  web_acl_id = aws_wafv2_web_acl.cloudfront_dashboard.arn
+
   aliases = [
     var.domain,
     "www.${var.domain}"
