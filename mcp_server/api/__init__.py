@@ -12,7 +12,7 @@ Routes:
 
 from .routes import router as api_router
 from .auth import verify_api_key, get_api_tier, APIKeyData
-from .middleware import add_api_middleware
+from .middleware import add_api_middleware, SecurityHeadersMiddleware
 from .health import (
     router as health_router,
     HealthChecker,
@@ -49,6 +49,7 @@ __all__ = [
     "APIKeyData",
     # Middleware
     "add_api_middleware",
+    "SecurityHeadersMiddleware",
     # Health
     "HealthChecker",
     "HealthStatus",
