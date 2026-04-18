@@ -224,6 +224,23 @@ resource "aws_cloudfront_response_headers_policy" "execution_market_security_hea
   }
 }
 
+# ─── CloudFront Function — Markdown Negotiation (RFC 7231 / Agent Readiness) ──
+#
+# Attached to the default cache behavior as a viewer-request function.
+# When a client sends `Accept: text/markdown` explicitly (not via */* wildcard),
+# the URI is rewritten to the canonical markdown document (skill.md by default,
+# with per-route overrides). Browsers never send text/markdown explicitly, so
+# they continue to receive index.html.
+#
+# See docs/architecture/MARKDOWN_NEGOTIATION.md for the route map and rationale.
+resource "aws_cloudfront_function" "markdown_negotiation" {
+  name    = "${local.name_prefix}-markdown-negotiation"
+  runtime = "cloudfront-js-2.0"
+  comment = "Rewrite URI to skill.md on Accept: text/markdown (agent markdown negotiation)"
+  publish = true
+  code    = file("${path.module}/markdown-negotiation.js")
+}
+
 # ─── CloudFront Distribution ──────────────────────────────────────
 
 resource "aws_cloudfront_distribution" "dashboard" {
@@ -268,6 +285,11 @@ resource "aws_cloudfront_distribution" "dashboard" {
     cache_policy_id            = "658327ea-f89d-4fab-a63d-7e88639e58f6" # CachingOptimized
     origin_request_policy_id   = null
     response_headers_policy_id = aws_cloudfront_response_headers_policy.execution_market_security_headers.id
+
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.markdown_negotiation.arn
+    }
   }
 
   # Feedback JSON documents — served from evidence S3 bucket.
