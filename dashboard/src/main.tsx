@@ -1,6 +1,7 @@
 import { StrictMode, lazy, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import * as Sentry from '@sentry/react'
 
 // Initialize i18n (must be imported before App)
 import './i18n'
@@ -15,7 +16,63 @@ const DynamicProvider = lazy(() =>
 )
 
 import App from './App'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import './index.css'
+
+// --------------------------------------------------------------------------
+// Sentry — Task 1.6 (SaaS Production Hardening)
+// --------------------------------------------------------------------------
+// Initializes only when VITE_SENTRY_DSN is set. Without a DSN, the SDK is
+// inert and `captureException` is a safe no-op, so the app (and the
+// ErrorBoundary) keep working.
+//
+// PII scrubber: wallet addresses (0x + 40 hex) are truncated to 0xabcd...ef01
+// in every string field before the event leaves the browser.
+// --------------------------------------------------------------------------
+
+const SENTRY_DSN = (import.meta.env.VITE_SENTRY_DSN ?? '').trim()
+
+if (SENTRY_DSN) {
+  const WALLET_RE = /0x[a-fA-F0-9]{40}/g
+
+  const scrubWallets = (value: unknown, seen: WeakSet<object> = new WeakSet()): unknown => {
+    if (typeof value === 'string') {
+      return value.replace(WALLET_RE, (m) => `${m.slice(0, 6)}...${m.slice(-4)}`)
+    }
+    if (Array.isArray(value)) {
+      return value.map((v) => scrubWallets(v, seen))
+    }
+    if (value && typeof value === 'object') {
+      if (seen.has(value as object)) return value
+      seen.add(value as object)
+      const out: Record<string, unknown> = {}
+      for (const key of Object.keys(value as Record<string, unknown>)) {
+        out[key] = scrubWallets((value as Record<string, unknown>)[key], seen)
+      }
+      return out
+    }
+    return value
+  }
+
+  Sentry.init({
+    dsn: SENTRY_DSN,
+    integrations: [
+      Sentry.browserTracingIntegration(),
+      Sentry.replayIntegration({
+        maskAllText: true,
+        blockAllMedia: true,
+      }),
+    ],
+    tracesSampleRate: 0.1,
+    replaysSessionSampleRate: 0.0,
+    replaysOnErrorSampleRate: 1.0,
+    environment: import.meta.env.MODE,
+    release: import.meta.env.VITE_GIT_SHA || 'unknown',
+    beforeSend(event) {
+      return scrubWallets(event) as typeof event
+    },
+  })
+}
 
 // Emergency cache reset to recover users stuck on stale service worker builds.
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
@@ -64,16 +121,18 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <Suspense fallback={
-        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ textAlign: 'center', color: '#6b7280' }}>Loading...</div>
-        </div>
-      }>
-        <DynamicProvider>
-          <App />
-        </DynamicProvider>
-      </Suspense>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <Suspense fallback={
+          <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ textAlign: 'center', color: '#6b7280' }}>Loading...</div>
+          </div>
+        }>
+          <DynamicProvider>
+            <App />
+          </DynamicProvider>
+        </Suspense>
+      </QueryClientProvider>
+    </ErrorBoundary>
   </StrictMode>,
 )
