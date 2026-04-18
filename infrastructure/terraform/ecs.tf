@@ -145,6 +145,73 @@ resource "aws_cloudwatch_log_group" "mcp_server" {
   retention_in_days = 90
 }
 
+# Log group for the ADOT collector sidecar.  Separate stream from the app so
+# OTel/X-Ray collector diagnostics don't interleave with the FastAPI JSON logs
+# we already query via CloudWatch Insights.  Only created when tracing is on.
+resource "aws_cloudwatch_log_group" "mcp_otel_collector" {
+  count             = var.otel_enabled ? 1 : 0
+  name              = "/ecs/${local.name_prefix}/mcp-otel-collector"
+  retention_in_days = 30
+}
+
+# X-Ray write access for the task role.  The ADOT collector forwards spans to
+# X-Ray using the task role's credentials, so permissions must live on
+# ecs_task (the app role), not on the execution role.  Managed policy
+# AWSXRayDaemonWriteAccess grants PutTraceSegments + PutTelemetryRecords +
+# sampling APIs — exactly what the collector needs.
+resource "aws_iam_role_policy_attachment" "ecs_task_xray" {
+  count      = var.otel_enabled ? 1 : 0
+  role       = aws_iam_role.ecs_task.name
+  policy_arn = "arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess"
+}
+
+# Container definition for the ADOT collector.  Defined as a local so we can
+# append it to the container_definitions list only when tracing is enabled.
+# Image tag is pinned to the AWS-published major "v0.40.x" line to avoid
+# transparent upgrades pulling in breaking config changes.  Command uses the
+# bundled X-Ray profile (OTLP in → X-Ray out).
+locals {
+  mcp_otel_sidecar = var.otel_enabled ? [
+    {
+      name      = "aws-otel-collector"
+      image     = "public.ecr.aws/aws-observability/aws-otel-collector:v0.40.1"
+      essential = false
+      command   = ["--config=/etc/ecs/ecs-xray.yaml"]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = aws_cloudwatch_log_group.mcp_otel_collector[0].name
+          awslogs-region        = local.region
+          awslogs-stream-prefix = "otel"
+        }
+      }
+
+      healthCheck = {
+        # Built-in health extension on :13133 — returns 200 when the pipeline
+        # is running.  Without this the app container can race the collector
+        # and drop the first batch of spans.
+        command     = ["CMD-SHELL", "wget -qO- http://localhost:13133/ || exit 1"]
+        interval    = 30
+        timeout     = 5
+        retries     = 3
+        startPeriod = 30
+      }
+    }
+  ] : []
+
+  # Single source of truth for whether to push OTel env vars into mcp-server.
+  # Keeping this as a local (not a direct var reference) documents the link
+  # between the sidecar presence and the env vars — flipping otel_enabled
+  # must always move both together, never just one.
+  mcp_otel_env = var.otel_enabled ? [
+    { name = "OTEL_ENABLED", value = "true" },
+    { name = "OTEL_SERVICE_NAME", value = "execution-market-mcp" },
+    { name = "OTEL_EXPORTER_OTLP_ENDPOINT", value = "http://localhost:4318" },
+    { name = "OTEL_TRACES_SAMPLER_ARG", value = var.otel_traces_sampler_arg },
+  ] : []
+}
+
 # MCP Server Task Definition
 # cpu/memory: 512 CPU (0.5 vCPU) + 1024 MB — AI verification offloaded to Lambda
 # (SQS + Lambda pipeline handles Ring 1 + Ring 2 inference since Phase 3).
@@ -160,7 +227,7 @@ resource "aws_ecs_task_definition" "mcp_server" {
   execution_role_arn       = aws_iam_role.ecs_execution.arn
   task_role_arn            = aws_iam_role.ecs_task.arn
 
-  container_definitions = jsonencode([
+  container_definitions = jsonencode(concat([
     {
       name      = "mcp-server"
       image     = var.mcp_server_image != "" ? var.mcp_server_image : "${aws_ecr_repository.mcp_server.repository_url}:latest"
@@ -174,7 +241,11 @@ resource "aws_ecs_task_definition" "mcp_server" {
         }
       ]
 
-      environment = [
+      # ``concat`` so flipping var.otel_enabled adds OTEL_* env vars without
+      # touching the handwritten block above. The Python bootstrap in
+      # mcp_server/observability/tracing.py treats OTEL_ENABLED as the
+      # master switch — leaving it unset keeps the code path inert.
+      environment = concat([
         { name = "ENVIRONMENT", value = var.environment },
         { name = "PORT", value = "8000" },
         { name = "EM_BASE_URL", value = "https://api.execution.market" },
@@ -223,7 +294,7 @@ resource "aws_ecs_task_definition" "mcp_server" {
         # recover.  Previously a single facilitator call could freeze a
         # request worker for 5 minutes (timeout=300 in payment_dispatcher).
         { name = "FACILITATOR_TIMEOUT_SECONDS", value = "30" },
-      ]
+      ], local.mcp_otel_env)
 
       secrets = [
         {
@@ -375,8 +446,21 @@ resource "aws_ecs_task_definition" "mcp_server" {
         retries     = 3
         startPeriod = 60
       }
+
+      # When tracing is enabled, wait for the collector to report HEALTHY on
+      # :13133 before the app starts issuing spans. Otherwise the first
+      # 10–30s of traffic bypass the pipeline because the OTLP endpoint
+      # isn't listening yet. ``dependsOn`` requires the target container to
+      # be declared in the same task definition — guarded with the flag so
+      # an empty list doesn't reference a missing container.
+      dependsOn = var.otel_enabled ? [
+        {
+          containerName = "aws-otel-collector"
+          condition     = "HEALTHY"
+        }
+      ] : []
     }
-  ])
+  ], local.mcp_otel_sidecar))
 }
 
 # Dashboard is served via S3 + CloudFront (dashboard-cdn.tf) — no ECS needed.

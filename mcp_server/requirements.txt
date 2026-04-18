@@ -125,6 +125,24 @@ python-json-logger>=2.0.7
 prometheus-client>=0.19.0
 
 # ===================
+# Observability — OpenTelemetry tracing (Phase 6.2 SAAS_PRODUCTION_HARDENING)
+# ===================
+# Distributed tracing across agent -> EM -> facilitator -> chain. Configured
+# in mcp_server/observability/tracing.py, bootstrapped from main.py before
+# FastAPI imports so httpx/requests instrumentation hooks register at import
+# time. Exporter targets the AWS ADOT collector (OTLP/HTTP on :4318 in the
+# ECS sidecar). Disabled when OTEL_ENABLED=false (default in dev/test).
+# All packages pinned to the same minor line to avoid the classic OTel
+# "API/SDK version skew" breakage.
+opentelemetry-api>=1.25.0
+opentelemetry-sdk>=1.25.0
+opentelemetry-exporter-otlp-proto-http>=1.25.0
+opentelemetry-instrumentation-fastapi>=0.46b0
+opentelemetry-instrumentation-httpx>=0.46b0
+opentelemetry-instrumentation-requests>=0.46b0
+opentelemetry-instrumentation-logging>=0.46b0
+
+# ===================
 # Testing (dev)
 # ===================
 pytest>=7.4.0

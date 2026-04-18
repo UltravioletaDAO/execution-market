@@ -164,3 +164,24 @@ variable "alert_email" {
   type        = string
   default     = "0xultravioleta@gmail.com"
 }
+
+# OpenTelemetry / ADOT (Phase 6.2 SAAS_PRODUCTION_HARDENING)
+# Toggling this boolean:
+#   - adds the AWS Distro for OpenTelemetry sidecar to the MCP task
+#   - attaches AWSXRayDaemonWriteAccess to the ECS task role
+#   - sets OTEL_ENABLED=true + OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+#     on the mcp-server container so outbound spans land on the sidecar
+# The Python bootstrap in mcp_server/observability/tracing.py already treats
+# OTEL_ENABLED as the master switch, so flipping this flag is the only knob
+# needed to turn tracing on.
+variable "otel_enabled" {
+  description = "Enable ADOT collector sidecar + FastAPI OTel tracing (exports to X-Ray)"
+  type        = bool
+  default     = false
+}
+
+variable "otel_traces_sampler_arg" {
+  description = "OTel head-sampling ratio (0.0–1.0). 0.1 keeps 10% of traces; increase during incident investigations."
+  type        = string
+  default     = "0.1"
+}

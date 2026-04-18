@@ -96,6 +96,31 @@ if _SENTRY_DSN:
 
 
 # ---------------------------------------------------------------------------
+# OpenTelemetry tracing (Phase 6.2 SAAS_PRODUCTION_HARDENING)
+# ---------------------------------------------------------------------------
+# Bootstrap must run BEFORE the first httpx/requests client is instantiated
+# so the auto-instrumentation patches apply to every outbound call — notably
+# the Facilitator and Supabase HTTP traffic originating from the app imports
+# further down. Sentry's HttpxIntegration monkey-patches the same classes;
+# the two stack cleanly because each wrapper calls the next through the
+# unchanged send() signature.
+#
+# Graceful degradation:
+#   - OTEL_ENABLED != truthy -> setup_tracing() returns False, app runs as before.
+#   - opentelemetry-* packages missing -> one WARNING log line, app boots.
+#
+# The FastAPI app instrumentation happens after ``app = FastAPI(...)`` is
+# constructed, in a separate call to ``instrument_fastapi_app(app)``.
+# ---------------------------------------------------------------------------
+from observability.tracing import (  # noqa: E402
+    instrument_fastapi_app as _instrument_fastapi_app,
+    setup_tracing as _setup_tracing,
+)
+
+_TRACING_INITIALIZED = _setup_tracing()
+
+
+# ---------------------------------------------------------------------------
 # Structured logging (Phase 2.3 SAAS_PRODUCTION_HARDENING)
 # ---------------------------------------------------------------------------
 # Configure JSON formatter + ContextFilter BEFORE ANY downstream import so
@@ -638,6 +663,13 @@ Gasless via [Ultravioleta Facilitator](https://facilitator.ultravioletadao.xyz).
     redoc_url="/redoc",
     openapi_url="/openapi.json",
 )
+
+
+# OpenTelemetry FastAPI instrumentation (Phase 6.2 SAAS_PRODUCTION_HARDENING).
+# No-op when OTEL_ENABLED is not truthy or the OTel deps aren't installed.
+# Healthz/livez/readyz/metrics are excluded inside the helper to keep span
+# noise down from polling.
+_instrument_fastapi_app(app)
 
 
 # ── Custom dark-themed Swagger UI ────────────────────────────────────────────
