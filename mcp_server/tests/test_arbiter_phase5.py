@@ -49,6 +49,15 @@ def _install_stubs():
         fake_helpers.dispatch_webhook = AsyncMock()
         sys.modules["api.routers._helpers"] = fake_helpers
 
+    # _pagination: reuse if present, else create a no-op stub. disputes.py
+    # imports set_pagination_headers from here (Task 6.4); tests don't care
+    # about the Link/X-Total-Count headers so a do-nothing callable is fine.
+    if "api.routers._pagination" not in sys.modules:
+        fake_pagination = types.ModuleType("api.routers._pagination")
+        fake_pagination.set_pagination_headers = lambda *args, **kwargs: None
+        fake_pagination.MAX_PAGE_SIZE = 100
+        sys.modules["api.routers._pagination"] = fake_pagination
+
     # api package: reuse if present, else create
     if "api" in sys.modules:
         fake_api = sys.modules["api"]
@@ -220,6 +229,7 @@ _STUB_MODULES_P5 = [
     "api",
     "api.routers",
     "api.routers._helpers",
+    "api.routers._pagination",
     "api.routers.disputes",
     "api.routers.arbiter_public",
     "api.auth",
