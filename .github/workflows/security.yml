@@ -23,8 +23,8 @@ jobs:
       e2e: ${{ steps.filter.outputs.e2e }}
       infra: ${{ steps.filter.outputs.infra }}
     steps:
-      - uses: actions/checkout@v6
-      - uses: dorny/paths-filter@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d  # v4.0.1
         id: filter
         with:
           filters: |
@@ -48,21 +48,21 @@ jobs:
       matrix:
         language: ['python', 'javascript-typescript']
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
+        uses: github/codeql-action/init@95e58e9a2cdfd71adc6e0353d5c52f41a045d225  # v4.35.2
         with:
           languages: ${{ matrix.language }}
           queries: security-extended,security-and-quality
         continue-on-error: true
 
       - name: Autobuild
-        uses: github/codeql-action/autobuild@v4
+        uses: github/codeql-action/autobuild@95e58e9a2cdfd71adc6e0353d5c52f41a045d225  # v4.35.2
         continue-on-error: true
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v4
+        uses: github/codeql-action/analyze@95e58e9a2cdfd71adc6e0353d5c52f41a045d225  # v4.35.2
         with:
           category: "/language:${{ matrix.language }}"
 
@@ -71,10 +71,10 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Dependency Review
-        uses: actions/dependency-review-action@v4
+        uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48  # v4.9.0
         with:
           fail-on-severity: high
           deny-licenses: GPL-3.0, AGPL-3.0
@@ -88,10 +88,10 @@ jobs:
       run:
         working-directory: mcp_server
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
           python-version: '3.11'
           cache: 'pip'
@@ -109,7 +109,7 @@ jobs:
           bandit -r . -f txt --exclude ./tests --severity-level high --confidence-level high
 
       - name: Upload Bandit report
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: bandit-report
           path: mcp_server/bandit-report.json
@@ -121,7 +121,7 @@ jobs:
           safety check -r requirements.txt
 
       - name: Upload Safety report
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: safety-report
           path: mcp_server/safety-report.json
@@ -136,10 +136,10 @@ jobs:
       run:
         working-directory: dashboard
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f  # v6.3.0
         with:
           node-version: '22'
           cache: 'npm'
@@ -158,7 +158,7 @@ jobs:
           npm audit --audit-level=critical
 
       - name: Upload npm audit report
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: npm-audit-report
           path: dashboard/npm-audit-report.json
@@ -173,14 +173,14 @@ jobs:
       matrix:
         context: [mcp_server, dashboard]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Build image
         run: |
           docker build -t em-${{ matrix.context }}:scan ./${{ matrix.context }}
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@876cf04c63f65e9799bcf1043b584e72469c7143  # master @ 2026-04-17 (post-v0.35.0)
         with:
           image-ref: 'em-${{ matrix.context }}:scan'
           format: 'sarif'
@@ -189,14 +189,14 @@ jobs:
           ignore-unfixed: true
 
       - name: Upload Trivy scan results
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225  # v4.35.2
         with:
           sarif_file: 'trivy-${{ matrix.context }}.sarif'
           category: 'trivy-${{ matrix.context }}'
         continue-on-error: true
 
       - name: Run Trivy (table output)
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@876cf04c63f65e9799bcf1043b584e72469c7143  # master @ 2026-04-17 (post-v0.35.0)
         with:
           image-ref: 'em-${{ matrix.context }}:scan'
           format: 'table'
@@ -207,17 +207,17 @@ jobs:
     name: Secret Scanning
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           fetch-depth: 0
 
       - name: Run Gitleaks
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7  # v2.3.9
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run TruffleHog
-        uses: trufflesecurity/trufflehog@main
+        uses: trufflesecurity/trufflehog@0d5afcefc50330bfd4a58909e85c6223c42ff619  # main @ 2026-04-17 (post-v3.94.3)
         with:
           path: ./
           base: ${{ github.event.repository.default_branch }}
@@ -229,10 +229,10 @@ jobs:
     needs: detect-changes
     if: needs.detect-changes.outputs.backend == 'true' || needs.detect-changes.outputs.frontend == 'true'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
           python-version: '3.11'
 
@@ -250,7 +250,7 @@ jobs:
           pip-licenses --fail-on="GPL-3.0;AGPL-3.0" || true
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f  # v6.3.0
         with:
           node-version: '22'
           cache: 'npm'
@@ -264,7 +264,7 @@ jobs:
           npx license-checker --failOn "GPL-3.0;AGPL-3.0" || true
 
       - name: Upload license reports
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: license-reports
           path: |
@@ -276,7 +276,7 @@ jobs:
     name: Semgrep SAST
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Install Semgrep
         run: pip install semgrep
@@ -289,7 +289,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225  # v4.35.2
         with:
           sarif_file: semgrep.sarif
           category: semgrep
