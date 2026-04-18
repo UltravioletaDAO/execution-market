@@ -64,6 +64,19 @@ except ImportError:
     SDKEscrowClient = None
     ESCROW_SDK_AVAILABLE = False
 
+# Shared facilitator reliability helpers (Phase 2 SAAS_PRODUCTION_HARDENING):
+# - ``FACILITATOR_TIMEOUT_SECONDS``: cap for every facilitator HTTP call (30s default).
+# - ``facilitator_timeout()``: builds an ``httpx.Timeout`` below the cap.
+# - ``facilitator_retry``: tenacity decorator — retries on transient transport
+#   errors / 5xx without tx_hash. 4xx is never retried.
+# - ``raise_for_status_if_no_tx``: like ``raise_for_status()`` but leaves 5xx
+#   responses carrying a tx_hash un-raised so we don't retry and double-settle.
+from integrations._http_retry import (  # noqa: E402
+    facilitator_retry,
+    facilitator_timeout,
+    raise_for_status_if_no_tx,
+)
+
 
 logger = logging.getLogger(__name__)
 
@@ -1098,6 +1111,10 @@ class EMX402SDK:
         Used for worker disbursement and fee collection where the platform wallet
         signs NEW auths (not the agent's original). For settling the agent's original
         auth, use self.client.settle_payment() (SDK v0.8.1+ with pay_to support).
+
+        Retries transparently on transient transport issues (network error,
+        timeout, 5xx without tx_hash) up to 3 attempts with exponential backoff.
+        4xx responses and 2xx responses are returned as-is (non-retryable).
         """
         import httpx
 
@@ -1131,11 +1148,17 @@ class EMX402SDK:
             },
         }
 
-        resp = httpx.post(
-            f"{self.facilitator_url}/settle",
-            json=settle_request,
-            timeout=90.0,
-        )
+        # Delegate the HTTP call to a retryable helper. The helper raises on
+        # transient transport errors and 5xx without tx_hash so tenacity can
+        # retry, and returns the raw response otherwise.
+        try:
+            resp = self._do_settle_http(settle_request)
+        except httpx.HTTPError as exc:
+            logger.error("Facilitator settle transport failure: %s", exc)
+            return {
+                "success": False,
+                "error": f"Facilitator transport error: {exc}",
+            }
 
         if resp.status_code != 200:
             error_body = resp.text[:500]
@@ -1157,6 +1180,30 @@ class EMX402SDK:
             "tx_hash": tx_hash,
             "payer": data.get("payer"),
         }
+
+    @facilitator_retry
+    def _do_settle_http(self, settle_request: Dict[str, Any]):
+        """Issue the ``POST /settle`` call with retry + timeout cap.
+
+        Raises ``httpx.HTTPStatusError`` on 4xx (non-retryable) and on 5xx
+        responses without a tx_hash (retryable). Raises the usual
+        ``httpx.TimeoutException`` / ``httpx.NetworkError`` / ``RemoteProtocolError``
+        on transport failures, which tenacity catches and retries.
+
+        Returns the raw ``httpx.Response`` when the server replied with a 2xx
+        or with a 5xx that already carries a tx_hash (double-settle guard).
+        """
+        import httpx
+
+        # Capped timeout (30s). ``facilitator_timeout()`` splits the budget
+        # between connect/read/write so a stalled phase cannot exceed the cap.
+        resp = httpx.post(
+            f"{self.facilitator_url}/settle",
+            json=settle_request,
+            timeout=facilitator_timeout(),
+        )
+        raise_for_status_if_no_tx(resp)
+        return resp
 
     async def disburse_to_worker(
         self,
@@ -1833,10 +1880,13 @@ class EMX402SDK:
         try:
             import httpx
 
+            # Phase 2.2 SAAS_PRODUCTION_HARDENING: use the shared facilitator
+            # timeout cap (default 30s) so health checks cannot stall longer
+            # than the rest of the facilitator surface.
             async with httpx.AsyncClient() as http_client:
                 response = await http_client.get(
                     f"{self.facilitator_url}/health",
-                    timeout=10.0,
+                    timeout=facilitator_timeout(10.0),
                 )
                 facilitator_health = (
                     response.json() if response.status_code == 200 else {}

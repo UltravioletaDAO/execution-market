@@ -28,6 +28,10 @@ asyncpg>=0.29.0
 # ===================
 httpx>=0.26.0
 aiohttp>=3.9.0
+# Retry policy for facilitator HTTP calls (Phase 2 SAAS_PRODUCTION_HARDENING).
+# Wraps payment + reputation calls with exponential backoff on transient
+# transport errors / 5xx. Also pulled transitively via apscheduler.
+tenacity>=8.2.0
 
 # ===================
 # Async

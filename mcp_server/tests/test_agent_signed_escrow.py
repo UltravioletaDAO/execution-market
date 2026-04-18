@@ -217,6 +217,8 @@ class TestRelayToFacilitator:
     async def test_success(self):
         d = _make_dispatcher()
         mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.text = ""
         mock_response.json.return_value = {
             "success": True,
             "transaction": {"hash": "0x" + "ab" * 32},
@@ -251,6 +253,11 @@ class TestRelayToFacilitator:
     async def test_facilitator_rejects(self):
         d = _make_dispatcher()
         mock_response = MagicMock()
+        # 200 because the facilitator returned a business-logic rejection,
+        # not a transport/HTTP failure.  ``raise_for_status_if_no_tx`` only
+        # raises on 4xx/5xx.
+        mock_response.status_code = 200
+        mock_response.text = ""
         mock_response.json.return_value = {
             "success": False,
             "error": "Insufficient allowance",
@@ -286,6 +293,8 @@ class TestRelayToFacilitator:
         d = _make_dispatcher()
         captured_payload = {}
         mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.text = ""
         mock_response.json.return_value = {
             "success": True,
             "transaction": {"hash": "0xabc"},

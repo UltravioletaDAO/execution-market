@@ -21,6 +21,10 @@ from dataclasses import dataclass, field
 from uvd_x402_sdk.erc8004 import Erc8004Client as _SdkErc8004Client
 from uvd_x402_sdk.networks import normalize_network as _normalize_network
 
+from integrations._http_retry import (
+    FACILITATOR_TIMEOUT_SECONDS,
+    facilitator_retry,
+)
 from integrations.erc8004.feedback_store import FEEDBACK_PUBLIC_URL
 from integrations.x402.sdk_client import NETWORK_CONFIG as _PAYMENT_NETWORKS
 
@@ -150,7 +154,12 @@ class ReputationSummary:
 # SDK singleton — replaces the old ERC8004FacilitatorClient class
 # =============================================================================
 
-_sdk_client = _SdkErc8004Client(base_url=FACILITATOR_URL)
+# Timeout capped at FACILITATOR_TIMEOUT_SECONDS (Phase 2 SAAS_PRODUCTION_HARDENING):
+# the SDK defaults to 30s already, but we force the project-wide cap here so a
+# misconfigured SDK release cannot raise it silently.
+_sdk_client = _SdkErc8004Client(
+    base_url=FACILITATOR_URL, timeout=float(FACILITATOR_TIMEOUT_SECONDS)
+)
 
 
 def _fac_net(network: str) -> str:
@@ -163,12 +172,18 @@ def _fac_net(network: str) -> str:
 # =============================================================================
 
 
+@facilitator_retry
+async def _sdk_get_identity(network: str, agent_id: int):
+    """Retryable wrapper around the SDK get_identity call."""
+    return await _sdk_client.get_identity(network, agent_id)
+
+
 async def get_identity(
     agent_id: int, network: str = ERC8004_NETWORK
 ) -> Optional[AgentIdentity]:
     """Get agent identity from ERC-8004 Identity Registry via SDK."""
     try:
-        result = await _sdk_client.get_identity(_fac_net(network), agent_id)
+        result = await _sdk_get_identity(_fac_net(network), agent_id)
         if not result or not result.agent_id:
             return None
         return AgentIdentity(
@@ -189,6 +204,28 @@ async def get_identity(
         return None
 
 
+@facilitator_retry
+async def _sdk_register_agent(
+    *,
+    network: str,
+    agent_uri: str,
+    metadata: Optional[List[Dict[str, str]]] = None,
+    recipient: Optional[str] = None,
+):
+    """Retryable wrapper around the SDK register_agent call.
+
+    Registration is idempotent at the facilitator level (duplicate agents are
+    rejected with a 4xx, which tenacity treats as non-retryable), so retrying
+    on transient network errors is safe.
+    """
+    return await _sdk_client.register_agent(
+        network=network,
+        agent_uri=agent_uri,
+        metadata=metadata,
+        recipient=recipient,
+    )
+
+
 async def register_agent(
     network: str,
     agent_uri: str,
@@ -202,7 +239,7 @@ async def register_agent(
             "error": f"Unsupported network: {network}. Supported: {ERC8004_SUPPORTED_NETWORKS}",
         }
     try:
-        result = await _sdk_client.register_agent(
+        result = await _sdk_register_agent(
             network=_fac_net(network),
             agent_uri=agent_uri,
             metadata=metadata,
@@ -248,6 +285,25 @@ async def register_agent(
         return {"success": False, "error": error_msg, "network": network}
 
 
+@facilitator_retry
+async def _sdk_get_reputation(
+    network: str,
+    agent_id: int,
+    *,
+    tag1: Optional[str] = None,
+    tag2: Optional[str] = None,
+    include_feedback: bool = False,
+):
+    """Retryable wrapper around the SDK get_reputation call."""
+    return await _sdk_client.get_reputation(
+        network,
+        agent_id,
+        tag1=tag1,
+        tag2=tag2,
+        include_feedback=include_feedback,
+    )
+
+
 async def get_reputation(
     agent_id: int,
     network: str = ERC8004_NETWORK,
@@ -257,7 +313,7 @@ async def get_reputation(
 ) -> Optional[ReputationSummary]:
     """Get reputation summary for an agent via SDK."""
     try:
-        result = await _sdk_client.get_reputation(
+        result = await _sdk_get_reputation(
             _fac_net(network),
             agent_id,
             tag1=tag1 or None,
@@ -281,6 +337,41 @@ async def get_reputation(
         return None
 
 
+@facilitator_retry
+async def _sdk_submit_feedback(
+    *,
+    network: str,
+    agent_id: int,
+    value: int,
+    value_decimals: int,
+    tag1: str,
+    tag2: str,
+    endpoint: str,
+    feedback_uri: str,
+    feedback_hash: Optional[str],
+    proof: Optional[Dict[str, Any]],
+):
+    """Retryable wrapper around the SDK submit_feedback call.
+
+    Facilitator broadcasts an on-chain feedback tx. The retry predicate in
+    ``_http_retry._is_retryable`` will NOT retry a 5xx response that already
+    contains a tx hash, preventing double-submission. 4xx (including duplicate
+    feedback idempotency errors) is not retryable by policy.
+    """
+    return await _sdk_client.submit_feedback(
+        network=network,
+        agent_id=agent_id,
+        value=value,
+        value_decimals=value_decimals,
+        tag1=tag1,
+        tag2=tag2,
+        endpoint=endpoint,
+        feedback_uri=feedback_uri,
+        feedback_hash=feedback_hash,
+        proof=proof,
+    )
+
+
 async def submit_feedback(
     agent_id: int,
     value: int,
@@ -301,7 +392,7 @@ async def submit_feedback(
             network=network,
         )
     try:
-        result = await _sdk_client.submit_feedback(
+        result = await _sdk_submit_feedback(
             network=_fac_net(network),
             agent_id=agent_id,
             value=value,
@@ -325,6 +416,16 @@ async def submit_feedback(
         return FeedbackResult(success=False, error=str(e), network=network)
 
 
+@facilitator_retry
+async def _sdk_revoke_feedback(*, network: str, agent_id: int, feedback_index: int):
+    """Retryable wrapper around the SDK revoke_feedback call."""
+    return await _sdk_client.revoke_feedback(
+        network=network,
+        agent_id=agent_id,
+        feedback_index=feedback_index,
+    )
+
+
 async def revoke_feedback(
     agent_id: int,
     feedback_index: int,
@@ -332,7 +433,7 @@ async def revoke_feedback(
 ) -> FeedbackResult:
     """Revoke previously submitted feedback via SDK."""
     try:
-        result = await _sdk_client.revoke_feedback(
+        result = await _sdk_revoke_feedback(
             network=_fac_net(network),
             agent_id=agent_id,
             feedback_index=feedback_index,
@@ -349,6 +450,25 @@ async def revoke_feedback(
         return FeedbackResult(success=False, error=str(e), network=network)
 
 
+@facilitator_retry
+async def _sdk_append_response(
+    *,
+    network: str,
+    agent_id: int,
+    feedback_index: int,
+    response_text: str,
+    response_uri: Optional[str] = None,
+):
+    """Retryable wrapper around the SDK append_response call."""
+    return await _sdk_client.append_response(
+        network=network,
+        agent_id=agent_id,
+        feedback_index=feedback_index,
+        response_text=response_text,
+        response_uri=response_uri,
+    )
+
+
 async def respond_to_feedback(
     agent_id: int,
     feedback_index: int,
@@ -358,7 +478,7 @@ async def respond_to_feedback(
 ) -> FeedbackResult:
     """Respond to feedback as the agent owner via SDK."""
     try:
-        result = await _sdk_client.append_response(
+        result = await _sdk_append_response(
             network=_fac_net(network),
             agent_id=agent_id,
             feedback_index=feedback_index,
@@ -377,6 +497,12 @@ async def respond_to_feedback(
         return FeedbackResult(success=False, error=str(e), network=network)
 
 
+@facilitator_retry
+async def _sdk_get_identity_metadata(network: str, agent_id: int, key: str):
+    """Retryable wrapper around the SDK get_identity_metadata call."""
+    return await _sdk_client.get_identity_metadata(network, agent_id, key)
+
+
 async def get_identity_metadata(
     agent_id: int,
     key: str,
@@ -384,9 +510,7 @@ async def get_identity_metadata(
 ) -> Optional[Dict[str, Any]]:
     """Read a metadata key from an agent's ERC-8004 identity via SDK."""
     try:
-        result = await _sdk_client.get_identity_metadata(
-            _fac_net(network), agent_id, key
-        )
+        result = await _sdk_get_identity_metadata(_fac_net(network), agent_id, key)
         if not result:
             return None
         return {
@@ -401,10 +525,16 @@ async def get_identity_metadata(
         return None
 
 
+@facilitator_retry
+async def _sdk_get_identity_total_supply(network: str):
+    """Retryable wrapper around the SDK get_identity_total_supply call."""
+    return await _sdk_client.get_identity_total_supply(network)
+
+
 async def get_total_supply(network: str = ERC8004_NETWORK) -> Optional[int]:
     """Get total number of registered agents on a network via SDK."""
     try:
-        result = await _sdk_client.get_identity_total_supply(_fac_net(network))
+        result = await _sdk_get_identity_total_supply(_fac_net(network))
         if not result:
             return None
         return getattr(result, "total_supply", None)
