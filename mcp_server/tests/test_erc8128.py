@@ -17,13 +17,20 @@ for _m in [
     "integrations.erc8004",
     "integrations.erc8004.identity",
     "integrations.erc8004.facilitator_client",
+    "integrations.erc8004.feedback_store",
 ]:
     if _m not in sys.modules:
         s = ModuleType(_m)
-        if _m.endswith(".identity"):
+        if _m == "integrations.erc8004":
+            # Mark stub as a package so `from integrations.erc8004.X import Y`
+            # works even though it has no real filesystem path.
+            s.__path__ = []
+        elif _m.endswith(".identity"):
             s.check_worker_identity = None
         elif _m.endswith(".facilitator_client"):
             s.get_facilitator_client = None
+        elif _m.endswith(".feedback_store"):
+            s.FEEDBACK_PUBLIC_URL = "https://example.test/feedback"
         sys.modules[_m] = s
 
 from integrations.erc8128.verifier import (

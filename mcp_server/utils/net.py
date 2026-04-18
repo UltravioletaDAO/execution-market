@@ -115,7 +115,7 @@ def get_client_ip(request: Request) -> str:
     equivalent to hop-0 of ``X-Forwarded-For`` in that setup — adding a
     second header would just multiply the spoofing surface.
     """
-    client = request.client
+    client = getattr(request, "client", None)
     client_host = (client.host if client else "") or ""
 
     if not client_host:
