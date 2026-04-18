@@ -32,8 +32,128 @@ resource "aws_security_group" "alb" {
   }
 }
 
-# ALB access logs (Task 5.4) — DEFERRED: not yet implemented.
-# Deployer now has s3:CreateBucket. Uncomment when ready.
+# ----------------------------------------------------------------------------
+# Phase 3.3 — ALB access logs to S3
+#
+# Enables per-request access logs for forensics, abuse investigation, and
+# compliance. Logs land in a dedicated private bucket with Glacier IR
+# transition at 30 days and expiration at 365 days.
+#
+# The Elastic Load Balancing service account for us-east-2 (033677994240) is
+# granted s3:PutObject on the prefix. See AWS docs:
+#   https://docs.aws.amazon.com/elasticloadbalancing/latest/application/enable-access-logging.html
+# ----------------------------------------------------------------------------
+
+# AWS Elastic Load Balancing service account IDs per region.
+# Used for the S3 bucket policy that permits ALB to write access logs.
+locals {
+  elb_account_ids = {
+    "us-east-1"      = "127311923021"
+    "us-east-2"      = "033677994240"
+    "us-west-1"      = "027434742980"
+    "us-west-2"      = "797873946194"
+    "eu-west-1"      = "156460612806"
+    "eu-west-2"      = "652711504416"
+    "eu-central-1"   = "054676820928"
+    "ap-southeast-1" = "114774131450"
+    "ap-southeast-2" = "783225319266"
+    "ap-northeast-1" = "582318560864"
+  }
+  alb_logs_bucket_name = lower("${local.name_prefix}-alb-access-logs-${local.region}-${substr(local.account_id, -6, 6)}")
+}
+
+resource "aws_s3_bucket" "alb_access_logs" {
+  bucket        = local.alb_logs_bucket_name
+  force_destroy = false
+
+  tags = {
+    Name    = "${local.name_prefix}-alb-access-logs"
+    Purpose = "alb-access-logs"
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "alb_access_logs" {
+  bucket                  = aws_s3_bucket.alb_access_logs.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_ownership_controls" "alb_access_logs" {
+  bucket = aws_s3_bucket.alb_access_logs.id
+
+  rule {
+    object_ownership = "BucketOwnerEnforced"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "alb_access_logs" {
+  bucket = aws_s3_bucket.alb_access_logs.bucket
+
+  rule {
+    apply_server_side_encryption_by_default {
+      # ALB access logs only support SSE-S3 (AES256), not SSE-KMS.
+      sse_algorithm = "AES256"
+    }
+    bucket_key_enabled = true
+  }
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "alb_access_logs" {
+  bucket = aws_s3_bucket.alb_access_logs.id
+
+  rule {
+    id     = "alb-logs-retention"
+    status = "Enabled"
+
+    filter {}
+
+    transition {
+      days          = 30
+      storage_class = "GLACIER_IR"
+    }
+
+    expiration {
+      days = 365
+    }
+  }
+}
+
+# Bucket policy granting the regional ALB service account PutObject on the
+# log prefix. s3:GetBucketAcl is required by the ELB control plane to verify
+# the bucket exists and is writable before enabling access logs.
+resource "aws_s3_bucket_policy" "alb_access_logs" {
+  bucket = aws_s3_bucket.alb_access_logs.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowELBPutAccessLogs"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${local.elb_account_ids[local.region]}:root"
+        }
+        Action   = "s3:PutObject"
+        Resource = "${aws_s3_bucket.alb_access_logs.arn}/alb/AWSLogs/${local.account_id}/*"
+      },
+      {
+        Sid    = "AllowELBGetBucketAcl"
+        Effect = "Allow"
+        Principal = {
+          Service = "elasticloadbalancing.amazonaws.com"
+        }
+        Action   = "s3:GetBucketAcl"
+        Resource = aws_s3_bucket.alb_access_logs.arn
+      }
+    ]
+  })
+
+  # Ensure public access block is applied before the policy so we never have
+  # a window where the policy exists without the hardening controls.
+  depends_on = [aws_s3_bucket_public_access_block.alb_access_logs]
+}
 
 # Application Load Balancer
 resource "aws_lb" "main" {
@@ -49,9 +169,18 @@ resource "aws_lb" "main" {
   # Must exceed Facilitator TxWatcher (900s) + margin.
   idle_timeout = 960
 
+  access_logs {
+    bucket  = aws_s3_bucket.alb_access_logs.id
+    enabled = true
+    prefix  = "alb"
+  }
+
   tags = {
     Name = "${local.name_prefix}-alb"
   }
+
+  # ALB refuses to come up unless the bucket + policy are in place.
+  depends_on = [aws_s3_bucket_policy.alb_access_logs]
 }
 
 # SSL Certificate - uses the certificate created in route53.tf
