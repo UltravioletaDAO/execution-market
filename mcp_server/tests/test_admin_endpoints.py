@@ -37,6 +37,23 @@ def _resp(data=None, count=None):
     return r
 
 
+def _fake_req_resp(path: str = "/api/v1/admin/test"):
+    """Build mock Request + Response objects compatible with set_pagination_headers.
+
+    After Task 6.4 (batch 2, commit 56947f0a) the list endpoints take FastAPI
+    Request + Response as required positional args so the pagination helper
+    can read query params + write X-Total-Count / Link headers. These tests
+    don't assert on the headers — they only need something truthy that
+    set_pagination_headers can write into without raising.
+    """
+    req = MagicMock()
+    req.query_params = {}  # dict(request.query_params) must work
+    req.url.path = path
+    resp = MagicMock()
+    resp.headers = {}  # supports resp.headers[key] = value
+    return req, resp
+
+
 class _QB:
     """Minimal Supabase query builder stub — every method returns self, execute() returns the response."""
 
@@ -230,8 +247,9 @@ class TestGetConfigAuditLog:
         with patch(f"{ADMIN_DB}.get_supabase_client", return_value=db):
             from api.admin import get_config_audit_log
 
+            req, resp = _fake_req_resp("/api/v1/admin/config/audit")
             result = await get_config_audit_log(
-                key=None, limit=50, offset=0, category=None, admin=_admin()
+                req, resp, key=None, limit=50, offset=0, category=None, admin=_admin()
             )
 
         assert result.count == 1
@@ -310,8 +328,15 @@ class TestListTasks:
         with patch(f"{ADMIN_DB}.get_supabase_client", return_value=db):
             from api.admin import list_tasks
 
+            req, resp = _fake_req_resp("/api/v1/admin/tasks")
             result = await list_tasks(
-                status=None, search=None, limit=20, offset=0, admin=_admin()
+                req,
+                resp,
+                status=None,
+                search=None,
+                limit=20,
+                offset=0,
+                admin=_admin(),
             )
 
         assert result["count"] == 2
@@ -427,8 +452,9 @@ class TestListPayments:
         with patch(f"{ADMIN_DB}.get_supabase_client", return_value=db):
             from api.admin import list_payments
 
+            req, resp = _fake_req_resp("/api/v1/admin/payments")
             result = await list_payments(
-                period="7d", limit=20, offset=0, admin=_admin()
+                req, resp, period="7d", limit=20, offset=0, admin=_admin()
             )
 
         assert result["count"] == 2
@@ -506,7 +532,8 @@ class TestListAgents:
         with patch(f"{ADMIN_DB}.get_supabase_client", return_value=db):
             from api.admin import list_agents
 
-            result = await list_agents(limit=20, offset=0, admin=_admin())
+            req, resp = _fake_req_resp("/api/v1/admin/users/agents")
+            result = await list_agents(req, resp, limit=20, offset=0, admin=_admin())
 
         assert result["count"] == 1
         assert len(result["users"]) == 1
@@ -541,7 +568,8 @@ class TestListWorkers:
         with patch(f"{ADMIN_DB}.get_supabase_client", return_value=db):
             from api.admin import list_workers
 
-            result = await list_workers(limit=20, offset=0, admin=_admin())
+            req, resp = _fake_req_resp("/api/v1/admin/users/workers")
+            result = await list_workers(req, resp, limit=20, offset=0, admin=_admin())
 
         assert result["count"] == 1
         assert len(result["users"]) == 1

@@ -48,6 +48,19 @@ def _mock_task_result(
     return mock_result
 
 
+def _fake_req_resp(path: str = "/api/v1/h2a/tasks"):
+    """Mock Request + Response for endpoints that call set_pagination_headers
+    (Task 6.4 batch 3, commit f4a355ff). The tests don't assert on headers
+    so a dict-backed Response is sufficient.
+    """
+    req = MagicMock()
+    req.query_params = {}
+    req.url.path = path
+    resp = MagicMock()
+    resp.headers = {}
+    return req, resp
+
+
 def _mock_submission_result(
     sub_id="a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     task_id="task-uuid-1234",
@@ -577,9 +590,16 @@ class TestH2ATaskListing:
 
         mock_client.table.side_effect = table_side_effect
 
+        req, resp = _fake_req_resp("/api/v1/h2a/tasks")
         with patch("api.h2a.db.get_client", return_value=mock_client):
             result = await list_h2a_tasks(
-                status=None, category=None, my_tasks=False, limit=20, offset=0
+                req,
+                resp,
+                status=None,
+                category=None,
+                my_tasks=False,
+                limit=20,
+                offset=0,
             )
 
         assert "tasks" in result
@@ -612,8 +632,11 @@ class TestH2ATaskListing:
 
         mock_client.table.side_effect = table_side_effect
 
+        req, resp = _fake_req_resp("/api/v1/h2a/tasks")
         with patch("api.h2a.db.get_client", return_value=mock_client):
             result = await list_h2a_tasks(
+                req,
+                resp,
                 status=None,
                 category="data_processing",
                 my_tasks=False,
