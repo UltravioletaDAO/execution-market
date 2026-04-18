@@ -20,6 +20,7 @@ from typing import Optional
 
 import supabase_client as db
 
+from integrations.web3_confirmations import wait_for_confirmations
 from utils.pii import truncate_wallet
 
 logger = logging.getLogger(__name__)
@@ -242,7 +243,10 @@ async def _send_eth_dust(to_address: str, amount_eth: float) -> str:
         # web3.py v7+ uses `raw_transaction`, v6 uses `rawTransaction`
         raw_tx = getattr(signed, "raw_transaction", None) or signed.rawTransaction
         tx_hash = w3.eth.send_raw_transaction(raw_tx)
-        receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=60)
+        # Base = chain 8453 → 3 confirmations (see CHAIN_CONFIRMATIONS).
+        # Pass chain_id explicitly so we don't round-trip an extra RPC call
+        # just to re-discover what this function already knows.
+        receipt = wait_for_confirmations(w3, tx_hash, chain_id=8453, receipt_timeout=60)
 
         if receipt["status"] != 1:
             raise RuntimeError(f"Gas dust TX reverted: {tx_hash.hex()}")

@@ -13,6 +13,8 @@ from enum import Enum
 from web3 import Web3
 from web3.middleware import ExtraDataToPOAMiddleware
 
+from integrations.web3_confirmations import wait_for_confirmations
+
 logger = logging.getLogger(__name__)
 
 
@@ -245,8 +247,12 @@ class ERC8004Registry:
             raw_tx = getattr(signed, "raw_transaction", None) or signed.rawTransaction
             tx_hash = self.w3.eth.send_raw_transaction(raw_tx)
 
-            # Wait for receipt
-            receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
+            # Wait for inclusion + chain-appropriate confirmation depth.
+            # Reorg-safety: ``wait_for_confirmations`` re-fetches the receipt
+            # once the head has advanced N blocks past inclusion and returns
+            # the canonical one — if the original block was orphaned we pick
+            # up the sibling receipt automatically.
+            receipt = wait_for_confirmations(self.w3, tx_hash, receipt_timeout=120)
 
             if receipt["status"] == 1:
                 # Get token ID from logs (simplified)
@@ -298,7 +304,7 @@ class ERC8004Registry:
             raw_tx = getattr(signed, "raw_transaction", None) or signed.rawTransaction
             tx_hash = self.w3.eth.send_raw_transaction(raw_tx)
 
-            receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
+            receipt = wait_for_confirmations(self.w3, tx_hash, receipt_timeout=120)
 
             return receipt["status"] == 1
 
