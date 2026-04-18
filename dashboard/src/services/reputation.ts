@@ -3,7 +3,12 @@
  *
  * Client for the ERC-8004 reputation API endpoints.
  * Used by the agent dashboard to rate workers after task completion.
+ *
+ * Auth (Phase 4.4): No API key is shipped with the bundle. Agents that
+ * want to rate a worker must be signed in (Supabase JWT) or sign the
+ * request via ERC-8128. Backend returns 401 with a hint otherwise.
  */
+import { buildAuthHeaders } from '../lib/auth'
 
 const API_BASE_URL = (
   import.meta.env.VITE_API_URL || 'https://api.execution.market'
@@ -44,21 +49,15 @@ export interface ReputationInfo {
  * Rate a worker after task completion (agent -> worker).
  *
  * The backend expects a score in the 0-100 range.
- * Requires an API key configured via VITE_API_KEY.
+ * Requires an authenticated session (Supabase JWT or ERC-8128 signature).
  */
 export async function rateWorker(
   request: RateWorkerRequest
 ): Promise<FeedbackResponse> {
-  const headers: Record<string, string> = {
+  const headers = await buildAuthHeaders({
     'Content-Type': 'application/json',
     'X-Client-Info': 'execution-market-dashboard',
-  }
-
-  const apiKey = import.meta.env.VITE_API_KEY
-  if (apiKey) {
-    headers['Authorization'] = `Bearer ${apiKey}`
-    headers['X-API-Key'] = apiKey
-  }
+  })
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/reputation/workers/rate`,

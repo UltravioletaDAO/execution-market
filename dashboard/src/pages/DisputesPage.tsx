@@ -13,12 +13,11 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { ArbiterVerdictBadge } from '../components/ArbiterVerdictBadge'
+import { buildAuthHeaders } from '../lib/auth'
 
 const API_BASE_URL = (
   import.meta.env.VITE_API_URL || 'https://api.execution.market'
 ).replace(/\/+$/, '')
-
-const API_KEY = import.meta.env.VITE_API_KEY as string | undefined
 
 // --------------------------------------------------------------------------
 // Types
@@ -81,10 +80,11 @@ type VerdictChoice = 'release' | 'refund' | 'split'
 // API helpers
 // --------------------------------------------------------------------------
 
-function buildHeaders(): HeadersInit {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (API_KEY) headers['x-api-key'] = API_KEY
-  return headers
+// Phase 4.4: VITE_API_KEY removed from the public bundle. Arbiter access
+// now requires an authenticated session (Supabase JWT for reviewers,
+// ERC-8128 for agents). Anonymous callers get 401.
+async function buildHeaders(): Promise<HeadersInit> {
+  return buildAuthHeaders({ 'Content-Type': 'application/json' })
 }
 
 async function fetchAvailableDisputes(
@@ -93,7 +93,7 @@ async function fetchAvailableDisputes(
   const qs = category ? `?category=${encodeURIComponent(category)}` : ''
   const res = await fetch(
     `${API_BASE_URL}/api/v1/disputes/available${qs}`,
-    { headers: buildHeaders() },
+    { headers: await buildHeaders() },
   )
   if (!res.ok) throw new Error(`Failed to list disputes (${res.status})`)
   const data = await res.json()
@@ -102,7 +102,7 @@ async function fetchAvailableDisputes(
 
 async function fetchDisputeDetail(id: string): Promise<DisputeDetail> {
   const res = await fetch(`${API_BASE_URL}/api/v1/disputes/${id}`, {
-    headers: buildHeaders(),
+    headers: await buildHeaders(),
   })
   if (!res.ok) throw new Error(`Failed to fetch dispute (${res.status})`)
   return res.json()
@@ -119,7 +119,7 @@ async function resolveDispute(
 }> {
   const res = await fetch(`${API_BASE_URL}/api/v1/disputes/${id}/resolve`, {
     method: 'POST',
-    headers: buildHeaders(),
+    headers: await buildHeaders(),
     body: JSON.stringify(body),
   })
   if (!res.ok) {

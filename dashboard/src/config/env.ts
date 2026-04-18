@@ -42,9 +42,6 @@ const EnvSchema = z
     VITE_GIT_SHA: z.string().optional(),
     VITE_BUILD_TIMESTAMP: z.string().optional(),
 
-    // Optional — legacy, to be removed in Task 4.4
-    VITE_API_KEY: z.string().optional(),
-
     // Feature flags (all default false)
     VITE_ENABLE_TESTNET: booleanish,
     VITE_REQUIRE_AGENT_API_KEY: booleanish,

@@ -7,7 +7,6 @@ interface ImportMetaEnv {
 
   // API
   readonly VITE_API_URL: string
-  readonly VITE_API_KEY?: string
 
   // Evidence Storage (S3 presigned URL pipeline)
   readonly VITE_EVIDENCE_API_URL?: string

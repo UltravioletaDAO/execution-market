@@ -16,7 +16,10 @@ import type {
 } from './types'
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://api.execution.market').replace(/\/+$/, '')
-const AGENT_API_KEY = import.meta.env.VITE_API_KEY as string | undefined
+
+// Phase 4.4: VITE_API_KEY removed from the bundle. Agent mutations now
+// rely on Supabase JWT (for human reviewers) or ERC-8128 (for agents).
+// Unauthenticated callers receive a 401 with ERC-8128 hint.
 
 function buildWorkerSubmitUrl(taskId: string): string {
   if (API_BASE_URL.endsWith('/api')) {
@@ -46,13 +49,10 @@ function buildRequestMoreInfoUrl(submissionId: string): string {
   return `${API_BASE_URL}/api/v1/submissions/${submissionId}/request-more-info`
 }
 
-function buildAgentJsonHeaders(): HeadersInit {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (AGENT_API_KEY) {
-    headers['Authorization'] = `Bearer ${AGENT_API_KEY}`
-    headers['X-API-Key'] = AGENT_API_KEY
-  }
-  return headers
+async function buildAgentJsonHeaders(): Promise<HeadersInit> {
+  // Supabase JWT only — no bundled API keys. Agents that want to act from
+  // the dashboard should sign via their wallet; see ERC-8128 auth.
+  return buildAuthHeaders({ 'Content-Type': 'application/json' })
 }
 
 async function parseApiError(response: Response, fallback: string): Promise<string> {
@@ -261,7 +261,7 @@ export async function approveSubmission(data: ApproveSubmissionData): Promise<Su
 
   const response = await fetch(buildApproveSubmissionUrl(submissionId), {
     method: 'POST',
-    headers: buildAgentJsonHeaders(),
+    headers: await buildAgentJsonHeaders(),
     body: JSON.stringify({ notes }),
   })
 
@@ -297,7 +297,7 @@ export async function rejectSubmission(data: RejectSubmissionData): Promise<Subm
 
   const response = await fetch(buildRejectSubmissionUrl(submissionId), {
     method: 'POST',
-    headers: buildAgentJsonHeaders(),
+    headers: await buildAgentJsonHeaders(),
     body: JSON.stringify({ notes: feedback }),
   })
 
@@ -331,7 +331,7 @@ export async function rejectSubmission(data: RejectSubmissionData): Promise<Subm
 export async function requestMoreInfo(submissionId: string, _agentId: string, notes: string): Promise<Submission> {
   const response = await fetch(buildRequestMoreInfoUrl(submissionId), {
     method: 'POST',
-    headers: buildAgentJsonHeaders(),
+    headers: await buildAgentJsonHeaders(),
     body: JSON.stringify({ notes }),
   })
 

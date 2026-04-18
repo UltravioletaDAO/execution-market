@@ -23,8 +23,16 @@ import type {
 
 const db = supabase
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://api.execution.market').replace(/\/+$/, '')
-import { getRequireApiKey } from '../hooks/usePlatformConfig'
-const AGENT_API_KEY = import.meta.env.VITE_API_KEY as string | undefined
+
+// Phase 4.4: VITE_API_KEY was removed — it shipped as part of the public
+// bundle, which made privileged mutations trivially impersonable. Agent
+// mutations now rely exclusively on authenticated sessions (Supabase JWT
+// for worker flows, ERC-8128 wallet signatures for agent flows). If no
+// session is present, the backend returns 401 with a WWW-Authenticate
+// hint pointing at ERC-8128.
+const AGENT_AUTH_HINT =
+  'Agent mutations require a signed-in wallet (ERC-8128). ' +
+  'Sign in and try again, or use an external agent that signs requests.'
 
 function buildApplyTaskUrl(taskId: string): string {
   if (API_BASE_URL.endsWith('/api')) {
@@ -54,17 +62,10 @@ function buildAgentAssignTaskUrl(taskId: string): string {
   return `${API_BASE_URL}/api/v1/tasks/${taskId}/assign`
 }
 
-function hasAgentApiKey(): boolean {
-  return Boolean(AGENT_API_KEY)
-}
-
-function buildAgentJsonHeaders(): HeadersInit {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (AGENT_API_KEY) {
-    headers['Authorization'] = `Bearer ${AGENT_API_KEY}`
-    headers['X-API-Key'] = AGENT_API_KEY
-  }
-  return headers
+async function buildAgentJsonHeaders(): Promise<HeadersInit> {
+  // Supabase JWT only; if the user is anonymous, the backend will return
+  // 401 telling them to sign via ERC-8128. We no longer attach API keys.
+  return buildAuthHeaders({ 'Content-Type': 'application/json' })
 }
 
 async function parseApiError(response: Response, fallback: string): Promise<string> {
@@ -196,17 +197,9 @@ export async function getAvailableTasks(filters: Omit<TaskFilters, 'status'> = {
  * Create a new task (always via REST API)
  */
 export async function createTask(data: CreateTaskData): Promise<Task> {
-  if (!hasAgentApiKey()) {
-    throw new Error(
-      getRequireApiKey()
-        ? 'VITE_API_KEY is required for agent task creation'
-        : 'VITE_API_KEY must be configured for task creation.'
-    )
-  }
-
   const response = await fetch(buildAgentCreateTaskUrl(), {
     method: 'POST',
-    headers: buildAgentJsonHeaders(),
+    headers: await buildAgentJsonHeaders(),
     body: JSON.stringify({
       title: data.title,
       instructions: data.instructions,
@@ -224,7 +217,10 @@ export async function createTask(data: CreateTaskData): Promise<Task> {
   })
 
   if (!response.ok) {
-    const fallback = `Failed to create task via API (${response.status})`
+    const fallback =
+      response.status === 401 || response.status === 403
+        ? AGENT_AUTH_HINT
+        : `Failed to create task via API (${response.status})`
     throw new Error(await parseApiError(response, fallback))
   }
 
@@ -378,22 +374,17 @@ export async function getMyApplicationTaskIds(executorId: string): Promise<Set<s
 export async function cancelTask(data: CancelTaskData): Promise<Task> {
   const { taskId, reason } = data
 
-  if (!hasAgentApiKey()) {
-    throw new Error(
-      getRequireApiKey()
-        ? 'VITE_API_KEY is required for agent task cancellation'
-        : 'VITE_API_KEY must be configured for task cancellation.'
-    )
-  }
-
   const response = await fetch(buildAgentCancelTaskUrl(taskId), {
     method: 'POST',
-    headers: buildAgentJsonHeaders(),
+    headers: await buildAgentJsonHeaders(),
     body: JSON.stringify({ reason }),
   })
 
   if (!response.ok) {
-    const fallback = `Failed to cancel task via API (${response.status})`
+    const fallback =
+      response.status === 401 || response.status === 403
+        ? AGENT_AUTH_HINT
+        : `Failed to cancel task via API (${response.status})`
     throw new Error(await parseApiError(response, fallback))
   }
 
@@ -420,17 +411,9 @@ export async function cancelTask(data: CancelTaskData): Promise<Task> {
 export async function assignTask(data: AssignTaskData): Promise<{ task: Task; executor: { id: string; display_name: string | null } }> {
   const { taskId, executorId, notes } = data
 
-  if (!hasAgentApiKey()) {
-    throw new Error(
-      getRequireApiKey()
-        ? 'VITE_API_KEY is required for agent task assignment'
-        : 'VITE_API_KEY must be configured for task assignment.'
-    )
-  }
-
   const response = await fetch(buildAgentAssignTaskUrl(taskId), {
     method: 'POST',
-    headers: buildAgentJsonHeaders(),
+    headers: await buildAgentJsonHeaders(),
     body: JSON.stringify({
       executor_id: executorId,
       notes,
@@ -438,7 +421,10 @@ export async function assignTask(data: AssignTaskData): Promise<{ task: Task; ex
   })
 
   if (!response.ok) {
-    const fallback = `Failed to assign task via API (${response.status})`
+    const fallback =
+      response.status === 401 || response.status === 403
+        ? AGENT_AUTH_HINT
+        : `Failed to assign task via API (${response.status})`
     throw new Error(await parseApiError(response, fallback))
   }
 

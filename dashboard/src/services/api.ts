@@ -91,7 +91,15 @@ export function buildUrl(path: string, params?: Record<string, unknown>): string
 }
 
 /**
- * Get default headers for requests
+ * Get default headers for requests.
+ *
+ * Bundled API keys were removed (Phase 4.4) — the dashboard is a public
+ * asset, so anything shipped here is extractable. Agent mutations MUST go
+ * through wallet-signed ERC-8128 requests; until that signer lives in the
+ * dashboard, mutation endpoints will fail with a clear 401 telling the
+ * user to sign via their wallet.
+ *
+ * For read-only and worker flows we attach the Supabase JWT (if present).
  */
 function getHeaders(): HeadersInit {
   const headers: Record<string, string> = {
@@ -100,17 +108,8 @@ function getHeaders(): HeadersInit {
     'X-Request-ID': generateRequestId(),
   }
 
-  // Add API key if configured
-  const apiKey = import.meta.env.VITE_API_KEY
-  if (apiKey) {
-    headers['Authorization'] = `Bearer ${apiKey}`
-    headers['X-API-Key'] = apiKey
-  }
-
-  // Add JWT token if available and no API key is configured.
-  // Agent mutation endpoints expect API-key bearer auth.
   const token = getAuthToken()
-  if (token && !apiKey) {
+  if (token) {
     headers['Authorization'] = `Bearer ${token}`
   }
 
