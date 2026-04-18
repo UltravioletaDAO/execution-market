@@ -18,7 +18,6 @@ async def test_verify_admin_key_accepts_bearer_header(monkeypatch):
         authorization="Bearer supersecret",
         x_admin_key=None,
         x_admin_actor=None,
-        admin_key=None,
     )
 
     assert result["role"] == "admin"
@@ -33,7 +32,6 @@ async def test_verify_admin_key_accepts_x_admin_key_header(monkeypatch):
         authorization=None,
         x_admin_key="supersecret",
         x_admin_actor=None,
-        admin_key=None,
     )
 
     assert result["role"] == "admin"
@@ -41,18 +39,35 @@ async def test_verify_admin_key_accepts_x_admin_key_header(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_verify_admin_key_accepts_legacy_query_param(monkeypatch):
+async def test_verify_admin_key_rejects_query_param(monkeypatch):
+    """Query-param auth was removed in Phase 0.4 because ?admin_key=... leaks
+    into ALB access logs, browser history, and proxy caches.
+
+    The signature no longer accepts ``admin_key`` as a Query kwarg, so the
+    caller cannot pass it. A real HTTP request with only ``?admin_key=...``
+    arrives with no Authorization / X-Admin-Key header, which must yield 401.
+    """
     monkeypatch.setenv("EM_ADMIN_KEY", "supersecret")
 
-    result = await verify_admin_key(
-        authorization=None,
-        x_admin_key=None,
-        x_admin_actor=None,
-        admin_key="supersecret",
-    )
+    # Legacy kwarg must not be accepted by the function signature.
+    with pytest.raises(TypeError):
+        await verify_admin_key(
+            authorization=None,
+            x_admin_key=None,
+            x_admin_actor=None,
+            admin_key="supersecret",
+        )
 
-    assert result["role"] == "admin"
-    assert result["auth_source"] == "query"
+    # Simulate a request that ONLY carries ?admin_key=... in the URL — no
+    # auth headers reach the dependency, so it must reject with 401.
+    with pytest.raises(HTTPException) as exc:
+        await verify_admin_key(
+            authorization=None,
+            x_admin_key=None,
+            x_admin_actor=None,
+        )
+
+    assert exc.value.status_code == 401
 
 
 @pytest.mark.asyncio
@@ -64,7 +79,6 @@ async def test_verify_admin_key_rejects_invalid_authorization_format(monkeypatch
             authorization="Token supersecret",
             x_admin_key=None,
             x_admin_actor=None,
-            admin_key=None,
         )
 
     assert exc.value.status_code == 401
@@ -79,7 +93,6 @@ async def test_verify_admin_key_requires_credentials(monkeypatch):
             authorization=None,
             x_admin_key=None,
             x_admin_actor=None,
-            admin_key=None,
         )
 
     assert exc.value.status_code == 401
@@ -94,7 +107,6 @@ async def test_verify_admin_key_requires_server_config(monkeypatch):
             authorization="Bearer anything",
             x_admin_key=None,
             x_admin_actor=None,
-            admin_key=None,
         )
 
     assert exc.value.status_code == 503
@@ -108,7 +120,6 @@ async def test_verify_admin_key_captures_actor_id(monkeypatch):
         authorization="Bearer supersecret",
         x_admin_key=None,
         x_admin_actor="alice@example.com",
-        admin_key=None,
     )
 
     assert result["actor_id"] == "alice@example.com"

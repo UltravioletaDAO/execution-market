@@ -788,7 +788,6 @@ class TestAllEndpointsRequireAdminKey:
                 authorization=None,
                 x_admin_key=None,
                 x_admin_actor=None,
-                admin_key=None,
             )
         assert exc_info.value.status_code == 401
 
@@ -804,6 +803,5 @@ class TestAllEndpointsRequireAdminKey:
                 authorization="Bearer wrongkey",
                 x_admin_key=None,
                 x_admin_actor=None,
-                admin_key=None,
             )
         assert exc_info.value.status_code == 403

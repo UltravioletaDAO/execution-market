@@ -73,15 +73,14 @@ async def verify_admin_key(
     authorization: Optional[str] = Header(None, description="Bearer admin key"),
     x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
     x_admin_actor: Optional[str] = Header(None, alias="X-Admin-Actor"),
-    admin_key: Optional[str] = Query(None, alias="admin_key"),
 ):
     """
     Verify admin key using constant-time comparison.
 
-    Preferred auth order:
+    Accepted auth sources (header-only — query params are rejected because
+    they leak into ALB access logs, browser history, and proxy caches):
     1. Authorization: Bearer <admin_key>
     2. X-Admin-Key: <admin_key>
-    3. admin_key query param (legacy fallback)
     """
     import os
     import secrets as _secrets
@@ -106,10 +105,6 @@ async def verify_admin_key(
     elif x_admin_key:
         provided_key = x_admin_key.strip()
         source = "x-admin-key"
-    elif admin_key:
-        provided_key = admin_key.strip()
-        source = "query"
-        logger.warning("Legacy admin auth via query param used")
     else:
         raise HTTPException(
             status_code=401,

@@ -16,8 +16,10 @@ Dashboard:  https://execution.market
 # x402 Payment (for task creation)
 -H "X-Payment: x402_payment_token"
 
-# Admin (query parameter)
-?admin_key=YOUR_ADMIN_KEY
+# Admin (header-only — query-param auth removed in Phase 0.4)
+-H "X-Admin-Key: YOUR_ADMIN_KEY"
+# or
+-H "Authorization: Bearer YOUR_ADMIN_KEY"
 ```
 
 ## Core Endpoints

@@ -109,14 +109,15 @@ async def require_admin(
     authorization: Optional[str] = Header(None, description="Bearer admin key"),
     x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
     x_admin_actor: Optional[str] = Header(None, alias="X-Admin-Actor"),
-    admin_key: Optional[str] = Query(None, alias="admin_key"),
 ):
-    """Require admin key for write operations (delegates to admin.verify_admin_key)."""
+    """Require admin key for write operations (delegates to admin.verify_admin_key).
+
+    Header-only auth — query-param fallback was removed (see Phase 0.4).
+    """
     return await verify_admin_key(
         authorization=authorization,
         x_admin_key=x_admin_key,
         x_admin_actor=x_admin_actor,
-        admin_key=admin_key,
     )
 
 

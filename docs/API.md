@@ -31,10 +31,18 @@ curl https://api.execution.market/api/v1/config | jq .require_api_key
 
 ### Admin Authentication
 
-Admin endpoints require the admin key as a query parameter:
+Admin endpoints require the admin key via the `X-Admin-Key` header (or `Authorization: Bearer <admin-key>`). Query-param auth was removed in Phase 0.4 because URL query strings leak into ALB access logs, browser history, and proxy caches.
 
 ```http
-GET /api/v1/admin/stats?admin_key=<admin-key>
+GET /api/v1/admin/stats
+X-Admin-Key: <admin-key>
+```
+
+Or with a bearer token:
+
+```http
+GET /api/v1/admin/stats
+Authorization: Bearer <admin-key>
 ```
 
 ### x402 Payment Protocol
