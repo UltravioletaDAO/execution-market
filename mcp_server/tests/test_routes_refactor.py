@@ -117,6 +117,8 @@ EXPECTED_ROUTES = {
     # Version endpoints
     "/api/v1/version",
     "/api/v1/version/all",
+    # Proof Wall showcase
+    "/api/v1/showcase/evidence",
 }
 
 

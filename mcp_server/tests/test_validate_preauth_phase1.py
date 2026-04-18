@@ -13,6 +13,7 @@ Validates that pre-auth payloads are checked against NETWORK_CONFIG:
 import json
 import os
 import copy
+import time
 import pytest
 from decimal import Decimal
 from unittest.mock import patch
@@ -53,6 +54,10 @@ VALID_OPERATOR = "0x271f9fa7f8907aCf178CCFB470076D9129D8F0Eb"
 VALID_TOKEN = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
 VALID_COLLECTOR = "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8"
 VALID_AMOUNT = "5000000"
+# Pre-auth must be valid at test runtime (Phase 0.2 temporal check rejects
+# expired/not-yet-valid auths). 24h future window is comfortably past any
+# realistic test-run duration.
+VALID_BEFORE = str(int(time.time()) + 86400)
 
 VALID_PAYLOAD = {
     "x402Version": 2,
@@ -63,7 +68,7 @@ VALID_PAYLOAD = {
             "to": VALID_COLLECTOR,
             "value": VALID_AMOUNT,
             "validAfter": "0",
-            "validBefore": "1711843200",
+            "validBefore": VALID_BEFORE,
             "nonce": "0x" + "ab" * 32,
         },
         "signature": "0x" + "cc" * 65,
