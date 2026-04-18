@@ -41,21 +41,26 @@ RUN if [ -n "$VITE_SUPABASE_URL" ]; then export VITE_SUPABASE_URL="$VITE_SUPABAS
     export VITE_BUILD_TIMESTAMP="$VITE_BUILD_TIMESTAMP" && \
     npm run build
 
-# Production stage with nginx
-FROM nginx:alpine
+# Production stage with nginx (unprivileged)
+# nginxinc/nginx-unprivileged runs as uid 101 (non-root) and listens on 8080
+# by default. Container escape no longer grants root on the host.
+FROM nginxinc/nginx-unprivileged:alpine
 
-# Copy nginx config
+# Copy nginx config (listen 8080 — see nginx.conf)
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copy built assets
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Add healthcheck
+# Explicit non-root user for clarity (image already defaults to this)
+USER nginx
+
+# Add healthcheck (unprivileged image serves on 8080)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-    CMD wget -q --spider http://localhost:80/health || exit 1
+    CMD wget -q --spider http://localhost:8080/health || exit 1
 
 # Expose port
-EXPOSE 80
+EXPOSE 8080
 
 # Start nginx
 CMD ["nginx", "-g", "daemon off;"]
