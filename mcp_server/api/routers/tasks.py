@@ -43,6 +43,8 @@ from ._models import (
     UpdateEscrowMetadataRequest,
 )
 
+from utils.pii import truncate_wallet
+
 from ._helpers import (
     logger,
     X402_AVAILABLE,
@@ -132,7 +134,9 @@ def _auto_register_agent_executor(
             }
         ).execute()
         logger.info(
-            "Auto-registered agent executor: wallet=%s, name=%s", wallet_lower, display
+            "Auto-registered agent executor: wallet=%s, name=%s",
+            truncate_wallet(wallet_lower),
+            display,
         )
     except Exception as e:
         logger.debug("Agent executor insert failed (wallet may exist): %s", e)

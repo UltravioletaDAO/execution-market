@@ -16,6 +16,7 @@ import httpx
 
 from ..models import EMEvent, EventSource
 from ..bus import EventBus
+from utils.pii import truncate_wallet
 
 logger = logging.getLogger(__name__)
 
@@ -131,15 +132,19 @@ class XMTPAdapter:
                 )
                 if resp.status_code in (200, 204):
                     self._stats["notifications_sent"] += 1
-                    logger.debug("XMTP notification sent to %s", address[:10])
+                    logger.debug(
+                        "XMTP notification sent to %s", truncate_wallet(address)
+                    )
                 else:
                     self._stats["errors"] += 1
                     logger.debug(
-                        "XMTP notify failed (%d): %s", resp.status_code, address[:10]
+                        "XMTP notify failed (%d): %s",
+                        resp.status_code,
+                        truncate_wallet(address),
                     )
         except Exception as e:
             self._stats["errors"] += 1
-            logger.debug("XMTP send failed for %s: %s", address[:10], e)
+            logger.debug("XMTP send failed for %s: %s", truncate_wallet(address), e)
 
     @property
     def stats(self) -> dict:

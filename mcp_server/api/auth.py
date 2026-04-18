@@ -27,6 +27,8 @@ try:
 except ImportError:  # pragma: no cover
     TTLCache = None
 
+from utils.pii import truncate_wallet
+
 logger = logging.getLogger(__name__)
 
 
@@ -528,7 +530,8 @@ async def _resolve_erc8004_identity(wallet_address: str, chain_id: int) -> dict:
         }
     except _aio.TimeoutError:
         logger.warning(
-            "ERC-8004 identity lookup timed out (5s) for %s", wallet_address[:10]
+            "ERC-8004 identity lookup timed out (5s) for %s",
+            truncate_wallet(wallet_address),
         )
     except ImportError:
         logger.debug("ERC-8004 identity module not available")

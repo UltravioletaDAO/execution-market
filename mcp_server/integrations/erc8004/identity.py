@@ -31,6 +31,8 @@ from typing import Any, Dict, Optional
 
 import httpx
 
+from utils.pii import truncate_wallet
+
 logger = logging.getLogger(__name__)
 
 
@@ -133,7 +135,7 @@ async def _lookup_by_agent_id(agent_id: int, network: str) -> Dict[str, Any]:
         logger.info(
             "ERC-8004 identity VERIFIED: agent_id=%d, owner=%s, name=%s, network=%s",
             identity.agent_id,
-            identity.owner,
+            truncate_wallet(identity.owner),
             identity.name,
             identity.network,
         )
@@ -399,7 +401,7 @@ async def check_worker_identity(
                     logger.info(
                         "Resolved agent_id=%d via SDK owner lookup for %s on %s",
                         agent_id,
-                        wallet_address[:10],
+                        truncate_wallet(wallet_address),
                         network,
                     )
             except Exception as fac_err:
@@ -415,7 +417,11 @@ async def check_worker_identity(
         )
 
     except Exception as e:
-        logger.error("Worker identity check failed for %s: %s", wallet_address, e)
+        logger.error(
+            "Worker identity check failed for %s: %s",
+            truncate_wallet(wallet_address),
+            e,
+        )
         return WorkerIdentityResult(
             status=WorkerIdentityStatus.ERROR,
             wallet_address=wallet_address.lower(),
@@ -485,7 +491,7 @@ async def register_worker_gasless(
         agent_id = result.get("agentId")
         logger.info(
             "Worker registered gaslessly: wallet=%s, agent_id=%s, network=%s, tx=%s",
-            wallet_address,
+            truncate_wallet(wallet_address),
             agent_id,
             network,
             result.get("transaction"),
@@ -606,7 +612,7 @@ async def confirm_worker_registration(
     if tx_hash:
         logger.info(
             "Confirming worker registration: wallet=%s tx=%s network=%s",
-            wallet_address,
+            truncate_wallet(wallet_address),
             tx_hash,
             network,
         )

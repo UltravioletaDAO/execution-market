@@ -38,6 +38,8 @@ from typing import Optional, Callable
 from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
 
+from utils.pii import truncate_wallet
+
 logger = logging.getLogger("em.swarm.retention_adapter")
 
 UTC = timezone.utc
@@ -155,7 +157,7 @@ class RetentionAdapter:
         if cached and cached.age_seconds < STALE_TTL:
             self._cache_hits += 1
             cached.from_cache = True
-            logger.info("Using stale retention cache for %s", wallet[:10])
+            logger.info("Using stale retention cache for %s", truncate_wallet(wallet))
             return cached
 
         # Tier 4: Default
@@ -180,7 +182,9 @@ class RetentionAdapter:
             (time.monotonic() - start) * 1000
 
             if not data.get("success"):
-                logger.warning("Retention API returned failure for %s", wallet[:10])
+                logger.warning(
+                    "Retention API returned failure for %s", truncate_wallet(wallet)
+                )
                 self._api_errors += 1
                 return None
 
@@ -201,11 +205,13 @@ class RetentionAdapter:
 
         except (URLError, HTTPError, TimeoutError, OSError) as e:
             self._api_errors += 1
-            logger.warning("Retention API error for %s: %s", wallet[:10], e)
+            logger.warning("Retention API error for %s: %s", truncate_wallet(wallet), e)
             return None
         except Exception as e:
             self._api_errors += 1
-            logger.error("Unexpected retention error for %s: %s", wallet[:10], e)
+            logger.error(
+                "Unexpected retention error for %s: %s", truncate_wallet(wallet), e
+            )
             return None
 
     def stats(self) -> dict:

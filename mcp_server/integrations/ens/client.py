@@ -23,6 +23,8 @@ from typing import Optional
 
 from web3 import Web3
 
+from utils.pii import truncate_wallet
+
 logger = logging.getLogger(__name__)
 
 # ── Configuration ───────────────────────────────────────────────────────────
@@ -204,7 +206,9 @@ def _sync_reverse_resolve(address: str) -> ENSResolution:
         return result
 
     except Exception as exc:
-        logger.debug("ENS reverse resolve failed for %s: %s", address[:10], exc)
+        logger.debug(
+            "ENS reverse resolve failed for %s: %s", truncate_wallet(address), exc
+        )
         return ENSResolution(address=address, error=str(exc))
 
 

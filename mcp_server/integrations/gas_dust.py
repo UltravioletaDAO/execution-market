@@ -20,6 +20,8 @@ from typing import Optional
 
 import supabase_client as db
 
+from utils.pii import truncate_wallet
+
 logger = logging.getLogger(__name__)
 
 # Default dust amount: 0.0001 ETH (~$0.25 at $2500/ETH, enough for ~5 giveFeedback TXs)
@@ -60,7 +62,8 @@ async def fund_worker_gas_dust(
         )
         if result.data and result.data[0].get("gas_dust_funded_at"):
             logger.debug(
-                "Worker %s already funded, skipping gas dust", wallet_lower[:10]
+                "Worker %s already funded, skipping gas dust",
+                truncate_wallet(wallet_lower),
             )
             return None
     except Exception as exc:
@@ -69,13 +72,16 @@ async def fund_worker_gas_dust(
 
     # Check rate limit
     if not await check_rate_limit():
-        logger.warning("Gas dust: rate limit exceeded, skipping %s", wallet_lower[:10])
+        logger.warning(
+            "Gas dust: rate limit exceeded, skipping %s", truncate_wallet(wallet_lower)
+        )
         return None
 
     # Check monthly budget
     if not await check_gas_dust_budget():
         logger.warning(
-            "Gas dust: monthly budget exceeded, skipping %s", wallet_lower[:10]
+            "Gas dust: monthly budget exceeded, skipping %s",
+            truncate_wallet(wallet_lower),
         )
         return None
 
@@ -104,7 +110,9 @@ async def fund_worker_gas_dust(
     try:
         tx_hash = await _send_eth_dust(wallet_lower, GAS_DUST_AMOUNT_ETH)
     except Exception as exc:
-        logger.error("Gas dust: TX failed for %s: %s", wallet_lower[:10], exc)
+        logger.error(
+            "Gas dust: TX failed for %s: %s", truncate_wallet(wallet_lower), exc
+        )
         # Update event as failed
         if event_id:
             try:

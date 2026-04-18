@@ -17,6 +17,7 @@ import httpx
 
 from ..models import EMEvent
 from ..bus import EventBus
+from utils.pii import truncate_wallet
 
 logger = logging.getLogger(__name__)
 
@@ -226,7 +227,9 @@ class ChannelManager:
             if result.data:
                 return result.data[0]["irc_nick"]
         except Exception as e:
-            logger.debug("Nick lookup failed for wallet %s: %s", wallet[:10], e)
+            logger.debug(
+                "Nick lookup failed for wallet %s: %s", truncate_wallet(wallet), e
+            )
 
         return None
 

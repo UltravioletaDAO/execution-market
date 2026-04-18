@@ -36,6 +36,7 @@ from ._helpers import (
     _auto_approve_submission,
     dispatch_webhook,
 )
+from utils.pii import truncate_wallet
 
 router = APIRouter(prefix="/api/v1", tags=["Workers"])
 
@@ -68,7 +69,7 @@ async def _auto_resolve_ens(executor_id: str, wallet: str) -> None:
             result.name,
         )
     except Exception as exc:
-        logger.debug("ENS auto-resolve failed for %s: %s", wallet[:10], exc)
+        logger.debug("ENS auto-resolve failed for %s: %s", truncate_wallet(wallet), exc)
 
 
 @router.post(
@@ -186,7 +187,9 @@ async def get_world_status(
             data=result.to_dict(),
         )
     except Exception as e:
-        logger.error("World status lookup failed for %s: %s", wallet[:10], e)
+        logger.error(
+            "World status lookup failed for %s: %s", truncate_wallet(wallet), e
+        )
         raise HTTPException(
             status_code=500, detail="Error checking World verification status"
         )
@@ -962,7 +965,11 @@ async def get_payment_events(
         result = query.execute()
         rows: List[Dict[str, Any]] = result.data or []
     except Exception as exc:
-        logger.error("Failed to query payment_events for address %s: %s", addr, exc)
+        logger.error(
+            "Failed to query payment_events for address %s: %s",
+            truncate_wallet(addr),
+            exc,
+        )
         raise HTTPException(status_code=500, detail="Error querying payment events")
 
     # Build response events with fields the XMTP bot and dashboard expect

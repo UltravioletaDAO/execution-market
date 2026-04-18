@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 
 
 from .register import ERC8004Registry
+from utils.pii import truncate_wallet
 
 logger = logging.getLogger(__name__)
 
@@ -181,7 +182,7 @@ class ReputationManager:
         """
         identity = await self.registry.get_identity(wallet_address)
         if not identity:
-            logger.error(f"No identity for {wallet_address}")
+            logger.error("No identity for %s", truncate_wallet(wallet_address))
             return None
 
         # Get current reputation

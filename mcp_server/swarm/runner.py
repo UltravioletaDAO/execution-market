@@ -39,6 +39,7 @@ from typing import Optional
 from .coordinator import SwarmCoordinator
 from .event_listener import EventListener
 from .evidence_parser import EvidenceParser, WorkerRegistry
+from utils.pii import truncate_wallet
 
 logger = logging.getLogger("em.swarm.runner")
 
@@ -488,7 +489,9 @@ class SwarmRunner:
                 self.worker_registry.update_worker(worker_wallet, evidence)
                 result.skill_updates += 1
             except Exception as e:
-                logger.debug(f"Skill update failed for {worker_wallet}: {e}")
+                logger.debug(
+                    "Skill update failed for %s: %s", truncate_wallet(worker_wallet), e
+                )
 
     def _phase_report(self, result: CycleResult):
         """Phase 7: Emit metrics, check EM health, persist state."""

@@ -313,6 +313,7 @@ CHARACTER_LIMIT = 25000
 # ============== FORMATTING HELPERS ==============
 
 from utils.formatting import format_bounty, format_datetime  # noqa: E402
+from utils.pii import truncate_wallet  # noqa: E402
 
 
 def format_task_markdown(
@@ -739,7 +740,10 @@ def _auto_register_agent_executor_mcp(wallet: str, agent_name: str = None):
                 "display_name": display,
             }
         ).execute()
-        logger.info("Auto-registered agent executor (MCP): wallet=%s", wallet_lower)
+        logger.info(
+            "Auto-registered agent executor (MCP): wallet=%s",
+            truncate_wallet(wallet_lower),
+        )
     except Exception as e:
         logger.warning("Auto-register agent executor (MCP) failed: %s", e)
 

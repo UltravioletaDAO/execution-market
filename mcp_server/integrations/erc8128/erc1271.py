@@ -20,6 +20,8 @@ from typing import Optional
 
 import httpx
 
+from utils.pii import truncate_wallet
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -228,11 +230,15 @@ async def verify_erc1271_signature(
     _cache_put(cache_key, is_valid)
 
     if is_valid:
-        logger.info("ERC-1271 signature valid: address=%s chain=%d", address, chain_id)
+        logger.info(
+            "ERC-1271 signature valid: address=%s chain=%d",
+            truncate_wallet(address),
+            chain_id,
+        )
     else:
         logger.warning(
             "ERC-1271 signature invalid: address=%s chain=%d result=%s",
-            address,
+            truncate_wallet(address),
             chain_id,
             result_hex[:20],
         )

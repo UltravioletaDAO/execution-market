@@ -33,6 +33,8 @@ from typing import Optional, Callable
 from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
 
+from utils.pii import truncate_wallet
+
 logger = logging.getLogger("em.swarm.outcome_adapter")
 
 UTC = timezone.utc
@@ -176,7 +178,12 @@ class OutcomeAdapter:
             )
         except (URLError, HTTPError, TimeoutError, json.JSONDecodeError) as e:
             self._stats.api_errors += 1
-            logger.debug(f"OutcomeAdapter API error for {wallet}/{category}: {e}")
+            logger.debug(
+                "OutcomeAdapter API error for %s/%s: %s",
+                truncate_wallet(wallet),
+                category,
+                e,
+            )
             return None
         except Exception as e:
             self._stats.api_errors += 1

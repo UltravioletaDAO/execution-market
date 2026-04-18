@@ -46,6 +46,7 @@ from .auth import (
     verify_worker_auth,
     WorkerAuth,
 )
+from utils.pii import truncate_wallet
 
 logger = logging.getLogger(__name__)
 
@@ -565,7 +566,7 @@ async def register_agent_endpoint(
             if existing.get("agent_id"):
                 logger.info(
                     "IDENTITY_REUSE wallet=%s agent_id=%s (skipped duplicate registration)",
-                    request.recipient[:10],
+                    truncate_wallet(request.recipient),
                     existing["agent_id"],
                 )
                 return RegisterAgentResponse(
@@ -623,7 +624,7 @@ async def register_agent_endpoint(
                     "Persisted erc8004_agent_id=%s for executor %s (wallet %s)",
                     agent_id,
                     executor_id,
-                    addr_lower[:10],
+                    truncate_wallet(addr_lower),
                 )
         except Exception as exc:
             logger.warning(
@@ -681,7 +682,7 @@ async def lookup_identity_by_wallet(
     except Exception as _db_err:
         logger.warning(
             "DB identity check failed for %s, falling through to on-chain: %s",
-            wallet_lower[:10],
+            truncate_wallet(wallet_lower),
             _db_err,
         )
 
@@ -699,7 +700,9 @@ async def lookup_identity_by_wallet(
             }
     except Exception as e:
         logger.warning(
-            "On-chain identity check failed for %s: %s", wallet_lower[:10], e
+            "On-chain identity check failed for %s: %s",
+            truncate_wallet(wallet_lower),
+            e,
         )
 
     raise HTTPException(
@@ -851,7 +854,7 @@ async def rate_worker_endpoint(
         "SECURITY_AUDIT action=reputation.rate_worker actor=%s task=%s worker=%s score=%d success=%s error=%s",
         auth.agent_id,
         request.task_id,
-        worker_address,
+        truncate_wallet(worker_address),
         request.score,
         result.success,
         result.error or "none",
@@ -1175,7 +1178,7 @@ async def rate_agent_endpoint(
                 executor_id,
                 request.task_id,
                 request.score,
-                worker_wallet[:16] if len(worker_wallet) > 16 else worker_wallet,
+                truncate_wallet(worker_wallet),
             )
     except Exception as e:
         logger.error(
@@ -1631,7 +1634,9 @@ async def get_cross_chain_reputation_endpoint(
         return CrossChainReputationResponse(**result.to_dict())
     except Exception as exc:
         logger.error(
-            "Cross-chain reputation error for %s: %s", wallet_address[:10], exc
+            "Cross-chain reputation error for %s: %s",
+            truncate_wallet(wallet_address),
+            exc,
         )
         raise HTTPException(
             status_code=500,
