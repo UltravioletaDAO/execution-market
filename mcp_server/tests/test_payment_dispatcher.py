@@ -1143,6 +1143,57 @@ class TestHelpers:
                 os.environ["WALLET_PRIVATE_KEY"] = old
             mod._cached_platform_address = None
 
+    # ------------------------------------------------------------------
+    # Task 5.5 — BackTrack protocol fee change alert
+    # ------------------------------------------------------------------
+
+    def test_protocol_fee_change_alert_emits_warning_and_sentry(self):
+        """_emit_protocol_fee_change_alert should log WARNING + Sentry + audit."""
+        import integrations.x402.payment_dispatcher as mod
+
+        sentry_mock = MagicMock()
+        sentry_mock.capture_message = MagicMock()
+        supabase_mock = MagicMock()
+
+        table_chain = MagicMock()
+        table_chain.insert.return_value.execute.return_value = MagicMock(data=[])
+        supabase_mock.get_client.return_value.table.return_value = table_chain
+
+        with (
+            patch.dict(
+                "sys.modules",
+                {"sentry_sdk": sentry_mock, "supabase_client": supabase_mock},
+            ),
+            patch.object(mod.logger, "warning") as log_warning,
+        ):
+            mod._emit_protocol_fee_change_alert(0, 300)
+
+        assert log_warning.called, "must log warning on fee change"
+        assert sentry_mock.capture_message.called, "must fire Sentry message"
+        call = sentry_mock.capture_message.call_args
+        assert "300" in call.args[0]
+        assert call.kwargs.get("level") == "warning"
+        # admin_actions_log insert attempted.
+        supabase_mock.get_client.return_value.table.assert_called_with(
+            "admin_actions_log"
+        )
+
+    def test_protocol_fee_alert_swallows_sink_failures(self):
+        """Alert sinks must never propagate exceptions (payments must not break)."""
+        import integrations.x402.payment_dispatcher as mod
+
+        sentry_mock = MagicMock()
+        sentry_mock.capture_message = MagicMock(side_effect=RuntimeError("sentry down"))
+        supabase_mock = MagicMock()
+        supabase_mock.get_client.side_effect = RuntimeError("supabase unreachable")
+
+        with patch.dict(
+            "sys.modules",
+            {"sentry_sdk": sentry_mock, "supabase_client": supabase_mock},
+        ):
+            # Must not raise, even when every sink fails.
+            mod._emit_protocol_fee_change_alert(100, 500)
+
 
 # ===========================================================================
 # Test: Batch Fee Sweep

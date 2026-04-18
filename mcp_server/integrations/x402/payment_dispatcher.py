@@ -147,8 +147,18 @@ BASE_RPC_URL = os.environ.get("BASE_RPC_URL", "https://mainnet.base.org")
 _SELECTOR_CALCULATOR = "0xce3e39c0"  # calculator()
 _SELECTOR_FEE_BPS = "0xbf333f2c"  # FEE_BPS()
 
-# Cache: {bps: int, expires: float}
-_protocol_fee_cache: Dict[str, Any] = {"bps": 0, "expires": 0.0}
+# Cache state for the x402r protocol fee.
+#   bps:             current BPS (fresh read OR last successful cached read)
+#   expires:         cache expiration unix ts
+#   last_observed:   last successfully read BPS — used to detect BackTrack fee
+#                    changes (Task 5.5 SAAS_PRODUCTION_HARDENING). ``None``
+#                    means we have not yet performed a successful read in this
+#                    process, so the next read is baseline (no alert).
+_protocol_fee_cache: Dict[str, Any] = {
+    "bps": 0,
+    "expires": 0.0,
+    "last_observed": None,
+}
 _CACHE_TTL = 300  # 5 minutes
 
 
@@ -171,6 +181,63 @@ def _get_operator_for_network(network: str) -> Optional[str]:
     if per_chain:
         return per_chain
     return os.environ.get("EM_PAYMENT_OPERATOR", EM_OPERATOR)
+
+
+def _emit_protocol_fee_change_alert(previous_bps: int, new_bps: int) -> None:
+    """Log, Sentry-warn, and audit-log a BackTrack protocol fee change.
+
+    Task 5.5 SAAS_PRODUCTION_HARDENING. BackTrack controls the protocol fee
+    calculator (7-day timelock, 5% hard cap). A change flips treasury math
+    silently today — this surfaces it so on-call can reconcile.
+
+    Called from inside the cached read path, so it runs at most once every
+    ``_CACHE_TTL`` seconds per process. Failures in any sink are swallowed:
+    alerting must never break payments.
+    """
+    delta_bps = new_bps - previous_bps
+    logger.warning(
+        "x402r protocol fee changed: %d BPS -> %d BPS (delta=%+d). "
+        "BackTrack moved the calculator. Verify treasury math.",
+        previous_bps,
+        new_bps,
+        delta_bps,
+    )
+
+    # Sentry — warning level so it reaches on-call without paging as critical.
+    try:
+        import sentry_sdk  # type: ignore
+
+        sentry_sdk.capture_message(
+            f"x402r protocol fee changed: {previous_bps} BPS -> {new_bps} BPS",
+            level="warning",
+        )
+    except Exception as exc:
+        logger.debug("sentry protocol-fee alert skipped: %s", exc)
+
+    # Best-effort audit_log row. Non-blocking — if supabase is unreachable,
+    # the warning log + Sentry message are the primary signal.
+    try:
+        import supabase_client as db
+
+        client = db.get_client()
+        client.table("admin_actions_log").insert(
+            {
+                "actor_id": "system:backtrack",
+                "action_type": "protocol_fee_change",
+                "target_type": "protocol_fee_config",
+                "target_id": PROTOCOL_FEE_CONFIG_ADDRESS,
+                "details": {
+                    "previous_bps": previous_bps,
+                    "new_bps": new_bps,
+                    "delta_bps": delta_bps,
+                    "max_allowed_bps": 500,
+                    "source": "x402r ProtocolFeeConfig on Base",
+                },
+                "result": "success",
+            }
+        ).execute()
+    except Exception as exc:
+        logger.debug("admin_actions_log protocol-fee entry skipped: %s", exc)
 
 
 async def _get_protocol_fee_bps() -> int:
@@ -232,7 +299,21 @@ async def _get_protocol_fee_bps() -> int:
             # Cap at 500 (5% max, matching contract's MAX_PROTOCOL_FEE_BPS)
             fee_bps = min(fee_bps, 500)
 
-            _protocol_fee_cache.update({"bps": fee_bps, "expires": now + _CACHE_TTL})
+            # Task 5.5 SAAS_PRODUCTION_HARDENING: detect protocol fee changes.
+            # BackTrack can move this up to 5% via a 7-day timelock; a silent
+            # change flips treasury math. We alert on the first refresh where
+            # the value differs from the previous successful read.
+            previous = _protocol_fee_cache.get("last_observed")
+            if previous is not None and previous != fee_bps:
+                _emit_protocol_fee_change_alert(previous, fee_bps)
+
+            _protocol_fee_cache.update(
+                {
+                    "bps": fee_bps,
+                    "expires": now + _CACHE_TTL,
+                    "last_observed": fee_bps,
+                }
+            )
             logger.info("x402r protocol fee: %d BPS (read from chain)", fee_bps)
             return fee_bps
 
