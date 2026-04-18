@@ -17,10 +17,83 @@ MCP Transport: Streamable HTTP (2025-03-26 spec)
 import os
 import asyncio
 import logging
+import re
 import signal
+import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
+
+# ---------------------------------------------------------------------------
+# Sentry SDK (Phase 1.5 SAAS_PRODUCTION_HARDENING)
+# ---------------------------------------------------------------------------
+# Sentry must be initialized BEFORE any FastAPI / httpx import that Sentry
+# wants to instrument. The instrumentation hooks run at import time, so late
+# init silently drops traces for modules that were already imported.
+#
+# Graceful degradation:
+#   - If SENTRY_DSN is unset/empty -> sentry_sdk.init is skipped, the app
+#     runs normally with no telemetry.
+#   - If the sentry_sdk package itself is missing (dev image without the
+#     optional extras), the try/except below keeps the app importable.
+#
+# PII scrubbing:
+#   Wallet addresses (0x + 40 hex) are truncated to 0xABCDEF...WXYZ in any
+#   event string before it's sent to Sentry. This covers both the top-level
+#   message and nested dict/list payloads (request bodies, breadcrumbs, etc.)
+# ---------------------------------------------------------------------------
+
+_SENTRY_DSN = os.environ.get("SENTRY_DSN", "").strip()
+_SENTRY_INITIALIZED = False
+_WALLET_RE = re.compile(r"0x[a-fA-F0-9]{40}")
+
+
+def _scrub_pii(event: Any, hint: Any) -> Any:
+    """Sentry before_send hook: truncate wallet addresses in any string field.
+
+    Walks the full event payload (dicts, lists, strings). This is defensive —
+    Sentry's default scrubbers don't know about EVM wallets, and we never
+    want a full wallet address leaking to the Sentry project (we can still
+    correlate by the truncated prefix + request_id).
+    """
+
+    def _walk(obj: Any) -> Any:
+        if isinstance(obj, str):
+            return _WALLET_RE.sub(lambda m: m.group()[:6] + "..." + m.group()[-4:], obj)
+        if isinstance(obj, dict):
+            return {k: _walk(v) for k, v in obj.items()}
+        if isinstance(obj, list):
+            return [_walk(x) for x in obj]
+        if isinstance(obj, tuple):
+            return tuple(_walk(x) for x in obj)
+        return obj
+
+    return _walk(event)
+
+
+if _SENTRY_DSN:
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.fastapi import FastApiIntegration
+        from sentry_sdk.integrations.httpx import HttpxIntegration
+
+        sentry_sdk.init(
+            dsn=_SENTRY_DSN,
+            integrations=[FastApiIntegration(), HttpxIntegration()],
+            traces_sample_rate=0.1,
+            environment=os.environ.get("ENVIRONMENT", "production"),
+            release=os.environ.get("GIT_SHA", "unknown"),
+            before_send=_scrub_pii,
+        )
+        _SENTRY_INITIALIZED = True
+    except ImportError:
+        # sentry-sdk not installed -> run without telemetry, never crash boot.
+        _SENTRY_INITIALIZED = False
+    except Exception:
+        # Any other init failure (bad DSN, network at boot, etc.) must NOT
+        # prevent the app from starting. We log later once the logger is up.
+        _SENTRY_INITIALIZED = False
+
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
@@ -92,6 +165,17 @@ except ImportError:
     ERC8004_FACILITATOR_URL = "https://facilitator.ultravioletadao.xyz"
 
 logger = logging.getLogger(__name__)
+
+# Log Sentry initialization status now that the logger is configured.
+if _SENTRY_DSN and _SENTRY_INITIALIZED:
+    logger.info("Sentry SDK initialized (FastAPI + Httpx integrations)")
+elif _SENTRY_DSN and not _SENTRY_INITIALIZED:
+    logger.warning(
+        "SENTRY_DSN is set but Sentry SDK failed to initialize — "
+        "running without telemetry"
+    )
+else:
+    logger.info("Sentry SDK disabled (SENTRY_DSN not set)")
 
 
 # ---------------------------------------------------------------------------
@@ -767,6 +851,46 @@ async def validation_exception_handler(
         content={
             "detail": "Validation error",
             "errors": errors,
+        },
+    )
+
+
+# Generic fallback exception handler (Phase 1.4 SAAS_PRODUCTION_HARDENING).
+#
+# Without this, Starlette's default 500 handler returns an HTML response when
+# an unhandled exception leaks past our middleware stack, which is
+# inconsistent with the rest of the API. We serialize to JSON with a
+# correlatable ``request_id`` and NEVER leak the stack trace to the client —
+# the full traceback lands in CloudWatch (and Sentry if enabled) via
+# ``logging.exception``.
+#
+# NOTE: ``ErrorHandlingMiddleware`` already catches exceptions from inner
+# middleware and route handlers. This handler is the last line of defense
+# for errors that escape middleware (e.g. during middleware dispatch itself,
+# or from ASGI-level code FastAPI does not wrap).
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    # Prefer an upstream request-id header so dashboards that already attach
+    # X-Request-ID get consistent correlation. Fall back to a fresh UUID.
+    request_id = (
+        request.headers.get("x-request-id")
+        or request.headers.get("X-Request-ID")
+        or str(uuid.uuid4())
+    )
+    logging.getLogger(__name__).exception(
+        "Unhandled exception",
+        extra={
+            "request_id": request_id,
+            "path": request.url.path,
+            "method": request.method,
+        },
+    )
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": "Internal server error",
+            "request_id": request_id,
+            "type": "internal_error",
         },
     )
 

@@ -98,6 +98,13 @@ python-dateutil>=2.8.0
 apscheduler>=3.10.0
 
 # ===================
+# Observability — Sentry (Phase 1.5 SAAS_PRODUCTION_HARDENING)
+# ===================
+# Init happens in main.py only when SENTRY_DSN env var is set (graceful
+# degradation in dev/test). Extras wire the FastAPI + httpx integrations.
+sentry-sdk[fastapi,httpx]>=2.0.0
+
+# ===================
 # Testing (dev)
 # ===================
 pytest>=7.4.0

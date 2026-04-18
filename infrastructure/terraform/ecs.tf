@@ -213,6 +213,8 @@ resource "aws_ecs_task_definition" "mcp_server" {
         { name = "EM_VERIFICATION_BACKEND", value = "sqs" },
         { name = "RING1_QUEUE_URL", value = aws_sqs_queue.ring1.url },
         { name = "RING2_QUEUE_URL", value = aws_sqs_queue.ring2.url },
+        # Build metadata for Sentry release tracking (Phase 1.5).
+        { name = "GIT_SHA", value = var.git_sha },
       ]
 
       secrets = [
@@ -332,6 +334,14 @@ resource "aws_ecs_task_definition" "mcp_server" {
         {
           name      = "WORLD_ID_SIGNING_KEY"
           valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/worldid:WORLD_ID_SIGNING_KEY::"
+        },
+        # Sentry backend DSN (Phase 1.5 SAAS_PRODUCTION_HARDENING).
+        # Value is provisioned manually in AWS Secrets Manager; an empty
+        # string disables telemetry at runtime (see _SENTRY_DSN handling in
+        # mcp_server/main.py).
+        {
+          name      = "SENTRY_DSN"
+          valueFrom = "${aws_secretsmanager_secret.sentry_dsn.arn}:SENTRY_DSN::"
         },
       ]
 
