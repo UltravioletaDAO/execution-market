@@ -410,6 +410,281 @@ class SecurityHeadersMiddleware:
         await self.app(scope, receive, send_with_security_headers)
 
 
+class IdempotencyMiddleware(BaseHTTPMiddleware):
+    """
+    Short-circuit safe retries of state-mutating POSTs via ``Idempotency-Key``.
+
+    Rationale (Phase 4.5 SAAS_PRODUCTION_HARDENING):
+      Retry-on-5xx/429 is a normal client pattern, but without server-side
+      dedup a retried ``POST /submissions/{id}/approve`` can settle the
+      same bounty twice. Two existing guards (the status-check in
+      ``approve_submission`` and the ``tasks.idempotency_key`` column
+      on create) cover narrow cases; this middleware generalises the
+      contract across all money-moving endpoints.
+
+    Behavioural contract:
+      * Only POST requests to an allow-listed path pattern are inspected.
+      * The client MUST send ``Idempotency-Key: <string up to 255 chars>``.
+        If the header is absent, the request is forwarded unchanged.
+      * The cache key is ``(idempotency_key, sha256(Authorization))``.
+        We cannot key on ``agent_id`` because the middleware runs before
+        FastAPI's dependency injection, so auth hasn't resolved yet.
+        Scoping by the credential hash is correct by construction: two
+        agents cannot share the same bearer token, so their Idempotency-
+        Key strings never collide.
+      * On a cache HIT with matching ``request_hash`` → replay the cached
+        response verbatim (status + JSON body + ``Idempotency-Replay: true``
+        header for observability).
+      * On a cache HIT with a DIFFERENT ``request_hash`` → HTTP 409 with
+        ``error="idempotency_key_conflict"``. This prevents a client from
+        reusing a key for a different operation.
+      * On a cache MISS → run the handler normally, then store the
+        response (only for 2xx statuses — we don't want to cache
+        transient failures).
+
+    Why Starlette ``BaseHTTPMiddleware`` and not raw ASGI:
+      We need to (a) read the request body before the handler consumes
+      it, (b) inspect the handler's response status/body. BaseHTTPMiddleware
+      buffers both for us at the cost of a small memory hit per request
+      — acceptable given idempotency keys land on already-heavyweight
+      money-moving endpoints.
+    """
+
+    # Allow-list of (method, path-prefix) pairs that accept Idempotency-Key.
+    # We keep this tight so the middleware never becomes a general cache
+    # for random reads. Prefix match keeps it simple; the router owns the
+    # fine-grained path patterns.
+    ALLOWED_PATHS: tuple[tuple[str, str], ...] = (
+        ("POST", "/api/v1/tasks"),  # covers /tasks (create), /tasks/{id}/cancel, etc.
+        ("POST", "/api/v1/submissions"),  # covers approve / reject / more-info
+        ("POST", "/api/v1/escrow/refund"),
+    )
+
+    # Responses with a status outside this set are NOT cached (we don't
+    # want to memoise a transient 500 — the client should retry with the
+    # same key and eventually see a real outcome).
+    _CACHEABLE_STATUSES = frozenset({200, 201, 202, 204})
+
+    # Bound on request body size we're willing to buffer for hashing.
+    # Anything larger bypasses the middleware (the handler still runs).
+    _MAX_BODY_BYTES = 1024 * 1024  # 1 MiB — same cap PayPal / Stripe use.
+
+    # Bounded header length — DoS defense against clients sending MB of
+    # junk in the header.
+    _MAX_KEY_LENGTH = 255
+
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        import hashlib
+        import json
+
+        # Quick early-outs: method, allow-list, header presence.
+        if request.method != "POST":
+            return await call_next(request)
+
+        if not any(
+            request.url.path.startswith(prefix)
+            for method, prefix in self.ALLOWED_PATHS
+            if method == request.method
+        ):
+            return await call_next(request)
+
+        raw_key = request.headers.get("Idempotency-Key") or request.headers.get(
+            "idempotency-key"
+        )
+        if not raw_key:
+            return await call_next(request)
+
+        idem_key = raw_key.strip()
+        if not idem_key or len(idem_key) > self._MAX_KEY_LENGTH:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "error": "invalid_idempotency_key",
+                    "message": (
+                        f"Idempotency-Key must be non-empty and at most "
+                        f"{self._MAX_KEY_LENGTH} chars."
+                    ),
+                },
+            )
+
+        # Body buffering — we need the bytes twice: (1) to hash for
+        # cache lookup, (2) to hand to the downstream handler.
+        body_bytes = await request.body()
+        if len(body_bytes) > self._MAX_BODY_BYTES:
+            # Too large to hash safely; skip the middleware. The handler
+            # still runs and will typically reject oversize bodies via
+            # its own validation.
+            return await call_next(request)
+
+        # Re-arm the ASGI receive channel so downstream handlers get the
+        # body they expect (Starlette consumes it in `await request.body()`).
+        async def _receive() -> Message:
+            return {
+                "type": "http.request",
+                "body": body_bytes,
+                "more_body": False,
+            }
+
+        request = Request(request.scope, _receive)
+
+        # Derive the auth scope. Unauth'd requests can't use
+        # idempotency — without a bearer token there's no way to scope
+        # the cache per-client, and nothing money-moving accepts anon
+        # anyway.
+        auth_header = request.headers.get("Authorization") or request.headers.get(
+            "authorization"
+        )
+        if not auth_header:
+            return await call_next(request)
+        auth_scope_hash = hashlib.sha256(auth_header.encode("utf-8")).hexdigest()
+
+        request_hash = hashlib.sha256(
+            f"{request.method}\n{request.url.path}\n".encode("utf-8") + body_bytes
+        ).hexdigest()
+
+        # --- Cache lookup ---
+        cached = await _lookup_idempotency(idem_key, auth_scope_hash)
+        if cached is not None:
+            if cached["request_hash"] != request_hash:
+                return JSONResponse(
+                    status_code=409,
+                    content={
+                        "error": "idempotency_key_conflict",
+                        "message": (
+                            "Idempotency-Key reused with a different request body. "
+                            "Generate a fresh key for each distinct operation."
+                        ),
+                    },
+                )
+            # Replay the cached response. Clients can distinguish replays
+            # via the `Idempotency-Replay` header for observability.
+            return JSONResponse(
+                status_code=cached["response_status"],
+                content=cached["response_body"],
+                headers={"Idempotency-Replay": "true"},
+            )
+
+        # --- Cache miss: run the handler ---
+        response = await call_next(request)
+
+        if response.status_code not in self._CACHEABLE_STATUSES:
+            return response
+
+        # We need the response body to cache it. StreamingResponse (the
+        # default from FastAPI for JSON) exposes `body_iterator` — we
+        # drain it, then re-wrap into a fresh response so the client
+        # still receives the bytes.
+        response_body = b""
+        async for chunk in response.body_iterator:
+            response_body += chunk
+        try:
+            response_json = (
+                json.loads(response_body.decode("utf-8")) if response_body else {}
+            )
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            # Non-JSON response — don't try to cache it. Just pass the
+            # body through and skip storage.
+            return Response(
+                content=response_body,
+                status_code=response.status_code,
+                headers=dict(response.headers),
+                media_type=response.media_type,
+            )
+
+        # Best-effort store — we never fail the request on a cache write
+        # error (the response is already correct; cache miss on next
+        # retry is recoverable).
+        try:
+            agent_id = getattr(request.state, "agent_id", None)
+            await _store_idempotency(
+                key=idem_key,
+                auth_scope_hash=auth_scope_hash,
+                agent_id=agent_id,
+                request_hash=request_hash,
+                response_status=response.status_code,
+                response_body=response_json,
+                method=request.method,
+                path=request.url.path,
+            )
+        except Exception as exc:  # noqa: BLE001 — defensive
+            logger.warning("Idempotency cache write failed: %s", exc)
+
+        return JSONResponse(
+            status_code=response.status_code,
+            content=response_json,
+            headers={
+                k: v
+                for k, v in response.headers.items()
+                if k.lower() not in {"content-length", "content-type"}
+            },
+        )
+
+
+async def _lookup_idempotency(key: str, auth_scope_hash: str) -> Optional[dict]:
+    """Return the cached row for (key, auth_scope_hash) or None.
+
+    Never raises — callers treat a lookup failure as "cache miss" so an
+    outage of Supabase doesn't break production POSTs. The trade-off is
+    that during a Supabase outage, idempotent retries behave like
+    first-time requests (no dedup) — acceptable since the outage itself
+    is the bigger problem.
+    """
+    try:
+        import supabase_client as db
+
+        result = (
+            db.get_client()
+            .table("idempotency_keys")
+            .select("request_hash,response_status,response_body")
+            .eq("key", key)
+            .eq("auth_scope_hash", auth_scope_hash)
+            .limit(1)
+            .execute()
+        )
+        rows = result.data or []
+        return rows[0] if rows else None
+    except Exception as exc:  # noqa: BLE001 — defensive
+        logger.warning("Idempotency cache read failed: %s", exc)
+        return None
+
+
+async def _store_idempotency(
+    *,
+    key: str,
+    auth_scope_hash: str,
+    agent_id: Optional[str],
+    request_hash: str,
+    response_status: int,
+    response_body: dict,
+    method: str,
+    path: str,
+) -> None:
+    """Insert a cache row. On primary-key conflict the existing row wins
+    (the two POSTs raced — the cached row is equally valid).
+    """
+    import supabase_client as db
+
+    payload = {
+        "key": key,
+        "auth_scope_hash": auth_scope_hash,
+        "agent_id": agent_id,
+        "request_hash": request_hash,
+        "response_status": response_status,
+        "response_body": response_body,
+        "method": method,
+        "path": path,
+    }
+    try:
+        db.get_client().table("idempotency_keys").insert(payload).execute()
+    except Exception as exc:  # noqa: BLE001
+        # A 409 here means another concurrent request stored first —
+        # benign, drop the write.
+        msg = str(exc).lower()
+        if "duplicate" in msg or "already exists" in msg or "23505" in msg:
+            return
+        raise
+
+
 def add_api_middleware(app: FastAPI) -> None:
     """
     Add all API middleware to the FastAPI app.
@@ -425,6 +700,11 @@ def add_api_middleware(app: FastAPI) -> None:
 
     # Rate limiting
     app.add_middleware(RateLimitMiddleware)
+
+    # Idempotency — short-circuits retries on money-moving POSTs before
+    # they re-execute. Installed AFTER RateLimitMiddleware so a replay
+    # doesn't consume a rate-limit token on every retry.
+    app.add_middleware(IdempotencyMiddleware)
 
     # Request logging (innermost, runs first)
     app.add_middleware(RequestLoggingMiddleware)
