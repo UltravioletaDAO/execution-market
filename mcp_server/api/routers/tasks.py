@@ -1579,6 +1579,8 @@ async def create_task(
     tags=["Tasks", "Worker", "Public"],
 )
 async def get_available_tasks(
+    request: Request,
+    response: Response,
     lat: Optional[float] = Query(
         None, ge=-90, le=90, description="Latitude for location filtering"
     ),
@@ -1632,7 +1634,7 @@ async def get_available_tasks(
             except Exception:
                 pass  # Non-blocking: if lookup fails, show all tasks
 
-        query = client.table("tasks").select("*")
+        query = client.table("tasks").select("*", count="exact")
 
         if include_expired:
             query = query.in_("status", ["published", "expired"])
@@ -1668,6 +1670,10 @@ async def get_available_tasks(
         )
 
         tasks_raw = result.data or []
+        total = getattr(result, "count", None)
+        set_pagination_headers(
+            response, request, total=total, offset=offset, limit=limit
+        )
 
         # Strip PII / internal fields from public worker-facing response
         _pii_fields = {"executor_id", "human_wallet"}

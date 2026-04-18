@@ -28,12 +28,13 @@ import uuid as _uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
 
 import supabase_client as db
 
 from ..auth import AgentAuth, verify_agent_auth_read, verify_agent_auth_write
+from ._pagination import set_pagination_headers
 
 logger = logging.getLogger(__name__)
 
@@ -234,6 +235,8 @@ async def _check_human_arbiter_eligibility(executor_id: str, category: str) -> b
 
 @router.get("", response_model=DisputeListResponse)
 async def list_disputes(
+    request: Request,
+    response: Response,
     status: Optional[str] = Query(
         default=None,
         description="Filter by status (open, resolved_for_agent, settled, etc.)",
@@ -299,6 +302,10 @@ async def list_disputes(
                     if category_by_task.get(r.get("task_id")) == category
                 ]
                 total = len(rows)
+
+        set_pagination_headers(
+            response, request, total=total, offset=offset, limit=limit
+        )
 
         return DisputeListResponse(
             items=[_row_to_summary(r) for r in rows],

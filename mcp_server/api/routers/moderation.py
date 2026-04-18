@@ -7,7 +7,7 @@ Required for Apple App Store (guideline 1.2) and Google Play UGC policies.
 import logging
 from typing import Optional, List
 
-from fastapi import APIRouter, HTTPException, Depends, Query, Path
+from fastapi import APIRouter, HTTPException, Depends, Query, Path, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
 
 import supabase_client as db
@@ -17,6 +17,7 @@ from ..auth import (
     WorkerAuth,
 )
 from ..admin import verify_admin_key
+from ._pagination import set_pagination_headers
 
 logger = logging.getLogger(__name__)
 
@@ -155,6 +156,8 @@ async def create_report(
     tags=["Moderation"],
 )
 async def list_reports(
+    request: Request,
+    response: Response,
     _admin=Depends(verify_admin_key),
     status: Optional[str] = Query(None, description="Filter by status"),
     limit: int = Query(50, ge=1, le=100),
@@ -162,12 +165,20 @@ async def list_reports(
 ):
     try:
         client = db.get_client()
-        query = client.table("reports").select("*").order("created_at", desc=True)
+        query = (
+            client.table("reports")
+            .select("*", count="exact")
+            .order("created_at", desc=True)
+        )
 
         if status:
             query = query.eq("status", status)
 
-        result = query.limit(limit).offset(offset).execute()
+        result = query.range(offset, offset + limit - 1).execute()
+        total = getattr(result, "count", None)
+        set_pagination_headers(
+            response, request, total=total, offset=offset, limit=limit
+        )
         return [ReportResponse(**row) for row in (result.data or [])]
 
     except Exception as e:
