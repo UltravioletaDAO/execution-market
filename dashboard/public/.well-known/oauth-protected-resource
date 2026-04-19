@@ -1,5 +1,6 @@
 {
-  "resource": "https://api.execution.market",
+  "resource": "https://execution.market",
+  "x-api-resource": "https://api.execution.market",
   "authorization_servers": [],
   "scopes_supported": [
     "task:read",

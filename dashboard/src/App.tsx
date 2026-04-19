@@ -1,9 +1,11 @@
 // Execution Market Dashboard - Main App Component with Routing
-import { useState, useCallback, lazy, Suspense, type ReactNode } from 'react'
+import { useEffect, useCallback, lazy, Suspense, type ReactNode } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate, useSearchParams } from 'react-router-dom'
 
-// WebMCP — expose site tools to AI agents via navigator.modelContext
-import { useWebMcp } from './lib/webmcp'
+// WebMCP — expose site tools to AI agents via navigator.modelContext.
+// Tools are registered eagerly in main.tsx; here we only upgrade navigation
+// from location.assign to React Router's SPA navigate once the tree is live.
+import { setWebMcpNavigator } from './lib/webmcp'
 
 // Auth
 import { AuthProvider, useAuth } from './context/AuthContext'
@@ -158,13 +160,18 @@ function XMTPProviderWrapper({ children }: { children: ReactNode }) {
 }
 
 // --------------------------------------------------------------------------
-// WebMCP bootstrap — registers navigator.modelContext tools on mount.
-// Must live inside BrowserRouter so it can grab useNavigate().
+// WebMCP SPA navigator upgrade — tools are already registered eagerly in
+// main.tsx using window.location.assign. Once the router is live, swap in
+// React Router's navigate so guard-protected routes work without a full
+// page reload. Must live inside BrowserRouter to access useNavigate().
 // --------------------------------------------------------------------------
 
 function WebMcpBootstrap() {
   const navigate = useNavigate()
-  useWebMcp(navigate)
+  useEffect(() => {
+    setWebMcpNavigator((path) => navigate(path))
+    return () => setWebMcpNavigator(null)
+  }, [navigate])
   return null
 }
 

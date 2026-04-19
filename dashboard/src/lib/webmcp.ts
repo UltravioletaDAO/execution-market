@@ -3,14 +3,10 @@
 // Spec: https://webmachinelearning.github.io/webmcp/
 // Chrome EPP: https://developer.chrome.com/blog/webmcp-epp
 //
-// Registers a small set of navigational/informational tools when the browser
-// exposes navigator.modelContext. Safe no-op on browsers without support.
-// All tools return JSON-serializable results. Writes are gated via execute
-// callbacks that go through React Router's navigate(), so the React guards
-// (AuthGuard/WorkerGuard/AgentGuard) still apply to protected routes.
-
-import { useEffect } from 'react'
-import type { NavigateFunction } from 'react-router-dom'
+// Registered eagerly at module load (before React renders) so that headless
+// scanners and agents that probe the page immediately after document parse
+// see the tools without waiting for lazy chunks to resolve. Safe no-op on
+// browsers without navigator.modelContext.
 
 type JsonSchema = {
   type: string
@@ -41,10 +37,30 @@ const SITE = 'https://execution.market'
 const API = 'https://api.execution.market'
 const MCP = 'https://mcp.execution.market'
 
-function buildTools(navigate: NavigateFunction): WebMcpTool[] {
+type Navigate = (path: string) => void
+
+function defaultNavigate(path: string): void {
+  if (typeof window !== 'undefined' && window.location) {
+    window.location.assign(path)
+  }
+}
+
+// Allow the React tree (once mounted) to swap in a SPA-aware navigator so
+// protected routes still go through AuthGuard/WorkerGuard/AgentGuard without
+// a full page reload. Before this runs, tools fall back to location.assign.
+let activeNavigate: Navigate = defaultNavigate
+export function setWebMcpNavigator(nav: Navigate | null): void {
+  activeNavigate = nav ?? defaultNavigate
+}
+
+function buildTools(): WebMcpTool[] {
   const go = async (path: string) => {
-    navigate(path)
-    return { ok: true, navigated_to: path, url: window.location.origin + path }
+    activeNavigate(path)
+    return {
+      ok: true,
+      navigated_to: path,
+      url: typeof window !== 'undefined' ? window.location.origin + path : SITE + path,
+    }
   }
 
   return [
@@ -153,16 +169,31 @@ function buildTools(navigate: NavigateFunction): WebMcpTool[] {
   ]
 }
 
+let registered = false
+let registeredCleanup: (() => void) | null = null
+
 /**
  * Register Execution Market's WebMCP tools with the browser's model context.
- * Returns a cleanup function. Safe no-op when the API is not present.
+ * Idempotent — calling twice is a no-op. Returns a cleanup function.
  */
-export function registerWebMcpTools(navigate: NavigateFunction): () => void {
+export function registerWebMcpTools(): () => void {
+  if (registered) return registeredCleanup ?? (() => {})
+
   const mc = getModelContext()
-  if (!mc) return () => {}
+  if (!mc) {
+    // Retry once after document is ready in case shims inject post-load.
+    if (typeof document !== 'undefined' && document.readyState !== 'complete') {
+      const handler = () => {
+        document.removeEventListener('readystatechange', handler)
+        if (document.readyState === 'complete') registerWebMcpTools()
+      }
+      document.addEventListener('readystatechange', handler)
+    }
+    return () => {}
+  }
 
   const ac = new AbortController()
-  const tools = buildTools(navigate)
+  const tools = buildTools()
 
   try {
     if (typeof mc.registerTool === 'function') {
@@ -172,22 +203,15 @@ export function registerWebMcpTools(navigate: NavigateFunction): () => void {
     } else if (typeof mc.provideContext === 'function') {
       mc.provideContext({ tools })
     }
+    registered = true
   } catch (err) {
     console.warn('[webmcp] failed to register tools', err)
   }
 
-  return () => {
+  registeredCleanup = () => {
     try { ac.abort() } catch { /* noop */ }
+    registered = false
+    registeredCleanup = null
   }
-}
-
-/**
- * React hook — registers WebMCP tools on mount, unregisters on unmount.
- * Must be called inside a <BrowserRouter> (requires useNavigate context).
- */
-export function useWebMcp(navigate: NavigateFunction): void {
-  useEffect(() => {
-    const cleanup = registerWebMcpTools(navigate)
-    return cleanup
-  }, [navigate])
+  return registeredCleanup
 }

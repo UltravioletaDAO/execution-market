@@ -14,6 +14,11 @@ import './i18n'
 import { ensurePlatformConfig } from './hooks/usePlatformConfig'
 ensurePlatformConfig()
 
+// Register WebMCP tools eagerly — before lazy chunks resolve — so headless
+// scanners / agents that probe the page at document-complete see them.
+import { registerWebMcpTools } from './lib/webmcp'
+registerWebMcpTools()
+
 // Lazy-load Dynamic.xyz provider — the SDK is ~4MB and should not block initial render
 const DynamicProvider = lazy(() =>
   import('./providers/DynamicProvider').then(m => ({ default: m.DynamicProvider }))
