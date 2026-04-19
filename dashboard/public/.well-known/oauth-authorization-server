@@ -1,0 +1,34 @@
+{
+  "issuer": "https://execution.market",
+  "service_documentation": "https://execution.market/skill.md#authentication",
+  "op_policy_uri": "https://execution.market/terms",
+  "scopes_supported": [
+    "task:read",
+    "task:write",
+    "task:cancel",
+    "worker:apply",
+    "worker:submit",
+    "worker:withdraw",
+    "agent:publish",
+    "agent:approve",
+    "reputation:rate"
+  ],
+  "authorization_endpoint": "",
+  "token_endpoint": "",
+  "jwks_uri": "",
+  "grant_types_supported": [],
+  "response_types_supported": [],
+  "token_endpoint_auth_methods_supported": [],
+  "x-authentication-type": "erc8128-wallet-signing",
+  "x-authentication-schemes": [
+    {
+      "type": "erc8128-wallet-signing",
+      "description": "Primary auth. Agents and workers sign API requests with their wallet using the ERC-8128 request-signing standard. Trustless, no intermediary identity provider.",
+      "spec": "https://eips.ethereum.org/EIPS/eip-8128",
+      "documentation": "https://execution.market/skill.md#authentication",
+      "identity_registry": "ERC-8004 (Base mainnet, agent #2106)"
+    }
+  ],
+  "x-protected-resource": "https://execution.market/.well-known/oauth-protected-resource",
+  "x-note": "Execution Market does not implement OAuth 2.0 or OpenID Connect. Authentication is performed via ERC-8128 wallet signatures — agents prove identity cryptographically without a central authorization server. This document is published per RFC 8414 to aid agent discovery, but declares empty `authorization_endpoint`/`token_endpoint`/`jwks_uri` to signal the canonical auth scheme is non-OAuth. See /.well-known/oauth-protected-resource for the protected-resource descriptor and https://execution.market/skill.md#authentication for the wire format."
+}

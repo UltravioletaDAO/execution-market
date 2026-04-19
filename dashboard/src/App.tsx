@@ -2,6 +2,9 @@
 import { useState, useCallback, lazy, Suspense, type ReactNode } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate, useSearchParams } from 'react-router-dom'
 
+// WebMCP — expose site tools to AI agents via navigator.modelContext
+import { useWebMcp } from './lib/webmcp'
+
 // Auth
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { XMTPProvider } from './context/XMTPContext'
@@ -152,6 +155,17 @@ function XMTPProviderWrapper({ children }: { children: ReactNode }) {
       {children}
     </XMTPProvider>
   )
+}
+
+// --------------------------------------------------------------------------
+// WebMCP bootstrap — registers navigator.modelContext tools on mount.
+// Must live inside BrowserRouter so it can grab useNavigate().
+// --------------------------------------------------------------------------
+
+function WebMcpBootstrap() {
+  const navigate = useNavigate()
+  useWebMcp(navigate)
+  return null
 }
 
 // --------------------------------------------------------------------------
@@ -320,6 +334,7 @@ function App() {
         <div className="sr-only" aria-hidden="true">
           <DynamicWidget />
         </div>
+        <WebMcpBootstrap />
         <XMTPProviderWrapper>
           <AppRoutes />
         </XMTPProviderWrapper>
