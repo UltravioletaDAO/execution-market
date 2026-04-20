@@ -182,13 +182,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
       })
 
       if (linkError) {
-        console.warn('[Auth] link_wallet_to_session error:', linkError)
-        console.warn('[Auth] link_wallet_to_session error details:', {
-          code: (linkError as { code?: string }).code,
-          message: (linkError as { message?: string }).message,
-          details: (linkError as { details?: string }).details,
-          hint: (linkError as { hint?: string }).hint,
-        })
+        // Migration 092 intentionally revoked anon/authenticated EXECUTE on this
+        // RPC (account-takeover mitigation, GR-0.3). Until GR-1.7 ships a backend
+        // endpoint that proxies the call via service_role, a 42501 is expected
+        // and non-fatal: the session still works via the Supabase anon JWT plus
+        // service_role RPCs used by the backend for mutations.
+        const code = (linkError as { code?: string }).code
+        if (code === '42501') {
+          console.debug('[Auth] link_wallet_to_session skipped (RLS, pending GR-1.7 backend endpoint)')
+          linkedWalletRef.current = wallet
+        } else {
+          console.warn('[Auth] link_wallet_to_session error:', linkError)
+          console.warn('[Auth] link_wallet_to_session error details:', {
+            code,
+            message: (linkError as { message?: string }).message,
+            details: (linkError as { details?: string }).details,
+            hint: (linkError as { hint?: string }).hint,
+          })
+        }
       } else {
         linkedWalletRef.current = wallet
       }
