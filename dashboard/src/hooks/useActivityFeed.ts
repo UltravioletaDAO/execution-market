@@ -9,6 +9,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import * as Sentry from '@sentry/react'
 import { supabase } from '../lib/supabase'
 
 // ---------------------------------------------------------------------------
@@ -131,7 +132,9 @@ export function useActivityFeed(
           })) as ActivityEvent[],
           fallback: false,
         }
-      } catch {
+      } catch (err) {
+        console.warn('[ActivityFeed] activity_feed fetch threw, using fallback:', err)
+        Sentry.captureException(err, { tags: { hook: 'useActivityFeed', source: 'activity_feed' } })
         return { data: [], fallback: true }
       }
     },
@@ -190,7 +193,9 @@ export function useActivityFeed(
             } as ActivityEvent
           })
           .filter((e) => !eventTypes || eventTypes.includes(e.event_type))
-      } catch {
+      } catch (err) {
+        console.warn('[ActivityFeed] tasks fallback fetch threw:', err)
+        Sentry.captureException(err, { tags: { hook: 'useActivityFeed', source: 'tasks_fallback' } })
         return []
       }
     },

@@ -1149,7 +1149,13 @@
     "sessionExpired": "Sessao expirada. Por favor entre novamente.",
     "permissionDenied": "Permissao negada",
     "notFound": "Nao encontrado",
-    "serverError": "Erro do servidor. Por favor tente mais tarde."
+    "serverError": "Erro do servidor. Por favor tente mais tarde.",
+    "walletConnecting": "Conectando carteira...",
+    "walletConnectFailed": "Falha na conexao da carteira. O SDK Dynamic pode estar bloqueado por uma extensao do navegador.",
+    "walletStillConnecting": "Sua carteira ainda esta conectando. Atualize se persistir.",
+    "profileLoadFailed": "Nao foi possivel carregar seu perfil.",
+    "contactSupport": "Contatar suporte",
+    "reload": "Recarregar"
   },
   "wallet": {
     "connectTitle": "Conecte sua carteira",

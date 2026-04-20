@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import * as Sentry from '@sentry/react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 
@@ -43,6 +44,7 @@ export function useProfileUpdate() {
 
             if (findError) {
               console.error('[useProfileUpdate] Wallet lookup error:', findError)
+              Sentry.captureException(findError, { tags: { hook: 'useProfileUpdate', step: 'wallet_lookup' } })
             }
 
             if (!execData && walletAddress) {
@@ -55,6 +57,7 @@ export function useProfileUpdate() {
 
               if (createError) {
                 console.error('[useProfileUpdate] get_or_create_executor failed:', createError)
+                Sentry.captureException(createError, { tags: { hook: 'useProfileUpdate', step: 'get_or_create_executor' } })
               } else {
                 const createdExecutor = Array.isArray(created) ? created[0] : created
                 if (createdExecutor?.id) {
@@ -124,6 +127,7 @@ export function useProfileUpdate() {
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to update profile'
         console.error('[useProfileUpdate] Error:', message)
+        Sentry.captureException(err, { tags: { hook: 'useProfileUpdate', step: 'update' } })
         setError(message)
         return false
       } finally {

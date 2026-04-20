@@ -98,7 +98,10 @@ export function WorkerGuard({
     return <Navigate to={agentRedirect} replace />
   }
 
-  // User is authenticated and is a worker (or userType not set, defaults to worker access)
+  // User is authenticated and userType is either 'worker' or still null
+  // (AuthContext derives 'worker' once the executor loads; if that effect
+  // hasn't run yet we still allow access — the original behavior treated
+  // null as worker-compatible too).
   return <>{children}</>
 }
 

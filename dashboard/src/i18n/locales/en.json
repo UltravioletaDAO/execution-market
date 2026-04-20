@@ -1197,7 +1197,13 @@
     "sessionExpired": "Session expired. Please log in again.",
     "permissionDenied": "Permission denied",
     "notFound": "Not found",
-    "serverError": "Server error. Please try again later."
+    "serverError": "Server error. Please try again later.",
+    "walletConnecting": "Connecting wallet...",
+    "walletConnectFailed": "Wallet connection failed. Your Dynamic SDK may be blocked by a browser extension.",
+    "walletStillConnecting": "Your wallet is still connecting. Refresh if this persists.",
+    "profileLoadFailed": "We couldn't load your profile.",
+    "contactSupport": "Contact support",
+    "reload": "Reload"
   },
   "wallet": {
     "connectTitle": "Connect your wallet",

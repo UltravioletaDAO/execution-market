@@ -353,11 +353,12 @@ Registration and reputation via Facilitator (`POST /register`, `POST /feedback`)
 | AWS Account | `<YOUR_AWS_ACCOUNT_ID>` (default profile) |
 | AWS CLI Access | **Full access** — Claude Code can run `aws` commands directly |
 | Region | `us-east-2` (Ohio) |
-| Compute | ECS Fargate (`<YOUR_ECS_CLUSTER>`) |
-| Container Registry | ECR `us-east-2`: `<YOUR_ECR_DASHBOARD_REPO>`, `<YOUR_ECR_MCP_REPO>` |
-| Load Balancer | ALB with HTTPS (ACM wildcard cert) |
-| DNS | Route53 `execution.market` (dashboard), `mcp.execution.market` (MCP) |
-| CI/CD | GitHub Actions `deploy.yml` (auto-deploy on push to `main`) |
+| Compute (MCP + admin + bots) | ECS Fargate (`<YOUR_ECS_CLUSTER>`) — services: `mcp-server`, `xmtp-bot`, `admin-dashboard` |
+| Dashboard hosting | **S3 + CloudFront** (distribution `<YOUR_CLOUDFRONT_DIST_ID>`, bucket `<YOUR_S3_DASHBOARD_BUCKET>`). NO ECS, NO ALB target group. |
+| Container Registry | ECR `us-east-2`: `<YOUR_ECR_MCP_REPO>` (MCP only). The dashboard ECR repo is DEPRECATED — dashboard is a static SPA since the S3+CF migration. |
+| Load Balancer | ALB with HTTPS (ACM wildcard cert) — serves MCP + admin, not dashboard |
+| DNS | Route53 `execution.market` → CloudFront (dashboard), `mcp.execution.market` → ALB (MCP), `admin.execution.market` → CloudFront (admin) |
+| CI/CD | GitHub Actions `deploy.yml` (auto-deploy on push to `main`). Dashboard job: `npm run build` → `aws s3 sync dist/ s3://<bucket>` → `aws cloudfront create-invalidation`. |
 
 ## File Organization Rules
 
@@ -438,17 +439,23 @@ Four reusable skills for strategic work:
 - **Use the `deploy-mcp` skill** for all deployments — it handles build, ECR push, force deploy, and health verification.
 - **Use the `deploy-check` skill** to verify deployment state without deploying.
 
-**ECR deploy** (prefer `deploy-mcp` skill; manual commands in `CLAUDE.md.local`):
+**Deploy flows** (two different paths — MCP uses ECR/ECS, Dashboard uses S3/CloudFront):
+
+**MCP Server (ECR/ECS)** — prefer `deploy-mcp` skill:
 ```bash
 MSYS_NO_PATHCONV=1 aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-2.amazonaws.com
-# MCP Server
 docker build --no-cache -f mcp_server/Dockerfile -t em-mcp ./mcp_server && docker tag em-mcp:latest <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-2.amazonaws.com/<YOUR_ECR_MCP_REPO>:latest && docker push <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-2.amazonaws.com/<YOUR_ECR_MCP_REPO>:latest
-# Dashboard
-docker build --no-cache -f dashboard/Dockerfile -t em-dashboard ./dashboard && docker tag em-dashboard:latest <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-2.amazonaws.com/<YOUR_ECR_DASHBOARD_REPO>:latest && docker push <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-2.amazonaws.com/<YOUR_ECR_DASHBOARD_REPO>:latest
-# Force new deployment
 MSYS_NO_PATHCONV=1 aws ecs update-service --cluster <YOUR_ECS_CLUSTER> --service <YOUR_ECR_MCP_REPO> --force-new-deployment --region us-east-2
-MSYS_NO_PATHCONV=1 aws ecs update-service --cluster <YOUR_ECS_CLUSTER> --service <YOUR_ECR_DASHBOARD_REPO> --force-new-deployment --region us-east-2
 ```
+
+**Dashboard (S3 + CloudFront)** — CI/CD does this automatically on push to `main`. Manual fallback:
+```bash
+cd dashboard && npm ci && npm run build
+MSYS_NO_PATHCONV=1 aws s3 sync dist/ s3://<YOUR_S3_DASHBOARD_BUCKET>/ --delete --cache-control "public, max-age=31536000, immutable" --exclude "index.html"
+MSYS_NO_PATHCONV=1 aws s3 cp dist/index.html s3://<YOUR_S3_DASHBOARD_BUCKET>/index.html --cache-control "public, max-age=60"
+MSYS_NO_PATHCONV=1 aws cloudfront create-invalidation --distribution-id <YOUR_CLOUDFRONT_DIST_ID> --paths "/index.html"
+```
+**Do NOT** run `aws ecs update-service` for the dashboard — there is no ECS service for it.
 
 ### Secrets & Credentials
 

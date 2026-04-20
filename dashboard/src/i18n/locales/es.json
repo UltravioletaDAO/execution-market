@@ -1292,7 +1292,13 @@
     "sessionExpired": "Sesion expirada. Por favor inicia sesion de nuevo.",
     "permissionDenied": "Permiso denegado",
     "notFound": "No encontrado",
-    "serverError": "Error del servidor. Por favor intenta mas tarde."
+    "serverError": "Error del servidor. Por favor intenta mas tarde.",
+    "walletConnecting": "Conectando wallet...",
+    "walletConnectFailed": "Fallo la conexion de la wallet. Es posible que una extension del navegador este bloqueando el SDK de Dynamic.",
+    "walletStillConnecting": "Tu wallet sigue conectando. Refresca si esto persiste.",
+    "profileLoadFailed": "No pudimos cargar tu perfil.",
+    "contactSupport": "Contactar soporte",
+    "reload": "Recargar"
   },
   "reputation": {
     "tiers": {

@@ -1,0 +1,48 @@
+name: Dependency Dedup (Dynamic Labs)
+
+# Guards against INC-2026-04-20: a transitive hoist resolved
+# @dynamic-labs/wallet-connector-core to 4.71.0 while @dynamic-labs/ethereum
+# was 4.77.x. At runtime this broke `registerEvmProviders` and login silently
+# failed. This workflow fails the PR if the install tree resolves more than
+# one version of any @dynamic-labs/* package we depend on.
+
+on:
+  pull_request:
+    paths:
+      - 'dashboard/package.json'
+      - 'dashboard/package-lock.json'
+  push:
+    branches: [main, develop]
+    paths:
+      - 'dashboard/package.json'
+      - 'dashboard/package-lock.json'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dedup-check:
+    name: Dedup @dynamic-labs packages
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dashboard
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f  # v6.3.0
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Install dependencies (from lockfile)
+        run: npm ci
+
+      - name: Log @dynamic-labs top-level versions
+        run: npm ls --depth=0 2>&1 | grep '@dynamic-labs/' || true
+
+      - name: Dedup check — fail on multiple resolved versions
+        run: node ../.github/scripts/check-dynamic-dedup.mjs
