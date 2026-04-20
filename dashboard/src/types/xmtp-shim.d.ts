@@ -2,11 +2,8 @@
 // The actual SDK is installed in Docker builds (Linux amd64).
 // This shim prevents TypeScript errors on Windows/macOS dev machines.
 declare module "@xmtp/browser-sdk" {
-  /** XMTP v5+ identifier kinds */
-  export enum IdentifierKind {
-    Ethereum = "Ethereum",
-    Passkey = "Passkey",
-  }
+  /** XMTP v5+ identifier kinds. Type alias only — not a runtime export. */
+  export type IdentifierKind = "Ethereum" | "Passkey";
 
   export interface Identifier {
     identifier: string;

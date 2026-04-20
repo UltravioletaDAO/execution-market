@@ -41,19 +41,22 @@ export function XMTPProvider({ children, walletAddress, signer }: {
     setIsConnecting(true);
     setError(null);
     try {
-      const { Client, IdentifierKind } = await import("@xmtp/browser-sdk");
+      const { Client } = await import("@xmtp/browser-sdk");
 
       const address = walletAddress.toLowerCase();
       const toSignatureBytes = (sig: string): Uint8Array =>
         hexToBytes(sig.startsWith("0x") ? (sig as `0x${string}`) : (`0x${sig}` as `0x${string}`));
 
       // XMTP browser-sdk v5+ requires: { type, getIdentifier, signMessage → Uint8Array }
+      // identifierKind is a string literal union ("Ethereum" | "Passkey"), not a runtime enum.
+      const identifier = { identifier: address, identifierKind: "Ethereum" as const };
+
       let xmtpSigner: XMTPSigner;
       if (typeof signer.getWalletClient === "function") {
         const walletClient = await signer.getWalletClient();
         xmtpSigner = {
           type: "EOA",
-          getIdentifier: () => ({ identifier: address, identifierKind: IdentifierKind.Ethereum }),
+          getIdentifier: () => identifier,
           signMessage: async (message: string) => {
             const sig = await walletClient.signMessage({ message, account: walletClient.account });
             return toSignatureBytes(sig);
@@ -62,7 +65,7 @@ export function XMTPProvider({ children, walletAddress, signer }: {
       } else {
         xmtpSigner = {
           type: "EOA",
-          getIdentifier: () => ({ identifier: address, identifierKind: IdentifierKind.Ethereum }),
+          getIdentifier: () => identifier,
           signMessage: async (message: string) => {
             const sig = await signer.signMessage?.(message);
             if (!sig) throw new Error("Signature cancelled by user");
