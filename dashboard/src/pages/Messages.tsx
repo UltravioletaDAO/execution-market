@@ -11,14 +11,17 @@ export function Messages() {
   const navigate = useNavigate()
   const { isConnected, isConnecting, connect, error } = useXMTP()
   const { previews, isLoading } = useConversations()
-  const [selectedPeer, setSelectedPeer] = useState<string | null>(null)
+  const [selectedPeer, setSelectedPeer] = useState<{ inboxId: string; address?: string } | null>(null)
   const [search, setSearch] = useState('')
 
-  const filtered = previews.filter(
-    (p) =>
-      p.peerAddress.toLowerCase().includes(search.toLowerCase()) ||
-      (p.resolvedName?.toLowerCase().includes(search.toLowerCase()) ?? false),
-  )
+  const filtered = previews.filter((p) => {
+    const q = search.toLowerCase()
+    return (
+      p.peerInboxId.toLowerCase().includes(q) ||
+      (p.peerAddress?.toLowerCase().includes(q) ?? false) ||
+      (p.resolvedName?.toLowerCase().includes(q) ?? false)
+    )
+  })
 
   // Not connected — show connect prompt
   if (!isConnected) {
@@ -119,9 +122,9 @@ export function Messages() {
             ) : (
               filtered.map((preview) => (
                 <ConversationItem
-                  key={preview.peerAddress}
+                  key={preview.peerInboxId}
                   preview={preview}
-                  onClick={() => setSelectedPeer(preview.peerAddress)}
+                  onClick={() => setSelectedPeer({ inboxId: preview.peerInboxId, address: preview.peerAddress })}
                 />
               ))
             )}
@@ -132,7 +135,8 @@ export function Messages() {
         <div className={`flex-1 flex flex-col ${selectedPeer ? 'flex' : 'hidden md:flex'}`}>
           {selectedPeer ? (
             <ConversationThread
-              peerAddress={selectedPeer}
+              peerInboxId={selectedPeer.inboxId}
+              peerAddress={selectedPeer.address}
               onBack={() => setSelectedPeer(null)}
             />
           ) : (

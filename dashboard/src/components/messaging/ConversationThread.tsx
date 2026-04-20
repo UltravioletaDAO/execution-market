@@ -5,14 +5,20 @@ import { MessageBubble } from "./MessageBubble";
 import { MessageInput } from "./MessageInput";
 
 interface Props {
-  peerAddress: string;
+  peerInboxId: string;
+  peerAddress?: string;
   onBack: () => void;
   contextPrefix?: string;
 }
 
-export function ConversationThread({ peerAddress, onBack, contextPrefix }: Props) {
-  const { walletAddress } = useXMTP();
-  const { messages, isLoading, isSending, sendMessage, loadMore } = useMessages(peerAddress);
+function shorten(id: string): string {
+  if (id.startsWith("0x") && id.length === 42) return `${id.slice(0, 6)}...${id.slice(-4)}`;
+  return id.length > 12 ? `${id.slice(0, 6)}...${id.slice(-4)}` : id;
+}
+
+export function ConversationThread({ peerInboxId, peerAddress, onBack, contextPrefix }: Props) {
+  const { inboxId } = useXMTP();
+  const { messages, isLoading, isSending, sendMessage, loadMore } = useMessages(peerInboxId);
   const scrollRef = useRef<HTMLDivElement>(null);
   const isFirstSend = useRef(true);
 
@@ -23,7 +29,9 @@ export function ConversationThread({ peerAddress, onBack, contextPrefix }: Props
     }
   }, [messages]);
 
-  const shortAddr = `${peerAddress.slice(0, 6)}...${peerAddress.slice(-4)}`;
+  const displayId = peerAddress ?? peerInboxId;
+  const shortLabel = shorten(displayId);
+  const avatarLetters = displayId.replace(/^0x/, "").slice(0, 2).toUpperCase();
 
   const handleSend = async (text: string) => {
     const prefixed = isFirstSend.current && contextPrefix && messages.length === 0
@@ -43,11 +51,9 @@ export function ConversationThread({ peerAddress, onBack, contextPrefix }: Props
           </svg>
         </button>
         <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-          <span className="text-white/60 text-xs font-mono">
-            {peerAddress.slice(2, 4).toUpperCase()}
-          </span>
+          <span className="text-white/60 text-xs font-mono">{avatarLetters}</span>
         </div>
-        <span className="text-white text-sm font-medium">{shortAddr}</span>
+        <span className="text-white text-sm font-medium">{shortLabel}</span>
       </div>
 
       {/* Messages */}
@@ -73,7 +79,7 @@ export function ConversationThread({ peerAddress, onBack, contextPrefix }: Props
             <MessageBubble
               key={msg.id}
               message={msg}
-              isMine={msg.senderAddress.toLowerCase() === walletAddress?.toLowerCase()}
+              isMine={inboxId != null && msg.senderInboxId === inboxId}
             />
           ))
         )}

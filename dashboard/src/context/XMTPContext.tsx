@@ -1,10 +1,11 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import type { Client as XMTPClient, XMTPSigner } from "@xmtp/browser-sdk";
+import { hexToBytes } from "viem";
 
 /** Minimal wallet signer interface — compatible with Dynamic.xyz + viem wallets */
 interface WalletSigner {
   getWalletClient?: () => Promise<{
-    signMessage(params: { message: string; account: unknown }): Promise<string>;
+    signMessage(params: { message: string; account: unknown }): Promise<`0x${string}`>;
     account: unknown;
   }>;
   getAddress?: () => string | Promise<string>;
@@ -20,6 +21,8 @@ interface XMTPContextType {
   disconnect: () => void;
   error: string | null;
   walletAddress: string | null;
+  /** Current user's XMTP inbox id (v5 canonical identifier). Null until connected. */
+  inboxId: string | null;
 }
 
 const XMTPContext = createContext<XMTPContextType | null>(null);
@@ -38,24 +41,32 @@ export function XMTPProvider({ children, walletAddress, signer }: {
     setIsConnecting(true);
     setError(null);
     try {
-      const { Client } = await import("@xmtp/browser-sdk");
+      const { Client, IdentifierKind } = await import("@xmtp/browser-sdk");
 
-      // Dynamic.xyz wallet exposes getWalletClient() for viem compatibility.
-      // The XMTP browser SDK accepts an object with getAddress + signMessage.
+      const address = walletAddress.toLowerCase();
+      const toSignatureBytes = (sig: string): Uint8Array =>
+        hexToBytes(sig.startsWith("0x") ? (sig as `0x${string}`) : (`0x${sig}` as `0x${string}`));
+
+      // XMTP browser-sdk v5+ requires: { type, getIdentifier, signMessage → Uint8Array }
       let xmtpSigner: XMTPSigner;
       if (typeof signer.getWalletClient === "function") {
         const walletClient = await signer.getWalletClient();
         xmtpSigner = {
-          getAddress: () => walletAddress ?? "",
-          signMessage: async (message: string) =>
-            walletClient.signMessage({ message, account: walletClient.account }),
+          type: "EOA",
+          getIdentifier: () => ({ identifier: address, identifierKind: IdentifierKind.Ethereum }),
+          signMessage: async (message: string) => {
+            const sig = await walletClient.signMessage({ message, account: walletClient.account });
+            return toSignatureBytes(sig);
+          },
         };
       } else {
         xmtpSigner = {
-          getAddress: () => walletAddress ?? "",
-          signMessage: async (message: string): Promise<string> => {
-            const result = await signer.signMessage?.(message);
-            return result ?? "";
+          type: "EOA",
+          getIdentifier: () => ({ identifier: address, identifierKind: IdentifierKind.Ethereum }),
+          signMessage: async (message: string) => {
+            const sig = await signer.signMessage?.(message);
+            if (!sig) throw new Error("Signature cancelled by user");
+            return toSignatureBytes(sig);
           },
         };
       }
@@ -89,6 +100,7 @@ export function XMTPProvider({ children, walletAddress, signer }: {
       disconnect,
       error,
       walletAddress,
+      inboxId: client?.inboxId ?? null,
     }}>
       {children}
     </XMTPContext.Provider>

@@ -1,6 +1,8 @@
 export interface ConversationPreview {
   id: string;
-  peerAddress: string;
+  peerInboxId: string;
+  /** Resolved Ethereum address for display, when available. */
+  peerAddress?: string;
   lastMessage: string | null;
   lastMessageAt: Date | null;
   unreadCount: number;
@@ -10,7 +12,7 @@ export interface ConversationPreview {
 export interface XMTPMessage {
   id: string;
   content: string;
-  senderAddress: string;
+  senderInboxId: string;
   sentAt: Date;
   conversationId: string;
 }

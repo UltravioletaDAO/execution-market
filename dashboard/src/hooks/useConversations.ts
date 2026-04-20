@@ -3,6 +3,7 @@ import { useXMTP } from "../context/XMTPContext";
 import type { ConversationPreview } from "../types/xmtp";
 
 const LAST_READ_KEY = "xmtp_last_read";
+const PEER_ADDRESS_KEY = "xmtp_peer_address_map";
 
 /** Read the last-read timestamp map from localStorage */
 function getLastReadMap(): Record<string, number> {
@@ -14,18 +15,33 @@ function getLastReadMap(): Record<string, number> {
   }
 }
 
+/** inboxId → Ethereum address mapping (populated when we open a DM by address). */
+function getPeerAddressMap(): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(PEER_ADDRESS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function rememberPeerAddress(peerInboxId: string, peerAddress: string) {
+  const map = getPeerAddressMap();
+  map[peerInboxId.toLowerCase()] = peerAddress.toLowerCase();
+  localStorage.setItem(PEER_ADDRESS_KEY, JSON.stringify(map));
+}
+
 /** Mark a conversation as read (persist to localStorage) */
-export function markConversationRead(peerAddress: string) {
+export function markConversationRead(peerInboxId: string) {
   const map = getLastReadMap();
-  map[peerAddress.toLowerCase()] = Date.now();
+  map[peerInboxId.toLowerCase()] = Date.now();
   localStorage.setItem(LAST_READ_KEY, JSON.stringify(map));
 }
 
-/** Compute unread count: 1 if latest message is after last-read, else 0 */
-function computeUnreadCount(peerAddress: string, lastMessageAt: Date | null): number {
+function computeUnreadCount(peerInboxId: string, lastMessageAt: Date | null): number {
   if (!lastMessageAt) return 0;
   const map = getLastReadMap();
-  const lastRead = map[peerAddress.toLowerCase()] ?? 0;
+  const lastRead = map[peerInboxId.toLowerCase()] ?? 0;
   return lastMessageAt.getTime() > lastRead ? 1 : 0;
 }
 
@@ -39,22 +55,35 @@ export function useConversations() {
     setIsLoading(true);
     try {
       const convos = await client.conversations.list();
+      const addressMap = getPeerAddressMap();
       const items: ConversationPreview[] = [];
 
       for (const convo of convos) {
-        const messages = await convo.messages({ limit: 1 });
-        const lastMsg = messages[0];
+        // DMs expose peerInboxId() — groups don't. Skip groups for now (DM-only UI).
+        if (typeof convo.peerInboxId !== "function") continue;
+
+        let peerInboxId: string;
+        try {
+          peerInboxId = await convo.peerInboxId();
+        } catch {
+          continue;
+        }
+
+        // Prefer the built-in lastMessage field (avoids an extra round-trip).
+        const lastMsg = convo.lastMessage ?? (await convo.messages({ limit: 1 }))[0];
         const lastMessageAt = lastMsg?.sentAt ?? null;
+
         items.push({
-          id: convo.id ?? convo.topic,
-          peerAddress: convo.peerAddress,
+          id: convo.id,
+          peerInboxId,
+          peerAddress: addressMap[peerInboxId.toLowerCase()],
           lastMessage: lastMsg
             ? typeof lastMsg.content === "string"
               ? lastMsg.content
               : "[Attachment]"
             : null,
           lastMessageAt,
-          unreadCount: computeUnreadCount(convo.peerAddress, lastMessageAt),
+          unreadCount: computeUnreadCount(peerInboxId, lastMessageAt),
         });
       }
 
@@ -76,21 +105,23 @@ export function useConversations() {
     if (isConnected) loadConversations();
   }, [isConnected, loadConversations]);
 
-  // Stream new conversations
+  // Stream new conversations. In v5 `stream()` returns a Promise<AsyncIterable>.
   useEffect(() => {
     if (!client) return;
     let cancelled = false;
-    const stream = async () => {
+    const run = async () => {
       try {
-        for await (const _convo of await client.conversations.stream()) {
+        const stream = await client.conversations.stream();
+        for await (const _ of stream) {
           if (cancelled) break;
           loadConversations();
+          void _;
         }
       } catch {
         // Stream ended
       }
     };
-    stream();
+    run();
     return () => { cancelled = true; };
   }, [client, loadConversations]);
 

@@ -7,10 +7,17 @@ interface Props {
   onClick: () => void;
 }
 
+/** Shorten an Ethereum address or inbox id for display. */
+function shorten(id: string): string {
+  if (id.startsWith("0x") && id.length === 42) return `${id.slice(0, 6)}...${id.slice(-4)}`;
+  // inbox ids are longer hashes — show the first and last 4 chars
+  return id.length > 12 ? `${id.slice(0, 6)}...${id.slice(-4)}` : id;
+}
+
 export function ConversationItem({ preview, onClick }: Props) {
-  const shortAddress = `${preview.peerAddress.slice(0, 6)}...${preview.peerAddress.slice(-4)}`;
-  const displayName = preview.resolvedName || shortAddress;
-  const avatarLetters = preview.peerAddress.slice(2, 4).toUpperCase();
+  const displayId = preview.peerAddress ?? preview.peerInboxId;
+  const displayName = preview.resolvedName || shorten(displayId);
+  const avatarLetters = displayId.replace(/^0x/, "").slice(0, 2).toUpperCase();
 
   return (
     <button

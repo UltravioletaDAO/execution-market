@@ -3,7 +3,15 @@ import { useXMTP } from "../context/XMTPContext";
 import type { XMTPMessage } from "../types/xmtp";
 import type { Conversation, DecodedMessage } from "@xmtp/browser-sdk";
 
-export function useMessages(peerAddress: string | null) {
+/**
+ * Open / resume a DM with `peerInboxId` and stream its messages.
+ *
+ * XMTP v5 uses inbox IDs (MLS) as the canonical identifier. When navigating
+ * from an Ethereum address, resolve it to an inbox ID first via
+ * `client.findInboxIdByIdentifier()` and remember the mapping with
+ * `rememberPeerAddress()` (see useConversations).
+ */
+export function useMessages(peerInboxId: string | null) {
   const { client } = useXMTP();
   const [messages, setMessages] = useState<XMTPMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -14,13 +22,13 @@ export function useMessages(peerAddress: string | null) {
 
   // Initialize conversation and load messages
   useEffect(() => {
-    if (!client || !peerAddress) return;
+    if (!client || !peerInboxId) return;
     let cancelled = false;
 
     const init = async () => {
       setIsLoading(true);
       try {
-        const convo = await client.conversations.newConversation(peerAddress);
+        const convo = await client.conversations.newDm(peerInboxId);
         conversationRef.current = convo;
 
         const msgs = await convo.messages({ limit: 50 });
@@ -41,16 +49,16 @@ export function useMessages(peerAddress: string | null) {
       conversationRef.current = null;
       setConversation(null);
     };
-  }, [client, peerAddress]);
+  }, [client, peerInboxId]);
 
-  // Stream new messages — depends on `conversation` state, not ref
+  // Stream new messages
   useEffect(() => {
     if (!conversation) return;
     let cancelled = false;
 
     const stream = async () => {
       try {
-        for await (const msg of await conversation.streamMessages()) {
+        for await (const msg of conversation.streamMessages()) {
           if (cancelled) break;
           setMessages(prev => [...prev, normalizeMessage(msg)]);
         }
@@ -97,7 +105,7 @@ function normalizeMessage(msg: DecodedMessage): XMTPMessage {
   return {
     id: msg.id,
     content: typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content),
-    senderAddress: msg.senderAddress,
+    senderInboxId: msg.senderInboxId,
     sentAt: msg.sentAt instanceof Date ? msg.sentAt : new Date(msg.sentAt),
     conversationId: msg.conversationId ?? "",
   };
