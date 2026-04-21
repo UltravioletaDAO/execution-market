@@ -452,24 +452,29 @@ resource "aws_lambda_event_source_mapping" "ring2" {
 
 # ── CloudWatch Alarms (DLQ poison-pill detection) ──────────────────────────
 
+# DLQ alarms (Ring 1 / Ring 2)
+# Previously: threshold=0 on ApproximateNumberOfMessagesVisible paged forever on a single stuck poison message.
+# Now: raise stock threshold to 5 over 10 min (real backlog, not one-off) AND pair with an
+# age-based alarm (oldest message > 1h). Composite alarm fires only when BOTH conditions hold,
+# so a single message that gets inspected and purged quickly won't page, but a stuck backlog will.
+
 resource "aws_cloudwatch_metric_alarm" "ring1_dlq_messages" {
   alarm_name          = "${local.name_prefix}-ring1-dlq-messages"
-  alarm_description   = "Ring 1 DLQ has messages — verification failures need investigation"
-  comparison_operator = "GreaterThanThreshold"
+  alarm_description   = "Ring 1 DLQ backlog >= 5 messages for 10 min — verification failures need investigation"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
   evaluation_periods  = 1
   metric_name         = "ApproximateNumberOfMessagesVisible"
   namespace           = "AWS/SQS"
-  period              = 60
+  period              = 600
   statistic           = "Maximum"
-  threshold           = 0
+  threshold           = 5
   treat_missing_data  = "notBreaching"
 
   dimensions = {
     QueueName = aws_sqs_queue.ring1_dlq.name
   }
 
-  alarm_actions = [aws_sns_topic.mcp_alerts.arn]
-  ok_actions    = [aws_sns_topic.mcp_alerts.arn]
+  # No direct alarm_actions — paging routed via composite alarm below.
 
   tags = {
     Name     = "${local.name_prefix}-ring1-dlq-messages"
@@ -478,27 +483,104 @@ resource "aws_cloudwatch_metric_alarm" "ring1_dlq_messages" {
   }
 }
 
+resource "aws_cloudwatch_metric_alarm" "ring1_dlq_age" {
+  alarm_name          = "${local.name_prefix}-ring1-dlq-age"
+  alarm_description   = "Ring 1 DLQ oldest message age > 1h — messages not being triaged"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "ApproximateAgeOfOldestMessage"
+  namespace           = "AWS/SQS"
+  period              = 600
+  statistic           = "Maximum"
+  threshold           = 3600
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    QueueName = aws_sqs_queue.ring1_dlq.name
+  }
+
+  tags = {
+    Name     = "${local.name_prefix}-ring1-dlq-age"
+    Severity = "warning"
+    Ring     = "1"
+  }
+}
+
+resource "aws_cloudwatch_composite_alarm" "ring1_dlq_stuck" {
+  alarm_name        = "${local.name_prefix}-ring1-dlq-stuck"
+  alarm_description = "Ring 1 DLQ has a real backlog AND oldest message is aged — stuck poison messages"
+  alarm_rule = join(" AND ", [
+    "ALARM(${aws_cloudwatch_metric_alarm.ring1_dlq_messages.alarm_name})",
+    "ALARM(${aws_cloudwatch_metric_alarm.ring1_dlq_age.alarm_name})",
+  ])
+  alarm_actions = [aws_sns_topic.mcp_alerts.arn]
+  ok_actions    = [aws_sns_topic.mcp_alerts.arn]
+
+  tags = {
+    Name     = "${local.name_prefix}-ring1-dlq-stuck"
+    Severity = "warning"
+    Ring     = "1"
+  }
+}
+
 resource "aws_cloudwatch_metric_alarm" "ring2_dlq_messages" {
   alarm_name          = "${local.name_prefix}-ring2-dlq-messages"
-  alarm_description   = "Ring 2 DLQ has messages — arbiter evaluation failures need investigation"
-  comparison_operator = "GreaterThanThreshold"
+  alarm_description   = "Ring 2 DLQ backlog >= 5 messages for 10 min — arbiter evaluation failures need investigation"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
   evaluation_periods  = 1
   metric_name         = "ApproximateNumberOfMessagesVisible"
   namespace           = "AWS/SQS"
-  period              = 60
+  period              = 600
   statistic           = "Maximum"
-  threshold           = 0
+  threshold           = 5
   treat_missing_data  = "notBreaching"
 
   dimensions = {
     QueueName = aws_sqs_queue.ring2_dlq.name
   }
 
+  tags = {
+    Name     = "${local.name_prefix}-ring2-dlq-messages"
+    Severity = "warning"
+    Ring     = "2"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "ring2_dlq_age" {
+  alarm_name          = "${local.name_prefix}-ring2-dlq-age"
+  alarm_description   = "Ring 2 DLQ oldest message age > 1h — messages not being triaged"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "ApproximateAgeOfOldestMessage"
+  namespace           = "AWS/SQS"
+  period              = 600
+  statistic           = "Maximum"
+  threshold           = 3600
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    QueueName = aws_sqs_queue.ring2_dlq.name
+  }
+
+  tags = {
+    Name     = "${local.name_prefix}-ring2-dlq-age"
+    Severity = "warning"
+    Ring     = "2"
+  }
+}
+
+resource "aws_cloudwatch_composite_alarm" "ring2_dlq_stuck" {
+  alarm_name        = "${local.name_prefix}-ring2-dlq-stuck"
+  alarm_description = "Ring 2 DLQ has a real backlog AND oldest message is aged — stuck poison messages"
+  alarm_rule = join(" AND ", [
+    "ALARM(${aws_cloudwatch_metric_alarm.ring2_dlq_messages.alarm_name})",
+    "ALARM(${aws_cloudwatch_metric_alarm.ring2_dlq_age.alarm_name})",
+  ])
   alarm_actions = [aws_sns_topic.mcp_alerts.arn]
   ok_actions    = [aws_sns_topic.mcp_alerts.arn]
 
   tags = {
-    Name     = "${local.name_prefix}-ring2-dlq-messages"
+    Name     = "${local.name_prefix}-ring2-dlq-stuck"
     Severity = "warning"
     Ring     = "2"
   }

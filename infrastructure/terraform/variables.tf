@@ -34,15 +34,17 @@ variable "availability_zones" {
 # ECS — MCP Server
 # Dashboard is served via S3+CloudFront (dashboard-cdn.tf), no ECS task needed.
 variable "mcp_server_cpu" {
-  description = "CPU units for MCP server task (512 = 0.5 vCPU). Halved from 1024 after AI verification offloaded to Lambda (SQS pipeline). ECS now only runs web server + background jobs."
+  # Restored from 512/1024 after 2026-04-12 spike to 1111 MB RAM (see INC-2026-04-12)
+  description = "CPU units for MCP server task (1024 = 1 vCPU)."
   type        = number
-  default     = 512
+  default     = 1024
 }
 
 variable "mcp_server_memory" {
-  description = "Memory (MB) for MCP server task. Halved from 2048 to 1024 after AI verification offloaded to Lambda (SQS pipeline). ECS now only runs web server + background jobs."
+  # Restored from 512/1024 after 2026-04-12 spike to 1111 MB RAM (see INC-2026-04-12)
+  description = "Memory (MB) for MCP server task."
   type        = number
-  default     = 1024
+  default     = 2048
 }
 
 variable "mcp_desired_count" {
@@ -184,4 +186,12 @@ variable "otel_traces_sampler_arg" {
   description = "OTel head-sampling ratio (0.0–1.0). 0.1 keeps 10% of traces; increase during incident investigations."
   type        = string
   default     = "0.1"
+}
+
+variable "enable_magika_alarm" {
+  # Disabled until background_runner._emit_magika_cloudwatch_metric() is implemented.
+  # See MASTER_PLAN_VERIFICATION_OVERHAUL.md.
+  description = "Enable the Magika rejection-rate CloudWatch alarm. Requires custom metric emission to be live."
+  type        = bool
+  default     = false
 }

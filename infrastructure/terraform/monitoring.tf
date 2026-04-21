@@ -31,10 +31,13 @@ resource "aws_cloudwatch_metric_alarm" "mcp_no_running_tasks" {
   alarm_name          = "${local.name_prefix}-mcp-no-running-tasks"
   alarm_description   = "MCP server has zero running tasks — service is DOWN"
   comparison_operator = "LessThanThreshold"
-  evaluation_periods  = 1
+  # Recalibrated from 1/60s to 3x300s with 2/3 datapoints-to-alarm to
+  # debounce rolling-deploy blips. Sustained miss ≥10 min pages.
+  evaluation_periods  = 3
+  datapoints_to_alarm = 2
   metric_name         = "RunningTaskCount"
   namespace           = "ECS/ContainerInsights"
-  period              = 60
+  period              = 300
   statistic           = "Minimum"
   threshold           = 1
   treat_missing_data  = "breaching"
@@ -181,7 +184,9 @@ resource "aws_cloudwatch_metric_alarm" "mcp_4xx_spike" {
 # treat_missing_data = "notBreaching": no submissions = no alarm (expected during quiet periods).
 # Added: 2026-04-14 (Fase 4 — MASTER_PLAN_MAGIKA_INTEGRATION)
 
+# Disabled until background_runner._emit_magika_cloudwatch_metric() is implemented. See MASTER_PLAN_VERIFICATION_OVERHAUL.md
 resource "aws_cloudwatch_metric_alarm" "magika_high_rejection_rate" {
+  count               = var.enable_magika_alarm ? 1 : 0
   alarm_name          = "${local.name_prefix}-magika-high-rejection-rate"
   alarm_description   = "Magika is rejecting > 5% of evidence files — possible false-positive surge or model regression. Disable via: UPDATE platform_config SET value='{\"enabled\":false}' WHERE key='feature.magika'"
   comparison_operator = "GreaterThanThreshold"
