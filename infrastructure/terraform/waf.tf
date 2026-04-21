@@ -278,6 +278,25 @@ resource "aws_cloudwatch_log_group" "waf" {
 resource "aws_wafv2_web_acl_logging_configuration" "main" {
   log_destination_configs = [aws_cloudwatch_log_group.waf.arn]
   resource_arn            = aws_wafv2_web_acl.main.arn
+
+  # Only log BLOCK actions. ALLOW is 99%+ of traffic and not useful forensically.
+  # Keeps log volume and cost bounded. See INC-2026-04-21 for why this matters:
+  # earlier operator enabled WAF logging manually with this filter; Terraform plan
+  # wanted to drop it because the filter wasn't codified. Now it is.
+  logging_filter {
+    default_behavior = "DROP"
+
+    filter {
+      behavior    = "KEEP"
+      requirement = "MEETS_ANY"
+
+      condition {
+        action_condition {
+          action = "BLOCK"
+        }
+      }
+    }
+  }
 }
 
 # ── Associate WAF with ALB ───────────────────────────────────────────────────
