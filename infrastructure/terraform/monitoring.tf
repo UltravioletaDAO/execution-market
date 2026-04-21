@@ -176,15 +176,15 @@ resource "aws_cloudwatch_metric_alarm" "mcp_4xx_spike" {
 }
 
 # ── Alarm 6: Magika Rejection Rate > 5% (FALSE POSITIVE SURGE DETECTION) ────
-# Custom metric emitted by background_runner._emit_magika_cloudwatch_metric().
+# Custom metric emitted by verification/cloudwatch_metrics.run_magika_metrics_loop().
 # Namespace: ExecutionMarket/Verification / Metric: MagikaRejectionRate
 # If Magika rejects > 5% of files in a 5-minute window for 2 consecutive
 # periods, it indicates a likely false-positive surge or model regression.
 # Operator action: set feature.magika.enabled=false in platform_config (< 30s).
 # treat_missing_data = "notBreaching": no submissions = no alarm (expected during quiet periods).
 # Added: 2026-04-14 (Fase 4 — MASTER_PLAN_MAGIKA_INTEGRATION)
-
-# Disabled until background_runner._emit_magika_cloudwatch_metric() is implemented. See MASTER_PLAN_VERIFICATION_OVERHAUL.md
+# Emitter implemented 2026-04-21. Flip `enable_magika_alarm=true` via tfvars
+# after confirming MagikaRejectionRate datapoints are flowing.
 resource "aws_cloudwatch_metric_alarm" "magika_high_rejection_rate" {
   count               = var.enable_magika_alarm ? 1 : 0
   alarm_name          = "${local.name_prefix}-magika-high-rejection-rate"

@@ -113,6 +113,33 @@ resource "aws_iam_role_policy" "ecs_task_s3" {
   })
 }
 
+# CloudWatch custom-metric emission for verification pipeline counters.
+# The ExecutionMarket/Verification namespace is used by background_runner /
+# cloudwatch_metrics.py to publish MagikaRejectionRate + MagikaRejectionCount.
+# put_metric_data does not support resource-level ARNs, so scoping is enforced
+# via the cloudwatch:namespace condition key (same pattern AWS recommends).
+resource "aws_iam_role_policy" "ecs_task_cloudwatch_metrics" {
+  name = "${local.name_prefix}-ecs-task-cw-metrics"
+  role = aws_iam_role.ecs_task.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "PutVerificationCustomMetrics"
+        Effect   = "Allow"
+        Action   = ["cloudwatch:PutMetricData"]
+        Resource = "*"
+        Condition = {
+          StringEquals = {
+            "cloudwatch:namespace" = "ExecutionMarket/Verification"
+          }
+        }
+      }
+    ]
+  })
+}
+
 # Security Groups
 # Port 8000 only — MCP server. Port 80 removed (dashboard now served via S3+CloudFront).
 resource "aws_security_group" "ecs" {

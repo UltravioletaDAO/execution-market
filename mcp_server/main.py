@@ -153,6 +153,7 @@ from jobs.task_expiration import run_task_expiration_loop
 from jobs.auto_payment import run_auto_payment_loop
 from jobs.fee_sweep import run_fee_sweep_loop
 from audit.escrow_reconciler import run_escrow_reconciliation_loop
+from verification.cloudwatch_metrics import run_magika_metrics_loop
 
 # Import MCP server for Streamable HTTP mounting
 from server import mcp as mcp_server
@@ -452,6 +453,12 @@ async def lifespan(app: FastAPI):
         os.environ.get("EM_RECONCILE_INTERVAL", "900"),
     )
 
+    magika_metrics_task = asyncio.create_task(run_magika_metrics_loop())
+    logger.info(
+        "Magika CloudWatch metrics emission scheduled (every %ss)",
+        os.environ.get("EM_MAGIKA_METRIC_INTERVAL", "300"),
+    )
+
     # The session manager must be running for Streamable HTTP to work
     if MCP_HTTP_AVAILABLE:
         try:
@@ -477,7 +484,13 @@ async def lifespan(app: FastAPI):
         yield
 
     # Cancel background jobs on shutdown
-    _bg_tasks = [expiration_task, auto_payment_task, fee_sweep_task, reconciler_task]
+    _bg_tasks = [
+        expiration_task,
+        auto_payment_task,
+        fee_sweep_task,
+        reconciler_task,
+        magika_metrics_task,
+    ]
     for task in _bg_tasks:
         task.cancel()
     for task in _bg_tasks:
@@ -485,7 +498,9 @@ async def lifespan(app: FastAPI):
             await task
         except asyncio.CancelledError:
             pass
-    logger.info("Background jobs stopped (4/4 cancelled)")
+    logger.info(
+        "Background jobs stopped (%d/%d cancelled)", len(_bg_tasks), len(_bg_tasks)
+    )
 
     # Stop MeshRelay adapter
     if meshrelay_adapter:

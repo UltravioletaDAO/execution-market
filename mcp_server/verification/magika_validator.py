@@ -16,10 +16,86 @@ from __future__ import annotations
 
 import logging
 import os
+import threading
 from dataclasses import dataclass, field
 from typing import Optional
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# In-process metrics collector (CloudWatch emission via background loop)
+# ---------------------------------------------------------------------------
+#
+# Thread-safe counters for Magika accept/reject events. Emitted every 300s by
+# `run_magika_metrics_loop()` (see `verification.cloudwatch_metrics`).
+#
+# Counters are in-memory only; restarts lose any unemitted count. Metric
+# freshness SLO is +/- 5 min so this is acceptable. Reset occurs AFTER a
+# successful PutMetricData call, never before -- so a failed emission does
+# not drop data.
+# ---------------------------------------------------------------------------
+
+
+class MagikaMetricsCollector:
+    """Thread-safe counter of Magika accept/reject events.
+
+    A single process-wide singleton is exposed as `METRICS`.  Callers only
+    need `record_accept()` / `record_reject()`.  Readers use `snapshot()`
+    (peek) or `drain()` (reset to zero atomically).
+    """
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._accepted = 0
+        self._rejected = 0
+
+    def record_accept(self) -> None:
+        with self._lock:
+            self._accepted += 1
+
+    def record_reject(self) -> None:
+        with self._lock:
+            self._rejected += 1
+
+    def snapshot(self) -> tuple[int, int]:
+        """Return (accepted_total, rejected_total) without resetting."""
+        with self._lock:
+            return self._accepted, self._rejected
+
+    def drain(self) -> tuple[int, int]:
+        """Atomically return (accepted, rejected) and reset both to zero."""
+        with self._lock:
+            accepted = self._accepted
+            rejected = self._rejected
+            self._accepted = 0
+            self._rejected = 0
+            return accepted, rejected
+
+    def restore(self, accepted: int, rejected: int) -> None:
+        """Add counts back after a failed CloudWatch emission.
+
+        Used by `cloudwatch_metrics.emit_magika_metrics()` when PutMetricData
+        raises -- we drained before the call and must not lose the data.
+        """
+        with self._lock:
+            self._accepted += accepted
+            self._rejected += rejected
+
+    def reset(self) -> None:
+        """Reset counters to zero (tests only)."""
+        with self._lock:
+            self._accepted = 0
+            self._rejected = 0
+
+
+# Process-wide singleton.  Do not instantiate MagikaMetricsCollector elsewhere.
+METRICS = MagikaMetricsCollector()
+
+
+# A Magika reject for metrics purposes is any result with fraud_score >= this
+# threshold. Matches the block threshold in `_validate_images_with_magika`.
+MAGIKA_METRIC_REJECT_THRESHOLD = 0.8
 
 # MIME types accepted as evidence. application/json excluded (VECTOR-012: injection risk).
 ALLOWED_EVIDENCE_MIME_TYPES: frozenset[str] = frozenset(
@@ -132,7 +208,7 @@ class MagikaValidator:
         """
         if not data:
             logger.warning("[MAGIKA] Empty bytes for %s", filename)
-            return MagikaResult(
+            empty_result = MagikaResult(
                 detected_mime="application/octet-stream",
                 claimed_mime=claimed_mime,
                 confidence=0.0,
@@ -141,6 +217,9 @@ class MagikaValidator:
                 fraud_score=1.0,
                 details={"error": "empty_bytes"},
             )
+            # Empty bytes is a concrete reject verdict — count it.
+            _record_metric_for_result(empty_result)
+            return empty_result
 
         if self._magika is None:
             # Magika unavailable — fail open, log warning
@@ -161,7 +240,11 @@ class MagikaValidator:
             # score lives on the top-level MagikaResult, not on output (API change in 0.5.x)
             confidence = float(res.score) if hasattr(res, "score") else 1.0
 
-            return self._build_result(detected, claimed_mime, confidence, filename, res)
+            built = self._build_result(
+                detected, claimed_mime, confidence, filename, res
+            )
+            _record_metric_for_result(built)
+            return built
 
         except Exception as exc:
             logger.error("[MAGIKA] Exception on %s: %s — failing open", filename, exc)
@@ -268,6 +351,22 @@ class MagikaValidator:
 # ------------------------------------------------------------------
 # Module-level helpers
 # ------------------------------------------------------------------
+
+
+def _record_metric_for_result(result: MagikaResult) -> None:
+    """Record accept/reject in the process-wide metrics collector.
+
+    A reject is defined as fraud_score >= MAGIKA_METRIC_REJECT_THRESHOLD, which
+    matches the hard-block decision in `_validate_images_with_magika`. Any
+    lower score (including benign mismatches) counts as accepted.
+    """
+    try:
+        if result.fraud_score >= MAGIKA_METRIC_REJECT_THRESHOLD:
+            METRICS.record_reject()
+        else:
+            METRICS.record_accept()
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.debug("[MAGIKA] metric record failed (non-fatal): %s", exc)
 
 
 def _normalize_mime(mime: str) -> str:

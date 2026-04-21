@@ -189,8 +189,10 @@ variable "otel_traces_sampler_arg" {
 }
 
 variable "enable_magika_alarm" {
-  # Disabled until background_runner._emit_magika_cloudwatch_metric() is implemented.
-  # See MASTER_PLAN_VERIFICATION_OVERHAUL.md.
+  # Default false so a cold alarm is never enabled before the ECS task rolls
+  # out with the emitter. Flip to true (via tfvars) AFTER confirming the
+  # ExecutionMarket/Verification/MagikaRejectionRate datapoints arrive from
+  # `verification.cloudwatch_metrics.run_magika_metrics_loop` (see CLAUDE.md).
   description = "Enable the Magika rejection-rate CloudWatch alarm. Requires custom metric emission to be live."
   type        = bool
   default     = false
