@@ -30,6 +30,7 @@
 # ── Policy: Force MFA on console users ───────────────────────────────────────
 
 resource "aws_iam_policy" "force_mfa" {
+  count       = var.enable_mfa_enforcement ? 1 : 0
   name        = "ForceMFA-ExecutionMarket"
   path        = "/"
   description = "Blocks all actions until the user authenticates with MFA. Allows self-service MFA device registration and password change. Attach ONLY to console-enabled human users."
@@ -142,14 +143,14 @@ variable "mfa_enforced_users" {
 }
 
 resource "aws_iam_user_policy_attachment" "force_mfa" {
-  for_each   = toset(var.mfa_enforced_users)
+  for_each   = var.enable_mfa_enforcement ? toset(var.mfa_enforced_users) : toset([])
   user       = each.key
-  policy_arn = aws_iam_policy.force_mfa.arn
+  policy_arn = aws_iam_policy.force_mfa[0].arn
 }
 
 # ── Outputs ──────────────────────────────────────────────────────────────────
 
 output "force_mfa_policy_arn" {
-  description = "ARN of the ForceMFA policy — attach manually or via mfa_enforced_users variable."
-  value       = aws_iam_policy.force_mfa.arn
+  description = "ARN of the ForceMFA policy (null when var.enable_mfa_enforcement=false)."
+  value       = var.enable_mfa_enforcement ? aws_iam_policy.force_mfa[0].arn : null
 }

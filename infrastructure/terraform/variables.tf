@@ -209,3 +209,38 @@ variable "enable_scp_management" {
   type        = bool
   default     = false
 }
+
+variable "enable_mfa_enforcement" {
+  # Default false: CI deploy user does NOT have iam:CreatePolicy.
+  # MFA enforcement is a human-only concern (forces console users to use MFA)
+  # and the policy is managed separately from workload deploys.
+  # Enable from an admin workstation with full IAM permissions.
+  # Reason: CI run 24749420481 AccessDenied on iam:CreatePolicy.
+  description = "Manage ForceMFA IAM policy + attachments (requires iam:* perms — admin-only)."
+  type        = bool
+  default     = false
+}
+
+variable "enable_vpc_flow_logs" {
+  # Default false: CI deploy user does NOT have ec2:CreateFlowLogs.
+  # Flow logs are a security/forensics control best provisioned from an admin
+  # workstation. The S3 bucket + policy are also gated here so the Terraform
+  # state stays coherent (all-or-nothing).
+  # Reason: CI run 24749420481 UnauthorizedOperation on ec2:CreateFlowLogs.
+  description = "Manage VPC Flow Logs (S3 bucket + flow log + policies; requires ec2:CreateFlowLogs)."
+  type        = bool
+  default     = false
+}
+
+variable "enable_canary_health_checks" {
+  # Default false. Two reasons:
+  #   (1) Route53 HealthCheckStatus metrics are only emitted in us-east-1, and
+  #       the CI run fails even with `provider = aws.us_east_1` — needs
+  #       investigation on the admin side.
+  #   (2) Route53 health checks cost ~$3/mo; opt-in keeps cost predictable.
+  # Enable once the us-east-1 provider behaviour is reproduced locally.
+  # Reason: CI run 24749420481 ValidationError on AWS/Route53 alarm in us-east-2.
+  description = "Manage Route53 health checks + associated CloudWatch alarms (us-east-1 only)."
+  type        = bool
+  default     = false
+}

@@ -46,6 +46,7 @@
 # ── Health Check 1: MCP API ──────────────────────────────────────────────────
 
 resource "aws_route53_health_check" "mcp_api" {
+  count             = var.enable_canary_health_checks ? 1 : 0
   fqdn              = "mcp.execution.market"
   type              = "HTTPS"
   port              = 443
@@ -67,6 +68,7 @@ resource "aws_route53_health_check" "mcp_api" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "canary_mcp_api" {
+  count               = var.enable_canary_health_checks ? 1 : 0
   provider            = aws.us_east_1
   alarm_name          = "${local.name_prefix}-canary-mcp-api-down"
   alarm_description   = "External probes from us-east-1/us-west-2/eu-west-1 cannot reach https://mcp.execution.market/health. Either the service is down or DNS/cert/CloudFront is broken."
@@ -81,7 +83,7 @@ resource "aws_cloudwatch_metric_alarm" "canary_mcp_api" {
   treat_missing_data  = "breaching"
 
   dimensions = {
-    HealthCheckId = aws_route53_health_check.mcp_api.id
+    HealthCheckId = aws_route53_health_check.mcp_api[0].id
   }
 
   alarm_actions = [aws_sns_topic.mcp_alerts.arn]
@@ -96,6 +98,7 @@ resource "aws_cloudwatch_metric_alarm" "canary_mcp_api" {
 # ── Health Check 2: Dashboard (public landing) ───────────────────────────────
 
 resource "aws_route53_health_check" "dashboard" {
+  count             = var.enable_canary_health_checks ? 1 : 0
   fqdn              = "execution.market"
   type              = "HTTPS"
   port              = 443
@@ -117,6 +120,7 @@ resource "aws_route53_health_check" "dashboard" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "canary_dashboard" {
+  count               = var.enable_canary_health_checks ? 1 : 0
   provider            = aws.us_east_1
   alarm_name          = "${local.name_prefix}-canary-dashboard-down"
   alarm_description   = "External probes cannot reach https://execution.market/. S3+CloudFront dashboard is unavailable."
@@ -131,7 +135,7 @@ resource "aws_cloudwatch_metric_alarm" "canary_dashboard" {
   treat_missing_data  = "breaching"
 
   dimensions = {
-    HealthCheckId = aws_route53_health_check.dashboard.id
+    HealthCheckId = aws_route53_health_check.dashboard[0].id
   }
 
   alarm_actions = [aws_sns_topic.mcp_alerts.arn]
@@ -146,6 +150,7 @@ resource "aws_cloudwatch_metric_alarm" "canary_dashboard" {
 # ── Health Check 3: Admin Dashboard ──────────────────────────────────────────
 
 resource "aws_route53_health_check" "admin_dashboard" {
+  count             = var.enable_canary_health_checks ? 1 : 0
   fqdn              = "admin.execution.market"
   type              = "HTTPS"
   port              = 443
@@ -167,6 +172,7 @@ resource "aws_route53_health_check" "admin_dashboard" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "canary_admin_dashboard" {
+  count               = var.enable_canary_health_checks ? 1 : 0
   provider            = aws.us_east_1
   alarm_name          = "${local.name_prefix}-canary-admin-down"
   alarm_description   = "External probes cannot reach https://admin.execution.market/. Admin SPA may be down (S3+CloudFront)."
@@ -181,7 +187,7 @@ resource "aws_cloudwatch_metric_alarm" "canary_admin_dashboard" {
   treat_missing_data  = "breaching"
 
   dimensions = {
-    HealthCheckId = aws_route53_health_check.admin_dashboard.id
+    HealthCheckId = aws_route53_health_check.admin_dashboard[0].id
   }
 
   alarm_actions = [aws_sns_topic.mcp_alerts.arn]
@@ -196,10 +202,10 @@ resource "aws_cloudwatch_metric_alarm" "canary_admin_dashboard" {
 # ── Outputs ──────────────────────────────────────────────────────────────────
 
 output "canary_health_check_ids" {
-  description = "IDs of the Route53 health checks created for external canary monitoring."
-  value = {
-    mcp_api         = aws_route53_health_check.mcp_api.id
-    dashboard       = aws_route53_health_check.dashboard.id
-    admin_dashboard = aws_route53_health_check.admin_dashboard.id
-  }
+  description = "IDs of the Route53 health checks created for external canary monitoring (null when var.enable_canary_health_checks=false)."
+  value = var.enable_canary_health_checks ? {
+    mcp_api         = aws_route53_health_check.mcp_api[0].id
+    dashboard       = aws_route53_health_check.dashboard[0].id
+    admin_dashboard = aws_route53_health_check.admin_dashboard[0].id
+  } : null
 }

@@ -31,6 +31,7 @@
 # ── S3 Bucket for Flow Logs ──────────────────────────────────────────────────
 
 resource "aws_s3_bucket" "vpc_flow_logs" {
+  count         = var.enable_vpc_flow_logs ? 1 : 0
   bucket        = "${local.name_prefix}-vpc-flow-logs-${local.account_id}"
   force_destroy = false
 
@@ -41,7 +42,8 @@ resource "aws_s3_bucket" "vpc_flow_logs" {
 }
 
 resource "aws_s3_bucket_public_access_block" "vpc_flow_logs" {
-  bucket = aws_s3_bucket.vpc_flow_logs.id
+  count  = var.enable_vpc_flow_logs ? 1 : 0
+  bucket = aws_s3_bucket.vpc_flow_logs[0].id
 
   block_public_acls       = true
   block_public_policy     = true
@@ -50,7 +52,8 @@ resource "aws_s3_bucket_public_access_block" "vpc_flow_logs" {
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "vpc_flow_logs" {
-  bucket = aws_s3_bucket.vpc_flow_logs.id
+  count  = var.enable_vpc_flow_logs ? 1 : 0
+  bucket = aws_s3_bucket.vpc_flow_logs[0].id
 
   rule {
     apply_server_side_encryption_by_default {
@@ -61,14 +64,16 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "vpc_flow_logs" {
 }
 
 resource "aws_s3_bucket_versioning" "vpc_flow_logs" {
-  bucket = aws_s3_bucket.vpc_flow_logs.id
+  count  = var.enable_vpc_flow_logs ? 1 : 0
+  bucket = aws_s3_bucket.vpc_flow_logs[0].id
   versioning_configuration {
     status = "Disabled"
   }
 }
 
 resource "aws_s3_bucket_lifecycle_configuration" "vpc_flow_logs" {
-  bucket = aws_s3_bucket.vpc_flow_logs.id
+  count  = var.enable_vpc_flow_logs ? 1 : 0
+  bucket = aws_s3_bucket.vpc_flow_logs[0].id
 
   rule {
     id     = "expire-after-90-days"
@@ -89,6 +94,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "vpc_flow_logs" {
 # Bucket policy allowing the VPC Flow Logs service to write objects.
 # https://docs.aws.amazon.com/vpc/latest/userguide/flow-logs-s3.html#flow-logs-s3-permissions
 data "aws_iam_policy_document" "vpc_flow_logs_bucket" {
+  count = var.enable_vpc_flow_logs ? 1 : 0
+
   statement {
     sid    = "AWSLogDeliveryWrite"
     effect = "Allow"
@@ -97,7 +104,7 @@ data "aws_iam_policy_document" "vpc_flow_logs_bucket" {
       identifiers = ["delivery.logs.amazonaws.com"]
     }
     actions   = ["s3:PutObject"]
-    resources = ["${aws_s3_bucket.vpc_flow_logs.arn}/AWSLogs/${local.account_id}/*"]
+    resources = ["${aws_s3_bucket.vpc_flow_logs[0].arn}/AWSLogs/${local.account_id}/*"]
     condition {
       test     = "StringEquals"
       variable = "s3:x-amz-acl"
@@ -123,7 +130,7 @@ data "aws_iam_policy_document" "vpc_flow_logs_bucket" {
       identifiers = ["delivery.logs.amazonaws.com"]
     }
     actions   = ["s3:GetBucketAcl", "s3:ListBucket"]
-    resources = [aws_s3_bucket.vpc_flow_logs.arn]
+    resources = [aws_s3_bucket.vpc_flow_logs[0].arn]
     condition {
       test     = "StringEquals"
       variable = "aws:SourceAccount"
@@ -138,17 +145,19 @@ data "aws_iam_policy_document" "vpc_flow_logs_bucket" {
 }
 
 resource "aws_s3_bucket_policy" "vpc_flow_logs" {
-  bucket = aws_s3_bucket.vpc_flow_logs.id
-  policy = data.aws_iam_policy_document.vpc_flow_logs_bucket.json
+  count  = var.enable_vpc_flow_logs ? 1 : 0
+  bucket = aws_s3_bucket.vpc_flow_logs[0].id
+  policy = data.aws_iam_policy_document.vpc_flow_logs_bucket[0].json
 }
 
 # ── VPC Flow Log ─────────────────────────────────────────────────────────────
 
 resource "aws_flow_log" "main_vpc" {
+  count                    = var.enable_vpc_flow_logs ? 1 : 0
   vpc_id                   = aws_vpc.main.id
   traffic_type             = "ALL"
   log_destination_type     = "s3"
-  log_destination          = aws_s3_bucket.vpc_flow_logs.arn
+  log_destination          = aws_s3_bucket.vpc_flow_logs[0].arn
   max_aggregation_interval = 600
 
   # Hive-compatible partitioning keeps Athena scans cheap.
@@ -168,11 +177,11 @@ resource "aws_flow_log" "main_vpc" {
 # ── Outputs ──────────────────────────────────────────────────────────────────
 
 output "vpc_flow_logs_s3_bucket" {
-  description = "S3 bucket name where VPC flow logs are delivered."
-  value       = aws_s3_bucket.vpc_flow_logs.id
+  description = "S3 bucket name where VPC flow logs are delivered (null when var.enable_vpc_flow_logs=false)."
+  value       = var.enable_vpc_flow_logs ? aws_s3_bucket.vpc_flow_logs[0].id : null
 }
 
 output "vpc_flow_log_id" {
-  description = "ID of the em-production VPC Flow Log."
-  value       = aws_flow_log.main_vpc.id
+  description = "ID of the em-production VPC Flow Log (null when var.enable_vpc_flow_logs=false)."
+  value       = var.enable_vpc_flow_logs ? aws_flow_log.main_vpc[0].id : null
 }
