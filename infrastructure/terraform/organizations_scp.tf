@@ -34,12 +34,19 @@
 # /aws/cloudtrail/em-production, metric RootAccountUsage).
 
 # ── Data source ──────────────────────────────────────────────────────────────
+#
+# Gated behind var.enable_scp_management because the CI deploy IAM user lacks
+# organizations:DescribeOrganization. Set var.enable_scp_management=true when
+# applying from an admin workstation.
 
-data "aws_organizations_organization" "current" {}
+data "aws_organizations_organization" "current" {
+  count = var.enable_scp_management ? 1 : 0
+}
 
 # ── Policy: deny actions by Root with minimal recovery carve-out ─────────────
 
 resource "aws_organizations_policy" "deny_root_principal" {
+  count       = var.enable_scp_management ? 1 : 0
   name        = "${local.name_prefix}-deny-root-principal"
   description = "Deny all API actions from Root principal in member accounts, except self-recovery. Does not apply to management account root (AWS limitation)."
   type        = "SERVICE_CONTROL_POLICY"
@@ -88,6 +95,6 @@ resource "aws_organizations_policy" "deny_root_principal" {
 # ── Outputs ──────────────────────────────────────────────────────────────────
 
 output "scp_deny_root_policy_id" {
-  description = "Policy ID of the root-deny SCP (not yet attached — see file comments)"
-  value       = aws_organizations_policy.deny_root_principal.id
+  description = "Policy ID of the root-deny SCP (null when var.enable_scp_management=false; not yet attached — see file comments)"
+  value       = var.enable_scp_management ? aws_organizations_policy.deny_root_principal[0].id : null
 }

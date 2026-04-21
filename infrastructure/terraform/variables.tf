@@ -197,3 +197,15 @@ variable "enable_magika_alarm" {
   type        = bool
   default     = false
 }
+
+variable "enable_scp_management" {
+  # Default false: CI deploy IAM user does NOT have organizations:* permissions
+  # and the SCP itself is defense-in-depth (policy created but intentionally
+  # unattached — see organizations_scp.tf limitation #2). Enable only when
+  # running terraform apply from an admin machine that CAN read Organizations.
+  # Reason: CI run 24749184610 failed with AccessDeniedException on
+  # DescribeOrganization. See INC-2026-04-21.
+  description = "Manage Organizations SCP resources (requires organizations:* perms — usually admin-only)."
+  type        = bool
+  default     = false
+}
