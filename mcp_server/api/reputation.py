@@ -999,7 +999,7 @@ async def rate_worker_endpoint(
             client = db.get_client()
             client.table("submissions").update(
                 {"reputation_tx": result.transaction_hash}
-            ).eq("task_id", request.task_id).eq("status", "approved").execute()
+            ).eq("task_id", request.task_id).eq("agent_verdict", "accepted").execute()
             logger.info(
                 "Stored reputation_tx=%s for task %s",
                 result.transaction_hash[:16],
@@ -1560,7 +1560,7 @@ async def confirm_feedback_endpoint(
         client = db.get_client()
         client.table("submissions").update(
             {"worker_reputation_tx": request.tx_hash}
-        ).eq("task_id", request.task_id).eq("status", "approved").execute()
+        ).eq("task_id", request.task_id).eq("agent_verdict", "accepted").execute()
     except Exception as exc:
         logger.debug("Could not update submission worker_reputation_tx: %s", exc)
 

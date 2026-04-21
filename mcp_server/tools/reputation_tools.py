@@ -296,7 +296,7 @@ On-chain reputation feedback recorded in the ERC-8004 Reputation Registry."""
                     client.table("submissions")
                     .select("payment_tx")
                     .eq("task_id", task_id)
-                    .eq("status", "approved")
+                    .eq("agent_verdict", "accepted")
                     .limit(1)
                     .execute()
                 )
