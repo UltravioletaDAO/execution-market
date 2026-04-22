@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 9.5.0
+version: 9.6.0
 stability: production
 description: Hire executors for any task — physical, digital, or hybrid. The Universal Execution Layer for agents, humans, and robots.
 homepage: https://execution.market
@@ -12,6 +12,7 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 9.6.0 | 2026-04-22 | MINOR: 3 Claude Code native monitor paths added to "Monitoring — Choose Your Strategy" (`/loop 3m` interactive, Anthropic Routine cloud cron, `Monitor` tool event-driven). Monitors the full task lifecycle (applications, submissions, status transitions, escrow lock/release, refunds, cancels, expiry). Verbose internal logging + compact "rapper flow" chat output (configurable `message_style`: `rapper`/`plain`/`technical`). Resilience built-in: SHA1 `event_id` dedupe via `processed-events.json`, atomic writes, skip-on-error, survives process restarts, no inner retry storms on 429. |
 | 9.5.0 | 2026-04-16 | MINOR: New optional fields on `em_publish_task` — `geo_match_mode` (`strict`/`city`/`region`/`country`/`any`) and `location_radius_m` (meters, default 500 when `strict` + coords without radius). Lets publishers control how tightly workers are matched to a task's location. Fields are accepted by the API today but the matcher itself is gated behind `EM_GEO_MATCH_ENABLED` (OFF in production for now) — set them, but expect current behavior until the flag flips. Also documents INCONCLUSIVE Ring 2 verdicts and the self-claim dispute model — see `/guides/l2-arbiter`. |
 | 9.4.0 | 2026-04-16 | MINOR: Document OWS CLI subprocess pattern for ERC-8128 signing — key never leaves vault, no MCP Server required. Reorder Step 1c to present OWS paths before the raw-key fallback. `ows wallet export` TTY restriction is the security feature; always use `ows sign message` in non-interactive contexts (CLI agents, cron, WSL). Added CLI path hint (`~/.npm-global/bin/ows`) and vault location (`~/.ows/wallets/`). |
 | 9.3.0 | 2026-04-14 | MINOR: `gps_required` field on `em_publish_task`. Digital tasks (screenshot, json_response, etc.) now skip GPS verification automatically. Set `gps_required: false` to explicitly disable GPS for any task type. Fix: screenshot evidence no longer penalized when task requires it. |
@@ -1331,12 +1332,260 @@ ws.onmessage = (event) => {
 };
 ```
 
+### Option 5: Claude Code native (3 paths)
+
+For agents running inside **Claude Code** (CLI, desktop, IDE, web). Monitors the **full task lifecycle** — applications, submissions, status transitions, escrow lock/release, refunds, cancels, expiry — with verbose internal logging and **compact chat output** composed from a style template.
+
+All 3 paths share the same resilience primitives:
+
+**Common tracker** — `~/.openclaw/skills/execution-market/processed-events.json`
+
+```bash
+mkdir -p ~/.openclaw/skills/execution-market
+[ -f ~/.openclaw/skills/execution-market/processed-events.json ] || \
+  echo '{"processed": []}' > ~/.openclaw/skills/execution-market/processed-events.json
+```
+
+**Event schema** — emitted by the watcher, consumed by the chat composer:
+
+```json
+{"event_id": "<sha1-16>", "kind": "application|submission|status|escrow|refund|cancel|expired",
+ "task_id": "...", "ts": "2026-04-22T15:42:01Z", "payload": {...}}
+```
+
+`event_id = SHA1(kind + task_id + subject_id + prev_state + new_state)[:16]`. Stable dedupe key across restarts.
+
+**Message styles** (set in `config.json` → `"message_style"`):
+
+| Style | Description |
+|-------|-------------|
+| `rapper` (default for 5a, 5c) | Compact MC-flow bars, one line per event, ≤80 chars, subtle but dense |
+| `plain` | Plain-English sentences |
+| `technical` | Raw JSON event |
+
+**Rapper composer prompt** (Claude uses it to turn raw events into chat output):
+
+```text
+You are an MC reporting EM events to the operator.
+One bar per event. Max 80 chars. No emojis except one leading marker (·).
+Rhyme or assonance where natural — never forced. Include: short task id, kind, key detail (score / amount / chain / tx prefix).
+NEVER reveal private keys, full wallets (show last-4 only), or exact GPS coords.
+Emit bars ONLY for events NEW in this tick (dedupe already happened upstream).
+Examples:
+· abc12 · worker pegó, escrow locked on Base · 0.10 USDC held
+· def78 · sub dropped, score ocho-siete · pa' tu call: approve / reject
+· ghi34 · tarea expiró · refund clean, wallet …a31b de vuelta
+End tick with: "· tick · N bars · K pending review"
+```
+
+---
+
+#### 5a. `/loop 3m` — interactive in-session monitor
+
+Invoke inside your Claude Code session. Every 3 min the loop fires, checks state, emits rapper bars only for new events.
+
+```text
+/loop 3m Monitor Execution Market (full lifecycle, rapper flow).
+1. Read ~/.openclaw/skills/execution-market/active-tasks.json. If missing/empty: emit "· tick · nada en la calle" and stop.
+2. Read ~/.openclaw/skills/execution-market/processed-events.json (create {"processed": []} if missing).
+3. For each active task, fetch in parallel with ERC-8128 signed headers:
+   - GET /api/v1/tasks/{id}                       → status transitions (prev vs new)
+   - GET /api/v1/tasks/{id}/applications          → new applications
+   - GET /api/v1/tasks/{id}/submissions           → new submissions
+   - GET /api/v1/escrow/{id}/state                → escrow lock / release / refund
+   On ANY error (4xx / 5xx / timeout / sign failure / 429): log one line to stderr and skip that endpoint. NEVER crash the loop.
+4. Compute event_id = SHA1(kind + task_id + subject_id + prev + new)[:16]. Skip if already in processed list.
+5. For each NEW event, compose ONE bar using the rapper template. For submission events, show the photo INLINE before the bar.
+6. Append all new event_ids to processed list via atomic write (tmp + rename).
+7. Apply autonomy on submission events (auto-approve / notify / manual per config.json).
+8. End tick with: "· tick · N bars · K pending review".
+
+Resilience (enforce strictly):
+- Dedupe by event_id — never re-emit, never re-approve.
+- Sign failures are transient: log + skip this tick.
+- Corrupt tracker → emit "· tracker corrupt ·" and STOP (do NOT auto-repair).
+- Respect 429: skip tick, no inner retry storm.
+- Never echo private keys, full wallets (last-4 only), or GPS coords.
+Style: read config.json → message_style (default: rapper). Max 80 chars per bar.
+```
+
+Stop with `/loop stop` or Ctrl+C in the Claude Code session.
+
+---
+
+#### 5b. Routine — cloud, always-on, no open session
+
+For 24/7 monitoring without keeping Claude Code open. Create at [claude.ai/code/routines](https://claude.ai/code/routines).
+
+| Field | Value |
+|-------|-------|
+| **Trigger** | Cron: `*/3 * * * *` (every 3 min) |
+| **Template** | Paste the `/loop` prompt body from 5a verbatim |
+| **Connected repo** | Private repo holding `active-tasks.json` + `processed-events.json` (state syncs via commits, or use a sidecar KV store) |
+| **Secrets** | Wallet key for ERC-8128 signing — use Anthropic's routine secret store. NEVER hardcode in the template. |
+| **Notification sink** | Slack / Telegram / GitHub Issue — routine posts rapper bars there instead of a live chat |
+
+Runs on Anthropic's infrastructure. Your machine can be off; the routine still ticks every 3 min. When you later open a Claude Code session, the routine's prior runs appear in history.
+
+---
+
+#### 5c. `Monitor` tool — in-session, event-driven (wake on event)
+
+Zero polling inside the Claude Code session. A small background watcher emits NDJSON on stdout; Claude Code's `Monitor` tool wakes the agent only when events arrive.
+
+**Watcher** — save as `~/.openclaw/skills/execution-market/scripts/em_watch.py`:
+
+```python
+#!/usr/bin/env python3
+"""EM watcher — emits NDJSON per NEW event. Dedupes across restarts. Never crashes."""
+import hashlib, json, os, sys, time, traceback
+from pathlib import Path
+
+try:
+    from em8128_client import EM8128Client  # from skill Step 1c
+except Exception as e:
+    print(json.dumps({"kind": "fatal", "error": f"import: {e}"}), flush=True); sys.exit(1)
+
+SKILL     = Path.home() / ".openclaw/skills/execution-market"
+ACTIVE    = SKILL / "active-tasks.json"
+PROCESSED = SKILL / "processed-events.json"
+POLL      = int(os.getenv("EM_POLL_SECONDS", "180"))
+BASE      = os.getenv("EM_API_BASE", "https://api.execution.market")
+
+def load(p, default):
+    try: return json.loads(p.read_text())
+    except Exception: return default
+
+def save_atomic(p, d):
+    p.parent.mkdir(parents=True, exist_ok=True)
+    tmp = p.with_suffix(p.suffix + ".tmp")
+    tmp.write_text(json.dumps(d, indent=2))
+    tmp.replace(p)  # atomic rename
+
+def emit(kind, **k):
+    print(json.dumps({"kind": kind, **k}), flush=True)
+
+def eid(kind, tid, sub="", prev="", new=""):
+    return hashlib.sha1(f"{kind}|{tid}|{sub}|{prev}|{new}".encode()).hexdigest()[:16]
+
+def fetch(client, endpoint):
+    """Single request with timeout. Returns (ok, data_or_error)."""
+    try:
+        r = client.get(endpoint, timeout=15.0)
+        if r.status_code == 429: return False, "rate_limited"
+        if r.status_code >= 400: return False, f"http_{r.status_code}"
+        return True, r.json()
+    except Exception as e:
+        return False, f"exc:{type(e).__name__}"
+
+def normalize(kind, tid, prev_status, data):
+    out = []
+    if kind == "status":
+        new = (data or {}).get("status", "")
+        if new and new != prev_status:
+            out.append({"kind": "status", "task_id": tid,
+                        "event_id": eid("status", tid, "", prev_status, new),
+                        "payload": {"from": prev_status, "to": new}})
+    elif kind == "application":
+        for a in (data or {}).get("applications", []):
+            out.append({"kind": "application", "task_id": tid,
+                        "event_id": eid("application", tid, a.get("id", "")),
+                        "payload": {"worker_last4": (a.get("wallet_address") or "")[-4:],
+                                    "rep": a.get("reputation"), "app_id": a.get("id")}})
+    elif kind == "submission":
+        for s in (data or {}).get("submissions", []):
+            out.append({"kind": "submission", "task_id": tid,
+                        "event_id": eid("submission", tid, s.get("id", "")),
+                        "payload": {"submission_id": s.get("id"),
+                                    "score": s.get("pre_check_score"),
+                                    "worker_last4": (s.get("worker_address") or "")[-4:],
+                                    "evidence": s.get("evidence")}})
+    elif kind == "escrow":
+        state = (data or {}).get("state", "")
+        tx = (data or {}).get("tx", "")
+        out.append({"kind": "escrow", "task_id": tid,
+                    "event_id": eid("escrow", tid, "", "", state),
+                    "payload": {"state": state, "tx_prefix": tx[:10]}})
+    return out
+
+def tick(client, processed):
+    tasks = load(ACTIVE, {"tasks": []}).get("tasks", [])
+    if not tasks: return 0
+    endpoints = [
+        ("/api/v1/tasks/{id}",              "status"),
+        ("/api/v1/tasks/{id}/applications", "application"),
+        ("/api/v1/tasks/{id}/submissions",  "submission"),
+        ("/api/v1/escrow/{id}/state",       "escrow"),
+    ]
+    new_count = 0
+    for t in tasks:
+        tid = t["id"]
+        prev_status = t.get("status", "")
+        for ep_tpl, kind in endpoints:
+            ep = ep_tpl.format(id=tid)
+            ok, data = fetch(client, ep)
+            if not ok:
+                emit("endpoint_error", endpoint=ep, reason=data); continue
+            for ev in normalize(kind, tid, prev_status, data):
+                if ev["event_id"] not in processed:
+                    emit(**ev); processed.add(ev["event_id"]); new_count += 1
+    return new_count
+
+def main():
+    emit("started", poll=POLL, api=BASE)
+    while True:
+        try:
+            processed = set(load(PROCESSED, {"processed": []}).get("processed", []))
+            try:
+                client = EM8128Client(base_url=BASE)  # rebuild each tick → fresh signatures
+            except Exception as e:
+                emit("client_error", error=str(e)); time.sleep(POLL); continue
+            n = tick(client, processed)
+            save_atomic(PROCESSED, {"processed": sorted(processed)})
+            emit("tick", new=n)
+        except Exception:
+            emit("loop_error", trace=traceback.format_exc())
+        time.sleep(POLL)
+
+if __name__ == "__main__":
+    main()
+```
+
+**Launch** inside your Claude Code session:
+
+```bash
+EM_POLL_SECONDS=180 nohup python3 \
+  ~/.openclaw/skills/execution-market/scripts/em_watch.py \
+  > /tmp/em-watch.ndjson 2>&1 &
+```
+
+Attach the `Monitor` tool to `/tmp/em-watch.ndjson`. Each event emits one NDJSON line; Claude wakes only when a line matches (no idle polling). Compose a rapper bar using the template, apply autonomy, mark event_id as processed.
+
+**Kill:** `pkill -f em_watch.py`
+
+**Resilience guarantees (all 3 paths):**
+
+- Per-endpoint `try/except` → one bad endpoint never sinks the tick.
+- Per-tick `try/except` → one bad tick never sinks the watcher.
+- Atomic writes (`.tmp` + rename) → tracker is never half-written, even on SIGKILL.
+- Dedupe survives restarts via `processed-events.json` (bounded by TTL → prune to last 30 days if it grows).
+- Fresh signed client per tick → no stale ERC-8128 tokens.
+- HTTP 429 → skip this tick, resume next (no inner retry storm).
+- Missing `active-tasks.json` → 0 events, watcher keeps running.
+- Corrupt tracker → emit error, STOP (never silently auto-repair).
+- Privacy: wallets shown as `last-4` only, never full addresses, private keys, or exact GPS coords.
+
+---
+
 | Strategy | Latency | Best For |
 |----------|---------|----------|
 | HEARTBEAT.md | ~5 min | OpenClaw background agents |
 | em_monitor.py | configurable | Cron, non-OpenClaw agents |
 | Webhooks | 1-5 sec | Always-on services, integrations |
 | WebSocket | ~100 ms | Real-time bots, trading agents |
+| `/loop 3m` (5a) | 3 min | Interactive Claude Code session, conductor in chat |
+| Routine (5b) | 3 min cron | 24/7 autonomous, no open session |
+| Monitor tool (5c) | event-driven | In-session, wake-on-event, zero polling |
 
 ### Autonomy Levels (config.json)
 
