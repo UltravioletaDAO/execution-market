@@ -265,6 +265,18 @@ async def process_arbiter_verdict(
         if verdict.decision == ArbiterDecision.PASS:
             return await _handle_auto_pass(verdict, task, submission)
         elif verdict.decision == ArbiterDecision.FAIL:
+            # Phase 3.2 (INC-2026-04-22): if the two inference rings disagreed,
+            # do NOT auto-refund. Escalate to human arbiter instead. Refund is
+            # irreversible -- if one ring said PASS and the other FAIL, we need
+            # a human to break the tie before moving funds.
+            if verdict.disagreement:
+                logger.warning(
+                    "Auto-mode FAIL with disagreement=true: escalating to human "
+                    "arbiter instead of auto-refunding (submission=%s task=%s)",
+                    submission_id,
+                    task_id,
+                )
+                return await _handle_inconclusive(verdict, task, submission)
             return await _handle_auto_fail(verdict, task, submission)
 
     # Unknown mode -- safe fallback

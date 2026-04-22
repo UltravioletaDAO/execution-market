@@ -376,6 +376,73 @@ class TestAutoMode:
         _FAKE_DISPATCHER.refund_trustless_escrow.assert_called_once()
 
     @pytest.mark.asyncio
+    async def test_auto_fail_with_disagreement_escalates_instead_of_refunding(
+        self, task_auto, submission
+    ):
+        """Phase 3.2 (INC-2026-04-22): when the two inference rings disagreed,
+        FAIL in auto mode must escalate to a human arbiter instead of moving
+        funds. Refund is irreversible; disagreement means we need a tie-break.
+        """
+        from integrations.arbiter.processor import process_arbiter_verdict
+        from integrations.arbiter import escalation as escalation_mod
+
+        _FAKE_DISPATCHER.refund_trustless_escrow = AsyncMock(
+            return_value={"success": True, "tx_hash": "0xSHOULD_NOT_FIRE"}
+        )
+        escalate_spy = AsyncMock(return_value={"id": "disp-from-disagreement"})
+
+        with (
+            patch(
+                "integrations.arbiter.processor.resolve_arbiter_mode",
+                new=AsyncMock(side_effect=lambda m: m),
+            ),
+            patch.object(escalation_mod, "escalate_to_human", new=escalate_spy),
+        ):
+            v = make_verdict(ArbiterDecision.FAIL, 0.22, disagreement=True)
+            result = await process_arbiter_verdict(v, task_auto, submission)
+
+        assert result.action == "escalated"
+        assert result.success is True
+        assert result.dispute_id == "disp-from-disagreement"
+        escalate_spy.assert_called_once()
+        _FAKE_DISPATCHER.refund_trustless_escrow.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_auto_fail_without_disagreement_still_refunds(
+        self, task_auto, submission
+    ):
+        """Guardrail: make sure Phase 3.2 only affects the disagreement branch.
+        Unanimous FAIL (both rings agree) must keep auto-refunding normally.
+        """
+        from integrations.arbiter.processor import process_arbiter_verdict
+        from integrations.arbiter import escalation as escalation_mod
+
+        _FAKE_DISPATCHER.refund_trustless_escrow = AsyncMock(
+            return_value={"success": True, "tx_hash": "0xREF_OK"}
+        )
+        escalate_spy = AsyncMock(
+            side_effect=AssertionError(
+                "unanimous FAIL must not escalate -- Phase 3.2 scope is disagreement only"
+            )
+        )
+
+        with (
+            patch(
+                "integrations.arbiter.processor.resolve_arbiter_mode",
+                new=AsyncMock(side_effect=lambda m: m),
+            ),
+            patch.object(escalation_mod, "escalate_to_human", new=escalate_spy),
+        ):
+            v = make_verdict(ArbiterDecision.FAIL, 0.10, disagreement=False)
+            result = await process_arbiter_verdict(v, task_auto, submission)
+
+        assert result.action == "refunded"
+        assert result.success is True
+        assert result.refund_tx == "0xREF_OK"
+        _FAKE_DISPATCHER.refund_trustless_escrow.assert_called_once()
+        escalate_spy.assert_not_called()
+
+    @pytest.mark.asyncio
     async def test_auto_inconclusive_stored_never_escalated(
         self, task_auto, submission
     ):
