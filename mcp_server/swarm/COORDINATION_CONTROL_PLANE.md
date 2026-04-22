@@ -172,6 +172,46 @@ That format is:
 - compact enough for chat
 - easy to mirror into JSONL
 
+### Shared decision grammar upgrade (Apr 22)
+
+To connect IRC/Acontext with AutoJob decision memory and the EM coordinator journal, the transport should now support a JSON payload mode alongside the compact text mode.
+
+Recommended envelopes:
+
+```json
+{
+  "event_type": "claim",
+  "grammar": "v1",
+  "task_id": "em_123",
+  "coordination_session_id": "coord_em_123",
+  "agent_id": "EM-Agent-07",
+  "worker_id": "0xabc...",
+  "task_type": "photo_geo",
+  "timestamp": 1713769200.0
+}
+```
+
+```json
+{
+  "event_type": "degrade",
+  "grammar": "v1",
+  "task_id": "em_123",
+  "coordination_session_id": "coord_em_123",
+  "agent_id": "EM-Agent-07",
+  "status": "degraded",
+  "coordination_quality": "heartbeat_missed",
+  "task_count": 2,
+  "timestamp": 1713769260.0
+}
+```
+
+Transport recommendation:
+- `!intent-json { ... }` for claim/lock events with task/session context
+- `!heartbeat-json { ... }` for status/degrade emits with task/session context
+- keep legacy `!intent` / `!heartbeat` commands for backward compatibility
+
+This keeps IRC as the live bus while making the payloads directly ingestible by `decision_journal_ingestor.py` and mirrorable into Acontext semantic summaries.
+
 ---
 
 ## 6. Observability Metrics

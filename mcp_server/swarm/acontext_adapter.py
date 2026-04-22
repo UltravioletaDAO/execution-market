@@ -35,6 +35,9 @@ import time
 from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, Callable, List
 
+
+DECISION_GRAMMAR_VERSION = "v1"
+
 logger = logging.getLogger(__name__)
 
 
@@ -294,7 +297,13 @@ class AcontextAdapter:
     # ──────── Worker Locks (TTL-based) ────────
 
     async def broadcast_intent(
-        self, agent_id: str, worker_id: str, task_type: str, ttl: Optional[float] = None
+        self,
+        agent_id: str,
+        worker_id: str,
+        task_type: str,
+        ttl: Optional[float] = None,
+        task_id: Optional[str] = None,
+        coordination_session_id: Optional[str] = None,
     ) -> bool:
         """
         Announce intention to hire a worker.
@@ -325,7 +334,21 @@ class AcontextAdapter:
         self.stats.total_intents += 1
 
         if self._running:
-            self._send_channel(f"!intent {agent_id} {worker_id} {task_type}")
+            if task_id or coordination_session_id:
+                payload = json.dumps({
+                    "event_type": "claim",
+                    "grammar": DECISION_GRAMMAR_VERSION,
+                    "agent_id": agent_id,
+                    "worker_id": worker_id,
+                    "task_type": task_type,
+                    "task_id": task_id,
+                    "coordination_session_id": coordination_session_id or (f"coord_{task_id}" if task_id else None),
+                    "ttl_seconds": lock.ttl_seconds,
+                    "timestamp": time.time(),
+                })
+                self._send_channel(f"!intent-json {payload}")
+            else:
+                self._send_channel(f"!intent {agent_id} {worker_id} {task_type}")
 
         for cb in self._intent_callbacks:
             try:
@@ -484,7 +507,14 @@ class AcontextAdapter:
 
     # ──────── Heartbeat Protocol ────────
 
-    async def send_heartbeat(self, status: str = "idle", task_count: int = 0):
+    async def send_heartbeat(
+        self,
+        status: str = "idle",
+        task_count: int = 0,
+        task_id: Optional[str] = None,
+        coordination_session_id: Optional[str] = None,
+        coordination_quality: Optional[str] = None,
+    ):
         """Broadcast presence heartbeat."""
         now = time.time()
         # Update own presence
@@ -497,7 +527,21 @@ class AcontextAdapter:
         self.stats.total_heartbeats += 1
 
         if self._running:
-            self._send_channel(f"!heartbeat {self.nickname} {status} {task_count}")
+            if task_id or coordination_session_id or coordination_quality:
+                payload = json.dumps({
+                    "event_type": "degrade" if status in {"cooldown", "degraded", "blocked"} else "claim",
+                    "grammar": DECISION_GRAMMAR_VERSION,
+                    "agent_id": self.nickname,
+                    "task_id": task_id,
+                    "coordination_session_id": coordination_session_id or (f"coord_{task_id}" if task_id else None),
+                    "status": status,
+                    "task_count": task_count,
+                    "coordination_quality": coordination_quality,
+                    "timestamp": now,
+                })
+                self._send_channel(f"!heartbeat-json {payload}")
+            else:
+                self._send_channel(f"!heartbeat {self.nickname} {status} {task_count}")
 
     def get_online_agents(self) -> list[AgentPresence]:
         """Get agents that have heartbeated in the last 5 minutes."""
@@ -645,8 +689,12 @@ class AcontextAdapter:
             self._handle_release(command)
         elif command.startswith("!renew "):
             self._handle_renew(command)
+        elif command.startswith("!heartbeat-json "):
+            self._handle_heartbeat_json(command)
         elif command.startswith("!heartbeat "):
             self._handle_heartbeat(command)
+        elif command.startswith("!intent-json "):
+            self._handle_intent_json(command)
         elif command.startswith("!bid "):
             self._handle_bid(command)
         elif command.startswith("!award "):
@@ -707,6 +755,49 @@ class AcontextAdapter:
             if lock and lock.agent_id == agent:
                 lock.renew()
 
+    def _handle_intent_json(self, command: str):
+        try:
+            payload = json.loads(command[len("!intent-json ") :])
+        except json.JSONDecodeError:
+            return
+
+        agent = str(payload.get("agent_id") or "")
+        worker = str(payload.get("worker_id") or "")
+        task = str(payload.get("task_type") or payload.get("category") or "unknown")
+        if not agent or not worker:
+            return
+
+        existing = self.hiring_locks.get(worker)
+        if existing and not existing.is_expired and existing.agent_id != agent:
+            self.stats.total_contentions += 1
+            logger.warning(
+                f"[Acontext] Remote contention on {worker}: {agent} vs {existing.agent_id}"
+            )
+            return
+
+        self.hiring_locks[worker] = WorkerLock(
+            worker_id=worker,
+            agent_id=agent,
+            task_type=task,
+            acquired_at=time.time(),
+            ttl_seconds=float(payload.get("ttl_seconds") or self.lock_ttl),
+        )
+        self.stats.total_intents += 1
+
+        event_payload = {
+            "agent": agent,
+            "worker": worker,
+            "task": task,
+            "task_id": payload.get("task_id"),
+            "coordination_session_id": payload.get("coordination_session_id"),
+            "grammar": payload.get("grammar", DECISION_GRAMMAR_VERSION),
+        }
+        for cb in self._intent_callbacks:
+            try:
+                cb("intent", event_payload)
+            except Exception:
+                pass
+
     def _handle_heartbeat(self, command: str):
         tokens = command.split(" ")
         if len(tokens) >= 4:
@@ -740,6 +831,47 @@ class AcontextAdapter:
                     )
                 except Exception:
                     pass
+
+    def _handle_heartbeat_json(self, command: str):
+        try:
+            payload = json.loads(command[len("!heartbeat-json ") :])
+        except json.JSONDecodeError:
+            return
+
+        agent = str(payload.get("agent_id") or "")
+        if not agent:
+            return
+        status = str(payload.get("status") or "unknown")
+        task_count = int(payload.get("task_count") or 0)
+        now = time.time()
+        if agent in self.agent_presence:
+            p = self.agent_presence[agent]
+            p.status = status
+            p.task_count = task_count
+            p.last_heartbeat = now
+        else:
+            self.agent_presence[agent] = AgentPresence(
+                agent_id=agent,
+                status=status,
+                task_count=task_count,
+                last_heartbeat=now,
+            )
+
+        self.stats.total_heartbeats += 1
+        event_payload = {
+            "agent": agent,
+            "status": status,
+            "tasks": task_count,
+            "task_id": payload.get("task_id"),
+            "coordination_session_id": payload.get("coordination_session_id"),
+            "coordination_quality": payload.get("coordination_quality"),
+            "grammar": payload.get("grammar", DECISION_GRAMMAR_VERSION),
+        }
+        for cb in self._heartbeat_callbacks:
+            try:
+                cb("heartbeat", event_payload)
+            except Exception:
+                pass
 
     def _handle_bid(self, command: str):
         tokens = command.split(" ")
