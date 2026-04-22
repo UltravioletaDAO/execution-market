@@ -531,14 +531,21 @@ class TestAutoReleaseKillSwitch:
         _FAKE_HELPERS_P0._settle_submission_payment.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_inconclusive_still_escalates_when_env_disabled(
+    async def test_inconclusive_stored_advisory_only(
         self, monkeypatch, task_auto, submission
     ):
-        """INCONCLUSIVE verdicts must still escalate to L2 human disputes even
-        when the auto-release kill-switch is off. The gate only blocks the
-        PASS/FAIL auto path — dispute escalation is safe and must remain live."""
+        """INC-2026-04-22: INCONCLUSIVE is advisory-only; Ring 2 must not create
+        a dispute on its own. The verdict is persisted so the publisher can
+        read it and, if they wish, open a dispute via explicit API.
+
+        Previously this test asserted that INCONCLUSIVE escalates regardless
+        of the kill-switch. That was the zombie-dispute bug: it locked agents
+        out of /approve with HTTP 409 because `agent_verdict` was set to
+        "disputed" without consent.
+        """
         monkeypatch.setenv("EM_ARBITER_AUTO_RELEASE_ENABLED", "false")
 
+        from integrations.arbiter import escalation as escalation_mod
         from integrations.arbiter.processor import process_arbiter_verdict
         from integrations.arbiter.types import (
             ArbiterDecision,
@@ -568,15 +575,24 @@ class TestAutoReleaseKillSwitch:
             disagreement=True,
         )
 
-        with patch(
-            "integrations.arbiter.processor.resolve_arbiter_mode",
-            new=AsyncMock(side_effect=lambda m: m),
+        escalate_spy = AsyncMock(
+            side_effect=AssertionError(
+                "escalate_to_human called -- arbiter must be advisory only"
+            )
+        )
+
+        with (
+            patch(
+                "integrations.arbiter.processor.resolve_arbiter_mode",
+                new=AsyncMock(side_effect=lambda m: m),
+            ),
+            patch.object(escalation_mod, "escalate_to_human", new=escalate_spy),
         ):
             result = await process_arbiter_verdict(verdict, task_auto, submission)
 
-        # Step 5 of process_arbiter_verdict escalates INCONCLUSIVE BEFORE
-        # reaching the Step 7 auto branch and kill-switch check.
-        assert result.action == "escalated"
+        assert result.action == "stored"
+        assert result.dispute_id is None
+        escalate_spy.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_auto_release_honored_when_env_enabled(

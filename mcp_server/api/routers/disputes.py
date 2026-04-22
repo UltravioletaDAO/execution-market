@@ -261,10 +261,18 @@ async def list_disputes(
         client = db.get_client()
         query = client.table("disputes").select("*", count="exact")
 
-        # Caller scope: only disputes where agent_id matches caller wallet or agent_id
-        caller_ids = [
-            v for v in (getattr(auth, "wallet_address", None), auth.agent_id) if v
-        ]
+        # Caller scope: only disputes where agent_id matches caller wallet or agent_id.
+        # INC-2026-04-22: wallet addresses are stored lowercase in DB but auth may
+        # return them in checksum format; normalize before the IN filter so
+        # publishers actually see their own disputes.
+        caller_ids: List[str] = []
+        for v in (getattr(auth, "wallet_address", None), auth.agent_id):
+            if not v:
+                continue
+            if isinstance(v, str) and v.startswith("0x"):
+                caller_ids.append(v.lower())
+            else:
+                caller_ids.append(v)
         if caller_ids:
             # Supabase PostgREST uses .in_() for IN queries
             query = query.in_("agent_id", caller_ids)

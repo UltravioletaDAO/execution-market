@@ -747,3 +747,89 @@ class TestAaasStatus:
             status = await arbiter_status()
 
         assert status.enabled is False
+
+
+# ---------------------------------------------------------------------------
+# INC-2026-04-22: disputes list filter must be case-insensitive
+# ---------------------------------------------------------------------------
+
+
+class TestListDisputesCaseInsensitiveFilter:
+    """The DB stores agent_id lowercase (e.g. 0x857fe6...); publishers may
+    authenticate with a checksum-case wallet (0x857fE6150401...). The IN
+    filter must normalize before querying, otherwise publishers see 0 of
+    their own disputes.
+    """
+
+    @pytest.mark.asyncio
+    async def test_checksum_wallet_is_lowercased_in_filter(self, monkeypatch):
+        from fastapi import Request, Response
+
+        from api.auth import AgentAuth
+        from api.routers.disputes import list_disputes
+
+        captured_in_calls: list[tuple[str, list]] = []
+
+        def _capture_client():
+            resp = MagicMock(data=[], count=0)
+
+            chain = MagicMock()
+            chain.eq.return_value = chain
+            chain.order.return_value = chain
+            chain.range.return_value = chain
+            chain.limit.return_value = chain
+            chain.not_.is_.return_value = chain
+            chain.execute.return_value = resp
+
+            def _capture_in(col, vals):
+                captured_in_calls.append((col, list(vals)))
+                return chain
+
+            chain.in_.side_effect = _capture_in
+
+            table = MagicMock()
+            table.select.return_value = chain
+
+            client = MagicMock()
+            client.table.return_value = table
+            return client
+
+        import supabase_client as sb
+
+        monkeypatch.setattr(sb, "get_client", _capture_client)
+
+        checksum_wallet = "0x857fE6150401bFB4641Fe0D2B2621cc3B05543Cd"
+        auth = AgentAuth(
+            agent_id="2106",
+            wallet_address=checksum_wallet,
+            auth_method="erc8128",
+        )
+
+        # Build minimal fastapi Request/Response stand-ins. list_disputes only
+        # uses these to set pagination headers, which our stub no-ops.
+        request = MagicMock(spec=Request)
+        response = MagicMock(spec=Response)
+
+        await list_disputes(
+            request=request,
+            response=response,
+            status=None,
+            task_id=None,
+            submission_id=None,
+            category=None,
+            limit=20,
+            offset=0,
+            auth=auth,
+        )
+
+        # Find the IN filter on agent_id
+        agent_in = [vals for col, vals in captured_in_calls if col == "agent_id"]
+        assert agent_in, (
+            "list_disputes did not scope by agent_id -- the IN filter is missing"
+        )
+        caller_ids = agent_in[0]
+        # The checksum wallet MUST be lowercased before the filter hits Supabase
+        assert checksum_wallet.lower() in caller_ids
+        assert checksum_wallet not in caller_ids, (
+            f"checksum-case wallet leaked into filter unchanged: {caller_ids}"
+        )

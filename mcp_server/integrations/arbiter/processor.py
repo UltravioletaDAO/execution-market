@@ -184,9 +184,35 @@ async def process_arbiter_verdict(
         )
         return ProcessResult(action="stored", success=True)
 
-    # ---- Step 5: INCONCLUSIVE always escalates regardless of mode ----
+    # ---- Step 5: INCONCLUSIVE is advisory only -- verdict stored, publisher decides ----
+    # INC-2026-04-22: Ring 2 must NEVER auto-create disputes. The arbiter is
+    # advisory, not authoritative. A mid-band score (INCONCLUSIVE) is persisted
+    # to submissions.arbiter_verdict_data so the publisher can review it, but
+    # the publisher is the one who decides approve vs dispute via explicit API.
     if verdict.decision == ArbiterDecision.INCONCLUSIVE:
-        return await _handle_inconclusive(verdict, task, submission)
+        logger.info(
+            "Arbiter INCONCLUSIVE for submission %s -- verdict stored, awaiting agent",
+            submission_id,
+        )
+        await _emit_arbiter_event(
+            "submission.arbiter_stored",
+            task,
+            submission,
+            verdict,
+            extra_payload={
+                "mode": effective_mode,
+                "inconclusive": True,
+                "awaiting_confirmation": True,
+            },
+        )
+        return ProcessResult(
+            action="stored",
+            success=True,
+            details={
+                "verdict_score": verdict.aggregate_score,
+                "inconclusive": True,
+            },
+        )
 
     # ---- Step 6: Hybrid mode stores verdict, doesn't auto-act ----
     if effective_mode == "hybrid":

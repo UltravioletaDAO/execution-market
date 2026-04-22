@@ -376,18 +376,39 @@ class TestAutoMode:
         _FAKE_DISPATCHER.refund_trustless_escrow.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_auto_inconclusive_creates_dispute(self, task_auto, submission):
+    async def test_auto_inconclusive_stored_never_escalated(
+        self, task_auto, submission
+    ):
+        """INC-2026-04-22: Ring 2 is advisory only. INCONCLUSIVE must NEVER
+        auto-create a dispute -- even in auto mode with the kill-switch on.
+        The publisher decides whether to approve or dispute via explicit API.
+        """
         from integrations.arbiter.processor import process_arbiter_verdict
 
-        with patch(
-            "integrations.arbiter.processor.resolve_arbiter_mode",
-            new=AsyncMock(side_effect=lambda m: m),
+        # Any attempt to call escalate_to_human should blow up the test.
+        from integrations.arbiter import escalation as escalation_mod
+
+        escalate_spy = AsyncMock(
+            side_effect=AssertionError(
+                "escalate_to_human called -- Ring 2 must not auto-escalate"
+            )
+        )
+
+        with (
+            patch(
+                "integrations.arbiter.processor.resolve_arbiter_mode",
+                new=AsyncMock(side_effect=lambda m: m),
+            ),
+            patch.object(escalation_mod, "escalate_to_human", new=escalate_spy),
         ):
             v = make_verdict(ArbiterDecision.INCONCLUSIVE, 0.55)
             result = await process_arbiter_verdict(v, task_auto, submission)
 
-        assert result.action == "escalated"
-        assert result.dispute_id is not None
+        assert result.action == "stored"
+        assert result.success is True
+        assert result.dispute_id is None
+        assert result.details.get("inconclusive") is True
+        escalate_spy.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_auto_settle_returns_none_logged_as_failure(
@@ -453,6 +474,59 @@ class TestManualAndHybridModes:
         assert result.action == "stored"
         _FAKE_HELPERS._settle_submission_payment.assert_not_called()
 
+    @pytest.mark.asyncio
+    async def test_manual_inconclusive_stored_no_dispute(self, task_manual, submission):
+        """INC-2026-04-22 regression: INCONCLUSIVE in manual mode must stay
+        stored. The publisher -- not the arbiter -- decides whether to dispute.
+        """
+        from integrations.arbiter import escalation as escalation_mod
+        from integrations.arbiter.processor import process_arbiter_verdict
+
+        escalate_spy = AsyncMock(
+            side_effect=AssertionError(
+                "escalate_to_human called in manual mode -- must be advisory"
+            )
+        )
+
+        with (
+            patch(
+                "integrations.arbiter.processor.resolve_arbiter_mode",
+                new=AsyncMock(side_effect=lambda m: m),
+            ),
+            patch.object(escalation_mod, "escalate_to_human", new=escalate_spy),
+        ):
+            v = make_verdict(ArbiterDecision.INCONCLUSIVE, 0.47)
+            result = await process_arbiter_verdict(v, task_manual, submission)
+
+        assert result.action == "stored"
+        assert result.dispute_id is None
+        escalate_spy.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_hybrid_inconclusive_stored_no_dispute(self, task_hybrid, submission):
+        """INC-2026-04-22: hybrid mode also stores INCONCLUSIVE without
+        auto-escalating -- agent decides next."""
+        from integrations.arbiter import escalation as escalation_mod
+        from integrations.arbiter.processor import process_arbiter_verdict
+
+        escalate_spy = AsyncMock(
+            side_effect=AssertionError("escalate_to_human must not run in hybrid")
+        )
+
+        with (
+            patch(
+                "integrations.arbiter.processor.resolve_arbiter_mode",
+                new=AsyncMock(side_effect=lambda m: m),
+            ),
+            patch.object(escalation_mod, "escalate_to_human", new=escalate_spy),
+        ):
+            v = make_verdict(ArbiterDecision.INCONCLUSIVE, 0.52)
+            result = await process_arbiter_verdict(v, task_hybrid, submission)
+
+        assert result.action == "stored"
+        assert result.dispute_id is None
+        escalate_spy.assert_not_called()
+
 
 # ---------------------------------------------------------------------------
 # Skipped + inconclusive tests
@@ -476,18 +550,31 @@ class TestSkippedAndInconclusive:
 
     @pytest.mark.asyncio
     async def test_inconclusive_with_disagreement_flag(self, task_auto, submission):
-        """Ring disagreement should still escalate via the disputes table."""
+        """INC-2026-04-22: Ring disagreement is still stored (advisory), not
+        auto-escalated. The disagreement flag is recorded in arbiter_verdict_data
+        so the publisher can read it and decide to dispute manually.
+        """
+        from integrations.arbiter import escalation as escalation_mod
         from integrations.arbiter.processor import process_arbiter_verdict
 
-        with patch(
-            "integrations.arbiter.processor.resolve_arbiter_mode",
-            new=AsyncMock(side_effect=lambda m: m),
+        escalate_spy = AsyncMock(
+            side_effect=AssertionError("disagreement alone must not auto-escalate")
+        )
+
+        with (
+            patch(
+                "integrations.arbiter.processor.resolve_arbiter_mode",
+                new=AsyncMock(side_effect=lambda m: m),
+            ),
+            patch.object(escalation_mod, "escalate_to_human", new=escalate_spy),
         ):
             v = make_verdict(ArbiterDecision.INCONCLUSIVE, 0.55, disagreement=True)
             result = await process_arbiter_verdict(v, task_auto, submission)
 
-        assert result.action == "escalated"
-        assert result.dispute_id is not None
+        assert result.action == "stored"
+        assert result.success is True
+        assert result.dispute_id is None
+        escalate_spy.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -606,3 +693,63 @@ class TestFeeSplit:
         assert "fee_usdc" not in called_with
         assert "platform_fee_pct" not in called_with
         assert "override_fee" not in called_with
+
+
+# ---------------------------------------------------------------------------
+# INC-2026-04-22: escalation must not usurp agent_verdict
+# ---------------------------------------------------------------------------
+
+
+class TestEscalationAdvisoryOnly:
+    """escalate_to_human() still exists for Phase 3's explicit dispute endpoint,
+    but it MUST NOT mutate submissions.agent_verdict -- that belongs to the
+    publisher. Only agent_notes is allowed to be annotated.
+    """
+
+    @pytest.mark.asyncio
+    async def test_escalate_to_human_does_not_touch_agent_verdict(
+        self, task_auto, submission, monkeypatch
+    ):
+        from integrations.arbiter.escalation import escalate_to_human
+
+        captured_updates: list[dict] = []
+
+        def _capture_client():
+            table = MagicMock()
+            # insert() chain -> dispute row created
+            table.insert.return_value.execute.return_value = MagicMock(
+                data=[{"id": "dispute-advisory-id"}]
+            )
+
+            # update().eq().execute() -- capture the update payload
+            def _update(payload):
+                captured_updates.append(payload)
+                eq_chain = MagicMock()
+                eq_chain.eq.return_value.execute.return_value = MagicMock(data=[{}])
+                return eq_chain
+
+            table.update.side_effect = _update
+
+            client = MagicMock()
+            client.table.return_value = table
+            return client
+
+        import supabase_client as sb
+
+        monkeypatch.setattr(sb, "get_client", _capture_client)
+
+        verdict = make_verdict(ArbiterDecision.INCONCLUSIVE, 0.47, disagreement=True)
+        dispute = await escalate_to_human(verdict, task_auto, submission)
+
+        assert dispute is not None
+        assert dispute.get("id") == "dispute-advisory-id"
+
+        # At least one update was fired (agent_notes annotation)
+        assert captured_updates, "escalation should annotate agent_notes"
+
+        # Critical invariant: no update payload may touch agent_verdict
+        for payload in captured_updates:
+            assert "agent_verdict" not in payload, (
+                f"escalation.py mutated agent_verdict -- this is the zombie bug. "
+                f"payload={payload}"
+            )

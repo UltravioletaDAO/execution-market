@@ -124,20 +124,24 @@ async def escalate_to_human(
                 timeout_hours,
             )
 
-            # Update submission to reflect escalation
+            # INC-2026-04-22: Do NOT mutate agent_verdict here -- that column
+            # belongs to the publisher's decision. Only update agent_notes for
+            # visibility. Setting agent_verdict="disputed" locked publishers
+            # out of /approve with HTTP 409 and required service-role patches.
             try:
                 client.table("submissions").update(
                     {
-                        "agent_verdict": "disputed",
                         "agent_notes": (
-                            f"Escalated to L2 human arbiter (dispute={dispute.get('id')}). "
-                            f"Ring 2 verdict: INCONCLUSIVE."
+                            f"Dispute opened (id={dispute.get('id')}). "
+                            f"Ring 2 verdict: {verdict.decision.value}."
                         ),
                     }
                 ).eq("id", submission_id).execute()
             except Exception as e:
                 logger.warning(
-                    "Failed to mark submission %s as disputed: %s", submission_id, e
+                    "Failed to annotate submission %s after dispute creation: %s",
+                    submission_id,
+                    e,
                 )
 
             return dispute
