@@ -235,6 +235,9 @@ class CoordinatorEvent(str, Enum):
     HEALTH_CHECK = "health_check"
     ROUTING_FAILURE = "routing_failure"
     AUTOJOB_ENRICHED = "autojob_enriched"
+    ROUTE_RECORDED = "route_recorded"
+    ROUTE_DEGRADED = "route_degraded"
+    ROUTE_OUTCOME = "route_outcome"
 
 
 @dataclass
@@ -460,6 +463,17 @@ class SwarmCoordinator:
         self._routing_successes = 0
         self._journal_entries_written = 0
         self._journal_sequence = 0
+        self._coordination_sessions: dict[str, str] = {}
+
+    def _coordination_session_id(self, task_id: str) -> str:
+        """Return a stable coordination session id for a task."""
+        if task_id not in self._coordination_sessions:
+            self._coordination_sessions[task_id] = f"coord_{task_id}"
+        return self._coordination_sessions[task_id]
+
+    def _route_alternatives(self, assignment: Assignment) -> list[dict]:
+        """Best-effort shortlist for replayable route analysis."""
+        return []
 
     @classmethod
     def create(
@@ -763,9 +777,28 @@ class SwarmCoordinator:
                 self._assignment_times.append(elapsed_ms)
 
                 self._emit(
+                    CoordinatorEvent.ROUTE_RECORDED,
+                    {
+                        "event_type": "route",
+                        "task_id": task.task_id,
+                        "coordination_session_id": self._coordination_session_id(task.task_id),
+                        "selected_agent_id": result.agent_id,
+                        "selected_score": round(result.score, 2),
+                        "strategy": result.strategy_used.value,
+                        "alternatives": self._route_alternatives(result),
+                        "metadata": {
+                            "category": task.categories[0] if task.categories else None,
+                            "bounty_usd": task.bounty_usd,
+                            "attempts": task.attempts,
+                        },
+                    },
+                )
+
+                self._emit(
                     CoordinatorEvent.TASK_ASSIGNED,
                     {
                         "task_id": task.task_id,
+                        "coordination_session_id": self._coordination_session_id(task.task_id),
                         "agent_id": result.agent_id,
                         "agent_name": result.agent_name,
                         "score": round(result.score, 2),
@@ -778,9 +811,26 @@ class SwarmCoordinator:
                     task.status = "failed"
                     self._total_failed += 1
                     self._emit(
+                        CoordinatorEvent.ROUTE_DEGRADED,
+                        {
+                            "event_type": "degrade",
+                            "task_id": task.task_id,
+                            "coordination_session_id": self._coordination_session_id(task.task_id),
+                            "reason": result.reason,
+                            "attempts": task.attempts,
+                            "metadata": {
+                                "status": "routing_failed",
+                                "bounty_usd": task.bounty_usd,
+                                "category": task.categories[0] if task.categories else None,
+                            },
+                        },
+                    )
+
+                    self._emit(
                         CoordinatorEvent.ROUTING_FAILURE,
                         {
                             "task_id": task.task_id,
+                            "coordination_session_id": self._coordination_session_id(task.task_id),
                             "reason": result.reason,
                             "attempts": task.attempts,
                         },
@@ -841,9 +891,27 @@ class SwarmCoordinator:
         self._completed_tasks.append(task)
 
         self._emit(
+            CoordinatorEvent.ROUTE_OUTCOME,
+            {
+                "event_type": "outcome",
+                "task_id": task_id,
+                "coordination_session_id": self._coordination_session_id(task_id),
+                "agent_id": agent_id,
+                "status": "completed",
+                "quality": 1.0 if evidence_summary else None,
+                "payout_usd": bounty,
+                "metadata": {
+                    "evidence_summary": evidence_summary,
+                    "category": task.categories[0] if task.categories else None,
+                },
+            },
+        )
+
+        self._emit(
             CoordinatorEvent.TASK_COMPLETED,
             {
                 "task_id": task_id,
+                "coordination_session_id": self._coordination_session_id(task_id),
                 "agent_id": agent_id,
                 "bounty_usd": bounty,
             },
@@ -862,9 +930,26 @@ class SwarmCoordinator:
         agent_id = self.orchestrator.fail_task(task_id, error)
         if agent_id is not None:
             self._emit(
+                CoordinatorEvent.ROUTE_OUTCOME,
+                {
+                    "event_type": "outcome",
+                    "task_id": task_id,
+                    "coordination_session_id": self._coordination_session_id(task_id),
+                    "agent_id": agent_id,
+                    "status": "failed",
+                    "metadata": {
+                        "error": error,
+                        "reason": reason,
+                        "category": task.categories[0] if task.categories else None,
+                    },
+                },
+            )
+
+            self._emit(
                 CoordinatorEvent.TASK_FAILED,
                 {
                     "task_id": task_id,
+                    "coordination_session_id": self._coordination_session_id(task_id),
                     "agent_id": agent_id,
                     "error": error,
                 },

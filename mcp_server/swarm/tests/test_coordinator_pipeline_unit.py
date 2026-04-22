@@ -41,6 +41,11 @@ _mod = importlib.util.module_from_spec(_spec)
 sys.modules["coordinator_pipeline"] = _mod  # Register so dataclass can find it
 _spec.loader.exec_module(_mod)
 
+_coord_path = str(Path(__file__).parent.parent / "coordinator.py")
+_coord_spec = importlib.util.spec_from_file_location("swarm_coordinator", _coord_path)
+_coord_mod = importlib.util.module_from_spec(_coord_spec)
+sys.modules["swarm_coordinator"] = _coord_mod
+
 AuditEntry = _mod.AuditEntry
 CoordinatorPipeline = _mod.CoordinatorPipeline
 PipelineMetrics = _mod.PipelineMetrics
@@ -607,6 +612,56 @@ class TestAuditTrail:
 
         entry = result.audit_trail[0]
         assert entry.explanation == ""
+
+
+class TestCoordinatorDecisionEvents:
+    def test_coordinator_emits_route_and_outcome_events(self, tmp_path):
+        try:
+            _coord_spec.loader.exec_module(_coord_mod)
+        except Exception as exc:
+            pytest.skip(f"Coordinator imports unavailable in this runtime: {exc}")
+
+        bridge = _coord_mod.ReputationBridge()
+        lifecycle = _coord_mod.LifecycleManager()
+        orchestrator = _coord_mod.SwarmOrchestrator(bridge, lifecycle)
+        journal_path = tmp_path / "decision-journal.jsonl"
+        coordinator = _coord_mod.SwarmCoordinator(
+            bridge=bridge,
+            lifecycle=lifecycle,
+            orchestrator=orchestrator,
+            decision_journal_path=str(journal_path),
+        )
+
+        coordinator.register_agent(
+            agent_id=2106,
+            name="clawd",
+            wallet_address="0x1234567890abcdef1234567890abcdef12345678",
+            activate=True,
+        )
+        coordinator.ingest_task(
+            task_id="em_123",
+            title="Verify storefront",
+            categories=["photo_geo"],
+            bounty_usd=0.42,
+        )
+
+        results = coordinator.process_task_queue()
+        assert len(results) == 1
+        assert isinstance(results[0], _coord_mod.Assignment)
+
+        event_names = [event["event"] for event in coordinator.get_events(limit=20)]
+        assert "route_recorded" in event_names
+        assert "task_assigned" in event_names
+
+        assert coordinator.complete_task("em_123", bounty_earned_usd=0.42, evidence_summary="photo verified") is True
+
+        event_names = [event["event"] for event in coordinator.get_events(limit=50)]
+        assert "route_outcome" in event_names
+        assert "task_completed" in event_names
+
+        journal_lines = journal_path.read_text(encoding="utf-8").strip().splitlines()
+        assert journal_lines
+        assert any("coord_em_123" in line for line in journal_lines)
 
 
 # ---------------------------------------------------------------------------
