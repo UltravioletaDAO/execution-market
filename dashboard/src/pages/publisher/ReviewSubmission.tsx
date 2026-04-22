@@ -6,7 +6,20 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import type { Task, Submission } from '../../types/database'
 import { getH2ATask, getH2ASubmissions, approveH2ASubmission } from '../../services/h2a'
+import { createDispute, type DisputeReason } from '../../services/disputes'
 import { safeHref } from '../../lib/safeHref'
+
+const DISPUTE_REASONS: { value: DisputeReason; label: string }[] = [
+  { value: 'incomplete_work', label: 'Trabajo incompleto' },
+  { value: 'poor_quality', label: 'Calidad insuficiente' },
+  { value: 'wrong_deliverable', label: 'Entregable incorrecto' },
+  { value: 'late_delivery', label: 'Entrega tardía' },
+  { value: 'fake_evidence', label: 'Evidencia falsa / manipulada' },
+  { value: 'no_response', label: 'Sin respuesta del worker' },
+  { value: 'payment_issue', label: 'Problema de pago' },
+  { value: 'unfair_rejection', label: 'Rechazo injusto (apelación)' },
+  { value: 'other', label: 'Otro' },
+]
 
 /**
  * Feature flag: H2A on-chain signing.
@@ -50,6 +63,12 @@ export function ReviewSubmission() {
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [showRawCoords, setShowRawCoords] = useState(false)
+  const [disputeOpen, setDisputeOpen] = useState(false)
+  const [disputeReason, setDisputeReason] = useState<DisputeReason>('incomplete_work')
+  const [disputeDescription, setDisputeDescription] = useState('')
+  const [disputeSubmitting, setDisputeSubmitting] = useState(false)
+  const [disputeError, setDisputeError] = useState<string | null>(null)
+  const [disputeSuccess, setDisputeSuccess] = useState<string | null>(null)
 
   const loadData = useCallback(async () => {
     if (!taskId) return
@@ -80,6 +99,30 @@ export function ReviewSubmission() {
       navigate('/publisher/dashboard')
     } catch (e) { setSubmitError(e instanceof Error ? e.message : 'Error') }
     finally { setSubmitting(false) }
+  }
+
+  const handleDispute = async () => {
+    if (!latest) return
+    if (disputeDescription.trim().length < 5) {
+      setDisputeError('La descripción debe tener al menos 5 caracteres')
+      return
+    }
+    setDisputeSubmitting(true); setDisputeError(null); setDisputeSuccess(null)
+    try {
+      const created = await createDispute({
+        submission_id: latest.id,
+        reason: disputeReason,
+        description: disputeDescription.trim(),
+      })
+      setDisputeSuccess(`Disputa abierta (id=${created.id.slice(0, 8)}...)`)
+      setDisputeOpen(false)
+      setDisputeDescription('')
+      await loadData()
+    } catch (e) {
+      setDisputeError(e instanceof Error ? e.message : 'Error al abrir disputa')
+    } finally {
+      setDisputeSubmitting(false)
+    }
   }
 
   if (loading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-500">Cargando...</div>
@@ -187,9 +230,80 @@ export function ReviewSubmission() {
                 </div>
               )}
               {submitError && <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm mb-4">❌ {submitError}</div>}
+              {disputeSuccess && <div className="bg-green-50 text-green-800 p-3 rounded-lg text-sm mb-4">✅ {disputeSuccess}</div>}
               <button onClick={handleSubmit} disabled={submitting} className={`w-full py-3 px-4 rounded-lg font-medium text-white ${verdict === 'accepted' ? 'bg-green-600 hover:bg-green-700' : verdict === 'needs_revision' ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-red-600 hover:bg-red-700'} disabled:opacity-50`}>
                 {submitting ? 'Procesando...' : verdict === 'accepted' ? '✅ Aprobar y Pagar' : verdict === 'needs_revision' ? '🔄 Solicitar Revisión' : '❌ Rechazar'}
               </button>
+
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                {!disputeOpen ? (
+                  <button
+                    type="button"
+                    onClick={() => { setDisputeOpen(true); setDisputeError(null); setDisputeSuccess(null) }}
+                    className="w-full py-2 px-4 rounded-lg border border-orange-300 text-orange-700 bg-orange-50 hover:bg-orange-100 text-sm font-medium"
+                  >
+                    ⚠️ Iniciar disputa formal
+                  </button>
+                ) : (
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                    <h4 className="font-semibold text-orange-900 mb-3">⚠️ Abrir disputa</h4>
+                    <p className="text-xs text-orange-800 mb-3">
+                      Una disputa formal marca esta entrega como impugnada y la envía al arbitraje humano.
+                      Usa esta opción solo si crees que la evidencia es fraudulenta, incompleta o no cumple con el brief.
+                    </p>
+                    <div className="mb-3">
+                      <label className="block text-sm font-medium text-orange-900 mb-1">Motivo</label>
+                      <select
+                        value={disputeReason}
+                        onChange={e => setDisputeReason(e.target.value as DisputeReason)}
+                        className="w-full px-3 py-2 border border-orange-300 rounded-lg bg-white text-sm"
+                      >
+                        {DISPUTE_REASONS.map(r => (
+                          <option key={r.value} value={r.value}>{r.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="mb-3">
+                      <label className="block text-sm font-medium text-orange-900 mb-1">
+                        Descripción <span className="text-xs text-orange-700">(5-2000 caracteres)</span>
+                      </label>
+                      <textarea
+                        value={disputeDescription}
+                        onChange={e => setDisputeDescription(e.target.value)}
+                        maxLength={2000}
+                        placeholder="Explica por qué esta entrega debe ser disputada. Sé específico: qué falta, qué no cumple, qué evidencia consideras falsa..."
+                        className="w-full px-3 py-2 border border-orange-300 rounded-lg h-28 resize-y bg-white text-sm"
+                      />
+                      <div className="text-xs text-orange-700 mt-1 text-right">
+                        {disputeDescription.length} / 2000
+                      </div>
+                    </div>
+                    {disputeError && (
+                      <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm mb-3">
+                        ❌ {disputeError}
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleDispute}
+                        disabled={disputeSubmitting || disputeDescription.trim().length < 5}
+                        className="flex-1 py-2 px-4 rounded-lg font-medium text-white bg-orange-600 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                      >
+                        {disputeSubmitting ? 'Enviando...' : 'Abrir disputa'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setDisputeOpen(false); setDisputeError(null) }}
+                        disabled={disputeSubmitting}
+                        className="py-2 px-4 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-sm"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </>
         )}
