@@ -164,3 +164,35 @@ def test_route_regret_compiler_marks_clean_completion_as_validated():
     payload = report.to_dict()
     assert payload["judgment"] == "validated"
     assert payload["regret_score"] < 0
+
+
+def test_dashboard_route_regret_summary_groups_recent_episodes():
+    bridge = ReputationBridge()
+    lifecycle = LifecycleManager()
+    orchestrator = SwarmOrchestrator(bridge, lifecycle, min_score_threshold=0.0)
+    coordinator = SwarmCoordinator(bridge=bridge, lifecycle=lifecycle, orchestrator=orchestrator)
+
+    _register_agent(orchestrator, 1, "alpha", tasks=60, rating=4.8, success=58, category_score=0.95)
+    _register_agent(orchestrator, 2, "beta", tasks=55, rating=4.6, success=50, category_score=0.88)
+
+    coordinator.ingest_task(
+        task_id="task-4",
+        title="Translate receipt",
+        categories=["translation"],
+        bounty_usd=0.35,
+        priority=TaskPriority.HIGH,
+        raw_data={"id": "task-4", "category": "translation"},
+    )
+    coordinator.process_task_queue()
+    coordinator.fail_task("task-4", error="timed out", reason="timeout")
+
+    dashboard = coordinator.get_dashboard()
+    route_regret = dashboard["route_regret"]
+
+    assert route_regret["episodes"] >= 1
+    assert route_regret["by_judgment"]["regret"] >= 1
+    assert route_regret["by_category"]["translation"] >= 1
+    assert route_regret["degradation_reasons"]["timeout"] >= 1
+    assert route_regret["top_regrets"]
+    assert route_regret["top_regrets"][0]["task_id"] == "task-4"
+    assert route_regret["top_regrets"][0]["judgment"] == "regret"

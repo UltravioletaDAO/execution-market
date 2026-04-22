@@ -93,6 +93,14 @@ class RouteRegretCompiler:
             reason = self._pick(event, "reason") or event.get("metadata", {}).get("reason") or event.get("metadata", {}).get("status")
             if reason and reason not in degradation_reasons:
                 degradation_reasons.append(str(reason))
+        if outcome:
+            outcome_reason = (
+                self._pick(outcome, "reason")
+                or outcome.get("metadata", {}).get("reason")
+                or outcome.get("metadata", {}).get("error")
+            )
+            if outcome_reason and str(outcome_reason) not in degradation_reasons:
+                degradation_reasons.append(str(outcome_reason))
 
         judgment = "uncertain"
         regret_score = 0.0

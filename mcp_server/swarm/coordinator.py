@@ -82,6 +82,7 @@ from .autojob_client import (
     AutoJobClient,
     EnrichedOrchestrator,
 )
+from .route_regret import RouteRegretCompiler
 
 logger = logging.getLogger("em.swarm.coordinator")
 
@@ -464,6 +465,7 @@ class SwarmCoordinator:
         self._journal_entries_written = 0
         self._journal_sequence = 0
         self._coordination_sessions: dict[str, str] = {}
+        self._route_regret = RouteRegretCompiler()
 
     def _coordination_session_id(self, task_id: str) -> str:
         """Return a stable coordination session id for a task."""
@@ -1122,6 +1124,81 @@ class SwarmCoordinator:
 
         return metrics
 
+    def _normalized_route_events(self) -> list[dict]:
+        """Normalize in-memory coordinator events for route-regret compilation."""
+        normalized: list[dict] = []
+        event_type_map = {
+            CoordinatorEvent.ROUTE_RECORDED.value: "route",
+            CoordinatorEvent.ROUTE_DEGRADED.value: "degrade",
+            CoordinatorEvent.ROUTE_OUTCOME.value: "outcome",
+        }
+        for event in self._events:
+            normalized_type = event_type_map.get(event.event.value)
+            if not normalized_type:
+                continue
+            payload = dict(event.data)
+            payload.setdefault("event_type", normalized_type)
+            payload.setdefault("timestamp", event.timestamp.timestamp())
+            normalized.append(payload)
+        return normalized
+
+    def get_route_regret_summary(self, limit: int = 25) -> dict:
+        """Compile recent route-regret episodes into operator-facing summaries."""
+        episodes: dict[str, list[dict]] = {}
+        for event in self._normalized_route_events():
+            coordination_session_id = str(
+                event.get("coordination_session_id")
+                or f"coord_{event.get('task_id') or 'unknown'}"
+            )
+            episodes.setdefault(coordination_session_id, []).append(event)
+
+        reports = []
+        for coordination_session_id, session_events in episodes.items():
+            report = self._route_regret.compile_episode(session_events)
+            if report is None:
+                continue
+            reports.append(report.to_dict())
+
+        reports.sort(
+            key=lambda report: (
+                report.get("regret_score", 0.0),
+                report.get("outcome", {}).get("quality", -1.0),
+            ),
+            reverse=True,
+        )
+        reports = reports[: max(limit, 0)]
+
+        by_judgment: dict[str, int] = {}
+        by_category: dict[str, int] = {}
+        degradation_reasons: dict[str, int] = {}
+        for report in reports:
+            judgment = str(report.get("judgment") or "uncertain")
+            by_judgment[judgment] = by_judgment.get(judgment, 0) + 1
+
+            task_id = report.get("task_id")
+            task = self._task_queue.get(task_id) if task_id else None
+            categories = task.categories if task else []
+            if not categories:
+                categories = ["unknown"]
+            for category in categories:
+                by_category[category] = by_category.get(category, 0) + 1
+
+            for reason in report.get("degradation_reasons", []):
+                degradation_reasons[reason] = degradation_reasons.get(reason, 0) + 1
+
+        top_regrets = [report for report in reports if report.get("judgment") == "regret"][:5]
+
+        return {
+            "episodes": len(reports),
+            "by_judgment": by_judgment,
+            "by_category": dict(sorted(by_category.items(), key=lambda item: (-item[1], item[0]))),
+            "degradation_reasons": dict(
+                sorted(degradation_reasons.items(), key=lambda item: (-item[1], item[0]))
+            ),
+            "top_regrets": top_regrets,
+            "recent_reports": reports,
+        }
+
     def get_dashboard(self) -> dict:
         """
         Get a comprehensive operational dashboard.
@@ -1172,6 +1249,7 @@ class SwarmCoordinator:
             "fleet": agent_fleet,
             "swarm": swarm_status,
             "recent_events": [e.to_dict() for e in list(self._events)[-20:]],
+            "route_regret": self.get_route_regret_summary(),
             "systems": {
                 "em_api": "configured" if self.em_client else "not configured",
                 "autojob": "configured" if self.autojob else "not configured",
