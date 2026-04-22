@@ -14,6 +14,7 @@ Endpoints:
   GET  /api/v1/disputes             -- list disputes with filters
   GET  /api/v1/disputes/{id}        -- single dispute detail
   GET  /api/v1/disputes/available   -- disputes awaiting human arbiters
+  POST /api/v1/disputes             -- create dispute (publisher-initiated)
   POST /api/v1/disputes/{id}/resolve -- submit human verdict
 
 Auth:
@@ -82,6 +83,40 @@ class DisputeDetail(DisputeSummary):
 class DisputeListResponse(BaseModel):
     items: List[DisputeSummary]
     total: int
+
+
+class CreateDisputeRequest(BaseModel):
+    """Publisher-initiated dispute creation (INC-2026-04-22 Phase 3).
+
+    Replaces the silent Ring 2 auto-escalation path that was removed in
+    Phase 1. Publishers explicitly dispute a submission they believe is
+    fraudulent or non-compliant, instead of Ring 2 making that decision
+    for them.
+
+    The new dispute is recorded with escalation_tier=1 (human-initiated,
+    distinct from the deprecated escalation_tier=2 used by the pre-fix
+    arbiter) and the linked submission's agent_verdict is set to
+    'disputed' -- this time it's an explicit publisher decision, not a
+    usurpation by the automated ring.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    submission_id: str = Field(
+        ...,
+        min_length=36,
+        max_length=36,
+        description="UUID of the submission being disputed",
+    )
+    reason: str = Field(
+        ...,
+        pattern=(
+            "^(incomplete_work|poor_quality|wrong_deliverable|late_delivery"
+            "|fake_evidence|no_response|payment_issue|unfair_rejection|other)$"
+        ),
+        description="dispute_reason enum value (migration 004)",
+    )
+    description: str = Field(..., min_length=5, max_length=2000)
 
 
 class ResolveDisputeRequest(BaseModel):
@@ -410,6 +445,200 @@ async def get_dispute(
     except Exception:
         req_id = str(_uuid.uuid4())[:8]
         logger.exception("get_dispute failed [req=%s]", req_id)
+        raise HTTPException(status_code=500, detail=f"Internal error (ref: {req_id})")
+
+
+# ============================================================================
+# Endpoint: create (publisher-initiated)
+# ============================================================================
+
+
+@router.post("", response_model=DisputeDetail, status_code=201)
+async def create_dispute(
+    body: CreateDisputeRequest,
+    auth: AgentAuth = Depends(verify_agent_auth_write),
+) -> DisputeDetail:
+    """Publisher-initiated dispute against a submission (Phase 3).
+
+    Replaces the silent Ring 2 auto-escalation that was removed in Phase 1.
+    The publisher explicitly decides a submission is fraudulent/non-compliant
+    and opens a dispute -- this is a conscious action with a paper trail.
+
+    Preconditions:
+      - Caller is authenticated with ERC-8128 wallet signing
+      - Submission exists
+      - Caller is the publisher of the parent task (wallet or agent_id match)
+      - Submission has no active dispute (no open/under_review/in_arbitration row)
+      - Submission has not been paid yet (can't dispute a settled submission)
+
+    Side effects:
+      - Inserts a disputes row with escalation_tier=1 (human-initiated)
+      - Sets submissions.agent_verdict='disputed' (explicit publisher decision;
+        trigger trg_submissions_verdict_change writes a payment_events audit row)
+      - Emits dispute.opened event
+    """
+    try:
+        # Require ERC-8128 wallet signing -- aligns with resolve endpoint policy
+        if auth.auth_method != "erc8128":
+            raise HTTPException(
+                status_code=403,
+                detail="Dispute creation requires ERC-8128 wallet signing",
+            )
+        if not auth.wallet_address:
+            raise HTTPException(
+                status_code=403,
+                detail="Wallet address required for dispute creation",
+            )
+
+        client = db.get_client()
+
+        # 1. Fetch submission + parent task (single query via join, then unpack)
+        sub_result = (
+            client.table("submissions")
+            .select("*, task:tasks(*)")
+            .eq("id", body.submission_id)
+            .limit(1)
+            .execute()
+        )
+        if not sub_result.data:
+            raise HTTPException(status_code=404, detail="Submission not found")
+
+        submission = sub_result.data[0]
+        task = submission.get("task") or {}
+        task_id = submission.get("task_id") or task.get("id")
+        if not task_id:
+            raise HTTPException(
+                status_code=500,
+                detail="Submission has no linked task (data integrity error)",
+            )
+
+        # 2. Authorization: caller must be the publisher of the task
+        task_agent_id = (task.get("agent_id") or "").lower()
+        caller_wallet = (auth.wallet_address or "").lower()
+        caller_agent_id = (auth.agent_id or "").lower()
+        if not task_agent_id or task_agent_id not in (caller_wallet, caller_agent_id):
+            raise HTTPException(
+                status_code=403,
+                detail="Only the publisher of the task can create a dispute",
+            )
+
+        # 3. Guard: submission must not be already settled/paid
+        sub_status = (submission.get("status") or "").lower()
+        terminal_statuses = {"paid", "released", "completed", "rated", "refunded"}
+        if sub_status in terminal_statuses:
+            raise HTTPException(
+                status_code=409,
+                detail=f"Cannot dispute a {sub_status} submission",
+            )
+
+        # 4. Guard: no existing open dispute for this submission
+        existing_result = (
+            client.table("disputes")
+            .select("id, status")
+            .eq("submission_id", body.submission_id)
+            .in_("status", list(OPEN_STATUSES))
+            .limit(1)
+            .execute()
+        )
+        if existing_result.data:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"Submission already has an active dispute "
+                    f"(id={existing_result.data[0].get('id')})"
+                ),
+            )
+
+        # 5. Insert dispute row. escalation_tier=1 marks this as a human-
+        # initiated dispute (not the deprecated Ring 2 auto-escalation path
+        # which used escalation_tier=2 + metadata.source='arbiter_auto_escalation').
+        now = datetime.now(timezone.utc).isoformat()
+        dispute_row = {
+            "task_id": task_id,
+            "submission_id": body.submission_id,
+            "agent_id": task.get("agent_id"),
+            "executor_id": submission.get("executor_id"),
+            "reason": body.reason,
+            "description": body.description,
+            "status": "open",
+            "priority": 5,
+            "escalation_tier": 1,
+            "disputed_amount_usdc": float(task.get("bounty_usd", 0) or 0),
+            "metadata": {
+                "source": "publisher_initiated",
+                "created_by": caller_wallet or caller_agent_id,
+                "created_at": now,
+            },
+        }
+
+        insert_result = client.table("disputes").insert(dispute_row).execute()
+        if not insert_result.data:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to create dispute (empty insert result)",
+            )
+        created = insert_result.data[0]
+        dispute_id = str(created.get("id"))
+
+        # 6. Mark the submission as disputed -- this time it's an explicit
+        # publisher decision (trigger trg_submissions_verdict_change will
+        # write a verdict_change row to payment_events for the audit trail).
+        try:
+            client.table("submissions").update(
+                {
+                    "agent_verdict": "disputed",
+                    "agent_notes": (
+                        f"Publisher opened dispute {dispute_id} (reason={body.reason})."
+                    ),
+                }
+            ).eq("id", body.submission_id).execute()
+        except Exception as e:
+            # Don't roll back the dispute -- the dispute row is the source of
+            # truth. Log so we can reconcile manually.
+            logger.warning(
+                "Dispute %s created but submission %s update failed: %s",
+                dispute_id,
+                body.submission_id,
+                e,
+            )
+
+        # 7. Emit event (best-effort)
+        try:
+            from events.bus import get_event_bus
+            from events.models import EMEvent, EventSource
+
+            await get_event_bus().publish(
+                EMEvent(
+                    event_type="dispute.opened",
+                    task_id=task_id,
+                    source=EventSource.REST_API,
+                    payload={
+                        "dispute_id": dispute_id,
+                        "task_id": task_id,
+                        "submission_id": body.submission_id,
+                        "reason": body.reason,
+                        "created_by": caller_wallet or caller_agent_id,
+                        "escalation_tier": 1,
+                    },
+                )
+            )
+        except Exception as e:
+            logger.warning("Failed to emit dispute.opened event: %s", e)
+
+        logger.info(
+            "Created publisher-initiated dispute %s for submission %s (reason=%s)",
+            dispute_id,
+            body.submission_id,
+            body.reason,
+        )
+
+        return _row_to_detail(created)
+
+    except HTTPException:
+        raise
+    except Exception:
+        req_id = str(_uuid.uuid4())[:8]
+        logger.exception("create_dispute failed [req=%s]", req_id)
         raise HTTPException(status_code=500, detail=f"Internal error (ref: {req_id})")
 
 

@@ -833,3 +833,368 @@ class TestListDisputesCaseInsensitiveFilter:
         assert checksum_wallet not in caller_ids, (
             f"checksum-case wallet leaked into filter unchanged: {caller_ids}"
         )
+
+
+# ---------------------------------------------------------------------------
+# INC-2026-04-22 Phase 3.1: POST /api/v1/disputes (publisher-initiated)
+# ---------------------------------------------------------------------------
+
+
+class TestCreateDispute:
+    """POST /api/v1/disputes is the explicit publisher-initiated path that
+    replaces the silent Ring 2 auto-escalation removed in Phase 1.
+
+    Asserted invariants:
+      - Requires ERC-8128 wallet signing (auth policy parity with /resolve)
+      - Caller must be the publisher of the parent task (wallet/agent_id match)
+      - Submission must exist and not be already paid/settled
+      - Cannot dispute a submission that already has an open dispute
+      - Inserts disputes row with escalation_tier=1 (human-initiated)
+      - Sets submissions.agent_verdict='disputed' -- this time it IS the
+        publisher's decision, not a usurpation
+      - metadata.source='publisher_initiated' (distinct from the deprecated
+        'arbiter_auto_escalation' value used by the pre-fix arbiter)
+    """
+
+    PUBLISHER_WALLET = "0xpublisher".ljust(42, "0")
+    OTHER_WALLET = "0xstranger".ljust(42, "0")
+    TASK_ID = "00000000-0000-0000-0000-000000000a11"
+    SUBMISSION_ID = "00000000-0000-0000-0000-000000000b22"
+
+    def _make_client(
+        self,
+        submission_row=None,
+        existing_dispute=None,
+        insert_result=None,
+        update_capture=None,
+    ):
+        """Build a mock supabase client wired for create_dispute's queries."""
+        insert_result = insert_result or {
+            "id": "dispute-new-id",
+            "task_id": self.TASK_ID,
+            "submission_id": self.SUBMISSION_ID,
+            "agent_id": self.PUBLISHER_WALLET,
+            "reason": "poor_quality",
+            "description": "Photo does not show the requested location",
+            "status": "open",
+            "priority": 5,
+            "escalation_tier": 1,
+            "disputed_amount_usdc": 0.10,
+            "created_at": "2026-04-22T12:00:00Z",
+            "metadata": {"source": "publisher_initiated"},
+        }
+
+        def mk_table(name):
+            table = MagicMock()
+
+            if name == "submissions":
+                # create_dispute has TWO submission flows:
+                #   1. select() for initial fetch (returns submission_row)
+                #   2. update() for agent_verdict='disputed'
+                sel_chain = MagicMock()
+                sel_chain.eq.return_value = sel_chain
+                sel_chain.limit.return_value = sel_chain
+                sel_chain.execute.return_value = MagicMock(
+                    data=[submission_row] if submission_row else []
+                )
+                table.select.return_value = sel_chain
+
+                def _update(payload):
+                    if update_capture is not None:
+                        update_capture.append(payload)
+                    eq_chain = MagicMock()
+                    eq_chain.eq.return_value.execute.return_value = MagicMock(data=[{}])
+                    return eq_chain
+
+                table.update.side_effect = _update
+
+            elif name == "disputes":
+                sel_chain = MagicMock()
+                sel_chain.eq.return_value = sel_chain
+                sel_chain.in_.return_value = sel_chain
+                sel_chain.limit.return_value = sel_chain
+                sel_chain.execute.return_value = MagicMock(
+                    data=[existing_dispute] if existing_dispute else []
+                )
+                table.select.return_value = sel_chain
+
+                ins_chain = MagicMock()
+                ins_chain.execute.return_value = MagicMock(data=[insert_result])
+                table.insert.return_value = ins_chain
+
+            else:
+                # Fallback for any other table the endpoint might touch
+                chain = MagicMock()
+                chain.eq.return_value = chain
+                chain.in_.return_value = chain
+                chain.limit.return_value = chain
+                chain.execute.return_value = MagicMock(data=[], count=0)
+                table.select.return_value = chain
+                table.update.return_value = chain
+                table.insert.return_value = chain
+
+            return table
+
+        client = MagicMock()
+        client.table.side_effect = mk_table
+        return client
+
+    def _submission(self, status="verified", executor_id="exec-1"):
+        """Default submission wired to the default task."""
+        return {
+            "id": self.SUBMISSION_ID,
+            "task_id": self.TASK_ID,
+            "executor_id": executor_id,
+            "status": status,
+            "task": {
+                "id": self.TASK_ID,
+                "agent_id": self.PUBLISHER_WALLET,
+                "bounty_usd": 0.10,
+            },
+        }
+
+    @pytest.mark.asyncio
+    async def test_requires_erc8128_auth(self):
+        from api.auth import AgentAuth
+        from api.routers.disputes import CreateDisputeRequest, create_dispute
+
+        auth = AgentAuth(
+            agent_id="2106",
+            wallet_address=self.PUBLISHER_WALLET,
+            auth_method="mcp_tool",
+        )
+        body = CreateDisputeRequest(
+            submission_id=self.SUBMISSION_ID,
+            reason="poor_quality",
+            description="Not valid",
+        )
+
+        with pytest.raises(Exception) as exc_info:
+            await create_dispute(body=body, auth=auth)
+        assert "ERC-8128" in str(exc_info.value) or "403" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_requires_wallet(self):
+        from api.auth import AgentAuth
+        from api.routers.disputes import CreateDisputeRequest, create_dispute
+
+        auth = AgentAuth(
+            agent_id="2106",
+            wallet_address=None,
+            auth_method="erc8128",
+        )
+        body = CreateDisputeRequest(
+            submission_id=self.SUBMISSION_ID,
+            reason="poor_quality",
+            description="Not valid",
+        )
+
+        with pytest.raises(Exception) as exc_info:
+            await create_dispute(body=body, auth=auth)
+        assert "Wallet" in str(exc_info.value) or "403" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_submission_not_found_returns_404(self, monkeypatch):
+        from api.auth import AgentAuth
+        from api.routers.disputes import CreateDisputeRequest, create_dispute
+
+        client = self._make_client(submission_row=None)
+        import supabase_client as sb
+
+        monkeypatch.setattr(sb, "get_client", lambda: client)
+
+        auth = AgentAuth(
+            agent_id="2106",
+            wallet_address=self.PUBLISHER_WALLET,
+            auth_method="erc8128",
+        )
+        body = CreateDisputeRequest(
+            submission_id=self.SUBMISSION_ID,
+            reason="poor_quality",
+            description="Missing submission",
+        )
+
+        with pytest.raises(Exception) as exc_info:
+            await create_dispute(body=body, auth=auth)
+        assert (
+            "404" in str(exc_info.value) or "not found" in str(exc_info.value).lower()
+        )
+
+    @pytest.mark.asyncio
+    async def test_non_publisher_rejected(self, monkeypatch):
+        from api.auth import AgentAuth
+        from api.routers.disputes import CreateDisputeRequest, create_dispute
+
+        client = self._make_client(submission_row=self._submission())
+        import supabase_client as sb
+
+        monkeypatch.setattr(sb, "get_client", lambda: client)
+
+        auth = AgentAuth(
+            agent_id="9999",
+            wallet_address=self.OTHER_WALLET,
+            auth_method="erc8128",
+        )
+        body = CreateDisputeRequest(
+            submission_id=self.SUBMISSION_ID,
+            reason="poor_quality",
+            description="Stranger trying to dispute",
+        )
+
+        with pytest.raises(Exception) as exc_info:
+            await create_dispute(body=body, auth=auth)
+        assert (
+            "403" in str(exc_info.value) or "publisher" in str(exc_info.value).lower()
+        )
+
+    @pytest.mark.asyncio
+    async def test_paid_submission_rejected(self, monkeypatch):
+        from api.auth import AgentAuth
+        from api.routers.disputes import CreateDisputeRequest, create_dispute
+
+        client = self._make_client(submission_row=self._submission(status="paid"))
+        import supabase_client as sb
+
+        monkeypatch.setattr(sb, "get_client", lambda: client)
+
+        auth = AgentAuth(
+            agent_id="2106",
+            wallet_address=self.PUBLISHER_WALLET,
+            auth_method="erc8128",
+        )
+        body = CreateDisputeRequest(
+            submission_id=self.SUBMISSION_ID,
+            reason="fake_evidence",
+            description="Already paid, too late",
+        )
+
+        with pytest.raises(Exception) as exc_info:
+            await create_dispute(body=body, auth=auth)
+        assert "409" in str(exc_info.value) or "paid" in str(exc_info.value).lower()
+
+    @pytest.mark.asyncio
+    async def test_existing_open_dispute_rejected(self, monkeypatch):
+        from api.auth import AgentAuth
+        from api.routers.disputes import CreateDisputeRequest, create_dispute
+
+        existing = {"id": "dispute-existing-1", "status": "open"}
+        client = self._make_client(
+            submission_row=self._submission(),
+            existing_dispute=existing,
+        )
+        import supabase_client as sb
+
+        monkeypatch.setattr(sb, "get_client", lambda: client)
+
+        auth = AgentAuth(
+            agent_id="2106",
+            wallet_address=self.PUBLISHER_WALLET,
+            auth_method="erc8128",
+        )
+        body = CreateDisputeRequest(
+            submission_id=self.SUBMISSION_ID,
+            reason="poor_quality",
+            description="Double dispute attempt",
+        )
+
+        with pytest.raises(Exception) as exc_info:
+            await create_dispute(body=body, auth=auth)
+        msg = str(exc_info.value).lower()
+        assert "409" in msg or "already has" in msg or "active dispute" in msg
+
+    @pytest.mark.asyncio
+    async def test_happy_path_creates_dispute_and_marks_verdict(self, monkeypatch):
+        from api.auth import AgentAuth
+        from api.routers.disputes import CreateDisputeRequest, create_dispute
+
+        captured_updates: list[dict] = []
+        inserted_rows: list[dict] = []
+
+        class CapturingClient:
+            def table(self_inner, name):
+                tbl = MagicMock()
+
+                if name == "submissions":
+                    sel = MagicMock()
+                    sel.eq.return_value = sel
+                    sel.limit.return_value = sel
+                    sel.execute.return_value = MagicMock(data=[self._submission()])
+                    tbl.select.return_value = sel
+
+                    def _update(payload):
+                        captured_updates.append(payload)
+                        eq_chain = MagicMock()
+                        eq_chain.eq.return_value.execute.return_value = MagicMock(
+                            data=[{}]
+                        )
+                        return eq_chain
+
+                    tbl.update.side_effect = _update
+
+                elif name == "disputes":
+                    sel = MagicMock()
+                    sel.eq.return_value = sel
+                    sel.in_.return_value = sel
+                    sel.limit.return_value = sel
+                    sel.execute.return_value = MagicMock(data=[])
+                    tbl.select.return_value = sel
+
+                    def _insert(payload):
+                        inserted_rows.append(payload)
+                        ins = MagicMock()
+                        ins.execute.return_value = MagicMock(
+                            data=[
+                                {
+                                    **payload,
+                                    "id": "dispute-new-xyz",
+                                    "created_at": "2026-04-22T12:00:00Z",
+                                }
+                            ]
+                        )
+                        return ins
+
+                    tbl.insert.side_effect = _insert
+
+                return tbl
+
+        client = CapturingClient()
+        import supabase_client as sb
+
+        monkeypatch.setattr(sb, "get_client", lambda: client)
+
+        auth = AgentAuth(
+            agent_id="2106",
+            wallet_address=self.PUBLISHER_WALLET,
+            auth_method="erc8128",
+        )
+        body = CreateDisputeRequest(
+            submission_id=self.SUBMISSION_ID,
+            reason="poor_quality",
+            description="Photo shows a different location entirely",
+        )
+
+        result = await create_dispute(body=body, auth=auth)
+
+        # Returned DTO
+        assert result.id == "dispute-new-xyz"
+        assert result.escalation_tier == 1  # human-initiated, not Ring 2
+
+        # Insert payload invariants
+        assert len(inserted_rows) == 1
+        inserted = inserted_rows[0]
+        assert inserted["escalation_tier"] == 1
+        assert inserted["status"] == "open"
+        assert inserted["reason"] == "poor_quality"
+        assert inserted["submission_id"] == self.SUBMISSION_ID
+        assert inserted["task_id"] == self.TASK_ID
+        # metadata.source distinguishes from the deprecated arbiter path
+        assert inserted["metadata"]["source"] == "publisher_initiated"
+
+        # Submission update invariants: agent_verdict MUST be set to 'disputed'
+        # (this is the explicit publisher decision -- distinct from the pre-fix
+        # bug where the arbiter mutated agent_verdict silently).
+        assert len(captured_updates) == 1
+        update_payload = captured_updates[0]
+        assert update_payload["agent_verdict"] == "disputed"
+        assert "agent_notes" in update_payload
+        assert "dispute-new-xyz" in update_payload["agent_notes"]
