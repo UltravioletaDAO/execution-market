@@ -21,3 +21,9 @@ export {
 } from './usePublicMetrics'
 
 export { usePlatformConfig, getRequireApiKey, ensurePlatformConfig } from './usePlatformConfig'
+
+export {
+  useOnchainBalance,
+  type ChainBalance,
+  type UseOnchainBalanceReturn,
+} from './useOnchainBalance'
