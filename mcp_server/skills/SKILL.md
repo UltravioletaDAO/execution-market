@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 9.6.0
+version: 9.6.1
 stability: production
 description: Hire executors for any task — physical, digital, or hybrid. The Universal Execution Layer for agents, humans, and robots.
 homepage: https://execution.market
@@ -12,6 +12,7 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 9.6.1 | 2026-04-22 | PATCH: Remove non-existent `/api/v1/escrow/{task_id}/state` endpoint from Option 5 monitor paths (caught by canonical-skill smoke test — 404 in prod, not in OpenAPI). Escrow lock/release/refund/expiry events are derived from task `status` transitions (`accepted` = escrow locked, `completed` = released, `cancelled`/`expired` = refund-eligible). Python watcher endpoint list and `/loop` prompt updated; event schema `kind` narrowed to `status \| application \| submission`. |
 | 9.6.0 | 2026-04-22 | MINOR: 3 Claude Code native monitor paths added to "Monitoring — Choose Your Strategy" (`/loop 3m` interactive, Anthropic Routine cloud cron, `Monitor` tool event-driven). Monitors the full task lifecycle (applications, submissions, status transitions, escrow lock/release, refunds, cancels, expiry). Verbose internal logging + compact "rapper flow" chat output (configurable `message_style`: `rapper`/`plain`/`technical`). Resilience built-in: SHA1 `event_id` dedupe via `processed-events.json`, atomic writes, skip-on-error, survives process restarts, no inner retry storms on 429. |
 | 9.5.0 | 2026-04-16 | MINOR: New optional fields on `em_publish_task` — `geo_match_mode` (`strict`/`city`/`region`/`country`/`any`) and `location_radius_m` (meters, default 500 when `strict` + coords without radius). Lets publishers control how tightly workers are matched to a task's location. Fields are accepted by the API today but the matcher itself is gated behind `EM_GEO_MATCH_ENABLED` (OFF in production for now) — set them, but expect current behavior until the flag flips. Also documents INCONCLUSIVE Ring 2 verdicts and the self-claim dispute model — see `/guides/l2-arbiter`. |
 | 9.4.0 | 2026-04-16 | MINOR: Document OWS CLI subprocess pattern for ERC-8128 signing — key never leaves vault, no MCP Server required. Reorder Step 1c to present OWS paths before the raw-key fallback. `ows wallet export` TTY restriction is the security feature; always use `ows sign message` in non-interactive contexts (CLI agents, cron, WSL). Added CLI path hint (`~/.npm-global/bin/ows`) and vault location (`~/.ows/wallets/`). |
@@ -1349,8 +1350,10 @@ mkdir -p ~/.openclaw/skills/execution-market
 **Event schema** — emitted by the watcher, consumed by the chat composer:
 
 ```json
-{"event_id": "<sha1-16>", "kind": "application|submission|status|escrow|refund|cancel|expired",
+{"event_id": "<sha1-16>", "kind": "status|application|submission",
  "task_id": "...", "ts": "2026-04-22T15:42:01Z", "payload": {...}}
+// escrow lock/release/refund/expiry are expressed as `status` kind transitions
+// (accepted = escrow locked, completed = released, cancelled/expired = refund-eligible)
 ```
 
 `event_id = SHA1(kind + task_id + subject_id + prev_state + new_state)[:16]`. Stable dedupe key across restarts.
@@ -1389,10 +1392,9 @@ Invoke inside your Claude Code session. Every 3 min the loop fires, checks state
 1. Read ~/.openclaw/skills/execution-market/active-tasks.json. If missing/empty: emit "· tick · nada en la calle" and stop.
 2. Read ~/.openclaw/skills/execution-market/processed-events.json (create {"processed": []} if missing).
 3. For each active task, fetch in parallel with ERC-8128 signed headers:
-   - GET /api/v1/tasks/{id}                       → status transitions (prev vs new)
+   - GET /api/v1/tasks/{id}                       → status transitions (covers escrow lock/release/refund/expiry)
    - GET /api/v1/tasks/{id}/applications          → new applications
    - GET /api/v1/tasks/{id}/submissions           → new submissions
-   - GET /api/v1/escrow/{id}/state                → escrow lock / release / refund
    On ANY error (4xx / 5xx / timeout / sign failure / 429): log one line to stderr and skip that endpoint. NEVER crash the loop.
 4. Compute event_id = SHA1(kind + task_id + subject_id + prev + new)[:16]. Skip if already in processed list.
 5. For each NEW event, compose ONE bar using the rapper template. For submission events, show the photo INLINE before the bar.
@@ -1500,12 +1502,6 @@ def normalize(kind, tid, prev_status, data):
                                     "score": s.get("pre_check_score"),
                                     "worker_last4": (s.get("worker_address") or "")[-4:],
                                     "evidence": s.get("evidence")}})
-    elif kind == "escrow":
-        state = (data or {}).get("state", "")
-        tx = (data or {}).get("tx", "")
-        out.append({"kind": "escrow", "task_id": tid,
-                    "event_id": eid("escrow", tid, "", "", state),
-                    "payload": {"state": state, "tx_prefix": tx[:10]}})
     return out
 
 def tick(client, processed):
@@ -1515,7 +1511,6 @@ def tick(client, processed):
         ("/api/v1/tasks/{id}",              "status"),
         ("/api/v1/tasks/{id}/applications", "application"),
         ("/api/v1/tasks/{id}/submissions",  "submission"),
-        ("/api/v1/escrow/{id}/state",       "escrow"),
     ]
     new_count = 0
     for t in tasks:
