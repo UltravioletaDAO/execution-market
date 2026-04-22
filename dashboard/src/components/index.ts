@@ -23,7 +23,6 @@ export {
   EarningsCard,
   ReputationCard,
   TaskHistory,
-  WithdrawalForm,
 } from './profile'
 
 // Evidence module

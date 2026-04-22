@@ -1,12 +1,9 @@
 /**
- * Earnings - Worker Earnings Page
+ * Earnings - Worker Earnings Page (read-only historical stats)
  *
- * Features:
- * - Total earnings summary
- * - Earnings chart (by week/month)
- * - Transaction history
- * - Pending payments
- * - Withdrawal options
+ * Per ADR-001 (agent-signed escrow), funds flow directly agent -> worker wallet
+ * on-chain. There is no custodial platform balance and no "withdraw" action.
+ * For wallet actions (send/receive/export), users go to /profile > WalletSection.
  */
 
 import { useState, useMemo } from 'react'
@@ -65,10 +62,9 @@ export interface EarningsPageProps {
   chartData: ChartDataPoint[]
   loading?: boolean
   error?: Error | null
-  onWithdraw: () => void
   onChartPeriodChange: (period: ChartPeriod) => void
   chartPeriod: ChartPeriod
-  minWithdrawal?: number
+  onViewWallet?: () => void
 }
 
 // ============================================================================
@@ -183,7 +179,7 @@ function SummaryCard({ summary }: { summary: EarningsSummary }) {
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-green-100 text-sm font-medium uppercase tracking-wide">
-          {t('earnings.availableBalance', 'Available Balance')}
+          {t('earnings.lifetimeEarnings', 'Lifetime Earnings')}
         </h3>
         <div className="flex items-center gap-1 text-green-200">
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -197,21 +193,24 @@ function SummaryCard({ summary }: { summary: EarningsSummary }) {
         </div>
       </div>
 
-      {/* Main balance */}
+      {/* Main balance — lifetime total earned */}
       <div className="mb-6">
-        <div className="text-4xl font-bold">{formatCurrency(summary.available_balance_usdc)}</div>
+        <div className="text-4xl font-bold">{formatCurrency(summary.total_earned_usdc)}</div>
         {summary.pending_usdc > 0 && (
           <div className="text-green-200 text-sm mt-1">
             +{formatCurrency(summary.pending_usdc)} {t('earnings.pendingApproval', 'pending approval')}
           </div>
         )}
+        <p className="text-green-200 text-xs mt-2">
+          {t('earnings.directToWallet', 'Paid directly to your wallet on-chain.')}
+        </p>
       </div>
 
       {/* Stats grid */}
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-white/10 rounded-lg p-3">
-          <div className="text-green-200 text-xs mb-1">{t('earnings.totalEarned', 'Total earned')}</div>
-          <div className="text-lg font-semibold">{formatCurrency(summary.total_earned_usdc)}</div>
+          <div className="text-green-200 text-xs mb-1">{t('earnings.lastMonth', 'Last month')}</div>
+          <div className="text-lg font-semibold">{formatCurrency(summary.last_month_usdc)}</div>
         </div>
         <div className="bg-white/10 rounded-lg p-3">
           <div className="text-green-200 text-xs mb-1">{t('earnings.thisMonth', 'This month')}</div>
@@ -371,62 +370,42 @@ function PendingPaymentsSection({ payments }: { payments: PendingPayment[] }) {
   )
 }
 
-function WithdrawalSection({
-  balance,
-  minWithdrawal,
-  onWithdraw,
-}: {
-  balance: number
-  minWithdrawal: number
-  onWithdraw: () => void
-}) {
+function WalletInfoBanner({ onViewWallet }: { onViewWallet?: () => void }) {
   const { t } = useTranslation()
-  const canWithdraw = balance >= minWithdrawal
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
-      <h3 className="font-semibold text-gray-900 mb-4">{t('earnings.withdrawFunds', 'Withdraw Funds')}</h3>
-
-      {/* Balance */}
-      <div className="bg-gray-50 rounded-lg p-4 mb-4">
-        <div className="text-sm text-gray-600 mb-1">{t('earnings.availableForWithdrawal', 'Available for withdrawal')}</div>
-        <div className="text-3xl font-bold text-gray-900">
-          {formatCurrency(balance)}{' '}
-          <span className="text-sm font-normal text-gray-500">USDC</span>
-        </div>
-      </div>
-
-      {/* Withdraw button */}
-      <button
-        onClick={onWithdraw}
-        disabled={!canWithdraw}
-        className={`w-full py-3 rounded-xl font-medium transition-all ${
-          canWithdraw
-            ? 'bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98]'
-            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-        }`}
+    <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 flex items-start gap-3">
+      <svg
+        className="w-6 h-6 flex-shrink-0 text-blue-600 mt-0.5"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
       >
-        {canWithdraw ? t('earnings.withdrawFunds', 'Withdraw funds') : `${t('earnings.minimum', 'Minimum')} ${formatCurrency(minWithdrawal)}`}
-      </button>
-
-      {/* Info */}
-      <div className="mt-3 flex items-start gap-2 text-xs text-gray-500">
-        <svg
-          className="w-4 h-4 flex-shrink-0 text-gray-400"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-        <span>
-          {t('earnings.withdrawInfo', 'Withdrawals are processed on your task\'s network. Estimated time: 1-5 minutes.')}
-        </span>
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+        />
+      </svg>
+      <div className="flex-1">
+        <h3 className="font-semibold text-gray-900 mb-1">
+          {t('earnings.walletInfoTitle', 'Your funds are already in your wallet')}
+        </h3>
+        <p className="text-sm text-gray-700 mb-3">
+          {t(
+            'earnings.walletInfoBody',
+            'Every task payment settles directly to your wallet on-chain. There is no platform balance to withdraw — you already own the funds.',
+          )}
+        </p>
+        {onViewWallet && (
+          <button
+            onClick={onViewWallet}
+            className="text-sm font-medium text-blue-700 hover:text-blue-900"
+          >
+            {t('earnings.viewMyWallet', 'View my wallet →')}
+          </button>
+        )}
       </div>
     </div>
   )
@@ -640,10 +619,9 @@ export function Earnings({
   chartData,
   loading = false,
   error = null,
-  onWithdraw,
   onChartPeriodChange,
   chartPeriod,
-  minWithdrawal = 5.0,
+  onViewWallet,
 }: EarningsPageProps) {
   const { t } = useTranslation()
 
@@ -679,12 +657,8 @@ export function Earnings({
       {/* Pending Payments */}
       <PendingPaymentsSection payments={pendingPayments} />
 
-      {/* Withdrawal Section */}
-      <WithdrawalSection
-        balance={summary?.available_balance_usdc || 0}
-        minWithdrawal={minWithdrawal}
-        onWithdraw={onWithdraw}
-      />
+      {/* Wallet info — funds flow direct on-chain per ADR-001 */}
+      <WalletInfoBanner onViewWallet={onViewWallet} />
 
       {/* Transaction History */}
       <TransactionHistory transactions={transactions} />

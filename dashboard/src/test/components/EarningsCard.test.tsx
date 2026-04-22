@@ -1,6 +1,6 @@
-// EarningsCard component tests
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+// EarningsCard component tests — read-only lifetime earnings (ADR-001)
+import { describe, it, expect } from 'vitest'
+import { render, screen } from '@testing-library/react'
 import { EarningsCard } from '../../components/profile/EarningsCard'
 import type { EarningsData } from '../../hooks/useProfile'
 
@@ -15,85 +15,26 @@ describe('EarningsCard', () => {
   }
 
   it('renders loading state', () => {
-    render(
-      <EarningsCard
-        earnings={null}
-        loading={true}
-        onWithdraw={() => {}}
-      />
-    )
-
-    // Should show skeleton/loading state
+    render(<EarningsCard earnings={null} loading={true} />)
     expect(document.querySelector('.animate-pulse')).toBeTruthy()
   })
 
-  it('renders earnings data correctly', () => {
-    render(
-      <EarningsCard
-        earnings={mockEarnings}
-        loading={false}
-        onWithdraw={() => {}}
-      />
-    )
+  it('renders lifetime earnings as hero number', () => {
+    render(<EarningsCard earnings={mockEarnings} loading={false} />)
 
-    // Should show balance
-    expect(screen.getByText('$125.50')).toBeTruthy()
-
-    // Should show pending
-    expect(screen.getByText(/\+\$45\.00/)).toBeTruthy()
-
-    // Should show total earned
     expect(screen.getByText('$1500.00')).toBeTruthy()
-
-    // Should show this month
+    expect(screen.getByText(/\+\$45\.00/)).toBeTruthy()
     expect(screen.getByText('$250.00')).toBeTruthy()
+    expect(screen.getByText('$200.00')).toBeTruthy()
   })
 
   it('shows positive month-over-month change', () => {
-    render(
-      <EarningsCard
-        earnings={mockEarnings}
-        loading={false}
-        onWithdraw={() => {}}
-      />
-    )
-
-    // 250 vs 200 = +25%
+    render(<EarningsCard earnings={mockEarnings} loading={false} />)
     expect(screen.getByText('+25%')).toBeTruthy()
   })
 
-  it('calls onWithdraw when button clicked', () => {
-    const onWithdraw = vi.fn()
-
-    render(
-      <EarningsCard
-        earnings={mockEarnings}
-        loading={false}
-        onWithdraw={onWithdraw}
-      />
-    )
-
-    const withdrawButton = screen.getByText('Withdraw Funds')
-    fireEvent.click(withdrawButton)
-
-    expect(onWithdraw).toHaveBeenCalled()
-  })
-
-  it('disables withdraw button when balance is 0', () => {
-    const zeroBalanceEarnings: EarningsData = {
-      ...mockEarnings,
-      balance_usdc: 0,
-    }
-
-    render(
-      <EarningsCard
-        earnings={zeroBalanceEarnings}
-        loading={false}
-        onWithdraw={() => {}}
-      />
-    )
-
-    const withdrawButton = screen.getByText('Withdraw Funds')
-    expect(withdrawButton).toBeDisabled()
+  it('does not render a Withdraw button (funds flow direct on-chain per ADR-001)', () => {
+    render(<EarningsCard earnings={mockEarnings} loading={false} />)
+    expect(screen.queryByText(/withdraw/i)).toBeNull()
   })
 })

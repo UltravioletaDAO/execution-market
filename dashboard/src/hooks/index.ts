@@ -5,7 +5,6 @@ export {
   useEarnings,
   useReputation,
   useTaskHistory,
-  useWithdrawal,
   type EarningsData,
   type ReputationData,
   type TaskHistoryItem,

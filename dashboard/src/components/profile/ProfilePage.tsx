@@ -1,10 +1,8 @@
 // Execution Market: Profile Page Component
-import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { EarningsCard } from './EarningsCard'
 import { ReputationCard } from './ReputationCard'
 import { TaskHistory } from './TaskHistory'
-import { WithdrawalForm } from './WithdrawalForm'
 import { WorldIdVerification } from '../WorldIdVerification'
 import { ENSLinkSection } from '../ENSLinkSection'
 import { useEarnings, useReputation, useTaskHistory } from '../../hooks/useProfile'
@@ -21,16 +19,10 @@ interface ProfilePageProps {
 
 export function ProfilePage({ executor, onBack, onEditProfile, onLogout }: ProfilePageProps) {
   const { t } = useTranslation()
-  const [showWithdrawal, setShowWithdrawal] = useState(false)
 
-  const { earnings, loading: earningsLoading, refetch: refetchEarnings } = useEarnings(executor.id)
+  const { earnings, loading: earningsLoading } = useEarnings(executor.id)
   const { reputation, loading: reputationLoading } = useReputation(executor.id)
   const { history, loading: historyLoading, hasMore, loadMore } = useTaskHistory(executor.id)
-
-  const handleWithdrawalSuccess = () => {
-    setShowWithdrawal(false)
-    refetchEarnings()
-  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-4">
@@ -236,7 +228,6 @@ export function ProfilePage({ executor, onBack, onEditProfile, onLogout }: Profi
         <EarningsCard
           earnings={earnings}
           loading={earningsLoading}
-          onWithdraw={() => setShowWithdrawal(true)}
         />
 
         <ReputationCard
@@ -252,17 +243,6 @@ export function ProfilePage({ executor, onBack, onEditProfile, onLogout }: Profi
         hasMore={hasMore}
         onLoadMore={loadMore}
       />
-
-      {/* Withdrawal modal */}
-      {showWithdrawal && (
-        <WithdrawalForm
-          executorId={executor.id}
-          earnings={earnings}
-          walletAddress={executor.wallet_address}
-          onSuccess={handleWithdrawalSuccess}
-          onCancel={() => setShowWithdrawal(false)}
-        />
-      )}
     </div>
   )
 }

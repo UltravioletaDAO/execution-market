@@ -1,14 +1,19 @@
-// Execution Market: Earnings Card Component
+// Execution Market: Earnings Card Component (read-only lifetime stats)
+//
+// NOTE: This card shows HISTORICAL earnings only (lifetime + monthly).
+// It does NOT show a withdrawable balance — in ADR-001 (agent-signed escrow)
+// funds flow directly from agent to the worker's wallet on-chain. There is no
+// custodial platform balance. For wallet actions (send/receive/export) see
+// the WalletSection component.
 import { useTranslation } from 'react-i18next'
 import type { EarningsData } from '../../hooks/useProfile'
 
 interface EarningsCardProps {
   earnings: EarningsData | null
   loading: boolean
-  onWithdraw: () => void
 }
 
-export function EarningsCard({ earnings, loading, onWithdraw }: EarningsCardProps) {
+export function EarningsCard({ earnings, loading }: EarningsCardProps) {
   const { t } = useTranslation()
 
   if (loading) {
@@ -26,23 +31,20 @@ export function EarningsCard({ earnings, loading, onWithdraw }: EarningsCardProp
     )
   }
 
-  const balance = earnings?.balance_usdc || 0
   const totalEarned = earnings?.total_earned_usdc || 0
   const pending = earnings?.pending_earnings_usdc || 0
   const thisMonth = earnings?.this_month_usdc || 0
   const lastMonth = earnings?.last_month_usdc || 0
 
-  // Calculate month-over-month change
   const monthChange = lastMonth > 0
     ? ((thisMonth - lastMonth) / lastMonth) * 100
     : thisMonth > 0 ? 100 : 0
 
   return (
     <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl shadow-lg p-6 text-white">
-      {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-blue-100 text-sm font-medium">
-          {t('profile.availableBalance', 'Available Balance')}
+          {t('profile.lifetimeEarnings', 'Lifetime Earnings')}
         </h3>
         <div className="flex items-center gap-1 text-blue-200">
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -52,26 +54,21 @@ export function EarningsCard({ earnings, loading, onWithdraw }: EarningsCardProp
         </div>
       </div>
 
-      {/* Balance */}
       <div className="mb-6">
         <div className="flex items-baseline gap-2">
-          <span className="text-4xl font-bold">${balance.toFixed(2)}</span>
+          <span className="text-4xl font-bold">${totalEarned.toFixed(2)}</span>
           {pending > 0 && (
             <span className="text-blue-200 text-sm">
               +${pending.toFixed(2)} {t('profile.pending', 'pending')}
             </span>
           )}
         </div>
+        <p className="text-blue-200 text-xs mt-1">
+          {t('profile.earningsNote', 'Paid directly to your wallet on-chain.')}
+        </p>
       </div>
 
-      {/* Stats grid */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <div className="bg-white/10 rounded-lg p-3">
-          <div className="text-blue-200 text-xs mb-1">
-            {t('profile.totalEarned', 'Total Earned')}
-          </div>
-          <div className="text-lg font-semibold">${totalEarned.toFixed(2)}</div>
-        </div>
+      <div className="grid grid-cols-2 gap-4">
         <div className="bg-white/10 rounded-lg p-3">
           <div className="text-blue-200 text-xs mb-1">
             {t('profile.thisMonth', 'This Month')}
@@ -89,20 +86,13 @@ export function EarningsCard({ earnings, loading, onWithdraw }: EarningsCardProp
             )}
           </div>
         </div>
+        <div className="bg-white/10 rounded-lg p-3">
+          <div className="text-blue-200 text-xs mb-1">
+            {t('profile.lastMonth', 'Last Month')}
+          </div>
+          <span className="text-lg font-semibold">${lastMonth.toFixed(2)}</span>
+        </div>
       </div>
-
-      {/* Withdraw button */}
-      <button
-        onClick={onWithdraw}
-        disabled={balance <= 0}
-        className={`w-full py-3 rounded-lg font-medium transition-all ${
-          balance > 0
-            ? 'bg-white text-blue-600 hover:bg-blue-50 active:scale-98'
-            : 'bg-white/20 text-blue-200 cursor-not-allowed'
-        }`}
-      >
-        {t('profile.withdraw', 'Withdraw Funds')}
-      </button>
     </div>
   )
 }

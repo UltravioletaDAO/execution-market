@@ -114,7 +114,7 @@ export function EarningsPage() {
           chartData={chartData}
           loading={earningsLoading || historyLoading}
           error={error}
-          onWithdraw={() => navigate('/profile')}
+          onViewWallet={() => navigate('/profile')}
           onChartPeriodChange={setChartPeriod}
           chartPeriod={chartPeriod}
         />
