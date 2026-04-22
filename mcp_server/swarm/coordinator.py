@@ -473,7 +473,31 @@ class SwarmCoordinator:
 
     def _route_alternatives(self, assignment: Assignment) -> list[dict]:
         """Best-effort shortlist for replayable route analysis."""
-        return []
+        alternatives: list[dict] = []
+        current_task = self._task_queue.get(assignment.task_id)
+        if current_task is None:
+            return alternatives
+
+        request = current_task.to_task_request()
+        scored_candidates = self.orchestrator._score_candidates(
+            self.lifecycle.get_available_agents(),
+            request,
+        )
+        for agent_id, score in scored_candidates:
+            if agent_id == assignment.agent_id:
+                continue
+            alternatives.append(
+                {
+                    "agent_id": agent_id,
+                    "score": round(score.total, 2),
+                    "tier": score.tier.value,
+                    "skill_score": round(score.skill_score, 2),
+                    "reliability_score": round(score.reliability_score, 2),
+                }
+            )
+            if len(alternatives) >= 3:
+                break
+        return alternatives
 
     @classmethod
     def create(
