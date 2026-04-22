@@ -207,6 +207,58 @@ resource "aws_cloudwatch_metric_alarm" "magika_high_rejection_rate" {
   }
 }
 
+# ── Alarm 7: Arbiter Zombie Dispute (INC-2026-04-22) ────────────────────────
+# Log-based metric filter. After Phase 1 of MASTER_PLAN_ARBITER_ZOMBIE_DISPUTE_FIX,
+# escalate_to_human() should only run from the explicit POST /api/v1/disputes
+# endpoint (Phase 3) — never from the arbiter processor. Any occurrence of
+# "Created L2 dispute" in the MCP logs means:
+#   (a) we regressed and the auto-escalation came back, OR
+#   (b) a publisher/worker explicitly opened a dispute via the new endpoint.
+# Either way, we want eyes on it during the stabilization window.
+#
+# The log pattern `"Created L2 dispute"` is emitted by escalation.py:120.
+# Metric is a Count; alarm fires on >= 1 occurrences in 5 min, sustained
+# across 2 datapoints = ≥2 auto-escalations in 10 min.
+
+resource "aws_cloudwatch_log_metric_filter" "arbiter_l2_dispute_created" {
+  name           = "${local.name_prefix}-arbiter-l2-dispute-created"
+  log_group_name = aws_cloudwatch_log_group.mcp_server.name
+  # Literal-substring match: every log line from escalation.py that creates
+  # a dispute. The surrounding quotes make it match the exact phrase.
+  pattern = "\"Created L2 dispute\""
+
+  metric_transformation {
+    name          = "ArbiterL2DisputeCreated"
+    namespace     = "ExecutionMarket/Arbiter"
+    value         = "1"
+    default_value = "0"
+    unit          = "Count"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "arbiter_zombie_escalation" {
+  alarm_name          = "${local.name_prefix}-arbiter-zombie-escalation"
+  alarm_description   = "Ring 2 auto-escalation to dispute detected (INC-2026-04-22). After Phase 1 fix, escalate_to_human should only fire from explicit POST /api/v1/disputes. Any hit = regression or explicit dispute — investigate."
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = 2
+  datapoints_to_alarm = 1
+  metric_name         = "ArbiterL2DisputeCreated"
+  namespace           = "ExecutionMarket/Arbiter"
+  period              = 300 # 5 minutes
+  statistic           = "Sum"
+  threshold           = 1
+  treat_missing_data  = "notBreaching"
+
+  alarm_actions = [aws_sns_topic.mcp_alerts.arn]
+  ok_actions    = [aws_sns_topic.mcp_alerts.arn]
+
+  tags = {
+    Name     = "${local.name_prefix}-arbiter-zombie-escalation"
+    Severity = "warning"
+    Incident = "INC-2026-04-22"
+  }
+}
+
 # ── CloudWatch Dashboard ─────────────────────────────────────────────────────
 # 6 widgets: task counts, memory, CPU, 5xx, response time, unhealthy hosts.
 
