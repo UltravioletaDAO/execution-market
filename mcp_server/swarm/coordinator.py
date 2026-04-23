@@ -1171,6 +1171,7 @@ class SwarmCoordinator:
         by_judgment: dict[str, int] = {}
         by_category: dict[str, int] = {}
         degradation_reasons: dict[str, int] = {}
+        category_breakdown: dict[str, dict] = {}
         for report in reports:
             judgment = str(report.get("judgment") or "uncertain")
             by_judgment[judgment] = by_judgment.get(judgment, 0) + 1
@@ -1180,11 +1181,47 @@ class SwarmCoordinator:
             categories = task.categories if task else []
             if not categories:
                 categories = ["unknown"]
+
+            report_reasons = report.get("degradation_reasons", [])
+            for reason in report_reasons:
+                degradation_reasons[reason] = degradation_reasons.get(reason, 0) + 1
+
             for category in categories:
                 by_category[category] = by_category.get(category, 0) + 1
+                bucket = category_breakdown.setdefault(
+                    category,
+                    {
+                        "episodes": 0,
+                        "by_judgment": {},
+                        "degradation_reasons": {},
+                        "avg_regret_score": 0.0,
+                        "top_regrets": [],
+                    },
+                )
+                bucket["episodes"] += 1
+                bucket["by_judgment"][judgment] = bucket["by_judgment"].get(judgment, 0) + 1
+                for reason in report_reasons:
+                    bucket["degradation_reasons"][reason] = (
+                        bucket["degradation_reasons"].get(reason, 0) + 1
+                    )
+                bucket["avg_regret_score"] += float(report.get("regret_score", 0.0) or 0.0)
+                if report.get("judgment") == "regret":
+                    bucket["top_regrets"].append(report)
 
-            for reason in report.get("degradation_reasons", []):
-                degradation_reasons[reason] = degradation_reasons.get(reason, 0) + 1
+        for bucket in category_breakdown.values():
+            episodes = bucket["episodes"] or 1
+            bucket["avg_regret_score"] = round(bucket["avg_regret_score"] / episodes, 4)
+            bucket["by_judgment"] = dict(
+                sorted(bucket["by_judgment"].items(), key=lambda item: (-item[1], item[0]))
+            )
+            bucket["degradation_reasons"] = dict(
+                sorted(bucket["degradation_reasons"].items(), key=lambda item: (-item[1], item[0]))
+            )
+            bucket["top_regrets"] = sorted(
+                bucket["top_regrets"],
+                key=lambda report: report.get("regret_score", 0.0),
+                reverse=True,
+            )[:3]
 
         top_regrets = [report for report in reports if report.get("judgment") == "regret"][:5]
 
@@ -1192,6 +1229,9 @@ class SwarmCoordinator:
             "episodes": len(reports),
             "by_judgment": by_judgment,
             "by_category": dict(sorted(by_category.items(), key=lambda item: (-item[1], item[0]))),
+            "category_breakdown": dict(
+                sorted(category_breakdown.items(), key=lambda item: (-item[1]["episodes"], item[0]))
+            ),
             "degradation_reasons": dict(
                 sorted(degradation_reasons.items(), key=lambda item: (-item[1], item[0]))
             ),

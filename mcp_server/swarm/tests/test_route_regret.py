@@ -196,3 +196,11 @@ def test_dashboard_route_regret_summary_groups_recent_episodes():
     assert route_regret["top_regrets"]
     assert route_regret["top_regrets"][0]["task_id"] == "task-4"
     assert route_regret["top_regrets"][0]["judgment"] == "regret"
+
+    category_panel = route_regret["category_breakdown"]["translation"]
+    assert category_panel["episodes"] >= 1
+    assert category_panel["by_judgment"]["regret"] >= 1
+    assert category_panel["degradation_reasons"]["timeout"] >= 1
+    assert category_panel["avg_regret_score"] > 0
+    assert category_panel["top_regrets"]
+    assert category_panel["top_regrets"][0]["task_id"] == "task-4"
