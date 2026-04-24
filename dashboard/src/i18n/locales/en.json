@@ -40,6 +40,7 @@
     "apply": "Apply",
     "reset": "Reset",
     "copy": "Copy",
+    "copied": "Copied!",
     "copyAddress": "Copy address",
     "dismiss": "Dismiss",
     "filters": "Filters",
@@ -1227,7 +1228,50 @@
     "tryAgain": "Try Again",
     "continue": "Continue",
     "emailNotAvailable": "Email wallet is not available. Please use MetaMask or WalletConnect.",
-    "securityNote": "Your wallet is used for identity and payments. We never store your private keys."
+    "securityNote": "Your wallet is used for identity and payments. We never store your private keys.",
+    "section": {
+      "title": "Wallet",
+      "subtitle": "Live on-chain balance",
+      "totalBalance": "Total USDC across chains",
+      "updated": "Updated",
+      "send": "Send",
+      "receive": "Receive",
+      "error": "Couldn't load balances.",
+      "byChain": "By chain",
+      "rpcError": "RPC error",
+      "security": "Security"
+    },
+    "send": {
+      "title": "Send USDC",
+      "subtitle": "You pay the gas on the selected chain.",
+      "chainLabel": "Network",
+      "recipientLabel": "Recipient address",
+      "invalidAddress": "Not a valid EVM address.",
+      "amountLabel": "Amount (USDC)",
+      "max": "Max",
+      "overBalance": "Amount exceeds your balance on this chain.",
+      "invalidAmount": "Enter a positive amount.",
+      "sending": "Sending...",
+      "submit": "Send USDC",
+      "successTitle": "Transfer submitted",
+      "successBody": "Your USDC is on the way.",
+      "errorNoWallet": "No wallet connected.",
+      "errorNonEvm": "Only EVM wallets can send USDC here."
+    },
+    "receive": {
+      "title": "Receive USDC",
+      "subtitle": "Send USDC to this address on any supported chain.",
+      "addressLabel": "Your wallet address",
+      "warningTitle": "One address, multiple chains.",
+      "warningBody": "This is your EVM address. You can receive USDC on Base, Ethereum, Polygon, Arbitrum, Optimism, Avalanche, and Celo — make sure the sender picks the right chain."
+    },
+    "export": {
+      "externalWallet": "You're using an external wallet — manage your keys from that wallet's app.",
+      "title": "Export your private key",
+      "body": "Your wallet is fully self-custody. Export the private key to move it to MetaMask, Rabby, or any wallet you already use. Anyone with this key can spend your funds — never share it.",
+      "confirm": "Yes, show me",
+      "button": "Open export flow"
+    }
   },
   "header": {
     "searchPlaceholder": "Search tasks...",

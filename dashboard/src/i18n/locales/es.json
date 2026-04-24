@@ -40,6 +40,7 @@
     "apply": "Aplicar",
     "reset": "Restablecer",
     "copy": "Copiar",
+    "copied": "Copiado!",
     "copyAddress": "Copiar direccion",
     "dismiss": "Cerrar e intentar de nuevo",
     "filters": "Filtros",
@@ -350,7 +351,50 @@
     "tryAgain": "Intentar de nuevo",
     "continue": "Continuar",
     "emailNotAvailable": "Wallet por email no disponible. Por favor usa MetaMask o WalletConnect.",
-    "securityNote": "Tu wallet se usa para identidad y pagos. Nunca almacenamos tus llaves privadas."
+    "securityNote": "Tu wallet se usa para identidad y pagos. Nunca almacenamos tus llaves privadas.",
+    "section": {
+      "title": "Wallet",
+      "subtitle": "Saldo on-chain en vivo",
+      "totalBalance": "USDC total en todas las redes",
+      "updated": "Actualizado",
+      "send": "Enviar",
+      "receive": "Recibir",
+      "error": "No se pudieron cargar los saldos.",
+      "byChain": "Por red",
+      "rpcError": "Error de RPC",
+      "security": "Seguridad"
+    },
+    "send": {
+      "title": "Enviar USDC",
+      "subtitle": "Tu pagas el gas en la red seleccionada.",
+      "chainLabel": "Red",
+      "recipientLabel": "Direccion del destinatario",
+      "invalidAddress": "No es una direccion EVM valida.",
+      "amountLabel": "Monto (USDC)",
+      "max": "Max",
+      "overBalance": "El monto excede tu saldo en esta red.",
+      "invalidAmount": "Ingresa un monto positivo.",
+      "sending": "Enviando...",
+      "submit": "Enviar USDC",
+      "successTitle": "Transferencia enviada",
+      "successBody": "Tu USDC va en camino.",
+      "errorNoWallet": "No hay wallet conectada.",
+      "errorNonEvm": "Solo wallets EVM pueden enviar USDC desde aqui."
+    },
+    "receive": {
+      "title": "Recibir USDC",
+      "subtitle": "Envia USDC a esta direccion en cualquier red soportada.",
+      "addressLabel": "Tu direccion de wallet",
+      "warningTitle": "Una direccion, varias redes.",
+      "warningBody": "Esta es tu direccion EVM. Puedes recibir USDC en Base, Ethereum, Polygon, Arbitrum, Optimism, Avalanche y Celo — asegurate de que quien envia elija la red correcta."
+    },
+    "export": {
+      "externalWallet": "Estas usando una wallet externa — gestiona tus llaves desde la app de esa wallet.",
+      "title": "Exporta tu llave privada",
+      "body": "Tu wallet es totalmente self-custody. Exporta la llave privada para moverla a MetaMask, Rabby o cualquier wallet que ya uses. Cualquiera con esta llave puede gastar tus fondos — nunca la compartas.",
+      "confirm": "Si, muestramela",
+      "button": "Abrir flujo de exportacion"
+    }
   },
   "tasks": {
     "title": "Trabajos Disponibles",

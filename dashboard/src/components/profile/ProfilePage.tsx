@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { EarningsCard } from './EarningsCard'
 import { ReputationCard } from './ReputationCard'
 import { TaskHistory } from './TaskHistory'
+import { WalletSection } from './wallet'
 import { WorldIdVerification } from '../WorldIdVerification'
 import { ENSLinkSection } from '../ENSLinkSection'
 import { useEarnings, useReputation, useTaskHistory } from '../../hooks/useProfile'
@@ -203,6 +204,9 @@ export function ProfilePage({ executor, onBack, onEditProfile, onLogout }: Profi
           </div>
         )}
       </div>
+
+      {/* Wallet: live on-chain balance + send/receive/export (ADR-001) */}
+      <WalletSection walletAddress={executor.wallet_address} />
 
       {/* Identity: World ID (flag-gated) + ENS */}
       <div className={`grid grid-cols-1 ${isWorldIdEnabled() ? 'md:grid-cols-2' : ''} gap-4`}>
