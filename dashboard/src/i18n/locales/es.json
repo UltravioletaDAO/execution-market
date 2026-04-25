@@ -364,6 +364,13 @@
       "rpcError": "Error de RPC",
       "security": "Seguridad"
     },
+    "selector": {
+      "title": "Wallet activa",
+      "count": "{{count}} vinculadas",
+      "embedded": "Embebida (gestionada por Dynamic)",
+      "external": "Externa (auto-custodia)",
+      "active": "Activa"
+    },
     "send": {
       "title": "Enviar USDC",
       "subtitle": "Tu pagas el gas en la red seleccionada.",

@@ -1,14 +1,22 @@
 // WalletSection — canonical place on /profile for everything wallet-related
-// under ADR-001: on-chain balance breakdown, send/receive, and key export.
-// Replaces the legacy "Available Balance + Withdraw" UI that assumed a
-// custodial platform balance.
+// under ADR-001: on-chain balance breakdown, send/receive, key export, AND
+// (when the user has 2+ wallets linked) a switcher to pick which one is
+// active.
+//
+// `walletAddress` from props is the address Supabase has on record for this
+// executor. We display ITS balance only when Dynamic hasn't loaded yet —
+// otherwise we follow Dynamic's `primaryWallet`, which the selector mutates.
+// This keeps the displayed balance in sync with whatever wallet the user
+// just clicked, without needing to round-trip through AuthContext.
 
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useDynamicContext } from '@dynamic-labs/sdk-react-core'
 import { useOnchainBalance } from '../../../hooks/useOnchainBalance'
 import { ExportWalletButton } from './ExportWalletButton'
 import { SendUSDCModal } from './SendUSDCModal'
 import { ReceiveModal } from './ReceiveModal'
+import { WalletSelector } from './WalletSelector'
 
 interface WalletSectionProps {
   walletAddress: string
@@ -16,7 +24,9 @@ interface WalletSectionProps {
 
 export function WalletSection({ walletAddress }: WalletSectionProps) {
   const { t } = useTranslation()
-  const { balances, totalUsdc, loading, error, lastUpdated, refetch } = useOnchainBalance(walletAddress)
+  const { primaryWallet } = useDynamicContext()
+  const activeAddress = primaryWallet?.address?.toLowerCase() || walletAddress
+  const { balances, totalUsdc, loading, error, lastUpdated, refetch } = useOnchainBalance(activeAddress)
   const [sendOpen, setSendOpen] = useState(false)
   const [receiveOpen, setReceiveOpen] = useState(false)
 
@@ -31,7 +41,7 @@ export function WalletSection({ walletAddress }: WalletSectionProps) {
               {t('wallet.section.title', 'Wallet')}
             </h3>
             <p className="text-xs text-gray-500 mt-0.5">
-              {formatShortAddress(walletAddress)} ·{' '}
+              {formatShortAddress(activeAddress)} ·{' '}
               {t('wallet.section.subtitle', 'Live on-chain balance')}
             </p>
           </div>
@@ -57,6 +67,8 @@ export function WalletSection({ walletAddress }: WalletSectionProps) {
             </svg>
           </button>
         </div>
+
+        <WalletSelector />
 
         <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-4 text-white">
           <div className="text-xs text-gray-300 uppercase tracking-wide">
@@ -160,7 +172,7 @@ export function WalletSection({ walletAddress }: WalletSectionProps) {
       <ReceiveModal
         open={receiveOpen}
         onClose={() => setReceiveOpen(false)}
-        walletAddress={walletAddress}
+        walletAddress={activeAddress}
       />
     </>
   )

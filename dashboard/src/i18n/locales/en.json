@@ -1241,6 +1241,13 @@
       "rpcError": "RPC error",
       "security": "Security"
     },
+    "selector": {
+      "title": "Active wallet",
+      "count": "{{count}} linked",
+      "embedded": "Embedded (Dynamic-managed)",
+      "external": "External (self-custody)",
+      "active": "Active"
+    },
     "send": {
       "title": "Send USDC",
       "subtitle": "You pay the gas on the selected chain.",

@@ -1,4 +1,5 @@
 export { WalletSection } from './WalletSection'
+export { WalletSelector } from './WalletSelector'
 export { SendUSDCModal } from './SendUSDCModal'
 export { ReceiveModal } from './ReceiveModal'
 export { ExportWalletButton } from './ExportWalletButton'

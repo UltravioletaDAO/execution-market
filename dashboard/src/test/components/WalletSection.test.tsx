@@ -1,10 +1,10 @@
 // WalletSection tests — ADR-001 wallet surface on /profile.
 // Covers: render states (loading/loaded/error), totals math, action enablement,
-// and modal open/close wiring. Dynamic SDK + useOnchainBalance are mocked so
-// tests are deterministic and don't hit RPCs.
+// modal open/close wiring, AND the multi-wallet selector. Dynamic SDK +
+// useOnchainBalance are mocked so tests are deterministic and don't hit RPCs.
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { WalletSection } from '../../components/profile/wallet/WalletSection'
 import type { ChainBalance } from '../../hooks/useOnchainBalance'
 import { NETWORK_BY_KEY } from '../../config/networks'
@@ -23,14 +23,30 @@ vi.mock('../../hooks/useOnchainBalance', () => ({
   useOnchainBalance: () => mockHookReturn,
 }))
 
+interface MockWallet {
+  id: string
+  address: string
+  connector?: { isEmbeddedWallet?: boolean }
+}
+
+const mockSwitchWallet = vi.fn().mockResolvedValue(undefined)
+const mockSetShowDynamicUserProfile = vi.fn()
+
+const mockDynamicState: {
+  primaryWallet: MockWallet | null
+  userWallets: MockWallet[]
+} = {
+  primaryWallet: null,
+  userWallets: [],
+}
+
 vi.mock('@dynamic-labs/sdk-react-core', () => ({
   useDynamicContext: () => ({
-    primaryWallet: {
-      address: '0xabc123',
-      connector: { isEmbeddedWallet: true },
-    },
-    setShowDynamicUserProfile: vi.fn(),
+    primaryWallet: mockDynamicState.primaryWallet,
+    setShowDynamicUserProfile: mockSetShowDynamicUserProfile,
   }),
+  useUserWallets: () => mockDynamicState.userWallets,
+  useSwitchWallet: () => mockSwitchWallet,
 }))
 
 vi.mock('qrcode', () => ({
@@ -38,6 +54,18 @@ vi.mock('qrcode', () => ({
 }))
 
 const TEST_ADDRESS = '0x1234567890abcdef1234567890abcdef12345678'
+
+const EMBEDDED_WALLET: MockWallet = {
+  id: 'wallet-embedded-1',
+  address: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+  connector: { isEmbeddedWallet: true },
+}
+
+const EXTERNAL_WALLET: MockWallet = {
+  id: 'wallet-external-1',
+  address: '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+  connector: { isEmbeddedWallet: false },
+}
 
 describe('WalletSection', () => {
   beforeEach(() => {
@@ -47,9 +75,22 @@ describe('WalletSection', () => {
     mockHookReturn.error = null
     mockHookReturn.lastUpdated = null
     mockRefetch.mockClear()
+    mockSwitchWallet.mockClear()
+    mockSetShowDynamicUserProfile.mockClear()
+    // Default Dynamic state: primary embedded, no extra wallets — selector hidden
+    mockDynamicState.primaryWallet = EMBEDDED_WALLET
+    mockDynamicState.userWallets = [EMBEDDED_WALLET]
   })
 
   it('renders header with shortened wallet address', () => {
+    render(<WalletSection walletAddress={TEST_ADDRESS} />)
+    // Active address comes from primaryWallet (embedded), not the prop
+    expect(screen.getByText(/0xaaaa/)).toBeTruthy()
+  })
+
+  it('falls back to prop address when Dynamic has no primaryWallet', () => {
+    mockDynamicState.primaryWallet = null
+    mockDynamicState.userWallets = []
     render(<WalletSection walletAddress={TEST_ADDRESS} />)
     expect(screen.getByText(/0x1234/)).toBeTruthy()
     expect(screen.getByText(/5678/)).toBeTruthy()
@@ -141,5 +182,74 @@ describe('WalletSection', () => {
   it('renders export button for embedded wallets', () => {
     render(<WalletSection walletAddress={TEST_ADDRESS} />)
     expect(screen.getByText(/Export your private key/i)).toBeTruthy()
+  })
+
+  // ---------- WalletSelector ----------
+
+  it('hides selector when only one wallet is linked', () => {
+    mockDynamicState.userWallets = [EMBEDDED_WALLET]
+    render(<WalletSection walletAddress={TEST_ADDRESS} />)
+    expect(screen.queryByText(/Active wallet/i)).toBeNull()
+    expect(screen.queryByText(/External \(self-custody\)/i)).toBeNull()
+  })
+
+  it('shows selector with both wallets when 2+ linked', () => {
+    mockDynamicState.primaryWallet = EXTERNAL_WALLET
+    mockDynamicState.userWallets = [EMBEDDED_WALLET, EXTERNAL_WALLET]
+    render(<WalletSection walletAddress={TEST_ADDRESS} />)
+    expect(screen.getByText(/Active wallet/i)).toBeTruthy()
+    expect(screen.getByText(/Embedded \(Dynamic-managed\)/i)).toBeTruthy()
+    expect(screen.getByText(/External \(self-custody\)/i)).toBeTruthy()
+  })
+
+  it('marks active wallet with the active badge', () => {
+    mockDynamicState.primaryWallet = EXTERNAL_WALLET
+    mockDynamicState.userWallets = [EMBEDDED_WALLET, EXTERNAL_WALLET]
+    render(<WalletSection walletAddress={TEST_ADDRESS} />)
+    const activeBadges = screen.getAllByText(/^Active$/i)
+    // exactly one wallet is active
+    expect(activeBadges.length).toBe(1)
+  })
+
+  it('clicking a non-active wallet calls switchWallet with the wallet id', async () => {
+    mockDynamicState.primaryWallet = EXTERNAL_WALLET
+    mockDynamicState.userWallets = [EMBEDDED_WALLET, EXTERNAL_WALLET]
+    render(<WalletSection walletAddress={TEST_ADDRESS} />)
+    // Find the embedded wallet button (not active) by its label text
+    const embeddedRow = screen.getByText(/Embedded \(Dynamic-managed\)/i).closest('button')
+    expect(embeddedRow).toBeTruthy()
+    fireEvent.click(embeddedRow!)
+    await waitFor(() => {
+      expect(mockSwitchWallet).toHaveBeenCalledWith(EMBEDDED_WALLET.id)
+    })
+  })
+
+  it('does not call switchWallet when clicking the already-active wallet', () => {
+    mockDynamicState.primaryWallet = EXTERNAL_WALLET
+    mockDynamicState.userWallets = [EMBEDDED_WALLET, EXTERNAL_WALLET]
+    render(<WalletSection walletAddress={TEST_ADDRESS} />)
+    const externalRow = screen.getByText(/External \(self-custody\)/i).closest('button')
+    fireEvent.click(externalRow!)
+    expect(mockSwitchWallet).not.toHaveBeenCalled()
+  })
+
+  it('uses primaryWallet address for balance display', () => {
+    // External primary — balance fetch should target external, not the prop
+    mockDynamicState.primaryWallet = EXTERNAL_WALLET
+    mockDynamicState.userWallets = [EMBEDDED_WALLET, EXTERNAL_WALLET]
+    render(<WalletSection walletAddress={TEST_ADDRESS} />)
+    // Header + selector both show the shortened external address
+    expect(screen.getAllByText(/0xbbbb/).length).toBeGreaterThanOrEqual(1)
+    // The TEST_ADDRESS prop is ignored when primaryWallet is set
+    expect(screen.queryByText(/0x1234/)).toBeNull()
+  })
+
+  it('hides export when active wallet is external', () => {
+    mockDynamicState.primaryWallet = EXTERNAL_WALLET
+    mockDynamicState.userWallets = [EMBEDDED_WALLET, EXTERNAL_WALLET]
+    render(<WalletSection walletAddress={TEST_ADDRESS} />)
+    // ExportWalletButton renders the "external wallet" message instead of the export form
+    expect(screen.getByText(/external wallet/i)).toBeTruthy()
+    expect(screen.queryByText(/Export your private key/i)).toBeNull()
   })
 })
