@@ -861,3 +861,51 @@ That would connect the planning work to an actual product loop without requiring
 ### 31.5 Strategic handoff sentence
 **Daytime should stop expanding the concept and start implementing the replay loop: template -> reviewed result -> office memory -> better next dispatch.**
 
+## 32. Final 6am wrap-up
+
+### 32.1 What was accomplished vs planned
+The stale cron payload still pointed at AutoJob, Frontier Academy, and KK v2, but `DREAM-PRIORITIES.md` overrode that completely. The night therefore stayed correctly focused on Execution Market AAS work only.
+
+Accomplished:
+- expanded the core CaaS master plan into a full implementation-oriented planning stack
+- produced concrete docs for templates, evidence schemas, jurisdiction memory, operator workflow, pilot design, and Acontext memory bridging
+- tightened the recommended execution order around a narrow Miami-area pilot
+- converted the night's work into a clearer daytime engineering handoff
+
+Not done because it is explicitly stopped:
+- no AutoJob work
+- no Frontier Academy work
+- no KK v2 work
+
+### 32.2 Core insight from the night
+The highest-value shift is that CaaS is no longer blocked on imagination. It is now blocked on implementation contracts.
+
+The next leverage point is a thin shared loop:
+1. template selected
+2. reviewed structured result captured
+3. office/jurisdiction memory updated
+4. future dispatch improved by retrieval
+
+### 32.3 Immediate daytime attention
+If daytime touches only one thing next, it should be the shared result/memory seam:
+- finalize the v1 city-ops result schema
+- implement a reviewed episode projector that emits `episode_summary`, `office_playbook`, and `jurisdiction_brief`
+- wire a lightweight dispatch briefing helper that consumes those artifacts
+
+### 32.4 How tonight positions the ecosystem
+Tonight moved Execution Market's AAS direction from concept exploration into product-shaping territory.
+
+That matters because CaaS now has:
+- a concrete customer wedge
+- a minimal pilot shape
+- a structured evidence contract
+- an operator review discipline
+- a memory architecture that can compound across runs
+
+In other words: this is now close enough to build, not just discuss.
+
+### 32.5 Repo hygiene / continuity note
+All dream-session work stayed in `projects/execution-market` on `feat/operator-route-regret-panel`.
+The repo is synced with origin, and the only intentionally untouched local item remains the unrelated untracked file `scripts/sign_req.mjs`.
+
+The planning docs under `docs/planning/` are now the canonical handoff surface for daytime follow-through.
