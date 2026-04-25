@@ -799,3 +799,65 @@ If daytime product work picks this up next, the highest-leverage build order is:
 
 That sequence keeps CaaS grounded in product reality: real operator surfaces, real evidence structure, real memory accumulation, a pilot small enough to learn from quickly, and a clean bridge into Acontext-backed operational memory.
 
+## 31. Pre-dawn synthesis and daytime handoff
+
+Tonight's work clarified that the CaaS problem is no longer a thesis problem. The planning stack is now strong enough to support a very specific daytime move: define the first implementation contracts and treat the Miami pilot as an operator-learning system, not a generic marketplace launch.
+
+### 31.1 What became clear tonight
+- the strongest first wedge remains **Packet Submission + Counter Question**
+- the core product breakthrough is **normalized municipal outcome capture**, not generic evidence upload
+- the real moat is **reviewed office memory** that makes the second run better than the first
+- Acontext should be treated as the **retrieval and observability layer**, while Execution Market remains the execution ledger
+
+### 31.2 The missing bridge has narrowed
+The remaining gap is no longer broad strategy. It is the build interface between:
+- task templates
+- normalized result JSON
+- office-memory writes
+- reviewed episode summaries
+- dispatch-time retrieval briefs
+
+That means daytime work should avoid more concept expansion and move directly into implementation-facing contracts.
+
+### 31.3 Recommended daytime priorities
+
+#### Priority A — lock the v1 product/result contract
+Define the exact implementation shape for:
+- `workflow_template`
+- `outcome_status`
+- `source_type`
+- `rejection_reasons[]`
+- `redirect_target`
+- `next_step_recommendation`
+- per-template `structured_result` payloads
+
+This should produce one thin contract that both operator UI and API surfaces can share.
+
+#### Priority B — build reviewed episode artifacts before full Acontext wiring
+Before worrying about live infra, implement a local projector path that emits:
+- `episode_summary`
+- `office_playbook`
+- `jurisdiction_brief`
+
+That de-risks the memory loop and lets the team test retrieval quality before Docker/Acontext plumbing is finished.
+
+#### Priority C — operationalize one brutally narrow Miami pilot
+Constrain the first real rollout to:
+- one metro area
+- Counter Question, Packet Submission, Posting Proof only
+- mandatory review on all non-clean outcomes
+- office-memory write after every meaningful episode
+
+The success target should be improved routing/rejection learning, not raw volume.
+
+### 31.4 Practical recommendation for the next engineering slice
+If only one code slice is started next, it should be:
+1. a shared city-ops result schema
+2. a reviewed episode-summary writer
+3. a simple dispatch-brief retrieval helper
+
+That would connect the planning work to an actual product loop without requiring the entire CaaS platform to exist first.
+
+### 31.5 Strategic handoff sentence
+**Daytime should stop expanding the concept and start implementing the replay loop: template -> reviewed result -> office memory -> better next dispatch.**
+
