@@ -741,17 +741,19 @@ Once those exist, EM can prototype City as a Service as an actual product surfac
 
 ## 29. Implementation docs created
 
-On 2026-04-25, this plan was expanded into four implementation-facing companion docs:
+On 2026-04-25, this plan was expanded into five implementation-facing companion docs:
 - `CITY_AS_A_SERVICE_TEMPLATE_SPECS.md`
 - `CITY_AS_A_SERVICE_EVIDENCE_SCHEMAS.md`
 - `CITY_AS_A_SERVICE_JURISDICTION_MODEL.md`
 - `CITY_AS_A_SERVICE_OPERATOR_PLAYBOOK.md`
+- `CITY_AS_A_SERVICE_PILOT_BLUEPRINT.md`
 
 These docs convert the CaaS thesis into:
 - concrete MVP templates
 - normalized municipal evidence contracts
 - a reusable office/jurisdiction memory layer
 - an operator workflow for intake, dispatch, review, chaining, and memory updates
+- a narrow first-pilot blueprint that can move from planning into live execution
 
 This is the right level of specificity for the next product step: prototype city-ops surfaces without overcommitting to a giant platform build.
 
@@ -782,5 +784,11 @@ If daytime product work picks this up next, the highest-leverage build order is:
    - require closure artifacts (success proof, rejection diagnosis, or redirect target)
    - update office memory after every meaningful episode
 
-That sequence keeps CaaS grounded in product reality: real operator surfaces, real evidence structure, real memory accumulation.
+6. **Constrain the first pilot brutally**
+   - one metro area
+   - three templates first: Counter Question, Packet Submission, Posting Proof
+   - manual review on all rejected/redirected/blocked outcomes
+   - treat repeat office learning as the primary success signal
+
+That sequence keeps CaaS grounded in product reality: real operator surfaces, real evidence structure, real memory accumulation, and a pilot small enough to learn from quickly.
 
