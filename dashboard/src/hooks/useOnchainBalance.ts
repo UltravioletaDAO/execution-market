@@ -1,13 +1,19 @@
-// useOnchainBalance — reads USDC balance directly from chain via viem.
+// useOnchainBalance — reads USDC balance per chain for a wallet.
 //
 // Under ADR-001, funds are never custodied by the platform. Payments settle
 // straight to the worker's wallet on whatever chain the agent chose. There is
-// no single "balance" to show — each chain has its own. This hook queries all
-// live EVM chains in parallel and returns per-chain balances + a total.
+// no single "balance" to show — each chain has its own. This hook returns the
+// per-chain breakdown and a total.
 //
-// RPC usage: one multicall-ready read per chain. Public RPCs are fine for
-// low-volume dashboard reads; switch to QuikNode if rate limits bite.
-
+// Data path: dashboard → EM balances Lambda (Function URL) → private QuikNode
+// RPCs (from `facilitator-rpc-mainnet` Secrets Manager). The Lambda exists so
+// that (1) we don't ship private RPC URLs in the browser bundle and (2) public
+// RPCs don't rate-limit every dashboard render. See infrastructure/terraform/
+// em_balances.tf and lambda/em_balances.py.
+//
+// If `VITE_BALANCES_LAMBDA_URL` is unset, the hook falls back to direct viem
+// reads against public RPCs — useful for local dev before the Lambda is
+// deployed, but expect rate-limit errors in production traffic.
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createPublicClient, http, erc20Abi, formatUnits, type Address } from 'viem'
 import {
@@ -69,7 +75,65 @@ function isValidAddress(value: unknown): value is Address {
   return typeof value === 'string' && /^0x[a-fA-F0-9]{40}$/.test(value)
 }
 
-async function readUsdcBalance(entry: ChainEntry, wallet: Address): Promise<ChainBalance> {
+const LAMBDA_URL = (import.meta.env.VITE_BALANCES_LAMBDA_URL as string | undefined)?.replace(/\/$/, '')
+
+interface LambdaChainResult {
+  raw: string | null
+  balance: number
+  error: string | null
+}
+
+interface LambdaResponse {
+  wallet: string
+  balances: Record<string, LambdaChainResult>
+  total_usdc: number
+  cached_at: number
+  ttl_seconds: number
+}
+
+async function fetchFromLambda(wallet: Address): Promise<ChainBalance[]> {
+  if (!LAMBDA_URL) throw new Error('VITE_BALANCES_LAMBDA_URL not configured')
+  const res = await fetch(`${LAMBDA_URL}?wallet=${wallet}`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  })
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`Balances Lambda ${res.status}: ${text || res.statusText}`)
+  }
+  const data = (await res.json()) as LambdaResponse
+  return CHAINS.map((entry) => {
+    const result = data.balances[entry.network.key]
+    if (!result) {
+      return {
+        network: entry.network,
+        balance: 0,
+        raw: 0n,
+        error: 'no result from Lambda',
+        loading: false,
+      }
+    }
+    if (result.error) {
+      return {
+        network: entry.network,
+        balance: 0,
+        raw: 0n,
+        error: result.error,
+        loading: false,
+      }
+    }
+    const raw = result.raw ? BigInt(result.raw) : 0n
+    return {
+      network: entry.network,
+      balance: result.balance,
+      raw,
+      error: null,
+      loading: false,
+    }
+  })
+}
+
+async function readUsdcBalanceViaViem(entry: ChainEntry, wallet: Address): Promise<ChainBalance> {
   const client = createPublicClient({ chain: entry.chain, transport: http() })
   try {
     const raw = (await client.readContract({
@@ -96,6 +160,11 @@ async function readUsdcBalance(entry: ChainEntry, wallet: Address): Promise<Chai
   }
 }
 
+async function fetchAllBalances(wallet: Address): Promise<ChainBalance[]> {
+  if (LAMBDA_URL) return fetchFromLambda(wallet)
+  return Promise.all(CHAINS.map((entry) => readUsdcBalanceViaViem(entry, wallet)))
+}
+
 export function useOnchainBalance(walletAddress: string | null | undefined): UseOnchainBalanceReturn {
   const [balances, setBalances] = useState<ChainBalance[]>([])
   const [loading, setLoading] = useState(false)
@@ -115,7 +184,7 @@ export function useOnchainBalance(walletAddress: string | null | undefined): Use
     setLoading(true)
     setError(null)
     try {
-      const results = await Promise.all(CHAINS.map((entry) => readUsdcBalance(entry, normalizedWallet)))
+      const results = await fetchAllBalances(normalizedWallet)
       setBalances(results)
       setLastUpdated(new Date())
     } catch (err) {

@@ -140,6 +140,23 @@ variable "evidence_max_upload_mb" {
   default     = 25
 }
 
+# EM USDC balances Lambda (dashboard wallet panel — ADR-001)
+# Public Function URL that proxies USDC.balanceOf reads across EM's 7 EVM chains
+# using private QuikNode RPCs from the `facilitator-rpc-mainnet` secret. Frontend
+# stops calling RPCs directly, eliminating "RPC error" pills caused by public-RPC
+# rate limits (and avoiding any leak of private RPC URLs into the browser bundle).
+variable "enable_em_balances_lambda" {
+  description = "Manage the EM USDC balances Lambda + Function URL (consumed by dashboard WalletSection)."
+  type        = bool
+  default     = true
+}
+
+variable "em_balances_allowed_origins" {
+  description = "Browser origins allowed to call the EM balances Lambda. Lambda enforces CORS at the Function URL edge."
+  type        = list(string)
+  default     = ["https://execution.market", "https://www.execution.market", "http://localhost:5173"]
+}
+
 # WAF
 variable "waf_blocked_ips" {
   description = "List of CIDR blocks to permanently block at WAF level. Added 2026-04-04 after Tor exit node 104.244.78.233 flood."
