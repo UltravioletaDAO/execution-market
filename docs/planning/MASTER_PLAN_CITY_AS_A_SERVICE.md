@@ -376,6 +376,7 @@ The moat is not just labor supply. It is **municipal reality memory**.
 3. `CITY_AS_A_SERVICE_JURISDICTION_MODEL.md`
 4. `CITY_AS_A_SERVICE_GO_TO_MARKET.md`
 5. `CITY_AS_A_SERVICE_TEMPLATE_SPECS.md`
+6. `CITY_AS_A_SERVICE_OPERATOR_PLAYBOOK.md`
 
 ## 17. Strong recommendation
 
@@ -740,15 +741,17 @@ Once those exist, EM can prototype City as a Service as an actual product surfac
 
 ## 29. Implementation docs created
 
-On 2026-04-25, this plan was expanded into three implementation-facing companion docs:
+On 2026-04-25, this plan was expanded into four implementation-facing companion docs:
 - `CITY_AS_A_SERVICE_TEMPLATE_SPECS.md`
 - `CITY_AS_A_SERVICE_EVIDENCE_SCHEMAS.md`
 - `CITY_AS_A_SERVICE_JURISDICTION_MODEL.md`
+- `CITY_AS_A_SERVICE_OPERATOR_PLAYBOOK.md`
 
 These docs convert the CaaS thesis into:
 - concrete MVP templates
 - normalized municipal evidence contracts
 - a reusable office/jurisdiction memory layer
+- an operator workflow for intake, dispatch, review, chaining, and memory updates
 
 This is the right level of specificity for the next product step: prototype city-ops surfaces without overcommitting to a giant platform build.
 
@@ -773,6 +776,11 @@ If daytime product work picks this up next, the highest-leverage build order is:
 4. **Pilot in one metro area first**
    - likely Miami-area permit/posting/compliance workflows
    - stay narrow before nationalizing the model
+
+5. **Run with an explicit operator playbook from day one**
+   - enforce fallback behavior
+   - require closure artifacts (success proof, rejection diagnosis, or redirect target)
+   - update office memory after every meaningful episode
 
 That sequence keeps CaaS grounded in product reality: real operator surfaces, real evidence structure, real memory accumulation.
 
