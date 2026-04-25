@@ -741,12 +741,13 @@ Once those exist, EM can prototype City as a Service as an actual product surfac
 
 ## 29. Implementation docs created
 
-On 2026-04-25, this plan was expanded into five implementation-facing companion docs:
+On 2026-04-25, this plan was expanded into six implementation-facing companion docs:
 - `CITY_AS_A_SERVICE_TEMPLATE_SPECS.md`
 - `CITY_AS_A_SERVICE_EVIDENCE_SCHEMAS.md`
 - `CITY_AS_A_SERVICE_JURISDICTION_MODEL.md`
 - `CITY_AS_A_SERVICE_OPERATOR_PLAYBOOK.md`
 - `CITY_AS_A_SERVICE_PILOT_BLUEPRINT.md`
+- `CITY_AS_A_SERVICE_Acontext_MEMORY_BRIDGE.md`
 
 These docs convert the CaaS thesis into:
 - concrete MVP templates
@@ -754,6 +755,7 @@ These docs convert the CaaS thesis into:
 - a reusable office/jurisdiction memory layer
 - an operator workflow for intake, dispatch, review, chaining, and memory updates
 - a narrow first-pilot blueprint that can move from planning into live execution
+- a memory/observability bridge for turning reviewed city episodes into future dispatch intelligence
 
 This is the right level of specificity for the next product step: prototype city-ops surfaces without overcommitting to a giant platform build.
 
@@ -790,5 +792,10 @@ If daytime product work picks this up next, the highest-leverage build order is:
    - manual review on all rejected/redirected/blocked outcomes
    - treat repeat office learning as the primary success signal
 
-That sequence keeps CaaS grounded in product reality: real operator surfaces, real evidence structure, real memory accumulation, and a pilot small enough to learn from quickly.
+7. **Project reviewed episodes into reusable dispatch memory**
+   - keep EM as execution ledger
+   - generate reviewed episode summaries, office playbooks, and jurisdiction briefs
+   - use those artifacts to shape future dispatch instructions and routing
+
+That sequence keeps CaaS grounded in product reality: real operator surfaces, real evidence structure, real memory accumulation, a pilot small enough to learn from quickly, and a clean bridge into Acontext-backed operational memory.
 
