@@ -69,7 +69,7 @@ describe('WalletSection', () => {
   it('enables Send when worker has balance on some chain', () => {
     mockHookReturn.totalUsdc = 12.34
     mockHookReturn.balances = [
-      { network: NETWORK_BY_KEY.base, balance: 12.34, error: null },
+      { network: NETWORK_BY_KEY.base, balance: 12.34, raw: 12340000n, error: null, loading: false },
     ]
     render(<WalletSection walletAddress={TEST_ADDRESS} />)
     const sendButton = screen.getByRole('button', { name: /Send/i })
@@ -81,8 +81,8 @@ describe('WalletSection', () => {
   it('renders per-chain breakdown with balances', () => {
     mockHookReturn.totalUsdc = 5.5
     mockHookReturn.balances = [
-      { network: NETWORK_BY_KEY.base, balance: 3.0, error: null },
-      { network: NETWORK_BY_KEY.polygon, balance: 2.5, error: null },
+      { network: NETWORK_BY_KEY.base, balance: 3.0, raw: 3000000n, error: null, loading: false },
+      { network: NETWORK_BY_KEY.polygon, balance: 2.5, raw: 2500000n, error: null, loading: false },
     ]
     render(<WalletSection walletAddress={TEST_ADDRESS} />)
     expect(screen.getByText('$3.00')).toBeTruthy()
@@ -94,8 +94,8 @@ describe('WalletSection', () => {
   it('shows RPC error pill when a chain fails but keeps others', () => {
     mockHookReturn.totalUsdc = 3.0
     mockHookReturn.balances = [
-      { network: NETWORK_BY_KEY.base, balance: 3.0, error: 'RPC timeout' },
-      { network: NETWORK_BY_KEY.polygon, balance: 3.0, error: null },
+      { network: NETWORK_BY_KEY.base, balance: 0, raw: 0n, error: 'RPC timeout', loading: false },
+      { network: NETWORK_BY_KEY.polygon, balance: 3.0, raw: 3000000n, error: null, loading: false },
     ]
     render(<WalletSection walletAddress={TEST_ADDRESS} />)
     expect(screen.getByText(/RPC error/i)).toBeTruthy()
@@ -128,7 +128,7 @@ describe('WalletSection', () => {
   it('opens Send modal when Send clicked and worker has balance', () => {
     mockHookReturn.totalUsdc = 10
     mockHookReturn.balances = [
-      { network: NETWORK_BY_KEY.base, balance: 10, error: null },
+      { network: NETWORK_BY_KEY.base, balance: 10, raw: 10000000n, error: null, loading: false },
     ]
     render(<WalletSection walletAddress={TEST_ADDRESS} />)
     const sendBtn = screen.getByRole('button', { name: /Send/i })
