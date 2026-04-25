@@ -266,21 +266,179 @@ ACONTEXT_PROJECT=kk-v2-swarm
 | Metrics | `aggregate-logs.py` | Acontext Dashboard | Automatic success rate tracking |
 | IRC | MeshRelay | Same + Acontext mirror | Key events stored for learning |
 
-## 7. Cost Analysis
+## 7. Memory ↔ Acontext integration for Execution Market AAS
+
+The higher-value direction is not just "Acontext for agents."
+It is **Acontext as the operational memory plane** for Execution Market, especially for City as a Service.
+
+Execution Market already produces the raw ingredients of a defensible memory system:
+- office-level municipal observations
+- worker execution histories
+- rejection and redirect patterns
+- structured evidence with business meaning
+- operator decisions about next steps
+
+Acontext can sit on top of that as the reusable decision layer.
+
+### 7.1 System of record vs context system
+
+Execution Market should keep canonical transactional truth in its own database:
+- tasks
+- applications
+- assignments
+- submissions
+- approvals
+- payouts
+- reputation events
+
+Acontext should hold the **working intelligence layer**:
+- compressed office and jurisdiction briefs
+- operator and agent session histories
+- playbook drafts and revisions
+- cross-task pattern summaries
+- observability events and intervention annotations
+
+A clean split:
+- **EM DB = canonical execution ledger**
+- **Acontext = reusable decision context + learning surface**
+
+### 7.2 Why this matters for City as a Service
+
+CaaS becomes valuable when the second visit to an office is better than the first.
+That requires memory that is:
+1. searchable by jurisdiction, office, and workflow
+2. compressible into dispatch-time context
+3. linked back to real evidence episodes
+4. usable by both humans and automation
+
+Acontext is attractive here because it can store both the reasoning trail and distilled artifacts that future tasks can mount quickly.
+
+### 7.3 Proposed artifact families
+
+#### A. `jurisdiction-brief.md`
+Compressed summary for a jurisdiction:
+- routing caveats
+- common workflow types
+- drift and difficulty signals
+- top offices and escalation notes
+
+#### B. `office-playbook.json`
+Structured office memory:
+- office metadata
+- photo/receipt/appointment policies
+- redirect targets
+- common rejection reasons
+- confidence scores
+- last verified timestamps
+
+#### C. `episode-summary.md`
+Per-task reviewed summary:
+- what happened
+- why it matters
+- what changed in routing knowledge
+- what a future similar task should do differently
+
+#### D. `workflow-patterns.json`
+Cross-office aggregates by template:
+- Packet Submission rejection frequencies
+- Counter Question answer volatility
+- Posting Proof failure patterns
+
+### 7.4 Proposed write path
+
+For each meaningful CaaS task lifecycle:
+1. EM task/submission reaches reviewed state
+2. reviewer classifies the outcome
+3. canonical structured result is written to the EM DB
+4. a projector writes an Acontext artifact/event bundle:
+   - episode summary
+   - office profile delta
+   - workflow pattern counters
+   - observability tags
+5. future dispatch retrieves the compressed brief before generating instructions
+
+This keeps Acontext downstream of product truth instead of allowing agent memory to become the ledger.
+
+### 7.5 Proposed retrieval path at dispatch time
+
+Before dispatching a city task, query Acontext for:
+- nearest matching jurisdiction brief
+- office playbook when office is known
+- recent redirects for the same workflow template
+- common rejection reasons for the office/template pair
+- confidence and risk flags worth surfacing
+
+That retrieval can shape:
+- worker instructions
+- pricing and surcharge logic
+- escalation thresholds
+- fallback behavior when redirected or blocked
+
+### 7.6 Observability and success metrics
+
+Acontext should help answer whether memory is improving outcomes.
+Recommended first metrics:
+- routing accuracy on first attempt
+- redirect rate by office and workflow
+- repeated rejection rate before vs after playbook creation
+- evidence completeness rate
+- percent of tasks with machine-usable next-step recommendations
+- office memory reuse rate
+- worker familiarity lift versus generic matching
+
+### 7.7 IRC integration opportunity
+
+IRC should remain the live coordination bus.
+But important coordination events should be mirrored into Acontext as compact event records, such as:
+- `dispatch_created`
+- `office_redirect_observed`
+- `submission_rejected`
+- `playbook_updated`
+- `review_escalated`
+
+That creates a useful three-layer model:
+- **IRC** for live awareness
+- **EM DB** for transactional state
+- **Acontext** for replayable operational learning
+
+### 7.8 Minimal implementation path before Docker unblock
+
+Even while blocked on a live Acontext server, EM can prep now:
+1. define artifact schemas
+2. add a projector interface in Python (`memory_sink.py` or similar)
+3. emit local JSON/Markdown artifacts in an Acontext-shaped structure
+4. tag swarm and IRC events with stable event names
+5. define dispatch-time retrieval contracts
+
+Then swap the sink from local files to the Acontext API once Docker/server is available.
+
+### 7.9 Strategic recommendation
+
+Do not integrate Acontext as "yet another memory store."
+Use it as the bridge between:
+- municipal evidence
+- operator review
+- agent dispatch context
+- cross-project observability
+
+That aligns the integration with Execution Market's real moat: **decision-quality memory grounded in verified real-world execution.**
+
+## 8. Cost Analysis
 
 - **Self-hosted:** Free (Docker on Mac mini)
 - **OpenAI API for observability:** ~$0.01/session (GPT-4.1 for summarization)
 - **Storage:** Local Postgres (included in Docker)
 - **Total additional cost:** ~$0.50-1.00/day at 24 agents × 2-4 cycles/day
 
-## 8. Open Questions
+## 9. Open Questions
 
 1. **Docker on Mac mini:** Is Docker daemon configured to auto-start? Need to confirm with Saúl.
 2. **OpenAI API key:** Acontext uses GPT-4.1 for observability. Do we have an OpenAI key configured?
 3. **Persistence:** Where should Acontext Docker volumes mount? `~/clawd/data/acontext/`?
-4. **IRC bridge:** Should IRC messages auto-store in Acontext sessions? Could enable learning from IRC coordination.
+4. **IRC bridge:** Should IRC messages auto-store in Acontext sessions, or only structured coordination events?
 5. **Multi-server:** If KK agents run on EC2, should Acontext also be on AWS? Or keep centralized on Mac mini?
+6. **CaaS projector boundary:** Which EM review step should be the canonical trigger for writing office/jurisdiction memory artifacts?
 
 ---
 
-*This plan bridges the KK V2 swarm infrastructure (24 agents, 9 EM skills, coordinator + services) with Acontext's context management. The key insight: agents need structured memory and context engineering to improve over time, not just task execution loops.*
+*This plan started as KK V2 swarm infrastructure planning, but the sharper strategic direction is broader: use Acontext as the reusable memory and observability layer between Execution Market execution, municipal evidence, coordination chatter, and future dispatch intelligence.*
