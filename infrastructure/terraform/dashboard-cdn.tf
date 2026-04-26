@@ -196,6 +196,7 @@ resource "aws_cloudfront_response_headers_policy" "execution_market_security_hea
           "https://developer.worldcoin.org",
           "https://world-id-assets.com",
           "https://*.amazonaws.com",
+          "https://*.lambda-url.us-east-2.on.aws",
           "https://*.cloudfront.net",
           "https://*.sentry.io",
         ]),
