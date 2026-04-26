@@ -61,41 +61,29 @@ export function useEarnings(executorId: string | undefined) {
 
       if (execError) throw execError
 
-      // Fetch payments data if available
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+      // Lifetime earned = sum of submissions.payment_amount where the worker
+      // was paid (paid_at IS NOT NULL). Reading from `executors.total_earned_usdc`
+      // looks tempting since the column exists, but the trigger that updates it
+      // (update_executor_balance_on_payment, migration 002) only fires on
+      // `payments` rows with status='completed', and the backend currently
+      // writes status='confirmed' from auto_payment._persist_payment_record —
+      // so the column is permanently 0. Compute from submissions instead.
+      // ADR-001 has no platform-custodied balance; we report withdrawable=0.
+      const { data: paidSubmissions } = await supabase
+        .from('submissions')
+        .select('payment_amount')
+        .eq('executor_id', executorId)
+        .not('paid_at', 'is', null)
+        .not('payment_amount', 'is', null)
 
-      let balanceData = {
+      const totalEarned = paidSubmissions?.reduce(
+        (sum: number, s: { payment_amount?: number | null }) => sum + (s.payment_amount || 0), 0
+      ) || 0
+
+      const balanceData = {
         balance_usdc: 0,
-        total_earned_usdc: 0,
+        total_earned_usdc: totalEarned,
         total_withdrawn_usdc: 0,
-      }
-
-      // Try to fetch from executor_dashboard view or payments table
-      try {
-        const response = await fetch(
-          `${supabaseUrl}/rest/v1/executor_dashboard?id=eq.${executorId}&select=*`,
-          {
-            headers: {
-              'apikey': supabaseKey,
-              'Content-Type': 'application/json',
-            }
-          }
-        )
-
-        if (response.ok) {
-          const dashboardData = await response.json()
-          if (dashboardData.length > 0) {
-            balanceData = {
-              balance_usdc: dashboardData[0].balance_usdc || 0,
-              total_earned_usdc: dashboardData[0].total_earned_usdc || 0,
-              total_withdrawn_usdc: dashboardData[0].total_withdrawn_usdc || 0,
-            }
-          }
-        }
-      } catch {
-        // View might not exist yet, use default values
-        console.log('executor_dashboard view not available, using defaults')
       }
 
       // Calculate pending from assigned tasks

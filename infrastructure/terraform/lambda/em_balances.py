@@ -223,13 +223,15 @@ def fetch_all_balances(wallet: str) -> dict[str, dict[str, Any]]:
     return results
 
 
-def cors_headers() -> dict[str, str]:
-    """CORS headers for the dashboard origin. Function URL also enforces CORS at edge."""
+def response_headers() -> dict[str, str]:
+    """Business headers only.
+
+    CORS is handled by the Lambda Function URL (see em_balances.tf `cors` block).
+    Returning ACAO from here would duplicate the header — browsers reject responses
+    with multiple Access-Control-Allow-Origin headers with "Failed to fetch".
+    """
     return {
         "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
         "Cache-Control": "public, max-age=60",
     }
 
@@ -253,12 +255,10 @@ def lambda_handler(event: dict, _context: Any) -> dict:
         "cached_at": <epoch>,
         "ttl_seconds": 60
       }
+
+    OPTIONS preflight is handled by the Function URL — this Lambda is never invoked
+    for OPTIONS, so we don't need a branch for it.
     """
-    method = (event.get("requestContext", {}).get("http", {}).get("method")
-              or event.get("httpMethod")
-              or "GET").upper()
-    if method == "OPTIONS":
-        return {"statusCode": 204, "headers": cors_headers(), "body": ""}
 
     qs = event.get("queryStringParameters") or {}
     wallet = (qs.get("wallet") or "").strip()
@@ -266,13 +266,13 @@ def lambda_handler(event: dict, _context: Any) -> dict:
     if not wallet:
         return {
             "statusCode": 400,
-            "headers": cors_headers(),
+            "headers": response_headers(),
             "body": json.dumps({"error": "missing 'wallet' query parameter"}),
         }
     if not WALLET_RE.match(wallet):
         return {
             "statusCode": 400,
-            "headers": cors_headers(),
+            "headers": response_headers(),
             "body": json.dumps({"error": "invalid wallet address — expected 0x + 40 hex chars"}),
         }
 
@@ -286,11 +286,11 @@ def lambda_handler(event: dict, _context: Any) -> dict:
             "cached_at": int(_cache_timestamp.get(wallet.lower(), time.time())),
             "ttl_seconds": CACHE_TTL_SECONDS,
         }
-        return {"statusCode": 200, "headers": cors_headers(), "body": json.dumps(body)}
+        return {"statusCode": 200, "headers": response_headers(), "body": json.dumps(body)}
     except Exception as e:
         print(f"Error in lambda_handler: {e}")
         return {
             "statusCode": 500,
-            "headers": cors_headers(),
+            "headers": response_headers(),
             "body": json.dumps({"error": str(e)}),
         }
