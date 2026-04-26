@@ -741,7 +741,7 @@ Once those exist, EM can prototype City as a Service as an actual product surfac
 
 ## 29. Implementation docs created
 
-On 2026-04-25, this plan was expanded into seven implementation-facing companion docs:
+On 2026-04-25 and 2026-04-26, this plan was expanded into eight implementation-facing companion docs:
 - `CITY_AS_A_SERVICE_TEMPLATE_SPECS.md`
 - `CITY_AS_A_SERVICE_EVIDENCE_SCHEMAS.md`
 - `CITY_AS_A_SERVICE_JURISDICTION_MODEL.md`
@@ -749,6 +749,7 @@ On 2026-04-25, this plan was expanded into seven implementation-facing companion
 - `CITY_AS_A_SERVICE_PILOT_BLUEPRINT.md`
 - `CITY_AS_A_SERVICE_Acontext_MEMORY_BRIDGE.md`
 - `CITY_AS_A_SERVICE_LOCAL_PROJECTOR_BOOTSTRAP.md`
+- `CITY_AS_A_SERVICE_OBSERVABILITY_AND_SUCCESS_METRICS.md`
 
 These docs convert the CaaS thesis into:
 - concrete MVP templates
@@ -758,6 +759,7 @@ These docs convert the CaaS thesis into:
 - a narrow first-pilot blueprint that can move from planning into live execution
 - a memory/observability bridge for turning reviewed city episodes into future dispatch intelligence
 - a local-first projector bootstrap that can test the memory loop before full Acontext infra wiring
+- a first success-metrics layer for measuring whether reviewed city work improves future dispatch
 
 This is the right level of specificity for the next product step: prototype city-ops surfaces without overcommitting to a giant platform build.
 
@@ -1074,3 +1076,26 @@ The first city-ops UI slice should not be called done until:
 - reroute/resubmit creation can reuse prior office context instead of starting from blank fields
 
 This is the narrowest real product loop: review -> memory -> next dispatch improvement.
+
+## 36. Observability is now a first-class build seam
+
+The planning stack now also includes `CITY_AS_A_SERVICE_OBSERVABILITY_AND_SUCCESS_METRICS.md`.
+That matters because the next implementation risk is not only whether reviewed artifacts can be written, but whether they actually improve routing, rejection handling, and dispatch quality.
+
+Daytime should therefore treat observability as part of the product loop, not an afterthought.
+The first city-ops slice should emit stable events around:
+- dispatch brief composition and use
+- reviewed-result completion
+- reviewed episode and playbook-delta writes
+- redirect and rejection observations
+- follow-on or resubmission creation
+
+The right early success measures are not just volume or GMV.
+They are:
+- first-attempt routing accuracy
+- redirect rate by office/template
+- repeat rejection rate for already-known causes
+- memory-backed dispatch rate
+- resubmission success after learning
+
+If those move in the right direction, CaaS is becoming real infrastructure instead of a one-off municipal errand layer.
