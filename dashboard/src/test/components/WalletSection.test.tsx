@@ -161,8 +161,8 @@ describe('WalletSection', () => {
     render(<WalletSection walletAddress={TEST_ADDRESS} />)
     const receiveBtn = screen.getByRole('button', { name: /Receive/i })
     fireEvent.click(receiveBtn)
-    // Modal-only text that isn't in WalletSection itself
-    expect(screen.getByText(/Your wallet address/i)).toBeTruthy()
+    // Modal-only assertions — the dialog opens and shows its warning copy
+    expect(screen.getByRole('dialog')).toBeTruthy()
     expect(screen.getByText(/One address, multiple chains/i)).toBeTruthy()
   })
 

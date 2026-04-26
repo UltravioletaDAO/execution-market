@@ -87,6 +87,7 @@ EXPECTED_ROUTES = {
     # Account management
     "/api/v1/account",
     "/api/v1/account/export",
+    "/api/v1/account/wallet",
     # Legal
     "/api/v1/legal/privacy",
     "/api/v1/legal/terms",
