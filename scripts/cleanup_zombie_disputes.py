@@ -51,7 +51,9 @@ SERVICE_ROLE = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get(
 )
 DRY_RUN = os.environ.get("DRY_RUN", "1") != "0"
 
-OPEN_STATUSES = ["open", "under_review", "awaiting_response", "in_arbitration"]
+# `dispute_status` enum only accepts a small set of values. PostgREST returns
+# 22P02 for any value outside the enum (verified 2026-04-22 against prod).
+OPEN_STATUSES = ["open", "under_review"]
 SETTLED_SUB_STATUSES = {"approved", "paid", "released", "completed", "rated"}
 
 
@@ -67,14 +69,23 @@ def _hdr() -> Dict[str, str]:
 async def _find_zombies(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
     """Return disputes matching the zombie signature.
 
-    PostgREST JSONB lookup: `metadata->>source=eq.arbiter_auto_escalation`.
+    Pre-fix arbiter wrote two source values across versions:
+      - `arbiter_auto_escalation` (legacy escalation.py path)
+      - `ring2_lambda_escalation` (Lambda runner path)
+    Both are zombie sources -- match either via PostgREST `in.(...)`.
     """
     status_filter = ",".join(OPEN_STATUSES)
+    # PostgREST `in.(...)` does not work on JSONB lookups -- use `or` with
+    # two separate `metadata->>source.eq.X` predicates.
+    or_clause = (
+        "or=(metadata->>source.eq.arbiter_auto_escalation,"
+        "metadata->>source.eq.ring2_lambda_escalation)"
+    )
     url = (
         f"{SUPABASE_URL}/rest/v1/disputes"
         f"?status=in.({status_filter})"
         f"&escalation_tier=eq.2"
-        f"&metadata->>source=eq.arbiter_auto_escalation"
+        f"&{or_clause}"
         f"&select=*"
     )
     r = await client.get(url, headers=_hdr())
@@ -85,9 +96,11 @@ async def _find_zombies(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
 async def _fetch_submission(
     client: httpx.AsyncClient, submission_id: str
 ) -> Optional[Dict[str, Any]]:
+    """The submissions table has no `status` column -- it's derived elsewhere.
+    Pull the columns that actually exist so PostgREST doesn't 42703."""
     url = (
         f"{SUPABASE_URL}/rest/v1/submissions"
-        f"?id=eq.{submission_id}&select=id,status,agent_verdict,agent_notes"
+        f"?id=eq.{submission_id}&select=id,agent_verdict,agent_notes,arbiter_verdict"
     )
     r = await client.get(url, headers=_hdr())
     r.raise_for_status()
@@ -98,17 +111,24 @@ async def _fetch_submission(
 async def _close_dispute(
     client: httpx.AsyncClient, dispute_id: str, sub_status: Optional[str]
 ) -> None:
+    """Close a zombie dispute by ruling for the agent (publisher).
+
+    Live `dispute_status` enum only has: open, under_review,
+    resolved_for_agent, resolved_for_executor. `closed` was in the
+    original migration but was never deployed -- using `resolved_for_agent`
+    since the cleanup intent is to honor the publisher's verdict
+    (Ring 2 had no authority to dispute in the first place).
+    """
     now = datetime.now(timezone.utc).isoformat()
     body = {
-        "status": "closed",
-        "resolution_type": "cleanup",
+        "status": "resolved_for_agent",
+        "winner": "agent",
         "resolution_notes": (
-            f"Auto-closed by cleanup_zombie_disputes.py (INC-2026-04-22). "
+            f"[cleanup] Auto-closed by cleanup_zombie_disputes.py (INC-2026-04-22). "
             f"Ring 2 was usurping publisher verdict; disputes now advisory-only. "
-            f"Linked submission status at cleanup: {sub_status or 'unknown'}."
+            f"Linked submission state at cleanup: {sub_status or 'unknown'}."
         ),
         "resolved_at": now,
-        "closed_at": now,
     }
     url = f"{SUPABASE_URL}/rest/v1/disputes?id=eq.{dispute_id}"
     r = await client.patch(url, headers=_hdr(), json=body)
@@ -137,13 +157,18 @@ async def _reset_submission_verdict(
 
 
 def _classify(sub: Optional[Dict[str, Any]]) -> str:
-    """Decide what to do with the linked submission."""
+    """Decide what to do with the linked submission.
+
+    Submissions have no `status` column -- derive intent from `agent_verdict`:
+      - 'accepted' / 'rejected' = publisher already ruled, just close dispute
+      - 'disputed' = pre-fix zombie still blocking /approve, reset to NULL
+      - NULL/other = clean, just close dispute
+    """
     if not sub:
         return "no_submission"
-    sub_status = (sub.get("status") or "").lower()
     agent_verdict = (sub.get("agent_verdict") or "").lower()
-    if sub_status in SETTLED_SUB_STATUSES:
-        return "already_settled"  # close dispute only
+    if agent_verdict in ("accepted", "rejected", "approved", "paid"):
+        return "already_settled"  # publisher ruled, dispute is orphaned
     if agent_verdict == "disputed":
         return "zombie_locked"  # reset + close
     return "verdict_clean"  # close dispute only
@@ -181,11 +206,11 @@ async def main() -> int:
             action = _classify(sub)
             plan.append({"dispute": z, "submission": sub, "action": action})
 
-            sub_status = (sub or {}).get("status", "n/a")
             agent_verdict = (sub or {}).get("agent_verdict", "n/a")
+            arbiter_verdict = (sub or {}).get("arbiter_verdict", "n/a")
             print(
                 f"  dispute={dispute_id[:8]}  sub={(submission_id or 'None')[:8]}  "
-                f"sub_status={sub_status}  agent_verdict={agent_verdict}  -> {action}"
+                f"agent_verdict={agent_verdict}  arbiter_verdict={arbiter_verdict}  -> {action}"
             )
 
         if DRY_RUN:
@@ -208,9 +233,9 @@ async def main() -> int:
                 touched_subs += 1
                 print(f"  RESET sub {submission_id[:8]} agent_verdict=NULL")
 
-            await _close_dispute(client, dispute_id, sub_status)
+            await _close_dispute(client, dispute_id, action)
             closed_disputes += 1
-            print(f"  CLOSE dispute {dispute_id[:8]} (resolution_type=cleanup)")
+            print(f"  CLOSE dispute {dispute_id[:8]} (status=resolved_for_agent)")
 
         print(
             f"\nDone. Closed {closed_disputes} dispute(s), "
