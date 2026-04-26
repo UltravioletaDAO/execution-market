@@ -1170,3 +1170,78 @@ The next engineering move should be:
 4. only then wire Review Console and Dispatch Brief Panel onto those contracts
 
 That is the cleanest route from planning to a buildable product loop.
+
+## 38. Pre-dawn synthesis: what daytime should do next
+
+The night's planning work now has enough depth.
+What matters next is reducing daytime ambiguity to almost zero.
+
+### 38.1 The real bottleneck
+
+CaaS is no longer blocked on strategy, TAM, or template ideation.
+It is blocked on whether Execution Market can turn reviewed municipal interactions into reusable operational memory without creating a noisy knowledge swamp.
+
+That means the first real product test is not:
+- how many city templates exist
+- how polished the UI looks
+- how quickly Acontext is wired
+
+It is this:
+
+> after one reviewed city task, is the next city task dispatched more intelligently?
+
+If daytime protects that question, the vertical will compound.
+If daytime loses that question, the product will drift into decorative docs and labor routing.
+
+### 38.2 Daytime implementation order
+
+If there is only one clean daytime sequence, it should be:
+
+1. finalize typed validators for `reviewed_result`, `review_artifact`, `reviewed_episode`, `office_playbook_delta`, and `dispatch_brief`
+2. create a tiny fixture set for `counter_question` and `packet_submission`
+3. implement the deterministic local projector and playbook merge rules
+4. verify that repeat rejections and redirects visibly change the dispatch brief
+5. only then attach Review Console state and Dispatch Brief UI to those artifacts
+
+This keeps product truth ahead of interface work.
+
+### 38.3 What should count as a meaningful daytime win
+
+A strong next daytime session does not need to ship the full city vertical.
+It only needs to prove one repeatable learning loop.
+
+A meaningful win would be:
+- one reviewed rejection fixture
+- one reviewed redirect fixture
+- one resulting office playbook artifact
+- one resulting dispatch brief that is clearly better than the empty-state brief
+- one rerun showing that the learned guidance appears before the next dispatch
+
+If that works, the system has crossed from theory into compounding behavior.
+
+### 38.4 What to postpone on purpose
+
+Daytime should resist a few tempting distractions until the loop above is proven:
+- broad template expansion
+- heavy Acontext or Docker dependency
+- generalized workflow automation
+- multi-city rollout logic
+- long-form office memory authoring surfaces
+
+Those can all come later.
+The scarce question right now is whether reviewed city work improves future city work.
+
+### 38.5 Recommended handoff framing
+
+If this gets picked up in daylight, the shortest correct framing is:
+
+**Build the city-ops learning seam, not the whole city product.**
+
+Concretely, that means:
+- contracts first
+- projector second
+- fixture replays third
+- operator surfaces last
+
+That ordering should save a lot of churn.
+
