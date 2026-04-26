@@ -1099,3 +1099,74 @@ They are:
 - resubmission success after learning
 
 If those move in the right direction, CaaS is becoming real infrastructure instead of a one-off municipal errand layer.
+
+## 37. First code-facing implementation package
+
+The planning stack is now conceptually strong enough that the next missing piece is not more prose.
+It is a compact package that daytime engineering can implement without reinterpreting the strategy docs.
+
+### 37.1 Ship one narrow `city_ops_review` package first
+
+The first code-facing slice should be treated as a package, even if it initially lives inside the existing EM codebase.
+Its job is to own the full reviewed-result -> projector -> dispatch-brief seam for city work.
+
+Minimum package responsibilities:
+- validate the shared `reviewed_result` contract
+- validate the `review_artifact` contract
+- emit a `reviewed_episode`
+- emit zero or one `office_playbook_delta`
+- compose a deterministic `dispatch_brief`
+- emit stable observability events for each transition
+
+This package boundary matters because it prevents CaaS logic from being scattered across UI forms, ad hoc review code, and later memory sinks.
+
+### 37.2 Minimal modules inside that package
+
+If daytime wants the smallest coherent implementation unit, it should start with these modules:
+
+1. `city_ops/contracts.py` or equivalent
+   - shared schemas / validators for `reviewed_result`, `review_artifact`, `reviewed_episode`, `office_playbook_delta`, `dispatch_brief`
+
+2. `city_ops/projector.py`
+   - pure function path from reviewed inputs to reviewed episode + playbook delta + dispatch brief
+
+3. `city_ops/playbook_merge.py`
+   - deterministic merge rules for redirect patterns, rejection patterns, evidence restrictions, and confidence/freshness updates
+
+4. `city_ops/events.py`
+   - stable event-name wrappers for `city_review_completed`, `city_reviewed_episode_written`, `city_office_playbook_delta_written`, `city_dispatch_brief_composed`
+
+5. `city_ops/fixtures/`
+   - small reviewed city episodes covering acceptance, rejection, redirect, blocked visit, and evidence restriction
+
+The goal is to make the first engineering slice testable and replayable before any larger city-specific UI build.
+
+### 37.3 First acceptance test bundle
+
+The first code slice should not be called done until a fixture bundle proves all of this end to end:
+- a reviewed packet submission with rejection emits a valid `reviewed_episode`
+- repeated reviewed rejections strengthen the office playbook rather than duplicating noise
+- a redirect episode updates the top redirect targets deterministically
+- a later dispatch brief includes the learned rejection and redirect guidance
+- each reviewed closure emits the expected observability events in stable order
+
+This is the smallest proof that the system can learn from reviewed municipal work instead of merely storing it.
+
+### 37.4 Why this package should come before bigger UI work
+
+Without a code-facing package boundary, daytime risks building:
+- review UI state that does not map cleanly to durable contracts
+- office-memory writes that are impossible to reason about
+- dispatch retrieval that depends on transcript scraping instead of stable artifacts
+
+By contrast, if the package exists first, UI and infra become clients of a known city-ops learning seam.
+
+### 37.5 Strong recommendation
+
+The next engineering move should be:
+1. implement the shared contract validators
+2. implement the local projector package
+3. prove it with fixture replays
+4. only then wire Review Console and Dispatch Brief Panel onto those contracts
+
+That is the cleanest route from planning to a buildable product loop.
