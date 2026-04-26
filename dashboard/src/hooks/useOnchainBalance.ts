@@ -24,6 +24,8 @@ import {
   optimism,
   avalanche,
   celo,
+  monad,
+  skaleBase,
   type Chain,
 } from 'viem/chains'
 import { LIVE_NETWORKS, type NetworkInfo } from '../config/networks'
@@ -36,6 +38,8 @@ interface ChainEntry {
   usdc: Address
 }
 
+// USDC addresses MUST match infrastructure/terraform/lambda/em_balances.py NETWORKS
+// and mcp_server/integrations/x402/sdk_client.py NETWORK_CONFIG.
 const CHAINS: ChainEntry[] = (
   [
     { key: 'base', chain: base as Chain, usdc: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' },
@@ -45,6 +49,8 @@ const CHAINS: ChainEntry[] = (
     { key: 'optimism', chain: optimism as Chain, usdc: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85' },
     { key: 'avalanche', chain: avalanche as Chain, usdc: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E' },
     { key: 'celo', chain: celo as Chain, usdc: '0xcebA9300f2b948710d2653dD7B07f33A8B32118C' },
+    { key: 'monad', chain: monad as Chain, usdc: '0x754704Bc059F8C67012fEd69BC8A327a5aafb603' },
+    { key: 'skale', chain: skaleBase as Chain, usdc: '0x85889c8c714505E0c94b30fcfcF64fE3Ac8FCb20' },
   ] as const
 )
   .map(({ key, chain, usdc }) => {

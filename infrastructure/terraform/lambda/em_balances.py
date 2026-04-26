@@ -1,5 +1,5 @@
 """
-Lambda function to fetch USDC balances for any wallet across EM's 7 EVM chains.
+Lambda function to fetch USDC balances for any wallet across EM's 9 EVM chains.
 
 Public-facing service called from the dashboard wallet panel. Accepts:
     GET /?wallet=0x<40-hex>
@@ -17,7 +17,7 @@ Adapted from the x402-rs facilitator balance Lambda (Z:/ultravioleta/dao/x402-rs
 Differences:
 - Accepts arbitrary wallet (not hardcoded facilitator address).
 - Calls USDC `balanceOf(address)` via `eth_call` (not native `eth_getBalance`).
-- Limited to EM's 7 EVM mainnet chains.
+- Limited to EM's 9 EVM mainnet chains (matches dashboard/src/config/networks.ts).
 - Per-wallet cache key.
 - Reuses the `facilitator-rpc-mainnet` secret (same RPCs).
 """
@@ -46,9 +46,11 @@ USDC_DECIMALS = 6
 # ERC-20 selector for `balanceOf(address)` — keccak256("balanceOf(address)")[:4]
 BALANCE_OF_SELECTOR = "0x70a08231"
 
-# EM's 7 EVM mainnet chains. USDC addresses must match dashboard/src/hooks/useOnchainBalance.ts
+# EM's 9 EVM mainnet chains. USDC addresses must match dashboard/src/hooks/useOnchainBalance.ts
 # and mcp_server/integrations/x402/sdk_client.py NETWORK_CONFIG.
-NETWORKS: dict[str, dict[str, str]] = {
+# `secret_key = None` means we don't have a private RPC for that chain — the public RPC
+# is the only option (fine for SKALE because it has zero gas fees and no rate limits).
+NETWORKS: dict[str, dict[str, str | None]] = {
     "base": {
         "secret_key": "base",
         "usdc": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
@@ -84,6 +86,18 @@ NETWORKS: dict[str, dict[str, str]] = {
         "usdc": "0xcebA9300f2b948710d2653dD7B07f33A8B32118C",
         "public_rpc": "https://rpc.celocolombia.org",
     },
+    "monad": {
+        "secret_key": "monad",
+        "usdc": "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
+        "public_rpc": "https://rpc.monad.xyz",
+    },
+    # SKALE has no private RPC in the secret — public RPC is fine because the chain
+    # has zero gas fees and no rate limits on `eth_call`.
+    "skale": {
+        "secret_key": None,
+        "usdc": "0x85889c8c714505E0c94b30fcfcF64fE3Ac8FCb20",
+        "public_rpc": "https://skale-base.skalenodes.com/v1/base",
+    },
 }
 
 
@@ -112,9 +126,13 @@ def get_secret(secret_name: str, key: str | None = None) -> str | None:
 
 
 def get_rpc_urls(network_key: str) -> list[str]:
-    """Build ordered RPC list: private (Secrets Manager) → env var → public."""
+    """Build ordered RPC list: private (Secrets Manager) → env var → public.
+
+    `secret_key = None` means we don't have a private RPC for this chain — skip
+    the Secrets Manager lookup so we don't accidentally read the whole secret.
+    """
     cfg = NETWORKS[network_key]
-    private = get_secret(MAINNET_SECRET_NAME, cfg["secret_key"])
+    private = get_secret(MAINNET_SECRET_NAME, cfg["secret_key"]) if cfg["secret_key"] else None
     env = os.environ.get(f"RPC_URL_{network_key.upper()}")
     return [u for u in [private, env, cfg["public_rpc"]] if u]
 
@@ -186,7 +204,7 @@ def fetch_usdc_balance(network_key: str, wallet: str) -> tuple[str, dict[str, An
 
 
 def fetch_all_balances(wallet: str) -> dict[str, dict[str, Any]]:
-    """Fetch USDC balance across all 7 chains concurrently. Cached per wallet."""
+    """Fetch USDC balance across all 9 chains concurrently. Cached per wallet."""
     wallet_key = wallet.lower()
     now = time.time()
     cached_at = _cache_timestamp.get(wallet_key, 0)

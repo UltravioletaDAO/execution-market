@@ -360,7 +360,8 @@ jobs:
         id: tf-outputs
         working-directory: ${{ env.TF_DIR }}
         run: |
-          terraform init -input=false -backend=true
+          terraform init -input=false \
+            -backend-config="key=${{ secrets.TF_STATE_KEY }}"
           BAL_URL=$(terraform output -raw em_balances_lambda_url 2>/dev/null || echo "")
           if [ -n "$BAL_URL" ] && [ "$BAL_URL" != "null" ]; then
             echo "Got balances Lambda URL from Terraform state"
