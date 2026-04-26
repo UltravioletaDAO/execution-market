@@ -13,6 +13,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDynamicContext } from '@dynamic-labs/sdk-react-core'
 import { useOnchainBalance } from '../../../hooks/useOnchainBalance'
+import { truncateAddress } from '../../../lib/utils'
 import { ExportWalletButton } from './ExportWalletButton'
 import { SendUSDCModal } from './SendUSDCModal'
 import { ReceiveModal } from './ReceiveModal'
@@ -30,8 +31,6 @@ export function WalletSection({ walletAddress }: WalletSectionProps) {
   const [sendOpen, setSendOpen] = useState(false)
   const [receiveOpen, setReceiveOpen] = useState(false)
 
-  const formatShortAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`
-
   return (
     <>
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 space-y-4">
@@ -41,7 +40,7 @@ export function WalletSection({ walletAddress }: WalletSectionProps) {
               {t('wallet.section.title', 'Wallet')}
             </h3>
             <p className="text-xs text-gray-500 mt-0.5">
-              {formatShortAddress(activeAddress)} ·{' '}
+              {truncateAddress(activeAddress)} ·{' '}
               {t('wallet.section.subtitle', 'Live on-chain balance')}
             </p>
           </div>
@@ -168,11 +167,17 @@ export function WalletSection({ walletAddress }: WalletSectionProps) {
         </div>
       </div>
 
-      <SendUSDCModal open={sendOpen} onClose={() => setSendOpen(false)} balances={balances} />
+      <SendUSDCModal
+        open={sendOpen}
+        onClose={() => setSendOpen(false)}
+        balances={balances}
+        identityAddress={walletAddress}
+      />
       <ReceiveModal
         open={receiveOpen}
         onClose={() => setReceiveOpen(false)}
-        walletAddress={activeAddress}
+        identityAddress={walletAddress}
+        activeAddress={activeAddress}
       />
     </>
   )

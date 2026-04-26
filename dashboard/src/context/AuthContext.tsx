@@ -12,7 +12,7 @@ import {
   useRef,
   type ReactNode,
 } from 'react'
-import { useDynamicContext, useIsLoggedIn, useUserWallets } from '@dynamic-labs/sdk-react-core'
+import { useDynamicContext, useIsLoggedIn } from '@dynamic-labs/sdk-react-core'
 import * as Sentry from '@sentry/react'
 import { supabase } from '../lib/supabase'
 import type { Executor } from '../types/database'
@@ -81,7 +81,6 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const { primaryWallet, handleLogOut, setShowAuthFlow, sdkHasLoaded, user } = useDynamicContext()
   const isLoggedIn = useIsLoggedIn()
-  const userWallets = useUserWallets()
   const { enrichFromX } = useXProfileEnrichment()
 
   const [executor, setExecutor] = useState<Executor | null>(null)
@@ -111,25 +110,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // which caused unnecessary re-fetches when Dynamic SDK transitions wallet state
   const dynamicWalletRef = useRef<string | null>(null)
 
-  // Derived state
-  // FIX: When user logs in via email, Dynamic SDK creates an embedded wallet and
-  // selects it as primaryWallet. We prefer the user's own (non-embedded) wallet
-  // over the auto-generated embedded one. Fallback to primaryWallet if no
-  // non-embedded wallets exist (e.g. email-only users with only an embedded wallet).
-  const preferredWallet = ((): typeof primaryWallet => {
-    if (!primaryWallet) return null
-    // If primaryWallet is not embedded, use it directly (most common case)
-    if (!primaryWallet.connector?.isEmbeddedWallet) return primaryWallet
-    // primaryWallet is embedded — look for a non-embedded alternative
-    const nonEmbedded = userWallets.find(w => w.address && !w.connector?.isEmbeddedWallet)
-    if (nonEmbedded) {
-      console.log('[Auth] Preferring non-embedded wallet over embedded:', nonEmbedded.address)
-      return nonEmbedded
-    }
-    // Only embedded wallets available — use primaryWallet as-is
-    return primaryWallet
-  })()
-  const dynamicWalletAddress = preferredWallet?.address?.toLowerCase() || null
+  // Derived state — trust whatever Dynamic has set as primaryWallet. The user
+  // controls which wallet is primary via the WalletSelector on /profile (or via
+  // Dynamic's own UI). We deliberately do NOT silently re-pick a non-embedded
+  // wallet here: it caused the executor's identity (Supabase row, ERC-8004
+  // registration) to bind to a wallet that wasn't the one the user was actually
+  // signing with, producing the "header shows wallet A, send modal uses wallet B"
+  // contradiction (INC: profile-wallet-mismatch). The selector is the only place
+  // a switch happens.
+  const dynamicWalletAddress = primaryWallet?.address?.toLowerCase() || null
   dynamicWalletRef.current = dynamicWalletAddress
   // After SDK init, only trust SDK wallet. Persisted wallet is a pre-init hint
   // to avoid flash of unauthenticated content, but must NOT be used for executor

@@ -1,14 +1,16 @@
 // Execution Market: Profile Page Component
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { EarningsCard } from './EarningsCard'
 import { ReputationCard } from './ReputationCard'
 import { TaskHistory } from './TaskHistory'
-import { WalletSection } from './wallet'
+import { WalletSection, WalletMismatchBanner } from './wallet'
 import { WorldIdVerification } from '../WorldIdVerification'
 import { ENSLinkSection } from '../ENSLinkSection'
 import { useEarnings, useReputation, useTaskHistory } from '../../hooks/useProfile'
 import type { Executor } from '../../types/database'
 import { safeSrc } from '../../lib/safeHref'
+import { truncateAddress } from '../../lib/utils'
 import { isWorldIdEnabled } from '../../utils/featureFlags'
 
 interface ProfilePageProps {
@@ -20,6 +22,7 @@ interface ProfilePageProps {
 
 export function ProfilePage({ executor, onBack, onEditProfile, onLogout }: ProfilePageProps) {
   const { t } = useTranslation()
+  const [advancedOpen, setAdvancedOpen] = useState(false)
 
   const { earnings, loading: earningsLoading } = useEarnings(executor.id)
   const { reputation, loading: reputationLoading } = useReputation(executor.id)
@@ -120,14 +123,15 @@ export function ProfilePage({ executor, onBack, onEditProfile, onLogout }: Profi
 
         {/* Contact & wallet */}
         <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
-          {/* Wallet */}
+          {/* Wallet — canonical identity address (rewards inbox under ADR-001).
+              Detail (active wallet, balances, send/receive) lives in WalletSection below. */}
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-500">
-              {t('profile.walletAddress', 'Wallet Address')}
+              {t('profile.walletAddress', 'Wallet')}
             </div>
             <div className="flex items-center gap-2">
               <code className="text-sm font-mono text-gray-700 bg-gray-50 px-3 py-1 rounded">
-                {executor.wallet_address.slice(0, 6)}...{executor.wallet_address.slice(-4)}
+                {truncateAddress(executor.wallet_address)}
               </code>
               <button
                 onClick={() => navigator.clipboard.writeText(executor.wallet_address)}
@@ -205,26 +209,63 @@ export function ProfilePage({ executor, onBack, onEditProfile, onLogout }: Profi
         )}
       </div>
 
+      {/* Action-bearing nudge when the wallet active in Dynamic isn't the
+          rewards inbox on record. One signature swaps the on-record address. */}
+      <WalletMismatchBanner identityAddress={executor.wallet_address} />
+
       {/* Wallet: live on-chain balance + send/receive/export (ADR-001) */}
       <WalletSection walletAddress={executor.wallet_address} />
 
-      {/* Identity: World ID (flag-gated) + ENS */}
-      <div className={`grid grid-cols-1 ${isWorldIdEnabled() ? 'md:grid-cols-2' : ''} gap-4`}>
-        {isWorldIdEnabled() && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-            <h3 className="text-gray-900 font-semibold mb-3">
-              {t('profile.humanVerification', 'Human Verification')}
+      {/* Advanced: identity verifications (World ID, ENS). Folded by default —
+          most users never touch these and they make the page feel cluttered.
+          Power users who want to verify or link an ENS expand the section. */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+        <button
+          type="button"
+          onClick={() => setAdvancedOpen((v) => !v)}
+          aria-expanded={advancedOpen}
+          className="w-full flex items-center justify-between p-5 text-left hover:bg-gray-50 transition-colors rounded-xl"
+        >
+          <div>
+            <h3 className="text-gray-900 font-semibold">
+              {t('profile.advancedIdentity', 'Advanced identity')}
             </h3>
-            <WorldIdVerification />
+            <p className="text-xs text-gray-500 mt-0.5">
+              {t(
+                'profile.advancedIdentitySubtitle',
+                'Optional: verify you\'re human, link an ENS name.',
+              )}
+            </p>
+          </div>
+          <svg
+            className={`w-5 h-5 text-gray-400 transition-transform ${advancedOpen ? 'rotate-180' : ''}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        {advancedOpen && (
+          <div className={`px-5 pb-5 grid grid-cols-1 ${isWorldIdEnabled() ? 'md:grid-cols-2' : ''} gap-4`}>
+            {isWorldIdEnabled() && (
+              <div className="border border-gray-100 rounded-lg p-4">
+                <h4 className="text-gray-900 font-semibold mb-3 text-sm">
+                  {t('profile.humanVerification', 'Human Verification')}
+                </h4>
+                <WorldIdVerification />
+              </div>
+            )}
+
+            <div className="border border-gray-100 rounded-lg p-4">
+              <h4 className="text-gray-900 font-semibold mb-3 text-sm">
+                {t('profile.ensIdentity', 'ENS Identity')}
+              </h4>
+              <ENSLinkSection />
+            </div>
           </div>
         )}
-
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-          <h3 className="text-gray-900 font-semibold mb-3">
-            {t('profile.ensIdentity', 'ENS Identity')}
-          </h3>
-          <ENSLinkSection />
-        </div>
       </div>
 
       {/* Earnings + Reputation side by side */}

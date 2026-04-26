@@ -14,8 +14,7 @@
 import { useTranslation } from 'react-i18next'
 import { useDynamicContext, useSwitchWallet, useUserWallets } from '@dynamic-labs/sdk-react-core'
 import { useState } from 'react'
-
-const formatShortAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`
+import { truncateAddress } from '../../../lib/utils'
 
 export function WalletSelector() {
   const { t } = useTranslation()
@@ -86,7 +85,7 @@ export function WalletSelector() {
                 />
                 <div className="flex flex-col min-w-0">
                   <span className="font-mono text-sm text-gray-900 truncate">
-                    {formatShortAddress(address)}
+                    {truncateAddress(address)}
                   </span>
                   <span className="text-[11px] text-gray-500">
                     {isEmbedded

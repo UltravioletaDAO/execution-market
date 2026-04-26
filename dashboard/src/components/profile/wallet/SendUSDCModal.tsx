@@ -10,11 +10,16 @@ import { isEthereumWallet } from '@dynamic-labs/ethereum'
 import { erc20Abi, parseUnits, isAddress, type Address } from 'viem'
 import { LIVE_NETWORKS } from '../../../config/networks'
 import type { ChainBalance } from '../../../hooks/useOnchainBalance'
+import { truncateAddress } from '../../../lib/utils'
 
 interface SendUSDCModalProps {
   open: boolean
   onClose: () => void
   balances: ChainBalance[]
+  /** Canonical wallet (Supabase row + ERC-8004 identity). Used to flag the case
+   *  where the active wallet (which signs the tx) is different from where the
+   *  user's task rewards land. */
+  identityAddress?: string
   onSuccess?: (txHash: string) => void
 }
 
@@ -44,9 +49,16 @@ type SendState =
   | { kind: 'success'; txHash: string }
   | { kind: 'error'; message: string }
 
-export function SendUSDCModal({ open, onClose, balances, onSuccess }: SendUSDCModalProps) {
+export function SendUSDCModal({ open, onClose, balances, identityAddress, onSuccess }: SendUSDCModalProps) {
   const { t } = useTranslation()
   const { primaryWallet } = useDynamicContext()
+
+  const fromAddress = primaryWallet?.address || ''
+  const isEmbedded = Boolean(primaryWallet?.connector?.isEmbeddedWallet)
+  const fromDiffersFromIdentity =
+    !!identityAddress &&
+    !!fromAddress &&
+    identityAddress.toLowerCase() !== fromAddress.toLowerCase()
 
   const sendableChains = useMemo(
     () => balances.filter((b) => !b.error && b.balance > 0 && USDC_ADDRESSES[b.network.key]),
@@ -172,6 +184,34 @@ export function SendUSDCModal({ open, onClose, balances, onSuccess }: SendUSDCMo
           </div>
         ) : (
           <div className="space-y-4">
+            {/* From wallet — explicit so user always knows which wallet signs.
+                When this differs from their identity wallet (rewards inbox),
+                we surface that as a soft note: not an error, just clarity. */}
+            {fromAddress && (
+              <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
+                <div className="text-xs text-gray-500">
+                  {t('wallet.send.fromLabel', 'From')}
+                </div>
+                <div className="flex items-center gap-2">
+                  <code className="text-xs font-mono text-gray-800">{truncateAddress(fromAddress)}</code>
+                  <span className="text-[10px] uppercase tracking-wide font-semibold text-gray-500">
+                    {isEmbedded
+                      ? t('wallet.send.embedded', 'Embedded')
+                      : t('wallet.send.external', 'External')}
+                  </span>
+                </div>
+              </div>
+            )}
+            {fromDiffersFromIdentity && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900">
+                {t(
+                  'wallet.send.differsNote',
+                  'Heads up: this isn\'t your rewards inbox. This transfer leaves the wallet you\'re currently signing with. Task rewards still land in {{identity}}.',
+                  { identity: truncateAddress(identityAddress || '') },
+                )}
+              </div>
+            )}
+
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">
                 {t('wallet.send.chainLabel', 'Network')}

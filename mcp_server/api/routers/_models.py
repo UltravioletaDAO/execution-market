@@ -494,6 +494,39 @@ class UpdateSocialLinksRequest(BaseModel):
     )
 
 
+class UpdateWalletRequest(BaseModel):
+    """Request to change the executor's wallet address.
+
+    The new wallet must sign the exact ``message`` to prove ownership. The
+    message MUST follow the format
+    ``"Execution Market: change wallet to <new_wallet> for executor <executor_id> at <ISO8601>"``
+    and the timestamp must be within the last 10 minutes (replay protection).
+    """
+
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    new_wallet_address: str = Field(
+        ...,
+        description="The wallet to switch to (0x-prefixed, 42 chars)",
+        pattern=r"^0x[a-fA-F0-9]{40}$",
+    )
+    message: str = Field(
+        ...,
+        description=(
+            "Exact human-readable message that was signed. "
+            "Format: 'Execution Market: change wallet to <new_wallet> for "
+            "executor <executor_id> at <ISO8601 UTC>'"
+        ),
+        min_length=80,
+        max_length=300,
+    )
+    signature: str = Field(
+        ...,
+        description="EIP-191 signature of the message, signed by new_wallet_address",
+        pattern=r"^0x[a-fA-F0-9]{130}$",
+    )
+
+
 # =============================================================================
 # ANALYTICS & CONFIG
 # =============================================================================
