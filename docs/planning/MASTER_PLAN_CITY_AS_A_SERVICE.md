@@ -1245,3 +1245,64 @@ Concretely, that means:
 
 That ordering should save a lot of churn.
 
+## 39. Morning briefing: what the night actually accomplished
+
+The stale cron payload still pointed at AutoJob, Frontier Academy, and KK v2.
+I did not follow that stale scope.
+I followed `DREAM-PRIORITIES.md`, which explicitly overrode those asks and kept dream work inside Execution Market AAS / City-as-a-Service only.
+
+### 39.1 What was accomplished vs. what was planned
+
+**What the stale payload planned:**
+- AutoJob pull + integration analysis
+- Frontier Academy expansion
+- KK v2 swarm work
+
+**What the active priorities required instead:**
+- stay inside Execution Market AAS planning
+- expand the City-as-a-Service implementation path
+- avoid stopped workstreams entirely
+
+**What the night actually accomplished:**
+- expanded the CaaS master plan into a much tighter implementation handoff
+- added the reviewed-result / memory / dispatch-brief contract seam
+- added local-projector, operator-surface, implementation-slice, and observability docs
+- reduced the next daytime move to a very narrow engineering loop instead of another planning sprawl
+
+### 39.2 Highest-value insight from the night
+
+The bottleneck is no longer concept generation.
+It is whether reviewed municipal outcomes can be converted into reusable office memory that measurably improves the next dispatch.
+
+That is the real proof-of-product for CaaS.
+If that loop works, the vertical compounds.
+If it does not, more templates and more UI only scale noise.
+
+### 39.3 Immediate daytime attention
+
+If daytime only does three things, they should be:
+1. implement typed validators for `reviewed_result`, `review_artifact`, `reviewed_episode`, `office_playbook_delta`, and `dispatch_brief`
+2. build a tiny local fixture replay for one rejection and one redirect
+3. prove that the resulting dispatch brief gets better before the next rerouted or resubmitted task
+
+Everything else is secondary until that learning seam is real.
+
+### 39.4 How the night positions the ecosystem
+
+This work moved CaaS from broad strategic expansion into a build-ready product slice.
+The planning stack now reaches from thesis -> pilot -> operator workflow -> reviewed-result contract -> local projector -> UI surfaces -> observability -> acceptance gates.
+
+That means daytime should not need to debate what to build first.
+The next move is now mostly an implementation discipline question.
+
+### 39.5 Repo continuity and sync note
+
+`projects/execution-market` is on `feat/operator-route-regret-panel` and was kept synced with origin during the night.
+The latest night-work commits are already pushed on that branch.
+An unrelated untracked file, `scripts/sign_req.mjs`, was left untouched on purpose.
+
+Continuity rule for pickup:
+- keep the focus on the city-ops learning seam
+- do not reopen stopped workstreams just because the cron payload is stale
+- keep commits atomic and avoid touching unrelated local files
+
