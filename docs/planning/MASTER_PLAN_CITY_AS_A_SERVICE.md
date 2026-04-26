@@ -984,3 +984,93 @@ Minimum acceptance gate:
 7. only then Acontext sink replacement
 
 This order keeps the hardest product truth in the open: whether reviewed city work actually compounds into better future dispatch decisions.
+
+## 35. Operator surfaces and state contracts for the first build
+
+The remaining ambiguity is no longer strategic. It is interface-level.
+Daytime should be able to point at three concrete surfaces and say exactly what state each one owns.
+
+### 35.1 Review Console
+
+Purpose:
+Turn messy worker evidence into one reviewed city result that can close the task and feed memory.
+
+The Review Console should own:
+- reviewed `outcome_status`
+- reviewed `source_type`
+- template-specific `structured_result`
+- `rejection_reasons[]`
+- `redirect_target`
+- `next_step_recommendation`
+- `risk_flags[]`
+- review artifact fields (`review_status`, `closure_type`, `result_trust_level`, `memory_write_recommended`)
+
+The Review Console should show side-by-side:
+- raw worker evidence
+- normalized result draft
+- memory-write preview
+- follow-on recommendation preview
+
+Hard rule:
+no city task should write office memory from raw submission alone.
+The review surface is the promotion gate.
+
+### 35.2 Dispatch Brief Panel
+
+Purpose:
+Inject office/jurisdiction memory at the exact moment an operator is about to create, reroute, or resubmit a city task.
+
+The Dispatch Brief Panel should show:
+- office/jurisdiction summary
+- top rejection reasons for the template
+- top redirect targets
+- evidence warnings
+- fallback instruction recommendation
+- last reviewed episode count / freshness
+
+The Dispatch Brief Panel should influence:
+- worker instructions
+- whether the operator chooses Counter Question before Packet Submission
+- whether a reroute target is already obvious
+- whether extra evidence requirements should be added before dispatch
+
+Hard rule:
+retrieval should be compact and operational, not a long transcript dump.
+If the operator cannot act on it in under a minute, the brief is too noisy.
+
+### 35.3 Office Memory View
+
+Purpose:
+Make office learning inspectable so operators trust the loop and can correct bad inferences early.
+
+The Office Memory View should show:
+- current office playbook summary
+- recent reviewed episodes for that office/template pair
+- rejection/redirect concentration
+- confidence/freshness markers
+- changes introduced by the latest playbook delta
+
+This is not a general knowledge browser.
+It is a debugging and trust surface for the municipal memory loop.
+
+### 35.4 Minimal shared state objects
+
+If the first implementation wants the smallest stable seam, it should define and reuse exactly these objects:
+- `reviewed_result`
+- `review_artifact`
+- `reviewed_episode`
+- `office_playbook_delta`
+- `dispatch_brief`
+
+If these five objects remain stable, UI surfaces and memory sinks can evolve independently without losing product coherence.
+
+### 35.5 First UI acceptance gates
+
+The first city-ops UI slice should not be called done until:
+- an operator can review a worker submission into a valid `reviewed_result`
+- that action emits a visible memory-write preview before confirmation
+- a future task for the same office/template shows a compact `dispatch_brief`
+- the operator can inspect why the brief says what it says via recent reviewed episodes
+- reroute/resubmit creation can reuse prior office context instead of starting from blank fields
+
+This is the narrowest real product loop: review -> memory -> next dispatch improvement.
