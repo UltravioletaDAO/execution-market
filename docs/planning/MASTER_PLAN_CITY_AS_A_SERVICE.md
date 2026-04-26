@@ -741,13 +741,14 @@ Once those exist, EM can prototype City as a Service as an actual product surfac
 
 ## 29. Implementation docs created
 
-On 2026-04-25, this plan was expanded into six implementation-facing companion docs:
+On 2026-04-25, this plan was expanded into seven implementation-facing companion docs:
 - `CITY_AS_A_SERVICE_TEMPLATE_SPECS.md`
 - `CITY_AS_A_SERVICE_EVIDENCE_SCHEMAS.md`
 - `CITY_AS_A_SERVICE_JURISDICTION_MODEL.md`
 - `CITY_AS_A_SERVICE_OPERATOR_PLAYBOOK.md`
 - `CITY_AS_A_SERVICE_PILOT_BLUEPRINT.md`
 - `CITY_AS_A_SERVICE_Acontext_MEMORY_BRIDGE.md`
+- `CITY_AS_A_SERVICE_LOCAL_PROJECTOR_BOOTSTRAP.md`
 
 These docs convert the CaaS thesis into:
 - concrete MVP templates
@@ -756,6 +757,7 @@ These docs convert the CaaS thesis into:
 - an operator workflow for intake, dispatch, review, chaining, and memory updates
 - a narrow first-pilot blueprint that can move from planning into live execution
 - a memory/observability bridge for turning reviewed city episodes into future dispatch intelligence
+- a local-first projector bootstrap that can test the memory loop before full Acontext infra wiring
 
 This is the right level of specificity for the next product step: prototype city-ops surfaces without overcommitting to a giant platform build.
 
@@ -796,6 +798,11 @@ If daytime product work picks this up next, the highest-leverage build order is:
    - keep EM as execution ledger
    - generate reviewed episode summaries, office playbooks, and jurisdiction briefs
    - use those artifacts to shape future dispatch instructions and routing
+
+8. **Prove the loop locally before Acontext infra work**
+   - emit reviewed result + reviewed episode artifacts from a local projector
+   - merge office playbook deltas deterministically
+   - compose a dispatch brief from local artifacts first
 
 That sequence keeps CaaS grounded in product reality: real operator surfaces, real evidence structure, real memory accumulation, a pilot small enough to learn from quickly, and a clean bridge into Acontext-backed operational memory.
 
@@ -855,6 +862,7 @@ If only one code slice is started next, it should be:
 1. a shared city-ops result schema
 2. a reviewed episode-summary writer
 3. a simple dispatch-brief retrieval helper
+4. a local projector artifact layout that can later swap to Acontext sinks
 
 That would connect the planning work to an actual product loop without requiring the entire CaaS platform to exist first.
 
@@ -891,6 +899,7 @@ If daytime touches only one thing next, it should be the shared result/memory se
 - finalize the v1 city-ops result schema
 - implement a reviewed episode projector that emits `episode_summary`, `office_playbook`, and `jurisdiction_brief`
 - wire a lightweight dispatch briefing helper that consumes those artifacts
+- keep the first loop local/file-based until the artifacts and retrieval shape feel obviously right
 
 ### 32.4 How tonight positions the ecosystem
 Tonight moved Execution Market's AAS direction from concept exploration into product-shaping territory.
@@ -909,3 +918,17 @@ All dream-session work stayed in `projects/execution-market` on `feat/operator-r
 The repo is synced with origin, and the only intentionally untouched local item remains the unrelated untracked file `scripts/sign_req.mjs`.
 
 The planning docs under `docs/planning/` are now the canonical handoff surface for daytime follow-through.
+
+## 33. Local projector bootstrap added
+
+The next practical gap after the result/memory contract was not more concept design. It was the pre-infra build path.
+
+`CITY_AS_A_SERVICE_LOCAL_PROJECTOR_BOOTSTRAP.md` now defines that path:
+- suggested local artifact directory layout
+- minimal reviewed-result / reviewed-episode / office-playbook / jurisdiction-brief / dispatch-brief outputs
+- write rules that only promote reviewed outcomes into memory
+- a deterministic first dispatch-brief composer
+- a fixture-driven way to test whether the second city task actually becomes better than the first
+
+This matters because Acontext should remain a sink swap, not a product-thinking crutch.
+The cleanest next daytime move is to prove the memory loop locally, then wire the same contracts into Acontext once the artifacts are obviously useful.
