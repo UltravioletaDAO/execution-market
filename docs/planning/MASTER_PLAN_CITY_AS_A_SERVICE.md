@@ -932,3 +932,55 @@ The next practical gap after the result/memory contract was not more concept des
 
 This matters because Acontext should remain a sink swap, not a product-thinking crutch.
 The cleanest next daytime move is to prove the memory loop locally, then wire the same contracts into Acontext once the artifacts are obviously useful.
+
+## 34. First implementation milestones and acceptance gates
+
+The next move should not be "start building CaaS" in the abstract.
+It should be two narrow milestones with visible acceptance criteria.
+
+### 34.1 Milestone A — review-to-artifact loop
+
+Goal:
+Turn one reviewed city task into reusable local artifacts with zero Acontext dependency.
+
+Scope:
+- one Review Console flow for `counter_question` and `packet_submission`
+- one reviewed result artifact emitted on closure
+- one reviewed episode artifact emitted on closure
+- office playbook merge logic for redirect/rejection/evidence-learning fields
+- deterministic dispatch-brief composer
+
+Minimum acceptance gate:
+- given 5-10 fixture episodes, the projector writes stable JSON artifacts
+- the same office/template produces a visibly richer dispatch brief after repeated reviewed runs
+- operators can inspect the memory-write preview before closure
+- no artifact is written directly from raw worker upload
+
+### 34.2 Milestone B — dispatch quality loop
+
+Goal:
+Prove that prior reviewed city work improves the next dispatch.
+
+Scope:
+- Dispatch Brief Panel appears when creating or rerouting a city task
+- panel shows top rejection reasons, redirect targets, evidence warnings, and fallback instructions
+- follow-on task creation reuses prior task context instead of forcing re-entry
+- Office Memory View exposes whether repeated runs are actually producing better routing knowledge
+
+Minimum acceptance gate:
+- operator can open a city task and see a compact office/template briefing before dispatch
+- at least one reroute/resubmit flow can be created without manual restatement of the full office context
+- reviewed episodes are inspectable from the briefing surface
+- the pilot team can measure memory reuse rate and redirect/rejection concentration from the generated artifacts
+
+### 34.3 Build-order recommendation
+
+1. reviewed result contract
+2. review console form/state
+3. local projector writes
+4. dispatch-brief composer
+5. dispatch brief panel
+6. office memory view
+7. only then Acontext sink replacement
+
+This order keeps the hardest product truth in the open: whether reviewed city work actually compounds into better future dispatch decisions.
