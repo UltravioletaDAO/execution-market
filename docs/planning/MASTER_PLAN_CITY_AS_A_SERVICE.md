@@ -741,7 +741,7 @@ Once those exist, EM can prototype City as a Service as an actual product surfac
 
 ## 29. Implementation docs created
 
-On 2026-04-25 and 2026-04-26, this plan was expanded into implementation-facing companion docs:
+On 2026-04-25 and 2026-04-26, this plan was expanded into implementation-facing companion docs, including:
 - `CITY_AS_A_SERVICE_TEMPLATE_SPECS.md`
 - `CITY_AS_A_SERVICE_EVIDENCE_SCHEMAS.md`
 - `CITY_AS_A_SERVICE_JURISDICTION_MODEL.md`
@@ -752,7 +752,6 @@ On 2026-04-25 and 2026-04-26, this plan was expanded into implementation-facing 
 - `CITY_AS_A_SERVICE_OBSERVABILITY_AND_SUCCESS_METRICS.md`
 - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 - `CITY_AS_A_SERVICE_IMPLEMENTATION_SLICE.md`
-- `CITY_AS_A_SERVICE_REVIEW_DECISION_TABLES.md`
 
 These docs convert the CaaS thesis into:
 - concrete MVP templates
@@ -764,7 +763,7 @@ These docs convert the CaaS thesis into:
 - a local-first projector bootstrap that can test the memory loop before full Acontext infra wiring
 - a first success-metrics layer for measuring whether reviewed city work improves future dispatch
 - a fixture-replay and acceptance-test plan that proves the loop with tiny, deterministic city-task scenarios before bigger UI or infra work
-- explicit review decision tables that tell the Review Console and projector exactly how to classify outcomes, require fields, suggest follow-on actions, and suppress or allow memory writes
+- a single code-facing implementation slice that tells daytime engineering exactly what to build first
 
 This is the right level of specificity for the next product step: prototype city-ops surfaces without overcommitting to a giant platform build.
 
