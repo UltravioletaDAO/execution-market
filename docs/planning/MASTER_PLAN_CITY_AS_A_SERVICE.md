@@ -1439,3 +1439,38 @@ Continuity rule for pickup:
 - do not reopen stopped workstreams just because the cron payload is stale
 - keep commits atomic and avoid touching unrelated local files
 
+## 45. Daytime execution memo: the narrowest win that matters
+
+If daytime only has one strong block of attention, the right move is not broad city-feature construction.
+It is to prove one tiny learning loop end to end.
+
+The narrowest meaningful win:
+- start from an empty local city-memory state
+- replay one reviewed rejection fixture and one reviewed redirect fixture
+- emit validated `reviewed_episode` and `office_playbook_delta` artifacts
+- produce a second dispatch brief that is visibly better than the first one
+- show stable provenance and event emission for why the brief improved
+
+That proof should answer four questions decisively:
+1. did reviewed work become structured memory instead of notes?
+2. did memory improve routing or rejection avoidance before the next dispatch?
+3. can the system explain which episodes caused the improvement?
+4. does rerunning the same fixtures produce the same result?
+
+Recommended daytime order now:
+1. implement the five validator shapes
+2. add the two highest-signal fixtures first: one rejection, one redirect
+3. wire a tiny local replay harness that outputs compared dispatch briefs
+4. only after the comparison is legible, expand fixture families and UI consumers
+
+What should wait until after that proof:
+- broad office-template expansion
+- richer operator UX polish
+- deeper Acontext sink replacement
+- multi-city rollout framing
+- any attempt to call this city memory "smart" without replay evidence
+
+The point of this memo is simple:
+**daytime should optimize for one undeniable before/after dispatch improvement, not for surface-area growth.**
+That is the cleanest bridge from planning work to product truth.
+
