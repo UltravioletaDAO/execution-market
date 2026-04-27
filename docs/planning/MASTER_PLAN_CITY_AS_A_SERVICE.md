@@ -1296,7 +1296,29 @@ Strong recommendation for daytime:
 
 This is the narrowest build proof that CaaS is learning from municipal work instead of merely storing it.
 
-## 41. Morning briefing: what the night actually accomplished
+## 41. Typed validators and fixture schema should become the first daylight coding seam
+
+The planning stack already said that typed validators and tiny replay fixtures should come first.
+What was still too easy to leave vague was the exact shape of that work.
+
+`CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md` now tightens that seam.
+
+Why this matters:
+- the next likely daytime failure is not lack of ideas; it is contract drift and noisy replay assumptions
+- the team needs a tiny, inspectable validator target before it builds more UI around reviewed city outcomes
+- replay fixtures should test the learning seam with the smallest possible payloads, not drag the whole task system into every proof
+- dispatch briefs should never become operational doctrine without validated provenance
+
+The new doc defines:
+- the first five artifact validators: `reviewed_result`, `review_artifact`, `reviewed_episode`, `office_playbook_delta`, and `dispatch_brief`
+- the minimum replay-fixture schema needed to prove learning deterministically
+- the first failure modes to catch early: contract drift, false certainty, memory pollution, provenance loss, and non-deterministic merges
+- a crisp daylight sequence: validators -> tiny fixtures -> replay assertions -> visible dispatch improvement -> only then more UI wiring
+
+This is a strong next addition because it converts the earlier handoff advice into something much closer to a coding checklist.
+If daytime follows it, the city-ops learning seam should get harder to misbuild.
+
+## 42. Morning briefing: what the night actually accomplished
 
 The planning stack now reaches the point where the next best move is to stop adding broad concept coverage and make implementation discipline almost impossible to misunderstand.
 
