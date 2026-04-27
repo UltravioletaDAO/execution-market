@@ -758,6 +758,7 @@ On 2026-04-25 and 2026-04-26, this plan was expanded into implementation-facing 
 - `CITY_AS_A_SERVICE_OBSERVABILITY_AND_SUCCESS_METRICS.md`
 - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 - `CITY_AS_A_SERVICE_IMPLEMENTATION_SLICE.md`
+- `CITY_AS_A_SERVICE_REVIEW_LOOP_STATE_MACHINE.md`
 
 These docs convert the CaaS thesis into:
 - concrete MVP templates
@@ -1318,7 +1319,30 @@ The new doc defines:
 This is a strong next addition because it converts the earlier handoff advice into something much closer to a coding checklist.
 If daytime follows it, the city-ops learning seam should get harder to misbuild.
 
-## 42. Morning briefing: what the night actually accomplished
+## 42. Review-loop state machine should become part of the first daylight seam
+
+The planning stack now has contracts, replay fixtures, implementation-slice boundaries, and observability.
+What was still too easy to misbuild was the transition logic between raw worker submission, reviewed closure, and memory promotion.
+
+`CITY_AS_A_SERVICE_REVIEW_LOOP_STATE_MACHINE.md` now closes that gap.
+
+Why this matters:
+- city-ops learning should happen only after explicit reviewed closure
+- `reviewed_no_learning` should remain available for legitimate task closure without office-memory pollution
+- escalated reviews should be visible as unresolved learning pressure, not silently flattened into completion metrics
+- dispatch briefs should only consume artifacts promoted from reviewed-with-learning paths
+
+The new state-machine doc defines:
+- the minimum first states (`awaiting_submission`, `submission_received`, `under_review`, `reviewed_no_learning`, `reviewed_with_learning`, `review_escalated`)
+- the allowed transitions between them
+- the exact transition outputs and stable event order for learning promotion
+- the promotion rules that separate safe office memory from merely closed work
+- the first operator-surface implications for Review Console, Dispatch Brief Panel, and Office Memory View
+
+This is a strong next addition because daytime now has a clearer answer to a subtle but important product question:
+**when exactly is a reviewed city task allowed to teach the system?**
+
+## 43. Morning briefing: what the night actually accomplished
 
 The planning stack now reaches the point where the next best move is to stop adding broad concept coverage and make implementation discipline almost impossible to misunderstand.
 
