@@ -1342,7 +1342,41 @@ The new state-machine doc defines:
 This is a strong next addition because daytime now has a clearer answer to a subtle but important product question:
 **when exactly is a reviewed city task allowed to teach the system?**
 
-## 43. Morning briefing: what the night actually accomplished
+## 43. The next missing seam is fixture scoring, not more concept expansion
+
+The planning stack now defines what the city-ops learning loop is, when memory promotion is allowed, and how replay should prove it.
+The next likely daytime ambiguity is simpler but still dangerous:
+**how do builders decide whether a replayed dispatch brief is actually better, rather than merely different?**
+
+That question should be answered with a tiny scoring contract before broader operator-surface work expands.
+
+### Why this matters
+Without a compact scoring seam, replay can still become hand-wavy:
+- a dispatch brief changes, but nobody can say whether it improved routing quality
+- a rejection warning appears, but its usefulness is judged by vibe instead of criteria
+- redirect guidance gets longer, not clearer
+- fixture replay passes mechanically while the operator experience stays muddy
+
+### What the scoring seam should evaluate
+The first scoring pass does not need ML or a broad rubric.
+It only needs a deterministic, inspectable checklist for whether a dispatch brief improved on the previous one.
+
+Recommended first dimensions:
+- **routing clarity** — does the brief identify the likely counter, window, desk, or fallback path more clearly?
+- **failure prevention** — does it warn about the specific rejection or evidence trap revealed by review?
+- **fallback usefulness** — does it give the worker a better next action if blocked or redirected?
+- **provenance visibility** — can the operator tell which reviewed episode caused the guidance?
+- **brevity under pressure** — did the brief get sharper instead of merely longer?
+
+### Daytime implementation consequence
+Before broadening UI polish, daytime should be able to replay one baseline fixture and one learned fixture pair, then score the newer brief against the older one with explicit pass/fail criteria.
+
+The practical goal is not "better copy."
+It is a proof that reviewed city work causes a measurable improvement in the next worker instruction set.
+
+If that scoring seam stays implicit, the product can look like it is learning while actually just accumulating text.
+
+## 44. Morning briefing: what the night actually accomplished
 
 The planning stack now reaches the point where the next best move is to stop adding broad concept coverage and make implementation discipline almost impossible to misunderstand.
 
