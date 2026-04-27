@@ -1,0 +1,175 @@
+# City as a Service — Review Decision Tables
+
+> Last updated: 2026-04-26
+> Parent docs:
+> - `CITY_AS_A_SERVICE_RESULT_AND_MEMORY_CONTRACT.md`
+> - `CITY_AS_A_SERVICE_OPERATOR_PLAYBOOK.md`
+> - `CITY_AS_A_SERVICE_REVIEW_AND_ROUTING_UI_BLUEPRINT.md`
+> - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
+> Status: implementation-oriented planning draft
+
+## 1. Why this doc exists
+
+The planning stack already says the first product seam is:
+- review worker evidence
+- normalize a reviewed city result
+- emit memory artifacts
+- improve the next dispatch
+
+What remains too implicit is the exact review logic that converts city outcomes into:
+- reviewed result fields
+- review artifact values
+- follow-on actions
+- memory-write decisions
+
+Without that decision layer, daytime engineering still has to guess how the Review Console should behave.
+
+This doc defines the narrowest decision tables needed to make review behavior implementation-ready and testable.
+
+## 2. Core principle
+
+**Review should be rule-driven enough to be consistent, but small enough to ship before broader workflow automation.**
+
+The first version should answer four questions deterministically:
+1. how is the outcome classified?
+2. what follow-on action should be suggested?
+3. should office memory be updated?
+4. what fields are mandatory before closure?
+
+## 3. Shared review outputs
+
+Every reviewed city task should resolve these fields before closure:
+- `outcome_status`
+- `source_type`
+- `next_step_recommendation`
+- `review_status`
+- `closure_type`
+- `result_trust_level`
+- `follow_on_needed`
+- `memory_write_recommended`
+
+## 4. Outcome-to-closure decision table
+
+| Reviewed situation | `outcome_status` | `closure_type` | Default `review_status` | Default `follow_on_needed` |
+|---|---|---|---|---|
+| Submission accepted with proof | `accepted` | `success_proof` | `approved` | `false` |
+| Counter answer obtained and usable | `completed` | `success_proof` | `approved` | `false` |
+| Rejection with clear reason | `rejected` | `rejection_diagnosis` | `approved_with_learning` | `true` |
+| Redirect with clear destination | `redirected` | `redirect_clarified` | `approved_with_learning` | `true` |
+| Office blocked progress but condition is clear | `blocked` | `blocked_condition` | `needs_followup` | `true` |
+| Evidence too weak to trust outcome | `inconclusive` | `inconclusive` | `insufficient_evidence` | `true` |
+| Conflicting signals require operator escalation | `inconclusive` | `inconclusive` | `escalated` | `true` |
+
+## 5. Follow-on recommendation table
+
+| Reviewed situation | Default `next_step_recommendation` |
+|---|---|
+| Clean success, no immediate downstream task | `none` |
+| Counter answer reveals missing requirement | `ask_followup_question` |
+| Packet rejected for fixable document issue | `resubmit_packet` |
+| Packet or question routed to another office/window | `reroute_office` |
+| Posting or audit failed due to visible compliance issue | `fix_posting` |
+| Office closed, appointment required, or revisit timed later | `schedule_revisit` |
+| Accepted result unlocks downstream compliance prep | `prepare_for_inspection` |
+| Conflicting evidence or policy ambiguity | `human_review_required` |
+
+## 6. Memory-write decision table
+
+| Condition | `memory_write_recommended` | Why |
+|---|---|---|
+| Accepted/completed result with no reusable office learning | `false` | Closure is useful but does not change routing or policy knowledge |
+| New rejection reason captured clearly | `true` | Rejection patterns should improve the next dispatch |
+| Repeat rejection reason confirmed again | `true` | Repeat signal should strengthen office guidance confidence |
+| Redirect target captured clearly | `true` | Routing knowledge is one of the highest-value memory outputs |
+| Photo/evidence restriction observed | `true` | Future proof expectations should adjust before dispatch |
+| Office closure / appointment rule observed clearly | `true` | Access friction is reusable operational knowledge |
+| Weak or contradictory evidence | `false` | Raw ambiguity should not become doctrine |
+| Escalated legal/policy ambiguity without clear field truth | `false` | Needs human interpretation before memory promotion |
+
+## 7. Mandatory fields before closure by outcome
+
+### 7.1 Accepted / completed
+Must have:
+- `outcome_status`
+- `source_type`
+- `next_step_recommendation`
+- proof attachment or explicit proof explanation
+- `review_status`
+- `closure_type`
+- `result_trust_level`
+
+### 7.2 Rejected
+Must have:
+- all accepted/completed fields as applicable
+- `rejection_reasons[]`
+- template-specific rejection detail in `structured_result`
+- follow-on recommendation
+
+### 7.3 Redirected
+Must have:
+- `redirect_target`
+- redirect source captured in `structured_result` or notes
+- follow-on recommendation, usually `reroute_office`
+
+### 7.4 Blocked
+Must have:
+- blocked condition captured in `structured_result`
+- whether retry/revisit is sensible
+- follow-on recommendation
+
+### 7.5 Inconclusive
+Must have:
+- explicit explanation of why the result is weak
+- `result_trust_level`
+- `review_status` of `insufficient_evidence` or `escalated`
+- no memory write recommendation unless later re-reviewed
+
+## 8. Trust-level rules
+
+| Signal quality | Default `result_trust_level` |
+|---|---|
+| Primary documentary proof or strong visual proof | `high` |
+| Mixed proof with some operator interpretation | `medium` |
+| Mostly hearsay, conflicting claims, or missing proof | `low` |
+
+Recommended rule:
+- low-trust outcomes may close operationally, but should not write office memory by default
+- high-trust rejections and redirects should usually write memory
+
+## 9. Review Console behavior implied by these tables
+
+The first Review Console should be able to:
+1. infer a draft row from the reviewed situation
+2. highlight missing mandatory fields before closure
+3. preview the follow-on action that the selected row implies
+4. preview whether memory will be written and why
+
+This means the UI does not need heavy AI to be useful.
+It needs compact rule-driven review support.
+
+## 10. Fixture coverage requirements
+
+The fixture replay pack should explicitly cover at least one case for each of these rows:
+- accepted/completed with no memory write
+- rejected with memory write
+- repeated rejection with stronger memory signal
+- redirected with reroute recommendation
+- blocked with revisit recommendation
+- inconclusive with memory write suppressed
+
+If the replay harness cannot exercise these rows, the first review logic is still underspecified.
+
+## 11. First engineering acceptance gate
+
+The first city-ops review implementation should not be considered done until:
+- each decision-table row can be represented in fixtures
+- the Review Console can derive or enforce the required fields for that row
+- the projector receives stable review outputs for all rows
+- memory writes are suppressed for low-trust or inconclusive cases
+- follow-on recommendations are deterministic enough to test by snapshot
+
+## 12. Sharp recommendation
+
+**The strongest next seam is not another schema doc. It is explicit review decision logic.**
+
+Once these tables exist, daytime engineering can build the Review Console, projector rules, and fixture assertions against one shared operational truth.

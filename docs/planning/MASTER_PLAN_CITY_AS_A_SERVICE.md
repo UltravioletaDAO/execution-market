@@ -741,7 +741,7 @@ Once those exist, EM can prototype City as a Service as an actual product surfac
 
 ## 29. Implementation docs created
 
-On 2026-04-25 and 2026-04-26, this plan was expanded into eight implementation-facing companion docs:
+On 2026-04-25 and 2026-04-26, this plan was expanded into implementation-facing companion docs:
 - `CITY_AS_A_SERVICE_TEMPLATE_SPECS.md`
 - `CITY_AS_A_SERVICE_EVIDENCE_SCHEMAS.md`
 - `CITY_AS_A_SERVICE_JURISDICTION_MODEL.md`
@@ -750,6 +750,9 @@ On 2026-04-25 and 2026-04-26, this plan was expanded into eight implementation-f
 - `CITY_AS_A_SERVICE_Acontext_MEMORY_BRIDGE.md`
 - `CITY_AS_A_SERVICE_LOCAL_PROJECTOR_BOOTSTRAP.md`
 - `CITY_AS_A_SERVICE_OBSERVABILITY_AND_SUCCESS_METRICS.md`
+- `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
+- `CITY_AS_A_SERVICE_IMPLEMENTATION_SLICE.md`
+- `CITY_AS_A_SERVICE_REVIEW_DECISION_TABLES.md`
 
 These docs convert the CaaS thesis into:
 - concrete MVP templates
@@ -760,6 +763,8 @@ These docs convert the CaaS thesis into:
 - a memory/observability bridge for turning reviewed city episodes into future dispatch intelligence
 - a local-first projector bootstrap that can test the memory loop before full Acontext infra wiring
 - a first success-metrics layer for measuring whether reviewed city work improves future dispatch
+- a fixture-replay and acceptance-test plan that proves the loop with tiny, deterministic city-task scenarios before bigger UI or infra work
+- explicit review decision tables that tell the Review Console and projector exactly how to classify outcomes, require fields, suggest follow-on actions, and suppress or allow memory writes
 
 This is the right level of specificity for the next product step: prototype city-ops surfaces without overcommitting to a giant platform build.
 
@@ -1245,7 +1250,48 @@ Concretely, that means:
 
 That ordering should save a lot of churn.
 
-## 39. Morning briefing: what the night actually accomplished
+## 39. First implementation slice doc added
+
+The remaining planning gap was not more strategy.
+It was a single code-facing build brief that daytime engineering could pick up without cross-reading the whole planning stack.
+
+`CITY_AS_A_SERVICE_IMPLEMENTATION_SLICE.md` now fills that gap by defining:
+- the exact first build boundary
+- the small package/module shape
+- what is in scope vs explicitly out of scope
+- the minimum fixture set
+- the acceptance gates that must pass before broader UI work
+
+Why this matters:
+- the result/memory contract defines the data seam
+- the replay plan defines how to prove learning
+- the observability doc defines what to measure
+- but this new slice doc tells engineering exactly what to implement first
+
+This is the best next seam because it converts the planning stack into one narrow implementation package instead of forcing daytime to synthesize it ad hoc.
+
+## 40. Fixture replay should be treated as the first proof of product
+
+The planning stack now has contracts, projector guidance, operator surfaces, and observability.
+The next missing discipline is not another strategy memo.
+It is a repeatable proof harness.
+
+`CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md` now defines that harness.
+
+Why this matters:
+- the city-ops learning seam should be proven with tiny reviewed fixtures before broader UI work
+- repeated rejections and redirects should make the next dispatch brief visibly better
+- event emission should explain why the brief changed, not force blind trust
+- deterministic replay is the fastest way to catch noisy playbook merges or weak contract boundaries
+
+Strong recommendation for daytime:
+- do not begin with broad operator UI polish
+- first make 5-10 replay fixtures pass cleanly across reviewed result -> reviewed episode -> office playbook -> dispatch brief -> observability events
+- only after that wire larger Review Console and Dispatch Brief surfaces onto the proven seam
+
+This is the narrowest build proof that CaaS is learning from municipal work instead of merely storing it.
+
+## 41. Morning briefing: what the night actually accomplished
 
 The stale cron payload still pointed at AutoJob, Frontier Academy, and KK v2.
 I did not follow that stale scope.
