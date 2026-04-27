@@ -389,6 +389,12 @@ That is concrete, painful, urgent, and already aligned with EM's strengths.
 
 ## 18. Summary
 
+**Implementation handoff additions:**
+- `CITY_AS_A_SERVICE_IMPLEMENTATION_BACKLOG_AND_DECISIONS.md` — consolidated build order, locked decisions, and highest-value open questions
+- `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md` — narrow daytime implementation sequence
+- `CITY_AS_A_SERVICE_IMPLEMENTATION_SLICE_V1.md` — stable first-loop object model
+
+
 City as a Service is one of the cleanest AAS verticals for Execution Market because it turns the hardest non-API surface in business operations — the city itself — into a programmable execution layer.
 
 If EM is the universal human execution substrate, CaaS is the first vertical where:
