@@ -1474,3 +1474,70 @@ The point of this memo is simple:
 **daytime should optimize for one undeniable before/after dispatch improvement, not for surface-area growth.**
 That is the cleanest bridge from planning work to product truth.
 
+## 46. Final morning handoff: the night is now compressed into one build question
+
+The planning stack is now deep enough.
+Another round of broad ideation would likely add more volume than value.
+The strongest final handoff is to compress the night into one build question that daytime can answer with code:
+
+> can one reviewed rejection and one reviewed redirect make the next city dispatch materially smarter in a deterministic, inspectable way?
+
+If daytime can answer yes, CaaS stops being a concept deck and becomes a learning product.
+If daytime cannot answer yes yet, more templates, more surface area, and more city vertical language should wait.
+
+### 46.1 What was accomplished vs. what the stale payload asked for
+
+The stale cron payload still asked for work on AutoJob, Frontier Academy, and KK v2.
+That scope was intentionally not followed.
+`DREAM-PRIORITIES.md` overrode it, so the night stayed inside Execution Market AAS / City-as-a-Service.
+
+What the night actually accomplished:
+- tightened the CaaS master plan into an implementation-first handoff
+- added acceptance-focused docs for fixture replay, typed validators, local projector behavior, observability, state transitions, and dispatch-brief evaluation
+- reduced the next daytime move to one narrow proof seam instead of another broad planning pass
+
+### 46.2 Highest-confidence daytime move
+
+If there is one best use of fresh daytime attention, it is this exact sequence:
+1. validate `reviewed_result`, `review_artifact`, `reviewed_episode`, `office_playbook_delta`, and `dispatch_brief`
+2. replay one reviewed rejection fixture and one reviewed redirect fixture
+3. compare before/after dispatch briefs side by side
+4. verify stable provenance and event output for why the second brief improved
+
+That is the smallest proof that city work is compounding.
+
+### 46.3 What needs immediate daytime attention
+
+Immediate attention should go to:
+- deterministic validator shapes
+- two tiny high-signal fixtures
+- a replay harness that produces legible artifact diffs
+- one pass/fail scoring seam for whether the second brief is actually better
+
+Immediate attention should not go to:
+- broad office playbook authoring
+- richer dashboard polish
+- multi-city abstraction
+- larger Acontext integration work
+
+### 46.4 Ecosystem positioning after tonight
+
+Tonight did not produce another vague strategy layer.
+It converted the City-as-a-Service thread into a much clearer bridge from planning to implementation.
+
+That matters for the ecosystem because CaaS now has a more credible path to becoming:
+- a repeatable municipal execution vertical on top of EM
+- a memory-bearing operations layer rather than a raw task queue
+- a future input into broader AAS packaging once the learning seam is proven
+
+### 46.5 Repo continuity note
+
+`projects/execution-market` remained on `feat/operator-route-regret-panel` and the night-work docs were kept pushed on that branch.
+The unrelated untracked `scripts/sign_req.mjs` file was intentionally left untouched.
+
+Daytime pickup should preserve that discipline:
+- stay on the current branch unless there is a deliberate branching decision
+- keep commits atomic
+- avoid touching unrelated local files
+- do not let the stale cron payload reopen stopped dream workstreams
+
