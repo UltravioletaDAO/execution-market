@@ -1615,3 +1615,70 @@ The best next implementation seam is now even narrower:
 - one explicit improvement scorecard
 
 If daytime can produce that bundle for one rejection and one redirect, the City-as-a-Service thread will have crossed from planning confidence into product evidence.
+
+## 48. Standardize the replay bundle before broader city-ops UI wiring
+
+The next daylight risk is inconsistency, not lack of planning.
+Even if validators, replay fixtures, and scorecards exist, the proof can still stay fuzzy if every run produces artifacts in a different layout.
+
+That would make the first learning seam harder to inspect, compare, and trust.
+
+To prevent that, the planning stack now needs one more narrow rule:
+**every first-pass city replay should emit a standard bundle, not an ad hoc pile of files.**
+
+### 48.1 What the standard bundle should contain
+
+The first replay bundle should include exactly these artifacts:
+- baseline dispatch brief
+- reviewed result
+- review artifact
+- reviewed episode
+- office playbook delta
+- merged office playbook after the delta
+- improved dispatch brief
+- brief improvement scorecard
+- compact event summary
+- bundle manifest
+
+The bundle manifest matters because it gives a reviewer one place to check:
+- fixture id
+- office/workflow identity
+- validator/projector/scorecard version
+- which artifacts were emitted
+- whether the replay passed all acceptance gates
+
+### 48.2 Why the bundle matters
+
+This is not paperwork.
+It is the operator-readable receipt that the city-ops learning seam actually did something useful.
+
+A strong bundle should let someone inspect one folder and answer:
+1. what was known before the reviewed task?
+2. what reviewed truth was accepted?
+3. what changed in office memory?
+4. what does the next dispatch now say differently?
+5. why does the system believe the new guidance?
+6. did the replay pass the deterministic proof gates?
+
+If a human cannot answer those quickly, the seam is still too vague.
+
+### 48.3 What daytime should do with this
+
+Daytime should now aim for one tight artifact pipeline:
+- replay fixture in
+- standard bundle out
+- scorecard attached
+- pass/fail manifest attached
+
+That is a better first proof target than larger UI work.
+It gives the team a stable object to inspect, diff, review in PRs, and later surface inside admin/debug tools.
+
+### 48.4 Recommended next move
+
+The next clean engineering proof is now:
+- one rejection fixture bundle
+- one repeated rejection fixture bundle
+- one redirect fixture bundle
+
+If those bundles are compact, deterministic, and visibly smarter after learning, then broader Review Console and Dispatch Brief Panel work has something real to stand on.
+Otherwise, UI expansion should still wait.
