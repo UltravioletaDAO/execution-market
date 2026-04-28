@@ -1682,3 +1682,70 @@ The next clean engineering proof is now:
 
 If those bundles are compact, deterministic, and visibly smarter after learning, then broader Review Console and Dispatch Brief Panel work has something real to stand on.
 Otherwise, UI expansion should still wait.
+
+## 49. Daytime handoff should center the bundle manifest as the proof contract
+
+The planning stack now has the right pieces, but the next daytime failure mode is still easy to predict:
+engineering could build validators, projectors, and brief generation that all technically work while leaving reviewers without one obvious pass/fail contract.
+
+That contract should be the bundle manifest.
+Not as metadata garnish, but as the authoritative proof object for the first city-ops learning seam.
+
+### 49.1 Why the manifest should be the proof object
+
+The first daylight implementation needs one file that answers, at a glance:
+- which fixture was replayed
+- which office/workflow context was used
+- which artifact versions participated
+- whether every required bundle artifact exists
+- whether replay determinism passed
+- whether brief improvement was judged real
+- whether provenance remained inspectable
+
+Without that, reviewers will have to infer success by opening multiple JSON files and reconstructing the judgment manually.
+That is too much ambiguity for the very first proof.
+
+### 49.2 What daytime should require from the manifest
+
+The bundle manifest should not merely list filenames.
+It should make the learning seam auditable.
+
+For the first implementation pass, the manifest should include explicit acceptance checks for:
+- contracts valid
+- projector deterministic
+- playbook delta meaningful
+- brief improvement visible
+- provenance traceable
+- events in expected order
+
+It should also carry one compact summary judgment:
+- `pass`
+- `fail`
+- `partial`
+
+`partial` matters because the first few replay runs may produce a real artifact set while still failing one important quality bar, such as visible improvement or provenance clarity.
+That is operationally different from a broken run.
+
+### 49.3 The first replay review should be PR-friendly
+
+The first proof should be easy to review in git, not only in a local debug UI.
+That means the bundle should be intentionally diffable:
+- stable filenames
+- stable field ordering where practical
+- compact event summaries instead of raw event dumps
+- scorecard rationale written as short operator-readable bullets
+
+If a reviewer cannot understand why a fixture passed by reading the manifest plus one or two adjacent artifacts in a PR, the first seam is still too opaque.
+
+### 49.4 Narrow recommendation for the next daytime coding slice
+
+The next daytime coding slice should therefore aim for this exact chain:
+- replay fixture
+- artifact validation
+- office playbook merge
+- improved dispatch brief
+- scorecard judgment
+- manifest summary judgment
+
+That is a better first proof target than adding more city templates or broader admin polish.
+It produces one deterministic, inspectable object that can later anchor Review Console panels, admin debugging, and deployment acceptance checks.
