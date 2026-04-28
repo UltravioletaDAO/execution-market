@@ -3,348 +3,310 @@
 > Last updated: 2026-04-28
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
-> - `CITY_AS_A_SERVICE_Acontext_MEMORY_BRIDGE.md`
-> - `CITY_AS_A_SERVICE_OBSERVABILITY_AND_SUCCESS_METRICS.md`
 > - `CITY_AS_A_SERVICE_REPLAY_BUNDLE_SPEC.md`
-> Status: implementation-oriented planning draft
+> - `CITY_AS_A_SERVICE_MANIFEST_ACCEPTANCE_CONTRACT.md`
+> - `CITY_AS_A_SERVICE_LEARNING_STRENGTH_CLASSIFICATION.md`
+> Status: implementation handoff draft
 
 ## 1. Why this doc exists
 
-The planning stack already says three useful things:
-- Execution Market should remain the execution ledger
-- IRC/session systems should remain the live coordination layer
-- Acontext or a local projector should hold reusable operational memory
+The planning stack now has a stronger artifact chain:
+- validated replay inputs
+- reviewed city outcome
+- office-memory delta
+- improved dispatch brief
+- scorecard judgment
+- manifest summary judgment
+- learning-strength classification
 
-What is still under-specified is the contract **between** those layers.
-This document defines the narrow event seam that lets city-task coordination become:
-- replayable
-- observable
-- memory-safe
-- easy to swap from local files to Acontext later
+What is still easy to leave fuzzy is the event seam between those artifacts.
+If daytime code emits raw logs, inconsistent lifecycle names, or transcript-shaped noise, the first proof may be technically valid while still being operationally unreadable.
 
-The goal is not a giant taxonomy.
-The goal is one boring, durable event contract that both live coordination and memory projection can trust.
+This doc defines the smallest event contract that keeps replay learning compact, ordered, and reviewable.
 
-## 2. Core thesis
+The goal is simple:
 
-For City as a Service, coordination should be treated as a first-class product artifact.
-Not every chat line matters.
-But every meaningful operational turn should be representable as a compact event with:
-- stable naming
-- minimal required fields
-- review-safe meaning
-- clear projection value
+> each replay bundle should include one compact event story that explains what happened, in what order, and which artifacts prove it.
 
-That gives the stack a clean split:
-- **Execution Market DB:** lifecycle truth
-- **IRC/session streams:** live collaboration and intervention
-- **coordination events:** stable operational signal
-- **Acontext/local projector artifacts:** reusable office memory and observability
+## 2. Core principle
 
-## 3. Design principles
+**Coordination events are not transcripts. They are proof-oriented lifecycle markers.**
 
-### 3.1 Events should describe operational facts, not transcript fragments
-Good:
-- `city_redirect_observed`
-- `city_review_completed`
-- `city_dispatch_context_reused`
+The first event seam should optimize for:
+- deterministic ordering
+- compactness
+- artifact traceability
+- reviewability
+- safe future projection into Acontext or IRC summaries
 
-Bad:
-- `operator_said_maybe_try_window_b`
-- `worker_seemed_confused`
+It should not optimize for:
+- verbose internal logs
+- every micro-step
+- unstable timestamps as the only ordering signal
+- hidden meaning spread across multiple sinks
 
-The first class is durable.
-The second class belongs in transcripts or notes, not in the reusable seam.
+## 3. What the event contract must answer
 
-### 3.2 Events should be compact enough for PR review
-A reviewer should be able to inspect event output in git without replaying an entire live session.
-That means:
-- stable keys
-- short rationale fields
-- compact arrays
-- no transcript dumps inside the core event body
+A reviewer opening `event_summary.json` should be able to answer:
+- what replay lifecycle stages completed?
+- in what order did they complete?
+- which artifacts were produced at each stage?
+- where did learning become accepted, merged, and visible to the next dispatch?
+- did the replay stop at a partial point or reach a full inspectable outcome?
 
-### 3.3 Events should prefer review-safe truth
-Before review, coordination events may reflect provisional field reality.
-After review, some of those observations become memory-safe.
-The contract must keep that distinction visible.
+If the event summary cannot answer those questions quickly, the proof seam is too noisy.
 
-### 3.4 Events should be sink-agnostic
-The same event payload should work for:
-- line-delimited local JSON
-- replay bundle summaries
-- Acontext writes later
-- aggregate analytics jobs
+## 4. Required top-level shape
 
-## 4. Event families
-
-The first city-ops event contract only needs four families.
-
-### 4.1 Dispatch family
-Events about task setup and memory reuse before field execution.
-
-Examples:
-- `city_task_created`
-- `city_dispatch_brief_composed`
-- `city_dispatch_context_reused`
-- `city_worker_assigned`
-
-### 4.2 Field-execution family
-Events about what the worker encountered.
-
-Examples:
-- `city_redirect_observed`
-- `city_submission_received`
-- `city_rejection_observed`
-- `city_follow_on_task_recommended`
-
-### 4.3 Review family
-Events about converting messy field output into trusted product artifacts.
-
-Examples:
-- `city_review_started`
-- `city_review_completed`
-- `city_review_escalated`
-
-### 4.4 Projection family
-Events about turning reviewed truth into reusable memory.
-
-Examples:
-- `city_reviewed_episode_written`
-- `city_office_playbook_delta_written`
-- `city_dispatch_brief_improved`
-- `city_manifest_written`
-
-## 5. Canonical event names for the first implementation slice
-
-The first slice should standardize exactly this set:
-- `city_task_created`
-- `city_dispatch_brief_composed`
-- `city_dispatch_context_reused`
-- `city_worker_assigned`
-- `city_submission_received`
-- `city_redirect_observed`
-- `city_rejection_observed`
-- `city_review_started`
-- `city_review_completed`
-- `city_review_escalated`
-- `city_reviewed_episode_written`
-- `city_office_playbook_delta_written`
-- `city_dispatch_brief_improved`
-- `city_manifest_written`
-
-This is intentionally narrow.
-If an event is not needed for replay proof, memory projection, or first observability, it can wait.
-
-## 6. Required shared fields
-
-Every city coordination event should carry these fields:
+Recommended first-pass shape:
 
 ```json
 {
-  "event_name": "city_review_completed",
-  "event_time": "2026-04-28T07:00:00Z",
-  "task_id": "task_123",
+  "fixture_id": "packet_rejection_outdated_form_v1",
   "workflow_template": "packet_submission",
-  "jurisdiction_name": "Miami-Dade County",
-  "event_source": "review_loop",
-  "correlation_id": "bundle_fixture_001"
+  "office_key": "miami_building_dept_counter_a",
+  "event_contract_version": "v1",
+  "summary_status": "complete",
+  "events": [
+    {
+      "sequence": 1,
+      "name": "city_review_completed",
+      "status": "succeeded",
+      "artifact_refs": ["reviewed_result", "review_artifact"],
+      "notes": ["review accepted rejection outcome as trusted truth"]
+    }
+  ]
 }
 ```
 
-### Required fields
-- `event_name`
-- `event_time`
-- `task_id`
+Required top-level fields:
+- `fixture_id`
 - `workflow_template`
-- `jurisdiction_name`
-- `event_source`
-- `correlation_id`
+- `office_key`
+- `event_contract_version`
+- `summary_status`
+- `events`
 
-### Strongly recommended fields
-- `office_name`
-- `review_status`
-- `outcome_status`
-- `redirect_target`
-- `rejection_reasons[]`
-- `memory_write_recommended`
-- `source_type`
-- `confidence`
+Optional but recommended:
+- `generated_at`
+- `run_id`
+- `notes`
 
-## 7. Event-source values
+## 5. Summary status values
 
-The first pass should constrain `event_source` to a short allowlist:
-- `dispatch_loop`
-- `worker_submission`
-- `review_loop`
-- `projector`
-- `replay_harness`
-- `operator_override`
+Recommended values:
+- `complete`
+- `partial`
+- `failed`
 
-This keeps provenance inspectable.
-A reviewer should know whether a claim came from live worker evidence, human review, or deterministic replay.
+### 5.1 `complete`
+Use when the replay emitted the expected compact lifecycle through improved brief, scorecard, and manifest-ready summary.
 
-## 8. Correlation rules
+### 5.2 `partial`
+Use when replay produced a reviewable subset of events, but stopped before the full learning chain completed.
 
-The first daylight seam needs replayability more than global event complexity.
-So the correlation rule should stay simple.
+### 5.3 `failed`
+Use when the replay did not produce a reliable event story suitable for inspection.
 
-### 8.1 `correlation_id`
-Use one correlation id across the replay bundle chain.
-Examples:
-- fixture id
-- reviewed episode id
-- deterministic replay run id
+## 6. Event object contract
 
-### 8.2 `task_id`
-Always keep the concrete EM task id when available.
-If replaying from a fixture, keep the original task id and let `correlation_id` identify the replay bundle.
+Each event in `events` should include:
+- `sequence`
+- `name`
+- `status`
+- `artifact_refs`
 
-### 8.3 Optional lineage fields
-If needed later, add:
-- `reviewed_episode_id`
-- `office_playbook_id`
-- `dispatch_brief_id`
+Optional but recommended:
+- `from_event`
+- `notes`
+- `derived_claims`
 
-But do not block the first seam on richer lineage modeling.
+### 6.1 `sequence`
+A small integer expressing stable logical order.
+Use explicit sequence values rather than relying on timestamps for ordering.
 
-## 9. Memory-safety status
+### 6.2 `name`
+A stable lifecycle label.
+The first pass should prefer a tiny controlled vocabulary.
 
-Not every event should automatically qualify for memory projection.
-The contract should therefore support a small status seam.
+### 6.3 `status`
+Recommended values:
+- `succeeded`
+- `skipped`
+- `failed`
 
-Recommended field:
-- `memory_projection_status`
+### 6.4 `artifact_refs`
+References to bundle artifacts that prove the event happened.
+These should point to canonical artifact names, not arbitrary file paths.
 
-Recommended first values:
-- `not_applicable`
-- `provisional`
-- `review_safe`
-- `projected`
+### 6.5 `from_event`
+Optional pointer to the immediately preceding event that this event logically depends on.
+Useful for partial runs and later graph expansion, but not required for the first pass.
 
-### Example
-- a worker reports a redirect → `provisional`
-- operator confirms the redirect pattern during review → `review_safe`
-- projector writes the office playbook delta → `projected`
+### 6.6 `notes`
+Short human-readable bullets only.
+Do not dump transcripts here.
 
-This keeps the bridge honest.
-The system can observe early field signals without prematurely hardening them into municipal memory.
+### 6.7 `derived_claims`
+Optional short list of operational claims this event introduced, such as:
+- `outdated_form_rejection_confirmed`
+- `counter_b_redirect_rule_added`
+- `receipt_photo_required_on_resubmission`
 
-## 10. Minimal event payload examples
+This is useful for future Acontext or observability sinks, but should stay compact.
 
-### 10.1 Redirect observed
+## 7. Controlled first-pass event vocabulary
+
+The first daylight implementation should stay narrow.
+Recommended event names:
+
+1. `city_review_completed`
+2. `city_reviewed_episode_written`
+3. `city_office_playbook_delta_written`
+4. `city_office_playbook_merged`
+5. `city_dispatch_brief_composed`
+6. `city_brief_scorecard_computed`
+7. `city_manifest_evaluated`
+8. `city_learning_strength_classified`
+
+This sequence matches the current proof chain closely enough to keep the seam legible.
+
+## 8. Expected event ordering
+
+The normal successful order should be:
+
+1. `city_review_completed`
+2. `city_reviewed_episode_written`
+3. `city_office_playbook_delta_written`
+4. `city_office_playbook_merged`
+5. `city_dispatch_brief_composed`
+6. `city_brief_scorecard_computed`
+7. `city_manifest_evaluated`
+8. `city_learning_strength_classified`
+
+If one event is skipped because a fixture is not applicable, the event should still appear with:
+- `status: "skipped"`
+- a short note explaining why
+
+That preserves deterministic inspection.
+
+## 9. Relationship to the bundle artifacts
+
+The event seam should make the artifact chain explicit.
+Recommended mapping:
+
+- `city_review_completed`
+  - `reviewed_result`
+  - `review_artifact`
+- `city_reviewed_episode_written`
+  - `reviewed_episode`
+- `city_office_playbook_delta_written`
+  - `office_playbook_delta`
+- `city_office_playbook_merged`
+  - `office_playbook_after`
+- `city_dispatch_brief_composed`
+  - `improved_dispatch_brief`
+- `city_brief_scorecard_computed`
+  - `brief_improvement_scorecard`
+- `city_manifest_evaluated`
+  - `bundle_manifest`
+- `city_learning_strength_classified`
+  - `bundle_manifest`
+
+This keeps `event_summary` from becoming an isolated log blob.
+It remains a compact index into the proof bundle.
+
+## 10. Recommended first-pass example
 
 ```json
 {
-  "event_name": "city_redirect_observed",
-  "event_time": "2026-04-28T07:11:00Z",
-  "task_id": "task_123",
+  "fixture_id": "packet_rejection_outdated_form_v1",
   "workflow_template": "packet_submission",
-  "jurisdiction_name": "Miami-Dade County",
-  "office_name": "Permit Intake",
-  "redirect_target": "Window B",
-  "event_source": "worker_submission",
-  "correlation_id": "fixture_redirect_001",
-  "memory_projection_status": "provisional"
+  "office_key": "miami_building_dept_counter_a",
+  "event_contract_version": "v1",
+  "summary_status": "complete",
+  "events": [
+    {
+      "sequence": 1,
+      "name": "city_review_completed",
+      "status": "succeeded",
+      "artifact_refs": ["reviewed_result", "review_artifact"],
+      "notes": ["review accepted outdated form rejection as trusted municipal outcome"]
+    },
+    {
+      "sequence": 2,
+      "name": "city_reviewed_episode_written",
+      "status": "succeeded",
+      "artifact_refs": ["reviewed_episode"]
+    },
+    {
+      "sequence": 3,
+      "name": "city_office_playbook_delta_written",
+      "status": "succeeded",
+      "artifact_refs": ["office_playbook_delta"],
+      "derived_claims": ["outdated_form_rejection_confirmed"]
+    },
+    {
+      "sequence": 4,
+      "name": "city_office_playbook_merged",
+      "status": "succeeded",
+      "artifact_refs": ["office_playbook_after"]
+    },
+    {
+      "sequence": 5,
+      "name": "city_dispatch_brief_composed",
+      "status": "succeeded",
+      "artifact_refs": ["improved_dispatch_brief"]
+    },
+    {
+      "sequence": 6,
+      "name": "city_brief_scorecard_computed",
+      "status": "succeeded",
+      "artifact_refs": ["brief_improvement_scorecard"]
+    },
+    {
+      "sequence": 7,
+      "name": "city_manifest_evaluated",
+      "status": "succeeded",
+      "artifact_refs": ["bundle_manifest"]
+    },
+    {
+      "sequence": 8,
+      "name": "city_learning_strength_classified",
+      "status": "succeeded",
+      "artifact_refs": ["bundle_manifest"],
+      "notes": ["bundle judged pass with moderate reusable office learning"]
+    }
+  ]
 }
 ```
 
-### 10.2 Review completed
+## 11. Memory-safety rule
 
-```json
-{
-  "event_name": "city_review_completed",
-  "event_time": "2026-04-28T07:18:00Z",
-  "task_id": "task_123",
-  "workflow_template": "packet_submission",
-  "jurisdiction_name": "Miami-Dade County",
-  "office_name": "Permit Intake",
-  "outcome_status": "redirected",
-  "review_status": "approved_with_learning",
-  "memory_write_recommended": true,
-  "event_source": "review_loop",
-  "correlation_id": "fixture_redirect_001",
-  "memory_projection_status": "review_safe"
-}
-```
+The event contract should preserve the distinction between:
+- provisional field signal
+- review-safe accepted truth
+- reusable office memory
 
-### 10.3 Playbook delta written
+Do not let event names imply that raw observations are already durable truth.
+That is why the first controlled vocabulary starts with `city_review_completed` and only later emits playbook and learning-strength events.
 
-```json
-{
-  "event_name": "city_office_playbook_delta_written",
-  "event_time": "2026-04-28T07:19:00Z",
-  "task_id": "task_123",
-  "workflow_template": "packet_submission",
-  "jurisdiction_name": "Miami-Dade County",
-  "office_name": "Permit Intake",
-  "event_source": "projector",
-  "correlation_id": "fixture_redirect_001",
-  "memory_projection_status": "projected"
-}
-```
+This distinction matters for future Acontext integration.
+If the event seam collapses these states together, downstream systems will turn ambiguous municipal interaction into false certainty.
 
-## 11. Expected ordering for the first replay proof
+## 12. Review discipline recommendation
 
-The first replay proof should not require every possible event.
-But when the full chain is present, the expected order should look like this:
-1. `city_dispatch_brief_composed`
-2. `city_dispatch_context_reused` (if prior memory existed)
-3. `city_submission_received`
-4. `city_redirect_observed` or `city_rejection_observed` when applicable
-5. `city_review_started`
-6. `city_review_completed`
-7. `city_reviewed_episode_written`
-8. `city_office_playbook_delta_written`
-9. `city_dispatch_brief_improved`
-10. `city_manifest_written`
+During the first daylight PR, reviewers should inspect in this order:
+1. `bundle_manifest`
+2. `event_summary`
+3. `brief_improvement_scorecard`
+4. `improved_dispatch_brief`
+5. `office_playbook_delta`
 
-The manifest acceptance contract should validate that the observed order is sensible for the replayed fixture.
+That order keeps the replay proof focused on whether learning is visible, ordered, and operationally reusable.
 
-## 12. Relationship to replay bundles
+## 13. Sharp recommendation
 
-The replay bundle should not store raw event firehoses.
-It should store a compact event summary derived from this contract.
-That summary should be enough to answer:
-- which meaningful coordination moments occurred
-- whether they happened in the expected order
-- whether memory-safety state advanced correctly
-- whether the replay proof reached the improved-brief stage
+**Treat `event_summary` as the compact ordered receipt for the learning lifecycle, not as a debugging dump.**
 
-## 13. Relationship to IRC session management
-
-IRC remains valuable because city work is messy and interruptions are real.
-But the first seam should stop treating IRC logs as the product artifact.
-
-Instead:
-- IRC/session flows remain the live collaboration surface
-- operators and agents can still talk freely
-- meaningful coordination turns emit canonical events
-- those events become the bridge into replay, memory, and observability
-
-That gives session management a clearer future.
-The system can later summarize a live IRC thread by referencing stable event names instead of scraping conversational ambiguity.
-
-## 14. Recommended first daytime build order
-
-1. add a small event model/allowlist for the canonical city event names
-2. emit events from replay-harness code paths first
-3. validate required fields and ordering locally
-4. write compact event summaries into replay bundles
-5. only after that, wire the same contract into live review/projector flows
-
-This keeps the first proof deterministic and reviewable before live coordination complexity is introduced.
-
-## 15. Sharp recommendation
-
-Do not begin by instrumenting everything.
-Begin by making one replayed city learning loop legible through a tiny stable event contract.
-
-If one rejection fixture and one redirect fixture can produce:
-- validated artifacts
-- a compact ordered event summary
-- a manifest judgment
-- a learning-strength classification
-
-then the coordination seam is real.
-After that, IRC summaries, Acontext sinks, and dashboards have something solid to build on.
+If one replay bundle cannot emit a short ordered event story that maps directly to the artifact chain, the City-as-a-Service proof seam is still not ready for broader observability or coordination sinks.

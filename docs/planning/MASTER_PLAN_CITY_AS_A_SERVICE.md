@@ -1928,3 +1928,73 @@ If the first replay bundles emit event summaries that conform to that contract, 
 - local-projector to Acontext sink swaps
 - grouped route-regret and operator review reports
 - decision-quality observability instead of generic volume metrics
+
+## 52. The pre-dawn synthesis should now compress the whole seam into one ordered proof story
+
+At this point the planning stack is no longer missing major nouns.
+It now has the right pressure in the right places:
+- typed artifacts
+- replay fixtures
+- bundle shape
+- manifest judgment
+- learning-strength honesty
+- coordination-event ordering
+
+That means the next daylight question should not be “what else should city ops eventually support?”
+The question should be narrower and more valuable:
+
+> can one replay fixture produce one ordered, reviewable proof story from accepted city outcome to improved next dispatch?
+
+If the answer is yes, then the city-ops learning seam is real.
+If the answer is no, more architecture discussion will just hide the gap.
+
+### 52.1 The ordered proof story should read like this
+
+A reviewer should be able to move through one replay bundle in this exact rhythm:
+1. reviewed city outcome accepted
+2. reviewed episode written
+3. office-memory delta written
+4. office memory merged
+5. improved dispatch brief composed
+6. scorecard computed
+7. manifest judged
+8. learning strength classified
+
+That rhythm matters because it turns a broad planning surface into one inspectable causality chain.
+The first daytime implementation should aim to make that chain obvious without asking a reviewer to infer anything from raw logs.
+
+### 52.2 Why this is a better daytime target than broader expansion
+
+This is a stronger daytime target than:
+- richer dashboard UI
+- multi-city abstractions
+- bigger Acontext sink replacement
+- broader operator taxonomy work
+- additional template families
+
+Those are all downstream of the same truth:
+if one replay cannot make learning visible as an ordered proof story, then scaling the surface area will only scale ambiguity.
+
+### 52.3 Daytime implementation recommendation
+
+The narrowest strong implementation target now is:
+- one rejection fixture
+- one redirect fixture
+- deterministic artifact validation
+- deterministic event summary
+- deterministic manifest judgment
+- explicit learning-strength rationale
+
+That is enough to answer whether the CaaS seam is becoming operational memory rather than elegant planning text.
+
+### 52.4 Handoff standard for daytime review
+
+The first daytime PR should be judged in this order:
+1. `bundle_manifest`
+2. `event_summary`
+3. `brief_improvement_scorecard`
+4. `improved_dispatch_brief`
+5. `office_playbook_delta`
+6. `reviewed_episode`
+
+If that reading order does not quickly reveal a real before/after improvement, the seam is not ready for broader integration claims yet.
