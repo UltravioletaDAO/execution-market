@@ -1842,3 +1842,88 @@ That gives the first replay seam a better truth contract:
 - `learning_strength` says whether the learned memory is weak, moderate, or strong
 
 That distinction will matter later for memory promotion, operator trust, and deciding which replay outcomes deserve to shape live dispatch defaults.
+
+## 51. The daytime proof should treat coordination events as a first-class contract
+
+The planning seam is now strong on artifacts, manifests, and learning strength.
+The next likely daylight weakness is coordination drift.
+A replay can technically succeed while still leaving the system vague about which live operational moments mattered and how those moments should flow into observability or memory.
+
+That is risky because City as a Service will not become durable through artifacts alone.
+It becomes durable when the same meaningful city moments can be recognized consistently across:
+- live IRC/session coordination
+- review and projection flows
+- replay bundles
+- future Acontext sinks
+- later dashboards and operator debugging
+
+The narrow answer is to define one small city coordination event contract now.
+
+### 51.1 Why this should happen before broader IRC or Acontext work
+
+Without a stable event seam, daytime could over-invest in:
+- IRC log handling
+- transcript summarization
+- sink wiring
+- ad hoc dashboard metrics
+
+before the stack even agrees on what the important city-ops moments are.
+That would create accidental coupling and make later memory or observability work harder to trust.
+
+A compact event contract is the better first move because it gives all later surfaces the same boring foundation.
+
+### 51.2 What the first event contract needs to cover
+
+The first pass only needs enough signal to explain one replayed learning loop clearly.
+That means canonical events for:
+- brief composition
+- context reuse
+- submission receipt
+- redirect or rejection observation
+- review completion
+- reviewed-episode write
+- office-playbook-delta write
+- improved-brief emission
+- manifest write
+
+This should stay intentionally smaller than the eventual live system.
+The question is not “can we name everything?”
+The question is “can one rejection or redirect fixture produce a compact ordered event story that a reviewer trusts?”
+
+### 51.3 How the event seam should interact with memory safety
+
+The event contract should also preserve one important distinction:
+field observations are not the same thing as review-safe municipal memory.
+
+The same city pattern can move through at least three states:
+- provisional field signal
+- review-safe accepted truth
+- projected reusable memory
+
+If that transition is invisible, the Acontext bridge will eventually harden ambiguity into fake certainty.
+That is exactly the kind of product drift the first daytime proof should prevent.
+
+### 51.4 What the next daytime chain should now include
+
+The narrowest strong coding chain is now:
+- replay fixture
+- artifact validation
+- compact ordered coordination events
+- office playbook merge
+- improved dispatch brief
+- scorecard judgment
+- manifest summary judgment
+- learning-strength classification
+
+That chain is stronger than “validators plus files” because it proves the learning seam is not only technically deterministic, but also operationally legible.
+
+### 51.5 Recommended handoff object
+
+The daytime team should create and use one shared contract doc for this seam:
+`CITY_AS_A_SERVICE_COORDINATION_EVENT_CONTRACT.md`
+
+If the first replay bundles emit event summaries that conform to that contract, then the city-ops stack will be much closer to supporting:
+- IRC session summarization without transcript sprawl
+- local-projector to Acontext sink swaps
+- grouped route-regret and operator review reports
+- decision-quality observability instead of generic volume metrics
