@@ -1998,3 +1998,61 @@ The first daytime PR should be judged in this order:
 6. `reviewed_episode`
 
 If that reading order does not quickly reveal a real before/after improvement, the seam is not ready for broader integration claims yet.
+
+## 53. Morning execution checklist: what daytime should build, verify, and refuse to overclaim
+
+The night is now documented deeply enough that the remaining risk is not missing ideas.
+The risk is blurry execution during daylight.
+This final handoff should therefore end with a compact execution checklist and an explicit anti-overclaim standard.
+
+### 53.1 The exact daytime build checklist
+
+Daytime should aim to complete these in order:
+1. define validator implementations for the five core artifacts
+2. add one reviewed rejection fixture and one reviewed redirect fixture
+3. emit a deterministic `event_summary` for each replay
+4. emit a deterministic `bundle_manifest` with acceptance checks
+5. emit `brief_improvement_scorecard` plus short rationale bullets
+6. emit `learning_strength` plus rationale
+7. compare baseline vs improved dispatch brief side by side in a review-friendly folder layout
+
+If time remains after that, the next best addition is one repeated-rejection fixture to prove the seam does not only work on a single happy-path pattern.
+
+### 53.2 What counts as accomplished
+
+Daytime should only claim the seam is proven if all of these are true:
+- both fixtures replay successfully
+- required artifacts are present
+- event ordering is stable
+- manifest judgment is explicit
+- scorecard shows visible improvement or honestly reports no meaningful improvement
+- learning-strength rationale is short, specific, and reviewable
+- a reviewer can understand the before/after learning story directly from the bundle
+
+This is intentionally stricter than “tests pass.”
+The point is not to prove code exists.
+The point is to prove municipal learning became legible and reusable.
+
+### 53.3 What does not count as accomplished
+
+Daytime should not overclaim success if any of these are true:
+- validators exist but no compact replay bundle exists
+- bundles exist but improvement is only implied, not graded
+- scorecards exist but provenance is vague
+- manifests exist but only list files instead of judgments
+- event summaries exist but ordering is unstable or bloated
+- the improved brief is longer but not operationally safer or clearer
+
+Those cases may still represent useful progress.
+But they are not yet proof that CaaS learning works.
+
+### 53.4 The midday decision gate
+
+If the first implementation pass clears the checklist, daytime can responsibly expand toward:
+- Review Console surfaces
+- grouped route-regret/operator summaries
+- broader office-memory tooling
+- later Acontext sink substitution
+
+If the first pass does not clear the checklist, the right move is not more concept expansion.
+It is to tighten the replay seam until one bundle becomes undeniable.
