@@ -4,6 +4,11 @@
 > Status: active concept expansion
 > Dream priority alignment: Execution Market AAS plans only
 
+Related implementation docs:
+- `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
+- `CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md`
+- `CITY_AS_A_SERVICE_BRIEF_IMPROVEMENT_SCORECARD.md`
+
 ## 1. Thesis
 
 City as a Service is an Execution Market vertical where agents can buy verified municipal-world execution the same way they buy compute: permits checked, storefronts verified, signs photographed, counters visited, forms submitted, inspectors coordinated, notices posted, queues endured, and local reality converted into structured evidence.
@@ -1541,3 +1546,72 @@ Daytime pickup should preserve that discipline:
 - avoid touching unrelated local files
 - do not let the stale cron payload reopen stopped dream workstreams
 
+
+## 47. The first replay proof should grade brief improvement explicitly
+
+The next likely failure mode is subtle but important:
+daytime could build validators, replay fixtures, and artifact diffs, yet still avoid the hard question of whether the second dispatch brief is actually better.
+
+That is not a documentation gap anymore.
+It is now a scoring gap.
+
+If the first replay seam ends with two dispatch briefs and no explicit improvement judgment, the team will still be arguing by vibe.
+CaaS needs a tighter proof than that.
+
+### 47.1 What should be graded in the first proof
+
+The first proof does not need a big evaluator.
+It needs a compact, inspectable scorecard attached to the before/after dispatch-brief comparison.
+
+The first scorecard should ask only whether the improved brief is better on these dimensions:
+1. **routing clarity** — does it name the likely desk, window, office, or redirect trap more clearly?
+2. **rejection avoidance** — does it warn about the specific failure that caused the reviewed rejection?
+3. **fallback usefulness** — does it give the worker a more actionable next-step if blocked or redirected?
+4. **evidence realism** — does it reflect evidence restrictions or proof expectations more accurately?
+5. **provenance clarity** — can an operator see which reviewed episode justified each important claim?
+
+This does not need to start numeric.
+A first pass can be:
+- improved
+- unchanged
+- worse
+
+But the judgment must exist field by field, not only as a vague overall impression.
+
+### 47.2 What the first artifact bundle should contain
+
+The smallest convincing replay output is not just raw generated artifacts.
+It is one bundle that can be read top to bottom by a human in under two minutes:
+- baseline dispatch brief
+- reviewed result
+- reviewed episode
+- office playbook delta
+- improved dispatch brief
+- brief improvement scorecard
+- emitted event summary
+
+If that bundle is legible, the product seam is real enough for daytime iteration.
+If it is not legible, broader UI wiring should still wait.
+
+### 47.3 The first grading rule should be conservative
+
+The system should not award itself improvement points for making the brief longer or more confident.
+The first grading rule should prefer:
+- more specific over more verbose
+- more attributable over more sweeping
+- better fallback behavior over louder certainty
+- compact office memory over transcript spillover
+
+That matters because city operations can look smarter while quietly getting less reliable.
+A longer brief with weak provenance is not improvement.
+It is nicer formatting on top of operational drift.
+
+### 47.4 Immediate daytime implication
+
+The best next implementation seam is now even narrower:
+- validators
+- two or more tiny replay fixtures
+- compared before/after briefs
+- one explicit improvement scorecard
+
+If daytime can produce that bundle for one rejection and one redirect, the City-as-a-Service thread will have crossed from planning confidence into product evidence.
