@@ -1749,3 +1749,96 @@ The next daytime coding slice should therefore aim for this exact chain:
 
 That is a better first proof target than adding more city templates or broader admin polish.
 It produces one deterministic, inspectable object that can later anchor Review Console panels, admin debugging, and deployment acceptance checks.
+
+## 50. The next daylight proof should also classify learning strength, not just pass or fail
+
+The planning stack is now close to a coherent replay proof contract.
+But there is still one avoidable daylight mistake left:
+treating every successful bundle as equally valuable.
+
+That would flatten the difference between:
+- a tiny formatting-level improvement
+- a clear rejection-avoidance improvement
+- a true office-memory upgrade that should be promoted and reused confidently
+
+The first city-ops replay seam should therefore emit not only a bundle judgment, but also a **learning-strength classification**.
+
+### 50.1 Why learning strength matters
+
+The first daytime implementation is not just trying to prove that replay runs can complete.
+It is trying to prove that reviewed municipal work can become reusable operational memory.
+
+Those are different thresholds.
+A bundle may be technically valid while still representing weak learning.
+For example:
+- the brief wording changed but the worker would not act differently
+- the office playbook delta exists but only restates what was already known
+- the scorecard shows a tiny improvement but not enough to justify memory promotion
+
+If those cases are marked simply as `pass`, the system will overclaim progress.
+
+### 50.2 Recommended first-pass learning-strength levels
+
+The first pass does not need a complicated scoring ontology.
+It just needs one compact, reviewer-readable classification inside the manifest.
+
+Recommended values:
+- `weak`
+- `moderate`
+- `strong`
+
+#### `weak`
+Use when the replay is valid and inspectable, but the operational learning is narrow.
+Examples:
+- better wording without stronger actionability
+- a delta that clarifies existing guidance but adds little new behavior
+- scorecard improvement exists but is small or confined to one low-stakes dimension
+
+#### `moderate`
+Use when the replay produces a meaningful improvement that should influence future dispatch, but only for a bounded office pattern.
+Examples:
+- one concrete rejection avoidance rule is learned
+- one redirect pattern becomes easier to route correctly
+- one office-specific evidence expectation becomes materially clearer
+
+#### `strong`
+Use when the replay creates reusable office memory that clearly upgrades future worker success odds.
+Examples:
+- a repeated rejection pattern is converted into a stable prevention rule
+- a redirect pattern now reliably changes where or how the task should be routed
+- the improved brief becomes visibly safer, more actionable, and more evidence-aware across multiple scorecard dimensions
+
+### 50.3 Where this should live in the bundle
+
+The cleanest place is the manifest, near `summary_judgment`, for example:
+- `summary_judgment: pass`
+- `learning_strength: moderate`
+
+That lets the first daylight PR answer two separate questions clearly:
+1. did the replay proof succeed at all?
+2. how valuable was the learned operational memory?
+
+Those should not be collapsed into one field.
+
+### 50.4 What should determine learning strength
+
+The first implementation can keep this judgment simple and explicit.
+It should look at:
+- how many scorecard dimensions improved
+- whether the playbook delta introduced new behavioral guidance rather than restatement
+- whether the improved brief changes a worker's likely action, evidence plan, or routing choice
+- whether the learned guidance appears office-specific and reusable
+
+This should remain a review-friendly heuristic, not a hidden weighted formula.
+The point is legibility first.
+
+### 50.5 Narrow recommendation for the next daytime coding slice
+
+Add one manifest field for learning strength and require a short rationale.
+That gives the first replay seam a better truth contract:
+- `fail` means the proof broke
+- `partial` means the proof ran but did not clear an important bar
+- `pass` means the proof worked
+- `learning_strength` says whether the learned memory is weak, moderate, or strong
+
+That distinction will matter later for memory promotion, operator trust, and deciding which replay outcomes deserve to shape live dispatch defaults.
