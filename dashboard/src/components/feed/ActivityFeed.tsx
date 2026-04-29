@@ -165,8 +165,8 @@ export function ActivityFeed({
           onClick={handleShowNew}
           className={cn(
             'mb-3 py-1.5 px-3 rounded-lg text-xs font-medium text-center transition-colors',
-            'bg-blue-50 text-blue-700 hover:bg-blue-100',
-            'dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50',
+            'bg-zinc-900 text-white hover:bg-zinc-800',
+            'dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200',
           )}
         >
           {t('feed.newEvents', '{{count}} new events', { count: newCardCount })}

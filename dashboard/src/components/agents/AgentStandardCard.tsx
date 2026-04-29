@@ -55,9 +55,9 @@ const AGENT_TYPE_LABEL_KEY: Record<AgentType, string> = {
 
 function AgentStandardCardSkeleton({ label, className }: { label?: string; className?: string }) {
   return (
-    <div className={cn('bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4', className)}>
+    <div className={cn('bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-4', className)}>
       {label && (
-        <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+        <div className="text-xs font-medium text-zinc-600 dark:text-zinc-400 uppercase tracking-wide mb-3">
           {label}
         </div>
       )}
@@ -96,15 +96,15 @@ export const AgentStandardCard = memo(function AgentStandardCard(props: AgentSta
   if (!data) {
     const wallet = props.executor?.wallet_address ?? props.walletAddress ?? ''
     return (
-      <div className={cn('bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4', className)}>
+      <div className={cn('bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-4', className)}>
         {label && (
-          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+          <div className="text-xs font-medium text-zinc-600 dark:text-zinc-400 uppercase tracking-wide mb-3">
             {label}
           </div>
         )}
         <div className="flex items-center gap-3">
           <AgentAvatar walletAddress={wallet} size="md" showIndicator={false} />
-          <span className="text-sm text-gray-500 dark:text-gray-400 font-mono">
+          <span className="text-sm text-zinc-600 dark:text-zinc-400 font-mono">
             {truncateAddress(wallet)}
           </span>
         </div>
@@ -118,9 +118,9 @@ export const AgentStandardCard = memo(function AgentStandardCard(props: AgentSta
   const tierColor = getTierColor(tier)
 
   return (
-    <div className={cn('bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4', className)}>
+    <div className={cn('bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-4', className)}>
       {label && (
-        <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+        <div className="text-xs font-medium text-zinc-600 dark:text-zinc-400 uppercase tracking-wide mb-3">
           {label}
         </div>
       )}
@@ -137,7 +137,7 @@ export const AgentStandardCard = memo(function AgentStandardCard(props: AgentSta
         <div className="flex-1 min-w-0">
           {/* Name + type */}
           <div className="flex items-center gap-1.5">
-            <span className="font-medium text-gray-900 dark:text-gray-100 truncate">
+            <span className="font-medium text-zinc-900 dark:text-zinc-100 truncate">
               {displayName}
             </span>
             <span
@@ -162,27 +162,27 @@ export const AgentStandardCard = memo(function AgentStandardCard(props: AgentSta
               {tier}
             </span>
             {data.avg_rating != null && data.avg_rating > 0 && (
-              <span className="flex items-center gap-0.5 text-xs text-gray-500 dark:text-gray-400">
+              <span className="flex items-center gap-0.5 text-xs text-zinc-600 dark:text-zinc-400">
                 <svg className="w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                 </svg>
                 {data.avg_rating.toFixed(1)}
               </span>
             )}
-            <span className="text-xs text-gray-500 dark:text-gray-400">
+            <span className="text-xs text-zinc-600 dark:text-zinc-400">
               {data.tasks_completed} {t('agents.tasksCompleted', 'completed')}
             </span>
           </div>
 
           {/* Bio (truncated) */}
           {data.bio && (
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">
+            <p className="text-sm text-zinc-700 dark:text-zinc-300 mt-2 line-clamp-2">
               {data.bio}
             </p>
           )}
 
-          {/* Member since */}
-          <div className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+          {/* Member since — accessible contrast on white/dark */}
+          <div className="text-xs text-zinc-600 dark:text-zinc-400 mt-2">
             {t('agents.memberSince', 'Member since')} {formatDate(data.member_since)}
           </div>
         </div>
@@ -191,7 +191,7 @@ export const AgentStandardCard = memo(function AgentStandardCard(props: AgentSta
       {/* View Profile button */}
       <button
         onClick={handleViewProfile}
-        className="mt-3 w-full text-center text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 py-2 rounded-lg border border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+        className="mt-3 w-full text-center text-sm font-medium text-zinc-900 dark:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 transition-colors"
       >
         {t('agents.viewProfile', 'View Profile')}
       </button>

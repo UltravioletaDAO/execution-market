@@ -264,7 +264,7 @@ export function TaskLifecycleTimeline({ task, submissions, payment, paymentLoadi
   return (
     <section>
       <div className="flex items-center gap-3 mb-3">
-        <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide">
+        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
           {t('taskLifecycle.title', 'Task Lifecycle')}
         </h2>
         {task.skill_version && (

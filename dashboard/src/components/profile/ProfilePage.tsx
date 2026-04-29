@@ -7,6 +7,7 @@ import { TaskHistory } from './TaskHistory'
 import { WalletSection, WalletMismatchBanner } from './wallet'
 import { WorldIdVerification } from '../WorldIdVerification'
 import { ENSLinkSection } from '../ENSLinkSection'
+import { Pill } from '../ui/Pill'
 import { useEarnings, useReputation, useTaskHistory } from '../../hooks/useProfile'
 import type { Executor } from '../../types/database'
 import { safeSrc } from '../../lib/safeHref'
@@ -67,10 +68,10 @@ export function ProfilePage({ executor, onBack, onEditProfile, onLogout }: Profi
       </div>
 
       {/* Profile header */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <div className="flex items-center gap-4">
           {/* Avatar */}
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-lg flex-shrink-0">
+          <div className="w-16 h-16 bg-zinc-900 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-lg flex-shrink-0">
             {executor.avatar_url ? (
               <img
                 src={safeSrc(executor.avatar_url)}
@@ -175,12 +176,9 @@ export function ProfilePage({ executor, onBack, onEditProfile, onLogout }: Profi
             </div>
             <div className="flex flex-wrap gap-2">
               {executor.skills.map(skill => (
-                <span
-                  key={skill}
-                  className="px-3 py-1 bg-blue-100 text-blue-800 border border-blue-200 rounded-full text-sm"
-                >
+                <Pill key={skill} variant="default" size="md" asSpan>
                   {skill.replace(/_/g, ' ')}
-                </span>
+                </Pill>
               ))}
             </div>
           </div>
@@ -194,15 +192,19 @@ export function ProfilePage({ executor, onBack, onEditProfile, onLogout }: Profi
             </div>
             <div className="flex flex-wrap gap-2">
               {executor.languages.map(lang => (
-                <span
+                <Pill
                   key={lang}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-50 text-gray-700 border border-gray-200 rounded-full text-sm"
+                  variant="default"
+                  size="md"
+                  asSpan
+                  leftIcon={
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                    </svg>
+                  }
                 >
-                  <svg className="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                  </svg>
                   {lang}
-                </span>
+                </Pill>
               ))}
             </div>
           </div>

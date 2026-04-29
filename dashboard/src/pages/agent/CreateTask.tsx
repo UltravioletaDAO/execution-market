@@ -313,7 +313,7 @@ function LocationPicker({
             type="button"
             onClick={getCurrentLocation}
             disabled={isGettingLocation}
-            className="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+            className="px-4 py-2.5 bg-zinc-100 text-zinc-700 rounded-lg hover:bg-zinc-200 transition-colors disabled:bg-zinc-100 disabled:text-zinc-400 disabled:cursor-not-allowed"
             title="Usar mi ubicacion"
           >
             {isGettingLocation ? (
@@ -1052,7 +1052,7 @@ export function CreateTask({ agentId, onBack, onSubmit, onSuccess }: CreateTaskP
         <button
           type="button"
           onClick={step === 'details' ? onBack : goPrev}
-          className="px-4 py-2.5 text-gray-700 font-medium rounded-lg hover:bg-gray-100 transition-colors"
+          className="px-4 py-2.5 text-zinc-700 font-medium rounded-lg hover:bg-zinc-100 transition-colors"
         >
           {step === 'details' ? t('common.cancel') : t('common.back')}
         </button>
@@ -1062,7 +1062,7 @@ export function CreateTask({ agentId, onBack, onSubmit, onSuccess }: CreateTaskP
             type="button"
             onClick={handleSubmit}
             disabled={!canProceed || isSubmitting}
-            className="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+            className="px-6 py-2.5 bg-zinc-900 text-white font-medium rounded-lg hover:bg-zinc-800 disabled:bg-zinc-100 disabled:text-zinc-400 disabled:cursor-not-allowed transition-colors flex items-center gap-2 focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2"
           >
             {isSubmitting ? (
               <>
@@ -1086,7 +1086,7 @@ export function CreateTask({ agentId, onBack, onSubmit, onSuccess }: CreateTaskP
             type="button"
             onClick={goNext}
             disabled={!canProceed}
-            className="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-6 py-2.5 bg-zinc-900 text-white font-medium rounded-lg hover:bg-zinc-800 disabled:bg-zinc-100 disabled:text-zinc-400 disabled:cursor-not-allowed transition-colors focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2"
           >
             {t('common.next')}
           </button>

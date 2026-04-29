@@ -803,14 +803,14 @@ export function EvidenceUpload({
           <button
             onClick={() => setViewMode('capture')}
             disabled={isUploading}
-            className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
+            className="flex-1 px-4 py-3 border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 font-medium rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors disabled:bg-zinc-100 disabled:text-zinc-400 disabled:cursor-not-allowed"
           >
             {t('evidence.addMore', 'Agregar mas')}
           </button>
           <button
             onClick={uploadAllEvidence}
             disabled={isUploading || evidenceItems.filter(i => i.uploadStatus === 'pending').length === 0}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors disabled:opacity-50"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-zinc-900 hover:bg-zinc-800 text-white font-medium rounded-xl transition-colors disabled:bg-zinc-100 disabled:text-zinc-400 disabled:cursor-not-allowed"
           >
             {isUploading ? (
               <>

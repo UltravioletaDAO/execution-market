@@ -980,8 +980,8 @@ export function Developers() {
                           <span
                             className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${
                               ep.method === 'GET'
-                                ? 'bg-blue-100 text-blue-700'
-                                : 'bg-emerald-100 text-emerald-700'
+                                ? 'bg-zinc-100 text-zinc-700'
+                                : 'bg-zinc-900 text-white'
                             }`}
                           >
                             {ep.method}

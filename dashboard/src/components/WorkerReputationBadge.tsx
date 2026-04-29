@@ -22,35 +22,35 @@ function getTier(score: number): {
   if (score >= 90) {
     return {
       key: 'expert',
-      className: 'bg-emerald-100 text-emerald-800',
-      starColor: 'text-emerald-500',
+      className: 'bg-sky-50 text-sky-800 border border-sky-300',
+      starColor: 'text-yellow-500',
     }
   }
   if (score >= 75) {
     return {
       key: 'trusted',
-      className: 'bg-blue-100 text-blue-800',
-      starColor: 'text-blue-500',
+      className: 'bg-yellow-50 text-yellow-800 border border-yellow-400',
+      starColor: 'text-yellow-500',
     }
   }
   if (score >= 50) {
     return {
       key: 'reliable',
-      className: 'bg-amber-100 text-amber-800',
-      starColor: 'text-amber-500',
+      className: 'bg-slate-100 text-slate-700 border border-slate-300',
+      starColor: 'text-yellow-500',
     }
   }
   if (score >= 25) {
     return {
       key: 'standard',
-      className: 'bg-gray-100 text-gray-700',
-      starColor: 'text-gray-500',
+      className: 'bg-orange-50 text-orange-800 border border-orange-300',
+      starColor: 'text-yellow-500',
     }
   }
   return {
     key: 'new',
-    className: 'bg-slate-100 text-slate-600',
-    starColor: 'text-slate-400',
+    className: 'bg-zinc-100 text-zinc-600 border border-zinc-300',
+    starColor: 'text-zinc-400',
   }
 }
 

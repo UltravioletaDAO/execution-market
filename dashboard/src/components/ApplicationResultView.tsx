@@ -36,17 +36,17 @@ export function ApplicationResultView({
   if (state === 'success' || state === 'success_suggest_worldid') {
     return (
       <div role="status" className="flex flex-col items-center text-center py-6 px-4 space-y-4">
-        {/* Success checkmark */}
-        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+        {/* Success checkmark — semantic green for success state only */}
+        <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center">
           <svg aria-hidden="true" className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
 
-        <h3 className="text-lg font-bold text-gray-900">
+        <h3 className="text-lg font-bold text-zinc-900">
           {t('application.result.successTitle', 'Application submitted!')}
         </h3>
-        <p className="text-sm text-gray-600 max-w-xs">
+        <p className="text-sm text-zinc-600 max-w-xs">
           {t(
             'application.result.successMessage',
             'Your application has been sent. The agent will review it and decide whether to assign you this task.'
@@ -55,16 +55,16 @@ export function ApplicationResultView({
 
         {/* World ID suggestion for low-value tasks */}
         {state === 'success_suggest_worldid' && (
-          <div className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 mt-2">
+          <div className="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-4 mt-2">
             <div className="flex items-start gap-3">
               <div className="flex-shrink-0 mt-0.5">
                 <img src="/worldcoin.png" alt="" className="w-5 h-5 object-contain" onError={hideOnError} />
               </div>
               <div className="text-left">
-                <p className="text-sm font-medium text-gray-800">
+                <p className="text-sm font-medium text-zinc-800">
                   {t('application.result.suggestWorldIdTitle', 'Unlock higher-value tasks')}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-zinc-600 mt-1">
                   {t(
                     'application.result.suggestWorldIdMessage',
                     'Verify with World ID to access tasks worth ${{threshold}} or more. It only takes a minute.',
@@ -73,7 +73,7 @@ export function ApplicationResultView({
                 </p>
                 <button
                   onClick={() => navigate('/profile')}
-                  className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-black hover:text-gray-700 underline underline-offset-2"
+                  className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-900 hover:text-zinc-700 underline underline-offset-2"
                 >
                   <img src="/worldcoin.png" alt="" className="w-3 h-3" onError={hideOnError} />
                   {t('application.result.suggestWorldIdCta', 'Verify now')}
@@ -87,7 +87,7 @@ export function ApplicationResultView({
         <div className="flex gap-3 w-full pt-2">
           <button
             onClick={onClose}
-            className="flex-1 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-800 border border-gray-200 rounded-xl transition-colors"
+            className="flex-1 py-2.5 text-sm font-medium text-zinc-700 hover:text-zinc-900 border border-zinc-300 rounded-xl transition-colors"
           >
             {t('common.close', 'Close')}
           </button>
@@ -96,7 +96,7 @@ export function ApplicationResultView({
               onClose()
               navigate('/tasks', { state: { tab: 'mine' } })
             }}
-            className="flex-1 py-2.5 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-800 transition-colors"
+            className="flex-1 py-2.5 bg-zinc-900 text-white text-sm font-semibold rounded-xl hover:bg-zinc-800 transition-colors"
           >
             {t('application.result.viewMyTasks', 'View my tasks')}
           </button>
@@ -113,11 +113,11 @@ export function ApplicationResultView({
           <img src="/worldcoin.png" alt="World ID" className="w-10 h-10 object-contain" onError={hideOnError} />
         </div>
 
-        <h3 className="text-lg font-bold text-gray-900">
+        <h3 className="text-lg font-bold text-zinc-900">
           {t('application.result.blockedTitle', 'Identity verification required')}
         </h3>
 
-        <p className="text-sm text-gray-600 max-w-xs">
+        <p className="text-sm text-zinc-600 max-w-xs">
           {t(
             'application.result.blockedMessage',
             'Tasks with a bounty of ${{threshold}} or more require World ID Orb verification to protect against fraud.',
@@ -126,9 +126,9 @@ export function ApplicationResultView({
         </p>
 
         {/* Explainer box */}
-        <div className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-left">
+        <div className="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-4 text-left">
           <div className="flex items-start gap-3">
-            <svg aria-hidden="true" className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg aria-hidden="true" className="w-5 h-5 text-zinc-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -137,14 +137,14 @@ export function ApplicationResultView({
               />
             </svg>
             <div>
-              <p className="text-xs text-gray-500 leading-relaxed">
+              <p className="text-xs text-zinc-600 leading-relaxed">
                 {t(
                   'application.result.blockedExplainer',
                   'World ID verifies you are a unique person without revealing your identity. You only need to verify once — it takes about a minute.'
                 )}
               </p>
               <div className="mt-3 flex items-center gap-2">
-                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-amber-100 text-amber-800">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-amber-50 text-amber-800 border border-amber-300">
                   {t('application.result.blockedThreshold', 'Required for tasks >= ${{threshold}}', {
                     threshold: worldIdThreshold,
                   })}
@@ -158,7 +158,7 @@ export function ApplicationResultView({
         <div className="flex gap-3 w-full pt-2">
           <button
             onClick={onClose}
-            className="flex-1 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-800 border border-gray-200 rounded-xl transition-colors"
+            className="flex-1 py-2.5 text-sm font-medium text-zinc-700 hover:text-zinc-900 border border-zinc-300 rounded-xl transition-colors"
           >
             {t('common.cancel', 'Cancel')}
           </button>
@@ -167,7 +167,7 @@ export function ApplicationResultView({
               onClose()
               navigate('/profile')
             }}
-            className="flex-1 py-2.5 bg-black text-white text-sm font-semibold rounded-xl hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+            className="flex-1 py-2.5 bg-zinc-900 text-white text-sm font-semibold rounded-xl hover:bg-zinc-800 transition-colors flex items-center justify-center gap-2"
           >
             <img src="/worldcoin.png" alt="" className="w-4 h-4" onError={hideOnError} />
             {t('application.result.verifyCta', 'Verify with World ID')}
@@ -180,9 +180,9 @@ export function ApplicationResultView({
   if (state === 'already_applied') {
     return (
       <div role="status" className="flex flex-col items-center text-center py-6 px-4 space-y-4">
-        {/* Info icon */}
-        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-          <svg aria-hidden="true" className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        {/* Info icon — neutral zinc */}
+        <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center">
+          <svg aria-hidden="true" className="w-8 h-8 text-zinc-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -192,10 +192,10 @@ export function ApplicationResultView({
           </svg>
         </div>
 
-        <h3 className="text-lg font-bold text-gray-900">
+        <h3 className="text-lg font-bold text-zinc-900">
           {t('application.result.alreadyAppliedTitle', 'Already applied')}
         </h3>
-        <p className="text-sm text-gray-600 max-w-xs">
+        <p className="text-sm text-zinc-600 max-w-xs">
           {t(
             'application.result.alreadyAppliedMessage',
             'You have already applied to this task. The agent is reviewing applications and will assign a worker soon.'
@@ -206,7 +206,7 @@ export function ApplicationResultView({
         <div className="flex gap-3 w-full pt-2">
           <button
             onClick={onClose}
-            className="flex-1 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-800 border border-gray-200 rounded-xl transition-colors"
+            className="flex-1 py-2.5 text-sm font-medium text-zinc-700 hover:text-zinc-900 border border-zinc-300 rounded-xl transition-colors"
           >
             {t('common.close', 'Close')}
           </button>
@@ -215,7 +215,7 @@ export function ApplicationResultView({
               onClose()
               navigate('/tasks', { state: { tab: 'mine' } })
             }}
-            className="flex-1 py-2.5 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-800 transition-colors"
+            className="flex-1 py-2.5 bg-zinc-900 text-white text-sm font-semibold rounded-xl hover:bg-zinc-800 transition-colors"
           >
             {t('application.result.viewMyTasks', 'View my tasks')}
           </button>
@@ -227,9 +227,9 @@ export function ApplicationResultView({
   // Error state
   return (
     <div role="alert" className="flex flex-col items-center text-center py-6 px-4 space-y-4">
-      {/* Error icon */}
-      <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
-        <svg aria-hidden="true" className="w-8 h-8 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+      {/* Error icon — semantic red */}
+      <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center">
+        <svg aria-hidden="true" className="w-8 h-8 text-red-700" fill="currentColor" viewBox="0 0 20 20">
           <path
             fillRule="evenodd"
             d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
@@ -238,10 +238,10 @@ export function ApplicationResultView({
         </svg>
       </div>
 
-      <h3 className="text-lg font-bold text-gray-900">
+      <h3 className="text-lg font-bold text-zinc-900">
         {t('application.result.errorTitle', 'Something went wrong')}
       </h3>
-      <p className="text-sm text-gray-600 max-w-xs">
+      <p className="text-sm text-zinc-600 max-w-xs">
         {errorMessage || t('application.result.errorMessage', 'Could not submit your application. Please try again.')}
       </p>
 
@@ -249,14 +249,14 @@ export function ApplicationResultView({
       <div className="flex gap-3 w-full pt-2">
         <button
           onClick={onClose}
-          className="flex-1 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-800 border border-gray-200 rounded-xl transition-colors"
+          className="flex-1 py-2.5 text-sm font-medium text-zinc-700 hover:text-zinc-900 border border-zinc-300 rounded-xl transition-colors"
         >
           {t('common.close', 'Close')}
         </button>
         {onRetry && (
           <button
             onClick={onRetry}
-            className="flex-1 py-2.5 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-800 transition-colors"
+            className="flex-1 py-2.5 bg-zinc-900 text-white text-sm font-semibold rounded-xl hover:bg-zinc-800 transition-colors"
           >
             {t('common.retry', 'Retry')}
           </button>

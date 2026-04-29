@@ -84,21 +84,21 @@ function RingStatusBadge({ status }: { status: string }) {
   switch (status) {
     case 'pending':
       return (
-        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
+        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-500">
           {t('autoCheck.ring.pending', 'Pending')}
         </span>
       )
     case 'running':
       return (
-        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-900">
           <Spinner className="w-3 h-3" />
           {t('autoCheck.ring.running', 'Running...')}
         </span>
       )
     case 'complete':
       return (
-        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">
-          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-900">
+          <svg className="w-3 h-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
           </svg>
           {t('autoCheck.ring.complete', 'Complete')}
@@ -124,12 +124,12 @@ function RingStatusBadge({ status }: { status: string }) {
 function DecisionBadge({ decision }: { decision: string }) {
   const { t } = useTranslation()
   const map: Record<string, { bg: string; text: string; label: string }> = {
-    approved: { bg: 'bg-green-100', text: 'text-green-700', label: t('autoCheck.ring.approved', 'Approved') },
+    approved: { bg: 'bg-zinc-100', text: 'text-zinc-900', label: t('autoCheck.ring.approved', 'Approved') },
     rejected: { bg: 'bg-red-100', text: 'text-red-700', label: t('autoCheck.ring.rejected', 'Rejected') },
-    needs_review: { bg: 'bg-yellow-100', text: 'text-yellow-700', label: t('autoCheck.ring.needsReview', 'Needs Review') },
-    inconclusive: { bg: 'bg-yellow-100', text: 'text-yellow-700', label: t('autoCheck.ring.inconclusive', 'Inconclusive') },
+    needs_review: { bg: 'bg-amber-100', text: 'text-amber-800', label: t('autoCheck.ring.needsReview', 'Needs Review') },
+    inconclusive: { bg: 'bg-amber-100', text: 'text-amber-800', label: t('autoCheck.ring.inconclusive', 'Inconclusive') },
   }
-  const style = map[decision] ?? { bg: 'bg-gray-100', text: 'text-gray-600', label: decision }
+  const style = map[decision] ?? { bg: 'bg-zinc-100', text: 'text-zinc-700', label: decision }
   return (
     <span className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-full ${style.bg} ${style.text}`}>
       {style.label}
@@ -161,7 +161,7 @@ function AttemptTrail({ attempts }: { attempts: RingAttempt[] }) {
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="inline-flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-700"
+        className="inline-flex items-center gap-1 text-[11px] text-zinc-500 hover:text-zinc-900"
       >
         <svg
           className={`w-3 h-3 transition-transform ${expanded ? 'rotate-90' : ''}`}
@@ -172,7 +172,7 @@ function AttemptTrail({ attempts }: { attempts: RingAttempt[] }) {
         </svg>
         {t('autoCheck.ring.attempts', '{{count}} attempts', { count: attempts.length })}
         {hasFailures && (
-          <span className="text-amber-500 text-[10px]">
+          <span className="text-amber-700 text-[10px]">
             ({t('autoCheck.ring.withFallbacks', 'with fallbacks')})
           </span>
         )}
@@ -182,21 +182,21 @@ function AttemptTrail({ attempts }: { attempts: RingAttempt[] }) {
         <div className="mt-1 ml-3 space-y-0.5">
           {attempts.map((a, i) => (
             <div key={`${a.provider}-${i}`} className="flex items-center gap-2 text-[11px]">
-              <span className={a.status === 'success' ? 'text-green-600' : 'text-red-500'}>
+              <span className={a.status === 'success' ? 'text-green-600' : 'text-red-600'}>
                 {a.status === 'success' ? '\u2713' : '\u2717'}
               </span>
-              <span className="text-gray-600 font-medium">{a.provider}</span>
-              <span className="text-gray-400">
+              <span className="text-zinc-700 font-medium">{a.provider}</span>
+              <span className="text-zinc-500">
                 {a.status}{a.latency_ms != null ? ` (${(a.latency_ms / 1000).toFixed(1)}s)` : ''}
               </span>
-              {a.error && <span className="text-red-400 truncate max-w-[200px]">{a.error}</span>}
+              {a.error && <span className="text-red-600 truncate max-w-[200px]">{a.error}</span>}
             </div>
           ))}
         </div>
       )}
 
       {!expanded && hasFailures && (
-        <p className="text-[10px] text-gray-400 ml-4 truncate">{summary}</p>
+        <p className="text-[10px] text-zinc-500 ml-4 truncate">{summary}</p>
       )}
     </div>
   )
@@ -278,12 +278,12 @@ export function EvidenceVerificationPanel({ details, onRefresh }: EvidenceVerifi
   const scorePercent = Math.round(score * 100)
   const scoreColorClass =
     scorePercent >= 70
-      ? 'bg-green-100 text-green-700'
+      ? 'bg-zinc-100 text-zinc-900'
       : scorePercent >= 40
-        ? 'bg-yellow-100 text-yellow-700'
+        ? 'bg-amber-100 text-amber-800'
         : 'bg-red-100 text-red-700'
 
-  const borderClass = passed ? 'border-green-200' : 'border-orange-200'
+  const borderClass = passed ? 'border-zinc-200' : 'border-amber-300'
 
   // Ring fields
   const hasRing1 = !!verification.ring1_status
@@ -293,12 +293,12 @@ export function EvidenceVerificationPanel({ details, onRefresh }: EvidenceVerifi
     <div className={`bg-white rounded-lg border p-4 ${borderClass}`}>
       {/* Header: title + overall score */}
       <div className="flex items-center justify-between mb-3">
-        <span className="text-sm font-medium text-gray-700">
+        <span className="text-sm font-medium text-zinc-700">
           {t('autoCheck.title', 'Automatic verification')}
         </span>
         <div className="flex items-center gap-2">
           {shouldPoll && (
-            <span className="inline-flex items-center gap-1 text-[10px] text-blue-500">
+            <span className="inline-flex items-center gap-1 text-[10px] text-zinc-500">
               <Spinner className="w-3 h-3" />
               {t('autoCheck.ring.polling', 'Updating...')}
             </span>
@@ -308,7 +308,7 @@ export function EvidenceVerificationPanel({ details, onRefresh }: EvidenceVerifi
               {scorePercent}%
             </span>
           ) : (
-            <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+            <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-900">
               {t('autoCheck.ring.running', 'Processing...')}
             </span>
           )}
@@ -317,19 +317,19 @@ export function EvidenceVerificationPanel({ details, onRefresh }: EvidenceVerifi
 
       {/* Summary text — hide misleading Phase A summary while Ring 1+2 process */}
       {verification.phase === 'AB' && verification.summary && (
-        <p className="text-sm text-gray-600 mb-3">{verification.summary}</p>
+        <p className="text-sm text-zinc-700 mb-3">{verification.summary}</p>
       )}
       {(anyRingActive || (verification.phase !== 'AB' && !hasRing1)) && (
-        <div className="flex items-start gap-3 rounded-lg border border-blue-300 bg-blue-50 px-4 py-3 mb-3">
-          <svg className="w-5 h-5 animate-spin text-blue-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24">
+        <div className="flex items-start gap-3 rounded-lg border border-zinc-300 bg-zinc-50 px-4 py-3 mb-3">
+          <svg className="w-5 h-5 animate-spin text-zinc-700 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
           <div>
-            <p className="text-sm font-semibold text-blue-800">
+            <p className="text-sm font-semibold text-zinc-900">
               {t('autoCheck.ring.analysisInProgress', 'PHOTINT analysis in progress')}
             </p>
-            <p className="text-xs text-blue-600 mt-0.5">
+            <p className="text-xs text-zinc-700 mt-0.5">
               {t('autoCheck.phaseBPending', 'AI verification in progress. Results will update automatically.')}
             </p>
           </div>
@@ -342,30 +342,30 @@ export function EvidenceVerificationPanel({ details, onRefresh }: EvidenceVerifi
           {checks.map((check) => (
             <div key={check.name}>
               <div className="flex items-center gap-2 text-xs">
-                <span className={check.passed ? 'text-green-600' : 'text-red-500'}>
+                <span className={check.passed ? 'text-green-600' : 'text-red-600'}>
                   {check.passed ? '\u2713' : '\u2717'}
                 </span>
-                <span className="text-gray-600 w-28">
+                <span className="text-zinc-700 w-28">
                   {getCheckLabel(check.name, t)}
                 </span>
-                <div className="flex-1 bg-gray-200 rounded-full h-1.5">
+                <div className="flex-1 bg-zinc-200 rounded-full h-1.5">
                   <div
                     className={`h-1.5 rounded-full ${
                       check.score >= 0.7
-                        ? 'bg-green-500'
+                        ? 'bg-zinc-900'
                         : check.score >= 0.4
-                          ? 'bg-yellow-500'
-                          : 'bg-red-400'
+                          ? 'bg-amber-500'
+                          : 'bg-red-500'
                     }`}
                     style={{ width: `${Math.round(check.score * 100)}%` }}
                   />
                 </div>
-                <span className="text-gray-400 font-mono w-8 text-right">
+                <span className="text-zinc-500 font-mono w-8 text-right">
                   {Math.round(check.score * 100)}%
                 </span>
               </div>
               {check.reason && (
-                <p className="text-xs text-gray-400 ml-5 mt-0.5">{check.reason}</p>
+                <p className="text-xs text-zinc-500 ml-5 mt-0.5">{check.reason}</p>
               )}
             </div>
           ))}
@@ -376,7 +376,7 @@ export function EvidenceVerificationPanel({ details, onRefresh }: EvidenceVerifi
       {warnings.length > 0 && (
         <div className="mt-2 space-y-0.5">
           {warnings.map((w, i) => (
-            <p key={i} className="text-xs text-amber-600">
+            <p key={i} className="text-xs text-amber-700">
               {w}
             </p>
           ))}
@@ -387,9 +387,9 @@ export function EvidenceVerificationPanel({ details, onRefresh }: EvidenceVerifi
       {/* Ring 1: PHOTINT + AI Semantic Analysis                            */}
       {/* ----------------------------------------------------------------- */}
       {hasRing1 && (
-        <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
+        <div className="mt-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
           <div className="flex items-center justify-between flex-wrap gap-1 mb-1">
-            <span className="text-xs font-medium text-gray-700">
+            <span className="text-xs font-medium text-zinc-700">
               {t('autoCheck.ring1.title', 'Ring 1: PHOTINT Analysis')}
             </span>
             <RingStatusBadge status={verification.ring1_status!} />
@@ -400,7 +400,7 @@ export function EvidenceVerificationPanel({ details, onRefresh }: EvidenceVerifi
             <div className="space-y-1">
               <div className="flex items-center flex-wrap gap-2 text-xs">
                 {verification.ring1_provider && (
-                  <span className="text-gray-500">
+                  <span className="text-zinc-500">
                     {verification.ring1_provider}
                     {verification.ring1_model ? `/${verification.ring1_model}` : ''}
                   </span>
@@ -409,12 +409,12 @@ export function EvidenceVerificationPanel({ details, onRefresh }: EvidenceVerifi
                   <DecisionBadge decision={verification.ring1_decision} />
                 )}
                 {verification.ring1_confidence != null && (
-                  <span className="text-gray-400 font-mono text-[11px]">
+                  <span className="text-zinc-500 font-mono text-[11px]">
                     {t('autoCheck.ring1.confidence', 'confidence')}: {Math.round(verification.ring1_confidence * 100)}%
                   </span>
                 )}
                 {verification.ring1_latency_ms != null && (
-                  <span className="text-gray-400 font-mono text-[11px]">
+                  <span className="text-zinc-500 font-mono text-[11px]">
                     {(verification.ring1_latency_ms / 1000).toFixed(1)}s
                   </span>
                 )}
@@ -440,9 +440,9 @@ export function EvidenceVerificationPanel({ details, onRefresh }: EvidenceVerifi
       {/* Ring 2: Arbiter Dual-Model Evaluation                             */}
       {/* ----------------------------------------------------------------- */}
       {hasRing2 && (
-        <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
+        <div className="mt-2 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
           <div className="flex items-center justify-between flex-wrap gap-1 mb-1">
-            <span className="text-xs font-medium text-gray-700">
+            <span className="text-xs font-medium text-zinc-700">
               {t('autoCheck.ring2.title', 'Ring 2: Arbiter Evaluation')}
             </span>
             <RingStatusBadge status={verification.ring2_status!} />
@@ -455,12 +455,12 @@ export function EvidenceVerificationPanel({ details, onRefresh }: EvidenceVerifi
                 <DecisionBadge decision={verification.ring2_decision} />
               )}
               {verification.ring2_score != null && (
-                <span className="text-gray-400 font-mono text-[11px]">
+                <span className="text-zinc-500 font-mono text-[11px]">
                   {t('autoCheck.ring2.score', 'score')}: {Math.round(verification.ring2_score * 100)}%
                 </span>
               )}
               {verification.ring2_tier && (
-                <span className="text-xs px-1.5 py-0.5 rounded bg-gray-200 text-gray-600">
+                <span className="text-xs px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-700">
                   {t('autoCheck.ring2.tier', 'tier')}: {verification.ring2_tier}
                 </span>
               )}
@@ -478,8 +478,8 @@ export function EvidenceVerificationPanel({ details, onRefresh }: EvidenceVerifi
 
       {/* Ring 2 not requested (manual mode) */}
       {!hasRing2 && verification.arbiter_mode === 'manual' && (
-        <div className="mt-2 rounded-lg border border-gray-100 bg-gray-50 p-2">
-          <span className="text-[11px] text-gray-400">
+        <div className="mt-2 rounded-lg border border-zinc-100 bg-zinc-50 p-2">
+          <span className="text-[11px] text-zinc-500">
             {t('autoCheck.ring2.notRequested', 'Ring 2: Not requested (manual mode)')}
           </span>
         </div>
@@ -492,13 +492,13 @@ export function EvidenceVerificationPanel({ details, onRefresh }: EvidenceVerifi
 
       {/* Phase indicator (existing: phase_b_status pending + not yet AB) */}
       {verification.phase_b_status === 'pending' && verification.phase !== 'AB' && !hasRing1 && (
-        <div className="flex items-center gap-2 mt-3 p-2 bg-blue-50 rounded-lg">
-          <Spinner className="w-4 h-4 text-blue-500" />
+        <div className="flex items-center gap-2 mt-3 p-2 bg-zinc-50 rounded-lg">
+          <Spinner className="w-4 h-4 text-zinc-700" />
           <div>
-            <span className="text-xs font-medium text-blue-700">
+            <span className="text-xs font-medium text-zinc-900">
               {t('autoCheck.phaseAComplete', 'Phase A complete')}
             </span>
-            <span className="text-xs text-blue-500 ml-1">
+            <span className="text-xs text-zinc-600 ml-1">
               — {t('autoCheck.phaseBPending', 'AI verification in progress. Results will update automatically.')}
             </span>
           </div>
@@ -507,7 +507,7 @@ export function EvidenceVerificationPanel({ details, onRefresh }: EvidenceVerifi
       {/* Phase B error */}
       {verification.phase_b_status === 'error' && (
         <div className="flex items-center gap-2 mt-3 p-2 bg-red-50 border border-red-200 rounded-lg">
-          <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <svg className="w-4 h-4 text-red-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
           </svg>
           <div>
@@ -515,7 +515,7 @@ export function EvidenceVerificationPanel({ details, onRefresh }: EvidenceVerifi
               {t('autoCheck.phaseBError', 'AI verification failed')}
             </span>
             {!!(verification as unknown as Record<string, unknown>).phase_b_error && (
-              <p className="text-xs text-red-500 mt-0.5">
+              <p className="text-xs text-red-600 mt-0.5">
                 {String((verification as unknown as Record<string, unknown>).phase_b_error)}
               </p>
             )}
@@ -523,11 +523,11 @@ export function EvidenceVerificationPanel({ details, onRefresh }: EvidenceVerifi
         </div>
       )}
       {verification.phase === 'AB' && !hasRing1 && !hasRing2 && (
-        <div className="flex items-center gap-2 mt-3 p-2 bg-green-50 rounded-lg">
+        <div className="flex items-center gap-2 mt-3 p-2 bg-zinc-50 rounded-lg">
           <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
           </svg>
-          <span className="text-xs font-medium text-green-700">
+          <span className="text-xs font-medium text-zinc-900">
             {t('autoCheck.verificationComplete', 'Verification complete')}
           </span>
         </div>

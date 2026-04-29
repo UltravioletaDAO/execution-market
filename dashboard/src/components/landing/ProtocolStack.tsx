@@ -124,8 +124,8 @@ export function ProtocolStack() {
                     alt={net.name}
                     className={`w-6 h-6 md:w-7 md:h-7 rounded-full ring-1 transition-all cursor-pointer ${
                       net.live
-                        ? 'ring-emerald-500/50 opacity-100 group-hover/net:ring-emerald-400 group-hover/net:scale-110'
-                        : 'ring-gray-700 opacity-40 group-hover/net:opacity-70 group-hover/net:ring-gray-600'
+                        ? 'ring-white/50 opacity-100 group-hover/net:ring-white group-hover/net:scale-110'
+                        : 'ring-zinc-700 opacity-70 group-hover/net:opacity-100 group-hover/net:ring-zinc-500'
                     }`}
                   />
                   <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded bg-gray-800 text-[10px] text-gray-200 font-medium opacity-0 group-hover/net:opacity-100 transition-opacity whitespace-nowrap shadow-lg border border-gray-700 z-10">

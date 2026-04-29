@@ -7,23 +7,24 @@ import { useTranslation } from 'react-i18next'
 import type { AgentDirectoryEntry } from '../types/database'
 import { getAgentDirectory } from '../services/h2a'
 import { ReputationBadge } from '../components/ReputationBadge'
+import { Pill } from '../components/ui/Pill'
 import { safeSrc } from '../lib/safeHref'
 
-const CAPS: { value: string; key: string; color: string }[] = [
-  { value: 'data_processing', key: 'agentDirectory.cap.dataProcessing', color: 'bg-indigo-50 text-indigo-700' },
-  { value: 'research', key: 'agentDirectory.cap.research', color: 'bg-emerald-50 text-emerald-700' },
-  { value: 'content_creation', key: 'agentDirectory.cap.contentCreation', color: 'bg-pink-50 text-pink-700' },
-  { value: 'content_generation', key: 'agentDirectory.cap.contentGeneration', color: 'bg-pink-50 text-pink-700' },
-  { value: 'code_generation', key: 'agentDirectory.cap.codeGeneration', color: 'bg-amber-50 text-amber-700' },
-  { value: 'code_execution', key: 'agentDirectory.cap.codeExecution', color: 'bg-amber-50 text-amber-700' },
-  { value: 'analysis', key: 'agentDirectory.cap.analysis', color: 'bg-cyan-50 text-cyan-700' },
-  { value: 'automation', key: 'agentDirectory.cap.automation', color: 'bg-violet-50 text-violet-700' },
-  { value: 'api_integration', key: 'agentDirectory.cap.apiIntegration', color: 'bg-orange-50 text-orange-700' },
-  { value: 'web_scraping', key: 'agentDirectory.cap.webScraping', color: 'bg-teal-50 text-teal-700' },
+const CAPS: { value: string; key: string }[] = [
+  { value: 'data_processing', key: 'agentDirectory.cap.dataProcessing' },
+  { value: 'research', key: 'agentDirectory.cap.research' },
+  { value: 'content_creation', key: 'agentDirectory.cap.contentCreation' },
+  { value: 'content_generation', key: 'agentDirectory.cap.contentGeneration' },
+  { value: 'code_generation', key: 'agentDirectory.cap.codeGeneration' },
+  { value: 'code_execution', key: 'agentDirectory.cap.codeExecution' },
+  { value: 'analysis', key: 'agentDirectory.cap.analysis' },
+  { value: 'automation', key: 'agentDirectory.cap.automation' },
+  { value: 'api_integration', key: 'agentDirectory.cap.apiIntegration' },
+  { value: 'web_scraping', key: 'agentDirectory.cap.webScraping' },
 ]
 
 function capMeta(c: string) {
-  return CAPS.find(o => o.value === c) || { value: c, key: c, color: 'bg-gray-50 text-gray-700' }
+  return CAPS.find(o => o.value === c) || { value: c, key: c }
 }
 
 type RoleTab = 'all' | 'publisher' | 'executor'
@@ -39,15 +40,15 @@ function RoleBadge({ role }: { role: string }) {
   if (role === 'both') {
     return (
       <div className="flex gap-1">
-        <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-medium">{t('agentDirectory.role.publisher', 'Publisher')}</span>
-        <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-medium">{t('agentDirectory.role.executor', 'Executor')}</span>
+        <Pill variant="default" size="sm" asSpan>{t('agentDirectory.role.publisher', 'Publisher')}</Pill>
+        <Pill variant="default" size="sm" asSpan>{t('agentDirectory.role.executor', 'Executor')}</Pill>
       </div>
     )
   }
   if (role === 'publisher') {
-    return <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-medium">{t('agentDirectory.role.publisher', 'Publisher')}</span>
+    return <Pill variant="default" size="sm" asSpan>{t('agentDirectory.role.publisher', 'Publisher')}</Pill>
   }
-  return <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-medium">{t('agentDirectory.role.executor', 'Executor')}</span>
+  return <Pill variant="default" size="sm" asSpan>{t('agentDirectory.role.executor', 'Executor')}</Pill>
 }
 
 function AgentCard({ agent, onClick }: { agent: AgentDirectoryEntry; onClick: () => void }) {
@@ -56,16 +57,16 @@ function AgentCard({ agent, onClick }: { agent: AgentDirectoryEntry; onClick: ()
   const isExecutor = agent.role === 'executor' || agent.role === 'both'
 
   return (
-    <div onClick={onClick} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-lg hover:border-blue-300 transition-all cursor-pointer">
+    <div onClick={onClick} className="bg-white rounded-xl border border-zinc-200 p-5 hover:shadow-lg hover:border-zinc-400 transition-all cursor-pointer">
       <div className="flex items-start gap-3 mb-3">
-        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-lg font-bold shrink-0">
+        <div className="w-12 h-12 rounded-full bg-zinc-900 flex items-center justify-center text-white text-lg font-bold shrink-0">
           {agent.avatar_url ? <img src={safeSrc(agent.avatar_url)} alt="" className="w-12 h-12 rounded-full object-cover" /> : agent.display_name[0].toUpperCase()}
         </div>
         <div className="min-w-0 flex-1">
           <h3 className="font-semibold text-gray-900 truncate">{agent.display_name}</h3>
           <div className="flex items-center gap-1.5 mt-0.5">
-            {agent.verified && <span className="text-blue-600 text-xs">{t('agentDirectory.verified', 'Verified')}</span>}
-            {agent.erc8004_agent_id && <span className="text-xs text-gray-400">#{agent.erc8004_agent_id}</span>}
+            {agent.verified && <span className="text-zinc-700 text-xs">{t('agentDirectory.verified', 'Verified')}</span>}
+            {agent.erc8004_agent_id && <span className="text-xs text-zinc-500">#{agent.erc8004_agent_id}</span>}
           </div>
         </div>
       </div>
@@ -78,10 +79,10 @@ function AgentCard({ agent, onClick }: { agent: AgentDirectoryEntry; onClick: ()
         <div className="flex flex-wrap gap-1.5 mb-3">
           {agent.capabilities.slice(0, 4).map(c => {
             const m = capMeta(c)
-            return <span key={c} className={`text-xs px-2 py-0.5 rounded-full font-medium ${m.color}`}>{t(m.key)}</span>
+            return <Pill key={c} variant="default" size="sm" asSpan>{t(m.key)}</Pill>
           })}
           {agent.capabilities.length > 4 && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">+{agent.capabilities.length - 4}</span>
+            <Pill variant="default" size="sm" asSpan>+{agent.capabilities.length - 4}</Pill>
           )}
         </div>
       )}
@@ -108,7 +109,7 @@ function AgentCard({ agent, onClick }: { agent: AgentDirectoryEntry; onClick: ()
           <>
             <span>{agent.tasks_published} {t('agentDirectory.published', 'published')}</span>
             <span>${agent.total_bounty_usd.toFixed(2)}</span>
-            {agent.active_tasks > 0 && <span className="text-green-600">{agent.active_tasks} {t('agentDirectory.activeLabel', 'active')}</span>}
+            {agent.active_tasks > 0 && <span className="text-zinc-900 font-medium">{agent.active_tasks} {t('agentDirectory.activeLabel', 'active')}</span>}
           </>
         )}
       </div>
@@ -128,14 +129,14 @@ function AgentDetailModal({ agent, onClose }: { agent: AgentDirectoryEntry; onCl
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-start gap-4 p-6 pb-4 border-b">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold shrink-0">
+          <div className="w-16 h-16 rounded-full bg-zinc-900 flex items-center justify-center text-white text-2xl font-bold shrink-0">
             {agent.avatar_url ? <img src={safeSrc(agent.avatar_url)} alt="" className="w-16 h-16 rounded-full object-cover" /> : agent.display_name[0].toUpperCase()}
           </div>
           <div className="min-w-0 flex-1">
             <h2 className="text-xl font-bold text-gray-900 truncate">{agent.display_name}</h2>
             <div className="flex items-center gap-2 mt-1">
-              {agent.verified && <span className="text-blue-600 text-sm">{t('agentDirectory.verified', 'Verified')}</span>}
-              {agent.erc8004_agent_id && <span className="text-sm bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">ERC-8004 #{agent.erc8004_agent_id}</span>}
+              {agent.verified && <span className="text-zinc-700 text-sm">{t('agentDirectory.verified', 'Verified')}</span>}
+              {agent.erc8004_agent_id && <Pill variant="default" size="sm" asSpan>ERC-8004 #{agent.erc8004_agent_id}</Pill>}
             </div>
             <div className="mt-2"><RoleBadge role={agent.role} /></div>
           </div>
@@ -177,7 +178,7 @@ function AgentDetailModal({ agent, onClose }: { agent: AgentDirectoryEntry; onCl
             <div className="flex flex-wrap gap-2">
               {agent.capabilities.map(c => {
                 const m = capMeta(c)
-                return <span key={c} className={`text-xs px-2.5 py-1 rounded-full font-medium ${m.color}`}>{t(m.key)}</span>
+                return <Pill key={c} variant="default" size="sm" asSpan>{t(m.key)}</Pill>
               })}
             </div>
           </div>
@@ -203,7 +204,7 @@ function AgentDetailModal({ agent, onClose }: { agent: AgentDirectoryEntry; onCl
           {isExecutor && (
             <button
               onClick={() => { onClose(); nav(`/publisher/requests/new?agent=${agent.executor_id}`) }}
-              className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+              className="flex-1 py-2.5 bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 text-sm font-medium"
             >
               {t('agentDirectory.createRequest', 'Create Request')}
             </button>
@@ -211,7 +212,7 @@ function AgentDetailModal({ agent, onClose }: { agent: AgentDirectoryEntry; onCl
           {isPublisher && (
             <button
               onClick={() => { onClose(); nav(`/tasks?agent=${agent.executor_id}`) }}
-              className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium"
+              className="flex-1 py-2.5 bg-zinc-100 text-zinc-900 rounded-lg hover:bg-zinc-200 text-sm font-medium"
             >
               {t('agentDirectory.viewTasks', 'View Tasks')}
             </button>
@@ -259,20 +260,21 @@ export function AgentDirectory() {
             <h1 className="text-3xl font-bold text-white">{t('agentDirectory.title', 'AI Agent Directory')}</h1>
             <p className="mt-2 text-gray-400">{t('agentDirectory.subtitle', 'Find agents that publish and execute tasks.')}{total > 0 && ` ${total} ${t('agentDirectory.available', 'available')}.`}</p>
           </div>
-          <button onClick={() => nav('/publisher/requests/new')} className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-500 transition-colors">+ {t('publisher.dashboard.newRequest', 'New Request')}</button>
+          <button onClick={() => nav('/publisher/requests/new')} className="px-4 py-2 bg-zinc-900 text-white rounded-lg font-medium hover:bg-zinc-800 transition-colors">+ {t('publisher.dashboard.newRequest', 'New Request')}</button>
         </div>
       </div></div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Role tabs */}
-        <div className="flex gap-1 mb-4 bg-gray-100 rounded-lg p-1 w-fit">
+        <div className="flex gap-1 mb-4 bg-zinc-100 rounded-lg p-1 w-fit">
           {ROLE_TAB_KEYS.map(tab => (
             <button
               key={tab.value}
               onClick={() => { setRoleTab(tab.value); setPage(1) }}
               className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                roleTab === tab.value ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                roleTab === tab.value ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'
               }`}
+              aria-pressed={roleTab === tab.value}
             >
               {t(tab.key)}
             </button>

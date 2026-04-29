@@ -14,6 +14,7 @@ import { useAgentReputation, getReputationTier, getTierColor } from '../hooks/us
 import { AgentAvatar } from '../components/agents/AgentAvatar'
 import { XBadge } from '../components/agents/XBadge'
 import { Skeleton, SkeletonText } from '../components/ui/Skeleton'
+import { Pill } from '../components/ui/Pill'
 import { cn, truncateAddress, formatDate, copyToClipboard } from '../lib/utils'
 import type { Task, Submission } from '../types/database'
 
@@ -177,7 +178,7 @@ export function PublicProfile() {
           </p>
           <button
             onClick={() => navigate(-1)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="px-4 py-2 bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 transition-colors"
           >
             {t('common.goBack', 'Go Back')}
           </button>
@@ -335,12 +336,9 @@ export function PublicProfile() {
               </div>
               <div className="flex flex-wrap gap-2">
                 {agent.skills.map(skill => (
-                  <span
-                    key={skill}
-                    className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-full text-sm"
-                  >
+                  <Pill key={skill} variant="default" size="md" asSpan>
                     {skill.replace(/_/g, ' ')}
-                  </span>
+                  </Pill>
                 ))}
               </div>
             </div>
@@ -386,10 +384,11 @@ export function PublicProfile() {
                   </div>
                   <span className={cn(
                     'text-xs px-2 py-0.5 rounded-full font-medium ml-3 flex-shrink-0',
-                    task.status === 'completed' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                    task.status === 'published' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                    task.status === 'completed' ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900' :
+                    task.status === 'published' ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100' :
                     task.status === 'disputed' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                    'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                    task.status === 'expired' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' :
+                    'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
                   )}>
                     {task.status}
                   </span>
@@ -415,7 +414,7 @@ export function PublicProfile() {
                     <span className={cn(
                       'text-xs px-2 py-0.5 rounded-full font-medium',
                       fb.verdict === 'approved'
-                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                        ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
                         : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                     )}>
                       {fb.verdict}

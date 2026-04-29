@@ -51,13 +51,13 @@ function GpsBadge({ gps }: { gps: { latitude?: number; lat?: number; longitude?:
   const lng = Number(gps.longitude || gps.lng)
   return show ? (
     <span className="inline-flex items-center gap-1.5 text-xs">
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-700">
         GPS: {lat.toFixed(4)}, {lng.toFixed(4)}
       </span>
       <button
         type="button"
         onClick={() => setShow(false)}
-        className="inline-flex items-center gap-0.5 text-blue-600 hover:underline"
+        className="inline-flex items-center gap-0.5 text-zinc-700 hover:underline"
       >
         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
@@ -69,7 +69,7 @@ function GpsBadge({ gps }: { gps: { latitude?: number; lat?: number; longitude?:
     <button
       type="button"
       onClick={() => setShow(true)}
-      className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
+      className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-700 hover:bg-zinc-200 transition-colors"
     >
       <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
         <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
@@ -233,18 +233,18 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-xl z-10">
-          <h2 className="text-lg font-semibold text-gray-900">{t('submissionReview.title', 'Review Submission')}</h2>
+        <div className="sticky top-0 bg-white border-b border-zinc-200 px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
+          <h2 className="text-lg font-semibold text-zinc-900">{t('submissionReview.title', 'Review Submission')}</h2>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-1 hover:bg-zinc-100 rounded-lg transition-colors"
           >
-            <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-5 h-5 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -254,11 +254,11 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
           {/* Loading state */}
           {loading && (
             <div className="flex items-center justify-center py-12">
-              <svg className="animate-spin h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <svg className="animate-spin h-6 w-6 text-zinc-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
-              <span className="ml-3 text-gray-500">{t('submissionReview.loading', 'Loading submission...')}</span>
+              <span className="ml-3 text-zinc-500">{t('submissionReview.loading', 'Loading submission...')}</span>
             </div>
           )}
 
@@ -273,23 +273,23 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
           {submission && !loading && (
             <>
               {/* Task info */}
-              <div className="bg-gray-50 rounded-lg p-4">
+              <div className="bg-zinc-50 rounded-lg p-4">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">{t('submissionReview.task', 'Task')}</p>
-                    <p className="font-medium text-gray-900">{submission.task?.title || 'Unknown Task'}</p>
+                    <p className="text-xs text-zinc-500 uppercase tracking-wide mb-1">{t('submissionReview.task', 'Task')}</p>
+                    <p className="font-medium text-zinc-900">{submission.task?.title || 'Unknown Task'}</p>
                     {submission.task?.bounty_usd && (
-                      <p className="text-sm text-emerald-600 mt-1">
+                      <p className="text-sm text-zinc-900 font-semibold mt-1">
                         ${submission.task.bounty_usd.toFixed(2)} USDC
                       </p>
                     )}
                   </div>
                   <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                     submission.agent_verdict === 'accepted'
-                      ? 'bg-green-100 text-green-700'
+                      ? 'bg-zinc-900 text-white'
                       : submission.agent_verdict === 'disputed'
                         ? 'bg-red-100 text-red-700'
-                        : 'bg-yellow-100 text-yellow-700'
+                        : 'bg-amber-100 text-amber-800'
                   }`}>
                     {submission.agent_verdict || t('status.pending')}
                   </span>
@@ -298,15 +298,15 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
 
               {/* Worker info */}
               {submission.executor && (
-                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-                  <div className="w-10 h-10 bg-blue-200 rounded-full flex items-center justify-center text-blue-700 font-bold text-sm">
+                <div className="flex items-center gap-3 p-3 bg-zinc-50 rounded-lg">
+                  <div className="w-10 h-10 bg-zinc-900 rounded-full flex items-center justify-center text-white font-bold text-sm">
                     {submission.executor.display_name?.[0]?.toUpperCase() || 'W'}
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900 text-sm">
+                    <p className="font-medium text-zinc-900 text-sm">
                       {submission.executor.display_name || 'Anonymous Worker'}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-zinc-500">
                       Rep: {submission.executor.reputation_score ?? 0} | {submission.executor.wallet_address?.slice(0, 6)}...{submission.executor.wallet_address?.slice(-4)}
                     </p>
                   </div>
@@ -315,16 +315,16 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
 
               {/* Evidence */}
               <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-2">{t('tasks.evidence')}</h3>
+                <h3 className="text-sm font-medium text-zinc-700 mb-2">{t('tasks.evidence')}</h3>
                 {submission.evidence && typeof submission.evidence === 'object' ? (
                   <div className="space-y-3">
                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {Object.entries(submission.evidence as Record<string, any>).map(([key, ev]) => (
-                      <div key={key} className="border border-gray-200 rounded-lg p-3">
+                      <div key={key} className="border border-zinc-200 rounded-lg p-3">
                         <div className="flex items-center justify-between mb-1">
-                          <p className="text-xs text-gray-500 uppercase tracking-wide">{key}</p>
+                          <p className="text-xs text-zinc-500 uppercase tracking-wide">{key}</p>
                           {ev?.type && (
-                            <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">
+                            <span className="text-xs bg-zinc-100 text-zinc-500 px-1.5 py-0.5 rounded">
                               {ev.type}
                             </span>
                           )}
@@ -350,7 +350,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                                 href={safeHref(ev.fileUrl)}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 text-blue-600 hover:underline text-sm"
+                                className="inline-flex items-center gap-1.5 text-zinc-900 hover:underline text-sm"
                               >
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -360,9 +360,9 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                             )}
                           </div>
                         ) : ev?.value ? (
-                          <p className="text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 rounded p-2">{ev.value}</p>
+                          <p className="text-sm text-zinc-700 whitespace-pre-wrap bg-zinc-50 rounded p-2">{ev.value}</p>
                         ) : (
-                          <p className="text-sm text-gray-400 italic">
+                          <p className="text-sm text-zinc-500 italic">
                             {typeof ev === 'string' ? ev : JSON.stringify(ev)}
                           </p>
                         )}
@@ -371,37 +371,37 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                           <div className="flex flex-wrap gap-1.5 mt-2">
                             {ev.metadata.gps && <GpsBadge gps={ev.metadata.gps} />}
                             {ev.metadata.captureTimestamp && (
-                              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                              <span className="text-xs bg-zinc-100 text-zinc-700 px-2 py-0.5 rounded-full">
                                 {new Date(ev.metadata.captureTimestamp).toLocaleString()}
                               </span>
                             )}
                             {ev.metadata.source && (
-                              <span className="text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">
+                              <span className="text-xs bg-zinc-100 text-zinc-700 px-2 py-0.5 rounded-full">
                                 {ev.metadata.source === 'camera' ? t('submissionReview.sourceCamera', 'Camera') : ev.metadata.source === 'gallery' ? t('submissionReview.sourceGallery', 'Gallery') : ev.metadata.source}
                               </span>
                             )}
                             {ev.metadata.deviceInfo?.model && (
-                              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                              <span className="text-xs bg-zinc-100 text-zinc-700 px-2 py-0.5 rounded-full">
                                 {ev.metadata.deviceInfo.model}
                               </span>
                             )}
                             {ev.metadata.size && (
-                              <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
+                              <span className="text-xs bg-zinc-100 text-zinc-500 px-2 py-0.5 rounded-full">
                                 {ev.metadata.size > 1048576
                                   ? `${(ev.metadata.size / 1048576).toFixed(1)} MB`
                                   : `${Math.round(ev.metadata.size / 1024)} KB`}
                               </span>
                             )}
                             {ev.metadata.checksum && (
-                              <span className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full" title={ev.metadata.checksum}>
+                              <span className="text-xs bg-zinc-100 text-zinc-900 px-2 py-0.5 rounded-full" title={ev.metadata.checksum}>
                                 SHA: {String(ev.metadata.checksum).slice(0, 8)}...
                               </span>
                             )}
                             {ev.metadata.ai_verification?.verified !== undefined && (
                               <span className={`text-xs px-2 py-0.5 rounded-full ${
                                 ev.metadata.ai_verification.verified
-                                  ? 'bg-green-50 text-green-700'
-                                  : 'bg-yellow-50 text-yellow-700'
+                                  ? 'bg-zinc-100 text-zinc-900'
+                                  : 'bg-amber-100 text-amber-800'
                               }`}>
                                 AI: {ev.metadata.ai_verification.verified ? t('submissionReview.aiVerified', 'Verified') : t('submissionReview.aiReview', 'Review')}
                               </span>
@@ -412,14 +412,14 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-400 italic">No evidence provided</p>
+                  <p className="text-sm text-zinc-500 italic">No evidence provided</p>
                 )}
               </div>
 
               {/* Evidence files */}
               {submission.evidence_files && (submission.evidence_files as string[]).length > 0 && (
                 <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">{t('submissionReview.files', 'Files')}</h3>
+                  <h3 className="text-sm font-medium text-zinc-700 mb-2">{t('submissionReview.files', 'Files')}</h3>
                   <div className="flex flex-wrap gap-2">
                     {(submission.evidence_files as string[]).map((url, idx) => (
                       <a
@@ -427,7 +427,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                         href={safeHref(url)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm text-blue-600 transition-colors"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 rounded-lg text-sm text-zinc-900 transition-colors"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -442,8 +442,8 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
               {/* Notes */}
               {submission.agent_notes && (
                 <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-1">{t('submissionReview.agentNotes', 'Agent Notes')}</h3>
-                  <p className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">{submission.agent_notes}</p>
+                  <h3 className="text-sm font-medium text-zinc-700 mb-1">{t('submissionReview.agentNotes', 'Agent Notes')}</h3>
+                  <p className="text-sm text-zinc-700 bg-zinc-50 rounded-lg p-3">{submission.agent_notes}</p>
                 </div>
               )}
 
@@ -454,11 +454,11 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                 const phase = details?.phase
                 return (
                 <div className={`rounded-lg border ${
-                  submission.auto_check_passed ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200'
+                  submission.auto_check_passed ? 'bg-zinc-50 border-zinc-200' : 'bg-amber-50 border-amber-300'
                 }`}>
                   <div className="flex items-center justify-between gap-2 p-3 flex-wrap">
                     <span className={`text-sm font-medium ${
-                      submission.auto_check_passed ? 'text-green-700' : 'text-orange-700'
+                      submission.auto_check_passed ? 'text-zinc-900' : 'text-amber-800'
                     }`}>
                       {submission.auto_check_passed
                         ? t('autoCheck.passed', 'Automatic verification: Approved')
@@ -468,8 +468,8 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                       {phase && (
                         <span className={`text-xs px-2 py-0.5 rounded-full ${
                           phase === 'AB'
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-yellow-100 text-yellow-700'
+                            ? 'bg-zinc-100 text-zinc-900'
+                            : 'bg-amber-100 text-amber-800'
                         }`}>
                           {phase === 'AB'
                             ? t('autoCheck.phaseComplete', 'Verification complete')
@@ -478,7 +478,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                       )}
                       {score !== undefined && (
                         <span className={`text-xs font-mono px-2 py-0.5 rounded-full ${
-                          submission.auto_check_passed ? 'bg-green-200 text-green-800' : 'bg-orange-200 text-orange-800'
+                          submission.auto_check_passed ? 'bg-zinc-900 text-white' : 'bg-amber-200 text-amber-900'
                         }`}>
                           Score: {(score * 100).toFixed(0)}%
                         </span>
@@ -491,24 +491,24 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                       {(details.checks as Array<{name: string; passed: boolean; score: number; reason?: string}>).map((check) => (
                         <div key={check.name}>
                           <div className="flex items-center gap-2 text-xs">
-                            <span className={check.passed ? 'text-green-600' : 'text-red-500'}>
+                            <span className={check.passed ? 'text-green-600' : 'text-red-600'}>
                               {check.passed ? '\u2713' : '\u2717'}
                             </span>
-                            <span className="text-gray-600 w-28">{getCheckLabel(check.name, t)}</span>
-                            <div className="flex-1 bg-gray-200 rounded-full h-1.5">
+                            <span className="text-zinc-700 w-28">{getCheckLabel(check.name, t)}</span>
+                            <div className="flex-1 bg-zinc-200 rounded-full h-1.5">
                               <div
                                 className={`h-1.5 rounded-full ${
-                                  check.score >= 0.7 ? 'bg-green-500' : check.score >= 0.4 ? 'bg-yellow-500' : 'bg-red-400'
+                                  check.score >= 0.7 ? 'bg-zinc-900' : check.score >= 0.4 ? 'bg-amber-500' : 'bg-red-500'
                                 }`}
                                 style={{ width: `${Math.round(check.score * 100)}%` }}
                               />
                             </div>
-                            <span className="text-gray-400 font-mono w-8 text-right">
+                            <span className="text-zinc-700 dark:text-zinc-300 font-mono w-8 text-right">
                               {Math.round(check.score * 100)}%
                             </span>
                           </div>
                           {check.reason && (
-                            <p className="text-xs text-gray-400 ml-5 mt-0.5">{check.reason}</p>
+                            <p className="text-xs text-zinc-600 dark:text-zinc-400 ml-5 mt-0.5">{check.reason}</p>
                           )}
                         </div>
                       ))}
@@ -519,14 +519,14 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                     (details.warnings as string[]).length > 0 && (
                     <div className="px-3 pb-3">
                       {(details.warnings as string[]).map((w: string, i: number) => (
-                        <p key={i} className="text-xs text-amber-600">{w}</p>
+                        <p key={i} className="text-xs text-amber-700">{w}</p>
                       ))}
                     </div>
                   )}
                   {/* Phase B error */}
                   {(details as Record<string, unknown>)?.phase_b_error != null && (
                     <div className="px-3 pb-3">
-                      <p className="text-xs text-red-500">
+                      <p className="text-xs text-red-600">
                         {t('autoCheck.phaseBError', 'AI analysis error: {{error}}', {
                           error: String((details as Record<string, unknown>).phase_b_error),
                         })}
@@ -534,7 +534,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                     </div>
                   )}
                   {/* Score guidance */}
-                  <div className="px-3 pb-3 text-xs text-gray-500">
+                  <div className="px-3 pb-3 text-xs text-zinc-500">
                     {score >= 0.95 ? t('autoCheck.guidanceHigh', 'All checks passed. Safe to approve.') :
                      score >= 0.70 ? t('autoCheck.guidanceMedium', 'Most checks passed. Review warnings before approving.') :
                      score >= 0.40 ? t('autoCheck.guidanceLow', 'Several checks failed. Review evidence carefully.') :
@@ -555,7 +555,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
               {/* Ring 1: AI Analysis / PHOTINT (Phase B) */}
               {submission.ai_verification_result ? (
                 <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">
+                  <h3 className="text-sm font-medium text-zinc-700 mb-2">
                     {t('aiAnalysis.title', 'AI Analysis')}
                   </h3>
                   <AIAnalysisDetails
@@ -570,11 +570,11 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                 const phase = details?.phase
                 if (!isPhysical) return null
                 return (
-                  <div className="rounded-lg border border-gray-200 bg-blue-50 p-3">
-                    <h3 className="text-sm font-medium text-gray-700 mb-1">
+                  <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+                    <h3 className="text-sm font-medium text-zinc-700 mb-1">
                       {t('aiAnalysis.ring1Title', 'Ring 1: PHOTINT Analysis')}
                     </h3>
-                    <p className="text-xs text-blue-700">
+                    <p className="text-xs text-zinc-700">
                       {phase === 'AB'
                         ? t('aiAnalysis.ring1NotAvailable', 'PHOTINT: Analysis completed but no AI result produced. Evidence may lack photos.')
                         : t('aiAnalysis.ring1Processing', 'PHOTINT: Processing photo forensics (tampering, GenAI detection, GPS consistency)...')}
@@ -617,21 +617,21 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                   const arbiterEnabled = taskAny?.arbiter_enabled as boolean | null | undefined
 
                   let statusMessage: string | null = null
-                  let statusBg = 'bg-gray-50'
-                  let statusText = 'text-gray-500'
+                  let statusBg = 'bg-zinc-50'
+                  let statusText = 'text-zinc-500'
 
                   if (!arbiterMode || arbiterMode === 'manual') {
                     statusMessage = t('arbiter.manualMode', 'Arbiter: Not requested (manual mode). Set arbiter_mode to "auto" or "hybrid" for AI evaluation.')
                   } else if (arbiterEnabled || isPhysical) {
                     statusMessage = t('arbiter.processing', 'Arbiter: Processing AI evaluation...')
-                    statusBg = 'bg-blue-50'
-                    statusText = 'text-blue-700'
+                    statusBg = 'bg-zinc-50'
+                    statusText = 'text-zinc-700'
                   }
 
                   if (!statusMessage) return null
                   return (
-                    <div className={`rounded-lg border border-gray-200 ${statusBg} p-3`}>
-                      <h3 className="text-sm font-medium text-gray-700 mb-1">
+                    <div className={`rounded-lg border border-zinc-200 ${statusBg} p-3`}>
+                      <h3 className="text-sm font-medium text-zinc-700 mb-1">
                         {t('arbiter.title', 'Ring 2 Arbiter Verdict')}
                       </h3>
                       <p className={`text-xs ${statusText}`}>{statusMessage}</p>
@@ -640,9 +640,9 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                 }
 
                 return (
-                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2">
+                  <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 space-y-2">
                     <div className="flex items-center justify-between flex-wrap gap-2">
-                      <h3 className="text-sm font-medium text-gray-700">
+                      <h3 className="text-sm font-medium text-zinc-700">
                         {t('arbiter.title', 'Ring 2 Arbiter Verdict')}
                       </h3>
                       <ArbiterVerdictBadge
@@ -662,7 +662,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                       />
                     </div>
                     {a.arbiter_verdict_data?.reason && (
-                      <p className="text-xs text-gray-600">
+                      <p className="text-xs text-zinc-700">
                         {a.arbiter_verdict_data.reason}
                       </p>
                     )}
@@ -676,17 +676,17 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                     )}
                     {Array.isArray(a.arbiter_verdict_data?.ring_scores) &&
                       a.arbiter_verdict_data.ring_scores.length > 0 && (
-                        <div className="pt-1 border-t border-gray-200 space-y-1">
+                        <div className="pt-1 border-t border-zinc-200 space-y-1">
                           {a.arbiter_verdict_data.ring_scores.map((rs, i) => (
                             <div
                               key={`${rs.ring}-${i}`}
                               className="flex items-center justify-between text-xs"
                             >
-                              <span className="text-gray-600">
+                              <span className="text-zinc-700">
                                 {rs.ring} · {rs.provider ?? '?'}/
                                 {rs.model ?? '?'}
                               </span>
-                              <span className="font-mono text-gray-500">
+                              <span className="font-mono text-zinc-500">
                                 {typeof rs.score === 'number'
                                   ? `${Math.round(rs.score * 100)}%`
                                   : '—'}{' '}
@@ -697,7 +697,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                         </div>
                       )}
                     {a.arbiter_evidence_hash && (
-                      <p className="text-[10px] font-mono text-gray-400 break-all">
+                      <p className="text-[10px] font-mono text-zinc-500 break-all">
                         hash: {a.arbiter_evidence_hash.slice(0, 10)}…{a.arbiter_evidence_hash.slice(-8)}
                       </p>
                     )}
@@ -709,12 +709,19 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
               {result && (
                 <div className={`p-3 rounded-lg ${
                   result.type === 'success'
-                    ? 'bg-green-50 border border-green-200'
+                    ? 'bg-zinc-50 border border-zinc-200'
                     : 'bg-red-50 border border-red-200'
                 }`}>
-                  <p className={`text-sm ${
-                    result.type === 'success' ? 'text-green-700' : 'text-red-700'
-                  }`}>{result.message}</p>
+                  <p className={`text-sm flex items-center gap-2 ${
+                    result.type === 'success' ? 'text-zinc-900' : 'text-red-700'
+                  }`}>
+                    {result.type === 'success' && (
+                      <svg className="w-4 h-4 text-green-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                    <span>{result.message}</span>
+                  </p>
                 </div>
               )}
 
@@ -724,14 +731,14 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                   {/* Reject/Request info forms */}
                   {(showRejectForm || showInfoForm) && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-zinc-700 mb-1">
                         {showRejectForm ? t('submissionReview.rejectReason', 'Rejection reason') : t('submissionReview.whatInfoNeeded', 'What information do you need?')}
                       </label>
                       <textarea
                         value={feedback}
                         onChange={(e) => setFeedback(e.target.value)}
                         rows={3}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-zinc-500 focus:border-transparent"
                         placeholder={showRejectForm
                           ? t('submissionReview.rejectPlaceholder', 'Explain why you are rejecting this submission...')
                           : t('submissionReview.infoPlaceholder', 'Describe what additional information you need...')}
@@ -743,7 +750,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                           className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 ${
                             showRejectForm
                               ? 'bg-red-600 text-white hover:bg-red-700'
-                              : 'bg-yellow-600 text-white hover:bg-yellow-700'
+                              : 'bg-amber-700 text-white hover:bg-amber-800'
                           }`}
                         >
                           {isProcessing
@@ -752,7 +759,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                         </button>
                         <button
                           onClick={() => { setShowRejectForm(false); setShowInfoForm(false); setFeedback('') }}
-                          className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                          className="px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors"
                         >
                           {t('common.cancel')}
                         </button>
@@ -770,28 +777,28 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                           value={approveNotes}
                           onChange={(e) => setApproveNotes(e.target.value)}
                           placeholder={t('submissionReview.approvalNotes', 'Approval notes (optional)')}
-                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-zinc-500 focus:border-transparent"
                         />
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                         <button
                           onClick={handleApprove}
                           disabled={isProcessing}
-                          className="flex-1 px-4 py-2.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+                          className="flex-1 px-4 py-2.5 bg-zinc-900 text-white text-sm font-medium rounded-lg hover:bg-zinc-800 disabled:bg-zinc-100 disabled:text-zinc-400 disabled:cursor-not-allowed transition-colors"
                         >
                           {action === 'approving' ? t('submissionReview.approving', 'Approving...') : t('submissionReview.approveAndPay', 'Approve & Pay')}
                         </button>
                         <button
                           onClick={() => setShowRejectForm(true)}
                           disabled={isProcessing}
-                          className="px-4 py-2.5 bg-red-100 text-red-700 text-sm font-medium rounded-lg hover:bg-red-200 disabled:opacity-50 transition-colors"
+                          className="px-4 py-2.5 border border-red-300 text-red-700 bg-white text-sm font-medium rounded-lg hover:bg-red-50 disabled:bg-zinc-50 disabled:text-zinc-400 disabled:border-zinc-200 disabled:cursor-not-allowed transition-colors"
                         >
                           {t('submissionReview.reject', 'Reject')}
                         </button>
                         <button
                           onClick={() => setShowInfoForm(true)}
                           disabled={isProcessing}
-                          className="px-4 py-2.5 bg-yellow-100 text-yellow-700 text-sm font-medium rounded-lg hover:bg-yellow-200 disabled:opacity-50 transition-colors"
+                          className="px-4 py-2.5 border border-zinc-300 text-zinc-800 bg-white text-sm font-medium rounded-lg hover:bg-zinc-50 disabled:bg-zinc-50 disabled:text-zinc-400 disabled:border-zinc-200 disabled:cursor-not-allowed transition-colors"
                         >
                           {t('submissionReview.requestInfo', 'Request Info')}
                         </button>
@@ -803,8 +810,8 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
 
               {/* Already decided */}
               {submission.agent_verdict && !result?.type && (
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-sm text-gray-600">
+                <div className="bg-zinc-50 rounded-lg p-3">
+                  <p className="text-sm text-zinc-700">
                     {t('submissionReview.alreadyDecided', 'This submission was already')}{' '}
                     <span className="font-medium">
                       {submission.agent_verdict === 'accepted' ? t('status.approved') :
@@ -819,9 +826,9 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-3 rounded-b-xl">
+        <div className="sticky bottom-0 bg-zinc-50 border-t border-zinc-200 px-6 py-4 rounded-b-2xl">
           <div className="flex items-center justify-between">
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-zinc-500">
               ID: {submissionId.slice(0, 8)}...
               {submission?.submitted_at && (
                 <> | {new Date(submission.submitted_at).toLocaleString()}</>
@@ -829,7 +836,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
             </p>
             <button
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
+              className="px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-200 rounded-lg transition-colors"
             >
               {t('common.close')}
             </button>

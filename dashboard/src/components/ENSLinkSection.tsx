@@ -137,10 +137,10 @@ export function ENSLinkSection() {
                 onChange={(e) => setSubnameLabel(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
                 placeholder="alice"
                 maxLength={63}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                className="w-full px-3 py-2 text-sm border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white"
               />
               {subnameLabel && (
-                <div className="mt-1 text-xs text-indigo-600 dark:text-indigo-400">
+                <div className="mt-1 text-xs text-zinc-700 dark:text-zinc-300">
                   {subnameLabel}.execution-market.eth
                 </div>
               )}
@@ -148,12 +148,12 @@ export function ENSLinkSection() {
             <button
               onClick={handleClaimSubname}
               disabled={!subnameLabel.trim()}
-              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-4 py-2 text-sm font-medium text-white bg-zinc-900 rounded-lg hover:bg-zinc-800 disabled:bg-zinc-100 disabled:text-zinc-400 disabled:cursor-not-allowed transition-colors"
             >
               {t('profile.ensClaim', 'Claim')}
             </button>
           </div>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+          <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
             {t('profile.ensClaimHint', 'Free subname — creates an on-chain ENS identity for you')}
           </p>
         </div>

@@ -354,7 +354,7 @@ export function WorkerRatingModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
+            className="px-4 py-2.5 text-sm font-medium text-zinc-700 hover:text-zinc-900 transition-colors"
           >
             {t('rating.skip', 'Skip')}
           </button>
@@ -362,7 +362,7 @@ export function WorkerRatingModal({
             type="button"
             onClick={handleSubmit}
             disabled={rating === 0 || submitting}
-            className="flex-1 py-2.5 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+            className="flex-1 py-2.5 bg-zinc-900 text-white font-semibold rounded-xl hover:bg-zinc-800 disabled:bg-zinc-100 disabled:text-zinc-400 disabled:cursor-not-allowed transition-colors text-sm"
           >
             {submitting
               ? t('common.submitting', 'Submitting...')

@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { useProfileUpdate, type ProfileUpdateData } from '../../hooks/useProfileUpdate'
 import type { Executor } from '../../types/database'
 import { safeSrc } from '../../lib/safeHref'
+import { Pill } from '../ui/Pill'
 
 const PREDEFINED_SKILLS = [
   'photography',
@@ -286,23 +287,21 @@ export function ProfileEditModal({ executor, onClose, onSaved }: ProfileEditModa
               {PREDEFINED_SKILLS.map((skill) => {
                 const isSelected = selectedSkills.includes(skill)
                 return (
-                  <button
+                  <Pill
                     key={skill}
-                    type="button"
+                    variant={isSelected ? 'selected' : 'default'}
+                    size="md"
                     onClick={(e) => { e.stopPropagation(); toggleSkill(skill) }}
-                    className={`cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full border transition-all ${
-                      isSelected
-                        ? 'bg-blue-100 border-blue-400 text-blue-800 shadow-sm'
-                        : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50 hover:border-gray-300'
-                    }`}
+                    leftIcon={
+                      isSelected ? (
+                        <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : undefined
+                    }
                   >
-                    {isSelected && (
-                      <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
                     {skill.replace(/_/g, ' ')}
-                  </button>
+                  </Pill>
                 )
               })}
             </div>
@@ -313,13 +312,13 @@ export function ProfileEditModal({ executor, onClose, onSaved }: ProfileEditModa
                 onChange={(e) => setCustomSkill(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomSkill())}
                 placeholder={t('skills.customPlaceholder', 'Type your skill...')}
-                className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="flex-1 px-3 py-1.5 text-sm border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500 outline-none"
               />
               <button
                 type="button"
                 onClick={addCustomSkill}
                 disabled={!customSkill.trim()}
-                className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-40 transition-colors"
+                className="px-3 py-1.5 text-sm bg-zinc-100 text-zinc-700 rounded-lg hover:bg-zinc-200 disabled:bg-zinc-100 disabled:text-zinc-400 disabled:cursor-not-allowed transition-colors"
               >
                 {t('common.add', 'Add')}
               </button>
@@ -329,22 +328,20 @@ export function ProfileEditModal({ executor, onClose, onSaved }: ProfileEditModa
                 {selectedSkills
                   .filter((s) => !PREDEFINED_SKILLS.includes(s))
                   .map((skill) => (
-                    <span
+                    <Pill
                       key={skill}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-green-100 border border-green-400 text-green-800 rounded-full shadow-sm"
+                      variant="removable"
+                      size="md"
+                      onRemove={() => toggleSkill(skill)}
+                      removeLabel={t('common.remove', 'Remove')}
+                      leftIcon={
+                        <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      }
                     >
-                      <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
                       {skill}
-                      <button
-                        type="button"
-                        onClick={() => toggleSkill(skill)}
-                        className="ml-0.5 text-green-500 hover:text-green-700"
-                      >
-                        &times;
-                      </button>
-                    </span>
+                    </Pill>
                   ))}
               </div>
             )}
@@ -359,23 +356,21 @@ export function ProfileEditModal({ executor, onClose, onSaved }: ProfileEditModa
               {LANGUAGE_OPTIONS.map((lang) => {
                 const isSelected = languages.includes(lang)
                 return (
-                  <button
+                  <Pill
                     key={lang}
-                    type="button"
+                    variant={isSelected ? 'selected' : 'default'}
+                    size="md"
                     onClick={(e) => { e.stopPropagation(); toggleLanguage(lang) }}
-                    className={`cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full border transition-all ${
-                      isSelected
-                        ? 'bg-blue-100 border-blue-400 text-blue-800 shadow-sm'
-                        : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50 hover:border-gray-300'
-                    }`}
+                    leftIcon={
+                      isSelected ? (
+                        <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : undefined
+                    }
                   >
-                    {isSelected && (
-                      <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
                     {lang}
-                  </button>
+                  </Pill>
                 )
               })}
             </div>
@@ -464,7 +459,7 @@ export function ProfileEditModal({ executor, onClose, onSaved }: ProfileEditModa
             type="button"
             onClick={handleSubmit}
             disabled={!isValid || saving}
-            className="flex-1 py-2.5 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex-1 py-2.5 bg-zinc-900 text-white font-semibold rounded-xl hover:bg-zinc-800 disabled:bg-zinc-100 disabled:text-zinc-400 disabled:cursor-not-allowed transition-colors"
           >
             {saving ? t('common.saving', 'Saving...') : t('common.save', 'Save')}
           </button>

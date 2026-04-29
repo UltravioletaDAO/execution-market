@@ -113,14 +113,15 @@ function truncateHash(hash: string): string {
 // Status badge component
 function StatusBadge({ status }: { status: PaymentStatusType }) {
   const { t } = useTranslation()
+  // B&W shade progression: pending (light/warning amber) → escrowed → partial → completed (dark) — red for disputed (error)
   const colors: Record<PaymentStatusType, string> = {
-    pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    escrowed: 'bg-blue-100 text-blue-800 border-blue-200',
-    partial_released: 'bg-purple-100 text-purple-800 border-purple-200',
-    completed: 'bg-green-100 text-green-800 border-green-200',
-    refunded: 'bg-gray-100 text-gray-800 border-gray-200',
-    disputed: 'bg-red-100 text-red-800 border-red-200',
-    charged: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+    pending: 'bg-amber-50 text-amber-800 border-amber-300',
+    escrowed: 'bg-zinc-100 text-zinc-800 border-zinc-300',
+    partial_released: 'bg-zinc-200 text-zinc-900 border-zinc-400',
+    completed: 'bg-zinc-900 text-white border-zinc-900',
+    refunded: 'bg-zinc-50 text-zinc-700 border-zinc-200',
+    disputed: 'bg-red-100 text-red-800 border-red-300',
+    charged: 'bg-zinc-900 text-white border-zinc-900',
   }
 
   const labels: Record<PaymentStatusType, string> = {
@@ -195,22 +196,22 @@ function PaymentProgress({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between text-sm">
-        <span className="text-gray-600">{t('paymentStatus.progress', 'Payment progress')}</span>
-        <span className="font-medium text-gray-900">{percentage}%</span>
+        <span className="text-zinc-600">{t('paymentStatus.progress', 'Payment progress')}</span>
+        <span className="font-medium text-zinc-900">{percentage}%</span>
       </div>
-      <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+      <div className="h-2.5 bg-zinc-100 rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full transition-all duration-500 ${
             percentage === 100
-              ? 'bg-green-500'
+              ? 'bg-zinc-900'
               : percentage > 0
-              ? 'bg-blue-500'
-              : 'bg-gray-300'
+              ? 'bg-zinc-700'
+              : 'bg-zinc-300'
           }`}
           style={{ width: `${percentage}%` }}
         />
       </div>
-      <div className="flex items-center justify-between text-xs text-gray-500">
+      <div className="flex items-center justify-between text-xs text-zinc-500">
         <span>{t('paymentStatus.released', 'Released')}: {formatCurrency(released, currency)}</span>
         <span>{t('paymentStatus.total', 'Total')}: {formatCurrency(total, currency)}</span>
       </div>
@@ -233,68 +234,69 @@ function TimelineEvent({ event, network, bountyAmount }: { event: PaymentEvent; 
     dispute_resolved: t('paymentStatus.event.disputeResolved', 'Dispute resolved'),
   }
 
+  // B&W timeline icons with semantic accents: amber for refund (warning), red for dispute_hold (error), zinc shade progression for the rest
   const eventIcons: Record<PaymentEvent['type'], { bg: string; icon: JSX.Element }> = {
     escrow_created: {
-      bg: 'bg-blue-100',
+      bg: 'bg-zinc-100',
       icon: (
-        <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="w-4 h-4 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
         </svg>
       ),
     },
     escrow_funded: {
-      bg: 'bg-green-100',
+      bg: 'bg-zinc-200',
       icon: (
-        <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="w-4 h-4 text-zinc-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
         </svg>
       ),
     },
     partial_release: {
-      bg: 'bg-purple-100',
+      bg: 'bg-zinc-300',
       icon: (
-        <svg className="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="w-4 h-4 text-zinc-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
         </svg>
       ),
     },
     final_release: {
-      bg: 'bg-green-100',
+      bg: 'bg-zinc-900',
       icon: (
-        <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       ),
     },
     refund: {
-      bg: 'bg-orange-100',
+      bg: 'bg-amber-50',
       icon: (
-        <svg className="w-4 h-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="w-4 h-4 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
         </svg>
       ),
     },
     dispute_hold: {
-      bg: 'bg-red-100',
+      bg: 'bg-red-50',
       icon: (
-        <svg className="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="w-4 h-4 text-red-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
         </svg>
       ),
     },
     instant_charge: {
-      bg: 'bg-emerald-100',
+      bg: 'bg-zinc-900',
       icon: (
-        <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
         </svg>
       ),
     },
     dispute_resolved: {
-      bg: 'bg-indigo-100',
+      bg: 'bg-zinc-200',
       icon: (
-        <svg className="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+        <svg className="w-4 h-4 text-zinc-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
         </svg>
       ),
     },
@@ -312,7 +314,7 @@ function TimelineEvent({ event, network, bountyAmount }: { event: PaymentEvent; 
   return (
     <div className="relative flex gap-3 pb-6 last:pb-0">
       {/* Timeline line */}
-      <div className="absolute top-6 left-4 bottom-0 w-0.5 bg-gray-200 last:hidden" />
+      <div className="absolute top-6 left-4 bottom-0 w-0.5 bg-zinc-200 last:hidden" />
 
       {/* Icon */}
       <div className={`relative flex-shrink-0 w-8 h-8 rounded-full ${bg} flex items-center justify-center`}>
@@ -323,16 +325,16 @@ function TimelineEvent({ event, network, bountyAmount }: { event: PaymentEvent; 
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <p className="text-sm font-medium text-gray-900">
+            <p className="text-sm font-medium text-zinc-900">
               {eventLabels[event.type]}
             </p>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-zinc-500">
               {actorLabels[event.actor]} - {formatRelativeTime(event.timestamp)}
             </p>
           </div>
           {event.amount !== undefined && event.amount > 0 && (
             <span className={`text-sm font-semibold ${
-              event.type === 'refund' ? 'text-orange-600' : 'text-green-600'
+              event.type === 'refund' ? 'text-amber-700' : 'text-zinc-900'
             }`}>
               {event.type === 'refund' ? '-' : '+'}
               {formatCurrency(
@@ -345,7 +347,7 @@ function TimelineEvent({ event, network, bountyAmount }: { event: PaymentEvent; 
 
         {/* Note */}
         {event.note && (
-          <p className="mt-1 text-xs text-gray-600">{event.note}</p>
+          <p className="mt-1 text-xs text-zinc-600">{event.note}</p>
         )}
 
         {/* Transaction hash */}
@@ -354,7 +356,7 @@ function TimelineEvent({ event, network, bountyAmount }: { event: PaymentEvent; 
             href={getExplorerUrl(event.network || network, event.tx_hash)}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-1.5 inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 transition-colors"
+            className="mt-1.5 inline-flex items-center gap-1 text-xs text-zinc-700 hover:text-zinc-900 underline transition-colors"
           >
             <span className="font-mono">{truncateHash(event.tx_hash)}</span>
             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -380,7 +382,7 @@ function PaymentTimeline({ events, network, bountyAmount }: { events: PaymentEve
 
   if (events.length === 0) {
     return (
-      <div className="p-4 text-center text-gray-500 text-sm">
+      <div className="p-4 text-center text-zinc-500 text-sm">
         {t('payment.noEvents', 'No hay eventos de pago aun')}
       </div>
     )
@@ -417,11 +419,11 @@ export function PaymentStatus({
       <div className="flex items-center gap-3">
         <StatusBadge status={payment.status} />
         <div className="text-sm">
-          <span className="font-semibold text-gray-900">
+          <span className="font-semibold text-zinc-900">
             {formatCurrency(displayAmount, payment.currency)}
           </span>
           {hasPartialRelease && (
-            <span className="text-gray-500 ml-1">
+            <span className="text-zinc-500 ml-1">
               ({Math.round((payment.released_amount / displayAmount) * 100)}% liberado)
             </span>
           )}
@@ -431,7 +433,7 @@ export function PaymentStatus({
             href={getExplorerUrl(payment.network, payment.escrow_tx)}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-600 hover:text-blue-700"
+            className="text-zinc-700 hover:text-zinc-900"
             title={`Ver en explorer (${payment.network})`}
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -445,21 +447,21 @@ export function PaymentStatus({
 
   // Full view
   return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+    <div className="bg-white rounded-lg border border-zinc-200 overflow-hidden">
       {/* Header */}
-      <div className="p-4 border-b border-gray-100">
+      <div className="p-4 border-b border-zinc-200">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-1">
+            <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 mb-1">
               {t('payment.status', 'Estado del Pago')}
             </h3>
             <StatusBadge status={payment.status} />
           </div>
           <div className="text-right">
-            <p className="text-2xl font-bold text-gray-900">
+            <p className="text-2xl font-bold text-zinc-900">
               {formatCurrency(displayAmount, payment.currency)}
             </p>
-            <p className="text-xs text-gray-500">{payment.currency}</p>
+            <p className="text-xs text-zinc-500">{payment.currency}</p>
           </div>
         </div>
 
@@ -474,26 +476,26 @@ export function PaymentStatus({
       </div>
 
       {/* Details */}
-      <div className="p-4 border-b border-gray-100 bg-gray-50">
+      <div className="p-4 border-b border-zinc-200 bg-zinc-50">
         <dl className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <dt className="text-gray-500">{t('payment.network', 'Red')}</dt>
-            <dd className="font-medium text-gray-900 capitalize">{payment.network.replace('-', ' ')}</dd>
+            <dt className="text-zinc-500">{t('payment.network', 'Red')}</dt>
+            <dd className="font-medium text-zinc-900 capitalize">{payment.network.replace('-', ' ')}</dd>
           </div>
           <div>
-            <dt className="text-gray-500">{t('payment.updated', 'Actualizado')}</dt>
-            <dd className="font-medium text-gray-900">{formatRelativeTime(payment.updated_at)}</dd>
+            <dt className="text-zinc-500">{t('payment.updated', 'Actualizado')}</dt>
+            <dd className="font-medium text-zinc-900">{formatRelativeTime(payment.updated_at)}</dd>
           </div>
           {/* Escrow TX is already shown in the timeline below — removed from details to avoid duplication */}
           {payment.escrow_contract && (
             <div className="col-span-2">
-              <dt className="text-gray-500 mb-1">{t('payment.escrowContract', 'Contrato de Escrow')}</dt>
+              <dt className="text-zinc-500 mb-1">{t('payment.escrowContract', 'Contrato de Escrow')}</dt>
               <dd>
                 <a
                   href={getContractUrl(payment.network, payment.escrow_contract)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 font-mono text-sm text-blue-600 hover:text-blue-700 transition-colors"
+                  className="inline-flex items-center gap-1 font-mono text-sm text-zinc-700 hover:text-zinc-900 underline transition-colors"
                 >
                   {truncateHash(payment.escrow_contract)}
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -509,8 +511,8 @@ export function PaymentStatus({
       {/* Timeline */}
       {showTimeline && (
         <div>
-          <div className="px-4 py-3 border-b border-gray-100">
-            <h4 className="text-sm font-medium text-gray-700">
+          <div className="px-4 py-3 border-b border-zinc-200">
+            <h4 className="text-sm font-medium text-zinc-700">
               {t('payment.timeline', 'Historial de Pagos')}
             </h4>
           </div>
@@ -518,18 +520,18 @@ export function PaymentStatus({
         </div>
       )}
 
-      {/* Status message */}
+      {/* Status message — pending: amber warning */}
       {payment.status === 'pending' && (
-        <div className="p-4 bg-yellow-50 border-t border-yellow-100">
+        <div className="p-4 bg-amber-50 border-t border-amber-200">
           <div className="flex items-start gap-3">
-            <svg className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-5 h-5 text-amber-700 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
             </svg>
             <div>
-              <p className="text-sm font-medium text-yellow-800">
+              <p className="text-sm font-medium text-amber-800">
                 {t('payment.awaitingEscrow', 'Esperando deposito en escrow')}
               </p>
-              <p className="text-xs text-yellow-700 mt-0.5">
+              <p className="text-xs text-amber-700 mt-0.5">
                 {t('payment.awaitingEscrowDesc', 'El agente debe depositar los fondos antes de que puedas comenzar la tarea.')}
               </p>
             </div>
@@ -537,17 +539,18 @@ export function PaymentStatus({
         </div>
       )}
 
+      {/* Status message — escrowed: neutral zinc */}
       {payment.status === 'escrowed' && (
-        <div className="p-4 bg-blue-50 border-t border-blue-100">
+        <div className="p-4 bg-zinc-50 border-t border-zinc-200">
           <div className="flex items-start gap-3">
-            <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-5 h-5 text-zinc-700 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clipRule="evenodd" />
             </svg>
             <div>
-              <p className="text-sm font-medium text-blue-800">
+              <p className="text-sm font-medium text-zinc-900">
                 {t('payment.fundsSecured', 'Fondos asegurados')}
               </p>
-              <p className="text-xs text-blue-700 mt-0.5">
+              <p className="text-xs text-zinc-700 mt-0.5">
                 {t('payment.fundsSecuredDesc', 'Los fondos estan en escrow y seran liberados cuando completes la tarea.')}
               </p>
             </div>
@@ -555,17 +558,18 @@ export function PaymentStatus({
         </div>
       )}
 
+      {/* Status message — complete: green checkmark + zinc text */}
       {isComplete && (
-        <div className="p-4 bg-green-50 border-t border-green-100">
+        <div className="p-4 bg-green-50 border-t border-green-200">
           <div className="flex items-start gap-3">
-            <svg className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
             </svg>
             <div>
-              <p className="text-sm font-medium text-green-800">
+              <p className="text-sm font-medium text-zinc-900">
                 {t('payment.complete', 'Pago completado')}
               </p>
-              <p className="text-xs text-green-700 mt-0.5">
+              <p className="text-xs text-zinc-700 mt-0.5">
                 {t('payment.completeDesc', 'Todos los fondos han sido liberados a tu wallet.')}
               </p>
             </div>
@@ -573,10 +577,11 @@ export function PaymentStatus({
         </div>
       )}
 
+      {/* Status message — disputed: red error */}
       {payment.status === 'disputed' && (
-        <div className="p-4 bg-red-50 border-t border-red-100">
+        <div className="p-4 bg-red-50 border-t border-red-200">
           <div className="flex items-start gap-3">
-            <svg className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-5 h-5 text-red-700 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
             </svg>
             <div>
@@ -591,17 +596,18 @@ export function PaymentStatus({
         </div>
       )}
 
+      {/* Status message — charged: green checkmark + zinc text (same family as complete) */}
       {payment.status === 'charged' && (
-        <div className="p-4 bg-emerald-50 border-t border-emerald-100">
+        <div className="p-4 bg-green-50 border-t border-green-200">
           <div className="flex items-start gap-3">
-            <svg className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.381z" clipRule="evenodd" />
             </svg>
             <div>
-              <p className="text-sm font-medium text-emerald-800">
+              <p className="text-sm font-medium text-zinc-900">
                 {t('payment.charged', 'Pago instantaneo completado')}
               </p>
-              <p className="text-xs text-emerald-700 mt-0.5">
+              <p className="text-xs text-zinc-700 mt-0.5">
                 {t('payment.chargedDesc', 'Pago directo (CHARGE) sin escrow. Fondos enviados directamente.')}
               </p>
             </div>

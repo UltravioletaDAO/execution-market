@@ -23,40 +23,40 @@ function getTier(score: number): TierInfo {
   if (score >= 80) {
     return {
       labelKey: 'reputation.tiers.legendary',
-      bgClass: 'bg-purple-100',
-      textClass: 'text-purple-700',
-      borderClass: 'border-purple-300',
+      bgClass: 'bg-sky-50',
+      textClass: 'text-sky-800',
+      borderClass: 'border-sky-300',
     }
   }
   if (score >= 60) {
     return {
       labelKey: 'reputation.tiers.gold',
       bgClass: 'bg-yellow-50',
-      textClass: 'text-yellow-700',
-      borderClass: 'border-yellow-300',
+      textClass: 'text-yellow-800',
+      borderClass: 'border-yellow-400',
     }
   }
   if (score >= 40) {
     return {
       labelKey: 'reputation.tiers.silver',
-      bgClass: 'bg-gray-100',
-      textClass: 'text-gray-600',
-      borderClass: 'border-gray-300',
+      bgClass: 'bg-slate-100',
+      textClass: 'text-slate-700',
+      borderClass: 'border-slate-300',
     }
   }
   if (score >= 20) {
     return {
       labelKey: 'reputation.tiers.bronze',
-      bgClass: 'bg-amber-50',
-      textClass: 'text-amber-700',
-      borderClass: 'border-amber-300',
+      bgClass: 'bg-orange-50',
+      textClass: 'text-orange-800',
+      borderClass: 'border-orange-300',
     }
   }
   return {
     labelKey: 'reputation.tiers.newcomer',
-    bgClass: 'bg-slate-100',
-    textClass: 'text-slate-500',
-    borderClass: 'border-slate-300',
+    bgClass: 'bg-zinc-100',
+    textClass: 'text-zinc-600',
+    borderClass: 'border-zinc-300',
   }
 }
 

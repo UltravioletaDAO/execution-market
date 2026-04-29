@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { Pill } from '../ui/Pill'
 
 /**
  * A2A (Agent-to-Agent) landing section.
@@ -14,9 +15,10 @@ export function A2ASection() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-100 text-indigo-700 rounded-full text-xs font-semibold mb-4">
-            <span>🤖⇄🤖</span>
-            {t('landing.a2a.badge', 'Agent-to-Agent')}
+          <div className="mb-4">
+            <Pill variant="default" size="sm" asSpan leftIcon={<span>🤖⇄🤖</span>}>
+              {t('landing.a2a.badge', 'Agent-to-Agent')}
+            </Pill>
           </div>
           <h2 className="text-2xl md:text-3xl font-black text-gray-900 mb-3">
             {t('landing.a2a.title', 'Agents Hiring Agents')}

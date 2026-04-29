@@ -61,9 +61,9 @@ const PLANS = [
 
 function WinRateBadge({ rate }: { rate: number }) {
   const color = rate >= 60
-    ? 'bg-green-100 text-green-800'
+    ? 'bg-zinc-900 text-white'
     : rate >= 40
-      ? 'bg-yellow-100 text-yellow-800'
+      ? 'bg-amber-100 text-amber-800'
       : 'bg-red-100 text-red-800'
 
   return (
@@ -74,13 +74,13 @@ function WinRateBadge({ rate }: { rate: number }) {
 }
 
 function PnlDisplay({ pnl }: { pnl: number }) {
-  const color = pnl > 0 ? 'text-green-600' : pnl < 0 ? 'text-red-600' : 'text-gray-500'
+  const color = pnl > 0 ? 'text-green-600' : pnl < 0 ? 'text-red-600' : 'text-zinc-500'
   return <span className={`font-mono font-medium ${color}`}>{pnl > 0 ? '+' : ''}{pnl.toFixed(1)}%</span>
 }
 
 function DirectionBadge({ direction }: { direction: string }) {
   const color = direction === 'BUY'
-    ? 'bg-green-100 text-green-700'
+    ? 'bg-zinc-900 text-white'
     : 'bg-red-100 text-red-700'
   return (
     <span className={`px-1.5 py-0.5 text-xs font-bold rounded ${color}`}>
@@ -91,12 +91,12 @@ function DirectionBadge({ direction }: { direction: string }) {
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    open: 'bg-blue-100 text-blue-700',
-    tp_hit: 'bg-green-100 text-green-700',
+    open: 'bg-zinc-100 text-zinc-900',
+    tp_hit: 'bg-zinc-900 text-white',
     sl_hit: 'bg-red-100 text-red-700',
-    closed: 'bg-gray-100 text-gray-700',
-    expired: 'bg-yellow-100 text-yellow-700',
-    cancelled: 'bg-gray-100 text-gray-400',
+    closed: 'bg-zinc-100 text-zinc-700',
+    expired: 'bg-amber-100 text-amber-800',
+    cancelled: 'bg-zinc-100 text-zinc-500',
   }
   const label: Record<string, string> = {
     open: 'Abierta',
@@ -107,7 +107,7 @@ function StatusBadge({ status }: { status: string }) {
     cancelled: 'Cancelada',
   }
   return (
-    <span className={`px-1.5 py-0.5 text-xs font-medium rounded ${styles[status] || 'bg-gray-100 text-gray-500'}`}>
+    <span className={`px-1.5 py-0.5 text-xs font-medium rounded ${styles[status] || 'bg-zinc-100 text-zinc-500'}`}>
       {label[status] || status}
     </span>
   )
@@ -117,7 +117,7 @@ function SkeletonRows({ count = 5 }: { count?: number }) {
   return (
     <div className="space-y-3 animate-pulse">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="h-12 bg-gray-200 rounded" />
+        <div key={i} className="h-12 bg-zinc-200 rounded" />
       ))}
     </div>
   )
@@ -284,7 +284,7 @@ export function TradingLeaderboard() {
                       @{trader.nick}
                     </span>
                     {trader.open_count > 0 && (
-                      <span className="ml-1 text-xs text-blue-500">
+                      <span className="ml-1 text-xs text-zinc-500">
                         {trader.open_count} abiertas
                       </span>
                     )}
@@ -389,7 +389,7 @@ export function TradingLeaderboard() {
               {PLANS.map(plan => (
                 <div
                   key={plan.id}
-                  className="border border-slate-200 rounded-lg p-4 hover:border-blue-300 transition-colors"
+                  className="border border-slate-200 rounded-lg p-4 hover:border-zinc-400 transition-colors"
                 >
                   <div className="text-lg font-bold text-slate-900">
                     ${plan.price.toFixed(2)}

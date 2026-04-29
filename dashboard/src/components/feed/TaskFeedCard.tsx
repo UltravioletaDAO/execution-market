@@ -87,16 +87,18 @@ export interface TaskFeedCardProps {
 // Event styling
 // ---------------------------------------------------------------------------
 
+// B&W shade progression for lifecycle, red for dispute_opened (error), amber for feedback (highlight),
+// zinc-900 (terminal) for completion. Light → dark = early → late in task lifecycle.
 const EVENT_STYLES: Record<string, { label: string; color: string; icon: string }> = {
-  task_created: { label: 'Task Posted', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300', icon: '📝' },
-  task_accepted: { label: 'Assigned to Executor', color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300', icon: '🤝' },
-  task_in_progress: { label: 'In Progress', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300', icon: '⚙️' },
-  task_submitted: { label: 'Work Submitted', color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300', icon: '📤' },
-  task_completed: { label: 'Task Completed', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300', icon: '🎉' },
-  feedback_given: { label: 'Reputation Scored', color: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300', icon: '⭐' },
+  task_created: { label: 'Task Posted', color: 'bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200', icon: '📝' },
+  task_accepted: { label: 'Assigned to Executor', color: 'bg-zinc-200 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200', icon: '🤝' },
+  task_in_progress: { label: 'In Progress', color: 'bg-zinc-300 text-zinc-900 dark:bg-zinc-600 dark:text-zinc-100', icon: '⚙️' },
+  task_submitted: { label: 'Work Submitted', color: 'bg-zinc-400 text-white dark:bg-zinc-500 dark:text-zinc-50', icon: '📤' },
+  task_completed: { label: 'Task Completed', color: 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900', icon: '🎉' },
+  feedback_given: { label: 'Reputation Scored', color: 'bg-amber-50 text-amber-800 border border-amber-300 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700', icon: '⭐' },
   dispute_opened: { label: 'Dispute Opened', color: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300', icon: '⚠️' },
-  dispute_resolved: { label: 'Dispute Resolved', color: 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300', icon: '⚖️' },
-  worker_joined: { label: 'New Executor', color: 'bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-300', icon: '👋' },
+  dispute_resolved: { label: 'Dispute Resolved', color: 'bg-zinc-200 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200', icon: '⚖️' },
+  worker_joined: { label: 'New Executor', color: 'bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200', icon: '👋' },
 }
 
 // ---------------------------------------------------------------------------
@@ -110,8 +112,10 @@ function truncateWallet(wallet: string): string {
   return `${wallet.slice(0, 6)}…${wallet.slice(-4)}`
 }
 
+// Reputation tiers — metallic palette EXCEPTION (per brand decision: bronze/silver/gold/platinum).
+// Tailwind substitutes: orange (bronze), slate (silver), yellow (gold), sky (platinum/diamond).
 function getReputationTier(score: number): { name: string; color: string } {
-  if (score >= 81) return { name: 'Diamante', color: 'text-purple-600 dark:text-purple-400' }
+  if (score >= 81) return { name: 'Diamante', color: 'text-sky-600 dark:text-sky-400' }
   if (score >= 61) return { name: 'Oro', color: 'text-yellow-600 dark:text-yellow-400' }
   if (score >= 31) return { name: 'Plata', color: 'text-slate-500 dark:text-slate-400' }
   return { name: 'Bronce', color: 'text-orange-600 dark:text-orange-400' }
@@ -224,14 +228,14 @@ const ParticipantPanel = memo(function ParticipantPanel({
   )
 })
 
-/** Score display — 0 to 100 scale */
+/** Score display — 0 to 100 scale. B&W with semantic accents: amber for medium-low, red for failing scores. */
 function ScoreDisplay({ score }: { score: number }) {
   const clamped = Math.round(Math.min(100, Math.max(0, score)))
-  const color = clamped >= 80 ? 'text-emerald-500' : clamped >= 60 ? 'text-amber-500' : clamped >= 40 ? 'text-orange-500' : 'text-red-500'
+  const color = clamped >= 80 ? 'text-zinc-900 dark:text-zinc-100' : clamped >= 60 ? 'text-zinc-700 dark:text-zinc-300' : clamped >= 40 ? 'text-amber-700 dark:text-amber-400' : 'text-red-700 dark:text-red-400'
   return (
     <span className="inline-flex items-center gap-1.5" aria-label={`Score ${clamped} out of 100`}>
       <span className={cn('text-sm font-bold', color)}>{clamped}</span>
-      <span className="text-[10px] text-slate-400 dark:text-slate-500">/100</span>
+      <span className="text-[10px] text-zinc-500 dark:text-zinc-400">/100</span>
     </span>
   )
 }
@@ -324,12 +328,12 @@ function TaskCenterContent({
       <div className="flex flex-wrap gap-3 mb-3">
         {data.bounty_usd != null && data.bounty_usd > 0 && (
           <div className="flex items-center gap-1">
-            <span className="text-xs text-slate-500 dark:text-slate-400">💰</span>
-            <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">💰</span>
+            <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
               ${data.bounty_usd.toFixed(2)}
             </span>
             {data.payment_token && (
-              <span className="text-[10px] text-slate-400">{data.payment_token}</span>
+              <span className="text-[10px] text-zinc-500 dark:text-zinc-400">{data.payment_token}</span>
             )}
           </div>
         )}
@@ -448,7 +452,7 @@ export const TaskFeedCard = memo(function TaskFeedCard({
             {' → '}
             {data.task_title || t('feed.aTask', 'a task')}
             {data.bounty_usd != null && data.bounty_usd > 0 && (
-              <span className="text-emerald-600 dark:text-emerald-300 font-medium"> ${data.bounty_usd.toFixed(2)}</span>
+              <span className="text-zinc-900 dark:text-zinc-100 font-medium"> ${data.bounty_usd.toFixed(2)}</span>
             )}
           </p>
         </div>

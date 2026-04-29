@@ -39,7 +39,10 @@ export function RateAgentModal({
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
-  const scoreColor = score >= 80 ? '#4ade80' : score >= 50 ? '#facc15' : '#f87171'
+  const scoreTextClass =
+    score >= 80 ? 'text-zinc-900' : score >= 50 ? 'text-amber-700' : 'text-red-700'
+  const scoreAccentColor =
+    score >= 80 ? '#18181b' : score >= 50 ? '#b45309' : '#b91c1c'
 
   // Close on Escape
   useEffect(() => {
@@ -102,15 +105,15 @@ export function RateAgentModal({
       <div className="fixed inset-0 z-50 flex items-center justify-center">
         <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" aria-hidden="true" />
         <div className="relative w-full max-w-sm mx-4 bg-white rounded-2xl shadow-2xl p-8 text-center">
-          <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#dcfce7' }}>
-            <svg className="w-8 h-8" style={{ color: '#16a34a' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-green-50">
+            <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h3 className="text-lg font-bold text-gray-900">
+          <h3 className="text-lg font-bold text-zinc-900">
             {t('rateAgent.success', 'Rating submitted!')}
           </h3>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-zinc-500 mt-1">
             {t('rateAgent.successDescription', 'Your rating has been recorded on-chain via ERC-8004.')}
           </p>
         </div>
@@ -138,11 +141,11 @@ export function RateAgentModal({
         {/* Header */}
         <div className="px-6 pt-6 pb-4 flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">
+            <h2 className="text-lg font-bold text-zinc-900">
               {t('rateAgent.title', 'Rate Agent')}
             </h2>
             {agentName && (
-              <p className="text-sm text-gray-500">{agentName}</p>
+              <p className="text-sm text-zinc-500">{agentName}</p>
             )}
           </div>
           {!submitting && (
@@ -150,9 +153,9 @@ export function RateAgentModal({
               type="button"
               onClick={onClose}
               aria-label="Close"
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-zinc-100 rounded-lg transition-colors"
             >
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -162,15 +165,15 @@ export function RateAgentModal({
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-6 pb-4 space-y-5">
           {/* Task reference */}
-          <p className="text-sm text-gray-500">
-            <span className="font-medium text-gray-700">{t('rating.forTask', 'Task:')}</span>{' '}
+          <p className="text-sm text-zinc-500">
+            <span className="font-medium text-zinc-700">{t('rating.forTask', 'Task:')}</span>{' '}
             {taskTitle}
           </p>
 
           {/* Score display */}
           <div className="text-center">
-            <span className="text-5xl font-extrabold" style={{ color: scoreColor }}>{score}</span>
-            <span className="text-lg text-gray-400">/100</span>
+            <span className={`text-5xl font-extrabold ${scoreTextClass}`}>{score}</span>
+            <span className="text-lg text-zinc-500">/100</span>
           </div>
 
           {/* Slider */}
@@ -183,9 +186,9 @@ export function RateAgentModal({
               onChange={(e) => setScore(Number(e.target.value))}
               disabled={submitting}
               className="w-full h-2 rounded-lg appearance-none cursor-pointer"
-              style={{ accentColor: scoreColor }}
+              style={{ accentColor: scoreAccentColor }}
             />
-            <div className="flex justify-between text-xs text-gray-400 mt-1">
+            <div className="flex justify-between text-xs text-zinc-500 mt-1">
               <span>0</span>
               <span>50</span>
               <span>100</span>
@@ -202,9 +205,9 @@ export function RateAgentModal({
                 disabled={submitting}
                 className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
                   score === preset
-                    ? 'bg-gray-900 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
+                    ? 'bg-zinc-900 text-white'
+                    : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200'
+                } disabled:bg-zinc-100 disabled:text-zinc-400 disabled:cursor-not-allowed`}
               >
                 {preset}
               </button>
@@ -217,26 +220,26 @@ export function RateAgentModal({
             onChange={(e) => setComment(e.target.value)}
             disabled={submitting}
             placeholder={t('rateAgent.commentPlaceholder', 'Optional comment about your experience...')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none text-sm disabled:opacity-50"
+            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500 outline-none resize-none text-sm disabled:bg-zinc-100 disabled:text-zinc-400 disabled:cursor-not-allowed"
             rows={3}
             maxLength={1000}
           />
 
           {/* Error */}
           {error && (
-            <div className="p-3 rounded-lg" style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca' }}>
-              <p className="text-sm" style={{ color: '#991b1b' }}>{error}</p>
+            <div className="p-3 rounded-lg bg-red-50 border border-red-300">
+              <p className="text-sm text-red-700">{error}</p>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex gap-3">
+        <div className="px-6 py-4 border-t border-zinc-200 bg-zinc-50 flex gap-3">
           {!submitting && (
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
+              className="px-4 py-2.5 text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors"
             >
               {t('common.cancel', 'Cancel')}
             </button>
@@ -245,8 +248,7 @@ export function RateAgentModal({
             type="button"
             onClick={handleSubmit}
             disabled={submitting}
-            className="flex-1 py-2.5 text-white font-semibold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
-            style={{ backgroundColor: submitting ? '#9ca3af' : '#2563eb' }}
+            className="flex-1 py-2.5 bg-zinc-900 text-white font-semibold rounded-xl hover:bg-zinc-800 disabled:bg-zinc-100 disabled:text-zinc-400 disabled:cursor-not-allowed transition-colors text-sm"
           >
             {submitting
               ? t('rateAgent.submitting', 'Submitting...')

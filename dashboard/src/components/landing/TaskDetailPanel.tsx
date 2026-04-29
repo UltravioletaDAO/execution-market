@@ -131,7 +131,7 @@ export function TaskDetailPanel({ task, isAuthenticated, onClose, onApply }: Tas
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
           {/* Instructions */}
           <section>
-            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
+            <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
               {t('tasks.instructions')}
             </h3>
             <pre className="whitespace-pre-wrap font-sans text-gray-700 bg-gray-50 p-4 rounded-lg text-sm">
@@ -141,7 +141,7 @@ export function TaskDetailPanel({ task, isAuthenticated, onClose, onApply }: Tas
 
           {/* Evidence requirements */}
           <section>
-            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
+            <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
               {t('submission.requiredEvidence')}
             </h3>
             <div className="flex flex-wrap gap-2">
@@ -169,7 +169,7 @@ export function TaskDetailPanel({ task, isAuthenticated, onClose, onApply }: Tas
           {/* Location */}
           {task.location_hint && (
             <section>
-              <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
+              <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
                 {t('tasks.location')}
               </h3>
               <div className="flex items-center gap-2 text-gray-700">
@@ -193,7 +193,7 @@ export function TaskDetailPanel({ task, isAuthenticated, onClose, onApply }: Tas
           {/* Requirements */}
           {(task.min_reputation > 0 || task.required_roles.length > 0) && (
             <section>
-              <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
+              <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
                 {t('tasks.requirements')}
               </h3>
               <ul className="space-y-2">
@@ -220,7 +220,7 @@ export function TaskDetailPanel({ task, isAuthenticated, onClose, onApply }: Tas
           {/* Payment / Escrow Status */}
           {shouldLoadPayment && (
             <section>
-              <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
+              <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
                 {t('payment.status', 'Estado del Pago')}
               </h3>
 

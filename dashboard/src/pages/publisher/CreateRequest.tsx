@@ -136,10 +136,10 @@ export function CreateRequest() {
         <div className="flex items-center gap-2 mb-8">
           {STEP_KEYS.map((s, i) => (
             <div key={s.key} className="flex items-center gap-2 flex-1">
-              <button onClick={() => i <= stepIdx && setStep(s.key)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium ${s.key === step ? 'bg-blue-600 text-white' : i < stepIdx ? 'bg-blue-100 text-blue-700 cursor-pointer' : 'bg-gray-100 text-gray-400'}`}>
+              <button onClick={() => i <= stepIdx && setStep(s.key)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium ${s.key === step ? 'bg-zinc-900 text-white' : i < stepIdx ? 'bg-zinc-200 text-zinc-700 cursor-pointer hover:bg-zinc-300' : 'bg-zinc-100 text-zinc-500'}`}>
                 <span>{s.icon}</span><span className="hidden sm:inline">{t(s.labelKey)}</span>
               </button>
-              {i < STEP_KEYS.length - 1 && <div className={`flex-1 h-0.5 ${i < stepIdx ? 'bg-blue-300' : 'bg-gray-200'}`} />}
+              {i < STEP_KEYS.length - 1 && <div className={`flex-1 h-0.5 ${i < stepIdx ? 'bg-zinc-700' : 'bg-zinc-200'}`} />}
             </div>
           ))}
         </div>
@@ -163,8 +163,8 @@ export function CreateRequest() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t('publisher.create.categoryLabel', 'Category')} *</label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {DIGITAL_CATEGORY_KEYS.map(cat => (
-                    <button key={cat.value} onClick={() => updateForm({ category: cat.value })} className={`flex items-start gap-2 p-3 rounded-lg border text-left ${form.category === cat.value ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
-                      <span className="text-lg">{cat.icon}</span><div><div className="text-sm font-medium">{t(cat.key)}</div><div className="text-xs text-gray-500">{t(cat.descKey)}</div></div>
+                    <button key={cat.value} onClick={() => updateForm({ category: cat.value })} className={`flex items-start gap-2 p-3 rounded-lg border text-left ${form.category === cat.value ? 'border-zinc-900 bg-zinc-50' : 'border-zinc-200 hover:border-zinc-400'}`}>
+                      <span className="text-lg">{cat.icon}</span><div><div className="text-sm font-medium text-zinc-900">{t(cat.key)}</div><div className="text-xs text-zinc-500">{t(cat.descKey)}</div></div>
                     </button>
                   ))}
                 </div>
@@ -177,11 +177,11 @@ export function CreateRequest() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t('publisher.create.agentSelection', 'Agent Selection')}</label>
                 <div className="flex gap-3">
-                  <button onClick={() => updateForm({ target_agent_id: null })} className={`flex-1 p-4 rounded-lg border text-center ${!form.target_agent_id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}>
-                    <div className="text-2xl mb-1">🌐</div><div className="text-sm font-medium">{t('publisher.create.openMarketplace', 'Open Marketplace')}</div><div className="text-xs text-gray-500">{t('publisher.create.anyQualifiedAgent', 'Any qualified agent')}</div>
+                  <button onClick={() => updateForm({ target_agent_id: null })} className={`flex-1 p-4 rounded-lg border text-center ${!form.target_agent_id ? 'border-zinc-900 bg-zinc-50' : 'border-zinc-200 hover:border-zinc-400'}`}>
+                    <div className="text-2xl mb-1">🌐</div><div className="text-sm font-medium text-zinc-900">{t('publisher.create.openMarketplace', 'Open Marketplace')}</div><div className="text-xs text-zinc-500">{t('publisher.create.anyQualifiedAgent', 'Any qualified agent')}</div>
                   </button>
-                  <button onClick={() => navigate('/agents/directory')} className={`flex-1 p-4 rounded-lg border text-center ${form.target_agent_id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}>
-                    <div className="text-2xl mb-1">🎯</div><div className="text-sm font-medium">{t('publisher.create.specificAgent', 'Specific Agent')}</div><div className="text-xs text-gray-500">{form.target_agent_id ? `${t('publisher.create.agent', 'Agent')}: ${form.target_agent_id.slice(0, 8)}...` : t('publisher.create.browseDirectory', 'Browse directory')}</div>
+                  <button onClick={() => navigate('/agents/directory')} className={`flex-1 p-4 rounded-lg border text-center ${form.target_agent_id ? 'border-zinc-900 bg-zinc-50' : 'border-zinc-200 hover:border-zinc-400'}`}>
+                    <div className="text-2xl mb-1">🎯</div><div className="text-sm font-medium text-zinc-900">{t('publisher.create.specificAgent', 'Specific Agent')}</div><div className="text-xs text-zinc-500">{form.target_agent_id ? `${t('publisher.create.agent', 'Agent')}: ${form.target_agent_id.slice(0, 8)}...` : t('publisher.create.browseDirectory', 'Browse directory')}</div>
                   </button>
                 </div>
               </div>

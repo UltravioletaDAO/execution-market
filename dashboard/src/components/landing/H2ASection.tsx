@@ -4,6 +4,7 @@
  */
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
+import { Pill } from '../ui/Pill'
 
 export function H2ASection() {
   const { t } = useTranslation()
@@ -13,9 +14,9 @@ export function H2ASection() {
     <section className="my-16">
       {/* Badge */}
       <div className="text-center mb-8">
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 text-xs font-semibold rounded-full border border-blue-200">
-          🤖 {t('landing.h2a.badge', 'Human-to-Agent')}
-        </span>
+        <Pill variant="default" size="sm" asSpan leftIcon={<span>🤖</span>}>
+          {t('landing.h2a.badge', 'Human-to-Agent')}
+        </Pill>
       </div>
 
       {/* Header */}

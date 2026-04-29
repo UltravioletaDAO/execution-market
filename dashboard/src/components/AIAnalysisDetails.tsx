@@ -30,20 +30,21 @@ export function AIAnalysisDetails({ result }: AIAnalysisDetailsProps) {
 
   const { decision, confidence, explanation, issues, model } = result.details
 
+  // B&W with semantic accents: zinc-900 for approved (terminal positive), amber for needs_human (warning), red for rejected (error)
   const decisionConfig = {
     approved: {
       label: t('aiAnalysis.approved', 'Approved'),
-      bg: 'bg-green-100 text-green-700',
+      bg: 'bg-zinc-900 text-white',
       note: null as string | null,
     },
     needs_human: {
       label: t('aiAnalysis.escalated', 'Escalated to Ring 2'),
-      bg: 'bg-blue-100 text-blue-700',
+      bg: 'bg-amber-50 text-amber-800 border border-amber-300',
       note: t('aiAnalysis.escalatedNote', 'Ring 1 confidence below threshold — forwarded to Ring 2 for deeper analysis.'),
     },
     rejected: {
       label: t('aiAnalysis.rejected', 'Rejected'),
-      bg: 'bg-red-100 text-red-700',
+      bg: 'bg-red-100 text-red-800 border border-red-300',
       note: null as string | null,
     },
   }
@@ -52,11 +53,11 @@ export function AIAnalysisDetails({ result }: AIAnalysisDetailsProps) {
     decisionConfig.needs_human
 
   return (
-    <div className="border border-gray-200 rounded-lg overflow-hidden">
+    <div className="border border-zinc-200 rounded-lg overflow-hidden">
       {/* Header — always visible */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full p-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+        className="w-full p-3 flex items-center justify-between hover:bg-zinc-50 transition-colors"
       >
         <div className="flex items-center gap-3 min-w-0">
           <span
@@ -65,15 +66,15 @@ export function AIAnalysisDetails({ result }: AIAnalysisDetailsProps) {
             {config.label}
           </span>
           {confidence != null && confidence > 0 && (
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-zinc-500">
               {Math.round(confidence * 100)}%{' '}
               {t('aiAnalysis.confidence', 'confidence')}
             </span>
           )}
-          {model && <span className="text-xs text-gray-400 truncate">{model}</span>}
+          {model && <span className="text-xs text-zinc-500 truncate">{model}</span>}
         </div>
         <svg
-          className={`w-4 h-4 text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`}
+          className={`w-4 h-4 text-zinc-500 transition-transform ${expanded ? 'rotate-180' : ''}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -89,28 +90,28 @@ export function AIAnalysisDetails({ result }: AIAnalysisDetailsProps) {
 
       {/* Expanded content */}
       {expanded && (
-        <div className="p-3 pt-0 border-t border-gray-100 space-y-3">
+        <div className="p-3 pt-0 border-t border-zinc-200 space-y-3">
           {config.note && (
-            <p className="text-xs text-blue-600 bg-blue-50 rounded px-2 py-1.5">
+            <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
               {config.note}
             </p>
           )}
           {explanation && (
             <div>
-              <h4 className="text-xs font-medium text-gray-500 uppercase mb-1">
+              <h4 className="text-xs font-medium text-zinc-500 uppercase mb-1">
                 {t('aiAnalysis.analysis', 'Analysis')}
               </h4>
-              <p className="text-sm text-gray-700 whitespace-pre-wrap">
+              <p className="text-sm text-zinc-700 whitespace-pre-wrap">
                 {explanation}
               </p>
             </div>
           )}
           {issues && issues.length > 0 && (
             <div>
-              <h4 className="text-xs font-medium text-gray-500 uppercase mb-1">
+              <h4 className="text-xs font-medium text-zinc-500 uppercase mb-1">
                 {t('aiAnalysis.issues', 'Issues')}
               </h4>
-              <ul className="list-disc list-inside text-sm text-gray-600 space-y-0.5">
+              <ul className="list-disc list-inside text-sm text-zinc-600 space-y-0.5">
                 {issues.map((issue, i) => (
                   <li key={i}>{issue}</li>
                 ))}

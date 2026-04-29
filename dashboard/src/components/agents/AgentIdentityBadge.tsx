@@ -43,12 +43,12 @@ export const AgentIdentityBadge = memo(function AgentIdentityBadge({
     <span
       className={cn(
         'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-2xs font-medium',
-        'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+        'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300',
         className
       )}
       title={`ERC-8004 Agent #${agentId}`}
     >
-      <VerifiedIcon className="text-blue-600 dark:text-blue-400" />
+      <VerifiedIcon className="text-zinc-700 dark:text-zinc-300" />
       <span>{compact ? `#${agentId}` : `Agent #${agentId}`}</span>
     </span>
   )

@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { Pill } from '../ui/Pill'
 
 /**
  * OWS (Open Wallet Standard) landing section.
@@ -14,9 +15,11 @@ export function OWSSection() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-10">
-          <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full uppercase tracking-wider mb-3">
-            {t('landing.ows.badge', 'OWS 1.2')}
-          </span>
+          <div className="mb-3">
+            <Pill variant="default" size="sm" asSpan className="uppercase tracking-wider">
+              {t('landing.ows.badge', 'OWS 1.2')}
+            </Pill>
+          </div>
           <h2 className="text-2xl sm:text-3xl font-black text-gray-900 mb-3">
             {t('landing.ows.title', 'Agent Wallet (OWS)')}
           </h2>

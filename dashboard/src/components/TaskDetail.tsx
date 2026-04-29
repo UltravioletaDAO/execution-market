@@ -17,7 +17,6 @@ import type { AIAnalysisResult } from './AIAnalysisDetails'
 import { TaskLifecycleTimeline } from './TaskLifecycleTimeline'
 import { TaskRatings } from './TaskRatings'
 import { EvidenceModal } from './EvidenceModal'
-import { getStatusBadgeClass } from '../styles/theme'
 import { safeHref, safeSrc } from '../lib/safeHref'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
@@ -332,7 +331,7 @@ export function TaskDetail({
       <div className="p-4 space-y-6">
         {/* Instructions */}
         <section>
-          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
             {t('tasks.instructions')}
           </h2>
           <div className="prose prose-sm max-w-none">
@@ -344,7 +343,7 @@ export function TaskDetail({
 
         {/* Evidence requirements */}
         <section>
-          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
             {t('tasks.requirements', 'Required Evidence')}
           </h2>
           <div className="space-y-2">
@@ -378,7 +377,7 @@ export function TaskDetail({
         {/* Location */}
         {task.location_hint && (
           <section>
-            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
               {t('tasks.location')}
             </h2>
             <div className="flex items-center gap-2 text-gray-700">
@@ -401,7 +400,7 @@ export function TaskDetail({
 
         {/* Deadline */}
         <section>
-          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
             {t('tasks.deadline')}
           </h2>
           <div className="flex items-center gap-2 text-gray-700">
@@ -420,7 +419,7 @@ export function TaskDetail({
         {/* Requirements */}
         {(task.min_reputation > 0 || task.required_roles.length > 0) && (
           <section>
-            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
               {t('tasks.requirements')}
             </h2>
             <ul className="space-y-2">
@@ -492,7 +491,7 @@ export function TaskDetail({
         {/* Submissions / Evidence — after escrow timeline */}
         {submissions.length > 0 && (
           <section>
-            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
               {t('tasks.submissions', 'Evidence Submitted')}
             </h2>
             <div className="space-y-3">
@@ -931,7 +930,7 @@ export function TaskDetail({
         {/* Submissions loading state */}
         {submissionsLoading && ['accepted', 'in_progress', 'submitted', 'verifying', 'completed'].includes(task.status) && (
           <section>
-            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
               {t('tasks.submissions', 'Evidence Submitted')}
             </h2>
             <div className="flex items-center gap-2 text-sm text-gray-400 py-2">

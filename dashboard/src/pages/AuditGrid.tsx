@@ -10,6 +10,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
+import { StatusBadge } from '../components/ui/StatusBadge'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://api.execution.market'
 
@@ -74,20 +75,6 @@ interface AuditGridResponse {
   error?: string
 }
 
-// ─── Status badge colors ──────────────────────────────────────────
-
-const STATUS_COLORS: Record<string, string> = {
-  published: 'bg-blue-100 text-blue-800',
-  accepted: 'bg-indigo-100 text-indigo-800',
-  in_progress: 'bg-yellow-100 text-yellow-800',
-  submitted: 'bg-purple-100 text-purple-800',
-  verifying: 'bg-orange-100 text-orange-800',
-  completed: 'bg-green-100 text-green-800',
-  cancelled: 'bg-gray-100 text-gray-800',
-  expired: 'bg-red-100 text-red-800',
-  disputed: 'bg-red-100 text-red-800',
-}
-
 // ─── Helpers ──────────────────────────────────────────────────────
 
 function formatDate(dateStr: string | null): string {
@@ -108,7 +95,7 @@ function GroupDots({ group }: { group: CheckpointGroup }) {
       <span
         key={i}
         className={`inline-block w-2.5 h-2.5 rounded-full ${
-          done ? 'bg-green-500' : 'bg-gray-300'
+          done ? 'bg-zinc-900' : 'bg-zinc-300'
         }`}
         title={done ? 'Completed' : 'Pending'}
       />
@@ -127,7 +114,7 @@ function CheckIcon() {
 
 function XIcon() {
   return (
-    <svg className="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg className="w-4 h-4 text-zinc-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M18 12H6" />
     </svg>
   )
@@ -162,18 +149,18 @@ const GROUP_LABELS: Record<string, Record<string, string>> = {
 function ExpandedGroup({ group, groupKey }: { group: CheckpointGroup; groupKey: string }) {
   const labels = GROUP_LABELS[groupKey] || {}
   return (
-    <div className="mt-2 space-y-1.5 pl-2 border-l-2 border-gray-200">
+    <div className="mt-2 space-y-1.5 pl-2 border-l-2 border-zinc-200">
       {Object.entries(group.items).map(([key, item]) => (
         <div key={key} className="flex items-center gap-2 text-xs">
           {item.done ? <CheckIcon /> : <XIcon />}
-          <span className={item.done ? 'text-gray-900' : 'text-gray-400'}>
+          <span className={item.done ? 'text-zinc-900' : 'text-zinc-500'}>
             {labels[key] || key}
           </span>
           {item.at && (
-            <span className="text-gray-400 ml-auto">{formatDate(item.at)}</span>
+            <span className="text-zinc-500 ml-auto">{formatDate(item.at)}</span>
           )}
           {item.tx && (
-            <span className="text-blue-500 font-mono text-[10px]" title={item.tx}>
+            <span className="text-zinc-700 font-mono text-[10px]" title={item.tx}>
               {item.tx.slice(0, 10)}...
             </span>
           )}
@@ -186,13 +173,13 @@ function ExpandedGroup({ group, groupKey }: { group: CheckpointGroup; groupKey: 
 // ─── Completion Bar ───────────────────────────────────────────────
 
 function CompletionBar({ pct }: { pct: number }) {
-  const color = pct >= 100 ? 'bg-green-500' : pct >= 50 ? 'bg-yellow-500' : 'bg-red-400'
+  const color = pct >= 100 ? 'bg-zinc-900' : pct >= 50 ? 'bg-amber-500' : 'bg-red-500'
   return (
     <div className="flex items-center gap-2">
-      <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+      <div className="w-16 h-2 bg-zinc-200 rounded-full overflow-hidden">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${Math.min(pct, 100)}%` }} />
       </div>
-      <span className="text-xs text-gray-600 font-medium w-8">{pct}%</span>
+      <span className="text-xs text-zinc-700 font-medium w-8">{pct}%</span>
     </div>
   )
 }
@@ -294,17 +281,17 @@ export function AuditGrid() {
     <div className="max-w-[1400px] mx-auto px-4 py-6">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-zinc-900">
             {t('auditGrid.title', 'Task Lifecycle Audit')}
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-zinc-500 mt-1">
             {data ? `${data.total} tasks` : 'Loading...'}
           </p>
         </div>
         <button
           onClick={fetchGrid}
           disabled={loading}
-          className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+          className="px-4 py-2 bg-zinc-900 text-white text-sm rounded-lg hover:bg-zinc-800 disabled:opacity-50"
         >
           {loading ? 'Loading...' : 'Refresh'}
         </button>
@@ -315,7 +302,7 @@ export function AuditGrid() {
         <select
           value={statusFilter}
           onChange={e => { setStatusFilter(e.target.value); setPage(1) }}
-          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white"
+          className="px-3 py-1.5 text-sm border border-zinc-300 rounded-lg bg-white"
         >
           <option value="">All Statuses</option>
           {['published', 'accepted', 'in_progress', 'submitted', 'verifying', 'completed', 'cancelled', 'expired'].map(s => (
@@ -325,7 +312,7 @@ export function AuditGrid() {
         <select
           value={networkFilter}
           onChange={e => { setNetworkFilter(e.target.value); setPage(1) }}
-          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white"
+          className="px-3 py-1.5 text-sm border border-zinc-300 rounded-lg bg-white"
         >
           <option value="">All Networks</option>
           {['base', 'ethereum', 'polygon', 'arbitrum', 'optimism', 'avalanche', 'celo', 'monad', 'skale', 'solana'].map(n => (
@@ -337,14 +324,14 @@ export function AuditGrid() {
           value={versionFilter}
           onChange={e => { setVersionFilter(e.target.value); setPage(1) }}
           placeholder="Skill version (e.g. 4.1.0)"
-          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white w-40"
+          className="px-3 py-1.5 text-sm border border-zinc-300 rounded-lg bg-white w-40"
         />
-        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+        <label className="flex items-center gap-2 text-sm text-zinc-700 cursor-pointer">
           <input
             type="checkbox"
             checked={issuesOnly}
             onChange={e => { setIssuesOnly(e.target.checked); setPage(1) }}
-            className="rounded border-gray-300"
+            className="rounded border-zinc-300"
           />
           Issues only
         </label>
@@ -355,41 +342,41 @@ export function AuditGrid() {
       )}
 
       {/* Grid Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+      <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-200 bg-gray-50">
-              <th className="text-left px-4 py-3 font-medium text-gray-600 w-52">Task</th>
-              <th className="text-left px-3 py-3 font-medium text-gray-600 w-16">Skill</th>
-              <th className="text-left px-3 py-3 font-medium text-gray-600 w-20">Network</th>
-              <th className="text-right px-3 py-3 font-medium text-gray-600 w-16">Bounty</th>
-              <th className="text-center px-3 py-3 font-medium text-gray-600 w-24">
-                <button className="hover:text-indigo-600">Auth</button>
+            <tr className="border-b border-zinc-200 bg-zinc-50">
+              <th className="text-left px-4 py-3 font-medium text-zinc-700 w-52">Task</th>
+              <th className="text-left px-3 py-3 font-medium text-zinc-700 w-16">Skill</th>
+              <th className="text-left px-3 py-3 font-medium text-zinc-700 w-20">Network</th>
+              <th className="text-right px-3 py-3 font-medium text-zinc-700 w-16">Bounty</th>
+              <th className="text-center px-3 py-3 font-medium text-zinc-700 w-24">
+                <button className="hover:text-zinc-900">Auth</button>
               </th>
-              <th className="text-center px-3 py-3 font-medium text-gray-600 w-28">
-                <button className="hover:text-indigo-600">Payment</button>
+              <th className="text-center px-3 py-3 font-medium text-zinc-700 w-28">
+                <button className="hover:text-zinc-900">Payment</button>
               </th>
-              <th className="text-center px-3 py-3 font-medium text-gray-600 w-32">
-                <button className="hover:text-indigo-600">Execution</button>
+              <th className="text-center px-3 py-3 font-medium text-zinc-700 w-32">
+                <button className="hover:text-zinc-900">Execution</button>
               </th>
-              <th className="text-center px-3 py-3 font-medium text-gray-600 w-24">
-                <button className="hover:text-indigo-600">Reputation</button>
+              <th className="text-center px-3 py-3 font-medium text-zinc-700 w-24">
+                <button className="hover:text-zinc-900">Reputation</button>
               </th>
-              <th className="text-center px-3 py-3 font-medium text-gray-600 w-20">Progress</th>
-              <th className="text-center px-3 py-3 font-medium text-gray-600 w-24">Status</th>
+              <th className="text-center px-3 py-3 font-medium text-zinc-700 w-20">Progress</th>
+              <th className="text-center px-3 py-3 font-medium text-zinc-700 w-24">Status</th>
             </tr>
           </thead>
           <tbody>
             {loading && !data && (
               <tr>
-                <td colSpan={10} className="px-4 py-12 text-center text-gray-400">
+                <td colSpan={10} className="px-4 py-12 text-center text-zinc-500">
                   Loading audit grid...
                 </td>
               </tr>
             )}
             {data && data.tasks.length === 0 && (
               <tr>
-                <td colSpan={10} className="px-4 py-12 text-center text-gray-400">
+                <td colSpan={10} className="px-4 py-12 text-center text-zinc-500">
                   No tasks found
                 </td>
               </tr>
@@ -397,33 +384,33 @@ export function AuditGrid() {
             {data?.tasks.map(task => {
               const taskExpanded = expandedGroups[task.task_id] || new Set()
               return (
-                <tr key={task.task_id} className="border-b border-gray-100 hover:bg-gray-50">
+                <tr key={task.task_id} className="border-b border-zinc-100 hover:bg-zinc-50">
                   {/* Task Title */}
                   <td className="px-4 py-3">
-                    <div className="font-medium text-gray-900 truncate max-w-[200px]" title={task.title}>
+                    <div className="font-medium text-zinc-900 truncate max-w-[200px]" title={task.title}>
                       {task.title}
                     </div>
-                    <div className="text-[10px] text-gray-400 font-mono mt-0.5">
+                    <div className="text-[10px] text-zinc-500 font-mono mt-0.5">
                       {task.task_id.slice(0, 8)}...
                     </div>
                   </td>
                   {/* Skill Version */}
                   <td className="px-3 py-3">
                     {task.skill_version ? (
-                      <span className="inline-block px-1.5 py-0.5 bg-indigo-50 text-indigo-700 rounded text-xs font-mono">
+                      <span className="inline-block px-1.5 py-0.5 bg-zinc-100 text-zinc-700 rounded text-xs font-mono">
                         {task.skill_version}
                       </span>
                     ) : (
-                      <span className="text-gray-300 text-xs">--</span>
+                      <span className="text-zinc-300 text-xs">--</span>
                     )}
                   </td>
                   {/* Network */}
-                  <td className="px-3 py-3 text-xs text-gray-600 capitalize">{task.network}</td>
+                  <td className="px-3 py-3 text-xs text-zinc-700 capitalize">{task.network}</td>
                   {/* Bounty */}
                   <td className="px-3 py-3 text-right text-xs font-medium">${task.bounty_usdc.toFixed(2)}</td>
                   {/* Auth Group */}
                   <td className="px-3 py-3 text-center">
-                    <button onClick={() => toggleGroup(task.task_id, 'auth')} className="hover:bg-gray-100 rounded p-1">
+                    <button onClick={() => toggleGroup(task.task_id, 'auth')} className="hover:bg-zinc-100 rounded p-1">
                       <GroupDots group={task.checkpoints.auth} />
                     </button>
                     {taskExpanded.has('auth') && (
@@ -432,7 +419,7 @@ export function AuditGrid() {
                   </td>
                   {/* Payment Group */}
                   <td className="px-3 py-3 text-center">
-                    <button onClick={() => toggleGroup(task.task_id, 'payment')} className="hover:bg-gray-100 rounded p-1">
+                    <button onClick={() => toggleGroup(task.task_id, 'payment')} className="hover:bg-zinc-100 rounded p-1">
                       <GroupDots group={task.checkpoints.payment} />
                     </button>
                     {taskExpanded.has('payment') && (
@@ -441,7 +428,7 @@ export function AuditGrid() {
                   </td>
                   {/* Execution Group */}
                   <td className="px-3 py-3 text-center">
-                    <button onClick={() => toggleGroup(task.task_id, 'execution')} className="hover:bg-gray-100 rounded p-1">
+                    <button onClick={() => toggleGroup(task.task_id, 'execution')} className="hover:bg-zinc-100 rounded p-1">
                       <GroupDots group={task.checkpoints.execution} />
                     </button>
                     {taskExpanded.has('execution') && (
@@ -450,7 +437,7 @@ export function AuditGrid() {
                   </td>
                   {/* Reputation Group */}
                   <td className="px-3 py-3 text-center">
-                    <button onClick={() => toggleGroup(task.task_id, 'reputation')} className="hover:bg-gray-100 rounded p-1">
+                    <button onClick={() => toggleGroup(task.task_id, 'reputation')} className="hover:bg-zinc-100 rounded p-1">
                       <GroupDots group={task.checkpoints.reputation} />
                     </button>
                     {taskExpanded.has('reputation') && (
@@ -463,9 +450,7 @@ export function AuditGrid() {
                   </td>
                   {/* Status */}
                   <td className="px-3 py-3 text-center">
-                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[task.status] || 'bg-gray-100 text-gray-800'}`}>
-                      {task.status}
-                    </span>
+                    <StatusBadge status={task.status} size="sm" label={task.status} />
                   </td>
                 </tr>
               )
@@ -480,17 +465,17 @@ export function AuditGrid() {
           <button
             onClick={() => setPage(p => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-lg disabled:opacity-50"
+            className="px-3 py-1.5 text-sm bg-white border border-zinc-300 rounded-lg disabled:opacity-50"
           >
             Previous
           </button>
-          <span className="px-3 py-1.5 text-sm text-gray-600">
+          <span className="px-3 py-1.5 text-sm text-zinc-700">
             Page {page} of {totalPages}
           </span>
           <button
             onClick={() => setPage(p => p + 1)}
             disabled={page >= totalPages}
-            className="px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-lg disabled:opacity-50"
+            className="px-3 py-1.5 text-sm bg-white border border-zinc-300 rounded-lg disabled:opacity-50"
           >
             Next
           </button>

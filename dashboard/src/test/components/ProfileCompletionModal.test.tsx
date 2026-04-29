@@ -255,14 +255,18 @@ describe('ProfileCompletionModal', () => {
       <ProfileCompletionModal onComplete={mockOnComplete} />
     )
 
-    const photographyBtn = screen.getByText('photography')
-    fireEvent.click(photographyBtn)
+    // The Pill wraps the label in a <span>; the toggle state lives on the parent <button>
+    // and is exposed via aria-pressed (semantic, brand-agnostic).
+    const photographyLabel = screen.getByText('photography')
+    const photographyBtn = photographyLabel.closest('button') as HTMLButtonElement
+    expect(photographyBtn).not.toBeNull()
+    expect(photographyBtn.getAttribute('aria-pressed')).toBe('false')
 
-    // Should now have selected styling (blue)
-    expect(photographyBtn.className).toContain('bg-blue-50')
+    fireEvent.click(photographyBtn)
+    expect(photographyBtn.getAttribute('aria-pressed')).toBe('true')
 
     // Click again to deselect
     fireEvent.click(photographyBtn)
-    expect(photographyBtn.className).not.toContain('bg-blue-50')
+    expect(photographyBtn.getAttribute('aria-pressed')).toBe('false')
   })
 })

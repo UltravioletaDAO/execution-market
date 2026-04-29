@@ -107,7 +107,7 @@ export const AgentMiniCard = memo(function AgentMiniCard(props: AgentMiniCardPro
     return (
       <div className={cn('flex items-center gap-2 p-2 rounded-lg', className)}>
         <AgentAvatar walletAddress={wallet} size="sm" showIndicator={false} />
-        <span className="text-sm text-gray-500 dark:text-gray-400 font-mono">
+        <span className="text-sm text-zinc-600 dark:text-zinc-400 font-mono">
           {truncateAddress(wallet)}
         </span>
       </div>
@@ -121,7 +121,7 @@ export const AgentMiniCard = memo(function AgentMiniCard(props: AgentMiniCardPro
     <div
       className={cn(
         'flex items-center gap-2 p-2 rounded-lg transition-colors',
-        clickable && 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50',
+        clickable && 'cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50',
         className
       )}
       onClick={handleClick}
@@ -139,7 +139,7 @@ export const AgentMiniCard = memo(function AgentMiniCard(props: AgentMiniCardPro
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+          <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
             {displayName}
           </span>
           <span className="text-xs flex-shrink-0" title={t(AGENT_TYPE_LABEL_KEY[agentType], agentType)}>
@@ -154,7 +154,7 @@ export const AgentMiniCard = memo(function AgentMiniCard(props: AgentMiniCardPro
           <WorldHumanBadge worldHumanId={data.world_human_id} />
           <ENSBadge ensName={data.ens_name || data.ens_subname} size="sm" />
         </div>
-        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+        <div className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-400">
           {/* Star rating */}
           {data.avg_rating != null && data.avg_rating > 0 && (
             <span className="flex items-center gap-0.5">

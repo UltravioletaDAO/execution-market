@@ -99,6 +99,13 @@
     @apply ring-offset-white dark:ring-offset-black;
   }
 
+  /* Aggressive fallback for nested interactive elements (e.g. Dynamic.xyz widget
+     wraps focusable controls in <div tabindex="0"> that can lose the ring) */
+  [tabindex]:focus-visible {
+    @apply outline-none ring-2 ring-zinc-900 dark:ring-zinc-100 ring-offset-2;
+    @apply ring-offset-white dark:ring-offset-black;
+  }
+
   /* Custom scrollbar */
   ::-webkit-scrollbar {
     @apply w-2 h-2;
@@ -329,64 +336,26 @@
     @apply px-3 py-1 text-sm;
   }
 
-  /* Status badges */
-  .badge-published {
-    @apply bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400;
-  }
-
-  .badge-accepted {
-    @apply bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400;
-  }
-
+  /* Status badges - monochromatic shade-weight progression (lifecycle = darker toward completion).
+     Disputed = red ring (irreversible action signal). Expired = amber (deadline missed). */
+  .badge-published { @apply bg-zinc-100 text-zinc-900 ring-1 ring-zinc-300 dark:bg-zinc-900 dark:text-zinc-100 dark:ring-zinc-700; }
+  .badge-accepted { @apply bg-zinc-200 text-zinc-900 ring-1 ring-zinc-400 dark:bg-zinc-800 dark:text-zinc-100 dark:ring-zinc-600; }
   .badge-in-progress,
-  .badge-in_progress {
-    @apply bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400;
-  }
+  .badge-in_progress { @apply bg-zinc-300 text-zinc-900 ring-1 ring-zinc-500 dark:bg-zinc-700 dark:text-zinc-100; }
+  .badge-submitted { @apply bg-zinc-800 text-zinc-100 ring-1 ring-zinc-600 dark:bg-zinc-200 dark:text-zinc-900; }
+  .badge-verifying { @apply bg-zinc-800 text-zinc-100 ring-1 ring-zinc-600 animate-pulse dark:bg-zinc-200 dark:text-zinc-900; }
+  .badge-completed { @apply bg-zinc-900 text-white ring-1 ring-zinc-900 dark:bg-zinc-100 dark:text-zinc-900; }
+  .badge-disputed { @apply bg-white text-red-700 ring-2 ring-red-600 dark:bg-zinc-900 dark:text-red-300 dark:ring-red-500; }
+  .badge-expired { @apply bg-zinc-100 text-amber-800 line-through ring-1 ring-amber-600/40 dark:bg-zinc-900 dark:text-amber-300 dark:ring-amber-700/50; }
+  .badge-cancelled { @apply bg-zinc-100 text-zinc-400 line-through ring-1 ring-zinc-200 dark:bg-zinc-900 dark:text-zinc-500 dark:ring-zinc-800; }
 
-  .badge-submitted {
-    @apply bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400;
-  }
-
-  .badge-verifying {
-    @apply bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400;
-  }
-
-  .badge-completed {
-    @apply bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400;
-  }
-
-  .badge-disputed {
-    @apply bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400;
-  }
-
-  .badge-expired {
-    @apply bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400;
-  }
-
-  .badge-cancelled {
-    @apply bg-gray-100 text-gray-600 dark:bg-gray-800/30 dark:text-gray-500;
-  }
-
-  /* Level badges */
-  .badge-novice {
-    @apply bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300;
-  }
-
-  .badge-apprentice {
-    @apply bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400;
-  }
-
-  .badge-journeyman {
-    @apply bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400;
-  }
-
-  .badge-expert {
-    @apply bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400;
-  }
-
-  .badge-master {
-    @apply bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400;
-  }
+  /* Level badges - metallic palette (bronze/silver/gold/platinum) by user choice.
+     novice = unranked (zinc); apprentice = bronze; journeyman = silver; expert = gold; master = platinum. */
+  .badge-novice { @apply bg-zinc-100 text-zinc-700 ring-1 ring-zinc-300 dark:bg-zinc-900 dark:text-zinc-300 dark:ring-zinc-700; }
+  .badge-apprentice { @apply bg-orange-50 text-orange-900 ring-1 ring-orange-700/40 dark:bg-orange-950/40 dark:text-orange-300 dark:ring-orange-700/50; }
+  .badge-journeyman { @apply bg-slate-100 text-slate-800 ring-1 ring-slate-400/60 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-500/60; }
+  .badge-expert { @apply bg-yellow-50 text-yellow-800 ring-1 ring-yellow-500/50 dark:bg-yellow-950/40 dark:text-yellow-300 dark:ring-yellow-600/50; }
+  .badge-master { @apply bg-sky-50 text-sky-900 ring-1 ring-sky-400/60 dark:bg-sky-950/40 dark:text-sky-200 dark:ring-sky-500/60; }
 
   /* --------------------------------------------------------------------------
      Status Indicators
@@ -395,16 +364,17 @@
     @apply w-2 h-2 rounded-full flex-shrink-0;
   }
 
-  .status-dot-published { @apply bg-blue-500; }
-  .status-dot-accepted { @apply bg-violet-500; }
+  /* Dots are monochromatic except for the irreversible-signal states (disputed, expired). */
+  .status-dot-published,
+  .status-dot-accepted,
   .status-dot-in-progress,
-  .status-dot-in_progress { @apply bg-amber-500; }
-  .status-dot-submitted { @apply bg-indigo-500; }
-  .status-dot-verifying { @apply bg-purple-500 animate-pulse; }
-  .status-dot-completed { @apply bg-green-500; }
-  .status-dot-disputed { @apply bg-red-500 animate-pulse; }
-  .status-dot-expired { @apply bg-gray-500; }
-  .status-dot-cancelled { @apply bg-gray-400; }
+  .status-dot-in_progress,
+  .status-dot-submitted,
+  .status-dot-completed { @apply bg-zinc-900 dark:bg-zinc-100; }
+  .status-dot-verifying { @apply bg-zinc-900 dark:bg-zinc-100 animate-pulse; }
+  .status-dot-disputed { @apply bg-red-600 ring-2 ring-red-600 ring-offset-2 ring-offset-white animate-pulse dark:ring-offset-black; }
+  .status-dot-expired { @apply bg-amber-600 dark:bg-amber-500; }
+  .status-dot-cancelled { @apply bg-zinc-400 dark:bg-zinc-600; }
 
   /* Larger status indicator with ring */
   .status-indicator {
@@ -420,22 +390,23 @@
     @apply border-l-4;
   }
 
-  .task-card[data-status="published"] { @apply border-l-blue-500; }
-  .task-card[data-status="accepted"] { @apply border-l-violet-500; }
-  .task-card[data-status="in_progress"] { @apply border-l-amber-500; }
-  .task-card[data-status="submitted"] { @apply border-l-indigo-500; }
-  .task-card[data-status="verifying"] { @apply border-l-purple-500; }
-  .task-card[data-status="completed"] { @apply border-l-emerald-500; }
-  .task-card[data-status="disputed"] { @apply border-l-red-500; }
-  .task-card[data-status="expired"] { @apply border-l-gray-500; }
-  .task-card[data-status="cancelled"] { @apply border-l-gray-400; }
+  /* Task card border-l: width is the affordance for "active". Hue only on irreversible signals. */
+  .task-card[data-status="published"],
+  .task-card[data-status="accepted"],
+  .task-card[data-status="in_progress"] { @apply border-l-zinc-300 dark:border-l-zinc-700; }
+  .task-card[data-status="submitted"],
+  .task-card[data-status="verifying"],
+  .task-card[data-status="completed"] { @apply border-l-zinc-900 dark:border-l-zinc-100; }
+  .task-card[data-status="disputed"] { @apply border-l-red-600 border-l-[6px] dark:border-l-red-500; }
+  .task-card[data-status="expired"] { @apply border-l-amber-600 dark:border-l-amber-500; }
+  .task-card[data-status="cancelled"] { @apply border-l-zinc-200 dark:border-l-zinc-800; }
 
   .task-bounty {
-    @apply text-xl font-bold text-emerald-500 dark:text-emerald-400;
+    @apply text-xl font-bold text-zinc-900 dark:text-zinc-100;
   }
 
   .task-deadline {
-    @apply text-sm text-slate-500 dark:text-slate-400;
+    @apply text-sm text-zinc-700 dark:text-zinc-300;
   }
 
   /* --------------------------------------------------------------------------
@@ -449,11 +420,12 @@
     @apply h-full rounded-full transition-all duration-500 ease-out;
   }
 
-  .reputation-bar-fill[data-level="poor"] { @apply bg-red-500; }
-  .reputation-bar-fill[data-level="fair"] { @apply bg-amber-500; }
-  .reputation-bar-fill[data-level="good"] { @apply bg-emerald-500; }
-  .reputation-bar-fill[data-level="excellent"] { @apply bg-blue-500; }
-  .reputation-bar-fill[data-level="elite"] { @apply bg-violet-500; }
+  /* Reputation bar fill - monochromatic; the levelBadge tier carries the metallic accent. */
+  .reputation-bar-fill[data-level="poor"],
+  .reputation-bar-fill[data-level="fair"],
+  .reputation-bar-fill[data-level="good"],
+  .reputation-bar-fill[data-level="excellent"],
+  .reputation-bar-fill[data-level="elite"] { @apply bg-zinc-900 dark:bg-zinc-100; }
 
   /* --------------------------------------------------------------------------
      Stats Cards
@@ -467,19 +439,17 @@
   }
 
   .stat-label {
-    @apply text-sm text-slate-500 dark:text-slate-400 mt-1;
+    @apply text-sm text-zinc-600 dark:text-zinc-400 mt-1;
   }
 
   .stat-change {
     @apply text-sm font-medium mt-2 flex items-center gap-1;
   }
 
-  .stat-change-positive {
-    @apply text-emerald-600 dark:text-emerald-400;
-  }
-
+  /* Stat-change uses glyphs (arrows) for direction, not hue. */
+  .stat-change-positive,
   .stat-change-negative {
-    @apply text-red-600 dark:text-red-400;
+    @apply text-zinc-900 dark:text-zinc-100;
   }
 
   /* --------------------------------------------------------------------------
@@ -504,8 +474,8 @@
      -------------------------------------------------------------------------- */
   .spinner {
     @apply w-5 h-5 border-2 rounded-full animate-spin;
-    @apply border-slate-300 dark:border-slate-600;
-    @apply border-t-em-500;
+    @apply border-zinc-200 dark:border-zinc-800;
+    @apply border-t-zinc-900 dark:border-t-zinc-100;
   }
 
   .spinner-sm {
@@ -517,32 +487,33 @@
   }
 
   .skeleton {
-    @apply bg-slate-200 dark:bg-slate-700 rounded animate-pulse;
+    @apply bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse;
   }
 
   /* --------------------------------------------------------------------------
-     Toasts / Notifications
+     Toasts / Notifications - black body, decorative colored stripe (paired with glyph)
      -------------------------------------------------------------------------- */
   .toast {
     @apply fixed z-50 p-4 rounded-lg shadow-lg;
     @apply flex items-center gap-3;
     @apply animate-slide-up;
+    @apply bg-zinc-900 text-white border-l-4 dark:bg-zinc-100 dark:text-zinc-900;
   }
 
   .toast-success {
-    @apply bg-emerald-500 text-white;
+    @apply border-l-emerald-500;
   }
 
   .toast-error {
-    @apply bg-red-500 text-white;
+    @apply border-l-red-600;
   }
 
   .toast-warning {
-    @apply bg-amber-500 text-white;
+    @apply border-l-amber-500;
   }
 
   .toast-info {
-    @apply bg-blue-500 text-white;
+    @apply border-l-zinc-400 dark:border-l-zinc-600;
   }
 
   /* --------------------------------------------------------------------------
@@ -553,15 +524,15 @@
   }
 
   .empty-state-icon {
-    @apply w-16 h-16 text-slate-300 dark:text-slate-600 mb-4;
+    @apply w-16 h-16 text-zinc-400 dark:text-zinc-600 mb-4;
   }
 
   .empty-state-title {
-    @apply text-lg font-medium text-slate-900 dark:text-slate-100;
+    @apply text-lg font-medium text-zinc-900 dark:text-zinc-100;
   }
 
   .empty-state-description {
-    @apply text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-sm;
+    @apply text-sm text-zinc-600 dark:text-zinc-400 mt-1 max-w-sm;
   }
 
   /* --------------------------------------------------------------------------

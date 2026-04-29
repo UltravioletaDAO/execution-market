@@ -58,7 +58,7 @@ export function Settings() {
 
       {/* Language Section */}
       <section className="mb-8">
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-3">
           {t('settings.language')}
         </h2>
         <div className="bg-white border border-gray-200 rounded-xl p-4">
@@ -68,7 +68,7 @@ export function Settings() {
 
       {/* Preferred Payment Network */}
       <section className="mb-8">
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-3">
           {t('settings.preferredNetwork', 'Preferred Payment Network')}
         </h2>
         <div className="bg-white border border-gray-200 rounded-xl p-4">
@@ -95,7 +95,7 @@ export function Settings() {
 
       {/* Notifications */}
       <section className="mb-8">
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-3">
           {t('settings.notifications')}
         </h2>
         <div className="bg-white border border-gray-200 rounded-xl p-4">
@@ -128,7 +128,7 @@ export function Settings() {
 
       {/* Social Accounts */}
       <section className="mb-8">
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-3">
           {t('settings.socialAccounts', 'Social Accounts')}
         </h2>
         <div className="bg-white border border-gray-200 rounded-xl p-4">
@@ -168,7 +168,7 @@ export function Settings() {
 
       {/* Human Verification */}
       <section className="mb-8">
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-3">
           {t('profile.humanVerification', 'Human Verification')}
         </h2>
         <div className="bg-white border border-gray-200 rounded-xl p-4">
@@ -202,7 +202,7 @@ export function Settings() {
 
       {/* Account Section */}
       <section className="mb-8">
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-3">
           {t('settings.account')}
         </h2>
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100">
@@ -228,7 +228,7 @@ export function Settings() {
 
       {/* App Info */}
       <section className="mb-8">
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-3">
           {t('settings.app', 'App')}
         </h2>
         <div className="bg-white border border-gray-200 rounded-xl p-4">

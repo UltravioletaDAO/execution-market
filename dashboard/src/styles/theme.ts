@@ -119,49 +119,42 @@ export const colors = {
 // ============================================================================
 
 export const statusBadge = {
-  published: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
-  accepted: 'bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400',
-  in_progress: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
-  submitted: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400',
-  verifying: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
-  completed: 'bg-green-600 text-white dark:bg-green-700 dark:text-white',
-  disputed: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
-  expired: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400',
-  cancelled: 'bg-gray-100 text-gray-600 dark:bg-gray-800/30 dark:text-gray-500',
+  published:   'bg-zinc-100 text-zinc-900 ring-1 ring-zinc-300 dark:bg-zinc-900 dark:text-zinc-100 dark:ring-zinc-700',
+  accepted:    'bg-zinc-200 text-zinc-900 ring-1 ring-zinc-400 dark:bg-zinc-800 dark:text-zinc-100 dark:ring-zinc-600',
+  in_progress: 'bg-zinc-300 text-zinc-900 ring-1 ring-zinc-500 dark:bg-zinc-700 dark:text-zinc-100 dark:ring-zinc-500',
+  submitted:   'bg-zinc-800 text-zinc-100 ring-1 ring-zinc-600 dark:bg-zinc-200 dark:text-zinc-900 dark:ring-zinc-400',
+  verifying:   'bg-zinc-800 text-zinc-100 ring-1 ring-zinc-600 animate-pulse dark:bg-zinc-200 dark:text-zinc-900',
+  completed:   'bg-zinc-900 text-white ring-1 ring-zinc-900 dark:bg-zinc-100 dark:text-zinc-900',
+  disputed:    'bg-white text-red-700 ring-2 ring-red-600 dark:bg-zinc-900 dark:text-red-300 dark:ring-red-500',
+  expired:     'bg-zinc-100 text-amber-800 line-through ring-1 ring-amber-600/40 dark:bg-zinc-900 dark:text-amber-300 dark:ring-amber-700/50',
+  cancelled:   'bg-zinc-100 text-zinc-400 line-through ring-1 ring-zinc-200 dark:bg-zinc-900 dark:text-zinc-500 dark:ring-zinc-800',
 } as const;
 
-// Status badge with dot indicator
-export const statusBadgeWithDot = {
-  published: 'bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/20',
-  accepted: 'bg-violet-50 text-violet-700 ring-1 ring-inset ring-violet-600/20 dark:bg-violet-500/10 dark:text-violet-400 dark:ring-violet-500/20',
-  in_progress: 'bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-500/10 dark:text-amber-400 dark:ring-amber-500/20',
-  submitted: 'bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-600/20 dark:bg-indigo-500/10 dark:text-indigo-400 dark:ring-indigo-500/20',
-  verifying: 'bg-purple-50 text-purple-700 ring-1 ring-inset ring-purple-600/20 dark:bg-purple-500/10 dark:text-purple-400 dark:ring-purple-500/20',
-  completed: 'bg-green-100 text-green-700 ring-1 ring-inset ring-green-600/20 dark:bg-green-500/10 dark:text-green-400 dark:ring-green-500/20',
-  disputed: 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20 dark:bg-red-500/10 dark:text-red-400 dark:ring-red-500/20',
-  expired: 'bg-gray-50 text-gray-700 ring-1 ring-inset ring-gray-600/20 dark:bg-gray-500/10 dark:text-gray-400 dark:ring-gray-500/20',
-  cancelled: 'bg-gray-50 text-gray-600 ring-1 ring-inset ring-gray-500/20 dark:bg-gray-500/10 dark:text-gray-500 dark:ring-gray-500/20',
-} as const;
+// statusBadgeWithDot - same map; the new design uses shade-weight progression so the
+// "WithDot" variant is redundant. Keep the export for backward compat.
+export const statusBadgeWithDot = statusBadge;
 
 // ============================================================================
 // Level Badge Styles
 // ============================================================================
 
+// Reputation tiers use metallic palette (bronze/silver/gold/platinum) by user choice.
+// novice = unranked (zinc neutral); apprentice = bronze; journeyman = silver; expert = gold; master = platinum.
 export const levelBadge = {
-  novice: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
-  apprentice: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
-  journeyman: 'bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400',
-  expert: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
-  master: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+  novice:     'bg-zinc-100 text-zinc-700 ring-1 ring-zinc-300 dark:bg-zinc-900 dark:text-zinc-300 dark:ring-zinc-700',
+  apprentice: 'bg-orange-50 text-orange-900 ring-1 ring-orange-700/40 dark:bg-orange-950/40 dark:text-orange-300 dark:ring-orange-700/50',
+  journeyman: 'bg-slate-100 text-slate-800 ring-1 ring-slate-400/60 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-500/60',
+  expert:     'bg-yellow-50 text-yellow-800 ring-1 ring-yellow-500/50 dark:bg-yellow-950/40 dark:text-yellow-300 dark:ring-yellow-600/50',
+  master:     'bg-sky-50 text-sky-900 ring-1 ring-sky-400/60 dark:bg-sky-950/40 dark:text-sky-200 dark:ring-sky-500/60',
 } as const;
 
-// Level badge with icon styling
+// Level badge icon — slightly darker hue so the glyph reads on the soft tinted bg.
 export const levelBadgeIcon = {
-  novice: 'text-gray-400 dark:text-gray-500',
-  apprentice: 'text-blue-500 dark:text-blue-400',
-  journeyman: 'text-violet-500 dark:text-violet-400',
-  expert: 'text-amber-500 dark:text-amber-400',
-  master: 'text-red-500 dark:text-red-400',
+  novice:     'text-zinc-500 dark:text-zinc-400',
+  apprentice: 'text-orange-700 dark:text-orange-400',
+  journeyman: 'text-slate-500 dark:text-slate-300',
+  expert:     'text-yellow-600 dark:text-yellow-400',
+  master:     'text-sky-600 dark:text-sky-400',
 } as const;
 
 // ============================================================================
@@ -325,25 +318,18 @@ export function getReputationLabel(score: number): string {
 }
 
 /**
- * Get the Tailwind color class for a reputation score
+ * Get the Tailwind color class for a reputation score.
+ * Reputation bar/score is monochromatic; the tier label (levelBadge) carries the metallic accent.
  */
-export function getReputationColorClass(score: number): string {
-  if (score >= 90) return 'text-violet-500 dark:text-violet-400';
-  if (score >= 70) return 'text-blue-500 dark:text-blue-400';
-  if (score >= 50) return 'text-emerald-500 dark:text-emerald-400';
-  if (score >= 30) return 'text-amber-500 dark:text-amber-400';
-  return 'text-red-500 dark:text-red-400';
+export function getReputationColorClass(_score: number): string {
+  return 'text-zinc-900 dark:text-zinc-100';
 }
 
 /**
- * Get the Tailwind background class for a reputation score
+ * Get the Tailwind background class for a reputation score.
  */
-export function getReputationBgClass(score: number): string {
-  if (score >= 90) return 'bg-violet-500';
-  if (score >= 70) return 'bg-blue-500';
-  if (score >= 50) return 'bg-emerald-500';
-  if (score >= 30) return 'bg-amber-500';
-  return 'bg-red-500';
+export function getReputationBgClass(_score: number): string {
+  return 'bg-zinc-900 dark:bg-zinc-100';
 }
 
 /**

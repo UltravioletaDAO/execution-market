@@ -168,22 +168,22 @@ export function AppHeader() {
             {isAuthenticated ? (
               <button
                 onClick={() => navigate('/profile')}
-                className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-300 hover:text-white hover:bg-white/10 rounded-md transition-colors"
+                className="flex items-center gap-2 px-2 py-1.5 text-sm text-zinc-300 hover:text-white hover:bg-white/10 rounded-md transition-colors"
               >
-                <div className="w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center text-xs text-white font-bold">
+                <div className="w-7 h-7 rounded-full bg-white text-zinc-900 flex items-center justify-center text-xs font-bold">
                   {(executor?.display_name || 'U')[0].toUpperCase()}
                 </div>
                 <span className="hidden sm:inline">{executor?.display_name || t('nav.profile', 'Profile')}</span>
               </button>
             ) : loading && localStorage.getItem('em_last_wallet_address') ? (
-              <span className="px-4 py-1.5 text-sm text-gray-400 animate-pulse">
+              <span className="px-4 py-1.5 text-sm text-zinc-400 animate-pulse">
                 {t('auth.restoringSession', 'Restoring session...')}
               </span>
             ) : (
               <button
                 onClick={openAuthModal}
                 disabled={loading}
-                className="px-4 py-1.5 bg-emerald-500 text-white text-sm font-semibold rounded-md hover:bg-emerald-400 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                className="px-4 py-1.5 bg-white text-zinc-900 text-sm font-semibold rounded-md hover:bg-zinc-100 transition-colors disabled:bg-zinc-700 disabled:text-zinc-400 disabled:cursor-not-allowed"
               >
                 {loading ? t('common.loading', 'Loading...') : t('landing.startEarning', 'Start Earning')}
               </button>

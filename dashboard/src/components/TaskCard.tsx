@@ -6,30 +6,19 @@
 
 import { memo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { Task, TaskStatus } from '../types/database'
+import type { Task } from '../types/database'
 import { useTranslation as useCustomTranslation } from '../i18n/hooks/useTranslation'
 import { getWorldIdBountyThreshold } from '../hooks/usePlatformConfig'
 import { CATEGORY_ICONS } from '../constants/categories'
 import { getNetworkDisplayName } from '../utils/blockchain'
 import { NETWORK_BY_KEY, getNetworkLogo } from '../config/networks'
 import { AgentMiniCard } from './agents/AgentMiniCard'
+import { Pill } from './ui/Pill'
+import { StatusBadge } from './ui/StatusBadge'
 
 interface TaskCardProps {
   task: Task
   onClick?: () => void
-}
-
-// Status colors (Tailwind classes)
-const STATUS_COLORS: Record<TaskStatus, string> = {
-  published: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-  accepted: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-  in_progress: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-  submitted: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
-  verifying: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300',
-  completed: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
-  disputed: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-  expired: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-500',
-  cancelled: 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500',
 }
 
 export const TaskCard = memo(function TaskCard({ task, onClick }: TaskCardProps) {
@@ -84,11 +73,7 @@ export const TaskCard = memo(function TaskCard({ task, onClick }: TaskCardProps)
             {categoryLabel}
           </span>
         </div>
-        <span
-          className={`px-2 py-0.5 text-xs font-medium rounded-full ${STATUS_COLORS[task.status]}`}
-        >
-          {statusLabel}
-        </span>
+        <StatusBadge status={task.status} size="sm" label={statusLabel} />
       </div>
 
       {/* Title */}
@@ -171,7 +156,7 @@ export const TaskCard = memo(function TaskCard({ task, onClick }: TaskCardProps)
 
       {/* Location badge */}
       {task.location_hint && (
-        <div className="mt-3 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+        <div className="mt-3 flex items-center gap-1 text-xs text-zinc-600 dark:text-zinc-400">
           <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
             <path
               fillRule="evenodd"
@@ -183,25 +168,35 @@ export const TaskCard = memo(function TaskCard({ task, onClick }: TaskCardProps)
         </div>
       )}
 
-      {/* Reputation requirement */}
+      {/* Reputation requirement — zinc copy + gold star glyph (brand metallic exception) */}
       {task.min_reputation > 0 && (
-        <div className="mt-2 flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
-          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+        <div className="mt-2 flex items-center gap-1 text-xs text-zinc-700 dark:text-zinc-300">
+          <svg className="w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
           </svg>
           <span>{t('tasks.requiresReputation', { score: task.min_reputation })}</span>
         </div>
       )}
 
-      {/* World ID required badge */}
+      {/* World ID required badge — World ID logo glyph keeps brand identity at icon size only */}
       {task.bounty_usd >= getWorldIdBountyThreshold() && (
         <div className="mt-2 flex items-center">
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
+          <Pill
+            variant="default"
+            size="sm"
+            asSpan
+            leftIcon={
+              <img
+                src="/worldcoin.png"
+                alt=""
+                aria-hidden="true"
+                className="w-3 h-3 object-contain"
+                onError={(e) => { e.currentTarget.style.display = 'none' }}
+              />
+            }
+          >
             {t('worldId.required', 'Requires World ID')}
-          </span>
+          </Pill>
         </div>
       )}
 
@@ -211,7 +206,7 @@ export const TaskCard = memo(function TaskCard({ task, onClick }: TaskCardProps)
           {task.skills_required.map((skill) => (
             <span
               key={skill}
-              className="px-1.5 py-0.5 text-2xs font-medium rounded-full bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400"
+              className="px-1.5 py-0.5 text-2xs font-medium rounded-full bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
             >
               {skill}
             </span>

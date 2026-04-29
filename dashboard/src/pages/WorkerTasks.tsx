@@ -12,6 +12,7 @@ import { PaymentStatus } from '../components/PaymentStatus'
 import type { VerificationResponse } from '../services/submissions'
 import type { Task, TaskCategory } from '../types/database'
 import { getCheckLabel } from '../constants/checkLabels'
+import { Pill } from '../components/ui/Pill'
 
 type TasksView = 'list' | 'detail' | 'submit' | 'submitted'
 
@@ -46,13 +47,13 @@ function SubmissionConfirmation({
 
       {/* Verification results */}
       {verification && (
-        <div className={`bg-white rounded-lg border p-4 ${verification.passed ? 'border-green-200' : 'border-orange-200'}`}>
+        <div className={`bg-white rounded-lg border p-4 ${verification.passed ? 'border-zinc-200' : 'border-amber-300'}`}>
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium text-gray-700">
+            <span className="text-sm font-medium text-zinc-900">
               {t('autoCheck.title', 'Automatic verification')}
             </span>
             <span className={`text-xs font-mono px-2 py-0.5 rounded-full ${
-              verification.passed ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+              verification.passed ? 'bg-zinc-100 text-zinc-900' : 'bg-amber-100 text-amber-800'
             }`}>
               {Math.round(verification.score * 100)}%
             </span>
@@ -277,14 +278,15 @@ export function WorkerTasks() {
         </div>
 
         {/* Tab selector */}
-        <div className="flex border-b border-gray-200 mb-4">
+        <div className="flex border-b border-zinc-200 mb-4">
           <button
             onClick={() => setActiveTab('available')}
             className={`flex-1 py-3 text-sm font-medium transition-colors ${
               activeTab === 'available'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'text-zinc-900 border-b-2 border-zinc-900'
+                : 'text-zinc-600 hover:text-zinc-900'
             }`}
+            aria-pressed={activeTab === 'available'}
           >
             {t('tasks.title')}
           </button>
@@ -292,14 +294,17 @@ export function WorkerTasks() {
             onClick={() => setActiveTab('mine')}
             className={`flex-1 py-3 text-sm font-medium transition-colors ${
               activeTab === 'mine'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'text-zinc-900 border-b-2 border-zinc-900'
+                : 'text-zinc-600 hover:text-zinc-900'
             }`}
+            aria-pressed={activeTab === 'mine'}
           >
             {t('nav.myTasks')}
             {myTasks.length > 0 && (
-              <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full">
-                {myTasks.length}
+              <span className="ml-2">
+                <Pill variant={activeTab === 'mine' ? 'selected' : 'default'} size="sm" asSpan>
+                  {myTasks.length}
+                </Pill>
               </span>
             )}
           </button>

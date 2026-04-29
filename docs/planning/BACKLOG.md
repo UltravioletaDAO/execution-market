@@ -20,6 +20,18 @@ Items captured during conversations to avoid context drift. Review at end of ses
 | 2026-04-20 | CSP blocks `dynamic-static-assets.com/wallet-book/` | Console muestra varios `Refused to connect` a `https://dynamic-static-assets.com/wallet-book/v1/stable/wallet-book.json`. Es `connect-src` faltante en CSP (el modal de Dynamic lo necesita para listar wallets). Agregar `https://dynamic-static-assets.com` a `connect-src`. Reportado junto al fix XMTP signer. | P2 | pending |
 | 2026-04-20 | RLS: `permission denied for function link_wallet_to_session` (42501) | Auth flow falla al llamar `link_wallet_to_session()` (Postgres code 42501). Falta `GRANT EXECUTE` a rol `anon`/`authenticated` o RLS policy. Ocurre post-login de Dynamic. Reportado junto al fix XMTP signer. | P1 | pending |
 | 2026-04-20 | XMTP v5 conversation API migration | El fix del signer destapa la siguiente capa: `useConversations.ts` y `useMessages.ts` usan API vieja (`peerAddress`, `newConversation`, `senderAddress`, `conversations.list()` retorna DMs v2). XMTP v5 usa MLS — `peerInboxId`, `newDm(inboxId)`, `senderInboxId`. Validar y migrar cuando se pruebe Connect XMTP end-to-end. | P1 | pending |
+| 2026-04-28 | Routes 404: `/jobs`, `/directory`, `/agent-directory`, `/browse` rinden blanco | Runtime audit detectó 4 rutas que renderizan página en blanco — falta SPA 404 fallback o rutas removidas sin cleanup de links. Origen: `04-visual-runtime-audit.md`. | P0 | pending |
+| 2026-04-28 | Sandbox badge visible en producción | Dynamic.xyz dev-mode badge "Sandbox" se muestra en login modal de prod. Configuración SDK leakeada. Ver `04-visual-runtime-audit.md`. | P0 | pending |
+| 2026-04-28 | Leaderboard "No workers yet" con 87+ executors | Supabase query genera URL malformada `?or=()` (filter group vacío) en query builder de leaderboard. Ver `04-visual-runtime-audit.md`. | P0 | pending |
+| 2026-04-28 | Task detail deep-link `?task=<uuid>` no abre modal | Reload de URL con query param `task=<uuid>` no dispara fetch — modal nunca aparece. Rompe shareability de tasks. Ver `04-visual-runtime-audit.md`. | P1 | pending |
+| 2026-04-28 | Expired task modal: copy "funds are in escrow" incorrecto | Modal de task expired dice que fondos están en escrow cuando ya fueron auto-refunded. Confunde a usuarios. Ver `04-visual-runtime-audit.md`. | P1 | pending |
+| 2026-04-28 | Homepage body height = 14,928px | Mega-page con scroll infinito. Probable consolidar/cortar secciones. Ver `04-visual-runtime-audit.md`. | P2 | pending |
+| 2026-04-28 | Hero code example usa `Authorization: Bearer {API_KEY}` obsoleto | API keys están desactivadas (`EM_API_KEYS_ENABLED=false`). Code example en hero misleads agents. Reemplazar con ERC-8128 wallet signing. Ver `04-visual-runtime-audit.md`. | P1 | pending |
+| 2026-04-28 | Nav items son `<button>` en vez de `<a>` | Rompe middle-click, right-click "open in new tab", SEO. Ver `04-visual-runtime-audit.md`. | P1 | pending |
+| 2026-04-28 | Network count drift: hero "9 Networks" vs OWS "8 Chains" | Inconsistencia copy. Single source of truth + render dinámico. Ver `04-visual-runtime-audit.md`. | P2 | pending |
+| 2026-04-28 | Naming clash routes: `/agents`, `/agents/directory`, `/directory`, `/agent-directory`, `/browse` | 5 rutas para concepto similar, solo 1 funciona. Cleanup + redirects. Ver `04-visual-runtime-audit.md`. | P1 | pending |
+| 2026-04-28 | Mobile: floating "+ New Request" overlapea heading en Agent Directory | Z-index/positioning sin offset top. Ver `04-visual-runtime-audit.md` viewport 375px. | P1 | pending |
+| 2026-04-28 | "Browse Available Jobs" CTA scroll a sección de tasks expiradas | First impression = dead marketplace. Cambiar destino a published tasks. Ver `04-visual-runtime-audit.md`. | P0 | pending |
 
 ---
 

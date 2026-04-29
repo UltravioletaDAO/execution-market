@@ -11,6 +11,9 @@ import { supabase } from '../lib/supabase'
 import { getWorldIdBountyThreshold } from '../hooks/usePlatformConfig'
 import { TxHashLink } from './TxLink'
 import { TaskRatings } from './TaskRatings'
+import { Pill } from './ui/Pill'
+import { Spinner } from './ui/Spinner'
+import { StatusBadge } from './ui/StatusBadge'
 import type { Task, Submission } from '../types/database'
 
 // --------------------------------------------------------------------------
@@ -101,25 +104,13 @@ export function TaskDetailModal({ taskId, onClose, onReviewSubmission }: TaskDet
     return () => { supabase.removeChannel(channel) }
   }, [taskId])
 
-  const statusColors: Record<string, string> = {
-    published: 'bg-green-100 text-green-700',
-    accepted: 'bg-blue-100 text-blue-700',
-    in_progress: 'bg-yellow-100 text-yellow-700',
-    submitted: 'bg-purple-100 text-purple-700',
-    verifying: 'bg-purple-100 text-purple-700',
-    completed: 'bg-emerald-100 text-emerald-700',
-    cancelled: 'bg-red-100 text-red-700',
-    expired: 'bg-gray-100 text-gray-700',
-    disputed: 'bg-orange-100 text-orange-700',
-  }
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-xl z-10">
+        <div className="sticky top-0 bg-white border-b border-zinc-200 px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
           <h2 className="text-lg font-semibold text-gray-900">{t('tasks.details')}</h2>
           <button
             onClick={onClose}
@@ -134,11 +125,8 @@ export function TaskDetailModal({ taskId, onClose, onReviewSubmission }: TaskDet
         <div className="px-6 py-4 space-y-5">
           {loading && (
             <div className="flex items-center justify-center py-12">
-              <svg className="animate-spin h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-              <span className="ml-3 text-gray-500">{t('common.loading')}</span>
+              <Spinner size="lg" className="text-zinc-700" label={t('common.loading')} />
+              <span className="ml-3 text-zinc-500">{t('common.loading')}</span>
             </div>
           )}
 
@@ -154,9 +142,7 @@ export function TaskDetailModal({ taskId, onClose, onReviewSubmission }: TaskDet
               <div>
                 <div className="flex items-start justify-between gap-3">
                   <h3 className="text-lg font-medium text-gray-900">{task.title}</h3>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap ${statusColors[task.status] || 'bg-gray-100 text-gray-700'}`}>
-                    {task.status}
-                  </span>
+                  <StatusBadge status={task.status} size="sm" label={task.status} />
                 </div>
                 <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                   <span>${task.bounty_usd?.toFixed(2)} USDC</span>
@@ -189,9 +175,9 @@ export function TaskDetailModal({ taskId, onClose, onReviewSubmission }: TaskDet
                   <h4 className="text-sm font-medium text-gray-700 mb-1">{t('tasks.evidence')}</h4>
                   <div className="flex flex-wrap gap-2">
                     {(task.evidence_schema?.required || []).map((r: string) => (
-                      <span key={r} className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">
+                      <Pill key={r} variant="default" size="sm" asSpan>
                         {r}
-                      </span>
+                      </Pill>
                     ))}
                   </div>
                 </div>

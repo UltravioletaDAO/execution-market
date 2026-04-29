@@ -877,7 +877,7 @@ export function SubmissionForm({
         {/* Camera evidence (photo, photo_geo) — uses full EvidenceUpload with camera + GPS */}
         {hasCameraTypes && (
           <section>
-            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">
+            <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 mb-3">
               {t('submission.photoEvidence', 'Photo Evidence')}
             </h3>
             <EvidenceUpload
@@ -899,7 +899,7 @@ export function SubmissionForm({
         {/* File-based evidence (video, document, receipt, etc.) */}
         {(fileRequired.length > 0 || fileOptional.length > 0) && (
           <section>
-            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">
+            <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 mb-3">
               {t('submission.fileEvidence', 'File Evidence')}
             </h3>
             <div className="space-y-3">
@@ -912,7 +912,7 @@ export function SubmissionForm({
         {/* Text responses (text_response, measurement) */}
         {(textRequired.length > 0 || textOptional.length > 0) && (
           <section>
-            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">
+            <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 mb-3">
               {t('submission.textEvidence', 'Text Responses')}
             </h3>
             <div className="space-y-3">
@@ -923,18 +923,18 @@ export function SubmissionForm({
         )}
       </div>
 
-      <div className="p-4 bg-gray-50 border-t border-gray-200 flex gap-3">
+      <div className="p-4 bg-zinc-50 border-t border-zinc-200 flex gap-3">
         <button
           onClick={onCancel}
           disabled={submitting}
-          className="flex-1 py-2 px-4 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
+          className="flex-1 py-2 px-4 border border-zinc-300 text-zinc-700 rounded-lg hover:bg-zinc-100 transition-colors disabled:bg-zinc-100 disabled:text-zinc-400 disabled:cursor-not-allowed"
         >
           {t('common.cancel')}
         </button>
         <button
           onClick={handleSubmit}
           disabled={submitting || anyPending}
-          className="flex-1 py-2 px-4 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 py-2 px-4 bg-zinc-900 text-white font-medium rounded-lg hover:bg-zinc-800 transition-colors disabled:bg-zinc-100 disabled:text-zinc-400 disabled:cursor-not-allowed"
         >
           {submitting ? t('submission.submitting') : t('submission.submitButton')}
         </button>

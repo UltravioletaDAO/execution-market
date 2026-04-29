@@ -126,8 +126,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               'w-full rounded-lg',
               'bg-white dark:bg-slate-800',
               'border',
-              'text-slate-900 dark:text-slate-100',
-              'placeholder:text-slate-400 dark:placeholder:text-slate-500',
+              'text-zinc-900 dark:text-zinc-100',
+              'placeholder:text-zinc-500 dark:placeholder:text-zinc-400',
               'transition-colors duration-200',
               // Focus styles
               'focus:outline-none focus:ring-2 focus:border-transparent',
@@ -251,8 +251,8 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
             'w-full rounded-lg',
             'bg-white dark:bg-slate-800',
             'border',
-            'text-slate-900 dark:text-slate-100',
-            'placeholder:text-slate-400 dark:placeholder:text-slate-500',
+            'text-zinc-900 dark:text-zinc-100',
+            'placeholder:text-zinc-500 dark:placeholder:text-zinc-400',
             'transition-colors duration-200',
             // Focus styles
             'focus:outline-none focus:ring-2 focus:border-transparent',
