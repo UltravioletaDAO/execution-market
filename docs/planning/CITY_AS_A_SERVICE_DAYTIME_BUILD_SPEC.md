@@ -379,13 +379,15 @@ Everything else should wait until the local loop proves value.
 The first deterministic replay bundle should be easy to inspect in a fixed order:
 1. `bundle_manifest`
 2. `event_summary`
-3. `brief_improvement_scorecard`
-4. `improved_dispatch_brief`
-5. `office_playbook_delta`
-6. `reviewed_episode`
-7. `review_packet`
+3. `review_packet`
+4. `brief_improvement_scorecard`
+5. `improved_dispatch_brief`
+6. `office_playbook_delta`
+7. `reviewed_episode`
+8. `reviewed_result`
+9. `baseline_dispatch_brief`
 
-This order keeps the proof centered on operational improvement first and raw supporting detail second.
+This order keeps the proof centered on operational improvement first, then the compact reviewed judgment object, then the supporting evidence chain.
 
 ## 15. Sharpest next daylight proof target
 
@@ -396,8 +398,9 @@ The narrowest strong daytime win is now:
 - deterministic `bundle_manifest`
 - explicit `review_packet`
 - one conservative learning-strength call per bundle
+- one explicit promotion-policy outcome that changes how the improved brief surfaces learned guidance
 
-If that bundle pair is legible and behavior-changing, broader Review Console and Acontext integration work can expand from a real proof seam instead of optimism.
+If that bundle pair is legible, behavior-changing, and promotion-safe, broader Review Console and Acontext integration work can expand from a real proof seam instead of optimism.
 
 ## 13. Sharp recommendation
 

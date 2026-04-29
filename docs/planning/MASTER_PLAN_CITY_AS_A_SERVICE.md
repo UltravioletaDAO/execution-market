@@ -2193,7 +2193,7 @@ If that seam stays implicit, the system can still drift into unsafe behavior:
 - future Acontext ingestion receives packet objects without a clear retrieval safety stance
 - bundle review becomes more disciplined than actual dispatch reuse
 
-### 55.1 The real missing question
+### 57.1 The real missing question
 
 The review packet already answers what the replay meant.
 The next product question is narrower:
@@ -2203,7 +2203,7 @@ The next product question is narrower:
 
 That is a promotion-policy question, not a bundle-format question.
 
-### 55.2 The first promotion policy should stay small and explicit
+### 57.2 The first promotion policy should stay small and explicit
 
 The cleanest first policy is to let `memory_promotion_decision` govern four outcomes:
 - `promote_with_confidence`
@@ -2213,7 +2213,7 @@ The cleanest first policy is to let `memory_promotion_decision` govern four outc
 
 That gives downstream retrieval and future Acontext sinks one boring explicit answer instead of forcing each consumer to infer meaning differently from the same packet.
 
-### 55.3 Why this matters for dispatch quality
+### 57.3 Why this matters for dispatch quality
 
 The first city-ops loop is not only trying to prove that memory artifacts can be written.
 It is trying to prove that reviewed municipal learning can improve future dispatch without hardening ambiguous field signals into fake certainty.
@@ -2224,7 +2224,7 @@ A promotion policy protects that boundary by separating:
 - reviewed learning that is reusable only with caution
 - reviewed learning that should remain archived but not influence operator doctrine yet
 
-### 55.4 What daytime should eventually do with this
+### 57.4 What daytime should eventually do with this
 
 The next daylight seam should not stop at emitting `review_packet`.
 It should also make brief composition respect the packet's promotion stance.
@@ -2235,9 +2235,59 @@ That means:
 - held learning can remain visible in debug/admin memory views without steering default dispatch
 - blocked promotion stays in the archive only
 
-### 55.5 Recommended handoff object
+### 57.5 Recommended handoff object
 
 The next planning/build seam should be formalized as:
 `CITY_AS_A_SERVICE_REVIEW_PACKET_PROMOTION_POLICY.md`
 
 If daytime follows that policy, the city-ops memory seam will be much safer: replay bundles stay the audit archive, review packets stay the decision object, and promotion policy becomes the explicit bridge between reviewed truth and live operator guidance.
+
+## 58. Daytime should review the packet before deeper artifacts because it is now the decision bridge
+
+The planning stack now says `review_packet` is not a sidecar note.
+It is the compact judgment bridge between replay proof and dispatch-visible memory behavior.
+
+That means the daylight review order should reflect that reality.
+If reviewers read scorecards and briefs before the packet, they can still reconstruct the right answer.
+But if the packet is truly the compact decision object, it should be inspected immediately after the manifest and event story.
+
+### 58.1 Why this matters
+
+The current bundle already contains enough information.
+The issue is review discipline and downstream ergonomics.
+The packet is where a reviewer should quickly learn:
+- what the replay proved
+- how strong the learned memory is
+- what the main operational improvement is
+- what the main remaining concern is
+- whether the learning should shape future dispatch confidently, cautiously, or not yet
+
+That is exactly the decision seam later admin tools, local projectors, and Acontext ingestion will need.
+
+### 58.2 Updated practical reading rhythm
+
+The preferred daylight reading rhythm should now be:
+1. `bundle_manifest`
+2. `event_summary`
+3. `review_packet`
+4. `brief_improvement_scorecard`
+5. `improved_dispatch_brief`
+6. `office_playbook_delta`
+7. `reviewed_episode`
+8. supporting artifacts as needed
+
+This keeps the review anchored to:
+- proof contract first
+- ordered lifecycle second
+- compact reviewed decision third
+- detailed supporting evidence after that
+
+### 58.3 Daytime consequence
+
+The first implementation should therefore make sure `review_packet` is:
+- emitted deterministically
+- aligned with manifest judgment and event ordering
+- compact enough to review in PRs quickly
+- strong enough to drive retrieval behavior without rereading the whole bundle
+
+If the packet still feels too thin or too ambiguous to hold that spot in the reading order, the seam is not compressed enough yet.

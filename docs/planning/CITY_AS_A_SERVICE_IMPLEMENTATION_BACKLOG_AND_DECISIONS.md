@@ -325,6 +325,7 @@ The first slice should be considered real only if this scenario passes cleanly:
 6. the brief warns about a known redirect, evidence restriction, or rejection pattern
 7. the operator changes dispatch instructions because of that brief
 8. the operator can inspect exactly which episode caused the warning and which review packet justified promotion
+9. the surfaced guidance strength matches the promotion policy outcome (`confident`, `cautious`, held, or blocked) instead of flattening all learned memory into the same operator tone
 
 If that scenario fails, the system is documenting work, not learning from it.
 
@@ -342,7 +343,7 @@ The following are valuable later, but should not dilute the first build window:
 
 If daytime wants the clearest possible next move, it should treat the CaaS backlog as:
 
-**contracts first, replay second, review gate third, projector fourth, retrieval fifth, observability sixth, infra swap last.**
+**contracts first, replay second, review gate third, projector fourth, promotion-policy-aware retrieval fifth, observability sixth, infra swap last.**
 
 That preserves the real moat:
 **reviewed municipal reality becoming better future execution.**
