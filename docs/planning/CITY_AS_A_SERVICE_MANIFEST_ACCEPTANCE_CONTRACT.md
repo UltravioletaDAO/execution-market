@@ -70,6 +70,7 @@ Required keys:
 - `improved_dispatch_brief`
 - `brief_improvement_scorecard`
 - `event_summary`
+- `review_packet`
 
 The manifest should never force a reviewer to guess whether a missing file was intentional or accidental.
 
@@ -84,6 +85,7 @@ The `acceptance` object should carry the smallest set of explicit pass/fail chec
 - `brief_improvement_visible`
 - `provenance_traceable`
 - `events_in_expected_order`
+- `review_packet_aligned`
 
 ### 5.2 Recommended check semantics
 
@@ -104,6 +106,13 @@ True only if important brief claims can be linked back to reviewed episodes or e
 
 #### `events_in_expected_order`
 True only if the compact event summary preserves the expected lifecycle ordering for the replay.
+
+#### `review_packet_aligned`
+True only if the `review_packet`:
+- mirrors the manifest `summary_judgment`
+- states a conservative `learning_strength`
+- makes `memory_promotion_decision` explicit
+- stays traceable back to the canonical replay artifacts
 
 ## 6. Summary judgment contract
 
@@ -153,7 +162,8 @@ Use when:
     "office_playbook_after": "present",
     "improved_dispatch_brief": "present",
     "brief_improvement_scorecard": "present",
-    "event_summary": "present"
+    "event_summary": "present",
+    "review_packet": "present"
   },
   "acceptance": {
     "contracts_valid": true,
@@ -161,7 +171,8 @@ Use when:
     "playbook_delta_meaningful": true,
     "brief_improvement_visible": true,
     "provenance_traceable": true,
-    "events_in_expected_order": true
+    "events_in_expected_order": true,
+    "review_packet_aligned": true
   },
   "summary_judgment": "pass"
 }
@@ -171,10 +182,12 @@ Use when:
 
 The first daytime PR should treat the manifest as the headline artifact.
 A reviewer should start there, then inspect:
-1. `brief_improvement_scorecard`
-2. `improved_dispatch_brief`
-3. `office_playbook_delta`
-4. `reviewed_episode`
+1. `event_summary`
+2. `review_packet`
+3. `brief_improvement_scorecard`
+4. `improved_dispatch_brief`
+5. `office_playbook_delta`
+6. `reviewed_episode`
 
 That reading order keeps the first proof focused on whether learning became operationally useful.
 

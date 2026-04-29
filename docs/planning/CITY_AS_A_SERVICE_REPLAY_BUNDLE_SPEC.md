@@ -52,6 +52,7 @@ Each replay bundle should contain exactly these top-level artifacts:
 8. `brief_improvement_scorecard`
 9. `event_summary`
 10. `bundle_manifest`
+11. `review_packet`
 
 If one of these does not apply, the bundle should still include a placeholder object with a clear reason such as:
 - `not_emitted`
@@ -102,6 +103,10 @@ Must answer:
 Must answer:
 - which fixture produced this bundle, which validator or schema versions were used, and whether the bundle passed all replay gates?
 
+### 4.11 `review_packet`
+Must answer:
+- what the replay means operationally after manifest and scorecard judgment, and how strongly the learned guidance is allowed to influence future dispatch?
+
 ## 5. Recommended directory layout
 
 A replay bundle should be written in a deterministic folder layout like this:
@@ -119,6 +124,7 @@ city_ops_replay_runs/
     improved_dispatch_brief.json
     brief_improvement_scorecard.json
     event_summary.json
+    review_packet.json
 ```
 
 If a markdown summary is useful, it can be added as:
@@ -200,7 +206,17 @@ Recommended shape:
 }
 ```
 
-## 8. Improvement scorecard requirements inside the bundle
+## 8. Review packet requirements inside the bundle
+
+The bundle should include one compact `review_packet` after manifest and scorecard evaluation.
+That packet should:
+- mirror the manifest `summary_judgment`
+- carry `learning_strength`
+- make `memory_promotion_decision` explicit
+- point back to the canonical proof artifacts
+- stay short enough for downstream retrieval or Acontext ingestion without rereading the full archive
+
+## 9. Improvement scorecard requirements inside the bundle
 
 The scorecard should use the five dimensions already established elsewhere:
 - routing clarity
@@ -212,7 +228,7 @@ The scorecard should use the five dimensions already established elsewhere:
 The bundle should not pass if the scorecard is omitted.
 A before/after brief pair without explicit grading is still too easy to argue by vibe.
 
-## 9. Pass/fail rule for the first daylight proof
+## 10. Pass/fail rule for the first daylight proof
 
 A replay bundle should count as a successful proof only if all of the following are true:
 - all required artifacts are present or explicitly marked not applicable
@@ -225,7 +241,7 @@ A replay bundle should count as a successful proof only if all of the following 
 
 If the bundle only shows different wording with no operational improvement, the proof should fail.
 
-## 10. Recommended first fixture sequence for bundle generation
+## 11. Recommended first fixture sequence for bundle generation
 
 The first daylight implementation should generate bundles for at least:
 1. one rejection fixture
@@ -239,7 +255,16 @@ Why this order:
 
 That is enough to show whether the city-ops memory seam is becoming genuinely useful.
 
-## 11. Sharp recommendation
+## 12. Relationship between bundle, manifest, and packet
+
+The bundle should now be read as three layers:
+- the artifact set as the proof archive
+- the manifest as the headline pass/partial/fail contract
+- the review packet as the compact operational judgment and promotion-safety bridge
+
+That distinction keeps the replay seam reviewable without forcing downstream consumers to infer memory policy from raw bundle files.
+
+## 13. Sharp recommendation
 
 **Treat the replay bundle as the operator-readable receipt for CaaS learning.**
 

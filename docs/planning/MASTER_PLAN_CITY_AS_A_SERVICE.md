@@ -2143,7 +2143,45 @@ The next planning/build seam should be formalized as:
 
 If daytime can emit one honest review packet beside every replay bundle, then later Acontext, route-regret summaries, and operator tooling can all consume the same reviewed truth instead of recomputing it differently.
 
-## 55. Review-packet judgment should directly control memory promotion, not just describe it
+## 56. The standard replay bundle should now treat review_packet as a required proof artifact
+
+The planning seam has been getting sharper about judgment, promotion safety, and review discipline.
+That created one last mismatch that needed to be closed explicitly:
+`review_packet` had become central to operational meaning, but the standard replay bundle and manifest contract still treated it like an adjacent concept rather than a required proof artifact.
+
+That is too loose for the first daylight build.
+If `review_packet` is the compact decision bridge between replay proof and dispatch-visible memory, then it should travel inside the canonical bundle, participate in manifest acceptance, and appear in the ordered event story.
+
+### 56.1 Why this matters
+
+Without this change, downstream consumers could still drift into two weak patterns:
+- reading the manifest as if pass/fail alone were enough to decide memory reuse
+- reconstructing promotion meaning from scorecards and reviewer notes instead of one explicit packet object
+
+Making `review_packet` a required bundle artifact fixes that.
+The bundle remains the archive, the manifest remains the headline proof contract, and the packet becomes the compact operational judgment object.
+
+### 56.2 What the first replay proof should now require
+
+The first standard replay bundle should now require:
+- canonical artifact presence state for `review_packet`
+- one acceptance check confirming packet alignment with manifest and scorecard truth
+- one ordered event showing when packet emission completed
+- one review-friendly reading order where packet follows manifest/event review and precedes deeper artifact inspection
+
+That keeps daylight implementation honest about the final step in the learning seam:
+not just “did the replay pass?” but “what is the reviewed decision about memory reuse?”
+
+### 56.3 Practical consequence for daytime
+
+Daytime should now treat the replay seam as three nested layers:
+1. **proof archive** — the full replay bundle
+2. **proof contract** — the manifest + event summary
+3. **decision bridge** — the `review_packet` + promotion stance
+
+That ordering is tighter than the earlier planning state and should make later Acontext ingestion, admin tooling, and dispatch-brief composition much less likely to drift semantically.
+
+## 57. Review-packet judgment should directly control memory promotion, not just describe it
 
 The planning stack now has a compact review-safe decision object.
 That is good, but one practical seam still needed to be made explicit:

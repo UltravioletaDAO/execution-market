@@ -168,6 +168,7 @@ Recommended event names:
 6. `city_brief_scorecard_computed`
 7. `city_manifest_evaluated`
 8. `city_learning_strength_classified`
+9. `city_review_packet_emitted`
 
 This sequence matches the current proof chain closely enough to keep the seam legible.
 
@@ -183,6 +184,7 @@ The normal successful order should be:
 6. `city_brief_scorecard_computed`
 7. `city_manifest_evaluated`
 8. `city_learning_strength_classified`
+9. `city_review_packet_emitted`
 
 If one event is skipped because a fixture is not applicable, the event should still appear with:
 - `status: "skipped"`
@@ -212,6 +214,8 @@ Recommended mapping:
   - `bundle_manifest`
 - `city_learning_strength_classified`
   - `bundle_manifest`
+- `city_review_packet_emitted`
+  - `review_packet`
 
 This keeps `event_summary` from becoming an isolated log blob.
 It remains a compact index into the proof bundle.
@@ -276,6 +280,13 @@ It remains a compact index into the proof bundle.
       "status": "succeeded",
       "artifact_refs": ["bundle_manifest"],
       "notes": ["bundle judged pass with moderate reusable office learning"]
+    },
+    {
+      "sequence": 9,
+      "name": "city_review_packet_emitted",
+      "status": "succeeded",
+      "artifact_refs": ["review_packet"],
+      "notes": ["review packet finalized explicit promotion stance for future dispatch reuse"]
     }
   ]
 }
