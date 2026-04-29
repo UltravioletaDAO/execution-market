@@ -48,6 +48,7 @@ If that loop is missing, more templates, more UI, and more infra will only scale
 - local file-based artifact sink
 - deterministic projector that writes reviewed episodes and office playbooks
 - pre-dispatch briefing composer
+- replay-bundle judgment outputs, including `review_packet`
 - thin operator surfaces or admin/debug views that prove the loop works
 - instrumentation for review completion and memory reuse
 
@@ -96,13 +97,44 @@ Input:
 Output:
 - `dispatch_brief`
 
-### 4.4 Observability emitter
+### 4.4 Replay judgment composer
+Input:
+- `bundle_manifest`
+- `event_summary`
+- `brief_improvement_scorecard`
+- `improved_dispatch_brief`
+- `office_playbook_delta`
+- `reviewed_episode`
+
+Output:
+- `review_packet`
+
+### 4.5 Observability emitter
 Input:
 - lifecycle events from the review/projector/brief loop
 
 Output:
 - stable product events
 - counters for review quality, routing quality, and memory reuse
+
+### 4.6 Replay bundle writer
+Input:
+- baseline task context
+- `reviewed_result`
+- `review_artifact`
+- `reviewed_episode`
+- optional `office_playbook_delta`
+- merged office playbook artifact
+- `improved_dispatch_brief`
+- `brief_improvement_scorecard`
+- `event_summary`
+- `bundle_manifest`
+- `review_packet`
+
+Output:
+- one deterministic replay bundle in a stable folder layout
+- explicit artifact presence states for conditionally omitted outputs
+- a PR-reviewable proof object that can be inspected without UI dependencies
 
 ## 5. Suggested first file layout
 
@@ -125,6 +157,20 @@ docs/planning/examples/city_ops_memory/
   office_playbooks/
   jurisdiction_briefs/
   dispatch_briefs/
+
+city_ops_replay_runs/
+  <fixture_id>/
+    bundle_manifest.json
+    baseline_dispatch_brief.json
+    reviewed_result.json
+    review_artifact.json
+    reviewed_episode.json
+    office_playbook_delta.json
+    office_playbook_after.json
+    improved_dispatch_brief.json
+    brief_improvement_scorecard.json
+    event_summary.json
+    review_packet.json
 ```
 
 If Python placement is awkward, equivalent TypeScript placement is acceptable.
@@ -136,14 +182,19 @@ The important thing is preserving the seam, not the exact language.
 - one `reviewed_result`
 - one `review_artifact`
 - one `reviewed_episode`
+- one `bundle_manifest` once replay acceptance checks can be evaluated
+- one `event_summary` once the replay lifecycle can be summarized deterministically
+- one `review_packet` once the replay bundle judgment is available
 
 ### 6.2 Write these conditionally
 - `office_playbook_delta` only when the reviewed episode contains meaningful learning
 - jurisdiction brief update only when multiple episodes support it
+- placeholder artifact state objects when a conditional replay output is intentionally not emitted
 
 ### 6.3 Always recompute these when office context exists
 - office playbook merge result
 - dispatch brief for office + workflow template
+- replay-bundle scorecard and packet outputs whenever a before/after brief comparison exists
 
 ### 6.4 Never do this in v1
 - write memory directly from raw upload
@@ -180,7 +231,7 @@ The requirement is inspectability, not polish.
 
 ## 8. The first deterministic projector behavior
 
-The projector should stay boring.
+The projector and replay judgment seam should stay boring.
 No model inference needed for the first loop.
 
 ### Example projector logic
@@ -252,6 +303,22 @@ The loop emits at least these events:
 - `city_dispatch_brief_composed`
 - `city_dispatch_context_reused`
 
+### Gate G — compact judgment object
+Given a replay bundle,
+the system can emit a valid `review_packet` that:
+- matches the manifest judgment
+- states learning strength honestly
+- makes memory promotion explicit
+- points back to the canonical artifacts
+
+### Gate H — standard replay bundle
+Given a replay fixture,
+the system can emit one deterministic replay bundle that:
+- includes the canonical artifact set in a stable layout
+- records placeholder presence states for skipped or not-applicable outputs
+- keeps `event_summary`, `bundle_manifest`, and `review_packet` mutually aligned
+- can be reviewed in git without reconstructing meaning from raw logs
+
 ## 11. Recommended implementation order
 
 ### Phase 1 — contracts and fixtures
@@ -268,15 +335,27 @@ The loop emits at least these events:
 - merge office playbooks
 - emit dispatch briefs
 
-### Phase 4 — debug surfaces
+### Phase 4 — replay judgment layer
+- emit `bundle_manifest` from the canonical replay artifacts
+- emit `event_summary` from the canonical replay lifecycle
+- emit `review_packet` from the canonical replay artifacts
+- keep packet rationale short and behavior-focused
+- enforce alignment between manifest judgment and memory-promotion stance
+
+### Phase 5 — replay bundle writer
+- write the canonical replay bundle in a stable folder layout
+- include placeholder objects or explicit presence-state handling for conditionally omitted artifacts
+- make the bundle PR-reviewable without relying on dashboard polish
+
+### Phase 6 — debug surfaces
 - make artifacts inspectable by operator/admin
 - add memory preview before confirm
 
-### Phase 5 — observability
+### Phase 7 — observability
 - emit loop events
 - create first review/memory effectiveness dashboard or logs
 
-### Phase 6 — only then consider Acontext sink swap
+### Phase 8 — only then consider Acontext sink swap
 - keep contracts identical
 - swap transport, not product meaning
 
@@ -290,6 +369,31 @@ These are the only high-value open questions for the first slice:
 - what exact operator action counts as `city_dispatch_context_reused`?
 
 Everything else should wait until the local loop proves value.
+
+## 14. Review-friendly replay reading order
+
+The first deterministic replay bundle should be easy to inspect in a fixed order:
+1. `bundle_manifest`
+2. `event_summary`
+3. `brief_improvement_scorecard`
+4. `improved_dispatch_brief`
+5. `office_playbook_delta`
+6. `reviewed_episode`
+7. `review_packet`
+
+This order keeps the proof centered on operational improvement first and raw supporting detail second.
+
+## 15. Sharpest next daylight proof target
+
+The narrowest strong daytime win is now:
+- one reviewed rejection fixture bundle
+- one reviewed redirect fixture bundle
+- deterministic `event_summary`
+- deterministic `bundle_manifest`
+- explicit `review_packet`
+- one conservative learning-strength call per bundle
+
+If that bundle pair is legible and behavior-changing, broader Review Console and Acontext integration work can expand from a real proof seam instead of optimism.
 
 ## 13. Sharp recommendation
 
