@@ -101,7 +101,9 @@ describe('Modal', () => {
   it('wires aria-labelledby when labelledBy is provided', () => {
     render(
       <Modal open onClose={() => {}} labelledBy="title-id">
-        <Modal.Header id="title-id">My Title</Modal.Header>
+        <Modal.Header>
+          <h2 id="title-id">My Title</h2>
+        </Modal.Header>
         <Modal.Body>x</Modal.Body>
       </Modal>
     )

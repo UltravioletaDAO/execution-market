@@ -7,9 +7,9 @@
  * Score is 0-100 scale with quick presets at 20, 40, 60, 80, 100.
  */
 
-import { useState, useEffect, useRef } from 'react'
-import { createPortal } from 'react-dom'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Modal } from './ui/Modal'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://api.execution.market'
 
@@ -31,7 +31,6 @@ export function RateAgentModal({
   onSuccess,
 }: RateAgentModalProps) {
   const { t } = useTranslation()
-  const modalRef = useRef<HTMLDivElement>(null)
 
   const [score, setScore] = useState(80)
   const [comment, setComment] = useState('')
@@ -43,21 +42,6 @@ export function RateAgentModal({
     score >= 80 ? 'text-zinc-900' : score >= 50 ? 'text-amber-700' : 'text-red-700'
   const scoreAccentColor =
     score >= 80 ? '#18181b' : score >= 50 ? '#b45309' : '#b91c1c'
-
-  // Close on Escape
-  useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !submitting) onClose()
-    }
-    document.addEventListener('keydown', handleEsc)
-    return () => document.removeEventListener('keydown', handleEsc)
-  }, [onClose, submitting])
-
-  // Prevent body scroll
-  useEffect(() => {
-    document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = '' }
-  }, [])
 
   async function handleSubmit() {
     setSubmitting(true)
@@ -99,14 +83,24 @@ export function RateAgentModal({
     }
   }
 
-  // Success state
+  // Success state — small confirmation card with no header/footer.
   if (success) {
-    return createPortal(
-      <div className="fixed inset-0 z-50 flex items-center justify-center">
-        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" aria-hidden="true" />
-        <div className="relative w-full max-w-sm mx-4 bg-white rounded-2xl shadow-2xl p-8 text-center">
+    return (
+      <Modal
+        open
+        onClose={onClose}
+        size="sm"
+        ariaLabel={t('rateAgent.success', 'Rating submitted!')}
+      >
+        <Modal.Body className="p-8 text-center">
           <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-green-50">
-            <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg
+              className="w-8 h-8 text-green-600"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
@@ -116,148 +110,119 @@ export function RateAgentModal({
           <p className="text-sm text-zinc-500 mt-1">
             {t('rateAgent.successDescription', 'Your rating has been recorded on-chain via ERC-8004.')}
           </p>
-        </div>
-      </div>,
-      document.body
+        </Modal.Body>
+      </Modal>
     )
   }
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={submitting ? undefined : onClose}
-        aria-hidden="true"
-      />
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      size="md"
+      labelledBy="rate-agent-title"
+      dismissOnEsc={!submitting}
+      dismissOnBackdrop={!submitting}
+    >
+      <Modal.Header onClose={submitting ? undefined : onClose}>
+        <h2 id="rate-agent-title" className="text-lg font-bold text-zinc-900">
+          {t('rateAgent.title', 'Rate Agent')}
+        </h2>
+        {agentName && <p className="text-sm text-zinc-500">{agentName}</p>}
+      </Modal.Header>
 
-      {/* Modal */}
-      <div
-        ref={modalRef}
-        role="dialog"
-        aria-modal="true"
-        className="relative w-full max-w-md max-h-[90vh] mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col"
-      >
-        {/* Header */}
-        <div className="px-6 pt-6 pb-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-bold text-zinc-900">
-              {t('rateAgent.title', 'Rate Agent')}
-            </h2>
-            {agentName && (
-              <p className="text-sm text-zinc-500">{agentName}</p>
-            )}
-          </div>
-          {!submitting && (
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close"
-              className="p-2 hover:bg-zinc-100 rounded-lg transition-colors"
-            >
-              <svg className="w-5 h-5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          )}
+      <Modal.Body className="space-y-5">
+        {/* Task reference */}
+        <p className="text-sm text-zinc-500">
+          <span className="font-medium text-zinc-700">{t('rating.forTask', 'Task:')}</span>{' '}
+          {taskTitle}
+        </p>
+
+        {/* Score display */}
+        <div className="text-center">
+          <span className={`text-5xl font-extrabold ${scoreTextClass}`}>{score}</span>
+          <span className="text-lg text-zinc-500">/100</span>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto px-6 pb-4 space-y-5">
-          {/* Task reference */}
-          <p className="text-sm text-zinc-500">
-            <span className="font-medium text-zinc-700">{t('rating.forTask', 'Task:')}</span>{' '}
-            {taskTitle}
-          </p>
-
-          {/* Score display */}
-          <div className="text-center">
-            <span className={`text-5xl font-extrabold ${scoreTextClass}`}>{score}</span>
-            <span className="text-lg text-zinc-500">/100</span>
-          </div>
-
-          {/* Slider */}
-          <div className="px-2">
-            <input
-              type="range"
-              min={0}
-              max={100}
-              value={score}
-              onChange={(e) => setScore(Number(e.target.value))}
-              disabled={submitting}
-              className="w-full h-2 rounded-lg appearance-none cursor-pointer"
-              style={{ accentColor: scoreAccentColor }}
-            />
-            <div className="flex justify-between text-xs text-zinc-500 mt-1">
-              <span>0</span>
-              <span>50</span>
-              <span>100</span>
-            </div>
-          </div>
-
-          {/* Quick presets */}
-          <div className="flex justify-center gap-2">
-            {[20, 40, 60, 80, 100].map((preset) => (
-              <button
-                key={preset}
-                type="button"
-                onClick={() => setScore(preset)}
-                disabled={submitting}
-                className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
-                  score === preset
-                    ? 'bg-zinc-900 text-white'
-                    : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200'
-                } disabled:bg-zinc-100 disabled:text-zinc-400 disabled:cursor-not-allowed`}
-              >
-                {preset}
-              </button>
-            ))}
-          </div>
-
-          {/* Comment */}
-          <textarea
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
+        {/* Slider */}
+        <div className="px-2">
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={score}
+            onChange={(e) => setScore(Number(e.target.value))}
             disabled={submitting}
-            placeholder={t('rateAgent.commentPlaceholder', 'Optional comment about your experience...')}
-            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500 outline-none resize-none text-sm disabled:bg-zinc-100 disabled:text-zinc-400 disabled:cursor-not-allowed"
-            rows={3}
-            maxLength={1000}
+            className="w-full h-2 rounded-lg appearance-none cursor-pointer"
+            style={{ accentColor: scoreAccentColor }}
           />
-
-          {/* Error */}
-          {error && (
-            <div className="p-3 rounded-lg bg-red-50 border border-red-300">
-              <p className="text-sm text-red-700">{error}</p>
-            </div>
-          )}
+          <div className="flex justify-between text-xs text-zinc-500 mt-1">
+            <span>0</span>
+            <span>50</span>
+            <span>100</span>
+          </div>
         </div>
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-zinc-200 bg-zinc-50 flex gap-3">
-          {!submitting && (
+        {/* Quick presets */}
+        <div className="flex justify-center gap-2">
+          {[20, 40, 60, 80, 100].map((preset) => (
             <button
+              key={preset}
               type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors"
+              onClick={() => setScore(preset)}
+              disabled={submitting}
+              className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+                score === preset
+                  ? 'bg-zinc-900 text-white'
+                  : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200'
+              } disabled:bg-zinc-100 disabled:text-zinc-400 disabled:cursor-not-allowed`}
             >
-              {t('common.cancel', 'Cancel')}
+              {preset}
             </button>
-          )}
+          ))}
+        </div>
+
+        {/* Comment */}
+        <textarea
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          disabled={submitting}
+          placeholder={t('rateAgent.commentPlaceholder', 'Optional comment about your experience...')}
+          className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none resize-none text-sm disabled:bg-zinc-100 disabled:text-zinc-400 disabled:cursor-not-allowed"
+          rows={3}
+          maxLength={1000}
+        />
+
+        {/* Error */}
+        {error && (
+          <div className="p-3 rounded-lg bg-red-50 border border-red-300">
+            <p className="text-sm text-red-700">{error}</p>
+          </div>
+        )}
+      </Modal.Body>
+
+      <Modal.Footer className="bg-zinc-50">
+        {!submitting && (
           <button
             type="button"
-            onClick={handleSubmit}
-            disabled={submitting}
-            className="flex-1 py-2.5 bg-zinc-900 text-white font-semibold rounded-xl hover:bg-zinc-800 disabled:bg-zinc-100 disabled:text-zinc-400 disabled:cursor-not-allowed transition-colors text-sm"
+            onClick={onClose}
+            className="px-4 py-2.5 text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors"
           >
-            {submitting
-              ? t('rateAgent.submitting', 'Submitting...')
-              : t('rateAgent.submit', 'Submit Rating')}
+            {t('common.cancel', 'Cancel')}
           </button>
-        </div>
-      </div>
-    </div>,
-    document.body
+        )}
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={submitting}
+          className="flex-1 py-2.5 bg-zinc-900 text-white font-semibold rounded-xl hover:bg-zinc-800 disabled:bg-zinc-100 disabled:text-zinc-400 disabled:cursor-not-allowed transition-colors text-sm"
+        >
+          {submitting
+            ? t('rateAgent.submitting', 'Submitting...')
+            : t('rateAgent.submit', 'Submit Rating')}
+        </button>
+      </Modal.Footer>
+    </Modal>
   )
 }
 

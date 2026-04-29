@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useTranslation as useCustomTranslation } from '../i18n/hooks/useTranslation'
 import { useAuth } from '../context/AuthContext'
@@ -11,6 +11,7 @@ import { applyToTask, ApplicationError } from '../services/tasks'
 import type { Task } from '../types/database'
 import { getWorldIdBountyThreshold } from '../hooks/usePlatformConfig'
 import { Pill } from './ui/Pill'
+import { Modal } from './ui/Modal'
 
 interface TaskApplicationModalProps {
   task: Task
@@ -31,58 +32,6 @@ export function TaskApplicationModal({ task, hasAlreadyApplied, onClose, onSucce
   const [resultState, setResultState] = useState<ApplicationResultState | null>(
     hasAlreadyApplied ? 'already_applied' : null
   )
-  const modalRef = useRef<HTMLDivElement>(null)
-
-  // Focus trap - keep focus within modal
-  useEffect(() => {
-    const modal = modalRef.current
-    if (!modal) return
-
-    const focusableElements = modal.querySelectorAll<HTMLElement>(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    )
-    const firstElement = focusableElements[0]
-    const lastElement = focusableElements[focusableElements.length - 1]
-
-    // Focus first element on mount
-    firstElement?.focus()
-
-    const handleTabKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Tab') return
-
-      if (e.shiftKey) {
-        if (document.activeElement === firstElement) {
-          e.preventDefault()
-          lastElement?.focus()
-        }
-      } else {
-        if (document.activeElement === lastElement) {
-          e.preventDefault()
-          firstElement?.focus()
-        }
-      }
-    }
-
-    modal.addEventListener('keydown', handleTabKey)
-    return () => modal.removeEventListener('keydown', handleTabKey)
-  }, [])
-
-  // Close on escape
-  useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    document.addEventListener('keydown', handleEsc)
-    return () => document.removeEventListener('keydown', handleEsc)
-  }, [onClose])
-
-  // Prevent body scroll
-  useEffect(() => {
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = ''
-    }
-  }, [])
 
   const handleSubmit = async () => {
     if (!executor) return
@@ -140,48 +89,33 @@ export function TaskApplicationModal({ task, hasAlreadyApplied, onClose, onSucce
   const location = [executor.location_city, executor.location_country].filter(Boolean).join(', ')
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
+    <Modal
+      open
+      onClose={onClose}
+      size="md"
+      labelledBy="application-modal-title"
+      className="max-w-lg"
+    >
+      <Modal.Header onClose={onClose}>
+        <h2 id="application-modal-title" className="text-xl font-bold text-zinc-900">
+          {t('application.title', 'Apply to Task')}
+        </h2>
+      </Modal.Header>
 
-      {/* Modal */}
-      <div
-        ref={modalRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="application-modal-title"
-        className="relative w-full max-w-lg max-h-[90vh] mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col"
-      >
-        {/* Header */}
-        <div className="px-6 pt-6 pb-4 flex items-center justify-between">
-          <h2 id="application-modal-title" className="text-xl font-bold text-gray-900">
-            {t('application.title', 'Apply to Task')}
-          </h2>
-          <button
-            onClick={onClose}
-            aria-label={t('common.close', 'Close modal')}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Content — show result view OR application form */}
-        {resultState ? (
-          <div className="flex-1 overflow-y-auto px-6 pb-4">
-            <ApplicationResultView
-              state={resultState}
-              worldIdThreshold={getWorldIdBountyThreshold()}
-              errorMessage={error || undefined}
-              onClose={onClose}
-              onRetry={handleRetry}
-            />
-          </div>
-        ) : (
-          <>
-            <div className="flex-1 overflow-y-auto px-6 pb-4 space-y-5">
+      {/* Content — show result view OR application form */}
+      {resultState ? (
+        <Modal.Body>
+          <ApplicationResultView
+            state={resultState}
+            worldIdThreshold={getWorldIdBountyThreshold()}
+            errorMessage={error || undefined}
+            onClose={onClose}
+            onRetry={handleRetry}
+          />
+        </Modal.Body>
+      ) : (
+        <>
+          <Modal.Body className="space-y-5">
               {/* Task summary */}
               <div className="bg-zinc-50 rounded-xl p-4">
                 <h3 className="font-semibold text-zinc-900 mb-2">{task.title}</h3>
@@ -264,36 +198,34 @@ export function TaskApplicationModal({ task, hasAlreadyApplied, onClose, onSucce
                     'application.messagePlaceholder',
                     'Why are you a good fit for this task?'
                   )}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+                  className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none resize-none"
                   rows={3}
                   maxLength={500}
                 />
               </div>
-            </div>
+          </Modal.Body>
 
-            {/* Footer */}
-            <div className="px-6 py-4 border-t border-zinc-200 bg-zinc-50 flex gap-3">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2.5 text-sm font-medium text-zinc-700 hover:text-zinc-900 transition-colors"
-              >
-                {t('common.cancel', 'Cancel')}
-              </button>
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={submitting}
-                className="flex-1 py-2.5 bg-zinc-900 text-white font-semibold rounded-xl hover:bg-zinc-800 disabled:bg-zinc-100 disabled:text-zinc-400 disabled:cursor-not-allowed transition-colors"
-              >
-                {submitting
-                  ? t('common.submitting', 'Submitting...')
-                  : t('application.submit', 'Submit Application')}
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
+          <Modal.Footer className="bg-zinc-50">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2.5 text-sm font-medium text-zinc-700 hover:text-zinc-900 transition-colors"
+            >
+              {t('common.cancel', 'Cancel')}
+            </button>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="flex-1 py-2.5 bg-zinc-900 text-white font-semibold rounded-xl hover:bg-zinc-800 disabled:bg-zinc-100 disabled:text-zinc-400 disabled:cursor-not-allowed transition-colors"
+            >
+              {submitting
+                ? t('common.submitting', 'Submitting...')
+                : t('application.submit', 'Submit Application')}
+            </button>
+          </Modal.Footer>
+        </>
+      )}
+    </Modal>
   )
 }

@@ -227,32 +227,29 @@ export function Modal({
 export interface ModalHeaderProps {
   /** When provided, renders an X close button that calls this. */
   onClose?: () => void;
-  /** id used for aria-labelledby on the parent Modal. */
-  id?: string;
   /** Optional extra class for the header wrapper. */
   className?: string;
-  /** Header content — typically a title string or `<h2>`. */
+  /**
+   * Header content — caller is responsible for the heading semantics. Either
+   * pass a single `<h2 id="title-id">` (matches the parent Modal's
+   * `labelledBy` prop), or a more complex layout like title + subtitle.
+   */
   children: ReactNode;
 }
 
-function ModalHeader({ onClose, id, className, children }: ModalHeaderProps) {
+function ModalHeader({ onClose, className, children }: ModalHeaderProps) {
   return (
     <div
       className={cn(
-        'sticky top-0 z-10',
+        'shrink-0',
         'bg-white dark:bg-zinc-900',
         'border-b border-zinc-200 dark:border-zinc-800',
-        'px-6 py-4 flex items-center justify-between',
+        'px-6 py-4 flex items-start justify-between gap-4',
         'rounded-t-2xl',
         className
       )}
     >
-      <h2
-        id={id}
-        className="text-lg font-semibold text-zinc-900 dark:text-zinc-100"
-      >
-        {children}
-      </h2>
+      <div className="flex-1 min-w-0">{children}</div>
       {onClose && (
         <button
           type="button"

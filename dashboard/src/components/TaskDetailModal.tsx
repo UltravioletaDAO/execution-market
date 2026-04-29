@@ -107,8 +107,13 @@ export function TaskDetailModal({ taskId, onClose, onReviewSubmission }: TaskDet
 
   return (
     <Modal open onClose={onClose} size="lg" labelledBy="task-detail-title">
-      <Modal.Header id="task-detail-title" onClose={onClose}>
-        {t('tasks.details')}
+      <Modal.Header onClose={onClose}>
+        <h2
+          id="task-detail-title"
+          className="text-lg font-semibold text-zinc-900 dark:text-zinc-100"
+        >
+          {t('tasks.details')}
+        </h2>
       </Modal.Header>
 
       <Modal.Body className="space-y-5">
