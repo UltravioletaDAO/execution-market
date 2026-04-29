@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import QRCode from 'qrcode'
 import { LIVE_NETWORKS } from '../../../config/networks'
+import { Modal } from '../../ui/Modal'
 
 interface ReceiveModalProps {
   identityAddress: string
@@ -56,8 +57,6 @@ export function ReceiveModal({ identityAddress, activeAddress, open, onClose }: 
     return () => clearTimeout(timer)
   }, [copied])
 
-  if (!open) return null
-
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(displayedAddress)
@@ -68,52 +67,33 @@ export function ReceiveModal({ identityAddress, activeAddress, open, onClose }: 
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-    >
-      <div
-        className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h2 className="text-lg font-bold text-gray-900">
-              {t('wallet.receive.title', 'Receive USDC')}
-            </h2>
-            <p className="text-sm text-gray-500 mt-1">
-              {mode === 'identity'
-                ? t(
-                    'wallet.receive.identitySubtitle',
-                    'This is your rewards inbox. USDC sent here lands across any supported chain.',
-                  )
-                : t(
-                    'wallet.receive.activeSubtitle',
-                    'For one-off transfers to the wallet you have active right now — task rewards still go to your rewards inbox.',
-                  )}
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 p-1"
-            aria-label={t('common.close', 'Close')}
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+    <Modal open={open} onClose={onClose} size="md" labelledBy="receive-modal-title">
+      <Modal.Header onClose={onClose}>
+        <h2 id="receive-modal-title" className="text-lg font-bold text-zinc-900">
+          {t('wallet.receive.title', 'Receive USDC')}
+        </h2>
+        <p className="text-sm text-zinc-500 mt-1">
+          {mode === 'identity'
+            ? t(
+                'wallet.receive.identitySubtitle',
+                'This is your rewards inbox. USDC sent here lands across any supported chain.',
+              )
+            : t(
+                'wallet.receive.activeSubtitle',
+                'For one-off transfers to the wallet you have active right now — task rewards still go to your rewards inbox.',
+              )}
+        </p>
+      </Modal.Header>
 
+      <Modal.Body className="space-y-4">
         {showToggle && (
-          <div className="mb-4 inline-flex p-1 bg-gray-100 rounded-lg">
+          <div className="inline-flex p-1 bg-zinc-100 rounded-lg">
             <button
               onClick={() => setMode('identity')}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition ${
                 mode === 'identity'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-white text-zinc-900 shadow-sm'
+                  : 'text-zinc-600 hover:text-zinc-900'
               }`}
             >
               {t('wallet.receive.toggleIdentity', 'Rewards inbox')}
@@ -122,8 +102,8 @@ export function ReceiveModal({ identityAddress, activeAddress, open, onClose }: 
               onClick={() => setMode('active')}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition ${
                 mode === 'active'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-white text-zinc-900 shadow-sm'
+                  : 'text-zinc-600 hover:text-zinc-900'
               }`}
             >
               {t('wallet.receive.toggleActive', 'Active wallet')}
@@ -131,26 +111,26 @@ export function ReceiveModal({ identityAddress, activeAddress, open, onClose }: 
           </div>
         )}
 
-        <div className="flex flex-col items-center gap-4 bg-gray-50 rounded-xl p-4 border border-gray-100">
+        <div className="flex flex-col items-center gap-4 bg-zinc-50 rounded-xl p-4 border border-zinc-100">
           {qrDataUrl ? (
             <img src={qrDataUrl} alt="Wallet QR" className="w-60 h-60 rounded-lg bg-white p-2" />
           ) : (
-            <div className="w-60 h-60 bg-gray-200 animate-pulse rounded-lg" />
+            <div className="w-60 h-60 bg-zinc-200 animate-pulse rounded-lg" />
           )}
 
           <div className="w-full">
-            <div className="text-xs text-gray-500 mb-1">
+            <div className="text-xs text-zinc-500 mb-1">
               {mode === 'identity'
                 ? t('wallet.receive.identityLabel', 'Your rewards inbox')
                 : t('wallet.receive.activeLabel', 'Your active wallet (one-off)')}
             </div>
             <div className="flex items-center gap-2">
-              <code className="flex-1 text-xs font-mono text-gray-800 bg-white border border-gray-200 rounded-lg px-3 py-2 break-all">
+              <code className="flex-1 text-xs font-mono text-zinc-800 bg-white border border-zinc-200 rounded-lg px-3 py-2 break-all">
                 {displayedAddress}
               </code>
               <button
                 onClick={handleCopy}
-                className="px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100"
+                className="px-3 py-2 text-sm font-medium text-zinc-900 bg-zinc-100 border border-zinc-200 rounded-lg hover:bg-zinc-200"
               >
                 {copied ? t('common.copied', 'Copied!') : t('common.copy', 'Copy')}
               </button>
@@ -158,7 +138,7 @@ export function ReceiveModal({ identityAddress, activeAddress, open, onClose }: 
           </div>
         </div>
 
-        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-900">
+        <div className="p-3 bg-zinc-50 border border-zinc-200 rounded-lg text-xs text-zinc-700">
           <strong>{t('wallet.receive.warningTitle', 'One address, multiple chains.')}</strong>{' '}
           {t(
             'wallet.receive.warningBody',
@@ -166,18 +146,18 @@ export function ReceiveModal({ identityAddress, activeAddress, open, onClose }: 
           )}
         </div>
 
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2">
           {LIVE_NETWORKS.filter((n) => n.networkType !== 'svm').map((n) => (
             <span
               key={n.key}
-              className="inline-flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-full px-2.5 py-1"
+              className="inline-flex items-center gap-1.5 text-xs text-zinc-600 bg-zinc-50 border border-zinc-200 rounded-full px-2.5 py-1"
             >
               <img src={n.logo} alt="" className="w-3.5 h-3.5 rounded-full" />
               {n.name}
             </span>
           ))}
         </div>
-      </div>
-    </div>
+      </Modal.Body>
+    </Modal>
   )
 }
