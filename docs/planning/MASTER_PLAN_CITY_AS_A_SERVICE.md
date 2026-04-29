@@ -2056,3 +2056,88 @@ If the first implementation pass clears the checklist, daytime can responsibly e
 
 If the first pass does not clear the checklist, the right move is not more concept expansion.
 It is to tighten the replay seam until one bundle becomes undeniable.
+
+## 54. The replay seam should end in one compact review packet, not only a manifest
+
+The replay planning stack is now strong on:
+- artifact contracts
+- bundle shape
+- event ordering
+- manifest judgment
+- scorecard output
+- learning-strength honesty
+- reviewer reading discipline
+
+That is enough to audit a bundle carefully.
+What is still missing is the smallest final decision object that downstream systems can consume without re-deriving meaning from the whole bundle.
+
+That gap matters because several next-step surfaces will need a compact, review-safe summary:
+- daytime PR review
+- admin/operator review surfaces
+- grouped route-regret summaries
+- local-projector outputs
+- future Acontext ingestion
+
+The manifest alone is not quite enough for that job.
+It answers whether the proof passed, but not quite the full operational judgment about memory promotion.
+
+### 54.1 What the review packet should answer
+
+The next implementation seam should define one compact `review_packet` that answers:
+- did the replay pass, partially pass, or fail?
+- how strong is the learned office memory?
+- what is the single clearest operational improvement?
+- what is the narrowest remaining concern?
+- should the learned guidance be promoted into reusable dispatch memory now, cautiously, or not yet?
+
+This is the smallest bridge between replay proof and actual memory reuse.
+
+### 54.2 Why this is better than expanding bundle consumers ad hoc
+
+Without a review packet, each downstream consumer will be tempted to improvise its own interpretation layer from:
+- the manifest
+- the scorecard
+- the improved brief
+- reviewer notes
+
+That would create exactly the kind of meaning drift the planning seam has been trying to prevent.
+A review packet is the cleaner move because it lets the system say one boring honest thing about each replay before the data fans out.
+
+### 54.3 How this fits the current replay flow
+
+The clean replay rhythm should now be:
+1. reviewed city outcome accepted
+2. reviewed episode written
+3. office-memory delta written
+4. office memory merged
+5. improved dispatch brief composed
+6. scorecard computed
+7. manifest judged
+8. learning strength classified
+9. review packet emitted
+
+That ninth step should be the compact product-facing decision object.
+The full bundle remains the audit archive.
+The packet becomes the judgment bridge.
+
+### 54.4 What the first review packet should include
+
+The first pass only needs:
+- `summary_judgment`
+- `learning_strength`
+- `review_decision`
+- `memory_promotion_decision`
+- `judgment_alignment`
+- `main_improvement[]`
+- `main_concern[]`
+- refs to the canonical bundle artifacts
+- short rationale bullets
+
+That is enough to keep the first seam legible without inventing new complexity.
+
+### 54.5 Recommended handoff object
+
+The next planning/build seam should be formalized as:
+`CITY_AS_A_SERVICE_REPLAY_REVIEW_PACKET_CONTRACT.md`
+
+If daytime can emit one honest review packet beside every replay bundle, then later Acontext, route-regret summaries, and operator tooling can all consume the same reviewed truth instead of recomputing it differently.
