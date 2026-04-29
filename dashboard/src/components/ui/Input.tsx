@@ -92,12 +92,12 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           <label
             htmlFor={id}
             className={cn(
-              'block font-medium text-slate-700 dark:text-slate-300 mb-1.5',
+              'block font-medium text-zinc-700 dark:text-zinc-300 mb-1.5',
               labelSizeClasses[size]
             )}
           >
             {label}
-            {required && <span className="text-red-500 ml-1">*</span>}
+            {required && <span className="text-zinc-500 ml-1" aria-hidden="true">*</span>}
           </label>
         )}
         <div className="relative">
@@ -105,7 +105,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             <div
               className={cn(
                 'absolute inset-y-0 left-0 flex items-center',
-                'text-slate-400 dark:text-slate-500',
+                'text-zinc-400 dark:text-zinc-500',
                 'pointer-events-none',
                 addonSizeClasses[size]
               )}
@@ -124,7 +124,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             className={cn(
               // Base styles
               'w-full rounded-lg',
-              'bg-white dark:bg-slate-800',
+              'bg-white dark:bg-zinc-800',
               'border',
               'text-zinc-900 dark:text-zinc-100',
               'placeholder:text-zinc-500 dark:placeholder:text-zinc-400',
@@ -140,9 +140,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               // Error state
               hasError
                 ? 'border-red-500 dark:border-red-500 focus:ring-red-500'
-                : 'border-slate-300 dark:border-slate-600 focus:ring-em-500',
+                : 'border-zinc-300 dark:border-zinc-600 focus:ring-zinc-900 dark:focus:ring-zinc-100',
               // Disabled state
-              disabled && 'bg-slate-100 dark:bg-slate-700 cursor-not-allowed opacity-60',
+              disabled && 'bg-zinc-100 dark:bg-zinc-700 cursor-not-allowed opacity-60',
               className
             )}
             {...props}
@@ -151,7 +151,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             <div
               className={cn(
                 'absolute inset-y-0 right-0 flex items-center',
-                'text-slate-400 dark:text-slate-500',
+                'text-zinc-400 dark:text-zinc-500',
                 addonSizeClasses[size]
               )}
             >
@@ -171,7 +171,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {!error && helperText && (
           <p
             id={`${id}-helper`}
-            className="mt-1.5 text-sm text-slate-500 dark:text-slate-400"
+            className="mt-1.5 text-sm text-zinc-500 dark:text-zinc-400"
           >
             {helperText}
           </p>
@@ -229,12 +229,12 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           <label
             htmlFor={id}
             className={cn(
-              'block font-medium text-slate-700 dark:text-slate-300 mb-1.5',
+              'block font-medium text-zinc-700 dark:text-zinc-300 mb-1.5',
               labelSizeClasses[size]
             )}
           >
             {label}
-            {required && <span className="text-red-500 ml-1">*</span>}
+            {required && <span className="text-zinc-500 ml-1" aria-hidden="true">*</span>}
           </label>
         )}
         <textarea
@@ -249,7 +249,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           className={cn(
             // Base styles
             'w-full rounded-lg',
-            'bg-white dark:bg-slate-800',
+            'bg-white dark:bg-zinc-800',
             'border',
             'text-zinc-900 dark:text-zinc-100',
             'placeholder:text-zinc-500 dark:placeholder:text-zinc-400',
@@ -263,9 +263,9 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
             // Error state
             hasError
               ? 'border-red-500 dark:border-red-500 focus:ring-red-500'
-              : 'border-slate-300 dark:border-slate-600 focus:ring-em-500',
+              : 'border-zinc-300 dark:border-zinc-600 focus:ring-zinc-900 dark:focus:ring-zinc-100',
             // Disabled state
-            disabled && 'bg-slate-100 dark:bg-slate-700 cursor-not-allowed opacity-60',
+            disabled && 'bg-zinc-100 dark:bg-zinc-700 cursor-not-allowed opacity-60',
             className
           )}
           {...props}
@@ -282,7 +282,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         {!error && helperText && (
           <p
             id={`${id}-helper`}
-            className="mt-1.5 text-sm text-slate-500 dark:text-slate-400"
+            className="mt-1.5 text-sm text-zinc-500 dark:text-zinc-400"
           >
             {helperText}
           </p>
@@ -340,12 +340,12 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           <label
             htmlFor={id}
             className={cn(
-              'block font-medium text-slate-700 dark:text-slate-300 mb-1.5',
+              'block font-medium text-zinc-700 dark:text-zinc-300 mb-1.5',
               labelSizeClasses[size]
             )}
           >
             {label}
-            {required && <span className="text-red-500 ml-1">*</span>}
+            {required && <span className="text-zinc-500 ml-1" aria-hidden="true">*</span>}
           </label>
         )}
         <div className="relative">
@@ -360,9 +360,9 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             className={cn(
               // Base styles
               'w-full rounded-lg appearance-none cursor-pointer',
-              'bg-white dark:bg-slate-800',
+              'bg-white dark:bg-zinc-800',
               'border',
-              'text-slate-900 dark:text-slate-100',
+              'text-zinc-900 dark:text-zinc-100',
               'transition-colors duration-200',
               // Focus styles
               'focus:outline-none focus:ring-2 focus:border-transparent',
@@ -373,9 +373,9 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
               // Error state
               hasError
                 ? 'border-red-500 dark:border-red-500 focus:ring-red-500'
-                : 'border-slate-300 dark:border-slate-600 focus:ring-em-500',
+                : 'border-zinc-300 dark:border-zinc-600 focus:ring-zinc-900 dark:focus:ring-zinc-100',
               // Disabled state
-              disabled && 'bg-slate-100 dark:bg-slate-700 cursor-not-allowed opacity-60',
+              disabled && 'bg-zinc-100 dark:bg-zinc-700 cursor-not-allowed opacity-60',
               className
             )}
             {...props}
@@ -400,7 +400,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           {/* Dropdown arrow */}
           <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
             <svg
-              className="w-5 h-5 text-slate-400"
+              className="w-5 h-5 text-zinc-400"
               viewBox="0 0 20 20"
               fill="currentColor"
             >
@@ -424,7 +424,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         {!error && helperText && (
           <p
             id={`${id}-helper`}
-            className="mt-1.5 text-sm text-slate-500 dark:text-slate-400"
+            className="mt-1.5 text-sm text-zinc-500 dark:text-zinc-400"
           >
             {helperText}
           </p>
@@ -484,10 +484,10 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
           disabled={disabled}
           className={cn(
             'rounded',
-            'border-slate-300 dark:border-slate-600',
-            'bg-white dark:bg-slate-800',
-            'text-em-500',
-            'focus:ring-em-500 focus:ring-offset-0',
+            'border-zinc-300 dark:border-zinc-600',
+            'bg-white dark:bg-zinc-800',
+            'text-zinc-900 dark:text-zinc-100',
+            'focus:ring-zinc-900 dark:focus:ring-zinc-100 focus:ring-offset-0',
             'transition-colors',
             'cursor-pointer',
             error && 'border-red-500',
@@ -503,7 +503,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
               <label
                 htmlFor={id}
                 className={cn(
-                  'font-medium text-slate-900 dark:text-slate-100 cursor-pointer',
+                  'font-medium text-zinc-900 dark:text-zinc-100 cursor-pointer',
                   size === 'sm' ? 'text-sm' : 'text-base',
                   disabled && 'cursor-not-allowed opacity-60'
                 )}
@@ -512,7 +512,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
               </label>
             )}
             {description && (
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
                 {description}
               </p>
             )}
@@ -567,10 +567,10 @@ export const Radio = forwardRef<HTMLInputElement, RadioProps>(
           disabled={disabled}
           className={cn(
             'rounded-full',
-            'border-slate-300 dark:border-slate-600',
-            'bg-white dark:bg-slate-800',
-            'text-em-500',
-            'focus:ring-em-500 focus:ring-offset-0',
+            'border-zinc-300 dark:border-zinc-600',
+            'bg-white dark:bg-zinc-800',
+            'text-zinc-900 dark:text-zinc-100',
+            'focus:ring-zinc-900 dark:focus:ring-zinc-100 focus:ring-offset-0',
             'transition-colors',
             'cursor-pointer',
             error && 'border-red-500',
@@ -586,7 +586,7 @@ export const Radio = forwardRef<HTMLInputElement, RadioProps>(
               <label
                 htmlFor={id}
                 className={cn(
-                  'font-medium text-slate-900 dark:text-slate-100 cursor-pointer',
+                  'font-medium text-zinc-900 dark:text-zinc-100 cursor-pointer',
                   size === 'sm' ? 'text-sm' : 'text-base',
                   disabled && 'cursor-not-allowed opacity-60'
                 )}
@@ -595,7 +595,7 @@ export const Radio = forwardRef<HTMLInputElement, RadioProps>(
               </label>
             )}
             {description && (
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
                 {description}
               </p>
             )}
@@ -656,7 +656,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
             <button
               type="button"
               onClick={onClear}
-              className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+              className="hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
               aria-label="Clear search"
             >
               <svg
@@ -682,5 +682,95 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
 );
 
 SearchInput.displayName = 'SearchInput';
+
+// ============================================================================
+// Field Wrapper Component
+// ============================================================================
+
+/**
+ * Field wraps any custom input-like child (file picker, date picker, segmented
+ * control, etc.) with the same label / helper / error visuals as `Input`.
+ *
+ * Use `Input` / `Textarea` / `Select` directly when you have a standard form
+ * control. Reach for `Field` only when you need to wrap a non-standard control
+ * but still want consistent label and message styling.
+ */
+export interface FieldProps {
+  /** Label text */
+  label?: string;
+  /** Helper/description text (hidden when error is present) */
+  helperText?: string;
+  /** Error message */
+  error?: string;
+  /** Whether the field is required */
+  required?: boolean;
+  /** Size variant (matches Input sizing) */
+  size?: 'sm' | 'md' | 'lg';
+  /** id of the inner control — used by the label's htmlFor */
+  htmlFor?: string;
+  /** Full width container */
+  fullWidth?: boolean;
+  /** Additional classes for the outer wrapper */
+  className?: string;
+  /** The actual control(s) being wrapped */
+  children: ReactNode;
+}
+
+export const Field = ({
+  label,
+  helperText,
+  error,
+  required,
+  size = 'md',
+  htmlFor,
+  fullWidth = true,
+  className,
+  children,
+}: FieldProps) => {
+  const generatedId = useId();
+  const id = htmlFor ?? generatedId;
+  const hasError = !!error;
+
+  return (
+    <div className={cn(fullWidth && 'w-full', className)}>
+      {label && (
+        <label
+          htmlFor={id}
+          className={cn(
+            'block font-medium text-zinc-700 dark:text-zinc-300 mb-1.5',
+            labelSizeClasses[size]
+          )}
+        >
+          {label}
+          {required && (
+            <span className="text-zinc-500 ml-1" aria-hidden="true">
+              *
+            </span>
+          )}
+        </label>
+      )}
+      {children}
+      {hasError && (
+        <p
+          id={`${id}-error`}
+          className="mt-1.5 text-sm text-red-500 dark:text-red-400"
+          role="alert"
+        >
+          {error}
+        </p>
+      )}
+      {!hasError && helperText && (
+        <p
+          id={`${id}-helper`}
+          className="mt-1.5 text-sm text-zinc-500 dark:text-zinc-400"
+        >
+          {helperText}
+        </p>
+      )}
+    </div>
+  );
+};
+
+Field.displayName = 'Field';
 
 export default Input;
