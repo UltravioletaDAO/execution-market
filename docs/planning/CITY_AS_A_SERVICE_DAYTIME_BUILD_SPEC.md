@@ -108,6 +108,7 @@ Input:
 
 Output:
 - `review_packet`
+- one explicit promotion stance that later brief composition can respect without rereading the full bundle
 
 ### 4.5 Observability emitter
 Input:
@@ -195,6 +196,7 @@ The important thing is preserving the seam, not the exact language.
 - office playbook merge result
 - dispatch brief for office + workflow template
 - replay-bundle scorecard and packet outputs whenever a before/after brief comparison exists
+- dispatch-visible guidance classification based on the packet promotion stance
 
 ### 6.4 Never do this in v1
 - write memory directly from raw upload
@@ -310,6 +312,7 @@ the system can emit a valid `review_packet` that:
 - states learning strength honestly
 - makes memory promotion explicit
 - points back to the canonical artifacts
+- is strong enough to drive retrieval behavior without re-deriving meaning from the full bundle
 
 ### Gate H — standard replay bundle
 Given a replay fixture,
@@ -341,6 +344,7 @@ the system can emit one deterministic replay bundle that:
 - emit `review_packet` from the canonical replay artifacts
 - keep packet rationale short and behavior-focused
 - enforce alignment between manifest judgment and memory-promotion stance
+- emit or derive one stable promotion-policy interpretation that later retrieval can consume directly
 
 ### Phase 5 — replay bundle writer
 - write the canonical replay bundle in a stable folder layout

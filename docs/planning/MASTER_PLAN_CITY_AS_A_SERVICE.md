@@ -398,6 +398,7 @@ That is concrete, painful, urgent, and already aligned with EM's strengths.
 - `CITY_AS_A_SERVICE_IMPLEMENTATION_BACKLOG_AND_DECISIONS.md` — consolidated build order, locked decisions, and highest-value open questions
 - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md` — narrow daytime implementation sequence
 - `CITY_AS_A_SERVICE_IMPLEMENTATION_SLICE_V1.md` — stable first-loop object model
+- `CITY_AS_A_SERVICE_REVIEW_PACKET_PROMOTION_POLICY.md` — explicit gate for how replay judgment becomes live dispatch-visible memory
 
 
 City as a Service is one of the cleanest AAS verticals for Execution Market because it turns the hardest non-API surface in business operations — the city itself — into a programmable execution layer.
@@ -2141,3 +2142,64 @@ The next planning/build seam should be formalized as:
 `CITY_AS_A_SERVICE_REPLAY_REVIEW_PACKET_CONTRACT.md`
 
 If daytime can emit one honest review packet beside every replay bundle, then later Acontext, route-regret summaries, and operator tooling can all consume the same reviewed truth instead of recomputing it differently.
+
+## 55. Review-packet judgment should directly control memory promotion, not just describe it
+
+The planning stack now has a compact review-safe decision object.
+That is good, but one practical seam still needed to be made explicit:
+**how that packet judgment should govern what future dispatch is allowed to reuse.**
+
+If that seam stays implicit, the system can still drift into unsafe behavior:
+- every `pass` starts acting like hard office doctrine
+- weak but valid learning gets surfaced too aggressively
+- future Acontext ingestion receives packet objects without a clear retrieval safety stance
+- bundle review becomes more disciplined than actual dispatch reuse
+
+### 55.1 The real missing question
+
+The review packet already answers what the replay meant.
+The next product question is narrower:
+- should this learned guidance shape the next dispatch now?
+- if yes, should it appear as hard guidance, cautious guidance, or inspectable-only memory?
+- if not, what exactly is being withheld and why?
+
+That is a promotion-policy question, not a bundle-format question.
+
+### 55.2 The first promotion policy should stay small and explicit
+
+The cleanest first policy is to let `memory_promotion_decision` govern four outcomes:
+- `promote_with_confidence`
+- `promote_cautiously`
+- `hold_for_more_evidence`
+- `do_not_promote`
+
+That gives downstream retrieval and future Acontext sinks one boring explicit answer instead of forcing each consumer to infer meaning differently from the same packet.
+
+### 55.3 Why this matters for dispatch quality
+
+The first city-ops loop is not only trying to prove that memory artifacts can be written.
+It is trying to prove that reviewed municipal learning can improve future dispatch without hardening ambiguous field signals into fake certainty.
+
+A promotion policy protects that boundary by separating:
+- reviewed proof that exists
+- reviewed learning that is reusable
+- reviewed learning that is reusable only with caution
+- reviewed learning that should remain archived but not influence operator doctrine yet
+
+### 55.4 What daytime should eventually do with this
+
+The next daylight seam should not stop at emitting `review_packet`.
+It should also make brief composition respect the packet's promotion stance.
+
+That means:
+- confident promotion can shape top-line brief guidance
+- cautious promotion can surface as softer warnings or verify-first advice
+- held learning can remain visible in debug/admin memory views without steering default dispatch
+- blocked promotion stays in the archive only
+
+### 55.5 Recommended handoff object
+
+The next planning/build seam should be formalized as:
+`CITY_AS_A_SERVICE_REVIEW_PACKET_PROMOTION_POLICY.md`
+
+If daytime follows that policy, the city-ops memory seam will be much safer: replay bundles stay the audit archive, review packets stay the decision object, and promotion policy becomes the explicit bridge between reviewed truth and live operator guidance.
