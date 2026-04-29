@@ -19,6 +19,7 @@ import { ArbiterVerdictBadge } from './ArbiterVerdictBadge'
 import { ForensicEventLog } from './ForensicEventLog'
 import type { VerificationEvent } from './ForensicEventLog'
 import { safeHref, safeSrc } from '../lib/safeHref'
+import { Modal } from './ui/Modal'
 
 // --------------------------------------------------------------------------
 // Types
@@ -231,26 +232,21 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
   const isProcessing = action !== 'idle'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+    <Modal
+      open
+      onClose={onClose}
+      size="lg"
+      labelledBy="submission-review-title"
+      dismissOnEsc={!isProcessing}
+      dismissOnBackdrop={!isProcessing}
+    >
+      <Modal.Header onClose={isProcessing ? undefined : onClose}>
+        <h2 id="submission-review-title" className="text-lg font-semibold text-zinc-900">
+          {t('submissionReview.title', 'Review Submission')}
+        </h2>
+      </Modal.Header>
 
-      {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-zinc-200 px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
-          <h2 className="text-lg font-semibold text-zinc-900">{t('submissionReview.title', 'Review Submission')}</h2>
-          <button
-            onClick={onClose}
-            className="p-1 hover:bg-zinc-100 rounded-lg transition-colors"
-          >
-            <svg className="w-5 h-5 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="px-6 py-4 space-y-5">
+      <Modal.Body className="space-y-5">
           {/* Loading state */}
           {loading && (
             <div className="flex items-center justify-center py-12">
@@ -738,7 +734,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                         value={feedback}
                         onChange={(e) => setFeedback(e.target.value)}
                         rows={3}
-                        className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-zinc-500 focus:border-transparent"
+                        className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none"
                         placeholder={showRejectForm
                           ? t('submissionReview.rejectPlaceholder', 'Explain why you are rejecting this submission...')
                           : t('submissionReview.infoPlaceholder', 'Describe what additional information you need...')}
@@ -777,7 +773,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                           value={approveNotes}
                           onChange={(e) => setApproveNotes(e.target.value)}
                           placeholder={t('submissionReview.approvalNotes', 'Approval notes (optional)')}
-                          className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-zinc-500 focus:border-transparent"
+                          className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none"
                         />
                       </div>
                       <div className="flex items-center gap-3">
@@ -823,26 +819,22 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
               )}
             </>
           )}
-        </div>
+      </Modal.Body>
 
-        {/* Footer */}
-        <div className="sticky bottom-0 bg-zinc-50 border-t border-zinc-200 px-6 py-4 rounded-b-2xl">
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-zinc-500">
-              ID: {submissionId.slice(0, 8)}...
-              {submission?.submitted_at && (
-                <> | {new Date(submission.submitted_at).toLocaleString()}</>
-              )}
-            </p>
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-200 rounded-lg transition-colors"
-            >
-              {t('common.close')}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+      <Modal.Footer className="bg-zinc-50 justify-between">
+        <p className="text-xs text-zinc-500">
+          ID: {submissionId.slice(0, 8)}...
+          {submission?.submitted_at && (
+            <> | {new Date(submission.submitted_at).toLocaleString()}</>
+          )}
+        </p>
+        <button
+          onClick={onClose}
+          className="px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-200 rounded-lg transition-colors"
+        >
+          {t('common.close')}
+        </button>
+      </Modal.Footer>
+    </Modal>
   )
 }
