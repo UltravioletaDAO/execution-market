@@ -1,6 +1,8 @@
 // Execution Market: Task List Component
 import { useTranslation } from 'react-i18next'
 import { TaskCard } from './TaskCard'
+import { Pill } from './ui/Pill'
+import { EmptyState } from './ui/EmptyState'
 import type { Task, TaskCategory } from '../types/database'
 
 interface TaskListProps {
@@ -35,37 +37,8 @@ const LOADING_SKELETON = (
   </div>
 )
 
-const ERROR_ICON = (
-  <svg
-    className="w-12 h-12 text-red-400 mx-auto mb-4"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-    />
-  </svg>
-)
-
-const EMPTY_ICON = (
-  <svg
-    className="w-12 h-12 text-gray-400 mx-auto mb-4"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-    />
-  </svg>
-)
+const ERROR_ICON_PATH = "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+const EMPTY_ICON_PATH = "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
 
 export function TaskList({
   tasks,
@@ -82,23 +55,22 @@ export function TaskList({
 
   if (error) {
     return (
-      <div className="text-center py-12">
-        {ERROR_ICON}
-        <h3 className="text-lg font-medium text-gray-900 mb-1">
-          {t('tasks.loadError')}
-        </h3>
-        <p className="text-gray-500">{error.message}</p>
-      </div>
+      <EmptyState
+        iconPath={ERROR_ICON_PATH}
+        variant="danger"
+        title={t('tasks.loadError')}
+        description={error.message}
+      />
     )
   }
 
   if (tasks.length === 0) {
     return (
-      <div className="text-center py-12">
-        {EMPTY_ICON}
-        <h3 className="text-lg font-medium text-gray-900 mb-1">{emptyMessage || t('tasks.noTasks')}</h3>
-        <p className="text-gray-500">{t('tasks.emptyHint')}</p>
-      </div>
+      <EmptyState
+        iconPath={EMPTY_ICON_PATH}
+        title={emptyMessage || t('tasks.noTasks')}
+        description={t('tasks.emptyHint')}
+      />
     )
   }
 
@@ -131,18 +103,15 @@ export function CategoryFilter({ selected, onChange }: CategoryFilterProps) {
   return (
     <div className="flex flex-wrap gap-2">
       {CATEGORIES.map(({ value, key, icon }) => (
-        <button
+        <Pill
           key={value ?? 'all'}
+          variant={selected === value ? 'selected' : 'default'}
+          size="md"
           onClick={() => onChange(value)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-            selected === value
-              ? 'bg-blue-100 text-blue-800'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          }`}
+          leftIcon={<span>{icon}</span>}
         >
-          <span>{icon}</span>
-          <span>{t(`tasks.categories.${key}`, key)}</span>
-        </button>
+          {t(`tasks.categories.${key}`, key)}
+        </Pill>
       ))}
     </div>
   )

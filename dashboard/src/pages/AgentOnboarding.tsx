@@ -4,6 +4,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { usePlatformConfig } from '../hooks/usePlatformConfig'
+import { Pill } from '../components/ui/Pill'
 
 // --------------------------------------------------------------------------
 // Code Examples (parameterized by API key requirement)
@@ -246,11 +247,19 @@ export function AgentOnboarding() {
       {/* Hero Section */}
       <section className="py-16 px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-medium mb-6">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            {t('agentOnboarding.heroBadge')}
+          <div className="mb-6">
+            <Pill
+              variant="default"
+              size="md"
+              asSpan
+              leftIcon={
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              }
+            >
+              {t('agentOnboarding.heroBadge')}
+            </Pill>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
             {t('agentOnboarding.heroTitle')}<br />
@@ -264,7 +273,7 @@ export function AgentOnboarding() {
               href="https://api.execution.market/docs"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+              className="px-6 py-3 bg-zinc-900 text-white font-medium rounded-lg hover:bg-zinc-800 transition-colors flex items-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -696,7 +705,7 @@ export function AgentOnboarding() {
             {REQUIRE_API_KEY ? (
               <a
                 href="mailto:UltravioletaDAO@gmail.com?subject=Execution Market API Key Request"
-                className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                className="px-6 py-3 bg-zinc-900 text-white font-medium rounded-lg hover:bg-zinc-800 transition-colors"
               >
                 {t('agentOnboarding.ctaRequestKey')}
               </a>
@@ -705,7 +714,7 @@ export function AgentOnboarding() {
                 href="https://api.execution.market/docs"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                className="px-6 py-3 bg-zinc-900 text-white font-medium rounded-lg hover:bg-zinc-800 transition-colors"
               >
                 {t('agentOnboarding.ctaExploreDocs')}
               </a>

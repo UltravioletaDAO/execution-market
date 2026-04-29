@@ -7,6 +7,7 @@
 
 import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { cn } from '../../lib/utils';
+import { Spinner as SpinnerPrimitive, type SpinnerSize } from './Spinner';
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   /** Visual variant */
@@ -25,59 +26,60 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   iconOnly?: boolean;
 }
 
+// Canonical B&W zinc palette — matches `.btn-*` classes in globals.css.
+// Red/amber are reserved for semantic accents (disputed/expired badges, error toasts) — not buttons.
 const variantClasses = {
   primary: [
-    'bg-em-500 text-white',
-    'hover:bg-em-600',
-    'focus:ring-em-500',
-    'shadow-sm hover:shadow-md',
-    'active:bg-em-700',
+    'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900',
+    'hover:bg-zinc-800 dark:hover:bg-zinc-200',
+    'focus:ring-zinc-900 dark:focus:ring-white',
+    'active:bg-zinc-950 dark:active:bg-zinc-300',
   ].join(' '),
   secondary: [
-    'bg-slate-100 text-slate-900 dark:bg-slate-700 dark:text-slate-100',
-    'hover:bg-slate-200 dark:hover:bg-slate-600',
-    'focus:ring-slate-500',
-    'active:bg-slate-300 dark:active:bg-slate-500',
+    'bg-white border border-zinc-300 text-zinc-900',
+    'dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100',
+    'hover:bg-zinc-100 dark:hover:bg-zinc-700',
+    'focus:ring-zinc-500',
+    'active:bg-zinc-200 dark:active:bg-zinc-600',
   ].join(' '),
   outline: [
-    'border-2 border-slate-300 dark:border-slate-600',
-    'text-slate-700 dark:text-slate-300',
-    'hover:bg-slate-100 dark:hover:bg-slate-800',
-    'hover:border-slate-400 dark:hover:border-slate-500',
-    'focus:ring-slate-500',
+    'border-2 border-zinc-700 dark:border-zinc-300',
+    'text-zinc-700 dark:text-zinc-300',
+    'hover:bg-zinc-900 hover:text-white hover:border-zinc-900',
+    'dark:hover:bg-white dark:hover:text-zinc-900 dark:hover:border-white',
+    'focus:ring-zinc-500',
   ].join(' '),
   ghost: [
     'bg-transparent',
-    'text-slate-600 dark:text-slate-400',
-    'hover:bg-slate-100 dark:hover:bg-slate-800',
-    'hover:text-slate-900 dark:hover:text-slate-100',
+    'text-zinc-700 dark:text-zinc-300',
+    'hover:bg-zinc-100 dark:hover:bg-zinc-800',
+    'hover:text-zinc-900 dark:hover:text-zinc-100',
+    'focus:ring-zinc-500',
   ].join(' '),
   danger: [
-    'bg-red-500 text-white',
-    'hover:bg-red-600',
-    'focus:ring-red-500',
-    'shadow-sm hover:shadow-md',
-    'active:bg-red-700',
+    'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900',
+    'hover:bg-zinc-700 dark:hover:bg-zinc-300',
+    'focus:ring-zinc-700',
+    'active:bg-zinc-950 dark:active:bg-white',
   ].join(' '),
   success: [
-    'bg-emerald-500 text-white',
-    'hover:bg-emerald-600',
-    'focus:ring-emerald-500',
-    'shadow-sm hover:shadow-md',
-    'active:bg-emerald-700',
+    'bg-zinc-800 text-white dark:bg-zinc-200 dark:text-zinc-900',
+    'hover:bg-zinc-700 dark:hover:bg-zinc-300',
+    'focus:ring-zinc-700',
+    'active:bg-zinc-900 dark:active:bg-zinc-100',
   ].join(' '),
   warning: [
-    'bg-amber-500 text-white',
-    'hover:bg-amber-600',
-    'focus:ring-amber-500',
-    'shadow-sm hover:shadow-md',
-    'active:bg-amber-700',
+    'bg-zinc-700 text-white dark:bg-zinc-300 dark:text-zinc-900',
+    'hover:bg-zinc-600 dark:hover:bg-zinc-400',
+    'focus:ring-zinc-600',
+    'active:bg-zinc-800 dark:active:bg-zinc-200',
   ].join(' '),
   link: [
     'bg-transparent',
-    'text-em-600 dark:text-em-400',
-    'hover:text-em-700 dark:hover:text-em-300',
+    'text-zinc-900 dark:text-zinc-100',
+    'hover:text-zinc-700 dark:hover:text-zinc-300',
     'hover:underline',
+    'focus:ring-zinc-500',
     'p-0',
   ].join(' '),
 };
@@ -106,33 +108,13 @@ const iconSizeClasses = {
   xl: 'w-6 h-6',
 };
 
-/**
- * Spinner component for loading state
- */
-function Spinner({ className }: { className?: string }) {
-  return (
-    <svg
-      className={cn('animate-spin', className)}
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-    >
-      <circle
-        className="opacity-25"
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        strokeWidth="4"
-      />
-      <path
-        className="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-      />
-    </svg>
-  );
-}
+const buttonSizeToSpinnerSize: Record<NonNullable<ButtonProps['size']>, SpinnerSize> = {
+  xs: 'xs',
+  sm: 'sm',
+  md: 'sm',
+  lg: 'md',
+  xl: 'lg',
+};
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
@@ -163,7 +145,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           'rounded-lg font-medium',
           'transition-all duration-200',
           'focus:outline-none focus:ring-2 focus:ring-offset-2',
-          'focus:ring-offset-white dark:focus:ring-offset-slate-900',
+          'focus:ring-offset-white dark:focus:ring-offset-zinc-900',
           'disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none',
           'active:scale-[0.98]',
           // Variant styles
@@ -178,7 +160,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {...props}
       >
         {loading && (
-          <Spinner className={cn(iconSizeClasses[size], children ? 'mr-2' : '')} />
+          <SpinnerPrimitive
+            size={buttonSizeToSpinnerSize[size]}
+            className={children ? 'mr-2' : ''}
+          />
         )}
         {!loading && leftIcon && (
           <span className={cn('flex-shrink-0', iconSizeClasses[size])}>{leftIcon}</span>

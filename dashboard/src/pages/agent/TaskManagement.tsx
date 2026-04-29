@@ -13,6 +13,10 @@ import { useTranslation } from 'react-i18next'
 import type { TaskStatus, TaskCategory, TaskApplication } from '../../types/database'
 import type { TaskWithExecutor } from '../../services/types'
 import { getAgentTasks, cancelTask } from '../../services/tasks'
+import { Pill } from '../../components/ui/Pill'
+import { Spinner } from '../../components/ui/Spinner'
+import { StatusBadge } from '../../components/ui/StatusBadge'
+import { EmptyState as EmptyStatePrimitive } from '../../components/ui/EmptyState'
 
 // ============================================================================
 // Types
@@ -48,23 +52,23 @@ type TabKey = 'active' | 'pending' | 'completed' | 'cancelled'
 // Constants
 // ============================================================================
 
-const TAB_CONFIG: { key: TabKey; i18nKey: string; statuses: TaskStatus[]; color: string }[] = [
-  { key: 'active', i18nKey: 'taskMgmt.tabs.active', statuses: ['accepted', 'in_progress', 'submitted', 'verifying'], color: 'blue' },
-  { key: 'pending', i18nKey: 'taskMgmt.tabs.published', statuses: ['published'], color: 'green' },
-  { key: 'completed', i18nKey: 'taskMgmt.tabs.completed', statuses: ['completed'], color: 'gray' },
-  { key: 'cancelled', i18nKey: 'taskMgmt.tabs.cancelled', statuses: ['cancelled', 'expired', 'disputed'], color: 'red' },
+const TAB_CONFIG: { key: TabKey; i18nKey: string; statuses: TaskStatus[] }[] = [
+  { key: 'active', i18nKey: 'taskMgmt.tabs.active', statuses: ['accepted', 'in_progress', 'submitted', 'verifying'] },
+  { key: 'pending', i18nKey: 'taskMgmt.tabs.published', statuses: ['published'] },
+  { key: 'completed', i18nKey: 'taskMgmt.tabs.completed', statuses: ['completed'] },
+  { key: 'cancelled', i18nKey: 'taskMgmt.tabs.cancelled', statuses: ['cancelled', 'expired', 'disputed'] },
 ]
 
-const STATUS_CONFIG: Record<TaskStatus, { i18nKey: string; className: string; dotColor: string }> = {
-  published: { i18nKey: 'taskMgmt.status.published', className: 'bg-green-100 text-green-800', dotColor: 'bg-green-500' },
-  accepted: { i18nKey: 'taskMgmt.status.accepted', className: 'bg-blue-100 text-blue-800', dotColor: 'bg-blue-500' },
-  in_progress: { i18nKey: 'taskMgmt.status.inProgress', className: 'bg-yellow-100 text-yellow-800', dotColor: 'bg-yellow-500' },
-  submitted: { i18nKey: 'taskMgmt.status.submitted', className: 'bg-purple-100 text-purple-800', dotColor: 'bg-purple-500' },
-  verifying: { i18nKey: 'taskMgmt.status.verifying', className: 'bg-indigo-100 text-indigo-800', dotColor: 'bg-indigo-500' },
-  completed: { i18nKey: 'taskMgmt.status.completed', className: 'bg-gray-100 text-gray-800', dotColor: 'bg-gray-500' },
-  disputed: { i18nKey: 'taskMgmt.status.disputed', className: 'bg-red-100 text-red-800', dotColor: 'bg-red-500' },
-  expired: { i18nKey: 'taskMgmt.status.expired', className: 'bg-gray-100 text-gray-500', dotColor: 'bg-gray-400' },
-  cancelled: { i18nKey: 'taskMgmt.status.cancelled', className: 'bg-gray-100 text-gray-400', dotColor: 'bg-gray-300' },
+const STATUS_I18N_KEY: Record<TaskStatus, string> = {
+  published: 'taskMgmt.status.published',
+  accepted: 'taskMgmt.status.accepted',
+  in_progress: 'taskMgmt.status.inProgress',
+  submitted: 'taskMgmt.status.submitted',
+  verifying: 'taskMgmt.status.verifying',
+  completed: 'taskMgmt.status.completed',
+  disputed: 'taskMgmt.status.disputed',
+  expired: 'taskMgmt.status.expired',
+  cancelled: 'taskMgmt.status.cancelled',
 }
 
 // Category labels resolved via t() at render time (keys match categories.*)
@@ -143,17 +147,6 @@ function formatDate(dateStr: string): string {
 // Sub-Components
 // ============================================================================
 
-function StatusBadge({ status }: { status: TaskStatus }) {
-  const { t } = useTranslation()
-  const config = STATUS_CONFIG[status]
-  return (
-    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-full ${config.className}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${config.dotColor}`} />
-      {t(config.i18nKey)}
-    </span>
-  )
-}
-
 function TaskCard({
   task,
   onView,
@@ -191,7 +184,7 @@ function TaskCard({
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="font-medium text-gray-900 truncate">{task.title}</h3>
-                <StatusBadge status={task.status} />
+                <StatusBadge status={task.status} size="sm" withDot label={t(STATUS_I18N_KEY[task.status])} />
                 {needsReview && (
                   <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full animate-pulse">
                     {t('taskMgmt.review', 'Review')}
@@ -388,28 +381,27 @@ function EmptyState({
   }
 
   const msg = messages[tab]
+  const showCreateAction = tab === 'pending' && !!onCreateTask
 
   return (
-    <div className="text-center py-12">
-      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-        <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={msg.icon} />
-        </svg>
-      </div>
-      <h3 className="text-lg font-medium text-gray-900 mb-1">{t(msg.titleKey)}</h3>
-      <p className="text-sm text-gray-500 mb-4">{t(msg.descKey)}</p>
-      {tab === 'pending' && onCreateTask && (
-        <button
-          onClick={onCreateTask}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          {t('taskMgmt.createTask', 'Create Task')}
-        </button>
-      )}
-    </div>
+    <EmptyStatePrimitive
+      iconPath={msg.icon}
+      title={t(msg.titleKey)}
+      description={t(msg.descKey)}
+      action={
+        showCreateAction ? (
+          <button
+            onClick={onCreateTask}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-900 text-white text-sm font-medium rounded-lg hover:bg-zinc-800 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            {t('taskMgmt.createTask', 'Create Task')}
+          </button>
+        ) : undefined
+      }
+    />
   )
 }
 
@@ -583,7 +575,7 @@ export function TaskManagement({
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-zinc-200">
         <div className="flex gap-1 -mb-px overflow-x-auto">
           {TAB_CONFIG.map((tab) => (
             <button
@@ -591,16 +583,17 @@ export function TaskManagement({
               onClick={() => setActiveTab(tab.key)}
               className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === tab.key
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-zinc-900 text-zinc-900'
+                  : 'border-transparent text-zinc-600 hover:text-zinc-900 hover:border-zinc-300'
               }`}
+              aria-pressed={activeTab === tab.key}
             >
               {t(tab.i18nKey)}
               {tabCounts[tab.key] > 0 && (
-                <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
-                  activeTab === tab.key ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
-                }`}>
-                  {tabCounts[tab.key]}
+                <span className="ml-2">
+                  <Pill variant={activeTab === tab.key ? 'selected' : 'default'} size="sm" asSpan>
+                    {tabCounts[tab.key]}
+                  </Pill>
                 </span>
               )}
             </button>
@@ -666,11 +659,8 @@ export function TaskManagement({
       {cancellingTaskId && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 text-center">
-            <svg className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-3" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-            </svg>
-            <p className="text-gray-700">{t('taskMgmt.cancelling', 'Cancelling task...')}</p>
+            <Spinner size="xl" className="text-zinc-700 mx-auto mb-3" label={t('taskMgmt.cancelling', 'Cancelling task...')} />
+            <p className="text-zinc-700">{t('taskMgmt.cancelling', 'Cancelling task...')}</p>
           </div>
         </div>
       )}

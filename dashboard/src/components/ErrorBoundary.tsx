@@ -128,14 +128,14 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             <button
               type="button"
               onClick={this.handleReload}
-              className="inline-flex items-center justify-center rounded-lg font-medium px-4 py-2 text-sm bg-em-500 text-white hover:bg-em-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-em-500 transition-colors"
+              className="inline-flex items-center justify-center rounded-lg font-medium px-4 py-2 text-sm bg-zinc-900 text-white hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-700 transition-colors"
             >
               Recargar la página
             </button>
             <button
               type="button"
               onClick={this.handleGoHome}
-              className="inline-flex items-center justify-center rounded-lg font-medium px-4 py-2 text-sm border-2 border-gray-300 text-gray-700 hover:bg-gray-100 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+              className="inline-flex items-center justify-center rounded-lg font-medium px-4 py-2 text-sm border-2 border-zinc-300 text-zinc-700 hover:bg-zinc-100 hover:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-500 transition-colors"
             >
               Ir al inicio
             </button>
