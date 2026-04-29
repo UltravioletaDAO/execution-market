@@ -15,6 +15,7 @@ import { useState, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TaskCategory, EvidenceType, EvidenceSchema, Location, TaskInsert } from '../../types/database'
 import { createTask } from '../../services/tasks'
+import { Input, Textarea } from '../../components/ui/Input'
 
 // ============================================================================
 // Types
@@ -159,10 +160,10 @@ function StepIndicator({ currentStep, steps }: { currentStep: FormStep; steps: F
           <div
             className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
               index < currentIndex
-                ? 'bg-green-500 text-white'
+                ? 'bg-zinc-900 text-white'
                 : index === currentIndex
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-500'
+                  ? 'bg-zinc-900 text-white'
+                  : 'bg-zinc-200 text-zinc-500'
             }`}
           >
             {index < currentIndex ? (
@@ -176,7 +177,7 @@ function StepIndicator({ currentStep, steps }: { currentStep: FormStep; steps: F
           {index < steps.length - 1 && (
             <div
               className={`w-12 h-1 mx-1 rounded transition-colors ${
-                index < currentIndex ? 'bg-green-500' : 'bg-gray-200'
+                index < currentIndex ? 'bg-zinc-900' : 'bg-zinc-200'
               }`}
             />
           )}
@@ -202,21 +203,21 @@ function CategorySelector({
           onClick={() => onChange(option.value)}
           className={`p-4 rounded-lg border-2 text-left transition-all ${
             value === option.value
-              ? 'border-blue-500 bg-blue-50'
-              : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+              ? 'border-zinc-900 bg-zinc-50'
+              : 'border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50'
           }`}
         >
           <div className="flex items-start gap-3">
-            <div className={`p-2 rounded-lg ${value === option.value ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'}`}>
+            <div className={`p-2 rounded-lg ${value === option.value ? 'bg-zinc-100 text-zinc-700' : 'bg-zinc-100 text-zinc-600'}`}>
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={option.icon} />
               </svg>
             </div>
             <div className="flex-1">
-              <p className={`font-medium ${value === option.value ? 'text-blue-900' : 'text-gray-900'}`}>
+              <p className="font-medium text-zinc-900">
                 {option.label}
               </p>
-              <p className="text-xs text-gray-500 mt-0.5">{option.description}</p>
+              <p className="text-xs text-zinc-500 mt-0.5">{option.description}</p>
             </div>
           </div>
         </button>
@@ -269,23 +270,18 @@ function LocationPicker({
   return (
     <div className="space-y-4">
       {/* Location Hint */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Descripcion de ubicacion
-        </label>
-        <input
-          type="text"
-          value={locationHint}
-          onChange={(e) => onHintChange(e.target.value)}
-          placeholder="ej. Polanco, CDMX cerca del parque"
-          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        />
-        <p className="text-xs text-gray-500 mt-1">Descripcion legible para los trabajadores</p>
-      </div>
+      <Input
+        label="Descripcion de ubicacion"
+        type="text"
+        value={locationHint}
+        onChange={(e) => onHintChange(e.target.value)}
+        placeholder="ej. Polanco, CDMX cerca del parque"
+        helperText="Descripcion legible para los trabajadores"
+      />
 
       {/* Coordinates */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-zinc-700 mb-1">
           Coordenadas (opcional)
         </label>
         <div className="flex gap-2">
@@ -296,7 +292,7 @@ function LocationPicker({
               value={location?.lat || ''}
               onChange={(e) => onLocationChange(e.target.value ? { lat: parseFloat(e.target.value), lng: location?.lng || 0 } : null)}
               placeholder="Latitud"
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-2.5 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900"
             />
           </div>
           <div className="flex-1">
@@ -306,7 +302,7 @@ function LocationPicker({
               value={location?.lng || ''}
               onChange={(e) => onLocationChange(e.target.value ? { lat: location?.lat || 0, lng: parseFloat(e.target.value) } : null)}
               placeholder="Longitud"
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-2.5 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900"
             />
           </div>
           <button
@@ -334,7 +330,7 @@ function LocationPicker({
 
       {/* Radius */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-zinc-700 mb-1">
           Radio de verificacion: {radius} km
         </label>
         <input
@@ -344,9 +340,9 @@ function LocationPicker({
           step="0.1"
           value={radius}
           onChange={(e) => onRadiusChange(parseFloat(e.target.value))}
-          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+          className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
         />
-        <div className="flex justify-between text-xs text-gray-400 mt-1">
+        <div className="flex justify-between text-xs text-zinc-400 mt-1">
           <span>100m</span>
           <span>5km</span>
         </div>
@@ -354,15 +350,15 @@ function LocationPicker({
 
       {/* Map placeholder */}
       {location && (
-        <div className="h-48 bg-gray-100 rounded-lg flex items-center justify-center border border-gray-200">
+        <div className="h-48 bg-zinc-100 rounded-lg flex items-center justify-center border border-zinc-200">
           <div className="text-center">
-            <svg className="w-8 h-8 text-gray-400 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-8 h-8 text-zinc-400 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
             </svg>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-zinc-500">
               {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
             </p>
-            <p className="text-xs text-gray-400 mt-1">Radio: {radius} km</p>
+            <p className="text-xs text-zinc-400 mt-1">Radio: {radius} km</p>
           </div>
         </div>
       )}
@@ -403,7 +399,7 @@ function EvidenceSelector({
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-600">
+      <p className="text-sm text-zinc-600">
         Selecciona que tipo de evidencia debe enviar el trabajador.
       </p>
 
@@ -418,25 +414,25 @@ function EvidenceSelector({
               key={evidence.value}
               className={`p-3 rounded-lg border-2 transition-all ${
                 isRequired
-                  ? 'border-blue-500 bg-blue-50'
+                  ? 'border-zinc-900 bg-zinc-50'
                   : isOptional
                     ? 'border-amber-400 bg-amber-50'
-                    : 'border-gray-200 bg-white'
+                    : 'border-zinc-200 bg-white'
               }`}
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <p className={`font-medium text-sm ${isSelected ? 'text-gray-900' : 'text-gray-700'}`}>
+                    <p className={`font-medium text-sm ${isSelected ? 'text-zinc-900' : 'text-zinc-700'}`}>
                       {evidence.label}
                     </p>
                     {evidence.requiresGps && (
-                      <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded">
+                      <span className="px-1.5 py-0.5 bg-zinc-100 text-zinc-700 text-xs rounded">
                         GPS
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-gray-500 mt-0.5">{evidence.description}</p>
+                  <p className="text-xs text-zinc-500 mt-0.5">{evidence.description}</p>
                 </div>
                 <div className="flex gap-1">
                   <button
@@ -444,8 +440,8 @@ function EvidenceSelector({
                     onClick={() => toggleRequired(evidence.value)}
                     className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
                       isRequired
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        ? 'bg-zinc-900 text-white'
+                        : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
                     }`}
                   >
                     Req
@@ -456,7 +452,7 @@ function EvidenceSelector({
                     className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
                       isOptional
                         ? 'bg-amber-500 text-white'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
                     }`}
                   >
                     Opc
@@ -491,82 +487,82 @@ function TaskPreview({
   return (
     <div className="space-y-6">
       {/* Basic Info */}
-      <div className="bg-white rounded-lg border border-gray-200 p-5">
+      <div className="bg-white rounded-lg border border-zinc-200 p-5">
         <div className="flex items-start justify-between mb-4">
-          <h3 className="font-semibold text-gray-900">Informacion Basica</h3>
+          <h3 className="font-semibold text-zinc-900">Informacion Basica</h3>
           <button
             type="button"
             onClick={() => onEdit('details')}
-            className="text-sm text-blue-600 hover:text-blue-700"
+            className="text-sm text-zinc-900 hover:text-zinc-700 hover:underline"
           >
             Editar
           </button>
         </div>
         <div className="space-y-3">
           <div>
-            <p className="text-xs text-gray-500">Titulo</p>
-            <p className="font-medium text-gray-900">{data.title || '-'}</p>
+            <p className="text-xs text-zinc-500">Titulo</p>
+            <p className="font-medium text-zinc-900">{data.title || '-'}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">Categoria</p>
+            <p className="text-xs text-zinc-500">Categoria</p>
             <div className="flex items-center gap-2 mt-1">
               {category && (
                 <>
-                  <div className="p-1.5 bg-blue-100 text-blue-600 rounded">
+                  <div className="p-1.5 bg-zinc-100 text-zinc-700 rounded">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={category.icon} />
                     </svg>
                   </div>
-                  <span className="text-gray-900">{category.label}</span>
+                  <span className="text-zinc-900">{category.label}</span>
                 </>
               )}
             </div>
           </div>
           <div>
-            <p className="text-xs text-gray-500">Instrucciones</p>
-            <p className="text-gray-700 whitespace-pre-wrap">{data.instructions || '-'}</p>
+            <p className="text-xs text-zinc-500">Instrucciones</p>
+            <p className="text-zinc-700 whitespace-pre-wrap">{data.instructions || '-'}</p>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-xs text-gray-500">Recompensa</p>
-              <p className="font-semibold text-green-600 text-lg">{formatCurrency(data.bounty_usd)}</p>
+              <p className="text-xs text-zinc-500">Recompensa</p>
+              <p className="font-semibold text-zinc-900 text-lg">{formatCurrency(data.bounty_usd)}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500">Fecha limite</p>
-              <p className="text-gray-900">{formatDeadline(data.deadline) || '-'}</p>
+              <p className="text-xs text-zinc-500">Fecha limite</p>
+              <p className="text-zinc-900">{formatDeadline(data.deadline) || '-'}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Location */}
-      <div className="bg-white rounded-lg border border-gray-200 p-5">
+      <div className="bg-white rounded-lg border border-zinc-200 p-5">
         <div className="flex items-start justify-between mb-4">
-          <h3 className="font-semibold text-gray-900">Ubicacion</h3>
+          <h3 className="font-semibold text-zinc-900">Ubicacion</h3>
           <button
             type="button"
             onClick={() => onEdit('location')}
-            className="text-sm text-blue-600 hover:text-blue-700"
+            className="text-sm text-zinc-900 hover:text-zinc-700 hover:underline"
           >
             Editar
           </button>
         </div>
         <div className="space-y-2">
           <div>
-            <p className="text-xs text-gray-500">Descripcion</p>
-            <p className="text-gray-900">{data.location_hint || 'Sin especificar'}</p>
+            <p className="text-xs text-zinc-500">Descripcion</p>
+            <p className="text-zinc-900">{data.location_hint || 'Sin especificar'}</p>
           </div>
           {data.location && (
             <>
               <div>
-                <p className="text-xs text-gray-500">Coordenadas</p>
-                <p className="text-gray-700 font-mono text-sm">
+                <p className="text-xs text-zinc-500">Coordenadas</p>
+                <p className="text-zinc-700 font-mono text-sm">
                   {data.location.lat.toFixed(6)}, {data.location.lng.toFixed(6)}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-gray-500">Radio</p>
-                <p className="text-gray-900">{data.location_radius_km} km</p>
+                <p className="text-xs text-zinc-500">Radio</p>
+                <p className="text-zinc-900">{data.location_radius_km} km</p>
               </div>
             </>
           )}
@@ -574,35 +570,35 @@ function TaskPreview({
       </div>
 
       {/* Evidence */}
-      <div className="bg-white rounded-lg border border-gray-200 p-5">
+      <div className="bg-white rounded-lg border border-zinc-200 p-5">
         <div className="flex items-start justify-between mb-4">
-          <h3 className="font-semibold text-gray-900">Evidencia Requerida</h3>
+          <h3 className="font-semibold text-zinc-900">Evidencia Requerida</h3>
           <button
             type="button"
             onClick={() => onEdit('evidence')}
-            className="text-sm text-blue-600 hover:text-blue-700"
+            className="text-sm text-zinc-900 hover:text-zinc-700 hover:underline"
           >
             Editar
           </button>
         </div>
         <div className="space-y-3">
           <div>
-            <p className="text-xs text-gray-500 mb-2">Obligatoria</p>
+            <p className="text-xs text-zinc-500 mb-2">Obligatoria</p>
             <div className="flex flex-wrap gap-2">
               {requiredEvidence.length > 0 ? (
                 requiredEvidence.map((e) => (
-                  <span key={e.value} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">
+                  <span key={e.value} className="px-2 py-1 bg-zinc-100 text-zinc-900 text-xs font-medium rounded">
                     {e.label}
                   </span>
                 ))
               ) : (
-                <span className="text-gray-400 text-sm">Ninguna seleccionada</span>
+                <span className="text-zinc-400 text-sm">Ninguna seleccionada</span>
               )}
             </div>
           </div>
           {optionalEvidence.length > 0 && (
             <div>
-              <p className="text-xs text-gray-500 mb-2">Opcional</p>
+              <p className="text-xs text-zinc-500 mb-2">Opcional</p>
               <div className="flex flex-wrap gap-2">
                 {optionalEvidence.map((e) => (
                   <span key={e.value} className="px-2 py-1 bg-amber-100 text-amber-800 text-xs font-medium rounded">
@@ -616,29 +612,29 @@ function TaskPreview({
       </div>
 
       {/* Requirements */}
-      <div className="bg-white rounded-lg border border-gray-200 p-5">
-        <h3 className="font-semibold text-gray-900 mb-4">Requisitos</h3>
+      <div className="bg-white rounded-lg border border-zinc-200 p-5">
+        <h3 className="font-semibold text-zinc-900 mb-4">Requisitos</h3>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-xs text-gray-500">Reputacion minima</p>
-            <p className="text-gray-900">{data.min_reputation} puntos</p>
+            <p className="text-xs text-zinc-500">Reputacion minima</p>
+            <p className="text-zinc-900">{data.min_reputation} puntos</p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">Max ejecutores</p>
-            <p className="text-gray-900">{data.max_executors}</p>
+            <p className="text-xs text-zinc-500">Max ejecutores</p>
+            <p className="text-zinc-900">{data.max_executors}</p>
           </div>
         </div>
       </div>
 
       {/* Escrow Notice */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-4">
         <div className="flex gap-3">
-          <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-5 h-5 text-zinc-700 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <div>
-            <p className="text-sm font-medium text-blue-900">Creacion de Escrow</p>
-            <p className="text-sm text-blue-700 mt-1">
+            <p className="text-sm font-medium text-zinc-900">Creacion de Escrow</p>
+            <p className="text-sm text-zinc-700 mt-1">
               Al publicar, se creara un escrow de {formatCurrency(data.bounty_usd)} USDC que se liberara
               automaticamente al trabajador cuando apruebes la evidencia.
             </p>
@@ -783,16 +779,16 @@ export function CreateTask({ agentId, onBack, onSubmit, onSuccess }: CreateTaskP
         {onBack && (
           <button
             onClick={onBack}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-zinc-100 rounded-lg transition-colors"
           >
-            <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-5 h-5 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
         )}
         <div>
-          <h1 className="text-xl font-bold text-gray-900">{t('createTask.title', 'Create New Task')}</h1>
-          <p className="text-sm text-gray-500">{t('createTask.subtitle', 'Publish a task for workers to execute')}</p>
+          <h1 className="text-xl font-bold text-zinc-900">{t('createTask.title', 'Create New Task')}</h1>
+          <p className="text-sm text-zinc-500">{t('createTask.subtitle', 'Publish a task for workers to execute')}</p>
         </div>
       </div>
 
@@ -800,31 +796,27 @@ export function CreateTask({ agentId, onBack, onSubmit, onSuccess }: CreateTaskP
       <StepIndicator currentStep={step} steps={FORM_STEPS} />
 
       {/* Form Content */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-white rounded-xl border border-zinc-200 p-6">
         {/* Step: Details */}
         {step === 'details' && (
           <div className="space-y-6">
-            <h2 className="text-lg font-semibold text-gray-900">{t('createTask.taskDetails', 'Task Details')}</h2>
+            <h2 className="text-lg font-semibold text-zinc-900">{t('createTask.taskDetails', 'Task Details')}</h2>
 
             {/* Title */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('createTask.titleLabel', 'Title')} <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.title}
-                onChange={(e) => updateFormData({ title: e.target.value })}
-                placeholder={t('createTask.titlePlaceholder', 'e.g. Verify delivery address in Polanco')}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                maxLength={100}
-              />
-              <p className="text-xs text-gray-500 mt-1">{formData.title.length}/100 {t('createTask.characters', 'characters')}</p>
-            </div>
+            <Input
+              label={t('createTask.titleLabel', 'Title')}
+              required
+              type="text"
+              value={formData.title}
+              onChange={(e) => updateFormData({ title: e.target.value })}
+              placeholder={t('createTask.titlePlaceholder', 'e.g. Verify delivery address in Polanco')}
+              maxLength={100}
+              helperText={`${formData.title.length}/100 ${t('createTask.characters', 'characters')}`}
+            />
 
             {/* Category */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-zinc-700 mb-2">
                 {t('createTask.categoryLabel', 'Category')} <span className="text-red-500">*</span>
               </label>
               <CategorySelector
@@ -834,89 +826,66 @@ export function CreateTask({ agentId, onBack, onSubmit, onSuccess }: CreateTaskP
             </div>
 
             {/* Instructions */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('createTask.instructionsLabel', 'Instructions')} <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                value={formData.instructions}
-                onChange={(e) => updateFormData({ instructions: e.target.value })}
-                placeholder={t('createTask.instructionsPlaceholder', 'Describe in detail what the worker must do...')}
-                rows={4}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                maxLength={2000}
-              />
-              <p className="text-xs text-gray-500 mt-1">{formData.instructions.length}/2000 {t('createTask.characters', 'characters')} (min 20)</p>
-            </div>
+            <Textarea
+              label={t('createTask.instructionsLabel', 'Instructions')}
+              required
+              value={formData.instructions}
+              onChange={(e) => updateFormData({ instructions: e.target.value })}
+              placeholder={t('createTask.instructionsPlaceholder', 'Describe in detail what the worker must do...')}
+              rows={4}
+              maxLength={2000}
+              resize="none"
+              helperText={`${formData.instructions.length}/2000 ${t('createTask.characters', 'characters')} (min 20)`}
+            />
 
             {/* Bounty and Deadline */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('createTask.bountyLabel', 'Bounty')} (USDC) <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">$</span>
-                  <input
-                    type="number"
-                    min="1"
-                    max="10000"
-                    step="0.50"
-                    value={formData.bounty_usd}
-                    onChange={(e) => updateFormData({ bounty_usd: parseFloat(e.target.value) || 0 })}
-                    className="w-full pl-8 pr-16 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm">USDC</span>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('createTask.deadlineLabel', 'Deadline')} <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="datetime-local"
-                  value={formData.deadline}
-                  onChange={(e) => updateFormData({ deadline: e.target.value })}
-                  min={getMinDeadline()}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
+              <Input
+                label={`${t('createTask.bountyLabel', 'Bounty')} (USDC)`}
+                required
+                type="number"
+                min="1"
+                max="10000"
+                step="0.50"
+                value={formData.bounty_usd}
+                onChange={(e) => updateFormData({ bounty_usd: parseFloat(e.target.value) || 0 })}
+                leftAddon={<span>$</span>}
+                rightAddon={<span className="text-sm">USDC</span>}
+              />
+              <Input
+                label={t('createTask.deadlineLabel', 'Deadline')}
+                required
+                type="datetime-local"
+                value={formData.deadline}
+                onChange={(e) => updateFormData({ deadline: e.target.value })}
+                min={getMinDeadline()}
+              />
             </div>
 
             {/* Requirements */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('createTask.minReputation', 'Minimum reputation')}
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={formData.min_reputation}
-                  onChange={(e) => updateFormData({ min_reputation: parseInt(e.target.value) || 0 })}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-                <p className="text-xs text-gray-500 mt-1">0-100 {t('createTask.points', 'points')}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('createTask.maxExecutors', 'Maximum executors')}
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="100"
-                  value={formData.max_executors}
-                  onChange={(e) => updateFormData({ max_executors: parseInt(e.target.value) || 1 })}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
+              <Input
+                label={t('createTask.minReputation', 'Minimum reputation')}
+                type="number"
+                min="0"
+                max="100"
+                value={formData.min_reputation}
+                onChange={(e) => updateFormData({ min_reputation: parseInt(e.target.value) || 0 })}
+                helperText={`0-100 ${t('createTask.points', 'points')}`}
+              />
+              <Input
+                label={t('createTask.maxExecutors', 'Maximum executors')}
+                type="number"
+                min="1"
+                max="100"
+                value={formData.max_executors}
+                onChange={(e) => updateFormData({ max_executors: parseInt(e.target.value) || 1 })}
+              />
             </div>
 
             {/* Ring 2 Arbiter Mode */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-zinc-700 mb-2">
                 {t('createTask.arbiterMode', 'Evidence verification mode')}
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -952,30 +921,30 @@ export function CreateTask({ agentId, onBack, onSubmit, onSuccess }: CreateTaskP
                       onClick={() => updateFormData({ arbiter_mode: mode })}
                       className={`text-left p-3 border rounded-lg transition-colors ${
                         selected
-                          ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
-                          : 'border-gray-300 hover:border-gray-400'
+                          ? 'border-zinc-900 bg-zinc-50 ring-2 ring-zinc-200'
+                          : 'border-zinc-300 hover:border-zinc-400'
                       }`}
                     >
                       <div className="flex items-center gap-2">
                         <span
                           className={`h-3 w-3 rounded-full border ${
                             selected
-                              ? 'bg-blue-500 border-blue-600'
-                              : 'bg-white border-gray-400'
+                              ? 'bg-zinc-900 border-zinc-900'
+                              : 'bg-white border-zinc-400'
                           }`}
                           aria-hidden="true"
                         />
-                        <span className="font-semibold text-gray-900">
+                        <span className="font-semibold text-zinc-900">
                           {labels.title}
                         </span>
                       </div>
-                      <p className="text-xs text-gray-600 mt-1 ml-5">{labels.desc}</p>
+                      <p className="text-xs text-zinc-600 mt-1 ml-5">{labels.desc}</p>
                     </button>
                   )
                 })}
               </div>
               {formData.arbiter_mode !== 'manual' ? (
-                <p className="text-xs text-gray-500 mt-2">
+                <p className="text-xs text-zinc-500 mt-2">
                   {t(
                     'createTask.arbiterMode.costNote',
                     'Ring 2 inference cost scales with bounty: $0 under $1, ~$0.001 for $1-$10, ~$0.003 above $10. Hard cap: 10% of bounty.'
@@ -990,8 +959,8 @@ export function CreateTask({ agentId, onBack, onSubmit, onSuccess }: CreateTaskP
         {step === 'location' && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">{t('createTask.location', 'Location')}</h2>
-              <p className="text-sm text-gray-500 mt-1">
+              <h2 className="text-lg font-semibold text-zinc-900">{t('createTask.location', 'Location')}</h2>
+              <p className="text-sm text-zinc-500 mt-1">
                 {t('createTask.locationDesc', 'Define where the task must be performed (optional for remote tasks)')}
               </p>
             </div>
@@ -1011,8 +980,8 @@ export function CreateTask({ agentId, onBack, onSubmit, onSuccess }: CreateTaskP
         {step === 'evidence' && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">{t('createTask.evidenceRequired', 'Required Evidence')}</h2>
-              <p className="text-sm text-gray-500 mt-1">
+              <h2 className="text-lg font-semibold text-zinc-900">{t('createTask.evidenceRequired', 'Required Evidence')}</h2>
+              <p className="text-sm text-zinc-500 mt-1">
                 {t('createTask.evidenceDesc', 'Define what type of evidence the worker must submit')}
               </p>
             </div>
@@ -1030,8 +999,8 @@ export function CreateTask({ agentId, onBack, onSubmit, onSuccess }: CreateTaskP
         {step === 'preview' && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">{t('createTask.preview', 'Preview')}</h2>
-              <p className="text-sm text-gray-500 mt-1">
+              <h2 className="text-lg font-semibold text-zinc-900">{t('createTask.preview', 'Preview')}</h2>
+              <p className="text-sm text-zinc-500 mt-1">
                 {t('createTask.previewDesc', 'Review details before publishing')}
               </p>
             </div>

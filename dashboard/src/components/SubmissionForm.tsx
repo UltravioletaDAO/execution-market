@@ -512,7 +512,7 @@ export function SubmissionForm({
   const renderVerificationBadge = (evidenceFile: EvidenceFile) => {
     if (evidenceFile.verifying) {
       return (
-        <div className="mt-2 flex items-center gap-2 text-sm text-blue-600">
+        <div className="mt-2 flex items-center gap-2 text-sm text-zinc-700">
           <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
@@ -527,7 +527,7 @@ export function SubmissionForm({
     const v = evidenceFile.verification
     if (v.verified) {
       return (
-        <div className="mt-2 flex items-center gap-2 text-sm text-green-600">
+        <div className="mt-2 flex items-center gap-2 text-sm text-zinc-900">
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
           </svg>
@@ -541,18 +541,18 @@ export function SubmissionForm({
     }
 
     return (
-      <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
-        <div className="flex items-center gap-2 text-sm text-yellow-700">
+      <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
+        <div className="flex items-center gap-2 text-sm text-amber-800">
           <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
           </svg>
           <span className="font-medium">{t('submission.verifyFail')}</span>
         </div>
         {v.explanation && (
-          <p className="text-xs text-yellow-600 mt-1 ml-6">{v.explanation}</p>
+          <p className="text-xs text-amber-700 mt-1 ml-6">{v.explanation}</p>
         )}
         {v.issues.length > 0 && (
-          <ul className="text-xs text-yellow-600 mt-1 ml-6 list-disc list-inside">
+          <ul className="text-xs text-amber-700 mt-1 ml-6 list-disc list-inside">
             {v.issues.map((issue, i) => <li key={i}>{issue}</li>)}
           </ul>
         )}
@@ -566,19 +566,19 @@ export function SubmissionForm({
     const label = t(`tasks.evidenceTypes.${type}`, type)
 
     return (
-      <div key={type} className="p-4 border border-gray-200 rounded-lg">
+      <div key={type} className="p-4 border border-zinc-200 rounded-lg">
         <div className="flex items-center justify-between mb-2">
-          <span className="flex items-center gap-2 font-medium text-gray-700">
+          <span className="flex items-center gap-2 font-medium text-zinc-700">
             <span>{config?.icon}</span>
             <span>{label}</span>
             {required && <span className="text-red-500">*</span>}
           </span>
           {evidenceFile?.uploaded && !evidenceFile.uploading && (
             <span className="flex items-center gap-2">
-              <span className="text-green-600 text-sm">✓</span>
+              <span className="text-zinc-900 text-sm">✓</span>
               <button
                 onClick={() => removeFile(type)}
-                className="text-xs text-blue-600 hover:text-blue-800 underline"
+                className="text-xs text-zinc-900 hover:text-zinc-700 underline"
               >
                 {t('submission.change')}
               </button>
@@ -600,8 +600,8 @@ export function SubmissionForm({
                 className="w-full h-48 object-cover rounded-lg"
               />
             ) : (
-              <div className="w-full h-24 bg-gray-100 rounded-lg flex items-center justify-center">
-                <span className="text-gray-500">{evidenceFile.file.name}</span>
+              <div className="w-full h-24 bg-zinc-100 rounded-lg flex items-center justify-center">
+                <span className="text-zinc-500">{evidenceFile.file.name}</span>
               </div>
             )}
 
@@ -630,14 +630,14 @@ export function SubmissionForm({
                     removeFile(type)
                     handleFileSelect(type, file)
                   }}
-                  className="text-sm text-blue-600 hover:text-blue-800 underline"
+                  className="text-sm text-zinc-900 hover:text-zinc-700 underline"
                 >
                   {t('submission.retry')}
                 </button>
-                <span className="text-gray-300">|</span>
+                <span className="text-zinc-300">|</span>
                 <button
                   onClick={() => removeFile(type)}
-                  className="text-sm text-blue-600 hover:text-blue-800 underline"
+                  className="text-sm text-zinc-900 hover:text-zinc-700 underline"
                 >
                   {t('submission.changeFile')}
                 </button>
@@ -658,7 +658,7 @@ export function SubmissionForm({
             {evidenceFile.uploaded && renderVerificationBadge(evidenceFile)}
           </div>
         ) : (
-          <label className="block w-full p-6 border-2 border-dashed border-gray-300 rounded-lg text-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors">
+          <label className="block w-full p-6 border-2 border-dashed border-zinc-300 rounded-lg text-center cursor-pointer hover:border-zinc-900 hover:bg-zinc-50 transition-colors">
             <input
               type="file"
               accept={config?.accept}
@@ -672,7 +672,7 @@ export function SubmissionForm({
               }}
             />
             <svg
-              className="w-8 h-8 mx-auto text-gray-400 mb-2"
+              className="w-8 h-8 mx-auto text-zinc-400 mb-2"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -684,7 +684,7 @@ export function SubmissionForm({
                 d="M12 6v6m0 0v6m0-6h6m-6 0H6"
               />
             </svg>
-            <span className="text-gray-500">{t('submission.selectFile')}</span>
+            <span className="text-zinc-500">{t('submission.selectFile')}</span>
           </label>
         )}
       </div>
@@ -697,9 +697,9 @@ export function SubmissionForm({
     const label = t(`tasks.evidenceTypes.${type}`, type)
 
     return (
-      <div key={type} className="p-4 border border-gray-200 rounded-lg">
+      <div key={type} className="p-4 border border-zinc-200 rounded-lg">
         <label className="block">
-          <span className="flex items-center gap-2 font-medium text-gray-700 mb-2">
+          <span className="flex items-center gap-2 font-medium text-zinc-700 mb-2">
             <span>{config?.icon}</span>
             <span>{label}</span>
             {required && <span className="text-red-500">*</span>}
@@ -708,7 +708,7 @@ export function SubmissionForm({
             value={textValue}
             onChange={(e) => handleTextChange(type, e.target.value)}
             placeholder={type === 'measurement' ? t('submission.measurementPlaceholder') : t('submission.textPlaceholder')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none"
             rows={3}
           />
         </label>
@@ -740,37 +740,37 @@ export function SubmissionForm({
   // Post-submission polling view
   if (submitted) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200">
+      <div className="bg-white rounded-lg border border-zinc-200">
         <div className="p-6 text-center space-y-4">
           {pollingStatus ? (
             <>
-              <div className="w-16 h-16 mx-auto rounded-full bg-green-100 flex items-center justify-center">
-                <svg className="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+              <div className="w-16 h-16 mx-auto rounded-full bg-zinc-100 flex items-center justify-center">
+                <svg className="w-8 h-8 text-zinc-900" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-zinc-900">
                 {t('submission.statusUpdated', 'Status Updated')}
               </h3>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-zinc-600">
                 {t('submission.newStatus', 'Task status: {{status}}', { status: pollingStatus })}
               </p>
             </>
           ) : (
             <>
-              <div className="w-16 h-16 mx-auto rounded-full bg-green-100 flex items-center justify-center">
-                <svg className="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+              <div className="w-16 h-16 mx-auto rounded-full bg-zinc-100 flex items-center justify-center">
+                <svg className="w-8 h-8 text-zinc-900" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-zinc-900">
                 {t('submission.submitted', 'Evidence Submitted')}
               </h3>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-zinc-600">
                 {t('submission.waitingReview', 'Waiting for review. Checking status automatically...')}
               </p>
-              <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+              <div className="flex items-center justify-center gap-1.5 text-xs text-zinc-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-zinc-900 animate-pulse" />
                 {t('submission.polling', 'Auto-refreshing every 5s')}
               </div>
             </>
@@ -779,7 +779,7 @@ export function SubmissionForm({
 
         {/* Verification panel — always show when available */}
         {verificationDetails && (
-          <div className="border-t border-gray-200 p-4 space-y-3">
+          <div className="border-t border-zinc-200 p-4 space-y-3">
             <EvidenceVerificationPanel details={verificationDetails} onRefresh={refreshVerificationDetails} />
             {(() => {
               // Prefer the dedicated ai_verification_result (populated by Phase B)
@@ -796,7 +796,7 @@ export function SubmissionForm({
 
         {/* Awaiting agent review — show after verification panel, hide once status updated */}
         {verificationDetails && !pollingStatus && (
-          <div className="border-t border-gray-200 p-4">
+          <div className="border-t border-zinc-200 p-4">
             <div className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
               <div className="flex-shrink-0">
                 <svg className="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -822,10 +822,10 @@ export function SubmissionForm({
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200">
-      <div className="p-4 border-b border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900">{t('submission.title')}</h2>
-        <p className="text-sm text-gray-500 mt-1">{task.title}</p>
+    <div className="bg-white rounded-lg border border-zinc-200">
+      <div className="p-4 border-b border-zinc-200">
+        <h2 className="text-lg font-semibold text-zinc-900">{t('submission.title')}</h2>
+        <p className="text-sm text-zinc-500 mt-1">{task.title}</p>
       </div>
 
       <div className="p-4 space-y-4">
@@ -840,15 +840,15 @@ export function SubmissionForm({
 
         {/* Category-specific guidance */}
         {CATEGORY_GUIDANCE[category] && (
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-700">{CATEGORY_GUIDANCE[category]}</p>
+          <div className="p-3 bg-zinc-50 border border-zinc-200 rounded-lg">
+            <p className="text-sm text-zinc-700">{CATEGORY_GUIDANCE[category]}</p>
           </div>
         )}
 
         {/* Escrow not funded warning */}
         {!escrowReady && (
-          <div className="bg-yellow-900/20 border border-yellow-700 rounded-lg p-3">
-            <p className="text-yellow-400 text-sm">
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <p className="text-amber-800 text-sm">
               Escrow not confirmed on-chain (status: {task.escrow_status}).
               You cannot submit evidence until the agent funds this task.
             </p>
@@ -891,7 +891,7 @@ export function SubmissionForm({
               requireCamera={false}
               requireGps={cameraRequired.includes('photo_geo' as EvidenceType)}
               taskLocation={taskLocation}
-              className="border border-gray-200 rounded-lg p-4"
+              className="border border-zinc-200 rounded-lg p-4"
             />
           </section>
         )}
