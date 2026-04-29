@@ -402,6 +402,52 @@ The narrowest strong daytime win is now:
 
 If that bundle pair is legible, behavior-changing, and promotion-safe, broader Review Console and Acontext integration work can expand from a real proof seam instead of optimism.
 
+## 16. Morning briefing artifact and daytime pickup contract
+
+The first daylight implementation pass should not rely on scattered notes across planning docs.
+It should produce and review one tiny execution-facing briefing artifact per replay bundle or fixture batch.
+
+Recommended output:
+- `morning_pickup_brief.json` beside the replay bundle or fixture batch summary
+
+Minimum fields:
+- `build_target`
+- `fixtures_completed`
+- `fixtures_blocked`
+- `acceptance_gates_passed`
+- `acceptance_gates_failed`
+- `promotion_policy_observations`
+- `next_smallest_proof`
+- `do_not_claim_yet`
+
+This artifact is not another archive object.
+It is a daylight coordination object that answers:
+- what proof was actually completed
+- what remains blocked or unproven
+- what the next smallest honest build move is
+- what claims the team must explicitly avoid making yet
+
+### 16.1 Why this matters
+
+The city-ops planning seam is now rich enough that daytime risk is no longer lack of direction.
+The risk is overclaiming from partial bundles or reopening broad architectural discussion when one smaller proof still decides the product truth.
+
+A compact pickup brief keeps the loop honest:
+- replay bundle = audit archive
+- manifest/event/packet = proof contract
+- morning pickup brief = coordination handoff for the next engineering block
+
+### 16.2 Minimum honesty rules for the pickup brief
+
+The pickup brief should explicitly state:
+- which acceptance gates truly passed
+- which bundle outputs are still placeholder or partial
+- whether dispatch guidance changed behaviorally or only cosmetically
+- whether promotion stance is safe to surface in operator-facing tone yet
+
+If those answers are fuzzy, the brief should say so directly.
+That is better than optimistic compression.
+
 ## 13. Sharp recommendation
 
 If daytime wants one clean next move, it should build this exact product loop:

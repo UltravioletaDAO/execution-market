@@ -339,7 +339,22 @@ The following are valuable later, but should not dilute the first build window:
 - worker marketplace redesign for city verticals
 - deep automation from raw uploads without reviewed promotion
 
-## 12. Sharp recommendation
+## 12. Morning handoff checklist for daytime continuity
+
+Before daytime expands scope, it should answer this checklist from actual replay artifacts rather than intuition:
+- which fixtures produced complete replay bundles
+- which acceptance gates passed versus failed
+- whether `review_packet` promotion stance changed dispatch tone in a behaviorally meaningful way
+- whether any improvement remains cosmetic rather than operational
+- what the next smallest proof is if the seam is still partial
+
+Recommended coordination artifact:
+- `morning_pickup_brief.json` or equivalent batch summary derived from actual replay runs
+
+This checklist exists to keep continuation honest.
+The city-ops seam should be advanced by the smallest missing proof, not by whichever adjacent surface looks most exciting.
+
+## 13. Sharp recommendation
 
 If daytime wants the clearest possible next move, it should treat the CaaS backlog as:
 
