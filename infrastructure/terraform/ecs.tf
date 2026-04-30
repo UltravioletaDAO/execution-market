@@ -289,6 +289,11 @@ resource "aws_ecs_task_definition" "mcp_server" {
         { name = "ERC8128_NONCE_STORE", value = "dynamodb" },
         { name = "EM_REQUIRE_ERC8004", value = "true" },
         { name = "EM_REQUIRE_ERC8004_WORKER", value = "true" },
+        # VeryAI master switch — Phase 2 ships routes-disabled. When false,
+        # /api/v1/very-id/* routes are not even mounted (returns 404, not
+        # 503). Flip to "true" only after Phase 6 sandbox testing AND
+        # Veros provisions production credentials in em/veryai.
+        { name = "EM_VERYAI_ENABLED", value = "false" },
         { name = "EM_GEO_MATCH_ENABLED", value = "true" },
         { name = "VERIFICATION_AI_ENABLED", value = "true" },
         { name = "AI_VERIFICATION_PROVIDER", value = "gemini" },
@@ -440,6 +445,29 @@ resource "aws_ecs_task_definition" "mcp_server" {
         {
           name      = "WORLD_ID_SIGNING_KEY"
           valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/worldid:WORLD_ID_SIGNING_KEY::"
+        },
+        # VeryAI (Veros Inc.) — palm-print biometric Tier T1 verification.
+        # Phase 2 ships routes-disabled (EM_VERYAI_ENABLED=false above), so
+        # the container starts cleanly even if these secret values are still
+        # the placeholder empty strings. Operators populate em/veryai via
+        # the AWS Console once Veros issues sandbox credentials. The
+        # ignore_changes lifecycle on aws_secretsmanager_secret_version.veryai
+        # prevents `terraform apply` from clobbering rotated values.
+        {
+          name      = "VERYAI_CLIENT_ID"
+          valueFrom = "${aws_secretsmanager_secret.veryai.arn}:VERYAI_CLIENT_ID::"
+        },
+        {
+          name      = "VERYAI_CLIENT_SECRET"
+          valueFrom = "${aws_secretsmanager_secret.veryai.arn}:VERYAI_CLIENT_SECRET::"
+        },
+        {
+          name      = "VERYAI_REDIRECT_URI"
+          valueFrom = "${aws_secretsmanager_secret.veryai.arn}:VERYAI_REDIRECT_URI::"
+        },
+        {
+          name      = "VERYAI_STATE_SECRET"
+          valueFrom = "${aws_secretsmanager_secret.veryai.arn}:VERYAI_STATE_SECRET::"
         },
         # Sentry backend DSN (Phase 1.5 SAAS_PRODUCTION_HARDENING).
         # Value is provisioned manually in AWS Secrets Manager; an empty

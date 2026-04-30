@@ -86,6 +86,61 @@ resource "aws_secretsmanager_secret_version" "sentry_dsn" {
   }
 }
 
+# ---------------------------------------------------------------------------
+# VeryAI (Veros Inc.) OAuth2/OIDC credentials — Phase 2 VERYAI_INTEGRATION
+# ---------------------------------------------------------------------------
+#
+# Same pattern as em/sentry-dsn: Terraform creates the secret container with
+# empty placeholder values so `terraform apply` is safe before Veros issues
+# real sandbox credentials. ignore_changes prevents subsequent applies from
+# clobbering rotated values.
+#
+# The container is referenced from ECS task-def (ecs.tf) via the standard
+# :KEY:: suffix syntax — one task-def env var per JSON key.
+#
+# Phase 2 default: routes-disabled (EM_VERYAI_ENABLED=false). The secret
+# values can stay empty without affecting the running container — the FastAPI
+# app will not even mount the /api/v1/very-id/* routes, so missing client_id
+# is never dereferenced. Operators populate ALL FOUR keys before flipping
+# EM_VERYAI_ENABLED to "true":
+#
+#   aws secretsmanager put-secret-value \
+#     --secret-id em/veryai \
+#     --secret-string '{"VERYAI_CLIENT_ID":"...","VERYAI_CLIENT_SECRET":"...","VERYAI_REDIRECT_URI":"https://api.execution.market/api/v1/very-id/callback","VERYAI_STATE_SECRET":"<openssl rand -base64 48>"}'
+# ---------------------------------------------------------------------------
+
+resource "aws_secretsmanager_secret" "veryai" {
+  name        = "em/veryai"
+  description = "VeryAI (Veros Inc.) OAuth2 client + state-signing secret. Populate manually after sandbox provisioning."
+
+  # Short recovery window so a manual rotation doesn't hit the 30-day lockout.
+  recovery_window_in_days = 0
+
+  tags = {
+    Name      = "${local.name_prefix}-veryai"
+    ManagedBy = "terraform"
+    Component = "verification"
+  }
+}
+
+resource "aws_secretsmanager_secret_version" "veryai" {
+  secret_id = aws_secretsmanager_secret.veryai.id
+  # All four keys must exist for the :KEY:: syntax in ecs.tf to resolve,
+  # even when the values are empty strings. Empty values are harmless while
+  # EM_VERYAI_ENABLED=false because the routes are not registered.
+  secret_string = jsonencode({
+    VERYAI_CLIENT_ID     = ""
+    VERYAI_CLIENT_SECRET = ""
+    VERYAI_REDIRECT_URI  = ""
+    VERYAI_STATE_SECRET  = ""
+  })
+
+  lifecycle {
+    # Operator-managed values — do not let Terraform reset rotated secrets.
+    ignore_changes = [secret_string]
+  }
+}
+
 # IAM Policy for reading secrets
 resource "aws_iam_policy" "secrets_read" {
   name        = "${local.name_prefix}-secrets-read"
