@@ -6,13 +6,14 @@ import { ReputationCard } from './ReputationCard'
 import { TaskHistory } from './TaskHistory'
 import { WalletSection, WalletMismatchBanner } from './wallet'
 import { WorldIdVerification } from '../WorldIdVerification'
+import { VeryAiVerification } from '../VeryAiVerification'
 import { ENSLinkSection } from '../ENSLinkSection'
 import { Pill } from '../ui/Pill'
 import { useEarnings, useReputation, useTaskHistory } from '../../hooks/useProfile'
 import type { Executor } from '../../types/database'
 import { safeSrc } from '../../lib/safeHref'
 import { truncateAddress } from '../../lib/utils'
-import { isWorldIdEnabled } from '../../utils/featureFlags'
+import { isWorldIdEnabled, isVeryAiEnabled } from '../../utils/featureFlags'
 
 interface ProfilePageProps {
   executor: Executor
@@ -249,25 +250,46 @@ export function ProfilePage({ executor, onBack, onEditProfile, onLogout }: Profi
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </button>
-        {advancedOpen && (
-          <div className={`px-5 pb-5 grid grid-cols-1 ${isWorldIdEnabled() ? 'md:grid-cols-2' : ''} gap-4`}>
-            {isWorldIdEnabled() && (
+        {advancedOpen && (() => {
+          // Compute responsive grid: ENS is always shown; World ID and VeryAI
+          // are gated by flags. Two flags on => 3 cards, one flag => 2 cards,
+          // none => 1 card. Tailwind needs static class names so we precompute.
+          const enabledCount = 1 + (isWorldIdEnabled() ? 1 : 0) + (isVeryAiEnabled() ? 1 : 0)
+          const gridClass =
+            enabledCount === 3
+              ? 'md:grid-cols-3'
+              : enabledCount === 2
+                ? 'md:grid-cols-2'
+                : ''
+          return (
+            <div className={`px-5 pb-5 grid grid-cols-1 ${gridClass} gap-4`}>
+              {isWorldIdEnabled() && (
+                <div className="border border-gray-100 rounded-lg p-4">
+                  <h4 className="text-gray-900 font-semibold mb-3 text-sm">
+                    {t('profile.humanVerification', 'Human Verification')}
+                  </h4>
+                  <WorldIdVerification />
+                </div>
+              )}
+
+              {isVeryAiEnabled() && (
+                <div className="border border-gray-100 rounded-lg p-4">
+                  <h4 className="text-gray-900 font-semibold mb-3 text-sm">
+                    {t('profile.palmVerification', 'Palm Verification')}
+                  </h4>
+                  <VeryAiVerification />
+                </div>
+              )}
+
               <div className="border border-gray-100 rounded-lg p-4">
                 <h4 className="text-gray-900 font-semibold mb-3 text-sm">
-                  {t('profile.humanVerification', 'Human Verification')}
+                  {t('profile.ensIdentity', 'ENS Identity')}
                 </h4>
-                <WorldIdVerification />
+                <ENSLinkSection />
               </div>
-            )}
-
-            <div className="border border-gray-100 rounded-lg p-4">
-              <h4 className="text-gray-900 font-semibold mb-3 text-sm">
-                {t('profile.ensIdentity', 'ENS Identity')}
-              </h4>
-              <ENSLinkSection />
             </div>
-          </div>
-        )}
+          )
+        })()}
       </div>
 
       {/* Earnings + Reputation side by side */}
