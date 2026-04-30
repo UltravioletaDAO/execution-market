@@ -99,6 +99,29 @@ class PlatformConfig:
         "feature.world_id_enabled": True,
         "feature.world_id_required_for_high_value": True,
         "worldid.min_bounty_for_orb_usd": Decimal("500.00"),
+        # ----------------------------------------------------------------
+        # VeryAI palm-print integration (mid-tier KYC, $50 - $500 band)
+        # See: docs/planning/MASTER_PLAN_VERYAI_INTEGRATION.md
+        # All flags default OFF until Phase 6 sandbox validation.
+        # ----------------------------------------------------------------
+        "feature.veryai_enabled": False,
+        "feature.veryai_required_for_mid_value": True,
+        "veryai.min_bounty_for_palm_usd": Decimal("50.00"),
+        "veryai.api_base_url": "https://api.very.org",
+        "veryai.oauth2_authorize_path": "/oauth2/authorize",
+        "veryai.oauth2_token_path": "/oauth2/token",
+        "veryai.oauth2_userinfo_path": "/userinfo",
+        # Multi-provider tier resolver
+        "verification.tiers.t1.min_bounty_usd": Decimal("50.00"),
+        "verification.tiers.t2.min_bounty_usd": Decimal("500.00"),
+        "verification.tiers.t1.providers": ["veryai_palm", "worldid_orb"],
+        "verification.tiers.t2.providers": ["worldid_orb"],
+        # ClawKey KYA (Know Your Agent) — additive trust signal, never blocking
+        "feature.clawkey_kya_enabled": False,
+        "clawkey.api_base_url": "https://api.clawkey.ai",
+        "clawkey.verify_public_key_path": "/v1/agent/verify/public-key/",
+        "clawkey.verify_device_id_path": "/v1/agent/verify/device/",
+        "clawkey.cache_ttl_seconds": 300,
         # MeshRelay integration
         "feature.meshrelay_dynamic_channels": False,
         "feature.meshrelay_relay_chains": False,
