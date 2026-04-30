@@ -203,13 +203,18 @@ Three concise bullets is usually enough.
 The review packet should be produced only **after** the reviewer has inspected the canonical fixed order:
 1. `bundle_manifest`
 2. `event_summary`
-3. `brief_improvement_scorecard`
-4. `improved_dispatch_brief`
-5. `office_playbook_delta`
-6. `reviewed_episode`
-7. supporting artifacts as needed
+3. `review_packet`
+4. `brief_improvement_scorecard`
+5. `improved_dispatch_brief`
+6. `office_playbook_delta`
+7. `reviewed_episode`
+8. supporting artifacts as needed
 
-Once emitted into the bundle, the preferred daylight reading rhythm becomes:
+That fixed order is intentional.
+The packet is now part of the canonical proof rhythm, not a post-hoc appendix.
+Daylight review should learn the compact judgment immediately after the manifest and ordered lifecycle story, then confirm it against the scorecard, improved brief, and supporting artifacts.
+
+Once emitted into the bundle, the preferred daylight reading rhythm remains:
 1. `bundle_manifest`
 2. `event_summary`
 3. `review_packet`
@@ -227,11 +232,13 @@ The review packet is the best first bridge object for memory infrastructure beca
 - safer than raw coordination logs
 - more decision-rich than a bare manifest
 - explicit about memory promotion stance
+- strong enough to drive retrieval behavior and operator-facing guidance without re-deriving meaning from deeper artifacts
 
 That means the local-first implementation can:
 1. write the full replay bundle
 2. write the review packet beside it
-3. later swap the packet sink into Acontext without changing product meaning
+3. let brief composition consume packet-level promotion, tone, and placement decisions directly
+4. later swap the packet sink into Acontext without changing product meaning
 
 This keeps Acontext fed with review-safe judgments instead of raw municipal ambiguity.
 
@@ -246,6 +253,8 @@ A `review_packet` should be considered valid only if:
 - `main_concern` is empty or narrowly honest
 - all required `artifact_refs` are present
 - rationale bullets are short and traceable to reviewed artifacts
+- the packet is strong enough to determine operator-facing guidance tone without forcing downstream brief composers to improvise confidence language
+- the packet is strong enough to determine operator-facing guidance placement without forcing downstream brief composers to improvise where tentative versus hardened learning belongs
 
 ## 10. How to use the packet in the first daylight proof
 
