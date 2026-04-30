@@ -5,13 +5,16 @@ export type ApplicationResultState =
   | 'success'
   | 'success_suggest_worldid'
   | 'blocked_worldid'
+  | 'blocked_t1_dual'
   | 'already_applied'
   | 'error'
 
 interface ApplicationResultViewProps {
   state: ApplicationResultState
-  /** Bounty threshold that triggers World ID requirement */
+  /** Bounty threshold that triggers World ID requirement (T2) */
   worldIdThreshold?: number
+  /** Bounty floor for T1 (VeryAI palm OR Orb). Defaults to 50. */
+  veryAiFloor?: number
   /** Error message to display in error state */
   errorMessage?: string
   onClose: () => void
@@ -25,7 +28,8 @@ function hideOnError(e: React.SyntheticEvent<HTMLImageElement>) {
 
 export function ApplicationResultView({
   state,
-  worldIdThreshold = 5,
+  worldIdThreshold = 500,
+  veryAiFloor = 50,
   errorMessage,
   onClose,
   onRetry,
@@ -173,6 +177,92 @@ export function ApplicationResultView({
             {t('application.result.verifyCta', 'Verify with World ID')}
           </button>
         </div>
+      </div>
+    )
+  }
+
+  if (state === 'blocked_t1_dual') {
+    // T1 band ($50 - <$500): worker has neither palm nor Orb. Two CTAs
+    // side-by-side, fastest path wins. Both deep-link to /profile so the
+    // worker lands on the verification cards.
+    return (
+      <div role="alert" className="flex flex-col items-center text-center py-6 px-4 space-y-4">
+        <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center">
+          <svg aria-hidden="true" className="w-8 h-8 text-zinc-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+            />
+          </svg>
+        </div>
+
+        <h3 className="text-lg font-bold text-zinc-900">
+          {t('application.result.blockedT1Title', 'Human verification required')}
+        </h3>
+
+        <p className="text-sm text-zinc-600 max-w-xs">
+          {t(
+            'application.result.blockedT1Message',
+            'Tasks between ${{floor}} and ${{threshold}} require human verification. Pick whichever path is fastest for you.',
+            { floor: veryAiFloor, threshold: worldIdThreshold },
+          )}
+        </p>
+
+        {/* Dual provider CTAs side-by-side */}
+        <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button
+            onClick={() => {
+              onClose()
+              navigate('/profile')
+            }}
+            className="flex flex-col items-center gap-2 p-4 border border-zinc-200 rounded-xl hover:bg-zinc-50 transition-colors"
+          >
+            <img src="/worldcoin.png" alt="" className="w-8 h-8" onError={hideOnError} />
+            <span className="text-sm font-semibold text-zinc-900">
+              {t('application.result.verifyOrbCta', 'Verify with Orb')}
+            </span>
+            <span className="text-xs text-zinc-500">
+              {t('application.result.verifyOrbHint', 'Visit a Worldcoin Orb once')}
+            </span>
+          </button>
+
+          <button
+            onClick={() => {
+              onClose()
+              navigate('/profile')
+            }}
+            className="flex flex-col items-center gap-2 p-4 border border-zinc-200 rounded-xl hover:bg-zinc-50 transition-colors"
+          >
+            {/* Palm icon — same path as VeryAiBadge */}
+            <svg
+              className="w-8 h-8 text-zinc-900"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M10.05 4.575a1.575 1.575 0 1 0-3.15 0v3m3.15-3v-1.5a1.575 1.575 0 0 1 3.15 0v1.5m-3.15 0 .075 5.925m3.075.75V4.575m0 0a1.575 1.575 0 0 1 3.15 0V15M6.9 7.575a1.575 1.575 0 1 0-3.15 0v8.175a6.75 6.75 0 0 0 6.75 6.75h2.018a5.25 5.25 0 0 0 3.712-1.538l1.732-1.732a5.25 5.25 0 0 0 1.538-3.712l.003-2.024a.668.668 0 0 1 .198-.471 1.575 1.575 0 1 0-2.228-2.228 3.818 3.818 0 0 0-1.12 2.687M6.9 7.575V12m6.27 4.318A4.49 4.49 0 0 1 16.35 15" />
+            </svg>
+            <span className="text-sm font-semibold text-zinc-900">
+              {t('application.result.verifyPalmCta', 'Verify with palm')}
+            </span>
+            <span className="text-xs text-zinc-500">
+              {t('application.result.verifyPalmHint', 'VeryAI palm-print biometric')}
+            </span>
+          </button>
+        </div>
+
+        <button
+          onClick={onClose}
+          className="w-full py-2.5 text-sm font-medium text-zinc-700 hover:text-zinc-900 border border-zinc-300 rounded-xl transition-colors"
+        >
+          {t('common.cancel', 'Cancel')}
+        </button>
       </div>
     )
   }

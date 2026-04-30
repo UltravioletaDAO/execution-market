@@ -17,12 +17,15 @@ interface PlatformConfig {
   preferred_network: string
   require_api_key: boolean
   worldid_min_bounty_for_orb_usd: number
+  /** T1 floor (VeryAI palm OR Orb). Defaults to 50 when backend hasn't shipped it yet. */
+  veryai_min_bounty_usd?: number
 }
 
 interface UsePlatformConfigReturn {
   config: PlatformConfig | null
   requireApiKey: boolean
   worldIdBountyThreshold: number
+  veryAiBountyFloor: number
   loading: boolean
   error: string | null
 }
@@ -52,6 +55,15 @@ export function getRequireApiKey(): boolean {
  */
 export function getWorldIdBountyThreshold(): number {
   return cachedConfig?.worldid_min_bounty_for_orb_usd ?? 500
+}
+
+/**
+ * Non-hook accessor for the VeryAI/T1 bounty floor.
+ * Returns cached value or default (50) if not yet fetched. Tasks with
+ * bounty >= this AND < worldIdBountyThreshold need either palm or Orb.
+ */
+export function getVeryAiBountyFloor(): number {
+  return cachedConfig?.veryai_min_bounty_usd ?? 50
 }
 
 /**
@@ -109,6 +121,7 @@ export function usePlatformConfig(): UsePlatformConfigReturn {
     config,
     requireApiKey: config?.require_api_key ?? true,
     worldIdBountyThreshold: config?.worldid_min_bounty_for_orb_usd ?? 500,
+    veryAiBountyFloor: config?.veryai_min_bounty_usd ?? 50,
     loading,
     error,
   }

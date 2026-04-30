@@ -9,7 +9,11 @@ import { ApplicationResultView } from './ApplicationResultView'
 import type { ApplicationResultState } from './ApplicationResultView'
 import { applyToTask, ApplicationError } from '../services/tasks'
 import type { Task } from '../types/database'
-import { getWorldIdBountyThreshold } from '../hooks/usePlatformConfig'
+import {
+  getWorldIdBountyThreshold,
+  getVeryAiBountyFloor,
+} from '../hooks/usePlatformConfig'
+import { isVeryAiEnabled } from '../utils/featureFlags'
 import { Pill } from './ui/Pill'
 import { Modal } from './ui/Modal'
 
@@ -36,6 +40,21 @@ export function TaskApplicationModal({ task, hasAlreadyApplied, onClose, onSucce
   const handleSubmit = async () => {
     if (!executor) return
 
+    // Pre-check tier (Task 3.4): tasks in T1 band ($50 - <$500) need either
+    // VeryAI palm OR World ID Orb. Show dual-CTA upfront when VeryAI is on
+    // and the worker has neither — fastest path wins. T2 (>=$500) stays a
+    // single-Orb CTA, handled reactively by the backend's world_id_required.
+    const t2Threshold = getWorldIdBountyThreshold()
+    const t1Floor = getVeryAiBountyFloor()
+    const inT1Band = task.bounty_usd >= t1Floor && task.bounty_usd < t2Threshold
+    const hasOrb =
+      executor.world_id_verified === true && executor.world_id_level === 'orb'
+    const hasPalm = executor.veryai_verified === true
+    if (inT1Band && isVeryAiEnabled() && !hasOrb && !hasPalm) {
+      setResultState('blocked_t1_dual')
+      return
+    }
+
     setSubmitting(true)
     setError(null)
 
@@ -48,7 +67,7 @@ export function TaskApplicationModal({ task, hasAlreadyApplied, onClose, onSucce
       })
 
       // Determine success state based on World ID status and bounty
-      const isHighValue = task.bounty_usd >= getWorldIdBountyThreshold()
+      const isHighValue = task.bounty_usd >= t2Threshold
       const isWorldIdVerified = executor.world_id_verified === true
 
       if (!isWorldIdVerified && !isHighValue) {
@@ -108,6 +127,7 @@ export function TaskApplicationModal({ task, hasAlreadyApplied, onClose, onSucce
           <ApplicationResultView
             state={resultState}
             worldIdThreshold={getWorldIdBountyThreshold()}
+            veryAiFloor={getVeryAiBountyFloor()}
             errorMessage={error || undefined}
             onClose={onClose}
             onRetry={handleRetry}
