@@ -315,6 +315,7 @@ the system can emit a valid `review_packet` that:
 - points back to the canonical artifacts
 - is strong enough to drive retrieval behavior without re-deriving meaning from the full bundle
 - is strong enough to determine operator-facing guidance tone without forcing brief composers to improvise confidence language
+- yields one explicit brief guidance classification that can be verified against the surfaced section placement and wording style of the improved dispatch brief
 
 ### Gate H — standard replay bundle
 Given a replay fixture,

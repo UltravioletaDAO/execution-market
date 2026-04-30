@@ -2327,6 +2327,7 @@ A strong first proof should make it easy to see:
 - cautious promotion turns into verify-first or likely-pattern wording
 - held learning stays inspectable without becoming top-line doctrine
 - blocked learning stays out of default brief guidance
+- guidance placement in the improved brief also matches promotion class instead of surfacing every learned rule in the same top-line sections
 
 ### 59.4 Why this is worth tightening now
 

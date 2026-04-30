@@ -258,6 +258,7 @@ Backlog:
 - treat the packet as the compact decision object, not a duplicate of the full replay archive
 - make packet output actionable by downstream retrieval through a stable promotion-policy interpretation
 - require packet output to drive one explicit operator-facing guidance-tone choice so brief language does not drift across implementations
+- require packet output to constrain where guidance may appear in the improved brief, not only how it is phrased
 
 ## 8. Backlog by product surface
 

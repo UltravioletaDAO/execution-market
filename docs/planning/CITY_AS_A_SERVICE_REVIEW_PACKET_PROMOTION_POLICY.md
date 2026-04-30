@@ -186,22 +186,66 @@ The first implementation should let promotion policy shape how the dispatch brie
 - include the learned rule in the main brief summary or top risk list
 - allow it to influence recommended fallback behavior directly
 - allow it to contribute to office playbook summary fields without hedging overload
+- prefer directive wording that changes worker/operator preparation before travel
 
 ### 7.2 When promoted cautiously
 - include the learned rule, but mark it as recent, likely, or verify-first guidance
 - prefer it in evidence guidance, caution notes, or fallback hints rather than as rigid doctrine
 - preserve provenance and freshness markers clearly
+- avoid imperative wording that sounds stronger than the reviewed evidence
 
 ### 7.3 When held for more evidence
 - keep the learning out of top-line brief summary fields
 - make it inspectable in memory/admin/debug surfaces
 - optionally surface it only in low-priority notes where the UI can show it as unconfirmed
+- keep the default brief operationally neutral rather than quietly smuggling tentative doctrine into warnings
 
 ### 7.4 When not promoted
 - exclude it from operator-facing dispatch doctrine
 - preserve only for audit/debug purposes
+- do not let ad hoc summary prose reintroduce blocked guidance through side channels
 
-## 8. Promotion safety rules
+## 8. Guidance-tone contract by promotion outcome
+
+The first implementation should make guidance tone explicit, not implicit.
+The same learned rule should sound different depending on promotion class.
+
+### 8.1 Canonical guidance-tone classes
+Recommended values:
+- `directive`
+- `cautious`
+- `inspect_only`
+- `suppressed`
+
+### 8.2 Required mapping
+| memory_promotion_decision | guidance_tone | expected operator-facing behavior |
+|---|---|---|
+| `promote_with_confidence` | `directive` | top-line instruction or strong risk guidance that should change preparation or routing now |
+| `promote_cautiously` | `cautious` | verify-first or likely-pattern wording that is useful but visibly not hardened doctrine |
+| `hold_for_more_evidence` | `inspect_only` | inspectable context only; not part of default top-line dispatch doctrine |
+| `do_not_promote` | `suppressed` | omitted from default brief guidance entirely |
+
+### 8.3 Section-level brief behavior
+The first daylight implementation should keep section placement conservative and reviewable:
+- `directive` guidance may appear in brief summary, top risks, or fallback instructions
+- `cautious` guidance should usually appear in caution/evidence/fallback sections with freshness or provenance cues
+- `inspect_only` guidance should remain in expandable notes, debug/admin memory views, or explicit inspection surfaces
+- `suppressed` guidance should not appear in the default improved dispatch brief
+
+### 8.4 Tone honesty rules
+- promotion policy should control both whether a rule appears and how strongly it sounds
+- longer prose must not be mistaken for stronger confidence
+- `cautious` and `inspect_only` guidance should preserve uncertainty in wording, not only in hidden metadata
+- `suppressed` guidance may remain in the replay archive, but not in operator-facing brief language
+
+### 8.5 First proof expectation
+The first replay-bundle proof should make it obvious that:
+- confident promotion becomes directive guidance
+- cautious promotion becomes verify-first guidance
+- held learning stays inspectable without changing default doctrine
+- blocked learning stays out of the default brief entirely
+
+## 9. Promotion safety rules
 
 The first pass should protect against memory pollution with a few hard rules.
 
