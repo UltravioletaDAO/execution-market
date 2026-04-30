@@ -3,6 +3,12 @@ World ID enforcement for task applications.
 
 Shared utility used by both REST API and MCP tools to enforce
 World ID Orb verification on high-value task applications.
+
+Phase 1.5 (MASTER_PLAN_VERYAI_INTEGRATION): when EM_VERYAI_ENABLED=true,
+this wrapper delegates to the multi-provider tier resolver
+(integrations.verification.enforcement). When EM_VERYAI_ENABLED=false
+(default), the legacy Orb-only logic runs unchanged so existing tests and
+behavior are preserved byte-for-byte.
 """
 
 import logging
@@ -18,7 +24,7 @@ async def check_world_id_eligibility(
     bounty_usd: Decimal,
     db_client=None,
 ) -> tuple[bool, Optional[dict]]:
-    """Check if a worker is eligible to apply based on World ID verification.
+    """Check if a worker is eligible to apply based on identity verification.
 
     Args:
         executor_id: The executor's UUID.
@@ -31,11 +37,34 @@ async def check_world_id_eligibility(
         If blocked, error_detail contains structured error info matching
         the REST API 403 response format.
     """
-    # Check if World ID enforcement is enabled via env var
     world_id_enabled = os.environ.get("EM_WORLD_ID_ENABLED", "true").lower() == "true"
     if not world_id_enabled:
         return True, None
 
+    veryai_enabled = os.environ.get("EM_VERYAI_ENABLED", "false").lower() == "true"
+
+    if veryai_enabled:
+        # Delegate to multi-provider tier resolver.
+        from integrations.verification.enforcement import check_tier_eligibility
+
+        allowed, err = await check_tier_eligibility(
+            executor_id, bounty_usd, db_client=db_client
+        )
+        if not allowed and err and err.get("error") == "tier_check_failed":
+            # Re-map to the legacy error code so existing clients don't break.
+            err = {
+                **err,
+                "error": "world_id_check_failed",
+                "message": (
+                    "World ID verification could not be checked. "
+                    "Please try again later or contact support."
+                ),
+            }
+        return allowed, err
+
+    # ------------------------------------------------------------------
+    # Legacy Orb-only path (unchanged from pre-VeryAI behavior).
+    # ------------------------------------------------------------------
     try:
         from config.platform_config import PlatformConfig
 
@@ -49,17 +78,14 @@ async def check_world_id_eligibility(
             "worldid.min_bounty_for_orb_usd", Decimal("500.00")
         )
 
-        # Only enforce for high-value tasks
         if bounty_usd < orb_threshold:
             return True, None
 
-        # Get DB client
         if db_client is None:
             from supabase_client import get_client
 
             db_client = get_client()
 
-        # Query executor's World ID status
         wid_check = (
             db_client.table("executors")
             .select("world_id_verified, world_id_level")
