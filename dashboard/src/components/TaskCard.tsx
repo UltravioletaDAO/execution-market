@@ -8,7 +8,11 @@ import { memo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Task } from '../types/database'
 import { useTranslation as useCustomTranslation } from '../i18n/hooks/useTranslation'
-import { getWorldIdBountyThreshold } from '../hooks/usePlatformConfig'
+import {
+  getWorldIdBountyThreshold,
+  getVeryAiBountyFloor,
+} from '../hooks/usePlatformConfig'
+import { isVeryAiEnabled } from '../utils/featureFlags'
 import { CATEGORY_ICONS } from '../constants/categories'
 import { getNetworkDisplayName } from '../utils/blockchain'
 import { NETWORK_BY_KEY, getNetworkLogo } from '../config/networks'
@@ -178,27 +182,65 @@ export const TaskCard = memo(function TaskCard({ task, onClick }: TaskCardProps)
         </div>
       )}
 
-      {/* World ID required badge — World ID logo glyph keeps brand identity at icon size only */}
-      {task.bounty_usd >= getWorldIdBountyThreshold() && (
-        <div className="mt-2 flex items-center">
-          <Pill
-            variant="default"
-            size="sm"
-            asSpan
-            leftIcon={
-              <img
-                src="/worldcoin.png"
-                alt=""
-                aria-hidden="true"
-                className="w-3 h-3 object-contain"
-                onError={(e) => { e.currentTarget.style.display = 'none' }}
-              />
-            }
-          >
-            {t('worldId.required', 'Requires World ID')}
-          </Pill>
-        </div>
-      )}
+      {/* Verification tier badge:
+          - T2 ($500+): Orb required (single-CTA, current behavior).
+          - T1 ($50 - <$500, VeryAI enabled): palm OR Orb. Surface a lock pill
+            so workers don't waste a click on a task they can't take.
+          The pill stays a single component so card height doesn't drift. */}
+      {(() => {
+        const t2 = getWorldIdBountyThreshold()
+        const t1 = getVeryAiBountyFloor()
+        if (task.bounty_usd >= t2) {
+          return (
+            <div className="mt-2 flex items-center">
+              <Pill
+                variant="default"
+                size="sm"
+                asSpan
+                leftIcon={
+                  <img
+                    src="/worldcoin.png"
+                    alt=""
+                    aria-hidden="true"
+                    className="w-3 h-3 object-contain"
+                    onError={(e) => { e.currentTarget.style.display = 'none' }}
+                  />
+                }
+              >
+                {t('tasks.tier.t2', 'T2 — Orb required')}
+              </Pill>
+            </div>
+          )
+        }
+        if (isVeryAiEnabled() && task.bounty_usd >= t1) {
+          return (
+            <div className="mt-2 flex items-center">
+              <Pill
+                variant="default"
+                size="sm"
+                asSpan
+                leftIcon={
+                  <svg
+                    className="w-3 h-3"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                }
+              >
+                {t('tasks.tier.t1', 'T1 — palm or Orb')}
+              </Pill>
+            </div>
+          )
+        }
+        return null
+      })()}
 
       {/* Skills required */}
       {task.skills_required && task.skills_required.length > 0 && (
