@@ -9,3 +9,7 @@
 export function isWorldIdEnabled(): boolean {
   return import.meta.env.VITE_WORLD_ID_ENABLED === 'true'
 }
+
+export function isVeryAiEnabled(): boolean {
+  return import.meta.env.VITE_VERYAI_ENABLED === 'true'
+}

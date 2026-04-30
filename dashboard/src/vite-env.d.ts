@@ -24,6 +24,7 @@ interface ImportMetaEnv {
   readonly VITE_REQUIRE_AGENT_API_KEY?: string
   readonly VITE_ENABLE_EVIDENCE_CAROUSEL?: string
   readonly VITE_WORLD_ID_ENABLED?: string
+  readonly VITE_VERYAI_ENABLED?: string
   readonly VITE_E2E_MODE?: string
 
   // (VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS removed — DB-008 security lockdown)

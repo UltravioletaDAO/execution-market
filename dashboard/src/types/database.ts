@@ -107,6 +107,9 @@ export interface Executor {
   social_links?: SocialLinks | null
   world_id_verified?: boolean
   world_id_level?: string | null  // 'orb' | 'device'
+  veryai_verified?: boolean
+  veryai_level?: string | null  // 'palm_single' | 'palm_dual'
+  veryai_verified_at?: string | null
   ens_name?: string | null          // auto-resolved ENS (e.g., alice.eth)
   ens_avatar?: string | null        // ENS avatar URL
   ens_subname?: string | null       // claimed subname (e.g., alice.execution-market.eth)

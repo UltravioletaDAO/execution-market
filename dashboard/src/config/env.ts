@@ -47,6 +47,7 @@ const EnvSchema = z
     VITE_REQUIRE_AGENT_API_KEY: booleanish,
     VITE_ENABLE_EVIDENCE_CAROUSEL: booleanish,
     VITE_WORLD_ID_ENABLED: booleanish,
+    VITE_VERYAI_ENABLED: booleanish,
     VITE_E2E_MODE: booleanish,
   })
   .passthrough()
