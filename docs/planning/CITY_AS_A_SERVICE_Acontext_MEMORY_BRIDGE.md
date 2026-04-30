@@ -261,3 +261,64 @@ The point is not to give agents more memory in general.
 The point is to make **verified city reality reusable**.
 
 If Execution Market can do that reliably, City as a Service stops being a labor marketplace feature and becomes municipal operating infrastructure.
+
+## 14. Coordination event contract for cross-project reuse
+
+To connect CaaS memory with the swarm control plane and broader cross-project decision systems, the memory bridge should standardize one reusable coordination event contract instead of inventing a city-only dialect.
+
+### 14.1 Shared event envelope
+Every replayable coordination event should be representable with the same compact envelope whether it originates from:
+- a city task dispatch
+- an EM swarm routing decision
+- an IRC intervention or escalation
+- a future cross-project decision-support pipeline
+
+Suggested shared fields:
+- `event_name`
+- `coordination_session_id`
+- `task_id`
+- `vertical`
+- `workflow_template`
+- `jurisdiction_name`
+- `office_name`
+- `actor_type` (`agent`, `worker`, `operator`, `system`)
+- `actor_id`
+- `decision_phase` (`dispatch`, `execution`, `review`, `memory_write`, `redispatch`)
+- `decision_summary`
+- `risk_flags[]`
+- `memory_write_recommended`
+- `event_time`
+
+### 14.2 Why this matters
+This lets the same retrieval and observability surfaces answer questions across scopes, for example:
+- what happened in IRC before a redirect was accepted as real?
+- which operator interventions changed the next dispatch brief?
+- which decision phases correlate with repeated rejection avoidance?
+- where does the city workflow look different from generic swarm routing, and where is it actually the same?
+
+### 14.3 Minimal implementation stance
+Before Acontext is live, the local projector should write this envelope beside reviewed artifacts so daytime builders can:
+- replay the exact event chain
+- mirror the same payload into IRC summaries
+- feed one stable schema into observability dashboards
+- later swap the sink from local files to Acontext without rethinking the event model
+
+## 15. Dispatch intelligence ladder
+
+Not every retrieved artifact should influence the next task equally. The bridge should therefore rank retrieval outputs by decision weight.
+
+### 15.1 Recommended priority order
+1. `office_playbook_after` for known office + template pairs
+2. `reviewed_episode` recency-weighted summaries for the same workflow template
+3. rejection/redirect aggregates for the same jurisdiction
+4. worker familiarity summaries for candidate assignees
+5. coordination-event summaries showing recent escalations or drift
+
+### 15.2 Dispatch-time rule
+If higher-confidence artifacts exist, the briefing should degrade gracefully rather than mixing strong and weak memory into one undifferentiated blob.
+That means the briefing should explicitly separate:
+- **trusted operational guidance**
+- **recent but weak signals**
+- **open questions to resolve on-site**
+
+This is important because city work is full of partial truths. A good memory bridge does not merely retrieve more context; it preserves decision hygiene under uncertainty.

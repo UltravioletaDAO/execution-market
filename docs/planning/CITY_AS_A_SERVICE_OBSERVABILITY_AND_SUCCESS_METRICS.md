@@ -287,3 +287,48 @@ Only after the event model feels stable, swap the sink to Acontext/observability
 That is the real product loop.
 If that loop is visible and improving, scale can come later with confidence.
 If that loop is invisible, scale will just multiply confusion.
+
+## 11. Coordination control plane metrics
+
+Because CaaS is being designed alongside the swarm coordination control plane, observability should include a thin metric layer that connects dispatch quality to coordination quality.
+
+### 10.1 Additional required metrics
+- `coordination_session_coverage_rate`
+  - percent of reviewed city tasks with a durable `coordination_session_id`
+- `event_mirror_completeness_rate`
+  - percent of required city events mirrored from review/IRC/control-plane sources into the local ledger or projector outputs
+- `intervention_to_outcome_lift`
+  - outcome delta for tasks that received operator or system intervention before review closure
+- `brief_to_assignment_latency_seconds`
+  - time from `city_dispatch_brief_composed` to worker assignment
+- `restart_reconstruction_success_rate`
+  - percent of interrupted/restarted city workflows that can be reconstructed from artifacts without transcript spelunking
+
+### 10.2 Why they matter
+A smart dispatch brief is not enough if the surrounding coordination state is fragile.
+These metrics reveal whether city memory is surviving real operational conditions:
+- restarts
+- IRC interruptions
+- escalations
+- follow-on redispatch loops
+
+## 12. Success scorecard for the first live loop
+
+To keep daytime implementation honest, the first slice should report one composite judgment alongside raw metrics.
+
+### 11.1 Suggested scorecard dimensions
+A first-pass `city_learning_loop_scorecard` can mark each reviewed replay bundle on five axes:
+- `review_trustworthy`
+- `memory_written_when_safe`
+- `dispatch_brief_improved`
+- `coordination_trace_complete`
+- `next_step_operationally_clear`
+
+### 11.2 Judgment policy
+The scorecard should remain conservative:
+- improvement without proof of operational usefulness is not a pass
+- memory writes from ambiguous review should count against the loop
+- missing coordination trace should block strong claims of replayability
+
+This gives builders and operators one simple question to inspect:
+> did this reviewed task actually strengthen the next dispatch in a way we can replay and explain?
