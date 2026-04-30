@@ -157,7 +157,8 @@ Recommended shape:
     "office_playbook_after": "present",
     "improved_dispatch_brief": "present",
     "brief_improvement_scorecard": "present",
-    "event_summary": "present"
+    "event_summary": "present",
+    "review_packet": "present"
   },
   "acceptance": {
     "contracts_valid": true,

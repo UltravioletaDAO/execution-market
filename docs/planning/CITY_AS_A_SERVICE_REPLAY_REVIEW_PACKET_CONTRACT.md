@@ -209,6 +209,15 @@ The review packet should be produced only **after** the reviewer has inspected t
 6. `reviewed_episode`
 7. supporting artifacts as needed
 
+Once emitted into the bundle, the preferred daylight reading rhythm becomes:
+1. `bundle_manifest`
+2. `event_summary`
+3. `review_packet`
+4. `brief_improvement_scorecard`
+5. `improved_dispatch_brief`
+6. `office_playbook_delta`
+7. `reviewed_episode`
+
 The packet is therefore a compression of reviewed truth, not a replacement for review discipline.
 
 ## 8. Relationship to Acontext and local projector flows

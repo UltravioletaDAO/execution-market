@@ -310,11 +310,13 @@ If the event seam collapses these states together, downstream systems will turn 
 During the first daylight PR, reviewers should inspect in this order:
 1. `bundle_manifest`
 2. `event_summary`
-3. `brief_improvement_scorecard`
-4. `improved_dispatch_brief`
-5. `office_playbook_delta`
+3. `review_packet`
+4. `brief_improvement_scorecard`
+5. `improved_dispatch_brief`
+6. `office_playbook_delta`
+7. `reviewed_episode`
 
-That order keeps the replay proof focused on whether learning is visible, ordered, and operationally reusable.
+That order keeps the replay proof focused on whether learning is visible, ordered, operationally reusable, and governed by an explicit packet-level promotion stance before deeper artifact inspection.
 
 ## 13. Sharp recommendation
 
