@@ -198,6 +198,7 @@ The important thing is preserving the seam, not the exact language.
 - replay-bundle scorecard and packet outputs whenever a before/after brief comparison exists
 - dispatch-visible guidance classification based on the packet promotion stance
 - one explicit guidance-tone classification for the improved brief so operator language differs intentionally across confident, cautious, held, and blocked learning
+- one explicit guidance-placement classification so section placement also differs intentionally across confident, cautious, held, and blocked learning
 
 ### 6.4 Never do this in v1
 - write memory directly from raw upload
@@ -315,6 +316,7 @@ the system can emit a valid `review_packet` that:
 - points back to the canonical artifacts
 - is strong enough to drive retrieval behavior without re-deriving meaning from the full bundle
 - is strong enough to determine operator-facing guidance tone without forcing brief composers to improvise confidence language
+- is strong enough to determine operator-facing guidance placement without forcing brief composers to improvise where tentative versus hardened learning belongs
 - yields one explicit brief guidance classification that can be verified against the surfaced section placement and wording style of the improved dispatch brief
 
 ### Gate H — standard replay bundle
@@ -349,6 +351,7 @@ the system can emit one deterministic replay bundle that:
 - enforce alignment between manifest judgment and memory-promotion stance
 - emit or derive one stable promotion-policy interpretation that later retrieval can consume directly
 - derive one explicit guidance-tone contract for brief composition, for example `directive`, `cautious`, `inspect_only`, or `suppressed`
+- derive one explicit guidance-placement contract for brief composition so top-line summary, caution sections, inspect-only surfaces, and suppressed outputs are all promotion-policy-aware
 
 ### Phase 5 — replay bundle writer
 - write the canonical replay bundle in a stable folder layout
@@ -402,7 +405,7 @@ The narrowest strong daytime win is now:
 - deterministic `bundle_manifest`
 - explicit `review_packet`
 - one conservative learning-strength call per bundle
-- one explicit promotion-policy outcome that changes how the improved brief surfaces learned guidance
+- one explicit promotion-policy outcome that changes both how the improved brief sounds and where it surfaces learned guidance
 
 If that bundle pair is legible, behavior-changing, and promotion-safe, broader Review Console and Acontext integration work can expand from a real proof seam instead of optimism.
 

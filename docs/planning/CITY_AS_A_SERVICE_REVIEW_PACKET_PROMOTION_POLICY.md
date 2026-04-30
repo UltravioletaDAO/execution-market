@@ -232,8 +232,13 @@ The first daylight implementation should keep section placement conservative and
 - `inspect_only` guidance should remain in expandable notes, debug/admin memory views, or explicit inspection surfaces
 - `suppressed` guidance should not appear in the default improved dispatch brief
 
+The important constraint is that promotion class should govern **placement as well as wording**.
+A cautious rule should not quietly inherit top-line placement just because its prose contains hedge words.
+Likewise, held learning should not leak into the operator's first-read summary through side notes that function like doctrine in practice.
+
 ### 8.4 Tone honesty rules
 - promotion policy should control both whether a rule appears and how strongly it sounds
+- promotion policy should also control where the rule is allowed to appear in the improved brief
 - longer prose must not be mistaken for stronger confidence
 - `cautious` and `inspect_only` guidance should preserve uncertainty in wording, not only in hidden metadata
 - `suppressed` guidance may remain in the replay archive, but not in operator-facing brief language
@@ -244,6 +249,7 @@ The first replay-bundle proof should make it obvious that:
 - cautious promotion becomes verify-first guidance
 - held learning stays inspectable without changing default doctrine
 - blocked learning stays out of the default brief entirely
+- section placement in the improved brief matches the promotion class instead of flattening every learned rule into the same top-line warning surface
 
 ## 9. Promotion safety rules
 

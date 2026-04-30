@@ -258,6 +258,7 @@ Backlog:
 - treat the packet as the compact decision object, not a duplicate of the full replay archive
 - make packet output actionable by downstream retrieval through a stable promotion-policy interpretation
 - require packet output to drive one explicit operator-facing guidance-tone choice so brief language does not drift across implementations
+- require packet output to drive one explicit guidance-placement choice so tentative learning cannot silently occupy top-line summary slots
 - require packet output to constrain where guidance may appear in the improved brief, not only how it is phrased
 
 ## 8. Backlog by product surface
@@ -329,6 +330,7 @@ The first slice should be considered real only if this scenario passes cleanly:
 8. the operator can inspect exactly which episode caused the warning and which review packet justified promotion
 9. the surfaced guidance strength matches the promotion policy outcome (`confident`, `cautious`, held, or blocked) instead of flattening all learned memory into the same operator tone
 10. the operator-facing wording style also matches the policy outcome, for example directive language for confident promotion, verify-first language for cautious promotion, inspect-only surfacing for held learning, and no default brief injection for blocked learning
+11. the operator-facing section placement also matches the policy outcome, so cautious or held learning cannot silently appear in the same top-line summary zones reserved for confident doctrine
 
 If that scenario fails, the system is documenting work, not learning from it.
 
@@ -350,6 +352,7 @@ Before daytime expands scope, it should answer this checklist from actual replay
 - whether `review_packet` promotion stance changed dispatch tone in a behaviorally meaningful way
 - whether any improvement remains cosmetic rather than operational
 - whether guidance tone matched the promotion-policy class instead of collapsing all surfaced learning into the same warning register
+- whether guidance placement matched the promotion-policy class instead of letting tentative rules inherit directive placement by default
 - what the next smallest proof is if the seam is still partial
 
 Recommended coordination artifact:
