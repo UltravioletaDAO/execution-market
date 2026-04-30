@@ -197,6 +197,7 @@ The important thing is preserving the seam, not the exact language.
 - dispatch brief for office + workflow template
 - replay-bundle scorecard and packet outputs whenever a before/after brief comparison exists
 - dispatch-visible guidance classification based on the packet promotion stance
+- one explicit guidance-tone classification for the improved brief so operator language differs intentionally across confident, cautious, held, and blocked learning
 
 ### 6.4 Never do this in v1
 - write memory directly from raw upload
@@ -313,6 +314,7 @@ the system can emit a valid `review_packet` that:
 - makes memory promotion explicit
 - points back to the canonical artifacts
 - is strong enough to drive retrieval behavior without re-deriving meaning from the full bundle
+- is strong enough to determine operator-facing guidance tone without forcing brief composers to improvise confidence language
 
 ### Gate H — standard replay bundle
 Given a replay fixture,
@@ -345,6 +347,7 @@ the system can emit one deterministic replay bundle that:
 - keep packet rationale short and behavior-focused
 - enforce alignment between manifest judgment and memory-promotion stance
 - emit or derive one stable promotion-policy interpretation that later retrieval can consume directly
+- derive one explicit guidance-tone contract for brief composition, for example `directive`, `cautious`, `inspect_only`, or `suppressed`
 
 ### Phase 5 — replay bundle writer
 - write the canonical replay bundle in a stable folder layout
@@ -417,6 +420,7 @@ Minimum fields:
 - `acceptance_gates_passed`
 - `acceptance_gates_failed`
 - `promotion_policy_observations`
+- `guidance_tone_observations`
 - `next_smallest_proof`
 - `do_not_claim_yet`
 
@@ -444,6 +448,7 @@ The pickup brief should explicitly state:
 - which bundle outputs are still placeholder or partial
 - whether dispatch guidance changed behaviorally or only cosmetically
 - whether promotion stance is safe to surface in operator-facing tone yet
+- whether tone changed correctly across promoted, cautious, held, or blocked guidance instead of flattening everything into the same warning style
 
 If those answers are fuzzy, the brief should say so directly.
 That is better than optimistic compression.

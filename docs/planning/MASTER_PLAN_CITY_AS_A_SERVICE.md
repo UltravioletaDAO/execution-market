@@ -2289,5 +2289,52 @@ The first implementation should therefore make sure `review_packet` is:
 - aligned with manifest judgment and event ordering
 - compact enough to review in PRs quickly
 - strong enough to drive retrieval behavior without rereading the whole bundle
+- strong enough to determine improved-brief guidance tone so confident, cautious, held, and blocked learning do not all sound the same to operators
 
 If the packet still feels too thin or too ambiguous to hold that spot in the reading order, the seam is not compressed enough yet.
+
+## 59. Promotion stance should control operator-facing guidance tone, not just retrieval eligibility
+
+The planning stack now treats `review_packet` as the compact decision bridge and the promotion policy as the safety boundary.
+One more practical seam needs to stay explicit across the implementation handoff:
+**the same promotion outcome should produce different operator-facing language, not merely different internal eligibility states.**
+
+### 59.1 Why this matters
+
+If daytime only gates whether guidance appears, but not how it sounds, the system can still drift into a weak pattern:
+- confident learning and cautious learning both surface as equally forceful warnings
+- held learning leaks into operator doctrine through noisy note text
+- blocked learning is absent from policy but still echoed by ad hoc brief prose
+
+That would make the promotion-policy seam look clean in docs while staying mushy in the actual operator experience.
+
+### 59.2 Recommended first guidance-tone mapping
+
+The first implementation should keep this mapping small and explicit:
+- `promote_with_confidence` -> `directive`
+- `promote_cautiously` -> `cautious`
+- `hold_for_more_evidence` -> `inspect_only`
+- `do_not_promote` -> `suppressed`
+
+The point is not pretty copywriting.
+The point is ensuring the improved brief reflects reviewed confidence honestly.
+
+### 59.3 What daylight should prove
+
+The first replay-proof bundle should now show not only that guidance changed, but that its tone changed correctly.
+A strong first proof should make it easy to see:
+- confident promotion turns into direct pre-dispatch instruction
+- cautious promotion turns into verify-first or likely-pattern wording
+- held learning stays inspectable without becoming top-line doctrine
+- blocked learning stays out of default brief guidance
+
+### 59.4 Why this is worth tightening now
+
+This seam will matter later for:
+- operator trust
+- replay scorecard honesty
+- admin/debug review
+- future Acontext retrieval consumers
+- preventing weak municipal memory from hardening into fake certainty
+
+If the planning stack does not state this plainly now, daytime can still technically satisfy packet + policy requirements while shipping a flattened operator tone that overclaims what the city memory actually knows.

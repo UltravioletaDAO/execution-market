@@ -257,6 +257,7 @@ Backlog:
 - keep rationale short, behavior-focused, and safe for future Acontext ingestion
 - treat the packet as the compact decision object, not a duplicate of the full replay archive
 - make packet output actionable by downstream retrieval through a stable promotion-policy interpretation
+- require packet output to drive one explicit operator-facing guidance-tone choice so brief language does not drift across implementations
 
 ## 8. Backlog by product surface
 
@@ -326,6 +327,7 @@ The first slice should be considered real only if this scenario passes cleanly:
 7. the operator changes dispatch instructions because of that brief
 8. the operator can inspect exactly which episode caused the warning and which review packet justified promotion
 9. the surfaced guidance strength matches the promotion policy outcome (`confident`, `cautious`, held, or blocked) instead of flattening all learned memory into the same operator tone
+10. the operator-facing wording style also matches the policy outcome, for example directive language for confident promotion, verify-first language for cautious promotion, inspect-only surfacing for held learning, and no default brief injection for blocked learning
 
 If that scenario fails, the system is documenting work, not learning from it.
 
@@ -346,6 +348,7 @@ Before daytime expands scope, it should answer this checklist from actual replay
 - which acceptance gates passed versus failed
 - whether `review_packet` promotion stance changed dispatch tone in a behaviorally meaningful way
 - whether any improvement remains cosmetic rather than operational
+- whether guidance tone matched the promotion-policy class instead of collapsing all surfaced learning into the same warning register
 - what the next smallest proof is if the seam is still partial
 
 Recommended coordination artifact:
