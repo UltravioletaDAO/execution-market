@@ -152,6 +152,7 @@ import supabase_client as db
 from jobs.task_expiration import run_task_expiration_loop
 from jobs.auto_payment import run_auto_payment_loop
 from jobs.fee_sweep import run_fee_sweep_loop
+from jobs.clawkey_sync import run_clawkey_sync_loop
 from audit.escrow_reconciler import run_escrow_reconciliation_loop
 from verification.cloudwatch_metrics import run_magika_metrics_loop
 
@@ -447,6 +448,12 @@ async def lifespan(app: FastAPI):
         os.environ.get("FEE_SWEEP_INTERVAL", "21600"),
     )
 
+    clawkey_sync_task = asyncio.create_task(run_clawkey_sync_loop())
+    logger.info(
+        "ClawKey KYA sync background job scheduled (every %ss)",
+        os.environ.get("EM_CLAWKEY_SYNC_INTERVAL", "21600"),
+    )
+
     reconciler_task = asyncio.create_task(run_escrow_reconciliation_loop())
     logger.info(
         "Escrow reconciliation background job scheduled (every %ss)",
@@ -488,6 +495,7 @@ async def lifespan(app: FastAPI):
         expiration_task,
         auto_payment_task,
         fee_sweep_task,
+        clawkey_sync_task,
         reconciler_task,
         magika_metrics_task,
     ]
