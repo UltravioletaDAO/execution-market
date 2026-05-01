@@ -65,6 +65,7 @@ Acontext should hold:
 - workflow pattern aggregates
 - compact coordination event logs
 - dispatch-time retrieval artifacts
+- `review_packet` decision objects and their promotion-policy envelope
 
 This separation matters.
 Acontext should help operators and agents think better, not replace the execution ledger.
@@ -175,6 +176,7 @@ Keep these human-reviewed at first:
 Before dispatching a CaaS task, retrieve:
 - relevant jurisdiction brief
 - office playbook if office known
+- the latest valid `review_packet` objects for the same office/template seam
 - recent episodes for same workflow template
 - top rejection reasons for that office/template pair
 - top redirect targets
@@ -186,6 +188,23 @@ The retrieved brief should shape:
 - urgency pricing
 - escalation thresholds
 - whether to split work into a clarifying Counter Question first
+- guidance tone and section placement based on packet-level promotion stance
+
+### 7.1 Promotion-policy-aware retrieval
+
+The first Acontext bridge should not flatten all memory into one undifferentiated context blob.
+It should consume `review_packet` as the compact decision object that tells dispatch:
+- whether the learning is trusted enough to guide behavior now
+- whether it should sound directive, cautious, inspect-only, or remain suppressed
+- whether it belongs in top-line routing/fallback guidance or only in inspection/debug surfaces
+
+That means retrieval should preserve at least these classes:
+- **trusted operational guidance** from `promote_with_confidence`
+- **verify-first guidance** from `promote_cautiously`
+- **inspectable but non-default learning** from `hold_for_more_evidence`
+- **blocked learning** from `do_not_promote`
+
+If the bridge cannot recover those distinctions cleanly, it is not yet safe to let Acontext shape live city dispatch.
 
 ## 8. Example dispatch briefing
 
@@ -301,6 +320,7 @@ Before Acontext is live, the local projector should write this envelope beside r
 - replay the exact event chain
 - mirror the same payload into IRC summaries
 - feed one stable schema into observability dashboards
+- persist one `review_packet` plus promotion-policy outcome beside the replay bundle
 - later swap the sink from local files to Acontext without rethinking the event model
 
 ## 15. Dispatch intelligence ladder
@@ -308,11 +328,12 @@ Before Acontext is live, the local projector should write this envelope beside r
 Not every retrieved artifact should influence the next task equally. The bridge should therefore rank retrieval outputs by decision weight.
 
 ### 15.1 Recommended priority order
-1. `office_playbook_after` for known office + template pairs
-2. `reviewed_episode` recency-weighted summaries for the same workflow template
-3. rejection/redirect aggregates for the same jurisdiction
-4. worker familiarity summaries for candidate assignees
-5. coordination-event summaries showing recent escalations or drift
+1. latest aligned `review_packet` for known office + template pairs
+2. `office_playbook_after` for known office + template pairs
+3. `reviewed_episode` recency-weighted summaries for the same workflow template
+4. rejection/redirect aggregates for the same jurisdiction
+5. worker familiarity summaries for candidate assignees
+6. coordination-event summaries showing recent escalations or drift
 
 ### 15.2 Dispatch-time rule
 If higher-confidence artifacts exist, the briefing should degrade gracefully rather than mixing strong and weak memory into one undifferentiated blob.
@@ -320,5 +341,8 @@ That means the briefing should explicitly separate:
 - **trusted operational guidance**
 - **recent but weak signals**
 - **open questions to resolve on-site**
+
+The first implementation should derive that separation from `review_packet.memory_promotion_decision`, not from ad hoc prose heuristics.
+Acontext can store richer history later, but dispatch should still read one compact policy seam first.
 
 This is important because city work is full of partial truths. A good memory bridge does not merely retrieve more context; it preserves decision hygiene under uncertainty.

@@ -399,6 +399,7 @@ That is concrete, painful, urgent, and already aligned with EM's strengths.
 - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md` — narrow daytime implementation sequence
 - `CITY_AS_A_SERVICE_IMPLEMENTATION_SLICE_V1.md` — stable first-loop object model
 - `CITY_AS_A_SERVICE_REVIEW_PACKET_PROMOTION_POLICY.md` — explicit gate for how replay judgment becomes live dispatch-visible memory
+- `CITY_AS_A_SERVICE_Acontext_MEMORY_BRIDGE.md` — transport-ready bridge that now treats `review_packet` as the first retrieval and promotion-policy seam for future Acontext ingestion
 
 
 City as a Service is one of the cleanest AAS verticals for Execution Market because it turns the hardest non-API surface in business operations — the city itself — into a programmable execution layer.
