@@ -204,6 +204,13 @@ async def _resolved_paths() -> dict:
         "userinfo": await PlatformConfig.get(
             "veryai.oauth2_userinfo_path", "/userinfo"
         ),
+        # Scope is operator-tunable: Very initially only accepts "openid" +
+        # "offline_access" (per their /authorize error response). If they
+        # later expose a custom scope for verification_level claims, flip
+        # this PlatformConfig key without a redeploy.
+        "scope": await PlatformConfig.get(
+            "veryai.oauth2_scope", "openid offline_access"
+        ),
     }
 
 
@@ -230,7 +237,7 @@ async def get_authorization_url(
         "response_type": "code",
         "client_id": VERYAI_CLIENT_ID,
         "redirect_uri": redirect_uri or VERYAI_REDIRECT_URI,
-        "scope": "openid profile veryai.verification",
+        "scope": paths["scope"],
         "state": state,
         "code_challenge": code_challenge,
         "code_challenge_method": "S256",

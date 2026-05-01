@@ -394,6 +394,46 @@ jobs:
           VITE_GIT_SHA: ${{ github.sha }}
           VITE_BUILD_TIMESTAMP: ${{ steps.timestamp.outputs.value }}
 
+      # Guards against the INC-2026-05-01 regression: Vite tree-shakes
+      # feature flags whose env var is undefined at build time. If the env
+      # var is missing, the gated component (e.g. VeryAiVerification) is
+      # eliminated entirely and never reaches production. We verify each
+      # flag we ship as "on" actually appears in the bundle's import.meta.env
+      # snapshot before syncing to S3.
+      - name: Verify build embeds feature flags
+        working-directory: dashboard
+        run: |
+          set -euo pipefail
+          BUNDLE=$(ls dist/assets/index-*.js 2>/dev/null | head -1)
+          if [ -z "$BUNDLE" ]; then
+            echo "::error::No index bundle produced — Vite build is broken."
+            exit 1
+          fi
+          echo "Inspecting bundle: $BUNDLE"
+
+          # Each entry: "VITE_VAR=expected_value". Add lines as new flags
+          # ship "on" by default. Flags that ship "off" rely on the gated
+          # branch being tree-shaken and do NOT need to be checked here.
+          declare -A REQUIRED=(
+            [VITE_VERYAI_ENABLED]="true"
+          )
+
+          MISSING=0
+          for VAR in "${!REQUIRED[@]}"; do
+            EXPECTED="${REQUIRED[$VAR]}"
+            if grep -qE "${VAR}:\"${EXPECTED}\"" "$BUNDLE"; then
+              echo "  ${VAR}=\"${EXPECTED}\" — embedded"
+            else
+              echo "::error::${VAR} not embedded as \"${EXPECTED}\" in bundle. Build env was likely unset (Vite tree-shook the gated branch)."
+              MISSING=1
+            fi
+          done
+
+          if [ "$MISSING" -ne 0 ]; then
+            echo "::error::Bundle missing required feature flags. Refusing to deploy."
+            exit 1
+          fi
+
       - name: Deploy to S3
         working-directory: dashboard
         run: |
