@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-04-29
+> Last updated: 2026-05-01
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -73,6 +73,18 @@ Build order remains:
 5. thin operator/admin surfaces
 6. observability hardening
 7. transport swap later
+
+## 3.1 New review-discipline seam locked
+
+The planning stack now also includes:
+- `CITY_AS_A_SERVICE_REPLAY_PROOF_REVIEW_PROTOCOL.md`
+
+This doc closes one daylight ambiguity that the earlier planning set still left too loose:
+- the exact artifact reading order for replay-proof PRs
+- the difference between proof, progress, and overclaim
+- the bar for when replay is strong enough to justify broader UI wiring
+
+Daytime should treat that review protocol as the default tie-breaker whenever a replay bundle exists but implementation readiness still feels debatable.
 
 ## 4. The next engineering window
 
@@ -218,6 +230,16 @@ Thin Review Console / Dispatch Brief Panel / Office Memory Debug surface consumi
 ### PR 6
 Morning pickup brief writer + debug surfacing so each replay-proof block hands off exact gate status, behavior-change assessment, and anti-overclaim warnings
 
+### PR 7
+Replay-proof review protocol adoption in PR/review discipline so reviewers read:
+1. manifest
+2. event summary
+3. review packet
+4. pickup brief
+5. scorecard
+6. improved brief
+before deeper artifacts or broader UI claims
+
 This sequence keeps UI downstream of proof instead of masking uncertainty.
 
 ## 8. The sharpest acceptance test
@@ -233,6 +255,16 @@ It is this:
 6. confirm the manifest and review packet stay conservative about learning strength
 
 If that proof is not obvious by inspection, the build should not claim the learning loop is real yet.
+
+Review discipline for that proof should now be standardized:
+1. `bundle_manifest.json`
+2. `event_summary.json`
+3. `review_packet.json`
+4. `morning_pickup_brief.json`
+5. `brief_improvement_scorecard.json`
+6. `improved_dispatch_brief.json`
+
+If reviewers need to jump into code or raw supporting artifacts before those six objects tell a coherent story, the seam is still too loose for broader surface expansion.
 
 ## 9. Strong recommendation
 

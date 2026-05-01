@@ -1,6 +1,6 @@
 # City as a Service — Implementation Backlog and Decision Ledger
 
-> Last updated: 2026-04-27
+> Last updated: 2026-05-01
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_IMPLEMENTATION_SLICE_V1.md`
@@ -364,8 +364,9 @@ Before daytime expands scope, it should answer this checklist from actual replay
 - whether guidance placement matched the promotion-policy class instead of letting tentative rules inherit directive placement by default
 - what the next smallest proof is if the seam is still partial
 
-Recommended coordination artifact:
+Recommended coordination artifacts:
 - `morning_pickup_brief.json` or equivalent batch summary derived from actual replay runs
+- `CITY_AS_A_SERVICE_REPLAY_PROOF_REVIEW_PROTOCOL.md` as the canonical reading and judgment order for replay-proof PRs
 
 This checklist exists to keep continuation honest.
 The city-ops seam should be advanced by the smallest missing proof, not by whichever adjacent surface looks most exciting.
@@ -381,7 +382,27 @@ Before daytime treats the replay seam as implementation-ready, it should be able
 
 If any answer is `no`, the next build block should tighten rendering alignment before broadening UI scope.
 
-## 14. Sharp recommendation
+## 14. Review-discipline addition
+
+The planning stack now has one more locked seam: replay-proof review discipline.
+
+Daytime should treat `CITY_AS_A_SERVICE_REPLAY_PROOF_REVIEW_PROTOCOL.md` as the default protocol for deciding whether a replay block is:
+- ready for broader UI wiring
+- still only partial proof
+- overclaiming based on cosmetic or weak learning
+
+The practical reading order is now:
+1. `bundle_manifest.json`
+2. `event_summary.json`
+3. `review_packet.json`
+4. `morning_pickup_brief.json`
+5. `brief_improvement_scorecard.json`
+6. `improved_dispatch_brief.json`
+7. deeper artifacts only as needed
+
+If those first six objects do not already make the before/after learning story obvious, the next build block should tighten replay proof instead of broadening surfaces.
+
+## 15. Sharp recommendation
 
 If daytime wants the clearest possible next move, it should treat the CaaS backlog as:
 
@@ -393,7 +414,7 @@ And inside that sequence, the next narrow proof should be:
 That preserves the real moat:
 **reviewed municipal reality becoming better future execution.**
 
-## 15. Next daytime implementation slice
+## 16. Next daytime implementation slice
 
 The most leverage now is not more planning breadth.
 It is one thin end-to-end implementation seam that proves memory, IRC/session continuity, Acontext export readiness, and observability are all reading the same truth.
