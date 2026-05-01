@@ -289,11 +289,11 @@ resource "aws_ecs_task_definition" "mcp_server" {
         { name = "ERC8128_NONCE_STORE", value = "dynamodb" },
         { name = "EM_REQUIRE_ERC8004", value = "true" },
         { name = "EM_REQUIRE_ERC8004_WORKER", value = "true" },
-        # VeryAI master switch — Phase 2 ships routes-disabled. When false,
-        # /api/v1/very-id/* routes are not even mounted (returns 404, not
-        # 503). Flip to "true" only after Phase 6 sandbox testing AND
-        # Veros provisions production credentials in em/veryai.
-        { name = "EM_VERYAI_ENABLED", value = "false" },
+        # VeryAI master switch — flipped on 2026-05-01 after Veros
+        # provisioned production OAuth credentials in em/veryai.
+        # When true, /api/v1/very-id/* routes are mounted and the OAuth
+        # callback exchanges palm-print verification level → executor.
+        { name = "EM_VERYAI_ENABLED", value = "true" },
         { name = "EM_GEO_MATCH_ENABLED", value = "true" },
         { name = "VERIFICATION_AI_ENABLED", value = "true" },
         { name = "AI_VERIFICATION_PROVIDER", value = "gemini" },

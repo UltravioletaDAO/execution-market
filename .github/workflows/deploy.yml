@@ -388,6 +388,7 @@ jobs:
           VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS: ${{ secrets.VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS || 'false' }}
           VITE_ENABLE_EVIDENCE_CAROUSEL: ${{ secrets.VITE_ENABLE_EVIDENCE_CAROUSEL || 'false' }}
           VITE_WORLD_ID_ENABLED: ${{ secrets.VITE_WORLD_ID_ENABLED || 'false' }}
+          VITE_VERYAI_ENABLED: ${{ secrets.VITE_VERYAI_ENABLED || 'true' }}
           VITE_BALANCES_LAMBDA_URL: ${{ steps.tf-outputs.outputs.balances_url || secrets.VITE_BALANCES_LAMBDA_URL }}
           VITE_GIT_SHA: ${{ github.sha }}
           VITE_BUILD_TIMESTAMP: ${{ steps.timestamp.outputs.value }}
