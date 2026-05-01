@@ -332,3 +332,31 @@ The scorecard should remain conservative:
 
 This gives builders and operators one simple question to inspect:
 > did this reviewed task actually strengthen the next dispatch in a way we can replay and explain?
+
+### 12.3 New integration cuts to report explicitly
+Because the current planning push is about joining memory, Acontext, IRC/session continuity, and cross-project decision support, the first scorecard/reporting slice should also emit explicit pass/fail or enum judgments for:
+- `promotion_rendering_aligned`
+  - whether promotion class, guidance tone, and section placement stayed consistent across packet -> brief -> pickup brief
+- `session_rebuild_ready`
+  - whether compact artifacts are sufficient to reconstruct live city context without transcript dependency
+- `acontext_sink_ready`
+  - whether the artifact set is compact and provenance-safe enough to export without semantic reinterpretation
+- `cross_project_event_reusable`
+  - whether the event envelope is generic enough to be reused by adjacent AAS/control-plane surfaces
+
+These cuts make the integration seam inspectable instead of assuming that replay correctness automatically implies operational portability.
+
+### 12.4 Recommended per-row dimensions for later queries
+Each replay-backed scorecard row should carry enough metadata to answer success questions across office, workflow, and session boundaries:
+- `coordination_session_id`
+- `review_packet_id`
+- `promotion_class`
+- `guidance_tone`
+- `guidance_placement`
+- `reuse_mode`
+- `office_key`
+- `workflow_template`
+- `jurisdiction_name`
+- `source_episode_count`
+
+Without those dimensions, teams will be able to say that learning improved in aggregate but not which decision-support seam actually worked.

@@ -375,6 +375,67 @@ To connect CaaS observability with the control-plane seam, add these metrics to 
 - publish `review_packet`, `reviewed_episode`, and office playbook snapshots into Acontext
 - preserve the same retrieval contract and observability semantics
 
+## 12.1 First shared implementation seam
+
+To keep daytime implementation from scattering this logic across review, replay, IRC, and retrieval layers, the first build should treat one compact contract as the join point:
+
+- **input:** reviewed replay bundle with `review_packet`, `event_summary`, and provenance refs
+- **ledger write:** append one control-plane event row per meaningful decision moment
+- **retrieval output:** one promotion-aware `dispatch_brief`
+- **continuity output:** one `morning_pickup_brief.json`
+- **observability output:** one scorecard row that can be grouped by office/template/session
+
+That seam should be considered implementation-ready only if the same underlying promotion decision can flow without reinterpretation through:
+- IRC/session rebuild
+- local replay inspection
+- Acontext retrieval
+- operator brief rendering
+- observability queries
+
+If any surface has to guess the tone, placement, or trust class again, the seam is not locked.
+
+## 12.2 Minimal append-only ledger shape
+
+The first local control-plane ledger should stay boring and reusable.
+Each JSONL row should be able to support replay, session rebuild, retrieval metrics, and Acontext export without transcript spelunking.
+
+Suggested minimum shape:
+
+```json
+{
+  "event_name": "city_dispatch_context_reused",
+  "event_time": "2026-04-29T07:00:00Z",
+  "coordination_session_id": "city_packet_submission_2026_04_29_001",
+  "task_id": "task_123",
+  "vertical": "city_as_a_service",
+  "workflow_template": "packet_submission",
+  "jurisdiction_name": "Miami-Dade County",
+  "office_name": "Permit Intake Window B",
+  "review_packet_id": "rp_2026_04_29_001",
+  "promotion_class": "promote_cautiously",
+  "guidance_tone": "verify_first",
+  "guidance_placement": "secondary_caution",
+  "reuse_mode": "routing_changed",
+  "source_episode_ids": ["ep_102", "ep_118"],
+  "operator_override_reason": null
+}
+```
+
+This is intentionally close to the replay and retrieval seam.
+The goal is to let later Acontext ingestion behave like a sink swap, not a semantic rewrite.
+
+## 12.3 Session rebuild contract
+
+Restart-safe IRC/session recovery should rebuild an active city workflow from a compact ordered set of artifacts, in this order:
+1. latest ledger rows for the `coordination_session_id`
+2. latest `dispatch_brief` actually used for the task
+3. latest `review_packet` and `event_summary`
+4. latest coordination summary artifact
+5. linked `reviewed_episode` and `office_playbook_after` only when deeper inspection is needed
+
+That order matters.
+It keeps recovery fast and avoids forcing operators to reconstruct live context from raw transcripts or full replay bundles unless the compact decision seam is insufficient.
+
 ## 13. Concrete daytime handoff questions
 
 The next build window should answer these in code, not in theory:

@@ -391,3 +391,39 @@ And inside that sequence, the next narrow proof should be:
 
 That preserves the real moat:
 **reviewed municipal reality becoming better future execution.**
+
+## 15. Next daytime implementation slice
+
+The most leverage now is not more planning breadth.
+It is one thin end-to-end implementation seam that proves memory, IRC/session continuity, Acontext export readiness, and observability are all reading the same truth.
+
+### 15.1 Recommended build ticket breakdown
+1. create append-only city control-plane JSONL ledger with stable event envelope
+2. emit `review_packet`-aligned rendering fields on reuse events:
+   - `promotion_class`
+   - `guidance_tone`
+   - `guidance_placement`
+   - `copyable_worker_instruction`
+3. derive `dispatch_brief` and `morning_pickup_brief.json` from the same compact decision object
+4. add one restart-rebuild helper that reconstructs active session state from ledger + brief + packet
+5. write one scorecard row per reviewed replay bundle with integration judgments
+6. only then add the Acontext sink using the same compact exported memory unit
+
+### 15.2 Hard acceptance gate for that slice
+Do not call this seam ready unless one replay-backed case can prove all of the following together:
+- operator-facing brief wording matches promotion stance
+- operator-facing section placement matches promotion stance
+- pickup brief preserves the same judgment without manual restatement
+- session rebuild works from compact artifacts without transcript dependency
+- observability can query the same case by `coordination_session_id` and `review_packet_id`
+- exported Acontext memory unit does not need extra interpretation to drive retrieval
+
+### 15.3 Explicit deprioritization for the next block
+Until that seam is real, avoid spending the next block on:
+- broader dashboard polish
+- extra city templates
+- richer semantic search ideas
+- generic cross-vertical abstraction cleanup
+
+Those can wait.
+The highest-value proof is still the compact decision-support seam holding under real replay conditions.

@@ -355,3 +355,45 @@ Retrieval should also preserve three rendering constraints from the same seam:
 That keeps Acontext from becoming a semantic drift layer where the same reviewed truth sounds different depending on which consumer reads it.
 
 This is important because city work is full of partial truths. A good memory bridge does not merely retrieve more context; it preserves decision hygiene under uncertainty.
+
+## 15.3 Export contract for the first Acontext sink
+
+To keep the future Acontext swap safe, the bridge should export one compact retrieval object per replay-backed learning seam instead of forcing Acontext to re-interpret full replay bundles.
+
+Suggested minimum export object:
+
+```json
+{
+  "object_type": "city_dispatch_memory_unit",
+  "review_packet_id": "rp_2026_04_29_001",
+  "coordination_session_id": "city_packet_submission_2026_04_29_001",
+  "workflow_template": "packet_submission",
+  "jurisdiction_name": "Miami-Dade County",
+  "office_name": "Permit Intake Window B",
+  "promotion_class": "promote_cautiously",
+  "guidance_tone": "verify_first",
+  "guidance_placement": "secondary_caution",
+  "copyable_worker_instruction": false,
+  "top_guidance": [
+    "Verify counter staff still redirects packet submissions to Window B before queuing fully."
+  ],
+  "open_questions": [
+    "Confirm whether outdated form version remains the top rejection reason this week."
+  ],
+  "source_episode_ids": ["ep_102", "ep_118"],
+  "event_summary_id": "es_2026_04_29_001",
+  "freshness_date": "2026-04-29"
+}
+```
+
+The important point is that Acontext receives the already-judged operational unit, not just raw supporting materials.
+
+## 15.4 Retrieval acceptance rule
+
+The bridge should not be considered ready for live dispatch until the same exported memory unit can drive all of the following without semantic drift:
+- a compact operator-facing `dispatch_brief`
+- a restart-safe `morning_pickup_brief.json`
+- a coordination/session rebuild summary
+- one observability row for reuse and outcome-lift analysis
+
+If separate consumers must infer the trust or rendering class independently, the bridge is not preserving the decision seam tightly enough.
