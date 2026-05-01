@@ -212,6 +212,9 @@ The first implementation should therefore treat review output as a three-stage d
 ### 12.4 Mandatory Review Console preview fields implied by these tables
 
 Before review confirmation, the first Review Console should preview:
+- `summary_judgment`
+- `learning_strength`
+- `review_decision`
 - `memory_promotion_decision`
 - guidance mode (`directive`, `cautious`, `inspect_only`, `suppressed`)
 - target brief section
@@ -219,6 +222,7 @@ Before review confirmation, the first Review Console should preview:
 - why that tone/placement was selected
 - whether the rendered guidance is allowed into the default copyable worker-instruction block
 - whether the same learning should also appear in the next `morning_pickup_brief.json` as a promotion/tone/placement observation
+- whether the same promotion stance would classify the replay bundle as `pass`, `partial`, or `fail`
 
 This keeps the review gate honest about how future dispatch will sound, not only whether memory will be written.
 
@@ -246,6 +250,12 @@ The replay fixture pack should include at least one case for each of these prese
 - first clear redirect -> `cautious`
 - plausible but weak office pattern -> `inspect_only`
 - contradictory or unresolved field signal -> `suppressed`
+
+The same fixtures should also prove that the previewed packet fields stay aligned:
+- repeated rejection upgrades from `learning_strength=moderate` to `learning_strength=strong` only after replay-backed confirmation
+- first clear redirect stays `promote_cautiously` unless repeated reviewed evidence exists
+- weak office patterns may validate as replay bundles while still previewing `partial` + `hold_for_more_evidence`
+- contradictory cases preview `fail` + `do_not_promote`, not merely vague low-confidence language
 
 If replay cannot assert these distinctions, the operator-facing part of the memory loop is still underspecified.
 

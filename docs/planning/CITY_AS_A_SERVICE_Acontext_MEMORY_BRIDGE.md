@@ -370,10 +370,13 @@ Suggested minimum export object:
   "workflow_template": "packet_submission",
   "jurisdiction_name": "Miami-Dade County",
   "office_name": "Permit Intake Window B",
+  "summary_judgment": "pass",
+  "learning_strength": "moderate",
   "promotion_class": "promote_cautiously",
   "guidance_tone": "verify_first",
   "guidance_placement": "secondary_caution",
   "copyable_worker_instruction": false,
+  "replay_readiness_judgment": "pass",
   "top_guidance": [
     "Verify counter staff still redirects packet submissions to Window B before queuing fully."
   ],
@@ -387,6 +390,7 @@ Suggested minimum export object:
 ```
 
 The important point is that Acontext receives the already-judged operational unit, not just raw supporting materials.
+The export should preserve the same packet truth that Review Console preview and replay-bundle judgment rely on, so retrieval consumers never need to infer whether a memory unit is merely valid, actually promotion-ready, or still only partially ready for live operator reuse.
 
 ## 15.4 Retrieval acceptance rule
 

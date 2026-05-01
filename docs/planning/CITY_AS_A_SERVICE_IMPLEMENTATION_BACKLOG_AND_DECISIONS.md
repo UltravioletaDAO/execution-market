@@ -262,6 +262,7 @@ Backlog:
 - require packet output to constrain where guidance may appear in the improved brief, not only how it is phrased
 - align packet defaults with the shared review decision tables so repeated rejection/redirect learning upgrades from `cautious` to `directive` via explicit replay evidence instead of ad hoc brief logic
 - require packet output to feed one compact `morning_pickup_brief.json` continuity object so the next engineering block inherits the same promotion/tone/placement truth without restating it manually
+- require packet output to carry or deterministically derive one replay-readiness judgment for Review Console preview parity (`pass`, `partial`, `fail`)
 - require packet-adjacent rendering outputs or deterministic derivation rules for:
   - default brief section family
   - copyable worker-instruction eligibility
@@ -404,6 +405,7 @@ It is one thin end-to-end implementation seam that proves memory, IRC/session co
    - `guidance_tone`
    - `guidance_placement`
    - `copyable_worker_instruction`
+   - `replay_readiness_judgment`
 3. derive `dispatch_brief` and `morning_pickup_brief.json` from the same compact decision object
 4. add one restart-rebuild helper that reconstructs active session state from ledger + brief + packet
 5. write one scorecard row per reviewed replay bundle with integration judgments
