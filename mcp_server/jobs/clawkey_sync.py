@@ -100,9 +100,10 @@ async def _sync_one_executor(executor: dict) -> str:
     db_verified = bool(executor.get("clawkey_verified"))
     new_verified = bool(result.verified)
 
-    if db_verified == new_verified and (
-        executor.get("clawkey_human_id") or "" == (result.human_id or "")
-    ):
+    db_human_id = executor.get("clawkey_human_id") or ""
+    upstream_human_id = result.human_id or ""
+
+    if db_verified == new_verified and db_human_id == upstream_human_id:
         # No drift — nothing to write.
         return "unchanged"
 

@@ -217,6 +217,31 @@ class TestSyncOneExecutor:
         # No DB write — we keep the previous state until upstream answers
         assert fake_db.updates == []
 
+    @pytest.mark.asyncio
+    async def test_human_id_drift_triggers_write(
+        self, fake_db: _FakeDB, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Regression: an earlier version had `db_hid or "" == upstream`
+        # which, by Python operator precedence, evaluated as
+        # `db_hid or ("" == upstream)` and silently classified drift as
+        # "unchanged" whenever the DB human_id was truthy. Same verified
+        # flag on both sides + different human_id MUST trigger a write.
+        _patch_verify(monkeypatch, _result(True, "hum-NEW"))
+        out = await job._sync_one_executor(
+            {
+                "id": "exec-drift",
+                "clawkey_public_key": "PubKeyDrift",
+                "clawkey_verified": True,
+                "clawkey_human_id": "hum-OLD",
+            }
+        )
+        # verified flag did not flip, so this is neither "verified" nor
+        # "revoked" — the bookkeeping branch returns "unchanged" but a
+        # DB write must still have occurred to persist the new human_id.
+        assert out == "unchanged"
+        assert len(fake_db.updates) == 1
+        assert fake_db.updates[0]["row"]["clawkey_human_id"] == "hum-NEW"
+
 
 # ---------------------------------------------------------------------------
 # get_clawkey_sync_health — the pulse exposed to /health
