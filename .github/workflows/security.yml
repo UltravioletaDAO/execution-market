@@ -223,7 +223,7 @@ jobs:
           GITLEAKS_ENABLE_SUMMARY: "true"
 
       - name: Run TruffleHog
-        uses: trufflesecurity/trufflehog@0d5afcefc50330bfd4a58909e85c6223c42ff619  # main @ 2026-04-17 (post-v3.94.3)
+        uses: trufflesecurity/trufflehog@8a12e8e2fb6f3c4a4294a8e63b3659af6c08cfe3  # main @ 2026-04-17 (post-v3.94.3)
         with:
           path: ./
           base: ${{ github.event.repository.default_branch }}
