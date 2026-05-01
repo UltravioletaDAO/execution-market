@@ -204,13 +204,14 @@ async def _resolved_paths() -> dict:
         "userinfo": await PlatformConfig.get(
             "veryai.oauth2_userinfo_path", "/userinfo"
         ),
-        # Scope is operator-tunable: Very initially only accepts "openid" +
-        # "offline_access" (per their /authorize error response). If they
-        # later expose a custom scope for verification_level claims, flip
+        # Scope is operator-tunable: per Very's /authorize error response,
+        # only "openid" and "offline_access" are accepted. We default to
+        # the minimum — "openid" alone — because we do a one-shot
+        # verification per executor and never refresh, so refresh tokens
+        # would only be data we hold without using. If Very later exposes
+        # a custom verification scope (e.g. "veryai.verification") flip
         # this PlatformConfig key without a redeploy.
-        "scope": await PlatformConfig.get(
-            "veryai.oauth2_scope", "openid offline_access"
-        ),
+        "scope": await PlatformConfig.get("veryai.oauth2_scope", "openid"),
     }
 
 

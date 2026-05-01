@@ -44,6 +44,7 @@ def fake_paths() -> dict:
         "authorize": "/oauth2/authorize",
         "token": "/oauth2/token",
         "userinfo": "/userinfo",
+        "scope": "openid",
     }
 
 

@@ -208,7 +208,7 @@ async def callback(
         if prior != executor_id:
             logger.warning(
                 "SYBIL_ATTEMPT: VeryAI sub %s already bound to %s, attempted by %s",
-                info.sub,
+                info.sub[:12],
                 str(prior)[:8],
                 executor_id[:8],
             )
@@ -224,7 +224,12 @@ async def callback(
                 "executor_id": executor_id,
                 "veryai_sub": info.sub,
                 "verification_level": info.verification_level,
-                "oidc_id_token": token_result.id_token or "",
+                # Data minimization: we trust /userinfo as canonical and
+                # never re-validate the id_token, so storing it would only
+                # widen the blast radius of a DB compromise (Veros-signed
+                # JWTs that could be replayed downstream). The veryai_sub
+                # column already serves as the audit anchor.
+                "oidc_id_token": "",
                 "verified_at": now,
             }
         ).execute()
@@ -271,7 +276,7 @@ async def callback(
         "VeryAI verified: executor=%s, level=%s, sub=%s",
         executor_id[:8],
         info.verification_level,
-        info.sub,
+        info.sub[:12],
     )
     return _redirect_with_status("success")
 

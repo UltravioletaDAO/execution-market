@@ -153,6 +153,7 @@ def patch_paths(monkeypatch: pytest.MonkeyPatch):
             "authorize": "/oauth2/authorize",
             "token": "/oauth2/token",
             "userinfo": "/userinfo",
+            "scope": "openid",
         }
 
     monkeypatch.setattr(veryai_client, "_resolved_paths", _paths)
@@ -328,7 +329,9 @@ class TestCallback:
         assert row["executor_id"] == "exec-1"
         assert row["veryai_sub"] == "veryai|abc"
         assert row["verification_level"] == "palm_dual"
-        assert row["oidc_id_token"] == "ID-TOKEN"
+        # Data minimization: id_token is intentionally NOT persisted —
+        # see api/routers/veryai.py for rationale.
+        assert row["oidc_id_token"] == ""
 
         # Updated executor row
         e_updates = [u for u in fake_db.updates if u["table"] == "executors"]
