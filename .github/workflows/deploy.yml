@@ -47,6 +47,7 @@ jobs:
               - 'Dockerfile.mcp_server'
             frontend:
               - 'dashboard/**'
+              - '.github/workflows/deploy.yml'
             infra:
               - 'infrastructure/terraform/**'
             lambda:
