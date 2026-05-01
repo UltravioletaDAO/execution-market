@@ -39,7 +39,7 @@
     "tailwind-merge": "^2.6.0",
     "viem": "^2.45.3",
     "wagmi": "^3.5.0",
-    "zod": "^4.0.5"
+    "zod": "^4.4.1"
   },
   "optionalDependencies": {
     "@rollup/rollup-linux-x64-gnu": "^4.57.0"
