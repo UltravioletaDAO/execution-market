@@ -260,6 +260,7 @@ Backlog:
 - require packet output to drive one explicit operator-facing guidance-tone choice so brief language does not drift across implementations
 - require packet output to drive one explicit guidance-placement choice so tentative learning cannot silently occupy top-line summary slots
 - require packet output to constrain where guidance may appear in the improved brief, not only how it is phrased
+- align packet defaults with the shared review decision tables so repeated rejection/redirect learning upgrades from `cautious` to `directive` via explicit replay evidence instead of ad hoc brief logic
 
 ## 8. Backlog by product surface
 

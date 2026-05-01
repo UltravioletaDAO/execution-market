@@ -204,6 +204,8 @@ That means retrieval should preserve at least these classes:
 - **inspectable but non-default learning** from `hold_for_more_evidence`
 - **blocked learning** from `do_not_promote`
 
+The bridge should also preserve the review-table default progression that makes repeated reviewed rejection/redirect evidence eligible to move from cautious guidance into directive doctrine only after explicit replay-backed strengthening.
+
 If the bridge cannot recover those distinctions cleanly, it is not yet safe to let Acontext shape live city dispatch.
 
 ## 8. Example dispatch briefing

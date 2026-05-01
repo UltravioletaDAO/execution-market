@@ -168,8 +168,70 @@ The first city-ops review implementation should not be considered done until:
 - memory writes are suppressed for low-trust or inconclusive cases
 - follow-on recommendations are deterministic enough to test by snapshot
 
-## 12. Sharp recommendation
+## 12. Promotion, tone, and placement decision tables
 
-**The strongest next seam is not another schema doc. It is explicit review decision logic.**
+The core outcome tables above decide whether a task can close and whether memory should be written.
+What they still need is an explicit bridge into operator-facing behavior.
 
-Once these tables exist, daytime engineering can build the Review Console, projector rules, and fixture assertions against one shared operational truth.
+The first implementation should therefore treat review output as a three-stage decision chain:
+1. classify the reviewed result
+2. decide the replay/packet promotion stance
+3. decide operator guidance tone and placement from that stance
+
+### 12.1 Review output to packet/promotion defaults
+
+| Reviewed pattern | Default `summary_judgment` | Default `learning_strength` | Default `review_decision` | Default `memory_promotion_decision` |
+|---|---|---|---|---|
+| Clean accepted/completed result with no reusable office learning | `pass` | `weak` | `close_without_learning` | `do_not_promote` |
+| First clear rejection reason with high-trust evidence | `pass` | `moderate` | `promote_rejection_learning` | `promote_cautiously` |
+| Repeated rejection reason confirmed again with strong provenance | `pass` | `strong` | `promote_rejection_learning` | `promote_with_confidence` |
+| First clear redirect target with strong field proof | `pass` | `moderate` | `promote_redirect_learning` | `promote_cautiously` |
+| Repeated redirect target confirmed across reviewed runs | `pass` | `strong` | `promote_redirect_learning` | `promote_with_confidence` |
+| Evidence restriction observed once and usable but bounded | `pass` | `moderate` | `promote_evidence_guidance` | `promote_cautiously` |
+| Plausible office pattern but only one weak or mixed episode | `partial` | `weak` | `hold_pending_more_evidence` | `hold_for_more_evidence` |
+| Contradictory, low-trust, or unresolved municipal ambiguity | `fail` | `weak` | `archive_without_promotion` | `do_not_promote` |
+
+### 12.2 Promotion stance to operator guidance mode
+
+| `memory_promotion_decision` | Guidance mode | Operator meaning |
+|---|---|---|
+| `promote_with_confidence` | `directive` | Safe to shape top-line dispatch doctrine |
+| `promote_cautiously` | `cautious` | Safe to shape verify-first or likely-pattern guidance |
+| `hold_for_more_evidence` | `inspect_only` | Visible for inspection/debug, not default dispatch doctrine |
+| `do_not_promote` | `suppressed` | Do not surface in default brief guidance |
+
+### 12.3 Guidance mode to default brief placement
+
+| Guidance mode | Allowed default placement | Disallowed default placement |
+|---|---|---|
+| `directive` | `recommended_first_action`, `must_avoid_rejection_traps`, `required_evidence_plan`, `default_fallback_instruction` | hidden only in debug drawers |
+| `cautious` | `watchouts`, `verify_first_patterns`, `likely_redirect_behavior`, `evidence_caveats` | top-line doctrine sections reserved for confident guidance |
+| `inspect_only` | Office Memory View, expandable provenance/debug drawer, replay bundle inspection | copyable worker instruction block, top-line dispatch summary |
+| `suppressed` | internal audit history only when needed | all dispatch brief sections and lightweight operator summaries |
+
+### 12.4 Mandatory Review Console preview fields implied by these tables
+
+Before review confirmation, the first Review Console should preview:
+- `memory_promotion_decision`
+- guidance mode (`directive`, `cautious`, `inspect_only`, `suppressed`)
+- target brief section
+- one-line rendered guidance preview
+- why that tone/placement was selected
+
+This keeps the review gate honest about how future dispatch will sound, not only whether memory will be written.
+
+### 12.5 Fixture coverage additions
+
+The replay fixture pack should include at least one case for each of these presentation outcomes:
+- repeated rejection -> `directive`
+- first clear redirect -> `cautious`
+- plausible but weak office pattern -> `inspect_only`
+- contradictory or unresolved field signal -> `suppressed`
+
+If replay cannot assert these distinctions, the operator-facing part of the memory loop is still underspecified.
+
+## 13. Sharp recommendation
+
+**The strongest next seam is explicit review decision logic that reaches all the way into promotion, guidance tone, and placement.**
+
+Once these tables exist, daytime engineering can build the Review Console, projector rules, replay assertions, and dispatch-brief rendering against one shared operational truth.
