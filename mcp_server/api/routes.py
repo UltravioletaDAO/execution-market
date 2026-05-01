@@ -26,6 +26,7 @@ from .routers.legal import router as legal_router
 from .routers.audit_grid import router as audit_grid_router
 from .routers.worldid import router as worldid_router
 from .routers.veryai import router as veryai_router
+from .routers.clawkey import router as clawkey_router
 from .routers.ens import router as ens_router
 from .routers.disputes import router as disputes_router
 from .routers.arbiter_public import router as arbiter_public_router
@@ -56,6 +57,12 @@ import os as _os  # noqa: E402
 
 if _os.environ.get("EM_VERYAI_ENABLED", "false").lower() == "true":
     router.include_router(veryai_router)
+
+# ClawKey is gated by EM_CLAWKEY_ENABLED — when off, /api/v1/clawkey/* returns
+# 404 instead of 503. Same pattern as VeryAI: additive trust signal, never
+# blocks core flows, lives behind an explicit flip.
+if _os.environ.get("EM_CLAWKEY_ENABLED", "false").lower() == "true":
+    router.include_router(clawkey_router)
 
 router.include_router(ens_router)
 router.include_router(disputes_router)
