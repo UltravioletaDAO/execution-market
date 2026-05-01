@@ -106,7 +106,7 @@ apscheduler>=3.10.0
 # ===================
 # Init happens in main.py only when SENTRY_DSN env var is set (graceful
 # degradation in dev/test). Extras wire the FastAPI + httpx integrations.
-sentry-sdk[fastapi,httpx]>=2.0.0
+sentry-sdk[fastapi,httpx]>=2.58.0
 
 # ===================
 # Observability — Structured JSON logs (Phase 2.3 SAAS_PRODUCTION_HARDENING)
