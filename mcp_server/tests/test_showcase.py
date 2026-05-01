@@ -259,6 +259,53 @@ class TestResponseShape:
 
 
 # ===========================================================================
+# 2b. ClawKey KYA flag surfaced in executor preview
+# ===========================================================================
+
+
+class TestKyaVerifiedFlag:
+    def test_default_false_when_executor_lacks_clawkey_column(self):
+        # GOOD_ROW's executor dict has no `clawkey_verified` key — the
+        # response must still serialize the field, defaulted to False.
+        db = _client(_resp([GOOD_ROW]))
+        with patch("api.routers.showcase.db.get_client", return_value=db):
+            client = TestClient(_make_app())
+            r = client.get("/api/v1/showcase/evidence")
+        assert r.status_code == 200
+        assert r.json()["items"][0]["executor"]["kya_verified"] is False
+
+    def test_true_when_executor_clawkey_verified(self):
+        row = dict(GOOD_ROW)
+        row["executor"] = dict(GOOD_ROW["executor"], clawkey_verified=True)
+        db = _client(_resp([row]))
+        with patch("api.routers.showcase.db.get_client", return_value=db):
+            client = TestClient(_make_app())
+            r = client.get("/api/v1/showcase/evidence")
+        assert r.status_code == 200
+        assert r.json()["items"][0]["executor"]["kya_verified"] is True
+
+    def test_no_kya_pii_leaks_in_response(self):
+        # Even when the flag is True, only the boolean leaks — never the
+        # human_id, public_key, or device_id from upstream.
+        row = dict(GOOD_ROW)
+        row["executor"] = dict(
+            GOOD_ROW["executor"],
+            clawkey_verified=True,
+            clawkey_human_id="hum-abc-private",
+            clawkey_public_key="PubKeyB58Secret",
+            clawkey_device_id="dev-fingerprint",
+        )
+        db = _client(_resp([row]))
+        with patch("api.routers.showcase.db.get_client", return_value=db):
+            client = TestClient(_make_app())
+            r = client.get("/api/v1/showcase/evidence")
+        raw = json.dumps(r.json())
+        assert "hum-abc-private" not in raw
+        assert "PubKeyB58Secret" not in raw
+        assert "dev-fingerprint" not in raw
+
+
+# ===========================================================================
 # 3. Cursor pagination
 # ===========================================================================
 

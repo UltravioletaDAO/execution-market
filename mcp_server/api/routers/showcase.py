@@ -104,6 +104,10 @@ class ExecutorPreview(BaseModel):
     display_name: str
     avatar_url: Optional[str] = None
     rating: Optional[float] = None
+    # Additive KYA trust signal — true only when ClawKey upstream confirmed the
+    # binding. Never blocks rendering. False is the safe default for both
+    # humans and unverified agents, so the frontend can treat it as a hint.
+    kya_verified: bool = False
 
 
 class EvidencePreview(BaseModel):
@@ -383,6 +387,7 @@ def _serialize_item(row: Dict[str, Any]) -> Optional[ShowcaseEvidence]:
             ),
             avatar_url=executor.get("avatar_url") or None,
             rating=rating,
+            kya_verified=bool(executor.get("clawkey_verified")),
         ),
         evidence=EvidencePreview(
             primary_image_url=primary,
@@ -422,7 +427,7 @@ def _build_query(
         "completed_at,status"
         "),"
         "executor:executors("
-        "display_name,avatar_url,avg_rating"
+        "display_name,avatar_url,avg_rating,clawkey_verified"
         ")"
     )
 
