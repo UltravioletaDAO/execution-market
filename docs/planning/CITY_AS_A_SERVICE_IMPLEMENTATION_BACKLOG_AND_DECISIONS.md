@@ -261,6 +261,7 @@ Backlog:
 - require packet output to drive one explicit guidance-placement choice so tentative learning cannot silently occupy top-line summary slots
 - require packet output to constrain where guidance may appear in the improved brief, not only how it is phrased
 - align packet defaults with the shared review decision tables so repeated rejection/redirect learning upgrades from `cautious` to `directive` via explicit replay evidence instead of ad hoc brief logic
+- require packet output to feed one compact `morning_pickup_brief.json` continuity object so the next engineering block inherits the same promotion/tone/placement truth without restating it manually
 
 ## 8. Backlog by product surface
 
@@ -316,6 +317,7 @@ Must support:
 - repeat rejection same-reason rate
 - brief presence and reuse rate
 - routing accuracy improvement on later attempts
+- pickup-brief readiness rate, meaning how often replay blocks can honestly mark operator surfaces ready versus still partial
 
 ## 10. Acceptance scenario that should decide readiness
 

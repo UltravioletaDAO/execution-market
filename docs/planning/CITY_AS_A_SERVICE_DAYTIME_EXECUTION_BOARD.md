@@ -1,0 +1,292 @@
+# City as a Service — Daytime Execution Board
+
+> Last updated: 2026-04-29
+> Parent docs:
+> - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
+> - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
+> - `CITY_AS_A_SERVICE_IMPLEMENTATION_BACKLOG_AND_DECISIONS.md`
+> - `CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md`
+> - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
+> Status: execution handoff board
+
+## 1. Why this doc exists
+
+The planning stack is now broad enough that the main daytime risk is not missing ideas.
+The risk is fragmented execution:
+- building the right seams in the wrong order
+- starting UI before proof artifacts are stable
+- treating every planning doc as equally urgent
+- losing track of what is already decided versus what still needs a real build choice
+
+This document compresses the current City-as-a-Service work into one execution board.
+Its goal is simple:
+
+> make the next 1-2 engineering windows obvious, file-by-file, with acceptance gates and a strict "not yet" list.
+
+## 2. Build thesis
+
+The first live CaaS slice is only successful if it proves:
+
+> one reviewed municipal task can make the next dispatch materially smarter in a traceable way.
+
+That means daytime should optimize for this chain, in this order:
+1. validated reviewed closure
+2. deterministic replay artifacts
+3. compact memory delta
+4. improved dispatch brief
+5. explicit proof that the brief improved for an operational reason
+
+If a task does not strengthen that chain, it is probably not first-window work.
+
+## 3. What is already decided
+
+These are not active debates anymore.
+
+### 3.1 Scope
+- Vertical: **Execution Market CaaS / AAS only**
+- First templates: `counter_question`, `packet_submission`
+- First proof style: deterministic local replay, not live infra-first
+- First memory policy: no durable writes from raw worker uploads
+
+### 3.2 Core objects
+The stable first-pass artifacts are:
+- `reviewed_result`
+- `review_artifact`
+- `reviewed_episode`
+- `office_playbook_delta`
+- `office_playbook_after`
+- `dispatch_brief`
+- `brief_improvement_scorecard`
+- `event_summary`
+- `bundle_manifest`
+- `review_packet`
+
+Missing implementation seam now identified:
+- operator guidance tone and placement policy derived from `memory_promotion_decision`
+
+### 3.3 Surface priority
+Build order remains:
+1. contracts + fixtures
+2. review normalizer
+3. local projector
+4. brief composer + replay proof bundle
+5. thin operator/admin surfaces
+6. observability hardening
+7. transport swap later
+
+## 4. The next engineering window
+
+### 4.1 Track A — contracts and validators
+Target files/seams:
+- `mcp_server/city_ops/contracts.py` or equivalent typed schema home
+- fixture validator helpers
+- minimal artifact validators for replay outputs
+
+Must lock first:
+- `reviewed_result`
+- `review_artifact`
+- `reviewed_episode`
+- `office_playbook_delta`
+- `dispatch_brief`
+- `review_packet`
+- `bundle_manifest`
+- `event_summary`
+
+Acceptance gate:
+- rejection fixture, redirect fixture, and evidence-restriction fixture all fail loudly on malformed objects with explainable errors
+
+### 4.2 Track B — replay fixture pack
+Target seam:
+- `fixtures/city_ops_review_cases/` or equivalent
+
+Minimum fixture families:
+- clean acceptance
+- packet rejection due to outdated form
+- redirect to different office/window
+- no-photo/evidence restriction
+- blocked visit / appointment required
+- repeated rejection reinforcement
+
+Acceptance gate:
+- each fixture can be inspected by eye and contains enough structured input to justify reviewed truth without transcript dumps
+
+### 4.3 Track C — deterministic projector
+Target files/seams:
+- `review_normalizer.py`
+- `projector.py`
+- `brief_composer.py`
+
+Must produce:
+- `reviewed_episode`
+- `office_playbook_delta` when justified
+- `office_playbook_after`
+- `improved_dispatch_brief`
+- deterministic output paths for replay bundles
+
+Acceptance gate:
+- rerunning the same fixture yields the same operational outputs and the same event ordering
+
+### 4.4 Track D — proof bundle judgment
+Target artifacts:
+- `brief_improvement_scorecard.json`
+- `bundle_manifest.json`
+- `review_packet.json`
+- `event_summary.json`
+
+Acceptance gate:
+- a reviewer can open `bundle_manifest.json` first and understand whether learning passed, was partial, or failed without reading code
+
+### 4.5 Track E — operator guidance expression seam
+Target files/seams:
+- dispatch brief composer tone/placement mapping
+- Review Console memory-write preview
+- Office Memory View guidance grouping
+- replay-bundle-to-pickup-brief continuity writer
+
+Reference docs:
+- `CITY_AS_A_SERVICE_OPERATOR_GUIDANCE_TONE_AND_PLACEMENT_POLICY.md`
+- `CITY_AS_A_SERVICE_MORNING_PICKUP_BRIEF_CONTRACT.md`
+
+Acceptance gate:
+- confident, cautious, held, and blocked learning render with distinct operator-facing tone and placement instead of collapsing into one warning style
+- each replay-proof block can emit one compact morning pickup brief that preserves the promotion/tone/placement verdict without forcing the next builder to reopen the whole bundle
+
+## 5. File-by-file done criteria
+
+### 5.1 Contracts layer is done when
+- shared enums are stable
+- template-specific required fields are enforced
+- unknown values fail parse-time validation
+- provenance references can be validated
+
+### 5.2 Fixture pack is done when
+- at least one rejection case and one redirect case prove before/after brief differences
+- one low-learning case stays valid without overclaiming improvement
+- one ambiguous case proves conservative promotion behavior
+
+### 5.3 Projector is done when
+- raw upload cannot bypass review
+- one reviewed task always emits `reviewed_result`, `review_artifact`, and `reviewed_episode`
+- office memory changes only when learning is meaningful
+- the next dispatch brief becomes reproducibly richer where justified
+
+### 5.4 Scorecard seam is done when
+- it can distinguish "changed" from "improved"
+- it punishes unsupported certainty
+- it makes routing clarity or rejection avoidance improvement explicit
+
+### 5.5 Manifest seam is done when
+- missing artifacts are never ambiguous
+- acceptance checks are inspectable
+- summary judgment is conservative and reproducible
+
+### 5.6 Review packet seam is done when
+- it mirrors manifest judgment
+- it carries explicit learning strength
+- it states memory promotion stance clearly enough for downstream retrieval or UI to respect
+
+## 6. What daytime should NOT build yet
+
+Do not spend the next window on:
+- broad multi-city rollout logic
+- embeddings or semantic retrieval
+- heavy Acontext plumbing before local proof is solid
+- polished executive dashboards
+- generalized workflow engines
+- more template expansion beyond what strengthens the first proof seam
+- marketplace redesign work unrelated to reviewed-result compounding
+
+If the team is tempted to build one of these first, it likely means the proof seam still feels too vague.
+
+## 7. Recommended PR sequence
+
+### PR 1
+Contracts + validators + fixture schema skeleton
+
+### PR 2
+Initial fixture pack with expected outputs and deterministic failing tests
+
+### PR 3
+Review normalizer + projector + office playbook merge logic
+
+### PR 4
+Dispatch brief composer + scorecard + manifest + event summary + review packet bundle writer
+
+### PR 5
+Thin Review Console / Dispatch Brief Panel / Office Memory Debug surface consuming the same artifacts
+
+### PR 6
+Morning pickup brief writer + debug surfacing so each replay-proof block hands off exact gate status, behavior-change assessment, and anti-overclaim warnings
+
+This sequence keeps UI downstream of proof instead of masking uncertainty.
+
+## 8. The sharpest acceptance test
+
+The first convincing CaaS product proof is not "artifacts were emitted."
+It is this:
+
+1. run a baseline fixture
+2. review one rejection or redirect case
+3. replay the projector
+4. inspect the improved brief
+5. confirm the scorecard marks a meaningful operational improvement
+6. confirm the manifest and review packet stay conservative about learning strength
+
+If that proof is not obvious by inspection, the build should not claim the learning loop is real yet.
+
+## 9. Strong recommendation
+
+Treat this execution board as the daytime tie-breaker.
+When two tasks look useful, choose the one that most directly strengthens:
+
+`reviewed truth -> replay artifact -> memory delta -> better next dispatch -> inspectable proof`
+
+That is the narrow seam that turns City as a Service from a strong concept into a shippable product loop.
+
+## 10. Recommended next daytime slice: coordination-aware replay proof
+
+If daytime has one extra engineering window after the current contract/projector path, the highest-leverage next slice is not more templates.
+It is a coordination-aware replay proof, paired with a compact pickup-brief continuity object.
+
+### 10.1 What to add
+Extend the existing proof seam so each replay bundle can include:
+- `coordination_session_id`
+- compact `event_summary.json`
+- explicit intervention markers
+- a scorecard axis for `coordination_trace_complete`
+
+### 10.2 Why this is the right next move
+This ties together tonight's strongest system themes:
+- memory ↔ Acontext integration planning
+- IRC session management enhancement
+- cross-project decision support systems
+- agent observability and success metrics
+
+It also prevents a common failure mode: building strong reviewed-result artifacts that still depend on fragile chat transcripts or operator memory to explain why a reroute or redispatch happened.
+
+### 10.3 File-first recommendation
+The next implementation window should likely touch only a small set of seams:
+- typed event envelope contract
+- replay bundle writer
+- morning pickup brief writer
+- brief composer provenance references
+- thin debug surface for event-chain inspection
+
+That is narrow enough to ship, but strong enough to prove that CaaS learning can plug into the broader EM coordination stack instead of becoming another isolated planning branch.
+
+### 10.4 Why the pickup brief belongs in the same slice
+The coordination-aware replay proof already creates the exact ingredients the next engineering block needs:
+- deterministic event order
+- manifest judgment
+- packet-level promotion stance
+- behavior-change evidence from the scorecard and improved brief
+
+Adding `morning_pickup_brief.json` in the same slice prevents that proof from becoming another archive that daytime must mentally recompute.
+It gives the next builder one compact continuity object with:
+- acceptance gates passed/failed/partial
+- promotion-policy observations
+- guidance tone and placement observations
+- next smallest proof
+- explicit anti-overclaim warnings
+
+That keeps the handoff seam as disciplined as the replay seam itself.

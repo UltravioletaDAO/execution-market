@@ -362,9 +362,11 @@ the system can emit one deterministic replay bundle that:
 - make artifacts inspectable by operator/admin
 - add memory preview before confirm
 
-### Phase 7 — observability
+### Phase 7 — observability and continuity handoff
 - emit loop events
 - create first review/memory effectiveness dashboard or logs
+- emit `morning_pickup_brief.json` per replay bundle or tightly scoped fixture batch
+- keep pickup-brief generation aligned with review packet promotion stance and guidance tone/placement outcomes
 
 ### Phase 8 — only then consider Acontext sink swap
 - keep contracts identical
@@ -404,8 +406,10 @@ The narrowest strong daytime win is now:
 - deterministic `event_summary`
 - deterministic `bundle_manifest`
 - explicit `review_packet`
+- one `morning_pickup_brief.json` per bundle or tightly related batch
 - one conservative learning-strength call per bundle
 - one explicit promotion-policy outcome that changes both how the improved brief sounds and where it surfaces learned guidance
+- one explicit continuity object that says whether the improvement is behavioral, cosmetic, or still unproven
 
 If that bundle pair is legible, behavior-changing, and promotion-safe, broader Review Console and Acontext integration work can expand from a real proof seam instead of optimism.
 
@@ -453,6 +457,7 @@ The pickup brief should explicitly state:
 - whether dispatch guidance changed behaviorally or only cosmetically
 - whether promotion stance is safe to surface in operator-facing tone yet
 - whether tone changed correctly across promoted, cautious, held, or blocked guidance instead of flattening everything into the same warning style
+- whether guidance placement also changed correctly across promoted, cautious, held, or blocked guidance instead of letting tentative learning inherit directive placement
 
 If those answers are fuzzy, the brief should say so directly.
 That is better than optimistic compression.
