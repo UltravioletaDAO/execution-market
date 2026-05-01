@@ -217,10 +217,29 @@ Before review confirmation, the first Review Console should preview:
 - target brief section
 - one-line rendered guidance preview
 - why that tone/placement was selected
+- whether the rendered guidance is allowed into the default copyable worker-instruction block
+- whether the same learning should also appear in the next `morning_pickup_brief.json` as a promotion/tone/placement observation
 
 This keeps the review gate honest about how future dispatch will sound, not only whether memory will be written.
 
-### 12.5 Fixture coverage additions
+### 12.5 Promotion-policy rendering matrix
+
+To reduce daylight ambiguity, the first implementation should treat review output as a compact rendering matrix, not only a set of independent enums.
+
+| `memory_promotion_decision` | Guidance mode | Default brief placement | Copyable worker instruction block | Pickup-brief expectation |
+|---|---|---|---|---|
+| `promote_with_confidence` | `directive` | top-line operational sections (`recommended_first_action`, `must_avoid_rejection_traps`, `required_evidence_plan`, `default_fallback_instruction`) | `allowed` | record as confirmed behavior-changing guidance if the brief actually changes likely dispatch behavior |
+| `promote_cautiously` | `cautious` | secondary caution sections (`watchouts`, `verify_first_patterns`, `likely_redirect_behavior`, `evidence_caveats`) | `allowed_with_bounded_wording` | record as cautious guidance and explicitly note what is still unproven |
+| `hold_for_more_evidence` | `inspect_only` | debug/provenance surfaces only | `disallowed` | record as held learning and name the next evidence needed before promotion |
+| `do_not_promote` | `suppressed` | no default brief placement | `disallowed` | record only as anti-overclaim or suppression if relevant |
+
+This matrix should be reused by:
+- Review Console preview logic
+- brief composer rendering rules
+- replay assertions
+- `morning_pickup_brief.json` generation or review
+
+### 12.6 Fixture coverage additions
 
 The replay fixture pack should include at least one case for each of these presentation outcomes:
 - repeated rejection -> `directive`

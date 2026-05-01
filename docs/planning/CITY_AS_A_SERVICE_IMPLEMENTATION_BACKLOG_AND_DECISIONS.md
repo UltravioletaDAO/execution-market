@@ -262,6 +262,11 @@ Backlog:
 - require packet output to constrain where guidance may appear in the improved brief, not only how it is phrased
 - align packet defaults with the shared review decision tables so repeated rejection/redirect learning upgrades from `cautious` to `directive` via explicit replay evidence instead of ad hoc brief logic
 - require packet output to feed one compact `morning_pickup_brief.json` continuity object so the next engineering block inherits the same promotion/tone/placement truth without restating it manually
+- require packet-adjacent rendering outputs or deterministic derivation rules for:
+  - default brief section family
+  - copyable worker-instruction eligibility
+  - pickup-brief observation class (`confirmed`, `cautious`, `held`, `suppressed`)
+- treat missing rendering alignment as a real backlog gap, not a cosmetic follow-up, because replay proof is incomplete if the same promotion decision can still render differently across surfaces
 
 ## 8. Backlog by product surface
 
@@ -364,11 +369,25 @@ Recommended coordination artifact:
 This checklist exists to keep continuation honest.
 The city-ops seam should be advanced by the smallest missing proof, not by whichever adjacent surface looks most exciting.
 
-## 13. Sharp recommendation
+## 13. Rendering alignment checklist for the next build block
+
+Before daytime treats the replay seam as implementation-ready, it should be able to answer `yes` to all of these from artifacts rather than intuition:
+- does the selected promotion stance determine guidance tone deterministically?
+- does it also determine section placement deterministically?
+- does it determine whether guidance may enter the copyable worker-instruction block?
+- can the same decision be summarized consistently in `morning_pickup_brief.json` without restating bundle logic by hand?
+- can repeated reviewed evidence strengthen guidance from cautious to directive only through explicit replay-backed promotion changes?
+
+If any answer is `no`, the next build block should tighten rendering alignment before broadening UI scope.
+
+## 14. Sharp recommendation
 
 If daytime wants the clearest possible next move, it should treat the CaaS backlog as:
 
 **contracts first, replay second, review gate third, projector fourth, promotion-policy-aware retrieval fifth, observability sixth, infra swap last.**
+
+And inside that sequence, the next narrow proof should be:
+**one shared rendering truth from review packet -> brief tone -> brief placement -> pickup-brief continuity.**
 
 That preserves the real moat:
 **reviewed municipal reality becoming better future execution.**

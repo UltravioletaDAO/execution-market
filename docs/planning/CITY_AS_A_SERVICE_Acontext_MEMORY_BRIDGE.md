@@ -347,4 +347,11 @@ That means the briefing should explicitly separate:
 The first implementation should derive that separation from `review_packet.memory_promotion_decision`, not from ad hoc prose heuristics.
 Acontext can store richer history later, but dispatch should still read one compact policy seam first.
 
+Retrieval should also preserve three rendering constraints from the same seam:
+- whether the guidance belongs in top-line doctrine, secondary caution, inspect-only provenance, or nowhere by default
+- whether it is eligible for the copyable worker-instruction block
+- how the same judgment should be compressed into continuity artifacts such as `morning_pickup_brief.json`
+
+That keeps Acontext from becoming a semantic drift layer where the same reviewed truth sounds different depending on which consumer reads it.
+
 This is important because city work is full of partial truths. A good memory bridge does not merely retrieve more context; it preserves decision hygiene under uncertainty.
