@@ -15,6 +15,7 @@ import { AgentIdentityBadge } from './AgentIdentityBadge'
 import { WorldHumanBadge } from './WorldHumanBadge'
 import { ENSBadge } from './ENSBadge'
 import { XBadge } from './XBadge'
+import { ClawKeyBadge } from '../ClawKeyBadge'
 import { Skeleton } from '../ui/Skeleton'
 import type { Executor, AgentType } from '../../types/database'
 
@@ -153,6 +154,13 @@ export const AgentMiniCard = memo(function AgentMiniCard(props: AgentMiniCardPro
           )}
           <WorldHumanBadge worldHumanId={data.world_human_id} />
           <ENSBadge ensName={data.ens_name || data.ens_subname} size="sm" />
+          {data.clawkey_verified && (
+            <ClawKeyBadge
+              verified={data.clawkey_verified}
+              humanId={data.clawkey_human_id}
+              size="sm"
+            />
+          )}
         </div>
         <div className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-400">
           {/* Star rating */}

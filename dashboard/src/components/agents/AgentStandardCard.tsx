@@ -15,6 +15,7 @@ import { AgentIdentityBadge } from './AgentIdentityBadge'
 import { WorldHumanBadge } from './WorldHumanBadge'
 import { ENSBadge } from './ENSBadge'
 import { XBadge } from './XBadge'
+import { ClawKeyBadge } from '../ClawKeyBadge'
 import { Skeleton, SkeletonText } from '../ui/Skeleton'
 import type { Executor, AgentType } from '../../types/database'
 
@@ -154,6 +155,13 @@ export const AgentStandardCard = memo(function AgentStandardCard(props: AgentSta
             )}
             <WorldHumanBadge worldHumanId={data.world_human_id ?? null} />
             <ENSBadge ensName={data.ens_name || data.ens_subname} size="md" />
+            {data.clawkey_verified && (
+              <ClawKeyBadge
+                verified={data.clawkey_verified}
+                humanId={data.clawkey_human_id}
+                size="md"
+              />
+            )}
           </div>
 
           {/* Reputation tier + rating */}

@@ -110,6 +110,9 @@ export interface Executor {
   veryai_verified?: boolean
   veryai_level?: string | null  // 'palm_single' | 'palm_dual'
   veryai_verified_at?: string | null
+  clawkey_verified?: boolean
+  clawkey_human_id?: string | null
+  clawkey_registered_at?: string | null
   ens_name?: string | null          // auto-resolved ENS (e.g., alice.eth)
   ens_avatar?: string | null        // ENS avatar URL
   ens_subname?: string | null       // claimed subname (e.g., alice.execution-market.eth)
