@@ -87,7 +87,7 @@ class _QB:
 
     def execute(self) -> _Result:
         if self._table_name == "veryai_verifications":
-            sub = next((v for c, v in self._select_filters if c == "sub"), None)
+            sub = next((v for c, v in self._select_filters if c == "veryai_sub"), None)
             if sub is not None:
                 rows = self._parent.veryai_rows_by_sub.get(sub, [])
                 return _Result(rows)
@@ -326,7 +326,7 @@ class TestCallback:
         assert len(v_inserts) == 1
         row = v_inserts[0]["row"]
         assert row["executor_id"] == "exec-1"
-        assert row["sub"] == "veryai|abc"
+        assert row["veryai_sub"] == "veryai|abc"
         assert row["verification_level"] == "palm_dual"
         assert row["oidc_id_token"] == "ID-TOKEN"
 

@@ -199,7 +199,7 @@ async def callback(
     sybil_check = (
         client.table("veryai_verifications")
         .select("id, executor_id")
-        .eq("sub", info.sub)
+        .eq("veryai_sub", info.sub)
         .limit(1)
         .execute()
     )
@@ -222,7 +222,7 @@ async def callback(
         client.table("veryai_verifications").insert(
             {
                 "executor_id": executor_id,
-                "sub": info.sub,
+                "veryai_sub": info.sub,
                 "verification_level": info.verification_level,
                 "oidc_id_token": token_result.id_token or "",
                 "verified_at": now,
