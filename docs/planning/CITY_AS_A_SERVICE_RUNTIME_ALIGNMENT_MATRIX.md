@@ -241,7 +241,22 @@ Do not call the compact-decision runtime seam aligned until one replay-backed ca
 - rebuild can recover the next move and trust posture from compact artifacts plus ledger tail
 - observability/export outputs remain compact but provenance-safe
 
-## 12. Sharp recommendation
+## 12. Relationship to reuse and redispatch
+
+This runtime matrix governs replay-time and continuity-time consumers first.
+The next adjacent slice should apply the same invariant fields to reuse-time consumers too:
+- initial dispatch-context reuse
+- redispatch fallback reuse
+- worker-instruction copyability filtering
+- reuse observability rows
+
+Those consumers should not invent a second decision seam.
+They should read the same normalized runtime view and fail loudly on trust-class drift.
+
+See also:
+- `CITY_AS_A_SERVICE_REUSE_AND_REDISPATCH_ALIGNMENT_SLICE.md`
+
+## 13. Sharp recommendation
 
 **Build the runtime seam as a matrix, not as a set of polite conventions.**
 

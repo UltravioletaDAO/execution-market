@@ -248,6 +248,13 @@ Replay-proof review protocol adoption in PR/review discipline so reviewers read:
 7. improved brief
 before deeper artifacts or broader UI claims
 
+### PR 9
+Reuse and redispatch alignment slice so one replay-backed case also proves:
+1. dispatch-context reuse from the compact decision object
+2. redispatch fallback reuse without trust-class drift
+3. worker-instruction copyability filtering from the same decision seam
+4. reuse observability rows and ledger events with behavior-change classes
+
 This sequence keeps UI downstream of proof instead of masking uncertainty.
 
 ## 8. The sharpest acceptance test
@@ -287,7 +294,7 @@ That is the narrow seam that turns City as a Service from a strong concept into 
 ## 10. Recommended next daytime slice: coordination-aware replay proof
 
 If daytime has one extra engineering window after the current contract/projector path, the highest-leverage next slice is not more templates.
-It is a coordination-aware replay proof, paired with a compact pickup-brief continuity object.
+It is a coordination-aware replay proof, paired with a compact pickup-brief continuity object and one reuse-alignment pass that proves the next dispatch consumes the same judged truth.
 
 ### 10.1 What to add
 Extend the existing proof seam so each replay bundle can include:

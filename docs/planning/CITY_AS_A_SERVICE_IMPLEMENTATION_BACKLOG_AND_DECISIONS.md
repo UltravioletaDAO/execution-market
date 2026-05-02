@@ -401,6 +401,13 @@ The practical reading order is now:
 7. `improved_dispatch_brief.json`
 8. deeper artifacts only as needed
 
+And once reuse is in scope, the next proof should also be inspectable from:
+1. `city_dispatch_context_reused`
+2. `city_redispatch_context_reused`
+3. `city_worker_instruction_block_built`
+4. `city_reuse_observability_row`
+so reviewers can verify that the same judged truth survives the next actual dispatch decision instead of only the replay archive.
+
 If those first seven objects do not already make the before/after learning story obvious, the next build block should tighten replay proof instead of broadening surfaces.
 
 ## 15. Sharp recommendation
@@ -410,7 +417,7 @@ If daytime wants the clearest possible next move, it should treat the CaaS backl
 **contracts first, replay second, review gate third, projector fourth, promotion-policy-aware retrieval fifth, observability sixth, infra swap last.**
 
 And inside that sequence, the next narrow proof should be:
-**one shared runtime truth from review packet -> compact decision object -> brief tone -> brief placement -> pickup-brief continuity -> append-only coordination ledger.**
+**one shared runtime truth from review packet -> compact decision object -> brief tone -> brief placement -> pickup-brief continuity -> append-only coordination ledger -> reuse-safe next dispatch guidance.**
 
 That preserves the real moat:
 **reviewed municipal reality becoming better future execution.**
@@ -450,6 +457,7 @@ Until that seam is real, avoid spending the next block on:
 - extra city templates
 - richer semantic search ideas
 - generic cross-vertical abstraction cleanup
+- reuse surfaces that bypass the compact decision object and invent their own trust logic
 
 Those can wait.
 The highest-value proof is still the compact decision-support seam holding under real replay conditions.
