@@ -462,6 +462,149 @@ The pickup brief should explicitly state:
 If those answers are fuzzy, the brief should say so directly.
 That is better than optimistic compression.
 
+## 17. First daytime proof pack: exact fixture matrix and expected judgments
+
+The planning stack is now specific enough that the next daylight risk is not lack of direction.
+It is wasting time arguing about which fixtures to start with or how much improvement is enough to count.
+The first proof pack should therefore be locked before broader coding fan-out.
+
+### 17.1 Required first proof fixtures
+
+The first proof pack should contain exactly four priority fixtures before any optional expansion:
+1. `packet_submission_rejection_outdated_form_v1`
+2. `packet_submission_rejection_outdated_form_repeat_v2`
+3. `packet_submission_redirect_window_b_v1`
+4. `counter_question_photo_restriction_low_confidence_v1`
+
+These four fixtures create the minimum useful spread:
+- one first-pass rejection
+- one repeated rejection that should strengthen memory confidently
+- one redirect that should improve routing but still preserve caution if evidence is thin
+- one ambiguous case that proves the system can refuse to over-promote
+
+### 17.2 Expected behavioral role of each fixture
+
+#### Fixture A — first outdated-form rejection
+Purpose:
+- prove the replay seam can turn one rejection into reusable but still review-sensitive office learning
+
+Expected default outcome:
+- `summary_judgment: pass`
+- `learning_strength: moderate`
+- `memory_promotion_decision: promote_cautiously`
+- improved brief adds verify-current-form guidance in a cautious section, not yet hardened as top-line doctrine
+
+#### Fixture B — repeated outdated-form rejection
+Purpose:
+- prove repeated reviewed evidence upgrades the same rule from cautious learning to directive office doctrine
+
+Expected default outcome:
+- `summary_judgment: pass`
+- `learning_strength: strong`
+- `memory_promotion_decision: promote_with_confidence`
+- improved brief upgrades form-version checking into top-line pre-dispatch preparation guidance
+
+#### Fixture C — redirect to Window B
+Purpose:
+- prove routing memory changes the next dispatch brief meaningfully without pretending a single redirect is universal truth
+
+Expected default outcome:
+- `summary_judgment: pass`
+- `learning_strength: moderate`
+- `memory_promotion_decision: promote_cautiously`
+- improved brief surfaces Window B as likely redirect or likely routing target with provenance/freshness cues
+
+#### Fixture D — low-confidence photo restriction
+Purpose:
+- prove the seam can preserve potentially useful office context without letting weak or mixed-confidence signals harden into doctrine
+
+Expected default outcome:
+- `summary_judgment: partial` or conservative `pass`
+- `learning_strength: weak`
+- `memory_promotion_decision: hold_for_more_evidence`
+- improved brief does not move this claim into directive guidance or top-line warning placement
+
+### 17.3 What this fixture pack should prove together
+
+If these four fixtures pass honestly, daytime can answer the four most important product questions:
+1. can one reviewed rejection create reusable guidance at all?
+2. can repeated reviewed evidence strengthen that guidance visibly?
+3. can routing memory improve the next dispatch without overspeaking certainty?
+4. can the system keep ambiguous municipal knowledge inspectable without letting it leak into doctrine?
+
+That is enough proof to justify wiring broader Review Console and Dispatch Brief surfaces later.
+It is not yet enough proof to claim generalized city memory.
+
+## 18. Expected before/after brief changes by promotion class
+
+The first daylight implementation should not leave “improvement” vague.
+For the first proof pack, each promotion class should cause a visibly different brief outcome.
+
+### 18.1 `promote_with_confidence`
+The improved brief should:
+- move the learned rule into top summary, top risks, or primary fallback sections
+- use directive wording
+- change what the worker/operator does before travel
+
+Example behavior change:
+- “Verify the latest packet revision at intake before leaving. Prior reviewed runs at this office rejected outdated packet versions.”
+
+### 18.2 `promote_cautiously`
+The improved brief should:
+- surface the learned rule in caution, evidence, or fallback sections
+- preserve verify-first or likely-pattern wording
+- expose freshness or provenance cues clearly enough that operators do not mistake it for settled doctrine
+
+Example behavior change:
+- “Recent reviewed run suggests Window B may handle this packet after intake redirect. Verify at arrival before assuming.”
+
+### 18.3 `hold_for_more_evidence`
+The improved brief should:
+- keep the claim out of top-line doctrine
+- allow inspection in debug/admin or expandable note surfaces only
+- avoid wording that would change the default worker route or evidence plan yet
+
+Example behavior change:
+- no top-line instruction added; an inspectable note may mention that one low-confidence report suggested photo restrictions but review held it back from default guidance
+
+### 18.4 `do_not_promote`
+The improved brief should:
+- exclude the claim from default guidance entirely
+- preserve the bundle only as an audit/debug object
+
+The important implementation check is simple:
+a reviewer should be able to infer promotion class just from the surfaced brief wording and section placement, then confirm it by reading the packet.
+
+## 19. Review checklist for the first PR or replay run
+
+The first daylight PR should be reviewed with a tighter checklist than ordinary feature work.
+The goal is not just working code.
+The goal is an honest proof story.
+
+### 19.1 Required reviewer questions
+- Do the four priority fixtures emit stable bundles in the same layout on repeated runs?
+- Does the event order stay deterministic and compact?
+- Does `review_packet` agree with the manifest, scorecard, and surfaced brief behavior?
+- Does repeated evidence strengthen guidance visibly instead of merely adding more prose?
+- Does ambiguous evidence remain inspectable without leaking into top-line doctrine?
+- Can a reviewer understand the before/after dispatch improvement by reading manifest -> event summary -> review packet -> scorecard -> improved brief?
+
+### 19.2 Automatic fail conditions for the first proof
+The first proof should be treated as not-yet-done if any of these occur:
+- a cautious or held rule appears in top-line directive placement
+- a suppressed rule still leaks into operator-facing text
+- repeated rejection evidence fails to strengthen the next brief behaviorally
+- scorecards mark improvement but the improved brief would not change worker preparation or routing
+- provenance is present in metadata but invisible from the review flow
+
+### 19.3 Honest partial-success conditions
+A replay run may still be worth merging or iterating on if:
+- validators and artifacts are stable
+- manifest and packet alignment is good
+- one or more bundles remain `partial` because the improvement is still cosmetic or the promotion stance is intentionally conservative
+
+That should be reported as partial proof, not as a completed city-memory seam.
+
 ## 13. Sharp recommendation
 
 If daytime wants one clean next move, it should build this exact product loop:
