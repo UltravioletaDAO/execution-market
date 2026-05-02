@@ -255,6 +255,13 @@ Reuse and redispatch alignment slice so one replay-backed case also proves:
 3. worker-instruction copyability filtering from the same decision seam
 4. reuse observability rows and ledger events with behavior-change classes
 
+### PR 10
+Decision flywheel proof target so daytime treats replay, runtime continuity, and reuse as one acceptance harness rather than separate feature wins:
+1. one normalized decision projection helper powers all consumers
+2. one replay-backed case emits replay, pickup, export, rebuild, observability, and reuse outputs from the same shared fields
+3. one behavior-change proof shows the next dispatch got smarter for the right reason
+4. deliberate drift fixtures fail loudly on trust-class, tone, placement, copyability, readiness, and anti-overclaim drift
+
 This sequence keeps UI downstream of proof instead of masking uncertainty.
 
 ## 8. The sharpest acceptance test

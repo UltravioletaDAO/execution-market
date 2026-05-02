@@ -258,6 +258,7 @@ Backlog:
 - treat the packet as the compact decision object, not a duplicate of the full replay archive
 - make packet output actionable by downstream retrieval through a stable promotion-policy interpretation
 - require packet output to drive one explicit operator-facing guidance-tone choice so brief language does not drift across implementations
+- require packet-derived fields to feed one shared runtime projection helper so replay, continuity, export, rebuild, observability, and reuse do not re-derive semantics independently
 - require packet output to drive one explicit guidance-placement choice so tentative learning cannot silently occupy top-line summary slots
 - require packet output to constrain where guidance may appear in the improved brief, not only how it is phrased
 - align packet defaults with the shared review decision tables so repeated rejection/redirect learning upgrades from `cautious` to `directive` via explicit replay evidence instead of ad hoc brief logic
