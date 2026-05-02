@@ -231,13 +231,21 @@ Thin Review Console / Dispatch Brief Panel / Office Memory Debug surface consumi
 Morning pickup brief writer + debug surfacing so each replay-proof block hands off exact gate status, behavior-change assessment, and anti-overclaim warnings
 
 ### PR 7
+Compact decision object + coordination ledger slice so one replay-backed case emits:
+1. `city_compact_decision_object.json`
+2. `city_coordination_ledger.jsonl`
+3. pickup brief / export / observability rows derived from the same decision object
+4. one restart-safe session rebuild preview
+
+### PR 8
 Replay-proof review protocol adoption in PR/review discipline so reviewers read:
 1. manifest
 2. event summary
 3. review packet
-4. pickup brief
-5. scorecard
-6. improved brief
+4. compact decision object
+5. pickup brief
+6. scorecard
+7. improved brief
 before deeper artifacts or broader UI claims
 
 This sequence keeps UI downstream of proof instead of masking uncertainty.
@@ -260,11 +268,12 @@ Review discipline for that proof should now be standardized:
 1. `bundle_manifest.json`
 2. `event_summary.json`
 3. `review_packet.json`
-4. `morning_pickup_brief.json`
-5. `brief_improvement_scorecard.json`
-6. `improved_dispatch_brief.json`
+4. `city_compact_decision_object.json`
+5. `morning_pickup_brief.json`
+6. `brief_improvement_scorecard.json`
+7. `improved_dispatch_brief.json`
 
-If reviewers need to jump into code or raw supporting artifacts before those six objects tell a coherent story, the seam is still too loose for broader surface expansion.
+If reviewers need to jump into code or raw supporting artifacts before those seven objects tell a coherent story, the seam is still too loose for broader surface expansion.
 
 ## 9. Strong recommendation
 
@@ -299,10 +308,12 @@ It also prevents a common failure mode: building strong reviewed-result artifact
 ### 10.3 File-first recommendation
 The next implementation window should likely touch only a small set of seams:
 - typed event envelope contract
+- compact decision object writer
+- append-only coordination ledger writer
 - replay bundle writer
 - morning pickup brief writer
 - brief composer provenance references
-- thin debug surface for event-chain inspection
+- thin debug surface for event-chain inspection and rebuild preview
 
 That is narrow enough to ship, but strong enough to prove that CaaS learning can plug into the broader EM coordination stack instead of becoming another isolated planning branch.
 
@@ -314,11 +325,13 @@ The coordination-aware replay proof already creates the exact ingredients the ne
 - behavior-change evidence from the scorecard and improved brief
 
 Adding `morning_pickup_brief.json` in the same slice prevents that proof from becoming another archive that daytime must mentally recompute.
-It gives the next builder one compact continuity object with:
+The same slice should also emit one compact decision object plus one append-only coordination ledger so continuity, export, rebuild, and observability all inherit the same judged truth.
+It gives the next builder one compact continuity seam with:
 - acceptance gates passed/failed/partial
 - promotion-policy observations
 - guidance tone and placement observations
 - next smallest proof
 - explicit anti-overclaim warnings
+- restart-safe decision state and mirrored runtime events
 
 That keeps the handoff seam as disciplined as the replay seam itself.

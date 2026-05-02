@@ -395,12 +395,13 @@ The practical reading order is now:
 1. `bundle_manifest.json`
 2. `event_summary.json`
 3. `review_packet.json`
-4. `morning_pickup_brief.json`
-5. `brief_improvement_scorecard.json`
-6. `improved_dispatch_brief.json`
-7. deeper artifacts only as needed
+4. `city_compact_decision_object.json`
+5. `morning_pickup_brief.json`
+6. `brief_improvement_scorecard.json`
+7. `improved_dispatch_brief.json`
+8. deeper artifacts only as needed
 
-If those first six objects do not already make the before/after learning story obvious, the next build block should tighten replay proof instead of broadening surfaces.
+If those first seven objects do not already make the before/after learning story obvious, the next build block should tighten replay proof instead of broadening surfaces.
 
 ## 15. Sharp recommendation
 
@@ -409,7 +410,7 @@ If daytime wants the clearest possible next move, it should treat the CaaS backl
 **contracts first, replay second, review gate third, projector fourth, promotion-policy-aware retrieval fifth, observability sixth, infra swap last.**
 
 And inside that sequence, the next narrow proof should be:
-**one shared rendering truth from review packet -> brief tone -> brief placement -> pickup-brief continuity.**
+**one shared runtime truth from review packet -> compact decision object -> brief tone -> brief placement -> pickup-brief continuity -> append-only coordination ledger.**
 
 That preserves the real moat:
 **reviewed municipal reality becoming better future execution.**
@@ -420,25 +421,27 @@ The most leverage now is not more planning breadth.
 It is one thin end-to-end implementation seam that proves memory, IRC/session continuity, Acontext export readiness, and observability are all reading the same truth.
 
 ### 15.1 Recommended build ticket breakdown
-1. create append-only city control-plane JSONL ledger with stable event envelope
-2. emit `review_packet`-aligned rendering fields on reuse events:
+1. derive one `city_compact_decision_object.json` from `review_packet` plus aligned replay-proof context
+2. create append-only city control-plane JSONL ledger with stable event envelope and mirrored decision fields
+3. emit decision-aligned rendering fields on reuse events:
    - `promotion_class`
    - `guidance_tone`
    - `guidance_placement`
    - `copyable_worker_instruction`
    - `replay_readiness_judgment`
-3. derive `dispatch_brief` and `morning_pickup_brief.json` from the same compact decision object
-4. add one restart-rebuild helper that reconstructs active session state from ledger + brief + packet
-5. write one scorecard row per reviewed replay bundle with integration judgments
-6. only then add the Acontext sink using the same compact exported memory unit
+4. derive `dispatch_brief`, `morning_pickup_brief.json`, and export/observability rows from the same compact decision object
+5. add one restart-rebuild helper that reconstructs active session state from ledger + compact decision object + brief
+6. write one scorecard row per reviewed replay bundle with integration judgments
+7. only then add the Acontext sink using the same compact exported memory unit
 
 ### 15.2 Hard acceptance gate for that slice
 Do not call this seam ready unless one replay-backed case can prove all of the following together:
 - operator-facing brief wording matches promotion stance
 - operator-facing section placement matches promotion stance
 - pickup brief preserves the same judgment without manual restatement
+- append-only ledger mirrors the same decision fields across brief/pickup/export/rebuild events
 - session rebuild works from compact artifacts without transcript dependency
-- observability can query the same case by `coordination_session_id` and `review_packet_id`
+- observability can query the same case by `coordination_session_id`, `review_packet_id`, and `compact_decision_id`
 - exported Acontext memory unit does not need extra interpretation to drive retrieval
 
 ### 15.3 Explicit deprioritization for the next block

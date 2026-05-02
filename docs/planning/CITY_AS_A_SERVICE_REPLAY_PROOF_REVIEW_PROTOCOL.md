@@ -57,23 +57,25 @@ Every replay-proof review should follow this order:
 1. `bundle_manifest.json`
 2. `event_summary.json`
 3. `review_packet.json`
-4. `morning_pickup_brief.json` (or batch-equivalent continuity object)
-5. `brief_improvement_scorecard.json`
-6. `improved_dispatch_brief.json`
-7. `baseline_dispatch_brief.json`
-8. `office_playbook_delta.json`
-9. `office_playbook_after.json`
-10. `reviewed_episode.json`
-11. `reviewed_result.json`
-12. `review_artifact.json`
+4. `city_compact_decision_object.json`
+5. `morning_pickup_brief.json` (or batch-equivalent continuity object)
+6. `brief_improvement_scorecard.json`
+7. `improved_dispatch_brief.json`
+8. `baseline_dispatch_brief.json`
+9. `office_playbook_delta.json`
+10. `office_playbook_after.json`
+11. `reviewed_episode.json`
+12. `reviewed_result.json`
+13. `review_artifact.json`
 
 Why this order:
 - manifest first = pass/partial/fail contract
 - event summary second = ordered proof story
 - packet third = compact reviewed judgment and promotion stance
-- pickup brief fourth = continuity and anti-overclaim guardrail
-- scorecard fifth = behavior-change proof
-- brief pair sixth/seventh = operator-visible before/after
+- compact decision object fourth = shared runtime truth for render/continuity/export/rebuild
+- pickup brief fifth = continuity and anti-overclaim guardrail
+- scorecard sixth = behavior-change proof
+- brief pair seventh/eighth = operator-visible before/after
 - deeper artifacts afterward = provenance and justification
 
 ## 4. What each review step must answer
@@ -115,19 +117,33 @@ Immediate fail signals:
 - packet judgment unclear enough that retrieval/UI would have to reinterpret it
 - packet implies promotion while the scorecard shows only cosmetic change
 
-### 4.4 Morning pickup brief review
+### 4.4 Compact decision object review
+The compact decision object review must answer:
+- did one shared runtime truth get emitted clearly enough for render, continuity, export, rebuild, and observability?
+- are promotion class, tone, placement, and copyability explicit?
+- are readiness judgments explicit instead of implied?
+- does the object preserve anti-overclaim state and next-smallest-proof state?
+
+Immediate fail signals:
+- downstream surfaces would still need to reinterpret packet semantics
+- rendering fields are missing or ambiguous
+- readiness flags are implied rather than stated
+- safe/not-safe claims disappear between packet and continuity/export views
+
+### 4.5 Morning pickup brief review
 The pickup brief review must answer:
 - what gates truly passed, failed, or remain partial?
 - what is the next smallest proof?
 - what should the team **not** claim yet?
 - are tone/placement observations aligned with packet promotion stance?
+- does the brief inherit the compact decision object instead of inventing new semantics?
 
 Immediate fail signals:
 - no explicit anti-overclaim language
 - vague next steps like “continue improving”
-- continuity summary contradicts packet or manifest truth
+- continuity summary contradicts packet, manifest, or compact decision truth
 
-### 4.5 Scorecard review
+### 4.6 Scorecard review
 The scorecard review must answer:
 - did the improved brief get operationally better instead of only longer?
 - which dimensions improved?
@@ -139,7 +155,7 @@ Immediate fail signals:
 - no increase in risk specificity for rejection/redirect fixtures
 - compactness degrades badly while the run still claims success
 
-### 4.6 Dispatch-brief review
+### 4.7 Dispatch-brief review
 The brief review must answer:
 - what will the next operator or worker do differently now?
 - does tone match promotion stance?
@@ -151,7 +167,7 @@ Immediate fail signals:
 - held learning appears in copyable worker instructions
 - improved brief is longer but no clearer on routing, fallback, or proof plan
 
-### 4.7 Deeper artifact review
+### 4.8 Deeper artifact review
 The deeper artifact review must answer:
 - which reviewed episode justified the change?
 - what exactly changed in office memory?
@@ -224,6 +240,7 @@ Rule:
 A replay-proof seam is ready for broader operator-surface wiring only when all of these are true:
 - manifest judgment is honest and reproducible
 - packet promotion stance is explicit
+- compact decision object makes runtime semantics explicit
 - scorecard shows behaviorally meaningful improvement
 - improved brief tone matches promotion class
 - improved brief placement matches promotion class
@@ -238,6 +255,7 @@ Before approving a replay-proof PR, reviewers should be able to answer yes to al
 - can I understand the proof outcome from `bundle_manifest.json` first?
 - does `event_summary.json` tell one compact ordered story?
 - does `review_packet.json` make promotion stance obvious?
+- does `city_compact_decision_object.json` make runtime semantics explicit enough for render/continuity/export/rebuild?
 - does `morning_pickup_brief.json` state the next smallest proof and anti-overclaim warning clearly?
 - does `brief_improvement_scorecard.json` prove operational improvement instead of verbosity?
 - does the improved brief change likely routing, fallback, or evidence behavior?
