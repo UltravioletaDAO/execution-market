@@ -270,6 +270,7 @@ Backlog:
   - pickup-brief observation class (`confirmed`, `cautious`, `held`, `suppressed`)
 - require one parity scoreboard artifact so downstream review can grade semantic sameness across brief, pickup, export, rebuild, observability, reuse, and ledger mirrors without manually diffing every surface
 - require one reuse behavior scoreboard artifact so downstream review can grade whether the next dispatch changed for the right reason, not just whether artifacts lined up
+- require one drift triage playbook so the first parity/reuse failures can be classified as projection, consumer, downgrade, or mirror bugs instead of getting dismissed as surface polish
 - treat missing rendering alignment as a real backlog gap, not a cosmetic follow-up, because replay proof is incomplete if the same promotion decision can still render differently across surfaces
 
 ## 8. Backlog by product surface

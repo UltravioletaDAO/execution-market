@@ -179,6 +179,9 @@ Add deliberate drift fixtures that must fail loudly.
 ### Step 6
 Emit `CITY_AS_A_SERVICE_REUSE_BEHAVIOR_PROOF_SCOREBOARD.md`-aligned scoreboard artifacts so the final harness can judge whether reuse delivered a real, trust-preserving execution improvement.
 
+### Step 7
+Use `CITY_AS_A_SERVICE_DECISION_DRIFT_TRIAGE_PLAYBOOK.md` as the mandatory first response path whenever parity, reuse, rebuild, export, or observability drift fixtures fail.
+
 ## 9. Suggested test table for the first harness run
 
 | Test case | Expected behavior change | Required trust posture | Required loud failure if broken |
@@ -206,3 +209,6 @@ Those all become safer after this harness proves one real decision flywheel.
 **Treat the next PR sequence as one proof artifact: a single decision seam that survives replay, runtime carriage, reuse, rebuild, and measurement without trust drift.**
 
 That is the narrowest build target that would make the City-as-a-Service stack operationally real.
+
+When the harness fails, the next move should not be guesswork.
+Use `CITY_AS_A_SERVICE_DECISION_DRIFT_TRIAGE_PLAYBOOK.md` to classify whether the bug came from projection, consumer wiring, downgrade handling, or mirror/observability drift before broadening scope.

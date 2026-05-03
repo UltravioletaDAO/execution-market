@@ -189,6 +189,7 @@ Deliver fixtures that intentionally induce:
 
 Acceptance:
 - each drift fails loudly, not as a cosmetic warning
+- every failing fixture can be classified with `CITY_AS_A_SERVICE_DECISION_DRIFT_TRIAGE_PLAYBOOK.md` without reopening the whole planning corpus
 
 ## 8. Suggested fixture progression
 
@@ -264,6 +265,7 @@ Reviewers should be able to inspect the slice in this order:
 5. parity scoreboard output
 6. reuse behavior scoreboard output
 7. deliberate drift fixtures
+8. drift triage playbook fit-check (`CITY_AS_A_SERVICE_DECISION_DRIFT_TRIAGE_PLAYBOOK.md`)
 
 If correctness depends on reading consumers before understanding the projection seam, the slice is still too loose.
 
