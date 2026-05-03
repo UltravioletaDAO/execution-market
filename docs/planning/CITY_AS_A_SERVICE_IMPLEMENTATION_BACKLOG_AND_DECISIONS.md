@@ -268,6 +268,7 @@ Backlog:
   - default brief section family
   - copyable worker-instruction eligibility
   - pickup-brief observation class (`confirmed`, `cautious`, `held`, `suppressed`)
+- require one parity scoreboard artifact so downstream review can grade semantic sameness across brief, pickup, export, rebuild, observability, reuse, and ledger mirrors without manually diffing every surface
 - treat missing rendering alignment as a real backlog gap, not a cosmetic follow-up, because replay proof is incomplete if the same promotion decision can still render differently across surfaces
 
 ## 8. Backlog by product surface

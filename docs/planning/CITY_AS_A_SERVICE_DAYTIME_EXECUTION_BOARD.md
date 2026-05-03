@@ -278,6 +278,7 @@ Decision flywheel proof target so daytime treats replay, runtime continuity, and
 2. one replay-backed case emits replay, pickup, export, rebuild, observability, and reuse outputs from the same shared fields
 3. one behavior-change proof shows the next dispatch got smarter for the right reason
 4. deliberate drift fixtures fail loudly on trust-class, tone, placement, copyability, readiness, and anti-overclaim drift
+5. one shared decision parity scoreboard grades whether all downstream consumers preserved the same judged truth
 
 This sequence keeps UI downstream of proof instead of masking uncertainty.
 

@@ -70,6 +70,7 @@ One replay-backed city case should emit all of the following from one shared jud
 - `city_dispatch_memory_unit.json`
 - one observability row
 - one reused dispatch or redispatch output
+- one `city_shared_decision_parity_scoreboard.json`
 
 And the same case should prove all of these acceptance points together:
 1. replay judgment is conservative and inspectable
@@ -79,6 +80,7 @@ And the same case should prove all of these acceptance points together:
 5. reuse changes actual dispatch or instruction behavior
 6. observability records *how* behavior changed, not just that memory was shown
 7. no surface silently upgrades cautious learning into directive doctrine
+8. one parity scoreboard grades semantic sameness and trust-preserving behavior change across the whole seam
 
 ## 6. The most important invariant
 
