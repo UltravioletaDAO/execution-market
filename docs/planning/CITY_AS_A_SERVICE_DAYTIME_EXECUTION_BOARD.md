@@ -279,6 +279,7 @@ Decision flywheel proof target so daytime treats replay, runtime continuity, and
 3. one behavior-change proof shows the next dispatch got smarter for the right reason
 4. deliberate drift fixtures fail loudly on trust-class, tone, placement, copyability, readiness, and anti-overclaim drift
 5. one shared decision parity scoreboard grades whether all downstream consumers preserved the same judged truth
+6. one decision-projection implementation slice wires the normalized helper into core runtime consumers, reuse consumers, and both scoreboards before wider surface growth
 
 This sequence keeps UI downstream of proof instead of masking uncertainty.
 
@@ -315,6 +316,14 @@ When two tasks look useful, choose the one that most directly strengthens:
 `reviewed truth -> replay artifact -> memory delta -> better next dispatch -> inspectable proof`
 
 That is the narrow seam that turns City as a Service from a strong concept into a shippable product loop.
+
+A stronger tie-breaker now exists for the next coding window too:
+- implement the shared decision projection seam first
+- wire every required consumer through it
+- force proof to end in parity + reuse-behavior scoreboards
+
+See also:
+- `CITY_AS_A_SERVICE_DECISION_PROJECTION_IMPLEMENTATION_SLICE.md`
 
 ## 10. Recommended next daytime slice: coordination-aware replay proof
 

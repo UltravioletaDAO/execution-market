@@ -269,6 +269,7 @@ Backlog:
   - copyable worker-instruction eligibility
   - pickup-brief observation class (`confirmed`, `cautious`, `held`, `suppressed`)
 - require one parity scoreboard artifact so downstream review can grade semantic sameness across brief, pickup, export, rebuild, observability, reuse, and ledger mirrors without manually diffing every surface
+- require one reuse behavior scoreboard artifact so downstream review can grade whether the next dispatch changed for the right reason, not just whether artifacts lined up
 - treat missing rendering alignment as a real backlog gap, not a cosmetic follow-up, because replay proof is incomplete if the same promotion decision can still render differently across surfaces
 
 ## 8. Backlog by product surface
@@ -423,6 +424,21 @@ And inside that sequence, the next narrow proof should be:
 
 That preserves the real moat:
 **reviewed municipal reality becoming better future execution.**
+
+## 17. New locked implementation slice
+
+The planning stack now has one more explicit daytime recommendation:
+- `CITY_AS_A_SERVICE_DECISION_PROJECTION_IMPLEMENTATION_SLICE.md`
+
+That doc should be treated as the narrowest code-ready translation of the current planning seam.
+Its purpose is to prevent the next engineering block from splitting into several “aligned” local implementations that still re-derive semantics independently.
+
+Practical recommendation:
+1. build the shared decision projection helper first
+2. wire core runtime consumers through it
+3. wire reuse consumers through it
+4. end the slice with parity + reuse-behavior scoreboard artifacts
+5. only then broaden adjacent surfaces
 
 ## 16. Next daytime implementation slice
 

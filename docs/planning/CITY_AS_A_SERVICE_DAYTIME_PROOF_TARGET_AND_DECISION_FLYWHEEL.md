@@ -134,6 +134,16 @@ Create fixtures that intentionally try to break:
 Required outcome:
 - these drifts fail loudly instead of becoming “just UI differences”
 
+### Step 5 — finish with one decision-projection implementation proof
+Use one implementation slice to force:
+- one normalized decision projection helper
+- core runtime consumers reading that helper directly
+- reuse consumers reading that helper directly
+- parity + reuse-behavior scoreboards emitted from the same seam
+
+Required outcome:
+- one replay-backed case proves the decision flywheel in code shape, not only planning language
+
 ## 8. What daytime should measure first
 
 The first useful observability rows should answer:
@@ -175,3 +185,6 @@ Success is:
 - one observability trail proving the change was trust-preserving and reproducible
 
 That is the first build target that would make City as a Service feel like a real operational learning system instead of a promising planning stack.
+
+For the concrete coding breakdown of that target, use:
+- `CITY_AS_A_SERVICE_DECISION_PROJECTION_IMPLEMENTATION_SLICE.md`
