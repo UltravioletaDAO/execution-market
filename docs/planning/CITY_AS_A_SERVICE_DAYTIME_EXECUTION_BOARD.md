@@ -148,6 +148,23 @@ Target artifacts:
 Acceptance gate:
 - a reviewer can open `bundle_manifest.json` first and understand whether learning passed, was partial, or failed without reading code
 
+### 4.6 Track F — local Acontext server and session discipline seam
+Target files/seams:
+- local control-plane ledger rows keyed by `coordination_session_id`
+- continuity summary artifact / morning pickup artifact
+- Acontext sink adapter for `review_packet`, `reviewed_episode`, `office_playbook_after`, and `dispatch_brief`
+- retrieval path that preserves promotion class, guidance tone, and placement
+
+Reference docs:
+- `CITY_AS_A_SERVICE_ACONTEXT_LOCAL_SERVER_AND_SESSION_DISCIPLINE.md`
+- `CITY_AS_A_SERVICE_Acontext_MEMORY_BRIDGE.md`
+- `CITY_AS_A_SERVICE_DECISION_SUPPORT_CONTROL_PLANE.md`
+
+Acceptance gate:
+- one replay-backed reviewed case can be ingested into local Acontext after local artifact generation
+- session rebuild works from compact artifacts without transcript dependence
+- Acontext-assisted retrieval preserves the same next-dispatch guidance class as the local-only path
+
 ### 4.5 Track E — operator guidance expression seam
 Target files/seams:
 - dispatch brief composer tone/placement mapping

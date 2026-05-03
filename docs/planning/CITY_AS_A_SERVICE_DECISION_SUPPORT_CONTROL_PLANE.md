@@ -218,6 +218,8 @@ It is stable reuse.
 
 ## 8. IRC session management enhancement for CaaS
 
+For the concrete local-server bring-up, session metadata, restart-safe rebuild order, and sink-swap acceptance gates, see `CITY_AS_A_SERVICE_ACONTEXT_LOCAL_SERVER_AND_SESSION_DISCIPLINE.md`.
+
 ## 8.1 Why IRC still matters
 
 City tasks are messy in ways that APIs are not.
@@ -374,6 +376,7 @@ To connect CaaS observability with the control-plane seam, add these metrics to 
 ### Phase 5 — Acontext sink swap
 - publish `review_packet`, `reviewed_episode`, and office playbook snapshots into Acontext
 - preserve the same retrieval contract and observability semantics
+- use the local-first/session-discipline checklist from `CITY_AS_A_SERVICE_ACONTEXT_LOCAL_SERVER_AND_SESSION_DISCIPLINE.md` as the acceptance gate, not mere successful transport writes
 
 ## 12.1 First shared implementation seam
 

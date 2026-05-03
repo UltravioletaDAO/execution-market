@@ -19,7 +19,8 @@ The existing CaaS documents define:
 - the operator workflow
 
 What they do not yet define sharply enough is **how municipal memory becomes agent-usable context**.
-This document closes that gap.
+This document closes that gap at the architectural level.
+For the local-server, session-discipline, and sink-swap implementation handoff, see `CITY_AS_A_SERVICE_ACONTEXT_LOCAL_SERVER_AND_SESSION_DISCIPLINE.md`.
 
 The goal is simple:
 
@@ -235,6 +236,8 @@ Recommended first CaaS metrics:
 These metrics answer whether the memory loop is working.
 
 ## 10. IRC session management implications
+
+The implementation-oriented session discipline, restart-safe rebuild order, and local-server bring-up guidance now live in `CITY_AS_A_SERVICE_ACONTEXT_LOCAL_SERVER_AND_SESSION_DISCIPLINE.md` so this document can stay focused on the memory-bridge thesis.
 
 IRC is useful as the live conversational bus, but not as the long-term memory system.
 The bridge design should therefore:
