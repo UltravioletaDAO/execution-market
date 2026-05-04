@@ -110,7 +110,7 @@ class PlatformConfig:
         "veryai.api_base_url": "https://api.very.org",
         "veryai.oauth2_authorize_path": "/oauth2/authorize",
         "veryai.oauth2_token_path": "/oauth2/token",
-        "veryai.oauth2_userinfo_path": "/userinfo",
+        "veryai.oauth2_userinfo_path": "/oauth2/userinfo",
         # Multi-provider tier resolver
         "verification.tiers.t1.min_bounty_usd": Decimal("50.00"),
         "verification.tiers.t2.min_bounty_usd": Decimal("500.00"),
