@@ -272,6 +272,7 @@ Backlog:
 - require one reuse behavior scoreboard artifact so downstream review can grade whether the next dispatch changed for the right reason, not just whether artifacts lined up
 - require one drift triage playbook so the first parity/reuse failures can be classified as projection, consumer, downgrade, or mirror bugs instead of getting dismissed as surface polish
 - require one proof-block scoreboard protocol so parity and reuse scoreboards always collapse into a single expand / tighten / fix-drift verdict instead of ad hoc review debate
+- require one proof-block telemetry gate row so combined verdict, portability state, and anti-overclaim carry-forward become queryable across pickup, rebuild, observability, and export review instead of living only in prose
 - treat missing rendering alignment as a real backlog gap, not a cosmetic follow-up, because replay proof is incomplete if the same promotion decision can still render differently across surfaces
 
 ## 8. Backlog by product surface
@@ -374,6 +375,7 @@ Recommended coordination artifacts:
 - `CITY_AS_A_SERVICE_REPLAY_PROOF_REVIEW_PROTOCOL.md` as the canonical reading and judgment order for replay-proof PRs
 - `CITY_AS_A_SERVICE_DAYTIME_REPLAY_PROOF_RUNBOOK.md` as the canonical execution order for daytime proof blocks so the team emits, reviews, and classifies one replay-backed seam the same way every time
 - `CITY_AS_A_SERVICE_DAYTIME_PROOF_BLOCK_SCOREBOARD_PROTOCOL.md` as the canonical final judgment rule once both scoreboards exist
+- `CITY_AS_A_SERVICE_DAYTIME_PROOF_BLOCK_TELEMETRY_GATE.md` as the canonical closure rule for turning proof-block verdicts into compact, queryable continuity/observability/export state
 
 This checklist exists to keep continuation honest.
 The city-ops seam should be advanced by the smallest missing proof, not by whichever adjacent surface looks most exciting.
@@ -444,7 +446,8 @@ Practical recommendation:
 4. end the slice with parity + reuse-behavior scoreboard artifacts
 5. run the resulting proof block through `CITY_AS_A_SERVICE_DAYTIME_REPLAY_PROOF_RUNBOOK.md` instead of ad hoc execution
 6. end the resulting proof block with `CITY_AS_A_SERVICE_DAYTIME_PROOF_BLOCK_SCOREBOARD_PROTOCOL.md` instead of informal pass/partial debate
-7. only then broaden adjacent surfaces
+7. emit the resulting proof-block telemetry package via `CITY_AS_A_SERVICE_DAYTIME_PROOF_BLOCK_TELEMETRY_GATE.md` so verdict and portability state survive into later sessions and sinks
+8. only then broaden adjacent surfaces
 
 ## 16. Next daytime implementation slice
 

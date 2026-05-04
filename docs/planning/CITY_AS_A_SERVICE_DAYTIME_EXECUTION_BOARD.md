@@ -79,11 +79,13 @@ Build order remains:
 The planning stack now also includes:
 - `CITY_AS_A_SERVICE_REPLAY_PROOF_REVIEW_PROTOCOL.md`
 - `CITY_AS_A_SERVICE_DAYTIME_PROOF_BLOCK_SCOREBOARD_PROTOCOL.md`
+- `CITY_AS_A_SERVICE_DAYTIME_PROOF_BLOCK_TELEMETRY_GATE.md`
 
 This doc closes one daylight ambiguity that the earlier planning set still left too loose:
 - the exact artifact reading order for replay-proof PRs
 - the difference between proof, progress, and overclaim
 - the bar for when replay is strong enough to justify broader UI wiring
+- the minimum telemetry row that must exist before a proof block counts as operationally packaged
 
 Daytime should treat that review protocol as the default tie-breaker whenever a replay bundle exists but implementation readiness still feels debatable.
 
@@ -284,6 +286,7 @@ Decision flywheel proof target so daytime treats replay, runtime continuity, and
 7. one drift-triage playbook tells daytime exactly how to classify, localize, and fix the first parity/reuse failures instead of debating whether they are "just rendering"
 8. one strict daytime proof-block runbook governs the execution order: choose case -> emit archive -> emit shared decision seam -> emit proof receipts -> classify pass/partial/fail -> choose the next smallest honest move
 9. one combined scoreboard protocol converts parity + reuse scoreboards into a single honest expand / tighten / fix-drift verdict so daylight cannot hand-wave mixed proof states
+10. one proof-block telemetry gate emits the compact join fields, portability judgments, and anti-overclaim carry-forward needed for pickup, observability, rebuild, and later Acontext export review
 
 This sequence keeps UI downstream of proof instead of masking uncertainty.
 
@@ -331,6 +334,7 @@ See also:
 - `CITY_AS_A_SERVICE_DECISION_DRIFT_TRIAGE_PLAYBOOK.md`
 - `CITY_AS_A_SERVICE_DAYTIME_REPLAY_PROOF_RUNBOOK.md`
 - `CITY_AS_A_SERVICE_DAYTIME_PROOF_BLOCK_SCOREBOARD_PROTOCOL.md`
+- `CITY_AS_A_SERVICE_DAYTIME_PROOF_BLOCK_TELEMETRY_GATE.md`
 - `CITY_AS_A_SERVICE_REPLAY_PROOF_REVIEW_PROTOCOL.md`
 
 ## 10. Recommended next daytime slice: coordination-aware replay proof

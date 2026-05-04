@@ -82,6 +82,7 @@ And the same case should prove all of these acceptance points together:
 7. no surface silently upgrades cautious learning into directive doctrine
 8. one parity scoreboard grades semantic sameness across the whole seam
 9. one combined scoreboard protocol converts parity + reuse proof into a single honest next-action verdict instead of leaving mixed pass/partial states up for debate
+10. one proof-block telemetry gate makes the final verdict, portability status, and anti-overclaim carry-forward queryable across replay review, pickup, observability, and export readiness
 
 ## 6. The most important invariant
 
@@ -190,3 +191,4 @@ That is the first build target that would make City as a Service feel like a rea
 For the concrete coding breakdown of that target, use:
 - `CITY_AS_A_SERVICE_DECISION_PROJECTION_IMPLEMENTATION_SLICE.md`
 - `CITY_AS_A_SERVICE_DAYTIME_PROOF_BLOCK_SCOREBOARD_PROTOCOL.md`
+- `CITY_AS_A_SERVICE_DAYTIME_PROOF_BLOCK_TELEMETRY_GATE.md`

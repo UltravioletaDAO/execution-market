@@ -52,6 +52,7 @@ One selected replay-backed case should emit, from the same judgment seam:
 The harness should fail if any of these require ad hoc reinterpretation.
 It should also fail if reviewers cannot grade the reuse outcome from one compact scoreboard without reopening the whole bundle.
 It should also fail if the block cannot end in one explicit combined verdict about whether to expand, tighten, or stop for drift.
+It should also fail if that verdict cannot be carried forward as one compact telemetry row for pickup, rebuild, observability, and export-readiness review.
 
 ## 4. Canonical harness scenario
 
@@ -184,6 +185,9 @@ Emit `CITY_AS_A_SERVICE_REUSE_BEHAVIOR_PROOF_SCOREBOARD.md`-aligned scoreboard a
 Apply `CITY_AS_A_SERVICE_DAYTIME_PROOF_BLOCK_SCOREBOARD_PROTOCOL.md` so the block ends in one combined verdict instead of two loosely interpreted scoreboard readings.
 
 ### Step 8
+Emit the proof-block telemetry gate row so combined verdict, portability state, and anti-overclaim carry-forward remain queryable after the replay review window closes.
+
+### Step 9
 Use `CITY_AS_A_SERVICE_DECISION_DRIFT_TRIAGE_PLAYBOOK.md` as the mandatory first response path whenever parity, reuse, rebuild, export, or observability drift fixtures fail.
 
 ## 9. Suggested test table for the first harness run
@@ -214,6 +218,7 @@ Those all become safer after this harness proves one real decision flywheel.
 
 That is the narrowest build target that would make the City-as-a-Service stack operationally real.
 A proof harness is only complete when its end state is operationally legible too: expand, tighten, or fix drift.
+And that end state should be mirrored in one compact telemetry gate row, not left trapped inside human review prose.
 
 When the harness fails, the next move should not be guesswork.
 Use `CITY_AS_A_SERVICE_DECISION_DRIFT_TRIAGE_PLAYBOOK.md` to classify whether the bug came from projection, consumer wiring, downgrade handling, or mirror/observability drift before broadening scope.
