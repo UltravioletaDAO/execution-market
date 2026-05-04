@@ -80,7 +80,8 @@ And the same case should prove all of these acceptance points together:
 5. reuse changes actual dispatch or instruction behavior
 6. observability records *how* behavior changed, not just that memory was shown
 7. no surface silently upgrades cautious learning into directive doctrine
-8. one parity scoreboard grades semantic sameness and trust-preserving behavior change across the whole seam
+8. one parity scoreboard grades semantic sameness across the whole seam
+9. one combined scoreboard protocol converts parity + reuse proof into a single honest next-action verdict instead of leaving mixed pass/partial states up for debate
 
 ## 6. The most important invariant
 
@@ -188,3 +189,4 @@ That is the first build target that would make City as a Service feel like a rea
 
 For the concrete coding breakdown of that target, use:
 - `CITY_AS_A_SERVICE_DECISION_PROJECTION_IMPLEMENTATION_SLICE.md`
+- `CITY_AS_A_SERVICE_DAYTIME_PROOF_BLOCK_SCOREBOARD_PROTOCOL.md`
