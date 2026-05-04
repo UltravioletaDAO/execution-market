@@ -335,6 +335,14 @@ async def get_userinfo(access_token: str) -> UserInfo:
         or raw.get("veryai_verification_level")
         or "unverified"
     )
+    if level == "unverified":
+        # Privacy-safe schema probe: log only key names, never values. Lets us
+        # discover the real field shape Very is using when we map to "unverified".
+        logger.info(
+            "VeryAI /userinfo schema probe: keys=%s sub_prefix=%s",
+            sorted(raw.keys()),
+            sub[:6],
+        )
     return UserInfo(sub=sub, verification_level=level, raw=raw)
 
 
