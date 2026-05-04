@@ -63,11 +63,13 @@ Review the PR in this order only:
 8. deliberate drift fixtures
 9. combined scoreboard verdict application
 10. proof-block telemetry gate emission
-11. debug/triage bundle shape if a drift fixture fails
+11. telemetry-gate review protocol application
+12. debug/triage bundle shape if a drift fixture fails
 
 If reviewers jump straight into UI/wording diffs, they will miss the real seam.
 They should also reject “looks basically done” language if the proof block cannot end in one explicit expand / tighten / fix-drift verdict.
 They should also reject any PR that reaches a verdict but does not emit the matching compact telemetry gate row for later pickup and observability use.
+They should also reject any PR that emits the row but never verifies that the row preserved the same verdict, claim limits, and conservative readiness posture.
 
 ## 5. What reviewers should verify in the projection helper
 
@@ -160,7 +162,7 @@ Reviewers should verify that each one fails loudly and localizes cleanly enough 
 
 A strong approval should be able to say, in plain English:
 
-> one reviewed city decision now flows through one shared projection seam, every first-order consumer reads it directly, one replay-backed case proves smarter next-dispatch behavior, the dangerous trust drifts fail loudly, the proof block ends in one honest combined verdict about what should happen next, and that verdict is carried forward in one compact telemetry gate row.
+> one reviewed city decision now flows through one shared projection seam, every first-order consumer reads it directly, one replay-backed case proves smarter next-dispatch behavior, the dangerous trust drifts fail loudly, the proof block ends in one honest combined verdict about what should happen next, that verdict is carried forward in one compact telemetry gate row, and the telemetry row itself was reviewed for verdict fidelity before handoff.
 
 If a reviewer cannot honestly say that, the PR should stay open.
 

@@ -51,6 +51,7 @@ A valid proof-block judgment requires all of these:
 - `city_reuse_behavior_scoreboard.json` when reuse is in scope
 - any explicit downgrade notes
 - one proof-block telemetry gate row or deterministic equivalent carrying the final verdict forward
+- one telemetry-gate review pass or deterministic equivalent confirming the carried-forward row still matches the scoreboards
 
 If either scoreboard is missing when it should exist, the verdict is automatically `partial` at best.
 
@@ -176,6 +177,7 @@ Recommended fields to carry forward:
 
 If the pickup brief cannot state those clearly, the proof block is not packaged tightly enough for handoff.
 The same rule now applies to the telemetry gate row: if the verdict or anti-overclaim state cannot be mirrored there cleanly, the block is still under-packaged.
+And if the mirrored row is never reviewed for fidelity, the block is still under-packaged.
 
 ## 11. Recommended scoreboard-to-action table
 
@@ -200,6 +202,7 @@ Instead:
 
 That closes the last daylight loophole where a proof block can look polished while still being operationally weak or semantically unsafe.
 For the compact closure artifact that should carry this verdict into later pickups, observability queries, and export-readiness review, use `CITY_AS_A_SERVICE_DAYTIME_PROOF_BLOCK_TELEMETRY_GATE.md`.
+For the fidelity check that proves the compact closure artifact still says the same thing the scoreboards said, use `CITY_AS_A_SERVICE_DAYTIME_TELEMETRY_GATE_REVIEW_PROTOCOL.md`.
 
 ## 13. Sharp recommendation
 

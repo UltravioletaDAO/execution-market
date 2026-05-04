@@ -80,6 +80,7 @@ The planning stack now also includes:
 - `CITY_AS_A_SERVICE_REPLAY_PROOF_REVIEW_PROTOCOL.md`
 - `CITY_AS_A_SERVICE_DAYTIME_PROOF_BLOCK_SCOREBOARD_PROTOCOL.md`
 - `CITY_AS_A_SERVICE_DAYTIME_PROOF_BLOCK_TELEMETRY_GATE.md`
+- `CITY_AS_A_SERVICE_DAYTIME_TELEMETRY_GATE_REVIEW_PROTOCOL.md`
 
 This doc closes one daylight ambiguity that the earlier planning set still left too loose:
 - the exact artifact reading order for replay-proof PRs
@@ -287,6 +288,7 @@ Decision flywheel proof target so daytime treats replay, runtime continuity, and
 8. one strict daytime proof-block runbook governs the execution order: choose case -> emit archive -> emit shared decision seam -> emit proof receipts -> classify pass/partial/fail -> choose the next smallest honest move
 9. one combined scoreboard protocol converts parity + reuse scoreboards into a single honest expand / tighten / fix-drift verdict so daylight cannot hand-wave mixed proof states
 10. one proof-block telemetry gate emits the compact join fields, portability judgments, and anti-overclaim carry-forward needed for pickup, observability, rebuild, and later Acontext export review
+11. one telemetry-gate review protocol verifies that the compact closure row preserves the exact scoreboard verdict and claim limits before daytime treats the block as handoff-ready
 
 This sequence keeps UI downstream of proof instead of masking uncertainty.
 
@@ -335,6 +337,7 @@ See also:
 - `CITY_AS_A_SERVICE_DAYTIME_REPLAY_PROOF_RUNBOOK.md`
 - `CITY_AS_A_SERVICE_DAYTIME_PROOF_BLOCK_SCOREBOARD_PROTOCOL.md`
 - `CITY_AS_A_SERVICE_DAYTIME_PROOF_BLOCK_TELEMETRY_GATE.md`
+- `CITY_AS_A_SERVICE_DAYTIME_TELEMETRY_GATE_REVIEW_PROTOCOL.md`
 - `CITY_AS_A_SERVICE_REPLAY_PROOF_REVIEW_PROTOCOL.md`
 
 ## 10. Recommended next daytime slice: coordination-aware replay proof
