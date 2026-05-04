@@ -202,7 +202,7 @@ async def _resolved_paths() -> dict:
         ),
         "token": await PlatformConfig.get("veryai.oauth2_token_path", "/oauth2/token"),
         "userinfo": await PlatformConfig.get(
-            "veryai.oauth2_userinfo_path", "/userinfo"
+            "veryai.oauth2_userinfo_path", "/oauth2/userinfo"
         ),
         # Scope is operator-tunable: per Very's /authorize error response,
         # only "openid" and "offline_access" are accepted. We default to

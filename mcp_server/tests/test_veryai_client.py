@@ -43,7 +43,7 @@ def fake_paths() -> dict:
         "base": "https://api.very.org",
         "authorize": "/oauth2/authorize",
         "token": "/oauth2/token",
-        "userinfo": "/userinfo",
+        "userinfo": "/oauth2/userinfo",
         "scope": "openid",
     }
 
