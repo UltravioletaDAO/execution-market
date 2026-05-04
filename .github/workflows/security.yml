@@ -101,7 +101,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install bandit safety
+          pip install bandit pip-audit
 
       - name: Run Bandit security linter
         run: |
@@ -115,16 +115,23 @@ jobs:
           path: mcp_server/bandit-report.json
           retention-days: 30
 
-      - name: Run Safety check
+      - name: Run pip-audit
+        # Replaces `safety` (PyPI Safety/PyUp). `safety` was failing on a
+        # malformed PEP 440 spec (`=8.0.0b1`) coming from a poisoned PVE
+        # record in PyUp's remote vuln DB — see HANDOFF_2026-05-04. pip-audit
+        # is PyPA-maintained, uses the official PyPI advisory DB + OSV, and
+        # exits 1 on any known vulnerability so the gating semantics are
+        # preserved. First call writes JSON for the artifact even when vulns
+        # are found; second call is the strict gate that fails the job.
         run: |
-          safety check -r requirements.txt --json > safety-report.json
-          safety check -r requirements.txt
+          pip-audit -r requirements.txt --format json -o pip-audit-report.json || true
+          pip-audit -r requirements.txt
 
-      - name: Upload Safety report
+      - name: Upload pip-audit report
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
-          name: safety-report
-          path: mcp_server/safety-report.json
+          name: pip-audit-report
+          path: mcp_server/pip-audit-report.json
           retention-days: 30
 
   npm-audit:
