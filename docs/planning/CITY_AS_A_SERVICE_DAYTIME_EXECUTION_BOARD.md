@@ -281,6 +281,7 @@ Decision flywheel proof target so daytime treats replay, runtime continuity, and
 5. one shared decision parity scoreboard grades whether all downstream consumers preserved the same judged truth
 6. one decision-projection implementation slice wires the normalized helper into core runtime consumers, reuse consumers, and both scoreboards before wider surface growth
 7. one drift-triage playbook tells daytime exactly how to classify, localize, and fix the first parity/reuse failures instead of debating whether they are "just rendering"
+8. one strict daytime proof-block runbook governs the execution order: choose case -> emit archive -> emit shared decision seam -> emit proof receipts -> classify pass/partial/fail -> choose the next smallest honest move
 
 This sequence keeps UI downstream of proof instead of masking uncertainty.
 
@@ -327,6 +328,7 @@ See also:
 - `CITY_AS_A_SERVICE_DECISION_PROJECTION_IMPLEMENTATION_SLICE.md`
 - `CITY_AS_A_SERVICE_DECISION_DRIFT_TRIAGE_PLAYBOOK.md`
 - `CITY_AS_A_SERVICE_DAYTIME_REPLAY_PROOF_RUNBOOK.md`
+- `CITY_AS_A_SERVICE_REPLAY_PROOF_REVIEW_PROTOCOL.md`
 
 ## 10. Recommended next daytime slice: coordination-aware replay proof
 

@@ -371,6 +371,7 @@ Before daytime expands scope, it should answer this checklist from actual replay
 Recommended coordination artifacts:
 - `morning_pickup_brief.json` or equivalent batch summary derived from actual replay runs
 - `CITY_AS_A_SERVICE_REPLAY_PROOF_REVIEW_PROTOCOL.md` as the canonical reading and judgment order for replay-proof PRs
+- `CITY_AS_A_SERVICE_DAYTIME_REPLAY_PROOF_RUNBOOK.md` as the canonical execution order for daytime proof blocks so the team emits, reviews, and classifies one replay-backed seam the same way every time
 
 This checklist exists to keep continuation honest.
 The city-ops seam should be advanced by the smallest missing proof, not by whichever adjacent surface looks most exciting.
@@ -439,7 +440,8 @@ Practical recommendation:
 2. wire core runtime consumers through it
 3. wire reuse consumers through it
 4. end the slice with parity + reuse-behavior scoreboard artifacts
-5. only then broaden adjacent surfaces
+5. run the resulting proof block through `CITY_AS_A_SERVICE_DAYTIME_REPLAY_PROOF_RUNBOOK.md` instead of ad hoc execution
+6. only then broaden adjacent surfaces
 
 ## 16. Next daytime implementation slice
 
