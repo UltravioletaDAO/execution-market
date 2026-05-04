@@ -186,7 +186,11 @@ async def callback(
         logger.error("VeryAI userinfo failed: %s", exc)
         return _redirect_with_status("error", reason="userinfo_failed")
 
-    if info.verification_level not in ("palm_single", "palm_dual"):
+    # "palm" is the canonical label we set when Very's /userinfo returns a
+    # valid sub (which per their OAuth2 docs is the only contractual field
+    # and is itself the palm-verified signal). palm_single / palm_dual stay
+    # accepted for forward-compat if Very later extends /userinfo.
+    if info.verification_level not in ("palm", "palm_single", "palm_dual"):
         logger.info(
             "VeryAI callback for executor %s: not yet palm-verified (level=%s)",
             executor_id[:8],

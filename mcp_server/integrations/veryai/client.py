@@ -93,7 +93,17 @@ class TokenResult:
 class UserInfo:
     """Subset of /userinfo we trust as source of truth.
 
-    `verification_level` ∈ {"palm_single", "palm_dual", "unverified"}.
+    Per Very's official docs (docs.very.org/developers/oauth2-integration and
+    /developers/api-reference, captured 2026-05-04), `GET /userinfo` returns
+    ONLY `sub`. The fact that Very issued an access token at all means the
+    user completed a palm scan — Very's OAuth2 flow gates the authorization
+    `code` issuance behind palm verification, so a valid sub == palm-verified.
+
+    `verification_level` is therefore an internal label we default to "palm"
+    when `sub` is present. We keep parsing it defensively from the response
+    so any future Very extension (e.g. richer levels like "palm_single" or
+    "palm_dual" surfaced as a non-standard claim) flows through unchanged.
+
     `sub` is stable per VeryAI account — used for anti-sybil uniqueness.
     """
 
@@ -330,19 +340,14 @@ async def get_userinfo(access_token: str) -> UserInfo:
     if not sub:
         raise ValueError("VeryAI /userinfo returned no 'sub' — cannot identify user")
 
+    # Per Very's OAuth2 docs, /userinfo only contractually returns `sub`.
+    # An access token can only exist after a successful palm scan, so a
+    # valid sub IS the palm-verified signal — we default the internal label
+    # to "palm". The defensive `.get()` chain stays so any future Very
+    # extension (richer level claims) flows through without code changes.
     level = str(
-        raw.get("verification_level")
-        or raw.get("veryai_verification_level")
-        or "unverified"
+        raw.get("verification_level") or raw.get("veryai_verification_level") or "palm"
     )
-    if level == "unverified":
-        # Privacy-safe schema probe: log only key names, never values. Lets us
-        # discover the real field shape Very is using when we map to "unverified".
-        logger.info(
-            "VeryAI /userinfo schema probe: keys=%s sub_prefix=%s",
-            sorted(raw.keys()),
-            sub[:6],
-        )
     return UserInfo(sub=sub, verification_level=level, raw=raw)
 
 

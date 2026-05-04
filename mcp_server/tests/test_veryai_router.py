@@ -340,6 +340,51 @@ class TestCallback:
         assert e_updates[0]["row"]["veryai_level"] == "palm_dual"
         assert e_updates[0]["row"]["veryai_sub"] == "veryai|abc"
 
+    def test_success_with_canonical_sub_only_response(
+        self,
+        patch_paths: None,
+        fake_db: _FakeDB,
+    ) -> None:
+        """Per Very's official OAuth2 docs, /userinfo returns ONLY `sub`.
+
+        A valid sub means the user passed palm verification (Very gates the
+        authorization `code` behind palm scan). The callback must succeed
+        and persist the canonical level "palm".
+        """
+        state, _v = _good_state(executor_id="exec-1")
+        fake_http = _FakeAsyncClient(
+            [
+                _mk_response(
+                    200,
+                    {
+                        "access_token": "AT",
+                        "id_token": "ID-TOKEN",
+                        "expires_in": 3600,
+                        "token_type": "Bearer",
+                    },
+                ),
+                # Real Very response — only `sub`, no verification_level.
+                _mk_response(200, {"sub": "veryai|canonical"}),
+            ]
+        )
+        with patch.object(httpx, "AsyncClient", return_value=fake_http):
+            client = TestClient(_make_app())
+            resp = client.get(
+                f"/api/v1/very-id/callback?code=abc&state={state}",
+                follow_redirects=False,
+            )
+        assert resp.status_code == 302
+        assert "veryai=success" in resp.headers["location"]
+
+        v_inserts = [i for i in fake_db.inserts if i["table"] == "veryai_verifications"]
+        assert len(v_inserts) == 1
+        assert v_inserts[0]["row"]["verification_level"] == "palm"
+
+        e_updates = [u for u in fake_db.updates if u["table"] == "executors"]
+        assert len(e_updates) == 1
+        assert e_updates[0]["row"]["veryai_verified"] is True
+        assert e_updates[0]["row"]["veryai_level"] == "palm"
+
     def test_sub_already_used_by_other_executor_blocks(
         self,
         patch_paths: None,

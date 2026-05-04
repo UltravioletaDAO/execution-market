@@ -341,6 +341,12 @@ class TestUserInfo:
         monkeypatch: pytest.MonkeyPatch,
         fake_paths: dict,
     ) -> None:
+        """Per Very's OAuth2 docs, /userinfo only returns `sub`.
+
+        A valid sub means the user completed palm verification (Very's flow
+        gates code issuance behind palm scan). So when no extension claim is
+        present, we default the internal level to "palm".
+        """
         _patch_module_env(monkeypatch)
 
         async def fake_paths_fn() -> dict:
@@ -351,7 +357,7 @@ class TestUserInfo:
         fake = _FakeAsyncClient(_mk_response(200, {"sub": "veryai|x"}))
         with patch.object(httpx, "AsyncClient", return_value=fake):
             info = await veryai_client.get_userinfo("AT-1")
-        assert info.verification_level == "unverified"
+        assert info.verification_level == "palm"
 
     @pytest.mark.asyncio
     async def test_non_200_raises(
