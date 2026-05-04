@@ -326,6 +326,7 @@ A stronger tie-breaker now exists for the next coding window too:
 See also:
 - `CITY_AS_A_SERVICE_DECISION_PROJECTION_IMPLEMENTATION_SLICE.md`
 - `CITY_AS_A_SERVICE_DECISION_DRIFT_TRIAGE_PLAYBOOK.md`
+- `CITY_AS_A_SERVICE_DAYTIME_REPLAY_PROOF_RUNBOOK.md`
 
 ## 10. Recommended next daytime slice: coordination-aware replay proof
 

@@ -31,6 +31,8 @@ Its goal is simple:
 
 > make every replay-proof review follow one compact, conservative, repeatable reading and judgment order.
 
+For the execution sequence that produces those review artifacts in the first place, use `CITY_AS_A_SERVICE_DAYTIME_REPLAY_PROOF_RUNBOOK.md`.
+
 ## 2. Core principle
 
 **Review the proof seam in the same order the product claims causality.**

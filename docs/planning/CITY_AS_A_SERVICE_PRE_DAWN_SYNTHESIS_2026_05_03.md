@@ -163,3 +163,24 @@ The night's work now compresses to one daytime mission:
 > prove that one reviewed city decision can move the next dispatch in the right direction without semantic drift anywhere along the chain.
 
 That is the narrowest proof that turns the current planning stack into a shippable product loop.
+
+## 11. Daytime runbook seam added
+
+The planning stack now also has `CITY_AS_A_SERVICE_DAYTIME_REPLAY_PROOF_RUNBOOK.md` as the execution bridge between:
+- the execution board
+- the review protocol
+- the acceptance harness
+- the parity / reuse scoreboards
+- the drift triage playbook
+
+That matters because the stack was already strong on what artifacts and judgments should exist, but still asked daytime to compose the actual step-by-step proof run in its head.
+The runbook closes that gap by giving one strict execution order for:
+1. selecting a proof case
+2. emitting replay/archive artifacts
+3. emitting shared decision artifacts
+4. emitting proof receipts
+5. reviewing in canonical order
+6. classifying pass/partial/fail
+7. choosing the next smallest honest move
+
+This should reduce daylight drift from "we have the right docs" to "we are following one repeatable proof procedure."
