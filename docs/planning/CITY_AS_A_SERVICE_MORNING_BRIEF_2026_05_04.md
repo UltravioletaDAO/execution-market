@@ -55,10 +55,11 @@ That is now the narrowest honest proof that the City-as-a-Service learning loop 
 Use these docs as the daytime spine, in this order:
 1. `docs/planning/CITY_AS_A_SERVICE_DAYTIME_EXECUTION_BOARD.md`
 2. `docs/planning/CITY_AS_A_SERVICE_DAYTIME_PROOF_TARGET_AND_DECISION_FLYWHEEL.md`
-3. `docs/planning/CITY_AS_A_SERVICE_DAYTIME_REPLAY_PROOF_RUNBOOK.md`
-4. `docs/planning/CITY_AS_A_SERVICE_DAYTIME_PROOF_BLOCK_SCOREBOARD_PROTOCOL.md`
-5. `docs/planning/CITY_AS_A_SERVICE_DAYTIME_TELEMETRY_GATE_REVIEW_PROTOCOL.md`
-6. `docs/planning/CITY_AS_A_SERVICE_DAYTIME_FIRST_PR_REVIEW_CARD.md`
+3. `docs/planning/CITY_AS_A_SERVICE_DAYTIME_FIRST_PR_PROGRAM_CARD.md`
+4. `docs/planning/CITY_AS_A_SERVICE_DAYTIME_REPLAY_PROOF_RUNBOOK.md`
+5. `docs/planning/CITY_AS_A_SERVICE_DAYTIME_PROOF_BLOCK_SCOREBOARD_PROTOCOL.md`
+6. `docs/planning/CITY_AS_A_SERVICE_DAYTIME_TELEMETRY_GATE_REVIEW_PROTOCOL.md`
+7. `docs/planning/CITY_AS_A_SERVICE_DAYTIME_FIRST_PR_REVIEW_CARD.md`
 
 These now describe one coherent proof block rather than separate planning fragments.
 
@@ -117,7 +118,7 @@ The highest-leverage code move is still one normalized decision projection helpe
 ## 8. Continuity note for the next dream/daytime block
 
 A remaining tactical risk is PR packaging: the first shared-decision implementation slice is now conceptually clear, but it should not land as one oversized review blob.
-Use `docs/planning/CITY_AS_A_SERVICE_DAYTIME_FIRST_PR_SPLIT_STRATEGY.md` to keep the first proof ladder reviewable in this order:
+Use `docs/planning/CITY_AS_A_SERVICE_DAYTIME_FIRST_PR_PROGRAM_CARD.md` as the one-page daytime opener/closer, then use `docs/planning/CITY_AS_A_SERVICE_DAYTIME_FIRST_PR_SPLIT_STRATEGY.md` to keep the first proof ladder reviewable in this order:
 1. projection truth
 2. runtime consumer convergence
 3. reuse consumer convergence

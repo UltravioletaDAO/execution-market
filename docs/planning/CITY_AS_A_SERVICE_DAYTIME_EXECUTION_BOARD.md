@@ -335,6 +335,7 @@ A stronger tie-breaker now exists for the next coding window too:
 - implement the shared decision projection seam first
 - wire every required consumer through it
 - force proof to end in parity + reuse-behavior scoreboards
+- run the whole first push as one four-rung daytime program anchored to one active replay-backed case
 
 See also:
 - `CITY_AS_A_SERVICE_DECISION_PROJECTION_IMPLEMENTATION_SLICE.md`
@@ -347,6 +348,7 @@ See also:
 - `CITY_AS_A_SERVICE_DAYTIME_CLOSURE_PROOF_CHECKLIST.md`
 - `CITY_AS_A_SERVICE_DAYTIME_FIRST_PR_SPLIT_STRATEGY.md`
 - `CITY_AS_A_SERVICE_DAYTIME_FIRST_PR_EXECUTION_LADDER.md`
+- `CITY_AS_A_SERVICE_DAYTIME_FIRST_PR_PROGRAM_CARD.md`
 - `CITY_AS_A_SERVICE_COORDINATION_CARRY_FORWARD_MATRIX.md`
 - `CITY_AS_A_SERVICE_REPLAY_PROOF_REVIEW_PROTOCOL.md`
 
