@@ -380,6 +380,22 @@ def _sync_create_subname(label: str, owner_address: str) -> dict:
         except Exception:
             parent_expiry = 0  # fallback: no expiry
 
+        # EIP-1559 gas pricing: derive maxFeePerGas from baseFeePerGas to avoid
+        # "max priority fee per gas higher than max fee per gas" when mainnet gas
+        # price is low (e.g. <1 gwei) and a flat 1 gwei priority would exceed it.
+        try:
+            base_fee = (
+                w3.eth.get_block("latest").get("baseFeePerGas") or w3.eth.gas_price
+            )
+        except Exception:
+            base_fee = w3.eth.gas_price
+        try:
+            priority_fee = w3.eth.max_priority_fee
+        except Exception:
+            priority_fee = w3.to_wei(1, "gwei")
+        priority_fee = max(int(priority_fee), w3.to_wei(1, "gwei"))
+        max_fee = int(base_fee) * 2 + priority_fee
+
         # setSubnodeRecord params:
         # fuses=0 (no restrictions), expiry=parent_expiry (inherit from parent)
         tx = namewrapper.functions.setSubnodeRecord(
@@ -395,8 +411,8 @@ def _sync_create_subname(label: str, owner_address: str) -> dict:
                 "from": account.address,
                 "nonce": w3.eth.get_transaction_count(account.address),
                 "gas": 200_000,
-                "maxFeePerGas": w3.eth.gas_price * 2,
-                "maxPriorityFeePerGas": w3.to_wei(1, "gwei"),
+                "maxFeePerGas": max_fee,
+                "maxPriorityFeePerGas": priority_fee,
                 "chainId": w3.eth.chain_id,
             }
         )
