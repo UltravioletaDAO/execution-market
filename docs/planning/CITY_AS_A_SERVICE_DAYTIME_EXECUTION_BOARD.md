@@ -292,6 +292,7 @@ Decision flywheel proof target so daytime treats replay, runtime continuity, and
 11. one telemetry-gate review protocol verifies that the compact closure row preserves the exact scoreboard verdict and claim limits before daytime treats the block as handoff-ready
 12. one closure-proof pickup brief contract forces the next-session brief to mirror the exact verdict, behavior class, dangerous axes, anti-overclaim limits, and next smallest proof instead of becoming a softened summary
 13. one closure-proof checklist gives daytime a final pass/partial/fail gate over manifest, telemetry, and pickup fidelity before claiming handoff-safe proof
+14. one first-PR split strategy keeps the shared-decision seam reviewable in the right order: projection truth -> runtime convergence -> reuse convergence -> closure-proof packaging
 
 This sequence keeps UI downstream of proof instead of masking uncertainty.
 
@@ -343,6 +344,7 @@ See also:
 - `CITY_AS_A_SERVICE_DAYTIME_TELEMETRY_GATE_REVIEW_PROTOCOL.md`
 - `CITY_AS_A_SERVICE_DAYTIME_CLOSURE_PROOF_PICKUP_BRIEF_CONTRACT.md`
 - `CITY_AS_A_SERVICE_DAYTIME_CLOSURE_PROOF_CHECKLIST.md`
+- `CITY_AS_A_SERVICE_DAYTIME_FIRST_PR_SPLIT_STRATEGY.md`
 - `CITY_AS_A_SERVICE_REPLAY_PROOF_REVIEW_PROTOCOL.md`
 
 ## 10. Recommended next daytime slice: coordination-aware replay proof

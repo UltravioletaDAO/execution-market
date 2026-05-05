@@ -114,7 +114,16 @@ The highest-leverage code move is still one normalized decision projection helpe
 - `projects/autojob` was pulled clean only to satisfy the stale cron’s first-step requirement
 - untracked `projects/execution-market/scripts/sign_req.mjs` remained untouched
 
-## 8. Bottom line for the morning
+## 8. Continuity note for the next dream/daytime block
+
+A remaining tactical risk is PR packaging: the first shared-decision implementation slice is now conceptually clear, but it should not land as one oversized review blob.
+Use `docs/planning/CITY_AS_A_SERVICE_DAYTIME_FIRST_PR_SPLIT_STRATEGY.md` to keep the first proof ladder reviewable in this order:
+1. projection truth
+2. runtime consumer convergence
+3. reuse consumer convergence
+4. closure-proof packaging
+
+## 9. Bottom line for the morning
 
 Tonight’s work positions the ecosystem well because the CaaS planning stack is now compressed to one hard, testable daytime claim:
 
