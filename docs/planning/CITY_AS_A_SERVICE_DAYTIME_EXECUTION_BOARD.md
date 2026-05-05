@@ -289,6 +289,7 @@ Decision flywheel proof target so daytime treats replay, runtime continuity, and
 9. one combined scoreboard protocol converts parity + reuse scoreboards into a single honest expand / tighten / fix-drift verdict so daylight cannot hand-wave mixed proof states
 10. one proof-block telemetry gate emits the compact join fields, portability judgments, and anti-overclaim carry-forward needed for pickup, observability, rebuild, and later Acontext export review
 11. one telemetry-gate review protocol verifies that the compact closure row preserves the exact scoreboard verdict and claim limits before daytime treats the block as handoff-ready
+12. one closure-proof pickup brief contract forces the next-session brief to mirror the exact verdict, behavior class, dangerous axes, anti-overclaim limits, and next smallest proof instead of becoming a softened summary
 
 This sequence keeps UI downstream of proof instead of masking uncertainty.
 
@@ -338,6 +339,7 @@ See also:
 - `CITY_AS_A_SERVICE_DAYTIME_PROOF_BLOCK_SCOREBOARD_PROTOCOL.md`
 - `CITY_AS_A_SERVICE_DAYTIME_PROOF_BLOCK_TELEMETRY_GATE.md`
 - `CITY_AS_A_SERVICE_DAYTIME_TELEMETRY_GATE_REVIEW_PROTOCOL.md`
+- `CITY_AS_A_SERVICE_DAYTIME_CLOSURE_PROOF_PICKUP_BRIEF_CONTRACT.md`
 - `CITY_AS_A_SERVICE_REPLAY_PROOF_REVIEW_PROTOCOL.md`
 
 ## 10. Recommended next daytime slice: coordination-aware replay proof

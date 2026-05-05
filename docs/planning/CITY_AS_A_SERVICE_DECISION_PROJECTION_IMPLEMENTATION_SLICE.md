@@ -36,7 +36,7 @@ One replay-backed city case should be able to produce all of the following from 
 - `review_packet.json`
 - `city_compact_decision_object.json`
 - `city_dispatch_brief.json`
-- `morning_pickup_brief.json`
+- `morning_pickup_brief.json` emitted as a closure-proof mirror of the telemetry gate row, not a looser continuity recap
 - `city_dispatch_memory_unit.json`
 - one session rebuild output
 - one runtime observability row
@@ -156,6 +156,7 @@ Deliver:
 
 Acceptance:
 - one fixture-backed case proves these consumers preserve the same trust semantics
+- the emitted pickup brief passes `CITY_AS_A_SERVICE_DAYTIME_CLOSURE_PROOF_PICKUP_BRIEF_CONTRACT.md` without softening verdict, behavior class, dangerous axes, or anti-overclaim limits
 
 ### Step 4 — route reuse consumers through projection
 Deliver:
@@ -184,6 +185,7 @@ Deliver fixtures that intentionally induce:
 - copyability drift
 - readiness drift
 - anti-overclaim drift
+- pickup-brief closure drift
 - provenance loss
 - rebuild transcript dependency
 

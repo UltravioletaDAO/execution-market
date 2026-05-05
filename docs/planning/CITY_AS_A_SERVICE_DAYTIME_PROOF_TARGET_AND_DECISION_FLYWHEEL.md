@@ -84,6 +84,7 @@ And the same case should prove all of these acceptance points together:
 9. one combined scoreboard protocol converts parity + reuse proof into a single honest next-action verdict instead of leaving mixed pass/partial states up for debate
 10. one proof-block telemetry gate makes the final verdict, portability status, and anti-overclaim carry-forward queryable across replay review, pickup, observability, and export readiness
 11. one telemetry-gate review protocol confirms that the carried-forward row preserves the same closure truth before later sessions or sinks trust it
+12. one closure-proof pickup brief contract confirms the next-session continuity artifact mirrors the exact verdict, claim limits, and next smallest proof instead of a friendlier but weaker recap
 
 ## 6. The most important invariant
 
@@ -194,3 +195,4 @@ For the concrete coding breakdown of that target, use:
 - `CITY_AS_A_SERVICE_DAYTIME_PROOF_BLOCK_SCOREBOARD_PROTOCOL.md`
 - `CITY_AS_A_SERVICE_DAYTIME_PROOF_BLOCK_TELEMETRY_GATE.md`
 - `CITY_AS_A_SERVICE_DAYTIME_TELEMETRY_GATE_REVIEW_PROTOCOL.md`
+- `CITY_AS_A_SERVICE_DAYTIME_CLOSURE_PROOF_PICKUP_BRIEF_CONTRACT.md`

@@ -54,6 +54,7 @@ It should also fail if reviewers cannot grade the reuse outcome from one compact
 It should also fail if the block cannot end in one explicit combined verdict about whether to expand, tighten, or stop for drift.
 It should also fail if that verdict cannot be carried forward as one compact telemetry row for pickup, rebuild, observability, and export-readiness review.
 It should also fail if that telemetry row cannot pass a compact review proving it preserved the same closure truth and claim limits as the scoreboards.
+It should also fail if the emitted pickup brief cannot pass `CITY_AS_A_SERVICE_DAYTIME_CLOSURE_PROOF_PICKUP_BRIEF_CONTRACT.md` as a strict mirror of that same closure truth.
 
 ## 4. Canonical harness scenario
 
@@ -192,7 +193,10 @@ Emit the proof-block telemetry gate row so combined verdict, portability state, 
 Review that telemetry row with `CITY_AS_A_SERVICE_DAYTIME_TELEMETRY_GATE_REVIEW_PROTOCOL.md` before treating the block as handoff-ready.
 
 ### Step 10
-Use `CITY_AS_A_SERVICE_DECISION_DRIFT_TRIAGE_PLAYBOOK.md` as the mandatory first response path whenever parity, reuse, rebuild, export, observability, or telemetry-packaging drift fixtures fail.
+Review the emitted pickup brief with `CITY_AS_A_SERVICE_DAYTIME_CLOSURE_PROOF_PICKUP_BRIEF_CONTRACT.md` before letting it anchor continuity.
+
+### Step 11
+Use `CITY_AS_A_SERVICE_DECISION_DRIFT_TRIAGE_PLAYBOOK.md` as the mandatory first response path whenever parity, reuse, rebuild, export, observability, telemetry-packaging, or pickup-brief closure drift fixtures fail.
 
 ## 9. Suggested test table for the first harness run
 

@@ -105,8 +105,9 @@ Canonical order becomes:
 6. classify pass / partial / fail
 7. apply combined scoreboard verdict
 8. emit telemetry gate row
-9. carry the same gate fields into pickup continuity
-10. choose next smallest honest move
+9. carry the same gate fields into pickup continuity through `CITY_AS_A_SERVICE_DAYTIME_CLOSURE_PROOF_PICKUP_BRIEF_CONTRACT.md`
+10. review the emitted pickup brief for closure fidelity
+11. choose next smallest honest move
 
 If step 8 is skipped, the block is not fully closed.
 
@@ -181,7 +182,7 @@ The gate turns review outcomes into one compact queryable row that can survive n
 Any daytime seam that claims proof completeness should reference this gate alongside:
 - the replay proof runbook
 - the combined scoreboard protocol
-- the pickup brief continuity contract
+- `CITY_AS_A_SERVICE_DAYTIME_CLOSURE_PROOF_PICKUP_BRIEF_CONTRACT.md`
 - observability scorecard/reporting docs
 
 This keeps proof closure, continuity, and telemetry from drifting into separate interpretations.

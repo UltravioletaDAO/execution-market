@@ -64,7 +64,8 @@ Review the PR in this order only:
 9. combined scoreboard verdict application
 10. proof-block telemetry gate emission
 11. telemetry-gate review protocol application
-12. debug/triage bundle shape if a drift fixture fails
+12. closure-proof pickup brief contract application
+13. debug/triage bundle shape if a drift fixture fails
 
 If reviewers jump straight into UI/wording diffs, they will miss the real seam.
 They should also reject “looks basically done” language if the proof block cannot end in one explicit expand / tighten / fix-drift verdict.
@@ -154,6 +155,7 @@ The first PR should include deliberate fixtures for at least:
 - copyability drift
 - anti-overclaim drift
 - readiness drift
+- pickup-brief closure drift
 - provenance loss
 
 Reviewers should verify that each one fails loudly and localizes cleanly enough to use the drift triage playbook.
@@ -162,7 +164,7 @@ Reviewers should verify that each one fails loudly and localizes cleanly enough 
 
 A strong approval should be able to say, in plain English:
 
-> one reviewed city decision now flows through one shared projection seam, every first-order consumer reads it directly, one replay-backed case proves smarter next-dispatch behavior, the dangerous trust drifts fail loudly, the proof block ends in one honest combined verdict about what should happen next, that verdict is carried forward in one compact telemetry gate row, and the telemetry row itself was reviewed for verdict fidelity before handoff.
+> one reviewed city decision now flows through one shared projection seam, every first-order consumer reads it directly, one replay-backed case proves smarter next-dispatch behavior, the dangerous trust drifts fail loudly, the proof block ends in one honest combined verdict about what should happen next, that verdict is carried forward in one compact telemetry gate row, the telemetry row itself was reviewed for verdict fidelity before handoff, and the pickup brief mirrors the same closure truth instead of retelling it more optimistically.
 
 If a reviewer cannot honestly say that, the PR should stay open.
 
