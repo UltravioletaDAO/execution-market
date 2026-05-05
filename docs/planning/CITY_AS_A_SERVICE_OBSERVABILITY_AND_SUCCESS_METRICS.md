@@ -346,7 +346,20 @@ Because the current planning push is about joining memory, Acontext, IRC/session
 
 These cuts make the integration seam inspectable instead of assuming that replay correctness automatically implies operational portability.
 
-### 12.4 Recommended per-row dimensions for later queries
+### 12.4 Carry-forward completeness metrics
+Because the next likely failure mode is quiet field loss between replay, continuity, export, and retrieval surfaces, the first observability slice should also measure:
+- `carry_forward_join_completeness_rate`
+  - percent of replay-backed proof blocks where `coordination_session_id`, `review_packet_id`, and `compact_decision_id` survive across pickup, ledger, telemetry, export, and rebuild outputs
+- `claim_limit_survival_rate`
+  - percent of proof blocks where `not_safe_to_claim[]` and `next_smallest_proof[]` persist through pickup, telemetry, and rebuild seams
+- `export_retrieval_parity_rate`
+  - percent of exported dispatch memory units whose retrieved result preserves the same promotion/tone/placement/copyability semantics
+- `session_handoff_field_loss_rate`
+  - percent of pickup/rebuild handoffs that silently drop required readiness or dangerous-axis fields
+
+These cuts should be reviewed alongside `CITY_AS_A_SERVICE_COORDINATION_CARRY_FORWARD_MATRIX.md` so portability problems show up as measurable drift, not just reviewer intuition.
+
+### 12.5 Recommended per-row dimensions for later queries
 Each replay-backed scorecard row should carry enough metadata to answer success questions across office, workflow, and session boundaries:
 - `coordination_session_id`
 - `review_packet_id`

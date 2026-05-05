@@ -347,6 +347,7 @@ See also:
 - `CITY_AS_A_SERVICE_DAYTIME_CLOSURE_PROOF_CHECKLIST.md`
 - `CITY_AS_A_SERVICE_DAYTIME_FIRST_PR_SPLIT_STRATEGY.md`
 - `CITY_AS_A_SERVICE_DAYTIME_FIRST_PR_EXECUTION_LADDER.md`
+- `CITY_AS_A_SERVICE_COORDINATION_CARRY_FORWARD_MATRIX.md`
 - `CITY_AS_A_SERVICE_REPLAY_PROOF_REVIEW_PROTOCOL.md`
 
 ## 10. Recommended next daytime slice: coordination-aware replay proof
@@ -398,5 +399,8 @@ It gives the next builder one compact continuity seam with:
 - next smallest proof
 - explicit anti-overclaim warnings
 - restart-safe decision state and mirrored runtime events
+
+That handoff seam now also needs one explicit carry-forward join check across pickup, ledger, telemetry, export, rebuild, and later retrieval surfaces so daytime can detect quiet field-drop drift before calling the block handoff-safe.
+See `CITY_AS_A_SERVICE_COORDINATION_CARRY_FORWARD_MATRIX.md`.
 
 That keeps the handoff seam as disciplined as the replay seam itself.
