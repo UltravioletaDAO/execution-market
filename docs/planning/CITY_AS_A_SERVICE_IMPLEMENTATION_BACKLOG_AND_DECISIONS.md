@@ -450,7 +450,8 @@ Practical recommendation:
 6. end the resulting proof block with `CITY_AS_A_SERVICE_DAYTIME_PROOF_BLOCK_SCOREBOARD_PROTOCOL.md` instead of informal pass/partial debate
 7. emit the resulting proof-block telemetry package via `CITY_AS_A_SERVICE_DAYTIME_PROOF_BLOCK_TELEMETRY_GATE.md` so verdict and portability state survive into later sessions and sinks
 8. review that compact closure package with `CITY_AS_A_SERVICE_DAYTIME_TELEMETRY_GATE_REVIEW_PROTOCOL.md` so later sessions do not inherit diluted verdicts or claim limits
-9. only then broaden adjacent surfaces
+9. advance the first shared-decision implementation only through the rung discipline in `CITY_AS_A_SERVICE_DAYTIME_FIRST_PR_EXECUTION_LADDER.md` so each PR proves the right checkpoint before the next one broadens scope
+10. only then broaden adjacent surfaces
 
 ## 16. Next daytime implementation slice
 
@@ -491,3 +492,8 @@ Until that seam is real, avoid spending the next block on:
 
 Those can wait.
 The highest-value proof is still the compact decision-support seam holding under real replay conditions.
+
+A new execution-order bridge now makes that daytime move crisper too:
+- `CITY_AS_A_SERVICE_DAYTIME_FIRST_PR_EXECUTION_LADDER.md`
+
+That ladder closes the remaining ambiguity between PR splitting, PR review, and closure-proof packaging by defining exactly when daytime may honestly advance from projection truth to runtime convergence to reuse convergence to closure-safe proof.

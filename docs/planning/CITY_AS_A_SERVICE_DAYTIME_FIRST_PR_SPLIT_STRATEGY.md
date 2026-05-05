@@ -207,6 +207,16 @@ If any of those statements feels too generous, that PR is not done.
 
 **Treat PR A through PR D as one closure-proof ladder, not four unrelated wins.**
 
+For the execution-order rules that sit between those PRs, use:
+- `CITY_AS_A_SERVICE_DAYTIME_FIRST_PR_EXECUTION_LADDER.md`
+
+That bridge defines the exact advancement discipline for each rung:
+- what claim is now allowed
+- what must remain forbidden
+- what checkpoint must be proven before the next rung
+- which artifact becomes authoritative
+- when to stop and tighten the same seam instead of broadening scope
+
 The first PR set is successful only when the last rung is true:
 - one reviewed city decision changed the next dispatch for the right reason
 - every first-order consumer preserved the same judged truth
