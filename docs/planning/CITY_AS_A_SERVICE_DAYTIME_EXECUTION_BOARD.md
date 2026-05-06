@@ -84,6 +84,9 @@ The planning stack now also includes:
 - `CITY_AS_A_SERVICE_DAYTIME_CLOSURE_PROOF_CHECKLIST.md`
 - `CITY_AS_A_SERVICE_DAYTIME_FIRST_PR_SPLIT_STRATEGY.md`
 - `CITY_AS_A_SERVICE_DAYTIME_FIRST_PR_EXECUTION_LADDER.md`
+- `CITY_AS_A_SERVICE_DAYTIME_FIRST_PROOF_CASE_SELECTION_CARD.md`
+- `CITY_AS_A_SERVICE_DAYTIME_FIRST_PROOF_ANCHOR_FREEZE_CONTRACT.md`
+- `CITY_AS_A_SERVICE_DAYTIME_PR_A_PROJECTION_TRUTH_HANDOFF.md`
 - `CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_05.md`
 
 This doc closes one daylight ambiguity that the earlier planning set still left too loose:
@@ -340,6 +343,9 @@ A stronger tie-breaker now exists for the next coding window too:
 - force proof to end in parity + reuse-behavior scoreboards
 - run the whole first push as one four-rung daytime program anchored to one active replay-backed case
 - split the first implementation by verification boundary rather than by directory or artifact family
+- choose one replay-backed redirect/rejection proof anchor before PR A and keep it stable across the ladder
+- freeze that anchor in a durable proof-anchor note before coding starts
+- start PR A from the projection-truth handoff so it lands only the shared owner + compact decision object claim
 - advance only when each rung has earned its allowed claim and checkpoint
 
 See also:
@@ -354,8 +360,9 @@ See also:
 - `CITY_AS_A_SERVICE_DAYTIME_FIRST_PR_SPLIT_STRATEGY.md`
 - `CITY_AS_A_SERVICE_DAYTIME_FIRST_PR_EXECUTION_LADDER.md`
 - `CITY_AS_A_SERVICE_DAYTIME_FIRST_PR_PROGRAM_CARD.md`
-- `CITY_AS_A_SERVICE_DAYTIME_FIRST_PR_SPLIT_STRATEGY.md`
-- `CITY_AS_A_SERVICE_DAYTIME_FIRST_PR_EXECUTION_LADDER.md`
+- `CITY_AS_A_SERVICE_DAYTIME_FIRST_PROOF_CASE_SELECTION_CARD.md`
+- `CITY_AS_A_SERVICE_DAYTIME_FIRST_PROOF_ANCHOR_FREEZE_CONTRACT.md`
+- `CITY_AS_A_SERVICE_DAYTIME_PR_A_PROJECTION_TRUTH_HANDOFF.md`
 - `CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_05.md`
 - `CITY_AS_A_SERVICE_COORDINATION_CARRY_FORWARD_MATRIX.md`
 - `CITY_AS_A_SERVICE_REPLAY_PROOF_REVIEW_PROTOCOL.md`

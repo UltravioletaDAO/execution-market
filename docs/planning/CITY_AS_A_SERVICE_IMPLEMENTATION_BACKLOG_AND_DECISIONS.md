@@ -380,6 +380,9 @@ Recommended coordination artifacts:
 - `CITY_AS_A_SERVICE_DAYTIME_TELEMETRY_GATE_REVIEW_PROTOCOL.md` as the canonical fidelity check for confirming that compact closure state still matches the scoreboards before handoff
 - `CITY_AS_A_SERVICE_DAYTIME_FIRST_PR_SPLIT_STRATEGY.md` as the canonical verification-boundary split for the first shared-decision implementation
 - `CITY_AS_A_SERVICE_DAYTIME_FIRST_PR_EXECUTION_LADDER.md` as the canonical rung-by-rung advancement rule for that first implementation
+- `CITY_AS_A_SERVICE_DAYTIME_FIRST_PROOF_CASE_SELECTION_CARD.md` as the canonical way to choose one replay-backed proof anchor before PR A
+- `CITY_AS_A_SERVICE_DAYTIME_FIRST_PROOF_ANCHOR_FREEZE_CONTRACT.md` as the canonical artifact contract for freezing that anchor across PR A through PR D
+- `CITY_AS_A_SERVICE_DAYTIME_PR_A_PROJECTION_TRUTH_HANDOFF.md` as the canonical kickoff packet that prevents PR A from overclaiming beyond projection truth
 - `CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_05.md` as the latest night-to-day synthesis for packaging discipline and closure integrity
 
 This checklist exists to keep continuation honest.
@@ -445,17 +448,20 @@ That doc should be treated as the narrowest code-ready translation of the curren
 Its purpose is to prevent the next engineering block from splitting into several “aligned” local implementations that still re-derive semantics independently.
 
 Practical recommendation:
-1. build the shared decision projection helper first
-2. package the first implementation as PR A through PR D by verification boundary, not by directory
-3. wire core runtime consumers through the shared helper before allowing reuse claims
-4. wire reuse consumers through it before allowing closure-proof claims
-5. end the slice with parity + reuse-behavior scoreboard artifacts
-6. run the resulting proof block through `CITY_AS_A_SERVICE_DAYTIME_REPLAY_PROOF_RUNBOOK.md` instead of ad hoc execution
-7. end the resulting proof block with `CITY_AS_A_SERVICE_DAYTIME_PROOF_BLOCK_SCOREBOARD_PROTOCOL.md` instead of informal pass/partial debate
-8. emit the resulting proof-block telemetry package via `CITY_AS_A_SERVICE_DAYTIME_PROOF_BLOCK_TELEMETRY_GATE.md` so verdict and portability state survive into later sessions and sinks
-9. review that compact closure package with `CITY_AS_A_SERVICE_DAYTIME_TELEMETRY_GATE_REVIEW_PROTOCOL.md` so later sessions do not inherit diluted verdicts or claim limits
-10. advance the first shared-decision implementation only through the rung discipline in `CITY_AS_A_SERVICE_DAYTIME_FIRST_PR_EXECUTION_LADDER.md` so each PR proves the right checkpoint before the next one broadens scope
-11. only then broaden adjacent surfaces
+1. choose one replay-backed redirect/rejection anchor via `CITY_AS_A_SERVICE_DAYTIME_FIRST_PROOF_CASE_SELECTION_CARD.md`
+2. freeze it with `CITY_AS_A_SERVICE_DAYTIME_FIRST_PROOF_ANCHOR_FREEZE_CONTRACT.md` so PR A through PR D inherit the same case, behavior-change class, and drift axes
+3. start PR A with `CITY_AS_A_SERVICE_DAYTIME_PR_A_PROJECTION_TRUTH_HANDOFF.md` so the first rung lands only projection truth, not runtime/reuse/closure claims
+4. build the shared decision projection helper first
+5. package the first implementation as PR A through PR D by verification boundary, not by directory
+6. wire core runtime consumers through the shared helper before allowing reuse claims
+7. wire reuse consumers through it before allowing closure-proof claims
+8. end the slice with parity + reuse-behavior scoreboard artifacts
+9. run the resulting proof block through `CITY_AS_A_SERVICE_DAYTIME_REPLAY_PROOF_RUNBOOK.md` instead of ad hoc execution
+10. end the resulting proof block with `CITY_AS_A_SERVICE_DAYTIME_PROOF_BLOCK_SCOREBOARD_PROTOCOL.md` instead of informal pass/partial debate
+11. emit the resulting proof-block telemetry package via `CITY_AS_A_SERVICE_DAYTIME_PROOF_BLOCK_TELEMETRY_GATE.md` so verdict and portability state survive into later sessions and sinks
+12. review that compact closure package with `CITY_AS_A_SERVICE_DAYTIME_TELEMETRY_GATE_REVIEW_PROTOCOL.md` so later sessions do not inherit diluted verdicts or claim limits
+13. advance the first shared-decision implementation only through the rung discipline in `CITY_AS_A_SERVICE_DAYTIME_FIRST_PR_EXECUTION_LADDER.md` so each PR proves the right checkpoint before the next one broadens scope
+14. only then broaden adjacent surfaces
 
 ## 16. Next daytime implementation slice
 

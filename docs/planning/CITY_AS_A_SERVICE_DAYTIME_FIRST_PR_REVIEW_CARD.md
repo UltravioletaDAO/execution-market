@@ -1,19 +1,23 @@
 # City as a Service — Daytime First PR Review Card
 
-> Last updated: 2026-05-03 10:15 PM ET
+> Last updated: 2026-05-05 23:15 America/New_York
 > Parent docs:
 > - `CITY_AS_A_SERVICE_DECISION_PROJECTION_IMPLEMENTATION_SLICE.md`
 > - `CITY_AS_A_SERVICE_DECISION_SEAM_ACCEPTANCE_HARNESS.md`
 > - `CITY_AS_A_SERVICE_SHARED_DECISION_PARITY_SCOREBOARD.md`
 > - `CITY_AS_A_SERVICE_DECISION_DRIFT_TRIAGE_PLAYBOOK.md`
-> Status: dream-session daytime coding companion
+> - `CITY_AS_A_SERVICE_DAYTIME_FIRST_PR_SPLIT_STRATEGY.md`
+> - `CITY_AS_A_SERVICE_DAYTIME_FIRST_PR_EXECUTION_LADDER.md`
+> - `CITY_AS_A_SERVICE_DAYTIME_PR_A_PROJECTION_TRUTH_HANDOFF.md`
+> Status: ladder-wide review companion; use PR A handoff for the first rung
 
 ## 1. Why this doc exists
 
 The planning stack is now sharp enough that the next daytime risk is not choosing the wrong concept.
 It is landing the right implementation slice but reviewing it loosely.
 
-The first decision-projection PR will probably touch:
+The first decision-projection program now lands as PR A through PR D, not one oversized PR.
+Across that ladder it will touch:
 - one new shared helper
 - several downstream consumers
 - fixtures
@@ -21,21 +25,26 @@ The first decision-projection PR will probably touch:
 - failure-path downgrade logic
 
 That is exactly the kind of change where teams accidentally approve "mostly aligned" work that still hides trust drift.
-This doc compresses the review bar for that first PR into one inspectable card.
+This doc is therefore the **ladder-wide** review bar for the whole first proof program.
+For the first rung specifically, use `CITY_AS_A_SERVICE_DAYTIME_PR_A_PROJECTION_TRUTH_HANDOFF.md`.
 
-> the first daytime PR should be reviewed as one decision-flywheel proof, not as a generic multi-file refactor.
+> the first daytime proof ladder should be reviewed as one decision-flywheel program, not as a generic multi-file refactor.
 
 ## 2. The single review question
 
-Before approving the first daytime PR, reviewers should be able to answer:
+Before approving the whole first daytime PR ladder, reviewers should be able to answer:
 
-> did this PR force every in-scope consumer to read one shared decision projection, and does one replay-backed case prove that the next dispatch got smarter without trust drift?
+> did PR A through PR D force every in-scope consumer to read one shared decision projection, and does one frozen replay-backed case prove that the next dispatch got smarter without trust drift?
 
-If the answer is not clearly yes, the PR is not done.
+For PR A alone, the narrower question is:
 
-## 3. Required PR contents
+> did one helper become the owner of projection truth, and can it emit a deterministic compact decision object for the frozen proof anchor without claiming runtime, reuse, or closure proof?
 
-The first acceptable daytime PR should include all of the following:
+If the relevant rung question is not clearly answered, that rung is not done.
+
+## 3. Required ladder contents
+
+The first acceptable daytime proof ladder should include all of the following by the time PR D closes:
 
 1. one normalized decision projection helper
 2. one compact decision object emitted from that helper
@@ -46,12 +55,14 @@ The first acceptable daytime PR should include all of the following:
 7. at least one passing replay-backed proof case
 8. deliberate drift fixtures for dangerous trust failures
 9. explicit downgrade-note shape for consumers that cannot preserve full semantics directly
+10. proof-anchor freeze note preserved across all rungs
 
-Missing any of these means the PR is still a seam fragment, not the proof harness.
+Missing any of these by PR D means the ladder is still a seam fragment, not the proof harness.
+For PR A alone, only items 1, 2, 9, and 10 should be in scope.
 
 ## 4. Mandatory review order
 
-Review the PR in this order only:
+Review the full ladder in this order only:
 
 1. projection schema/helper
 2. compact decision object emission
@@ -135,7 +146,7 @@ If the proof case only shows memory display, that is not enough.
 
 ## 8. Dangerous failure modes reviewers should look for
 
-Reject the PR immediately if any of these are present:
+Reject the relevant rung immediately if any of these are present:
 - cautious or inspect-only learning rendered as directive
 - non-copyable guidance leaked into copyable worker text
 - anti-overclaim warnings missing from pickup, rebuild, or export paths
@@ -182,7 +193,8 @@ Without them, the PR only looks aligned.
 
 ## 12. Sharp recommendation
 
-**Use this card as the approval gate for the first daytime decision-projection PR.**
+**Use this card as the approval gate for the first daytime decision-projection ladder.**
+Use `CITY_AS_A_SERVICE_DAYTIME_PR_A_PROJECTION_TRUTH_HANDOFF.md` as the approval gate for PR A specifically.
 
 The planning stack is already good.
 Now the main risk is approving a partially unified seam and calling it the flywheel.
