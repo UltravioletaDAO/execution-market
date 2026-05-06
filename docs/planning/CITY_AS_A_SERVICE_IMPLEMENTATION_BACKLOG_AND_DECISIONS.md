@@ -1,6 +1,6 @@
 # City as a Service — Implementation Backlog and Decision Ledger
 
-> Last updated: 2026-05-06 05:18 America/New_York
+> Last updated: 2026-05-06 06:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_IMPLEMENTATION_SLICE_V1.md`
@@ -89,11 +89,12 @@ Deliverables:
 Why first:
 Without fixture-backed contracts, UI and projector work will drift.
 
-Current PR A seed landed:
-- `mcp_server/city_ops/contracts.py` now owns the first compact decision object, promotion/tone/placement enums, readiness posture, and copyability boundary.
+Current proof-ladder seed landed:
+- `mcp_server/city_ops/contracts.py` owns the first compact decision object, promotion/tone/placement enums, readiness posture, and copyability boundary.
 - `mcp_server/city_ops/decision_projection.py` turns a reviewed packet plus frozen proof-anchor note into one deterministic compact decision object.
+- `mcp_server/city_ops/coordination.py`, `dispatch_guidance.py`, `reuse.py`, `observability.py`, `closure.py`, and `proof_block_artifacts.py` now carry the first anchor through continuity, runtime guidance, reuse, telemetry, bounded preview, and persisted proof-block fixtures.
 - The first anchor is `redirect_outdated_packet_001`, intentionally conservative: it may promote an operator-visible memory delta, but may not become direct worker-copyable instruction yet.
-- `python3 -m pytest tests/city_ops -q` currently passes from `mcp_server/` and should stay as the PR A gate before runtime parity work starts.
+- `PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q` passes with 37 tests and should stay as the PR #108 gate before closure-consumer work starts.
 
 
 ### Phase 2 — review normalizer
@@ -143,6 +144,12 @@ Deliverables:
 
 Why last:
 By then the team is swapping plumbing, not redesigning product meaning.
+
+Final 2026-05-06 morning handoff:
+- `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_06.md` is the current day/night coordination packet.
+- Honest label: `reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted`.
+- Immediate next build: one read-only session rebuild consumer over the persisted proof-block fixture set.
+- Still blocked/false until proven by real consumers: `closure_proof_landed`, `session_rebuild_ready`, `acontext_sink_ready`, and worker-copyable municipal doctrine.
 
 ## 5. The minimum viable artifact chain
 

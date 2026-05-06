@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-06 05:18 America/New_York
+> Last updated: 2026-05-06 06:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -88,6 +88,8 @@ The planning stack now also includes:
 - `CITY_AS_A_SERVICE_DAYTIME_FIRST_PROOF_ANCHOR_FREEZE_CONTRACT.md`
 - `CITY_AS_A_SERVICE_DAYTIME_PR_A_PROJECTION_TRUTH_HANDOFF.md`
 - `CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_05.md`
+- `CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_06.md`
+- `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_06.md`
 - `mcp_server/city_ops/decision_projection.py`
 - `mcp_server/tests/city_ops/test_decision_projection.py`
 
@@ -98,6 +100,8 @@ This doc closes one daylight ambiguity that the earlier planning set still left 
 - the minimum telemetry row that must exist before a proof block counts as operationally packaged
 
 Daytime should treat that review protocol as the default tie-breaker whenever a replay bundle exists but implementation readiness still feels debatable.
+
+Final 6am narrowing: the next engineering window should not broaden into more templates or UI. Build one read-only session rebuild consumer over the persisted proof-block fixture set and fail if it needs raw transcripts, unreviewed memory, freeform worker chat, or private operator context.
 
 ## 4. The next engineering window
 

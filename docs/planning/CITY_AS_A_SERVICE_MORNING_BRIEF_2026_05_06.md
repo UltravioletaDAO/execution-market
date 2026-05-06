@@ -1,7 +1,8 @@
 # City as a Service — Morning Brief (2026-05-06)
 
-> Last updated: 2026-05-06 05:18 America/New_York  
-> Status: pre-dawn handoff ready
+> Last updated: 2026-05-06 06:00 America/New_York  
+> Status: final morning handoff ready  
+> Final packet: `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_06.md`
 
 ## 1. What was accomplished tonight so far
 
@@ -15,6 +16,7 @@ Execution Market City-as-a-Service advanced through four compact implementation 
 4. **Telemetry gate** — compact decision + ledger + pickup + reuse scoreboard -> one queryable proof-block gate row for observability, session rebuild review, Acontext readiness review, and cross-project decision support.
 5. **Closure preview** — concrete telemetry fixture + bounded session-rebuild and Acontext export previews that read only approved compact artifacts and forbid transcript/unreviewed-memory dependence.
 6. **Persisted closure consumers** — deterministic generator + persisted `session_rebuild_preview.json` and `acontext_export_preview.json` fixtures beside the telemetry gate.
+7. **Final morning handoff** — consolidated the full night into `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_06.md`, including accomplishment-vs-plan, ecosystem positioning, repo continuity, and the smallest daytime next move.
 
 ## 2. Latest concrete output
 
@@ -82,6 +84,8 @@ Do **not** yet use:
 - `worker-copyable municipal doctrine ready`
 
 ## 6. Best next move
+
+The final 6am handoff keeps the next move intentionally smaller than a broad closure push.
 
 The next build should turn the persisted previews into a real read-only closure consumer:
 
