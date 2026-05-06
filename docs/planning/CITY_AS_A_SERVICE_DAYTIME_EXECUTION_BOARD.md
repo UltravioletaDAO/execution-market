@@ -469,3 +469,49 @@ If daytime has one implementation window, the best next move is now:
 4. only then add Acontext as a sink/retrieval surface
 
 Do not treat the new ledger/pickup implementation as a UI or reuse proof. It is a continuity packaging proof only.
+
+## 12. 2026-05-06 1am implementation update — dispatch guidance runtime consumer seed
+
+The stale cron body again pointed at AutoJob, Frontier Academy, and KK v2, but `~/clawd/DREAM-PRIORITIES.md` explicitly stops those. Work stayed inside Execution Market AAS / City-as-a-Service.
+
+The next PR-B-style runtime convergence seed now exists:
+
+- `mcp_server/city_ops/dispatch_guidance.py`
+- `mcp_server/tests/city_ops/test_dispatch_guidance.py`
+- `docs/planning/CITY_AS_A_SERVICE_DISPATCH_GUIDANCE_CONSUMER_IMPLEMENTATION.md`
+
+This adds one local runtime consumer contract:
+
+- `city_ops.dispatch_guidance_block.v1`
+
+The dispatch guidance block reads the projection-owned `CompactDecisionObject`, calls `assert_carry_forward_integrity(...)` against the ledger and pickup brief before it emits, and then mirrors:
+
+- promotion class
+- guidance tone
+- guidance placement
+- copyable worker-instruction boundary
+- safe / not-safe claims
+- dangerous drift axes
+- next smallest proof
+
+For the current `redirect_outdated_packet_001` anchor, the consumer remains conservative: operator-visible caution is allowed, but direct worker-copyable instruction remains blocked.
+
+New test gate:
+
+```bash
+cd ~/clawd/projects/execution-market/mcp_server
+python3 -m pytest tests/city_ops -q
+# 16 passed, 1 warning
+```
+
+### 12.1 Daytime tie-breaker after this update
+
+The best next implementation move is now narrower than “build the brief composer” in the abstract:
+
+1. generate a concrete `improved_dispatch_brief.json` from `city_ops.dispatch_guidance_block.v1`
+2. require the brief to pass `assert_dispatch_guidance_parity(...)`
+3. add one scorecard axis proving `runtime_guidance_consumed_from_compact_decision`
+4. keep the conservative redirect anchor blocked from worker-copyable text
+5. only after that move to reuse / redispatch behavior proof
+
+Do not claim full runtime parity yet. This earns only **first dispatch guidance consumer wired through compact decision truth**.

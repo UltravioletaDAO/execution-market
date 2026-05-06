@@ -149,3 +149,17 @@ Recommended next runtime target:
 4. a parity test fails if the brief, pickup brief, ledger, or future export row disagree on promotion/tone/placement/copyability
 
 Only after that should the team connect Acontext as a sink/retrieval surface.
+
+## 8. 2026-05-06 follow-up — first dispatch guidance consumer now wired
+
+The next smallest proof from this doc has started. A local dispatch guidance consumer now exists:
+
+- `mcp_server/city_ops/dispatch_guidance.py`
+- `mcp_server/tests/city_ops/test_dispatch_guidance.py`
+- `docs/planning/CITY_AS_A_SERVICE_DISPATCH_GUIDANCE_CONSUMER_IMPLEMENTATION.md`
+
+The consumer emits `city_ops.dispatch_guidance_block.v1` only after `assert_carry_forward_integrity(...)` passes for the compact decision object, coordination ledger, and morning pickup brief.
+
+This proves one narrow runtime-convergence claim: dispatch guidance can consume the same compact decision truth without strengthening tone, placement, worker-copyability, dangerous drift axes, or anti-overclaim limits.
+
+It still does not prove full dispatch brief parity, reuse behavior, Acontext retrieval, closure-proof readiness, or UI parity.

@@ -565,3 +565,55 @@ The next build should not broaden templates or jump to Acontext. It should wire 
 5. future Acontext retrieval payload
 
 Until that exists, CaaS should claim **continuity packaging seed landed**, not runtime/reuse/closure proof.
+
+## 19. 2026-05-06 locked implementation addition — first dispatch guidance consumer from compact decision truth
+
+The continuity packaging seed is now followed by the first runtime-consumer seed:
+
+- `mcp_server/city_ops/dispatch_guidance.py`
+- `mcp_server/tests/city_ops/test_dispatch_guidance.py`
+- `docs/planning/CITY_AS_A_SERVICE_DISPATCH_GUIDANCE_CONSUMER_IMPLEMENTATION.md`
+
+This locks one additional decision:
+
+> dispatch guidance must consume the projection-owned compact decision object after carry-forward integrity passes; it may not re-derive tone, placement, copyability, or claim limits from raw replay artifacts.
+
+### 19.1 New local artifact
+
+- `city_ops.dispatch_guidance_block.v1`
+
+It preserves the same join fields:
+
+- `coordination_session_id`
+- `compact_decision_id`
+- `review_packet_id`
+- `proof_anchor_id`
+
+It also preserves the same policy fields:
+
+- `promotion_class`
+- guidance tone
+- guidance placement
+- copyable worker-instruction boundary
+- safe / not-safe claims
+- dangerous drift axes
+- next smallest proof
+
+### 19.2 New acceptance gate
+
+`assert_dispatch_guidance_parity(...)` is now the first code-level guard against runtime-consumer drift. It fails if the dispatch guidance consumer upgrades copyability, changes tone or placement, drops anti-overclaim claim limits, or diverges from the pickup brief.
+
+### 19.3 Updated next smallest proof
+
+The next build should connect the dispatch guidance block to a concrete improved dispatch brief and score the visible behavior change.
+
+Recommended next proof chain:
+
+1. compact decision object
+2. coordination ledger
+3. morning pickup brief
+4. dispatch guidance block
+5. improved dispatch brief
+6. baseline-vs-improved scorecard axis proving the brief consumed compact decision truth
+
+Until that exists, CaaS should claim **first dispatch guidance consumer wired**, not full runtime parity, reuse behavior, or closure-proof readiness.
