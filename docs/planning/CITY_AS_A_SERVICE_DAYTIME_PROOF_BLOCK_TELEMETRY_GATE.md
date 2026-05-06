@@ -1,13 +1,13 @@
 # City as a Service — Daytime Proof-Block Telemetry Gate
 
-> Last updated: 2026-05-04
+> Last updated: 2026-05-06
 > Parent docs:
 > - `CITY_AS_A_SERVICE_DAYTIME_REPLAY_PROOF_RUNBOOK.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_PROOF_BLOCK_SCOREBOARD_PROTOCOL.md`
 > - `CITY_AS_A_SERVICE_OBSERVABILITY_AND_SUCCESS_METRICS.md`
 > - `CITY_AS_A_SERVICE_DECISION_SUPPORT_CONTROL_PLANE.md`
 > - `CITY_AS_A_SERVICE_COMPACT_DECISION_OBJECT_AND_COORDINATION_LEDGER_SLICE.md`
-> Status: daytime proof/measurement closure gate
+> Status: daytime proof/measurement closure gate; first local code implementation landed in `mcp_server/city_ops/observability.py`
 
 ## 1. Why this doc exists
 
@@ -187,7 +187,18 @@ Any daytime seam that claims proof completeness should reference this gate along
 
 This keeps proof closure, continuity, and telemetry from drifting into separate interpretations.
 
-## 10. Sharp recommendation
+## 10. 2026-05-06 implementation note
+
+The first local gate implementation now exists:
+
+- `mcp_server/city_ops/observability.py`
+- `mcp_server/tests/city_ops/test_observability.py`
+- `CITY_AS_A_SERVICE_TELEMETRY_GATE_IMPLEMENTATION.md`
+
+The current honest proof label is `reuse_parity_landed + telemetry_gate_landed`.
+The implementation deliberately keeps `session_rebuild_ready=false` and `acontext_sink_ready=false` for the current proof anchor because the compact decision readiness still says those surfaces are not ready.
+
+## 11. Sharp recommendation
 
 **Do not let a proof block end at “scoreboards look good.”**
 

@@ -653,3 +653,34 @@ The next build should package the projection/runtime/reuse verdict into closure 
 6. closure-proof checklist result
 
 Until that exists, CaaS should claim **reuse_parity_landed**, not closure-proof readiness.
+
+## 21. 2026-05-06 locked implementation addition — proof-block telemetry gate
+
+The reuse behavior proof is now followed by a first compact telemetry gate implementation:
+
+- `mcp_server/city_ops/observability.py`
+- `mcp_server/tests/city_ops/test_observability.py`
+- `docs/planning/CITY_AS_A_SERVICE_TELEMETRY_GATE_IMPLEMENTATION.md`
+
+This locks one additional decision:
+
+> every replay-backed proof block needs one queryable telemetry row that joins decision truth, coordination/session continuity, reuse behavior, Acontext readiness, cross-project event portability, and anti-overclaim carry-forward without reinterpreting the underlying review.
+
+### 21.1 New local artifact
+
+- `city_ops.proof_block_telemetry_gate.v1`
+
+### 21.2 New acceptance gate
+
+`assert_proof_block_telemetry_gate(...)` now fails if telemetry tries to strengthen the compact decision readiness, drops claim limits, loses ledger event identity, or lets reuse observability and reuse behavior scoreboards disagree.
+
+### 21.3 Updated next smallest proof
+
+The next build should emit concrete fixture/export artifacts from this row:
+
+1. `proof_block_telemetry_gate.json` for `redirect_outdated_packet_001`
+2. session-rebuild preview from ledger + pickup + telemetry only
+3. Acontext export preview from compact, provenance-safe fields only
+4. readiness flips only after those consumers pass without semantic reinterpretation
+
+Until that exists, CaaS should claim **reuse_parity_landed + telemetry_gate_landed**, not closure-proof readiness, session-rebuild readiness, or Acontext sink readiness.

@@ -7,11 +7,13 @@ from .contracts import (
     ReadinessPosture,
 )
 from .decision_projection import project_compact_decision
+from .observability import build_proof_block_telemetry_gate
 
 __all__ = [
     "CityOpsContractError",
     "CompactDecisionObject",
     "CopyableWorkerInstruction",
     "ReadinessPosture",
+    "build_proof_block_telemetry_gate",
     "project_compact_decision",
 ]
