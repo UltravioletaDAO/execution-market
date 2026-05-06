@@ -1,7 +1,7 @@
 # City as a Service — Closure Preview Artifacts
 
-> Last updated: 2026-05-06 04:35 America/New_York  
-> Status: bounded local implementation landed  
+> Last updated: 2026-05-06 05:18 America/New_York  
+> Status: bounded local implementation + persisted preview fixtures landed  
 > Parent docs:
 > - `CITY_AS_A_SERVICE_TELEMETRY_GATE_IMPLEMENTATION.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_CLOSURE_PROOF_CHECKLIST.md`
@@ -10,13 +10,17 @@
 
 ## 1. What landed
 
-The CaaS proof ladder now has a bounded closure-preview layer:
+The CaaS proof ladder now has a bounded closure-preview layer plus persisted consumer fixtures:
 
 - `mcp_server/city_ops/closure.py`
 - `mcp_server/tests/city_ops/test_closure.py`
+- `mcp_server/city_ops/proof_block_artifacts.py`
+- `mcp_server/tests/city_ops/test_proof_block_artifacts.py`
 - `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/proof_block_telemetry_gate.json`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/session_rebuild_preview.json`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_export_preview.json`
 
-This does **not** claim full closure readiness. It proves the next consumers can read the proof block without reopening transcripts or reinterpreting municipal truth.
+This does **not** claim full closure readiness. It proves the next consumers can read persisted proof-block artifacts without reopening transcripts or reinterpreting municipal truth.
 
 ## 2. New schemas
 
@@ -110,14 +114,14 @@ It does not include raw transcripts, worker chat, private operator context, or u
 ```bash
 cd ~/clawd/projects/execution-market
 PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
-# 34 passed, 1 warning
+# 37 passed, 1 warning
 ```
 
 ## 7. Best next move
 
-The next daylight engineering slice should promote this from preview to real closure only after one consumer passes without reinterpretation:
+The next daylight engineering slice should promote this from persisted preview to real closure only after one consumer passes without reinterpretation:
 
-1. write the session preview and Acontext preview as deterministic JSON artifacts beside the telemetry gate fixture
-2. add a tiny CLI/script that regenerates all proof-block artifacts from the fixture pack
-3. add one replay test that fails if a consumer reads a forbidden source
+1. add one read-only session rebuild consumer over the persisted proof-block fixture set
+2. fail if any consumer source contract requires `raw_transcript`, `unreviewed_memory`, `freeform_worker_chat`, or `private_operator_context`
+3. prove the consumer preserves promotion class, tone, placement, claim limits, and worker-copyability boundaries
 4. only then consider flipping `session_rebuild_ready` or `export_ready` in the compact decision readiness posture

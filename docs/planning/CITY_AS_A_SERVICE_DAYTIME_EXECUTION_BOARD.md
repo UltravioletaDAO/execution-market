@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-06 04:40 America/New_York
+> Last updated: 2026-05-06 05:18 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -375,6 +375,7 @@ See also:
 - `CITY_AS_A_SERVICE_DAYTIME_FIRST_PROOF_ANCHOR_FREEZE_CONTRACT.md`
 - `CITY_AS_A_SERVICE_DAYTIME_PR_A_PROJECTION_TRUTH_HANDOFF.md`
 - `CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_05.md`
+- `CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_06.md`
 - `CITY_AS_A_SERVICE_COORDINATION_CARRY_FORWARD_MATRIX.md`
 - `CITY_AS_A_SERVICE_REPLAY_PROOF_REVIEW_PROTOCOL.md`
 
@@ -624,3 +625,41 @@ The best next implementation move is persisted closure artifact generation, not 
 4. only after that consider flipping compact decision readiness for session rebuild or export
 
 Do not claim `closure_proof_landed`, `session_rebuild_ready`, or `acontext_sink_ready` yet. This earns **reuse_parity_landed + telemetry_gate_landed + closure_preview_landed** only.
+
+## 15. 2026-05-06 5am pre-dawn synthesis update — persisted closure consumers
+
+The 5am synthesis again followed `~/clawd/DREAM-PRIORITIES.md` over stale cron instructions. Work stayed inside Execution Market AAS / City-as-a-Service.
+
+The next closure seam now exists:
+
+- `mcp_server/city_ops/proof_block_artifacts.py`
+- `mcp_server/tests/city_ops/test_proof_block_artifacts.py`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/session_rebuild_preview.json`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_export_preview.json`
+- `docs/planning/CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_06.md`
+
+The new regeneration command is:
+
+```bash
+cd ~/clawd/projects/execution-market
+PYTHONPATH=. python3 -m mcp_server.city_ops.proof_block_artifacts --write
+```
+
+New test gate:
+
+```bash
+cd ~/clawd/projects/execution-market
+PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
+# 37 passed, 1 warning
+```
+
+### 15.1 Daytime tie-breaker after this update
+
+The best next implementation move is now a real read-only session rebuild consumer over the persisted proof-block fixture set:
+
+1. read only the persisted telemetry gate, session rebuild preview, and Acontext export preview artifacts
+2. fail if any source contract requires `raw_transcript`, `unreviewed_memory`, `freeform_worker_chat`, or `private_operator_context`
+3. preserve the same promotion class, guidance tone, placement, claim limits, and worker-copyability boundary
+4. keep `session_rebuild_ready=false` and `acontext_sink_ready=false` until a real consumer/sink passes without reinterpretation
+
+Do not broaden to more templates or UI yet. This earns **reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted** only.

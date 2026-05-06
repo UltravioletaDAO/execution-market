@@ -1,0 +1,81 @@
+{
+  "compact_decision_id": "cdo_c51f4b767729",
+  "coordination_session_id": "city_session_redirect_outdated_packet_001",
+  "document_key": "redirect_outdated_packet_001",
+  "excluded_fields": [
+    "raw_transcript",
+    "unreviewed_memory",
+    "freeform_worker_chat",
+    "private_operator_context"
+  ],
+  "export_id": "acontext_export_preview:redirect_outdated_packet_001",
+  "export_status": "preview_only",
+  "namespace": "execution_market.city_ops.proof_blocks",
+  "next_smallest_proof": [
+    "wire runtime consumers through this compact decision object without strengthening trust semantics",
+    "one repeated redirect case needed before confident worker-copyable promotion"
+  ],
+  "preview_promotes_readiness": false,
+  "proof_anchor_id": "redirect_outdated_packet_001",
+  "provenance_safe_fields": {
+    "behavior_change_class": "routing_changed",
+    "copyable_worker_instruction": {
+      "allowed": false,
+      "reason": "Reviewed truth supports operator-visible routing/evidence guidance, but the guidance is not safe as direct worker-copyable instructions yet."
+    },
+    "guidance_placement": "operator_visible_before_worker_copy",
+    "guidance_tone": "cautionary_or_corrective",
+    "learning_strength": "cautionary",
+    "memory_promotion_decision": "promote_conservative_delta",
+    "not_safe_to_claim": [
+      "runtime_parity_proven",
+      "reuse_behavior_proven",
+      "closure_proof_ready"
+    ],
+    "promotion_class": "conservative_memory_delta",
+    "provenance_refs": {
+      "proof_anchor_freeze_note": "mcp_server/city_ops/fixtures/proof_anchors/redirect_outdated_packet_001/proof_anchor_freeze_note.json",
+      "review_packet": "mcp_server/city_ops/fixtures/city_ops_review_cases/redirect_outdated_packet_001.json",
+      "source_fixture": "mcp_server/city_ops/fixtures/city_ops_review_cases/redirect_outdated_packet_001.json"
+    },
+    "safe_to_claim": [
+      "projection_truth_landed",
+      "reuse_parity_landed"
+    ],
+    "source_episode_ids": [
+      "reviewed_episode_redirect_outdated_packet_001"
+    ],
+    "summary_judgment": "Reviewed municipal reality invalidated the old packet path; the next dispatch must warn the operator before worker-copyable instructions are issued.",
+    "supported_behavior_change_reason": [
+      "prior reviewed redirect episode reused",
+      "dispatch routing guidance changed while staying operator-visible",
+      "worker-copyable block excluded cautious municipal doctrine"
+    ],
+    "telemetry_verdict": "reuse_parity_landed"
+  },
+  "readiness": {
+    "decision": {
+      "continuity_ready": true,
+      "export_ready": false,
+      "operator_surface_ready": true,
+      "session_rebuild_ready": false
+    },
+    "telemetry_acontext_sink_ready": false
+  },
+  "review_packet_id": "review_packet_redirect_outdated_packet_001",
+  "schema": "city_ops.acontext_export_preview.v1",
+  "source_read_contract": {
+    "allowed_sources": [
+      "compact_decision_object",
+      "morning_pickup_brief",
+      "proof_block_telemetry_gate"
+    ],
+    "forbidden_sources": [
+      "raw_transcript",
+      "unreviewed_memory",
+      "freeform_worker_chat",
+      "private_operator_context"
+    ],
+    "raw_transcript_required": false
+  }
+}

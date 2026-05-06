@@ -1,7 +1,7 @@
 # City as a Service — Morning Brief (2026-05-06)
 
-> Last updated: 2026-05-06 04:40 America/New_York  
-> Status: dream-session handoff in progress
+> Last updated: 2026-05-06 05:18 America/New_York  
+> Status: pre-dawn handoff ready
 
 ## 1. What was accomplished tonight so far
 
@@ -14,17 +14,26 @@ Execution Market City-as-a-Service advanced through four compact implementation 
 3. **Reuse behavior proof** — compact decision -> reuse event, worker-instruction block, observability row, and reuse behavior scoreboard.
 4. **Telemetry gate** — compact decision + ledger + pickup + reuse scoreboard -> one queryable proof-block gate row for observability, session rebuild review, Acontext readiness review, and cross-project decision support.
 5. **Closure preview** — concrete telemetry fixture + bounded session-rebuild and Acontext export previews that read only approved compact artifacts and forbid transcript/unreviewed-memory dependence.
+6. **Persisted closure consumers** — deterministic generator + persisted `session_rebuild_preview.json` and `acontext_export_preview.json` fixtures beside the telemetry gate.
 
 ## 2. Latest concrete output
 
-The newest 4am slice landed:
+The newest 5am synthesis slice landed:
 
-- `mcp_server/city_ops/closure.py`
-- `mcp_server/tests/city_ops/test_closure.py`
-- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/proof_block_telemetry_gate.json`
-- `docs/planning/CITY_AS_A_SERVICE_CLOSURE_PREVIEW_ARTIFACTS.md`
+- `mcp_server/city_ops/proof_block_artifacts.py`
+- `mcp_server/tests/city_ops/test_proof_block_artifacts.py`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/session_rebuild_preview.json`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_export_preview.json`
+- `docs/planning/CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_06.md`
 
-It introduces:
+It adds a tiny deterministic regeneration command:
+
+```bash
+cd ~/clawd/projects/execution-market
+PYTHONPATH=. python3 -m mcp_server.city_ops.proof_block_artifacts --write
+```
+
+The 4am closure-preview schemas remain the consumer contracts:
 
 - `city_ops.session_rebuild_preview.v1`
 - `city_ops.acontext_export_preview.v1`
@@ -57,14 +66,14 @@ That is exactly the right posture for a first municipal redirect/rejection learn
 ```bash
 cd ~/clawd/projects/execution-market
 PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
-# 34 passed, 1 warning
+# 37 passed, 1 warning
 ```
 
 ## 5. Honest progress label
 
 Use this label now:
 
-- `reuse_parity_landed + telemetry_gate_landed + closure_preview_landed`
+- `reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted`
 
 Do **not** yet use:
 
@@ -74,11 +83,11 @@ Do **not** yet use:
 
 ## 6. Best next move
 
-The next build should turn the previews into persisted closure consumers:
+The next build should turn the persisted previews into a real read-only closure consumer:
 
-1. write `session_rebuild_preview.json` and `acontext_export_preview.json` fixtures beside the telemetry gate fixture
-2. add a tiny regeneration script/CLI for the full proof-block artifact set
-3. add a replay test that fails if any consumer reads forbidden sources (`raw_transcript`, `unreviewed_memory`, `freeform_worker_chat`, `private_operator_context`)
-4. flip readiness only after those persisted consumers pass without semantic reinterpretation
+1. add one session rebuild consumer that reads only `proof_block_telemetry_gate.json`, `session_rebuild_preview.json`, and `acontext_export_preview.json`
+2. fail if any source contract requires `raw_transcript`, `unreviewed_memory`, `freeform_worker_chat`, or `private_operator_context`
+3. prove the consumer preserves promotion class, tone, placement, claim limits, and worker-copyability boundaries
+4. flip readiness only after that consumer passes without semantic reinterpretation
 
 That is now the smallest path to an honest first CaaS closure-proof block.

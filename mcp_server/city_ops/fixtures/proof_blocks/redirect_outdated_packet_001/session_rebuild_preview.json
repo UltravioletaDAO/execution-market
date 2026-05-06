@@ -1,0 +1,67 @@
+{
+  "compact_decision_id": "cdo_c51f4b767729",
+  "coordination_session_id": "city_session_redirect_outdated_packet_001",
+  "ledger_event_names": [
+    "city_compact_decision_projected",
+    "city_session_rebuild_checkpoint_written"
+  ],
+  "next_smallest_proof": [
+    "wire runtime consumers through this compact decision object without strengthening trust semantics",
+    "one repeated redirect case needed before confident worker-copyable promotion"
+  ],
+  "not_safe_to_claim": [
+    "runtime_parity_proven",
+    "reuse_behavior_proven",
+    "closure_proof_ready"
+  ],
+  "preview_id": "session_rebuild_preview:redirect_outdated_packet_001",
+  "preview_verdict": "bounded_preview_only",
+  "promotion": {
+    "copyable_worker_instruction": {
+      "allowed": false,
+      "reason": "Reviewed truth supports operator-visible routing/evidence guidance, but the guidance is not safe as direct worker-copyable instructions yet."
+    },
+    "guidance_placement": "operator_visible_before_worker_copy",
+    "guidance_tone": "cautionary_or_corrective",
+    "promotion_class": "conservative_memory_delta"
+  },
+  "proof_anchor_id": "redirect_outdated_packet_001",
+  "readiness": {
+    "decision": {
+      "continuity_ready": true,
+      "export_ready": false,
+      "operator_surface_ready": true,
+      "session_rebuild_ready": false
+    },
+    "preview_promotes_readiness": false,
+    "telemetry_session_rebuild_ready": false
+  },
+  "rebuild_order": [
+    "coordination_ledger",
+    "dispatch_brief",
+    "review_packet",
+    "event_summary",
+    "morning_pickup_brief"
+  ],
+  "review_packet_id": "review_packet_redirect_outdated_packet_001",
+  "safe_to_claim": [
+    "projection_truth_landed",
+    "reuse_parity_landed"
+  ],
+  "schema": "city_ops.session_rebuild_preview.v1",
+  "source_read_contract": {
+    "allowed_sources": [
+      "coordination_ledger",
+      "morning_pickup_brief",
+      "proof_block_telemetry_gate"
+    ],
+    "forbidden_sources": [
+      "raw_transcript",
+      "unreviewed_memory",
+      "freeform_worker_chat",
+      "private_operator_context"
+    ],
+    "raw_transcript_required": false
+  },
+  "telemetry_verdict": "reuse_parity_landed"
+}

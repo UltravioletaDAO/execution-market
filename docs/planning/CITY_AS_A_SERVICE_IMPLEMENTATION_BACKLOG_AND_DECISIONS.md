@@ -1,6 +1,6 @@
 # City as a Service — Implementation Backlog and Decision Ledger
 
-> Last updated: 2026-05-06 04:40 America/New_York
+> Last updated: 2026-05-06 05:18 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_IMPLEMENTATION_SLICE_V1.md`
@@ -710,11 +710,40 @@ This locks one additional decision:
 
 ### 22.3 Updated next smallest proof
 
-The next build should persist and regenerate the full proof-block artifact set:
+The next build was completed in the 5am synthesis: deterministic `session_rebuild_preview.json` and `acontext_export_preview.json` fixtures now sit beside the telemetry gate fixture, and `mcp_server.city_ops.proof_block_artifacts --write` regenerates the persisted set.
 
-1. write deterministic `session_rebuild_preview.json` and `acontext_export_preview.json` fixtures beside the telemetry gate fixture
-2. add a tiny regeneration script/CLI for the proof-block fixture set
-3. add a replay test that fails if a consumer reads forbidden sources
+The next smallest proof is now a read-only consumer over those persisted artifacts:
+
+1. read only `proof_block_telemetry_gate.json`, `session_rebuild_preview.json`, and `acontext_export_preview.json`
+2. fail if any source contract requires `raw_transcript`, `unreviewed_memory`, `freeform_worker_chat`, or `private_operator_context`
+3. prove promotion class, tone, placement, claim limits, and worker-copyability boundaries survive the consumer unchanged
 4. flip `session_rebuild_ready` / `export_ready` only after real persisted consumers pass without reinterpretation
 
-Until that exists, CaaS should claim **reuse_parity_landed + telemetry_gate_landed + closure_preview_landed**, not closure-proof readiness.
+CaaS should now claim **reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted**, not closure-proof readiness.
+
+## 23. 2026-05-06 5am persisted closure-consumer generator
+
+New files:
+
+- `mcp_server/city_ops/proof_block_artifacts.py`
+- `mcp_server/tests/city_ops/test_proof_block_artifacts.py`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/session_rebuild_preview.json`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_export_preview.json`
+- `docs/planning/CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_06.md`
+
+New command:
+
+```bash
+cd ~/clawd/projects/execution-market
+PYTHONPATH=. python3 -m mcp_server.city_ops.proof_block_artifacts --write
+```
+
+New gate:
+
+```bash
+cd ~/clawd/projects/execution-market
+PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
+# 37 passed, 1 warning
+```
+
+Decision: persisted previews still cannot promote readiness. They are allowed to make closure consumers deterministic; they are not allowed to claim `session_rebuild_ready`, `acontext_sink_ready`, or worker-copyable municipal doctrine.
