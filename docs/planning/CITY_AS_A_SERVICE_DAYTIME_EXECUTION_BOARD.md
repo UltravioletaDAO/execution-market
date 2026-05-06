@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-01
+> Last updated: 2026-05-05 23:45 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -88,6 +88,8 @@ The planning stack now also includes:
 - `CITY_AS_A_SERVICE_DAYTIME_FIRST_PROOF_ANCHOR_FREEZE_CONTRACT.md`
 - `CITY_AS_A_SERVICE_DAYTIME_PR_A_PROJECTION_TRUTH_HANDOFF.md`
 - `CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_05.md`
+- `mcp_server/city_ops/decision_projection.py`
+- `mcp_server/tests/city_ops/test_decision_projection.py`
 
 This doc closes one daylight ambiguity that the earlier planning set still left too loose:
 - the exact artifact reading order for replay-proof PRs
@@ -347,6 +349,15 @@ A stronger tie-breaker now exists for the next coding window too:
 - freeze that anchor in a durable proof-anchor note before coding starts
 - start PR A from the projection-truth handoff so it lands only the shared owner + compact decision object claim
 - advance only when each rung has earned its allowed claim and checkpoint
+
+Implementation seed now exists for the first PR A rung:
+- `mcp_server/city_ops/contracts.py` defines projection-owned enums and compact decision object shape
+- `mcp_server/city_ops/decision_projection.py` projects one reviewed packet + one freeze note into the compact object
+- `mcp_server/city_ops/fixtures/city_ops_review_cases/redirect_outdated_packet_001.json` is the first replay-backed redirect/rejection anchor packet
+- `mcp_server/city_ops/fixtures/proof_anchors/redirect_outdated_packet_001/proof_anchor_freeze_note.json` freezes the drift axes and conservative expectations
+- `mcp_server/tests/city_ops/test_decision_projection.py` proves deterministic output, loud enum/field failures, freeze expectation drift detection, and carried drift axes
+
+Do not let daytime treat this as runtime parity. It earns only `projection_truth_landed`; PR B still has to wire runtime consumers through the same compact object without strengthening trust semantics.
 
 See also:
 - `CITY_AS_A_SERVICE_DECISION_PROJECTION_IMPLEMENTATION_SLICE.md`

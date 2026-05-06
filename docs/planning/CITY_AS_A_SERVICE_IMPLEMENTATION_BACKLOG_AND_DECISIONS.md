@@ -1,6 +1,6 @@
 # City as a Service — Implementation Backlog and Decision Ledger
 
-> Last updated: 2026-05-01
+> Last updated: 2026-05-05 23:45 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_IMPLEMENTATION_SLICE_V1.md`
@@ -88,6 +88,13 @@ Deliverables:
 
 Why first:
 Without fixture-backed contracts, UI and projector work will drift.
+
+Current PR A seed landed:
+- `mcp_server/city_ops/contracts.py` now owns the first compact decision object, promotion/tone/placement enums, readiness posture, and copyability boundary.
+- `mcp_server/city_ops/decision_projection.py` turns a reviewed packet plus frozen proof-anchor note into one deterministic compact decision object.
+- The first anchor is `redirect_outdated_packet_001`, intentionally conservative: it may promote an operator-visible memory delta, but may not become direct worker-copyable instruction yet.
+- `python3 -m pytest tests/city_ops -q` currently passes from `mcp_server/` and should stay as the PR A gate before runtime parity work starts.
+
 
 ### Phase 2 — review normalizer
 Deliverables:

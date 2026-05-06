@@ -1,0 +1,18 @@
+{
+  "schema": "city_ops.review_packet.v1",
+  "review_packet_id": "review_packet_redirect_outdated_packet_001",
+  "coordination_session_id": "city_session_redirect_outdated_packet_001",
+  "source_fixture": "mcp_server/city_ops/fixtures/city_ops_review_cases/redirect_outdated_packet_001.json",
+  "artifact_path": "mcp_server/city_ops/fixtures/city_ops_review_cases/redirect_outdated_packet_001.json",
+  "reviewed_outcome_class": "redirect_or_reject",
+  "summary_judgment": "Reviewed municipal reality invalidated the old packet path; the next dispatch must warn the operator before worker-copyable instructions are issued.",
+  "learning_strength": "cautionary",
+  "memory_promotion_decision": "promote_conservative_delta",
+  "source_episode_ids": [
+    "reviewed_episode_redirect_outdated_packet_001"
+  ],
+  "copyability_reason": "Reviewed truth supports operator-visible routing/evidence guidance, but the guidance is not safe as direct worker-copyable instructions yet.",
+  "next_smallest_proof": [
+    "wire runtime consumers through this compact decision object without strengthening trust semantics"
+  ]
+}

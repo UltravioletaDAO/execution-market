@@ -1,0 +1,52 @@
+{
+  "schema": "city_ops.proof_anchor_freeze_note.v1",
+  "anchor_id": "redirect_outdated_packet_001",
+  "source_fixture": "mcp_server/city_ops/fixtures/city_ops_review_cases/redirect_outdated_packet_001.json",
+  "artifact_path": "mcp_server/city_ops/fixtures/proof_anchors/redirect_outdated_packet_001/proof_anchor_freeze_note.json",
+  "proof_anchor_freeze_note": "mcp_server/city_ops/fixtures/proof_anchors/redirect_outdated_packet_001/proof_anchor_freeze_note.json",
+  "selected_at": "2026-05-05T23:30:00-04:00",
+  "selected_for_ladder": "first_shared_decision_projection",
+  "case_family": "redirect",
+  "reviewed_outcome_class": "redirect_or_reject",
+  "expected_behavior_change": {
+    "class": "routing_or_evidence_guidance_change",
+    "plain_language": "The next dispatch should route or instruct differently because reviewed municipal reality proved the old path was wrong or unsafe."
+  },
+  "compact_decision_expectations": {
+    "promotion_class": "conservative_memory_delta",
+    "guidance_tone": "cautionary_or_corrective",
+    "guidance_placement": "operator_visible_before_worker_copy",
+    "copyable_worker_instruction": "limited_by_reviewed_truth",
+    "replay_readiness_judgment": "ready_for_projection_rung_only"
+  },
+  "dangerous_drift_axes": [
+    "trust_inflation",
+    "worker_copyability_overreach",
+    "runtime_consumer_stronger_than_projection",
+    "pickup_brief_optimism",
+    "reuse_claim_without_behavior_change"
+  ],
+  "runner_up_rejected": {
+    "source_fixture": "mcp_server/city_ops/fixtures/city_ops_review_cases/clean_acceptance_runner_up.json",
+    "reason": "Less useful for proving inspectable next-dispatch behavior change in the first ladder."
+  },
+  "freeze_invariants": [
+    "same anchor_id across PR A through PR D",
+    "same reviewed_outcome_class unless fixture is declared invalid",
+    "same expected_behavior_change class across parity and reuse scoreboards",
+    "same dangerous_drift_axes carried into telemetry and pickup packaging",
+    "no consumer may claim stronger trust than the compact decision projection"
+  ],
+  "allowed_to_change": [
+    "field names during PR A if schema review requires it",
+    "artifact path if implementation chooses a different replay bundle root",
+    "runner-up note if a better rejected candidate is discovered before PR A starts"
+  ],
+  "requires_reselection_if": [
+    "fixture cannot produce a deterministic compact decision object",
+    "expected behavior change is only cosmetic",
+    "case requires transcript rereads to understand",
+    "PR B or PR C needs a different case to demonstrate its checkpoint",
+    "dangerous drift axes are too broad to localize"
+  ]
+}
