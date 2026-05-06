@@ -1,8 +1,9 @@
 # City as a Service — Morning Brief (2026-05-06)
 
-> Last updated: 2026-05-06 06:00 America/New_York  
-> Status: final morning handoff ready  
-> Final packet: `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_06.md`
+> Last updated: 2026-05-06 07:00 America/New_York  
+> Status: final morning handoff plus 7am consumer continuation ready  
+> Final packet: `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_06.md`  
+> 7am continuation: `CITY_AS_A_SERVICE_SESSION_REBUILD_CONSUMER_IMPLEMENTATION.md`
 
 ## 1. What was accomplished tonight so far
 
@@ -17,16 +18,21 @@ Execution Market City-as-a-Service advanced through four compact implementation 
 5. **Closure preview** — concrete telemetry fixture + bounded session-rebuild and Acontext export previews that read only approved compact artifacts and forbid transcript/unreviewed-memory dependence.
 6. **Persisted closure consumers** — deterministic generator + persisted `session_rebuild_preview.json` and `acontext_export_preview.json` fixtures beside the telemetry gate.
 7. **Final morning handoff** — consolidated the full night into `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_06.md`, including accomplishment-vs-plan, ecosystem positioning, repo continuity, and the smallest daytime next move.
+8. **Read-only session rebuild consumer** — added a real consumer bundle over persisted proof-block fixtures that fails on forbidden source dependence, semantic strengthening, claim-limit drift, or readiness overclaim.
 
 ## 2. Latest concrete output
 
-The newest 5am synthesis slice landed:
+The newest 7am continuation slice landed:
 
-- `mcp_server/city_ops/proof_block_artifacts.py`
-- `mcp_server/tests/city_ops/test_proof_block_artifacts.py`
+- `mcp_server/city_ops/session_rebuild_consumer.py`
+- `mcp_server/tests/city_ops/test_session_rebuild_consumer.py`
+- `docs/planning/CITY_AS_A_SERVICE_SESSION_REBUILD_CONSUMER_IMPLEMENTATION.md`
+
+It consumes the persisted 5am proof-block fixture set:
+
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/proof_block_telemetry_gate.json`
 - `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/session_rebuild_preview.json`
 - `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_export_preview.json`
-- `docs/planning/CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_06.md`
 
 It adds a tiny deterministic regeneration command:
 
@@ -68,14 +74,14 @@ That is exactly the right posture for a first municipal redirect/rejection learn
 ```bash
 cd ~/clawd/projects/execution-market
 PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
-# 37 passed, 1 warning
+# 43 passed, 1 warning
 ```
 
 ## 5. Honest progress label
 
 Use this label now:
 
-- `reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted`
+- `reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed`
 
 Do **not** yet use:
 
@@ -85,13 +91,11 @@ Do **not** yet use:
 
 ## 6. Best next move
 
-The final 6am handoff keeps the next move intentionally smaller than a broad closure push.
+The next build should stay smaller than a broad closure push:
 
-The next build should turn the persisted previews into a real read-only closure consumer:
-
-1. add one session rebuild consumer that reads only `proof_block_telemetry_gate.json`, `session_rebuild_preview.json`, and `acontext_export_preview.json`
-2. fail if any source contract requires `raw_transcript`, `unreviewed_memory`, `freeform_worker_chat`, or `private_operator_context`
-3. prove the consumer preserves promotion class, tone, placement, claim limits, and worker-copyability boundaries
-4. flip readiness only after that consumer passes without semantic reinterpretation
+1. emit one read-only rebuild report/debug fixture from `city_ops.session_rebuild_consumer_bundle.v1`
+2. keep that report inspectable by a thin UI/debug surface without reinterpreting semantics
+3. then test Acontext as transport only: write/retrieve the same consumer bundle and prove promotion class, tone, placement, claim limits, and worker-copyability boundaries survive unchanged
+4. flip readiness only after a real rebuild/sink path passes without semantic reinterpretation
 
 That is now the smallest path to an honest first CaaS closure-proof block.

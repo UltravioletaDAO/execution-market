@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-06 06:00 America/New_York
+> Last updated: 2026-05-06 07:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -90,6 +90,7 @@ The planning stack now also includes:
 - `CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_05.md`
 - `CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_06.md`
 - `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_06.md`
+- `CITY_AS_A_SERVICE_SESSION_REBUILD_CONSUMER_IMPLEMENTATION.md`
 - `mcp_server/city_ops/decision_projection.py`
 - `mcp_server/tests/city_ops/test_decision_projection.py`
 
@@ -667,3 +668,45 @@ The best next implementation move is now a real read-only session rebuild consum
 4. keep `session_rebuild_ready=false` and `acontext_sink_ready=false` until a real consumer/sink passes without reinterpretation
 
 Do not broaden to more templates or UI yet. This earns **reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted** only.
+
+## 16. 2026-05-06 7am implementation update — read-only session rebuild consumer
+
+The 7am dream session again read `~/clawd/DREAM-PRIORITIES.md` first and stayed inside Execution Market AAS / City-as-a-Service. No stopped project work was done.
+
+The next closure-consumer seam now exists:
+
+- `mcp_server/city_ops/session_rebuild_consumer.py`
+- `mcp_server/tests/city_ops/test_session_rebuild_consumer.py`
+- `docs/planning/CITY_AS_A_SERVICE_SESSION_REBUILD_CONSUMER_IMPLEMENTATION.md`
+
+This adds a real read-only consumer bundle:
+
+```text
+city_ops.session_rebuild_consumer_bundle.v1
+```
+
+It reads only the persisted proof-block fixture set:
+
+1. `proof_block_telemetry_gate.json`
+2. `session_rebuild_preview.json`
+3. `acontext_export_preview.json`
+
+It fails if the persisted artifacts need forbidden sources, drift on join fields, drop claim limits, strengthen tone/placement/promotion class, mark cautious learning worker-copyable, or promote readiness from preview state.
+
+New test gate:
+
+```bash
+cd ~/clawd/projects/execution-market
+PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
+# 43 passed, 1 warning
+```
+
+### 16.1 Daytime tie-breaker after this update
+
+The honest label is now:
+
+```text
+reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed
+```
+
+The next smallest proof is a read-only rebuild report/debug fixture emitted from this consumer bundle. Do **not** flip `session_rebuild_ready`, `acontext_sink_ready`, or worker-copyable doctrine yet; those require a live rebuild/sink pass that preserves the same boundaries without semantic reinterpretation.

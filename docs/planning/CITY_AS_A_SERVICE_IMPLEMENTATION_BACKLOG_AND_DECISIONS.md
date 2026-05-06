@@ -1,6 +1,6 @@
 # City as a Service — Implementation Backlog and Decision Ledger
 
-> Last updated: 2026-05-06 06:00 America/New_York
+> Last updated: 2026-05-06 07:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_IMPLEMENTATION_SLICE_V1.md`
@@ -92,9 +92,9 @@ Without fixture-backed contracts, UI and projector work will drift.
 Current proof-ladder seed landed:
 - `mcp_server/city_ops/contracts.py` owns the first compact decision object, promotion/tone/placement enums, readiness posture, and copyability boundary.
 - `mcp_server/city_ops/decision_projection.py` turns a reviewed packet plus frozen proof-anchor note into one deterministic compact decision object.
-- `mcp_server/city_ops/coordination.py`, `dispatch_guidance.py`, `reuse.py`, `observability.py`, `closure.py`, and `proof_block_artifacts.py` now carry the first anchor through continuity, runtime guidance, reuse, telemetry, bounded preview, and persisted proof-block fixtures.
+- `mcp_server/city_ops/coordination.py`, `dispatch_guidance.py`, `reuse.py`, `observability.py`, `closure.py`, `proof_block_artifacts.py`, and `session_rebuild_consumer.py` now carry the first anchor through continuity, runtime guidance, reuse, telemetry, bounded preview, persisted proof-block fixtures, and one read-only rebuild consumer.
 - The first anchor is `redirect_outdated_packet_001`, intentionally conservative: it may promote an operator-visible memory delta, but may not become direct worker-copyable instruction yet.
-- `PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q` passes with 37 tests and should stay as the PR #108 gate before closure-consumer work starts.
+- `PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q` passes with 43 tests and should stay as the PR #108 gate before the next rebuild-report or Acontext-sink seam starts.
 
 
 ### Phase 2 — review normalizer
@@ -145,11 +145,12 @@ Deliverables:
 Why last:
 By then the team is swapping plumbing, not redesigning product meaning.
 
-Final 2026-05-06 morning handoff:
-- `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_06.md` is the current day/night coordination packet.
-- Honest label: `reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted`.
-- Immediate next build: one read-only session rebuild consumer over the persisted proof-block fixture set.
-- Still blocked/false until proven by real consumers: `closure_proof_landed`, `session_rebuild_ready`, `acontext_sink_ready`, and worker-copyable municipal doctrine.
+Final 2026-05-06 morning handoff plus 7am continuation:
+- `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_06.md` is the 6am coordination packet.
+- `CITY_AS_A_SERVICE_SESSION_REBUILD_CONSUMER_IMPLEMENTATION.md` is the 7am closure-consumer implementation note.
+- Honest label: `reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed`.
+- Immediate next build: emit one read-only rebuild report/debug fixture from the consumer bundle, then test an Acontext write/retrieve transport pass without semantic strengthening.
+- Still blocked/false until proven by real consumers/sinks: `closure_proof_landed`, `session_rebuild_ready`, `acontext_sink_ready`, and worker-copyable municipal doctrine.
 
 ## 5. The minimum viable artifact chain
 
