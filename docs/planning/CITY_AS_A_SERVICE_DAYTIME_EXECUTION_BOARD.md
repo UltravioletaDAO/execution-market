@@ -432,3 +432,40 @@ That handoff seam now also needs one explicit carry-forward join check across pi
 See `CITY_AS_A_SERVICE_COORDINATION_CARRY_FORWARD_MATRIX.md`.
 
 That keeps the handoff seam as disciplined as the replay seam itself.
+
+## 11. 2026-05-06 midnight implementation update — coordination ledger and pickup brief seed
+
+The stale cron body again listed AutoJob, Frontier Academy, and KK v2, but `~/clawd/DREAM-PRIORITIES.md` overrode it. Work stayed inside Execution Market AAS / City-as-a-Service.
+
+A narrow PR-B-style continuity seed now exists after the PR-A compact decision projection helper:
+
+- `mcp_server/city_ops/coordination.py`
+- `mcp_server/tests/city_ops/test_coordination.py`
+- `docs/planning/CITY_AS_A_SERVICE_COORDINATION_LEDGER_AND_PICKUP_BRIEF_IMPLEMENTATION.md`
+
+This adds local-first packaging from one `CompactDecisionObject` into:
+
+1. `city_ops.coordination_ledger_event.v1` rows
+2. `city_ops.morning_pickup_brief.v1`
+3. `assert_carry_forward_integrity(...)`
+
+The important implementation rule is that these artifacts derive from the same compact decision object and may not strengthen trust semantics. The redirect/outdated-packet proof anchor remains conservative: it can produce operator-visible guidance and continuity packaging, but it still cannot claim runtime parity, reuse behavior, Acontext retrieval parity, or closure-proof readiness.
+
+New test gate:
+
+```bash
+cd ~/clawd/projects/execution-market/mcp_server
+python3 -m pytest tests/city_ops -q
+# 11 passed, 1 warning
+```
+
+### 11.1 Daytime tie-breaker after this update
+
+If daytime has one implementation window, the best next move is now:
+
+1. keep the compact decision object as the only promotion/tone/placement owner
+2. wire one deterministic dispatch-brief consumer through it
+3. require the brief, pickup brief, ledger rows, and future export/observability row to pass one carry-forward integrity/parity check
+4. only then add Acontext as a sink/retrieval surface
+
+Do not treat the new ledger/pickup implementation as a UI or reuse proof. It is a continuity packaging proof only.

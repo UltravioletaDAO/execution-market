@@ -514,3 +514,54 @@ A new execution-order bridge now makes that daytime move crisper too:
 - `CITY_AS_A_SERVICE_DAYTIME_FIRST_PR_EXECUTION_LADDER.md`
 
 That ladder closes the remaining ambiguity between PR splitting, PR review, and closure-proof packaging by defining exactly when daytime may honestly advance from projection truth to runtime convergence to reuse convergence to closure-safe proof.
+
+## 18. 2026-05-06 locked implementation addition — continuity packaging from compact decision truth
+
+The first compact decision projection seed is now followed by a small continuity packaging seed:
+
+- `mcp_server/city_ops/coordination.py`
+- `mcp_server/tests/city_ops/test_coordination.py`
+- `docs/planning/CITY_AS_A_SERVICE_COORDINATION_LEDGER_AND_PICKUP_BRIEF_IMPLEMENTATION.md`
+
+This locks one additional decision:
+
+> coordination ledger rows and morning pickup briefs must be generated from the projection-owned compact decision object, not from independently re-derived review semantics.
+
+### 18.1 New local artifacts
+
+- `city_ops.coordination_ledger_event.v1`
+- `city_ops.morning_pickup_brief.v1`
+
+Both carry the same join fields:
+
+- `coordination_session_id`
+- `compact_decision_id`
+- `review_packet_id`
+- `proof_anchor_id`
+
+Both preserve the same policy fields:
+
+- `memory_promotion_decision`
+- `promotion_class`
+- `guidance_tone`
+- `guidance_placement`
+- copyable worker-instruction boundary
+- readiness posture
+- dangerous drift axes
+- safe / not-safe claims
+
+### 18.2 New acceptance gate
+
+`assert_carry_forward_integrity(...)` is now the first code-level guard against continuity drift. It fails if the ledger or pickup brief drops/changes compact decision truth, including guidance tone, placement, dangerous drift axes, or anti-overclaim boundaries.
+
+### 18.3 Updated next smallest proof
+
+The next build should not broaden templates or jump to Acontext. It should wire one deterministic runtime consumer through the same compact decision object and prove semantic parity across:
+
+1. dispatch brief
+2. coordination ledger
+3. morning pickup brief
+4. future export / observability row
+5. future Acontext retrieval payload
+
+Until that exists, CaaS should claim **continuity packaging seed landed**, not runtime/reuse/closure proof.
