@@ -6,6 +6,7 @@ from .contracts import (
     CopyableWorkerInstruction,
     ReadinessPosture,
 )
+from .closure import build_acontext_export_preview, build_session_rebuild_preview
 from .decision_projection import project_compact_decision
 from .observability import build_proof_block_telemetry_gate
 
@@ -14,6 +15,8 @@ __all__ = [
     "CompactDecisionObject",
     "CopyableWorkerInstruction",
     "ReadinessPosture",
+    "build_acontext_export_preview",
     "build_proof_block_telemetry_gate",
+    "build_session_rebuild_preview",
     "project_compact_decision",
 ]

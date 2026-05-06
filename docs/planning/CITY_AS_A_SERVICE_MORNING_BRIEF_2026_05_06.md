@@ -1,6 +1,6 @@
 # City as a Service — Morning Brief (2026-05-06)
 
-> Last updated: 2026-05-06 03:55 America/New_York  
+> Last updated: 2026-05-06 04:40 America/New_York  
 > Status: dream-session handoff in progress
 
 ## 1. What was accomplished tonight so far
@@ -13,31 +13,33 @@ Execution Market City-as-a-Service advanced through four compact implementation 
 2. **Runtime consumer** — compact decision + carry-forward integrity -> dispatch guidance block.
 3. **Reuse behavior proof** — compact decision -> reuse event, worker-instruction block, observability row, and reuse behavior scoreboard.
 4. **Telemetry gate** — compact decision + ledger + pickup + reuse scoreboard -> one queryable proof-block gate row for observability, session rebuild review, Acontext readiness review, and cross-project decision support.
+5. **Closure preview** — concrete telemetry fixture + bounded session-rebuild and Acontext export previews that read only approved compact artifacts and forbid transcript/unreviewed-memory dependence.
 
 ## 2. Latest concrete output
 
-The newest 3am slice landed:
+The newest 4am slice landed:
 
-- `mcp_server/city_ops/observability.py`
-- `mcp_server/tests/city_ops/test_observability.py`
-- `docs/planning/CITY_AS_A_SERVICE_TELEMETRY_GATE_IMPLEMENTATION.md`
+- `mcp_server/city_ops/closure.py`
+- `mcp_server/tests/city_ops/test_closure.py`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/proof_block_telemetry_gate.json`
+- `docs/planning/CITY_AS_A_SERVICE_CLOSURE_PREVIEW_ARTIFACTS.md`
 
 It introduces:
+
+- `city_ops.session_rebuild_preview.v1`
+- `city_ops.acontext_export_preview.v1`
+- `build_session_rebuild_preview(...)`
+- `build_acontext_export_preview(...)`
+
+The previous 3am telemetry gate remains the join point:
 
 - `city_ops.proof_block_telemetry_gate.v1`
 - `build_proof_block_telemetry_gate(...)`
 - `assert_proof_block_telemetry_gate(...)`
 
-The gate joins the prior reuse outputs:
-
-- `city_ops.reuse_event.v1`
-- `city_ops.worker_instruction_block.v1`
-- `city_ops.reuse_observability_row.v1`
-- `city_ops.reuse_behavior_scoreboard.v1`
-
 ## 3. Main product insight
 
-The proof ladder has moved from “we preserved artifacts” to “we can prove prior reviewed municipal learning changed the next dispatch for the right reason.”
+The proof ladder has moved from “we preserved artifacts” to “we can prove prior reviewed municipal learning changed the next dispatch for the right reason, and package that proof for rebuild/export consumers without reopening raw transcripts.”
 
 For the current `redirect_outdated_packet_001` proof anchor, the allowed material behavior is conservative:
 
@@ -53,16 +55,16 @@ That is exactly the right posture for a first municipal redirect/rejection learn
 ## 4. Verification
 
 ```bash
-cd ~/clawd/projects/execution-market/mcp_server
-python3 -m pytest tests/city_ops -q
-# 29 passed, 1 warning
+cd ~/clawd/projects/execution-market
+PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
+# 34 passed, 1 warning
 ```
 
 ## 5. Honest progress label
 
 Use this label now:
 
-- `reuse_parity_landed + telemetry_gate_landed`
+- `reuse_parity_landed + telemetry_gate_landed + closure_preview_landed`
 
 Do **not** yet use:
 
@@ -72,11 +74,11 @@ Do **not** yet use:
 
 ## 6. Best next move
 
-The next build should package the projection/runtime/reuse verdict into closure artifacts:
+The next build should turn the previews into persisted closure consumers:
 
-1. emit a concrete `proof_block_telemetry_gate.json` fixture for `redirect_outdated_packet_001`
-2. add a session-rebuild preview that reads ledger + pickup + telemetry only
-3. add an Acontext export preview from compact, provenance-safe fields only
-4. flip readiness only after those consumers pass without semantic reinterpretation
+1. write `session_rebuild_preview.json` and `acontext_export_preview.json` fixtures beside the telemetry gate fixture
+2. add a tiny regeneration script/CLI for the full proof-block artifact set
+3. add a replay test that fails if any consumer reads forbidden sources (`raw_transcript`, `unreviewed_memory`, `freeform_worker_chat`, `private_operator_context`)
+4. flip readiness only after those persisted consumers pass without semantic reinterpretation
 
-That is the smallest path to an honest first CaaS closure-proof block.
+That is now the smallest path to an honest first CaaS closure-proof block.

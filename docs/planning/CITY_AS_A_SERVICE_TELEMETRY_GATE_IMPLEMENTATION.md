@@ -1,12 +1,13 @@
 # City as a Service — Telemetry Gate Implementation
 
-> Last updated: 2026-05-06 03:45 America/New_York  
-> Status: first local implementation landed  
+> Last updated: 2026-05-06 04:35 America/New_York  
+> Status: local implementation landed; closure preview added  
 > Parent docs:
 > - `CITY_AS_A_SERVICE_DAYTIME_PROOF_BLOCK_TELEMETRY_GATE.md`
 > - `CITY_AS_A_SERVICE_REUSE_BEHAVIOR_IMPLEMENTATION.md`
 > - `CITY_AS_A_SERVICE_OBSERVABILITY_AND_SUCCESS_METRICS.md`
 > - `CITY_AS_A_SERVICE_DECISION_SUPPORT_CONTROL_PLANE.md`
+> - `CITY_AS_A_SERVICE_CLOSURE_PREVIEW_ARTIFACTS.md`
 
 ## 1. What landed
 
@@ -116,22 +117,22 @@ PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
 # 29 passed, 1 warning
 ```
 
-## 8. Honest next move
+## 8. Closure preview follow-up landed
 
-The next smallest proof is not another planning doc. It is an artifact/export slice:
+The 4am slice completed the artifact/export preview called for above:
 
-1. emit a concrete telemetry gate JSON fixture for `redirect_outdated_packet_001`
-2. add a session-rebuild preview that reads only ledger + pickup + telemetry gate
-3. add an Acontext export preview that refuses raw transcripts and exports only compact decision-safe fields
-4. flip readiness only after those consumers pass without semantic reinterpretation
+1. emitted `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/proof_block_telemetry_gate.json`
+2. added `city_ops.session_rebuild_preview.v1`, which reads only ledger + pickup + telemetry gate
+3. added `city_ops.acontext_export_preview.v1`, which refuses raw transcripts and exports only compact decision-safe fields
+4. kept readiness unchanged because no real consumer has passed yet
 
-Until then, the correct label remains:
+The correct label is now:
 
 ```text
-reuse_parity_landed + telemetry_gate_landed
+reuse_parity_landed + telemetry_gate_landed + closure_preview_landed
 ```
 
-Do **not** claim:
+Still do **not** claim:
 
 - `closure_proof_landed`
 - `session_rebuild_ready`

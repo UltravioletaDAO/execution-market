@@ -1,6 +1,6 @@
 # City as a Service — Implementation Backlog and Decision Ledger
 
-> Last updated: 2026-05-05 23:45 America/New_York
+> Last updated: 2026-05-06 04:40 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_IMPLEMENTATION_SLICE_V1.md`
@@ -684,3 +684,37 @@ The next build should emit concrete fixture/export artifacts from this row:
 4. readiness flips only after those consumers pass without semantic reinterpretation
 
 Until that exists, CaaS should claim **reuse_parity_landed + telemetry_gate_landed**, not closure-proof readiness, session-rebuild readiness, or Acontext sink readiness.
+
+## 22. 2026-05-06 locked implementation addition — closure preview artifacts
+
+The telemetry gate is now followed by a bounded closure-preview layer:
+
+- `mcp_server/city_ops/closure.py`
+- `mcp_server/tests/city_ops/test_closure.py`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/proof_block_telemetry_gate.json`
+- `docs/planning/CITY_AS_A_SERVICE_CLOSURE_PREVIEW_ARTIFACTS.md`
+
+This locks one additional decision:
+
+> session rebuild and Acontext export consumers must declare exactly which compact artifacts they read, forbid raw transcripts and unreviewed memory, and refuse to promote readiness from preview artifacts.
+
+### 22.1 New local artifacts
+
+- `city_ops.session_rebuild_preview.v1`
+- `city_ops.acontext_export_preview.v1`
+- concrete `proof_block_telemetry_gate.json` fixture for `redirect_outdated_packet_001`
+
+### 22.2 New acceptance gate
+
+`assert_closure_preview_artifacts(...)` now fails if a preview requires raw transcripts, omits forbidden-source discipline, changes join fields, drops `not_safe_to_claim[]`, or promotes readiness beyond the telemetry gate / compact decision posture.
+
+### 22.3 Updated next smallest proof
+
+The next build should persist and regenerate the full proof-block artifact set:
+
+1. write deterministic `session_rebuild_preview.json` and `acontext_export_preview.json` fixtures beside the telemetry gate fixture
+2. add a tiny regeneration script/CLI for the proof-block fixture set
+3. add a replay test that fails if a consumer reads forbidden sources
+4. flip `session_rebuild_ready` / `export_ready` only after real persisted consumers pass without reinterpretation
+
+Until that exists, CaaS should claim **reuse_parity_landed + telemetry_gate_landed + closure_preview_landed**, not closure-proof readiness.

@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-05 23:45 America/New_York
+> Last updated: 2026-05-06 04:40 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -567,3 +567,60 @@ The best next implementation move is closure packaging, not broader feature work
 5. mark the closure checklist pass/partial/fail with `next_smallest_proof[]`
 
 Do not claim `closure_proof_landed` yet. This earns **reuse_parity_landed** only.
+
+## 14. 2026-05-06 3am/4am implementation update — telemetry gate and closure previews
+
+The stale cron body kept pointing at stopped projects, but `~/clawd/DREAM-PRIORITIES.md` still wins. Work stayed inside Execution Market AAS / City-as-a-Service.
+
+The first closure packaging path now exists in two bounded steps:
+
+- `mcp_server/city_ops/observability.py`
+- `mcp_server/tests/city_ops/test_observability.py`
+- `mcp_server/city_ops/closure.py`
+- `mcp_server/tests/city_ops/test_closure.py`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/proof_block_telemetry_gate.json`
+- `docs/planning/CITY_AS_A_SERVICE_TELEMETRY_GATE_IMPLEMENTATION.md`
+- `docs/planning/CITY_AS_A_SERVICE_CLOSURE_PREVIEW_ARTIFACTS.md`
+
+New local artifacts:
+
+1. `city_ops.proof_block_telemetry_gate.v1`
+2. `city_ops.session_rebuild_preview.v1`
+3. `city_ops.acontext_export_preview.v1`
+
+The important product shift is that CaaS now has a queryable proof-block gate plus bounded preview consumers. Session rebuild and Acontext export must read compact artifacts only, explicitly forbid raw transcripts/unreviewed memory, and cannot promote readiness from preview state.
+
+New guardrails:
+
+- `assert_proof_block_telemetry_gate(...)`
+- `assert_closure_preview_artifacts(...)`
+
+They fail on identity drift, dropped claim limits, readiness overclaim, reuse/telemetry mismatch, or source contracts that require raw transcripts.
+
+New test gate:
+
+```bash
+cd ~/clawd/projects/execution-market
+PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
+# 34 passed, 1 warning
+```
+
+### 14.1 Daytime tie-breaker after this update
+
+The first shared-decision program has now landed seeds for:
+
+1. projection truth
+2. continuity packaging
+3. dispatch guidance consumption
+4. reuse behavior proof
+5. telemetry gate packaging
+6. closure preview packaging
+
+The best next implementation move is persisted closure artifact generation, not UI breadth:
+
+1. write deterministic `session_rebuild_preview.json` and `acontext_export_preview.json` fixtures beside the telemetry gate fixture
+2. add a tiny regeneration script/CLI for the proof-block fixture set
+3. add a replay test that fails if a consumer reads forbidden sources
+4. only after that consider flipping compact decision readiness for session rebuild or export
+
+Do not claim `closure_proof_landed`, `session_rebuild_ready`, or `acontext_sink_ready` yet. This earns **reuse_parity_landed + telemetry_gate_landed + closure_preview_landed** only.

@@ -1,0 +1,48 @@
+{
+  "acontext_sink_ready": false,
+  "behavior_change_class": "routing_changed",
+  "combined_verdict": "reuse_parity_landed",
+  "compact_decision_id": "cdo_c51f4b767729",
+  "coordination_session_id": "city_session_redirect_outdated_packet_001",
+  "coordination_trace_complete": true,
+  "cross_project_event_reusable": true,
+  "dangerous_axes_failed": [],
+  "do_not_claim_yet": [
+    "runtime_parity_proven",
+    "reuse_behavior_proven",
+    "closure_proof_ready"
+  ],
+  "explicit_downgrade_count": 2,
+  "ledger_event_names": [
+    "city_compact_decision_projected",
+    "city_session_rebuild_checkpoint_written"
+  ],
+  "next_smallest_proof": [
+    "wire runtime consumers through this compact decision object without strengthening trust semantics",
+    "one repeated redirect case needed before confident worker-copyable promotion"
+  ],
+  "promotion_rendering_aligned": true,
+  "proof_anchor_id": "redirect_outdated_packet_001",
+  "proof_block_version": "v1",
+  "readiness": {
+    "continuity_ready": true,
+    "export_ready": false,
+    "operator_surface_ready": true,
+    "session_rebuild_ready": false
+  },
+  "reuse_mode": "dispatch",
+  "reuse_scoreboard_id": "rbps_ab66c4a097fa",
+  "review_packet_id": "review_packet_redirect_outdated_packet_001",
+  "safe_to_claim": [
+    "projection_truth_landed",
+    "reuse_parity_landed"
+  ],
+  "schema": "city_ops.proof_block_telemetry_gate.v1",
+  "session_rebuild_ready": false,
+  "supported_behavior_change_reason": [
+    "prior reviewed redirect episode reused",
+    "dispatch routing guidance changed while staying operator-visible",
+    "worker-copyable block excluded cautious municipal doctrine"
+  ],
+  "trust_preservation_result": "pass"
+}
