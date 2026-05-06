@@ -617,3 +617,39 @@ Recommended next proof chain:
 6. baseline-vs-improved scorecard axis proving the brief consumed compact decision truth
 
 Until that exists, CaaS should claim **first dispatch guidance consumer wired**, not full runtime parity, reuse behavior, or closure-proof readiness.
+
+## 20. 2026-05-06 locked implementation addition — reuse behavior proof from compact decision truth
+
+The dispatch guidance consumer seed is now followed by the first reuse/redispatch behavior seed:
+
+- `mcp_server/city_ops/reuse.py`
+- `mcp_server/tests/city_ops/test_reuse.py`
+- `docs/planning/CITY_AS_A_SERVICE_REUSE_BEHAVIOR_IMPLEMENTATION.md`
+
+This locks one additional decision:
+
+> reuse proof must record whether prior reviewed city learning changed later dispatch behavior, and it must preserve the compact decision object's promotion, tone, placement, copyability, and anti-overclaim limits.
+
+### 20.1 New local artifacts
+
+- `city_ops.reuse_event.v1`
+- `city_ops.worker_instruction_block.v1`
+- `city_ops.reuse_observability_row.v1`
+- `city_ops.reuse_behavior_scoreboard.v1`
+
+### 20.2 New acceptance gate
+
+`assert_reuse_alignment(...)` is now the first code-level guard against reuse drift. It fails if reuse artifacts upgrade promotion class, mutate tone or placement, leak worker-copyable text, drop claim limits, or report unsupported behavior-change classes.
+
+### 20.3 Updated next smallest proof
+
+The next build should package the projection/runtime/reuse verdict into closure artifacts:
+
+1. shared decision parity scoreboard
+2. reuse behavior scoreboard
+3. combined verdict
+4. telemetry gate row
+5. pickup brief fidelity check
+6. closure-proof checklist result
+
+Until that exists, CaaS should claim **reuse_parity_landed**, not closure-proof readiness.

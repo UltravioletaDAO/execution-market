@@ -515,3 +515,55 @@ The best next implementation move is now narrower than “build the brief compos
 5. only after that move to reuse / redispatch behavior proof
 
 Do not claim full runtime parity yet. This earns only **first dispatch guidance consumer wired through compact decision truth**.
+
+## 13. 2026-05-06 2am implementation update — reuse behavior proof seed
+
+The stale cron body again conflicted with `~/clawd/DREAM-PRIORITIES.md`; DREAM priorities won. Work stayed inside Execution Market AAS / City-as-a-Service and avoided AutoJob, Frontier Academy, and KK v2.
+
+The next PR-C-style reuse convergence seed now exists:
+
+- `mcp_server/city_ops/reuse.py`
+- `mcp_server/tests/city_ops/test_reuse.py`
+- `docs/planning/CITY_AS_A_SERVICE_REUSE_BEHAVIOR_IMPLEMENTATION.md`
+
+This adds four local reuse artifacts:
+
+1. `city_ops.reuse_event.v1`
+2. `city_ops.worker_instruction_block.v1`
+3. `city_ops.reuse_observability_row.v1`
+4. `city_ops.reuse_behavior_scoreboard.v1`
+
+The important product shift is that reuse proof now grades behavior change, not artifact existence. For `redirect_outdated_packet_001`, the accepted material behavior is `routing_changed`: the next dispatch may route/prepare differently because reviewed municipal reality invalidated the old packet path, but the guidance remains operator-visible and non-copyable for direct worker handoff.
+
+New guardrail:
+
+- `assert_reuse_alignment(...)`
+
+It fails if reuse upgrades promotion class, changes tone/placement, marks cautious learning copyable, emits worker-copyable text when copyability is false, drops `not_safe_to_claim[]`, or records unsupported behavior-change classes.
+
+New test gate:
+
+```bash
+cd ~/clawd/projects/execution-market/mcp_server
+python3 -m pytest tests/city_ops -q
+# 24 passed, 1 warning
+```
+
+### 13.1 Daytime tie-breaker after this update
+
+The first shared-decision program has now landed seeds for:
+
+1. projection truth
+2. continuity packaging
+3. dispatch guidance consumption
+4. reuse behavior proof
+
+The best next implementation move is closure packaging, not broader feature work:
+
+1. emit a shared decision parity scoreboard from compact/runtime artifacts
+2. reuse `city_ops.reuse_behavior_scoreboard.v1` as the behavior-change verdict
+3. combine both verdicts into one telemetry gate row
+4. prove the morning pickup brief is not more optimistic than the scoreboards
+5. mark the closure checklist pass/partial/fail with `next_smallest_proof[]`
+
+Do not claim `closure_proof_landed` yet. This earns **reuse_parity_landed** only.
