@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-07 05:00 America/New_York
+> Last updated: 2026-05-07 06:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -109,7 +109,7 @@ This doc closes one daylight ambiguity that the earlier planning set still left 
 
 Daytime should treat that review protocol as the default tie-breaker whenever a replay bundle exists but implementation readiness still feels debatable.
 
-Latest May 7 05:00 synthesis: do not broaden into more templates or UI. The read-only session rebuild consumer, Acontext transport parity fixture, live preflight, thin operator/debug surface, proof observability metrics, coordination intelligence snapshot, and pre-dawn synthesis now exist over the persisted proof-block fixture set. The next engineering window should either clear local Acontext prerequisites and run one live write/retrieve parity pass, or continue adding narrow proof-support guardrails that fail if they need raw transcripts, unreviewed memory, freeform worker chat, private operator context, dropped blocked claims, readiness overclaim, or worker-copyability drift.
+Latest May 7 06:00 final handoff: do not broaden into more templates or UI. The read-only session rebuild consumer, Acontext transport parity fixture, live preflight, thin operator/debug surface, proof observability metrics, coordination intelligence snapshot, and pre-dawn synthesis now exist over the persisted proof-block fixture set. The next engineering window should either clear local Acontext prerequisites and run one live write/retrieve parity pass, or continue adding narrow proof-support guardrails that fail if they need raw transcripts, unreviewed memory, freeform worker chat, private operator context, dropped blocked claims, readiness overclaim, or worker-copyability drift.
 
 ## 4. The next engineering window
 
@@ -873,3 +873,25 @@ reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + sessio
 ```
 
 Next smallest proof: make Docker/local Acontext and the SDK available, rerun preflight to `ready_to_attempt_live_transport=true`, then write/retrieve the same packet through local Acontext and reuse `assert_acontext_transport_parity`. Keep `acontext_sink_ready`, `session_rebuild_ready`, `runtime_parity_proven`, and worker-copyable doctrine false until that live path passes.
+
+
+## 12. 2026-05-07 06:00 final morning handoff
+
+The final night packet is now available:
+
+- `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_07.md`
+
+It confirms the active priority discipline: stay inside Execution Market AAS / City-as-a-Service and avoid stopped dream tracks.
+
+Earned label:
+
+```text
+reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed + session_rebuild_report_fixture_landed + acontext_transport_parity_test_landed + acontext_live_preflight_landed + thin_operator_debug_surface_landed + proof_observability_metrics_landed + coordination_intelligence_snapshot_landed + final_morning_handoff_landed
+```
+
+The next daytime action is intentionally binary:
+
+1. **If local infra can be fixed:** make Docker/local Acontext/SDK/API/dashboard reachable, then run exactly one live write/retrieve parity pass using the existing transport packet and `assert_acontext_transport_parity(...)`.
+2. **If infra remains blocked:** add one narrow proof-support guardrail over persisted artifacts only. Good choices are a readiness summary command, a dropped-`do_not_claim_yet[]` drift fixture, or a no-worker-copyable-output guardrail.
+
+Do not broaden into polished UI, extra city templates, multi-jurisdiction playbooks, autonomous dispatch, or worker-copyable doctrine from one proof anchor.

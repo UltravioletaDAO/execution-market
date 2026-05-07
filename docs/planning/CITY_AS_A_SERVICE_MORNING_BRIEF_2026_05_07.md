@@ -2,7 +2,7 @@
 
 > Started: 2026-05-07 00:00 America/New_York  
 > Scope: Execution Market AAS / City-as-a-Service only  
-> Status: midnight Acontext transport parity slice landed
+> Status: final 6am handoff landed
 
 ## 1. Priority discipline
 
@@ -415,3 +415,49 @@ autonomous_city_dispatch_ready
 ```
 
 Daytime recommendation: if environment access allows it, clear Docker/local Acontext/SDK prerequisites and run one live write/retrieve parity pass using the existing packet. If not, keep work to narrow proof-support guardrails that fail on dropped blocked claims, readiness overclaim, or worker-copyability drift. Do not broaden templates or UI from a single proof anchor.
+
+---
+
+## 13. 06:00 final handoff — morning coordination packet landed
+
+The final 6am session again read `~/clawd/DREAM-PRIORITIES.md` first and followed it over the stale cron payload. No AutoJob, Frontier Academy, KK v2, or KarmaCadabra v2 work was performed.
+
+Added:
+
+- `docs/planning/CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_07.md`
+
+This handoff consolidates accomplished-vs-planned work, insights, daytime priorities, ecosystem positioning, repo sync status, verification, and continuity constraints.
+
+Current earned label:
+
+```text
+reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed + session_rebuild_report_fixture_landed + acontext_transport_parity_test_landed + acontext_live_preflight_landed + thin_operator_debug_surface_landed + proof_observability_metrics_landed + coordination_intelligence_snapshot_landed + final_morning_handoff_landed
+```
+
+Still false / blocked:
+
+```text
+closure_proof_landed
+session_rebuild_ready
+acontext_sink_ready
+runtime_parity_proven
+acontext_live_write_completed
+acontext_live_retrieval_completed
+acontext_live_transport_parity_landed
+worker-copyable municipal doctrine
+polished_review_console_ready
+office_memory_view_ready
+broad_operator_workflow_ready
+multi_jurisdiction_playbook_ready
+autonomous_city_dispatch_ready
+```
+
+Final verification:
+
+```bash
+cd ~/clawd/projects/execution-market
+PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
+# 79 passed, 1 warning
+```
+
+Daytime recommendation: if infra access allows, clear Docker/local Acontext/SDK/API/dashboard prerequisites and run exactly one live write/retrieve parity pass using the existing packet. If infra remains blocked, add only a narrow proof-support guardrail over persisted artifacts that fails on dropped blocked claims, readiness overclaim, raw-source dependency, or worker-copyability drift.

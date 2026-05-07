@@ -1,6 +1,6 @@
 # City as a Service — Implementation Backlog and Decision Ledger
 
-> Last updated: 2026-05-07 05:00 America/New_York
+> Last updated: 2026-05-07 06:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_IMPLEMENTATION_SLICE_V1.md`
@@ -149,7 +149,7 @@ Final 2026-05-06 morning handoff plus 2026-05-07 continuation:
 - `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_06.md` is the 6am coordination packet.
 - `CITY_AS_A_SERVICE_SESSION_REBUILD_CONSUMER_IMPLEMENTATION.md` is the 7am closure-consumer implementation note.
 - `CITY_AS_A_SERVICE_ACONTEXT_TRANSPORT_PARITY_IMPLEMENTATION.md`, `CITY_AS_A_SERVICE_ACONTEXT_LIVE_PREFLIGHT_IMPLEMENTATION.md`, `CITY_AS_A_SERVICE_OPERATOR_DEBUG_SURFACE_IMPLEMENTATION.md`, `CITY_AS_A_SERVICE_PROOF_OBSERVABILITY_IMPLEMENTATION.md`, and `CITY_AS_A_SERVICE_COORDINATION_INTELLIGENCE_IMPLEMENTATION.md` are the May 7 transport/inspection/metrics/coordination-intelligence notes.
-- Honest label: `reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed + session_rebuild_report_fixture_landed + acontext_transport_parity_test_landed + acontext_live_preflight_landed + thin_operator_debug_surface_landed + proof_observability_metrics_landed + coordination_intelligence_snapshot_landed`.
+- Honest label: `reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed + session_rebuild_report_fixture_landed + acontext_transport_parity_test_landed + acontext_live_preflight_landed + thin_operator_debug_surface_landed + proof_observability_metrics_landed + coordination_intelligence_snapshot_landed + final_morning_handoff_landed`.
 - Immediate next build: once Docker/local Acontext prerequisites are available, run one live write/retrieve transport pass from the same consumer bundle/report fields without semantic strengthening.
 - Still blocked/false until proven by real consumers/sinks: `closure_proof_landed`, `session_rebuild_ready`, `acontext_sink_ready`, `runtime_parity_proven`, `acontext_live_transport_parity_landed`, worker-copyable municipal doctrine, multi-jurisdiction playbooks, and autonomous city dispatch.
 
@@ -943,3 +943,25 @@ If infrastructure remains blocked, the best next move is one narrow proof-suppor
 - a guardrail that refuses any worker-copyable text while the compact boundary says `allowed=false`
 
 Do not broaden into multi-jurisdiction playbooks, autonomous dispatch, polished dashboards, or worker-copyable municipal doctrine from a single proof anchor.
+
+
+## 27. 2026-05-07 06:00 final morning handoff
+
+The final handoff packet now exists:
+
+- `docs/planning/CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_07.md`
+
+Decision: the next implementation must stay proof-first. The CaaS night earned a final coordination packet, not live Acontext readiness, closure-proof readiness, worker-copyable municipal doctrine, or broad UI readiness.
+
+Earned label:
+
+```text
+reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed + session_rebuild_report_fixture_landed + acontext_transport_parity_test_landed + acontext_live_preflight_landed + thin_operator_debug_surface_landed + proof_observability_metrics_landed + coordination_intelligence_snapshot_landed + final_morning_handoff_landed
+```
+
+Immediate next build remains:
+
+1. clear Docker/local Acontext/SDK/API/dashboard prerequisites and run one live write/retrieve parity pass, or
+2. if blocked, add a narrow proof-support guardrail over persisted artifacts only.
+
+Do not broaden into multi-jurisdiction playbooks, autonomous city dispatch, polished Review Console/Office Memory View, extra templates, or worker-copyable municipal doctrine from this single proof anchor.
