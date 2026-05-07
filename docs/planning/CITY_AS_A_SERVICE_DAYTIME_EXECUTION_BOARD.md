@@ -808,3 +808,40 @@ reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + sessio
 ```
 
 Next smallest proof: once Docker and local Acontext are available, rerun preflight to `ready_to_attempt_live_transport=true`, then write and retrieve the same `city_ops.acontext_transport_packet.v1` through local Acontext and feed retrieval through `assert_acontext_transport_parity`. Do not flip `acontext_sink_ready`, `session_rebuild_ready`, `closure_proof_landed`, `runtime_parity_proven`, or worker-copyable doctrine before that live path passes.
+
+---
+
+## 2026-05-07 02:00 — thin operator/debug surface fixture
+
+Live Acontext transport was rechecked and remains blocked in this environment:
+
+```text
+docker_available=false
+acontext_python_sdk_available=false
+local_acontext_api_reachable=false
+local_acontext_dashboard_reachable=false
+```
+
+So the next safe City-as-a-Service seam is an inspection surface, not a live sink claim:
+
+- `mcp_server/city_ops/operator_debug_surface.py`
+- `mcp_server/tests/city_ops/test_operator_debug_surface.py`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/operator_debug_surface.json`
+- `docs/planning/CITY_AS_A_SERVICE_OPERATOR_DEBUG_SURFACE_IMPLEMENTATION.md`
+
+The surface is data-only. It shows identity, safe claims, blocked claims, operator-visible guidance, worker-copyability status, and transport blockers. It cannot hide `do_not_claim_yet[]`, cannot upgrade cautious guidance into directive doctrine, and cannot enable worker-copyable output.
+
+New gate:
+
+```bash
+PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
+# 66 passed, 1 warning
+```
+
+Honest label:
+
+```text
+reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed + session_rebuild_report_fixture_landed + acontext_transport_parity_test_landed + acontext_live_preflight_landed + thin_operator_debug_surface_landed
+```
+
+Next smallest proof: make Docker/local Acontext and the SDK available, rerun preflight to `ready_to_attempt_live_transport=true`, then write/retrieve the same packet through local Acontext and reuse `assert_acontext_transport_parity`. Keep `acontext_sink_ready`, `session_rebuild_ready`, `runtime_parity_proven`, and worker-copyable doctrine false until that live path passes.

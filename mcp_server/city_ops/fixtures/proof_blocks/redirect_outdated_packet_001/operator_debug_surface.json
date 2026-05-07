@@ -1,0 +1,154 @@
+{
+  "claim_boundaries": {
+    "do_not_claim_yet": [
+      "runtime_parity_proven",
+      "reuse_behavior_proven",
+      "closure_proof_ready",
+      "closure_proof_landed",
+      "session_rebuild_ready",
+      "acontext_sink_ready",
+      "worker-copyable municipal doctrine",
+      "acontext_live_write_completed",
+      "acontext_live_retrieval_completed",
+      "acontext_live_transport_parity_landed",
+      "polished_review_console_ready",
+      "office_memory_view_ready",
+      "broad_operator_workflow_ready"
+    ],
+    "safe_to_claim": [
+      "projection_truth_landed",
+      "reuse_parity_landed",
+      "session_rebuild_consumer_landed",
+      "session_rebuild_report_fixture_landed",
+      "acontext_transport_parity_test_landed",
+      "acontext_live_preflight_landed",
+      "thin_operator_debug_surface_landed"
+    ]
+  },
+  "compact_decision_id": "cdo_c51f4b767729",
+  "coordination_session_id": "city_session_redirect_outdated_packet_001",
+  "debug_cards": [
+    {
+      "card": "identity",
+      "status": "preserved",
+      "values": {
+        "compact_decision_id": "cdo_c51f4b767729",
+        "coordination_session_id": "city_session_redirect_outdated_packet_001",
+        "proof_anchor_id": "redirect_outdated_packet_001",
+        "review_packet_id": "review_packet_redirect_outdated_packet_001"
+      }
+    },
+    {
+      "card": "safe_to_claim",
+      "status": "visible_without_softening",
+      "values": [
+        "projection_truth_landed",
+        "reuse_parity_landed",
+        "session_rebuild_consumer_landed",
+        "session_rebuild_report_fixture_landed",
+        "acontext_transport_parity_test_landed",
+        "acontext_live_preflight_landed",
+        "thin_operator_debug_surface_landed"
+      ]
+    },
+    {
+      "card": "do_not_claim_yet",
+      "status": "visible_without_softening",
+      "values": [
+        "runtime_parity_proven",
+        "reuse_behavior_proven",
+        "closure_proof_ready",
+        "closure_proof_landed",
+        "session_rebuild_ready",
+        "acontext_sink_ready",
+        "worker-copyable municipal doctrine",
+        "acontext_live_write_completed",
+        "acontext_live_retrieval_completed",
+        "acontext_live_transport_parity_landed",
+        "polished_review_console_ready",
+        "office_memory_view_ready",
+        "broad_operator_workflow_ready"
+      ]
+    },
+    {
+      "card": "operator_guidance",
+      "status": "operator_visible_not_worker_copyable",
+      "values": {
+        "copyable_worker_instruction": {
+          "allowed": false,
+          "reason": "Reviewed truth supports operator-visible routing/evidence guidance, but the guidance is not safe as direct worker-copyable instructions yet."
+        },
+        "guidance_placement": "operator_visible_before_worker_copy",
+        "guidance_tone": "cautionary_or_corrective"
+      }
+    },
+    {
+      "card": "transport",
+      "status": "blocked_before_live_sink_write",
+      "values": {
+        "blockers": [
+          "docker_daemon_unavailable",
+          "acontext_python_sdk_missing",
+          "local_acontext_api_unreachable",
+          "local_acontext_dashboard_unreachable"
+        ],
+        "local_parity_result": "acontext_transport_parity_fixture_landed",
+        "preflight_verdict": "live_transport_blocked_before_sink_write"
+      }
+    }
+  ],
+  "derived_from": {
+    "forbidden_sources": [
+      "raw_transcript",
+      "unreviewed_memory",
+      "freeform_worker_chat",
+      "private_operator_context"
+    ],
+    "read_only": true,
+    "semantic_reinterpretation_performed": false,
+    "source_artifacts": [
+      "session_rebuild_report.json",
+      "acontext_transport_parity_result.json",
+      "acontext_live_preflight_result.json"
+    ],
+    "writes_live_sink": false
+  },
+  "next_smallest_proof": [
+    "start Docker and local Acontext without changing CaaS semantics",
+    "install or expose the Acontext Python SDK/CLI in this environment",
+    "verify http://localhost:8029/api/v1 and http://localhost:3000 are reachable",
+    "rerun this preflight before attempting any live Acontext sink write"
+  ],
+  "operator_visibility": {
+    "copyable_worker_instruction": {
+      "allowed": false,
+      "reason": "Reviewed truth supports operator-visible routing/evidence guidance, but the guidance is not safe as direct worker-copyable instructions yet."
+    },
+    "guidance_placement": "operator_visible_before_worker_copy",
+    "guidance_tone": "cautionary_or_corrective",
+    "summary_judgment": "Reviewed municipal reality invalidated the old packet path; the next dispatch must warn the operator before worker-copyable instructions are issued.",
+    "worker_copyable_surface_enabled": false
+  },
+  "proof_anchor_id": "redirect_outdated_packet_001",
+  "readiness": {
+    "acontext_sink_ready": false,
+    "blockers": [
+      "docker_daemon_unavailable",
+      "acontext_python_sdk_missing",
+      "local_acontext_api_unreachable",
+      "local_acontext_dashboard_unreachable"
+    ],
+    "live_acontext_retrieval_performed": false,
+    "live_acontext_write_performed": false,
+    "local_transport_parity_fixture_passed": true,
+    "read_only_report_available": true,
+    "ready_to_attempt_live_transport": false,
+    "runtime_parity_proven": false,
+    "session_rebuild_ready": false,
+    "surface_promotes_readiness": false
+  },
+  "review_packet_id": "review_packet_redirect_outdated_packet_001",
+  "schema": "city_ops.operator_debug_surface.v1",
+  "surface_id": "operator_debug_surface:redirect_outdated_packet_001",
+  "surface_verdict": "thin_operator_debug_surface_landed_live_transport_blocked"
+}

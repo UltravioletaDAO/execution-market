@@ -858,3 +858,41 @@ PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
 ```
 
 Immediate next build: start local Acontext prerequisites, rerun the preflight until `ready_to_attempt_live_transport=true`, then perform exactly one live write/retrieve parity run using the existing packet and `assert_acontext_transport_parity`.
+
+---
+
+## 25. 2026-05-07 2am — thin operator/debug surface landed
+
+Because live Acontext remained blocked in the cron environment, this session did not broaden into templates, AutoJob, Frontier Academy, KK v2, or worker-facing doctrine. The safe next CaaS seam is now a deterministic operator/debug surface over the existing proof artifacts.
+
+New implementation:
+
+- `mcp_server/city_ops/operator_debug_surface.py`
+- `mcp_server/tests/city_ops/test_operator_debug_surface.py`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/operator_debug_surface.json`
+- `docs/planning/CITY_AS_A_SERVICE_OPERATOR_DEBUG_SURFACE_IMPLEMENTATION.md`
+
+New schema:
+
+```text
+city_ops.operator_debug_surface.v1
+```
+
+The surface reads only `session_rebuild_report.json`, `acontext_transport_parity_result.json`, and `acontext_live_preflight_result.json`. It renders identity, safe claims, blocked claims, operator guidance, and transport status without raw transcripts, unreviewed memory, freeform worker chat, private operator context, or semantic reinterpretation.
+
+Current honest label:
+
+```text
+reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed + session_rebuild_report_fixture_landed + acontext_transport_parity_test_landed + acontext_live_preflight_landed + thin_operator_debug_surface_landed
+```
+
+Do not claim `closure_proof_landed`, `session_rebuild_ready`, `acontext_sink_ready`, `runtime_parity_proven`, `acontext_live_transport_parity_landed`, polished Review Console, Office Memory View, broad operator workflow readiness, or worker-copyable municipal doctrine.
+
+Test gate:
+
+```bash
+PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
+# 66 passed, 1 warning
+```
+
+Immediate next build: start Docker/local Acontext prerequisites, rerun preflight until `ready_to_attempt_live_transport=true`, then perform exactly one live write/retrieve parity run using the existing packet and `assert_acontext_transport_parity`.

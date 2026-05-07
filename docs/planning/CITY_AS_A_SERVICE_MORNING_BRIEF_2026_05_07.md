@@ -173,3 +173,62 @@ PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
 ```
 
 Next smallest proof: when Docker + local Acontext are actually available, rerun the preflight, require `ready_to_attempt_live_transport=true`, then write/retrieve the same packet and reuse `assert_acontext_transport_parity` before claiming live transport parity. Keep `acontext_sink_ready=false` until that live path passes.
+
+---
+
+## 9. 02:00 update — thin operator/debug surface landed
+
+The stale cron payload asked for AutoJob / Frontier / KK v2, but `~/clawd/DREAM-PRIORITIES.md` explicitly stops those. This update stayed inside Execution Market AAS / City-as-a-Service only.
+
+Live Acontext is still blocked in the local environment, so the session landed the next safe seam: a data-only operator/debug surface over the persisted proof artifacts.
+
+Added:
+
+- `mcp_server/city_ops/operator_debug_surface.py`
+- `mcp_server/tests/city_ops/test_operator_debug_surface.py`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/operator_debug_surface.json`
+- `docs/planning/CITY_AS_A_SERVICE_OPERATOR_DEBUG_SURFACE_IMPLEMENTATION.md`
+
+New schema:
+
+```text
+city_ops.operator_debug_surface.v1
+```
+
+The surface renders:
+
+- identity
+- safe claims
+- blocked claims
+- operator-visible guidance
+- worker-copyability status
+- Acontext transport blockers
+
+Current honest label:
+
+```text
+reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed + session_rebuild_report_fixture_landed + acontext_transport_parity_test_landed + acontext_live_preflight_landed + thin_operator_debug_surface_landed
+```
+
+Still false / blocked:
+
+```text
+closure_proof_landed
+session_rebuild_ready
+acontext_sink_ready
+runtime_parity_proven
+acontext_live_transport_parity_landed
+worker-copyable municipal doctrine
+polished_review_console_ready
+office_memory_view_ready
+broad_operator_workflow_ready
+```
+
+Verification:
+
+```bash
+PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
+# 66 passed, 1 warning
+```
+
+Next smallest proof: start Docker/local Acontext + expose the SDK, rerun preflight until attemptable, then perform the first live local write/retrieve parity run before claiming any live transport readiness.
