@@ -461,3 +461,89 @@ PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
 ```
 
 Daytime recommendation: if infra access allows, clear Docker/local Acontext/SDK/API/dashboard prerequisites and run exactly one live write/retrieve parity pass using the existing packet. If infra remains blocked, add only a narrow proof-support guardrail over persisted artifacts that fails on dropped blocked claims, readiness overclaim, raw-source dependency, or worker-copyability drift.
+
+---
+
+## 14. 07:00 continuation — persisted artifact guardrail landed
+
+This continuation read `~/clawd/DREAM-PRIORITIES.md` first and stayed inside Execution Market AAS / City-as-a-Service only. No AutoJob, Frontier Academy, KK v2, or KarmaCadabra v2 work was performed.
+
+Live Acontext remains blocked in this environment:
+
+```text
+docker_available=false
+acontext_python_sdk_available=false
+local_acontext_api_reachable=false
+local_acontext_dashboard_reachable=false
+```
+
+So the session landed the narrow proof-support guardrail requested by the 6am handoff rather than broadening into UI, templates, or live-sink claims.
+
+Added:
+
+- `mcp_server/city_ops/persisted_artifact_guardrail.py`
+- `mcp_server/tests/city_ops/test_persisted_artifact_guardrail.py`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/persisted_artifact_guardrail.json`
+- `docs/planning/CITY_AS_A_SERVICE_PERSISTED_ARTIFACT_GUARDRAIL_IMPLEMENTATION.md`
+
+Updated:
+
+- `mcp_server/city_ops/__init__.py`
+- `docs/planning/CITY_AS_A_SERVICE_IMPLEMENTATION_BACKLOG_AND_DECISIONS.md`
+
+New schema:
+
+```text
+city_ops.persisted_artifact_guardrail.v1
+```
+
+The guardrail reads only persisted proof surfaces:
+
+```text
+operator_debug_surface.json
+proof_observability_snapshot.json
+coordination_intelligence_snapshot.json
+```
+
+It fails on:
+
+- dropped critical `do_not_claim_yet[]` claims
+- readiness overclaim (`session_rebuild_ready`, `acontext_sink_ready`, `runtime_parity_proven`, live Acontext write/retrieval, worker-copyable doctrine)
+- raw-source dependency or semantic reinterpretation
+- worker-copyability drift from operator-visible learning into copyable worker instruction
+
+Current earned label:
+
+```text
+reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed + session_rebuild_report_fixture_landed + acontext_transport_parity_test_landed + acontext_live_preflight_landed + thin_operator_debug_surface_landed + proof_observability_metrics_landed + coordination_intelligence_snapshot_landed + final_morning_handoff_landed + persisted_artifact_guardrail_landed
+```
+
+Still false / blocked:
+
+```text
+closure_proof_landed
+session_rebuild_ready
+acontext_sink_ready
+runtime_parity_proven
+acontext_live_write_completed
+acontext_live_retrieval_completed
+acontext_live_transport_parity_landed
+worker-copyable municipal doctrine
+polished_review_console_ready
+office_memory_view_ready
+broad_operator_workflow_ready
+multi_jurisdiction_playbook_ready
+autonomous_city_dispatch_ready
+```
+
+Verification:
+
+```bash
+PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops/test_persisted_artifact_guardrail.py -q
+# 6 passed, 1 warning
+
+PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
+# 85 passed, 1 warning
+```
+
+Next smallest proof remains live local Acontext transport parity once Docker, SDK, API, and dashboard prerequisites are actually available. Until then, only proof-support guardrails should continue.

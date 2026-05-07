@@ -1,0 +1,122 @@
+{
+  "claim_boundaries": {
+    "do_not_claim_yet": [
+      "runtime_parity_proven",
+      "reuse_behavior_proven",
+      "closure_proof_ready",
+      "closure_proof_landed",
+      "session_rebuild_ready",
+      "acontext_sink_ready",
+      "worker-copyable municipal doctrine",
+      "acontext_live_write_completed",
+      "acontext_live_retrieval_completed",
+      "acontext_live_transport_parity_landed",
+      "polished_review_console_ready",
+      "office_memory_view_ready",
+      "broad_operator_workflow_ready",
+      "multi_jurisdiction_playbook_ready",
+      "autonomous_city_dispatch_ready"
+    ],
+    "safe_to_claim": [
+      "projection_truth_landed",
+      "reuse_parity_landed",
+      "session_rebuild_consumer_landed",
+      "session_rebuild_report_fixture_landed",
+      "acontext_transport_parity_test_landed",
+      "acontext_live_preflight_landed",
+      "thin_operator_debug_surface_landed",
+      "proof_observability_metrics_landed",
+      "coordination_intelligence_snapshot_landed",
+      "persisted_artifact_guardrail_landed"
+    ]
+  },
+  "compact_decision_id": "cdo_c51f4b767729",
+  "coordination_session_id": "city_session_redirect_outdated_packet_001",
+  "derived_from": {
+    "forbidden_sources": [
+      "raw_transcript",
+      "raw_transcripts",
+      "unreviewed_memory",
+      "unreviewed_worker_uploads",
+      "freeform_worker_chat",
+      "freeform_chat_as_authority",
+      "private_operator_context"
+    ],
+    "read_only": true,
+    "semantic_reinterpretation_performed": false,
+    "source_artifacts": [
+      "operator_debug_surface.json",
+      "proof_observability_snapshot.json",
+      "coordination_intelligence_snapshot.json"
+    ],
+    "writes_live_sink": false
+  },
+  "guardrail_checks": [
+    {
+      "check": "blocked_claims_preserved",
+      "missing_by_artifact": {},
+      "required_blocked_claims": [
+        "closure_proof_landed",
+        "session_rebuild_ready",
+        "acontext_sink_ready",
+        "runtime_parity_proven",
+        "acontext_live_write_completed",
+        "acontext_live_retrieval_completed",
+        "acontext_live_transport_parity_landed",
+        "worker-copyable municipal doctrine"
+      ],
+      "status": "passed",
+      "unsafe_safe_claims_by_artifact": {}
+    },
+    {
+      "check": "readiness_honesty",
+      "must_remain_false": [
+        "session_rebuild_ready",
+        "acontext_sink_ready",
+        "runtime_parity_proven",
+        "live_acontext_write_performed",
+        "live_acontext_retrieval_performed",
+        "worker_copyable_doctrine_ready"
+      ],
+      "overclaims_by_artifact": {},
+      "status": "passed"
+    },
+    {
+      "check": "raw_source_independence",
+      "forbidden_sources": [
+        "raw_transcript",
+        "raw_transcripts",
+        "unreviewed_memory",
+        "unreviewed_worker_uploads",
+        "freeform_worker_chat",
+        "freeform_chat_as_authority",
+        "private_operator_context"
+      ],
+      "status": "passed",
+      "violations_by_artifact": {}
+    },
+    {
+      "check": "worker_copyability_boundary",
+      "status": "passed",
+      "violations_by_artifact": {}
+    }
+  ],
+  "guardrail_id": "persisted_artifact_guardrail:redirect_outdated_packet_001",
+  "guardrail_verdict": "persisted_artifact_guardrail_passed",
+  "next_smallest_proof": [
+    "clear Docker, Acontext SDK, local API, and dashboard prerequisites",
+    "run one live write/retrieve parity pass with the existing transport packet",
+    "keep blocked claims and worker-copyability boundaries visible until live proof passes"
+  ],
+  "proof_anchor_id": "redirect_outdated_packet_001",
+  "readiness": {
+    "acontext_sink_ready": false,
+    "guardrail_promotes_readiness": false,
+    "persisted_artifact_guardrail_ready": true,
+    "runtime_parity_proven": false,
+    "session_rebuild_ready": false,
+    "worker_copyable_doctrine_ready": false
+  },
+  "review_packet_id": "review_packet_redirect_outdated_packet_001",
+  "schema": "city_ops.persisted_artifact_guardrail.v1"
+}

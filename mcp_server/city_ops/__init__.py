@@ -13,6 +13,7 @@ from .coordination_intelligence import build_coordination_intelligence_snapshot
 from .decision_projection import project_compact_decision
 from .observability import build_proof_block_telemetry_gate
 from .operator_debug_surface import build_operator_debug_surface
+from .persisted_artifact_guardrail import build_persisted_artifact_guardrail_report
 from .proof_observability import build_proof_observability_snapshot
 from .session_rebuild_consumer import build_session_rebuild_report
 
@@ -26,6 +27,7 @@ __all__ = [
     "build_acontext_transport_parity_result",
     "build_coordination_intelligence_snapshot",
     "build_operator_debug_surface",
+    "build_persisted_artifact_guardrail_report",
     "build_proof_block_telemetry_gate",
     "build_proof_observability_snapshot",
     "build_session_rebuild_report",
