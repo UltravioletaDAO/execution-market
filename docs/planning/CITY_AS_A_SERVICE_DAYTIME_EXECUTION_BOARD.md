@@ -773,3 +773,38 @@ reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + sessio
 ```
 
 The next smallest proof is a live local Acontext write/retrieve run using the same packet. Do **not** flip `acontext_sink_ready`, `session_rebuild_ready`, `closure_proof_landed`, `runtime_parity_proven`, or worker-copyable doctrine until the live transport path preserves the same boundaries without semantic strengthening.
+
+## 19. 2026-05-07 1am update — live Acontext preflight seam
+
+The live local Acontext write/retrieve run was not attempted because this environment is still missing the required live prerequisites:
+
+```text
+docker_available=false
+acontext_python_sdk_available=false
+local_acontext_api_reachable=false
+local_acontext_dashboard_reachable=false
+```
+
+Instead, the next guardrail now exists:
+
+- `mcp_server/city_ops/acontext_live_preflight.py`
+- `mcp_server/tests/city_ops/test_acontext_live_preflight.py`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_live_preflight_result.json`
+- `docs/planning/CITY_AS_A_SERVICE_ACONTEXT_LIVE_PREFLIGHT_IMPLEMENTATION.md`
+
+This preflight is read-only. It checks whether the live Acontext transport test may be attempted, but it refuses to write a sink, refuses retrieval claims, and keeps all readiness booleans false until a real live parity run passes.
+
+New gate:
+
+```bash
+PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
+# 60 passed, 1 warning
+```
+
+Honest label:
+
+```text
+reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed + session_rebuild_report_fixture_landed + acontext_transport_parity_test_landed + acontext_live_preflight_landed
+```
+
+Next smallest proof: once Docker and local Acontext are available, rerun preflight to `ready_to_attempt_live_transport=true`, then write and retrieve the same `city_ops.acontext_transport_packet.v1` through local Acontext and feed retrieval through `assert_acontext_transport_parity`. Do not flip `acontext_sink_ready`, `session_rebuild_ready`, `closure_proof_landed`, `runtime_parity_proven`, or worker-copyable doctrine before that live path passes.

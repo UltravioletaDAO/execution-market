@@ -820,3 +820,41 @@ PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
 CaaS should now claim **reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed + session_rebuild_report_fixture_landed + acontext_transport_parity_test_landed**, not closure-proof readiness, `session_rebuild_ready`, `acontext_sink_ready`, runtime parity, or worker-copyable municipal doctrine.
 
 Immediate next build: run this same packet through a live local Acontext server once Docker is available and prove the retrieved payload preserves the same boundaries. Until then, keep `acontext_sink_ready=false`.
+
+## 26. 2026-05-07 1am live Acontext preflight seam
+
+The midnight transport parity fixture made the future Acontext write/retrieve contract explicit. The next requested proof is a live local Acontext run, but this cron environment is not ready for it: Docker is not connected, the Acontext Python package is not installed, and the default local API/dashboard endpoints are unreachable.
+
+Decision: add a read-only preflight artifact before any live sink write. The preflight may check local prerequisites, but it must not create an Acontext project/session/artifact, must not write the CaaS proof packet, and must not promote readiness.
+
+New implementation:
+
+- `mcp_server/city_ops/acontext_live_preflight.py`
+- `mcp_server/tests/city_ops/test_acontext_live_preflight.py`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_live_preflight_result.json`
+- `docs/planning/CITY_AS_A_SERVICE_ACONTEXT_LIVE_PREFLIGHT_IMPLEMENTATION.md`
+
+New schema:
+
+```text
+city_ops.acontext_live_preflight.v1
+```
+
+The preflight derives from `city_ops.acontext_transport_packet.v1`, records Docker/SDK/API/dashboard readiness, and keeps the live sink path blocked until all prerequisites pass.
+
+Current honest label:
+
+```text
+reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed + session_rebuild_report_fixture_landed + acontext_transport_parity_test_landed + acontext_live_preflight_landed
+```
+
+Do not claim `closure_proof_landed`, `session_rebuild_ready`, `acontext_sink_ready`, `runtime_parity_proven`, `acontext_live_transport_parity_landed`, or worker-copyable municipal doctrine.
+
+Test gate:
+
+```bash
+PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
+# 60 passed, 1 warning
+```
+
+Immediate next build: start local Acontext prerequisites, rerun the preflight until `ready_to_attempt_live_transport=true`, then perform exactly one live write/retrieve parity run using the existing packet and `assert_acontext_transport_parity`.

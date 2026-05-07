@@ -111,3 +111,65 @@ Do not broaden into templates, dashboards, or generalized memory.
 The next useful step is to run the same `city_ops.acontext_transport_packet.v1` through a live local Acontext server once Docker is available and prove retrieved fields preserve the same boundaries.
 
 Until a live local write/retrieve path passes, keep `acontext_sink_ready=false` and treat this only as a local parity fixture.
+
+## 9. 1am continuation — live Acontext preflight landed
+
+The 1am session again followed `~/clawd/DREAM-PRIORITIES.md` over the stale cron payload and did not work on AutoJob, Frontier Academy, KK v2, or KarmaCadabra v2.
+
+The live Acontext sink run is still blocked in this cron environment, so the session added the narrow preflight seam instead of pretending the sink exists.
+
+New implementation:
+
+- `mcp_server/city_ops/acontext_live_preflight.py`
+- `mcp_server/tests/city_ops/test_acontext_live_preflight.py`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_live_preflight_result.json`
+- `docs/planning/CITY_AS_A_SERVICE_ACONTEXT_LIVE_PREFLIGHT_IMPLEMENTATION.md`
+
+Updated:
+
+- `mcp_server/city_ops/__init__.py`
+- `docs/planning/CITY_AS_A_SERVICE_IMPLEMENTATION_BACKLOG_AND_DECISIONS.md`
+- `docs/planning/CITY_AS_A_SERVICE_DAYTIME_EXECUTION_BOARD.md`
+
+New schema:
+
+```text
+city_ops.acontext_live_preflight.v1
+```
+
+The preflight checks Docker, Acontext Python SDK availability, local API reachability, and dashboard reachability, but it never writes to Acontext and never promotes readiness.
+
+Real environment result at 1am:
+
+```text
+docker_available=false
+acontext_python_sdk_available=false
+local_acontext_api_reachable=false
+local_acontext_dashboard_reachable=false
+```
+
+Current honest label:
+
+```text
+reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed + session_rebuild_report_fixture_landed + acontext_transport_parity_test_landed + acontext_live_preflight_landed
+```
+
+Still false / blocked:
+
+```text
+closure_proof_landed
+session_rebuild_ready
+acontext_sink_ready
+runtime_parity_proven
+acontext_live_transport_parity_landed
+worker-copyable municipal doctrine
+```
+
+Verification:
+
+```bash
+PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
+# 60 passed, 1 warning
+```
+
+Next smallest proof: when Docker + local Acontext are actually available, rerun the preflight, require `ready_to_attempt_live_transport=true`, then write/retrieve the same packet and reuse `assert_acontext_transport_parity` before claiming live transport parity. Keep `acontext_sink_ready=false` until that live path passes.

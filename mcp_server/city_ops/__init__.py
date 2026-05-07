@@ -6,6 +6,7 @@ from .contracts import (
     CopyableWorkerInstruction,
     ReadinessPosture,
 )
+from .acontext_live_preflight import build_acontext_live_preflight_result
 from .acontext_transport import build_acontext_transport_parity_result
 from .closure import build_acontext_export_preview, build_session_rebuild_preview
 from .decision_projection import project_compact_decision
@@ -18,6 +19,7 @@ __all__ = [
     "CopyableWorkerInstruction",
     "ReadinessPosture",
     "build_acontext_export_preview",
+    "build_acontext_live_preflight_result",
     "build_acontext_transport_parity_result",
     "build_proof_block_telemetry_gate",
     "build_session_rebuild_report",

@@ -1,0 +1,125 @@
+{
+  "claim_boundaries": {
+    "do_not_claim_yet": [
+      "runtime_parity_proven",
+      "reuse_behavior_proven",
+      "closure_proof_ready",
+      "closure_proof_landed",
+      "session_rebuild_ready",
+      "acontext_sink_ready",
+      "worker-copyable municipal doctrine",
+      "acontext_live_write_completed",
+      "acontext_live_retrieval_completed",
+      "acontext_live_transport_parity_landed"
+    ],
+    "inherited_safe_to_claim": [
+      "projection_truth_landed",
+      "reuse_parity_landed",
+      "session_rebuild_consumer_landed",
+      "session_rebuild_report_fixture_landed"
+    ],
+    "safe_to_claim": [
+      "projection_truth_landed",
+      "reuse_parity_landed",
+      "session_rebuild_consumer_landed",
+      "session_rebuild_report_fixture_landed",
+      "acontext_transport_parity_test_landed",
+      "acontext_live_preflight_landed"
+    ]
+  },
+  "compact_decision_id": "cdo_c51f4b767729",
+  "coordination_session_id": "city_session_redirect_outdated_packet_001",
+  "next_smallest_proof": [
+    "start Docker and local Acontext without changing CaaS semantics",
+    "install or expose the Acontext Python SDK/CLI in this environment",
+    "verify http://localhost:8029/api/v1 and http://localhost:3000 are reachable",
+    "rerun this preflight before attempting any live Acontext sink write"
+  ],
+  "packet_id": "acontext_transport_packet:redirect_outdated_packet_001",
+  "planned_live_transport_contract": {
+    "derive_packet_from": "city_ops.session_rebuild_report.v1",
+    "may_attempt_when": [
+      "docker_available",
+      "acontext_python_sdk_available",
+      "local_acontext_api_reachable",
+      "local_acontext_dashboard_reachable"
+    ],
+    "must_not_read": [
+      "raw_transcripts",
+      "unreviewed_worker_uploads",
+      "private_operator_context",
+      "freeform_chat_as_authority"
+    ],
+    "must_reuse_assertion": "assert_acontext_transport_parity(packet, retrieval)",
+    "retrieve_by": [
+      "proof_anchor_id",
+      "packet_id",
+      "namespace"
+    ],
+    "write_payload": "city_ops.acontext_transport_packet.v1.stored_payload"
+  },
+  "preflight_id": "acontext_live_preflight:redirect_outdated_packet_001",
+  "preflight_verdict": "live_transport_blocked_before_sink_write",
+  "probe": {
+    "api": {
+      "checked": true,
+      "error": "local Acontext API not reachable",
+      "reachable": false,
+      "status_code": null,
+      "url": "http://localhost:8029/api/v1"
+    },
+    "dashboard": {
+      "checked": true,
+      "error": "local Acontext dashboard not reachable",
+      "reachable": false,
+      "status_code": null,
+      "url": "http://localhost:3000"
+    },
+    "docker": {
+      "available": false,
+      "checked": true,
+      "error": "docker daemon unavailable in cron context",
+      "exit_code": 1
+    },
+    "live_acontext_retrieval_performed": false,
+    "live_acontext_write_performed": false,
+    "python_sdk": {
+      "available": false,
+      "checked": true,
+      "package": "acontext"
+    }
+  },
+  "proof_anchor_id": "redirect_outdated_packet_001",
+  "readiness": {
+    "acontext_python_sdk_available": false,
+    "acontext_sink_ready": false,
+    "blockers": [
+      "docker_daemon_unavailable",
+      "acontext_python_sdk_missing",
+      "local_acontext_api_unreachable",
+      "local_acontext_dashboard_unreachable"
+    ],
+    "docker_available": false,
+    "live_acontext_retrieval_performed": false,
+    "live_acontext_write_performed": false,
+    "local_acontext_api_reachable": false,
+    "local_acontext_dashboard_reachable": false,
+    "ready_to_attempt_live_transport": false,
+    "runtime_parity_proven": false,
+    "session_rebuild_ready": false
+  },
+  "review_packet_id": "review_packet_redirect_outdated_packet_001",
+  "schema": "city_ops.acontext_live_preflight.v1",
+  "source_packet": {
+    "live_acontext_write_performed": false,
+    "packet_id": "acontext_transport_packet:redirect_outdated_packet_001",
+    "schema": "city_ops.acontext_transport_packet.v1",
+    "transport_mode": "local_parity_fixture"
+  },
+  "target": {
+    "api_url": "http://localhost:8029/api/v1",
+    "dashboard_url": "http://localhost:3000",
+    "intended_sink": "acontext",
+    "namespace": "execution_market.city_as_a_service"
+  }
+}
