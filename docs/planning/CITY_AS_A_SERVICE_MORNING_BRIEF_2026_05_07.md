@@ -289,3 +289,75 @@ python3 -m py_compile mcp_server/city_ops/proof_observability.py mcp_server/test
 ```
 
 Next smallest proof remains live local Acontext transport parity after Docker, SDK, API, and dashboard prerequisites are available. Until then, the useful system-integration work is observability and decision-support instrumentation over the existing proof artifacts, not broader templates or UI.
+
+---
+
+## 11. 04:00 update — coordination intelligence snapshot landed
+
+The stale cron payload again included stopped tracks, but `~/clawd/DREAM-PRIORITIES.md` explicitly wins. This update did **not** work on AutoJob, Frontier Academy, KK v2, or KarmaCadabra v2.
+
+The 4am prompt asked for pattern recognition and multiplier connections, so the session encoded the safe CaaS answer as a deterministic artifact instead of a loose brainstorm memo.
+
+Added:
+
+- `mcp_server/city_ops/coordination_intelligence.py`
+- `mcp_server/tests/city_ops/test_coordination_intelligence.py`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/coordination_intelligence_snapshot.json`
+- `docs/planning/CITY_AS_A_SERVICE_COORDINATION_INTELLIGENCE_IMPLEMENTATION.md`
+
+Updated:
+
+- `mcp_server/city_ops/__init__.py`
+- `docs/planning/CITY_AS_A_SERVICE_IMPLEMENTATION_BACKLOG_AND_DECISIONS.md`
+- `docs/planning/CITY_AS_A_SERVICE_DAYTIME_EXECUTION_BOARD.md`
+
+New schema:
+
+```text
+city_ops.coordination_intelligence_snapshot.v1
+```
+
+The artifact captures four scaling patterns:
+
+1. `compact_artifact_spine` — coordinate through invariant proof IDs, not chat-log archaeology.
+2. `claim_boundary_visibility` — safe claims and blocked claims must travel together.
+3. `operator_only_learning_reuse` — municipal learning may improve operator prep without becoming worker-copyable doctrine.
+4. `transport_is_not_truth` — Acontext should transport reviewed meaning, not strengthen it.
+
+Current honest label:
+
+```text
+reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed + session_rebuild_report_fixture_landed + acontext_transport_parity_test_landed + acontext_live_preflight_landed + thin_operator_debug_surface_landed + proof_observability_metrics_landed + coordination_intelligence_snapshot_landed
+```
+
+Still false / blocked:
+
+```text
+closure_proof_landed
+session_rebuild_ready
+acontext_sink_ready
+runtime_parity_proven
+acontext_live_write_completed
+acontext_live_retrieval_completed
+acontext_live_transport_parity_landed
+worker-copyable municipal doctrine
+polished_review_console_ready
+office_memory_view_ready
+broad_operator_workflow_ready
+multi_jurisdiction_playbook_ready
+autonomous_city_dispatch_ready
+```
+
+Verification:
+
+```bash
+PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
+# 79 passed, 1 warning
+
+python3 -m py_compile mcp_server/city_ops/coordination_intelligence.py mcp_server/tests/city_ops/test_coordination_intelligence.py
+# passed
+```
+
+Strategic takeaway: Execution Market becomes exponentially more valuable when each reviewed real-world task becomes compact, traceable operational memory that can be handed across agents, dispatch, and future Acontext transport without leaking private context or overclaiming readiness.
+
+Next smallest proof remains live local Acontext transport parity after Docker, SDK, API, and dashboard prerequisites are available. Do not broaden into UI, multi-jurisdiction playbooks, autonomous dispatch, or worker-copyable doctrine from a single redirect proof block.

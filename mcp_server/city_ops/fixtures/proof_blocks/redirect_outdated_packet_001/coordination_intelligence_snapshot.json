@@ -1,0 +1,186 @@
+{
+  "claim_boundaries": {
+    "do_not_claim_yet": [
+      "runtime_parity_proven",
+      "reuse_behavior_proven",
+      "closure_proof_ready",
+      "closure_proof_landed",
+      "session_rebuild_ready",
+      "acontext_sink_ready",
+      "worker-copyable municipal doctrine",
+      "acontext_live_write_completed",
+      "acontext_live_retrieval_completed",
+      "acontext_live_transport_parity_landed",
+      "polished_review_console_ready",
+      "office_memory_view_ready",
+      "broad_operator_workflow_ready",
+      "multi_jurisdiction_playbook_ready",
+      "autonomous_city_dispatch_ready"
+    ],
+    "safe_to_claim": [
+      "projection_truth_landed",
+      "reuse_parity_landed",
+      "session_rebuild_consumer_landed",
+      "session_rebuild_report_fixture_landed",
+      "acontext_transport_parity_test_landed",
+      "acontext_live_preflight_landed",
+      "thin_operator_debug_surface_landed",
+      "proof_observability_metrics_landed",
+      "coordination_intelligence_snapshot_landed"
+    ]
+  },
+  "compact_decision_id": "cdo_c51f4b767729",
+  "coordination_patterns": [
+    {
+      "evidence": [
+        "city_session_redirect_outdated_packet_001",
+        "cdo_c51f4b767729",
+        "review_packet_redirect_outdated_packet_001"
+      ],
+      "pattern": "compact_artifact_spine",
+      "status": "active",
+      "why_it_scales": "future sessions can consume reviewed compact artifacts instead of re-reading raw transcripts or private context"
+    },
+    {
+      "evidence": {
+        "blocked_claim_count": 13,
+        "safe_claim_count": 8
+      },
+      "pattern": "claim_boundary_visibility",
+      "status": "active",
+      "why_it_scales": "safe claims and blocked claims travel together, so handoffs can move fast without accidental promotion"
+    },
+    {
+      "evidence": {
+        "copyable_worker_instruction_allowed": false,
+        "worker_copyable_surface_enabled": false
+      },
+      "pattern": "operator_only_learning_reuse",
+      "status": "active_but_conservative",
+      "why_it_scales": "reviewed municipal learning can improve dispatch prep while the system still blocks direct worker-copyable doctrine"
+    },
+    {
+      "evidence": {
+        "live_acontext_retrieval_performed": false,
+        "live_acontext_write_performed": false,
+        "local_transport_parity_fixture_passed": true,
+        "ready_to_attempt_live_transport": false
+      },
+      "pattern": "transport_is_not_truth",
+      "status": "blocked_until_live_sink",
+      "why_it_scales": "Acontext should carry already-reviewed meaning; it should not become the place where future agents strengthen claims"
+    }
+  ],
+  "coordination_session_id": "city_session_redirect_outdated_packet_001",
+  "coordination_verdict": "coordination_intelligence_landed_live_transport_blocked",
+  "decision_support": {
+    "current_state": "coordination_intelligence_ready_live_transport_blocked",
+    "decision_basis": [
+      "operator/debug surface is read-only",
+      "local transport parity fixture passed",
+      "live sink writes are still false",
+      "worker-copyable municipal doctrine remains blocked"
+    ],
+    "do_not_start_yet": [
+      "AutoJob integration",
+      "Frontier Academy guide expansion",
+      "KK v2",
+      "worker-copyable municipal doctrine",
+      "broad operator workflow UI"
+    ],
+    "highest_value_connection": "reviewed municipal proof blocks can become the common handoff language between memory, IRC-style coordination, dispatch, and Acontext transport",
+    "recommended_next_action": "clear Acontext prerequisites: docker_daemon_unavailable, acontext_python_sdk_missing, local_acontext_api_unreachable, local_acontext_dashboard_unreachable"
+  },
+  "derived_from": {
+    "forbidden_sources": [
+      "raw_transcript",
+      "unreviewed_memory",
+      "freeform_worker_chat",
+      "private_operator_context"
+    ],
+    "raw_conversation_reopened": false,
+    "read_only": true,
+    "semantic_reinterpretation_performed": false,
+    "source_artifacts": [
+      "proof_observability_snapshot.json"
+    ],
+    "writes_live_sink": false
+  },
+  "multiplier_effects": [
+    {
+      "effect": "memory_system_data_becomes_dispatch_capital",
+      "multiplier": "one reviewed redirect can change many future dispatches",
+      "requires_next": "prove live transport parity before increasing surface area"
+    },
+    {
+      "effect": "irc_coordination_lessons_become_product_rules",
+      "multiplier": "handoff via invariant IDs and compact packets scales better than asking every agent to infer from chat history",
+      "requires_next": "keep coordination_session_id and proof_anchor_id on every artifact"
+    },
+    {
+      "effect": "cross_project_intelligence_flow_without_privacy_leakage",
+      "multiplier": "other agent systems can consume bounded verdicts, not raw private municipal conversations",
+      "requires_next": "continue forbidding raw_transcript and unreviewed_memory sources"
+    },
+    {
+      "effect": "execution_market_as_operational_memory_layer",
+      "multiplier": "the marketplace stops being only task fulfillment and starts becoming reviewed real-world process memory",
+      "requires_next": "clear live Acontext blockers"
+    },
+    {
+      "effect": "coordination_patterns_ranked_for_scale",
+      "multiplier": "4 reusable patterns captured from one proof block",
+      "requires_next": "add a second reviewed municipal case before broadening doctrine"
+    }
+  ],
+  "next_smallest_proof": [
+    "start Docker and local Acontext without changing CaaS semantics",
+    "install or expose the Acontext Python SDK/CLI in this environment",
+    "verify http://localhost:8029/api/v1 and http://localhost:3000 are reachable",
+    "rerun this preflight before attempting any live Acontext sink write"
+  ],
+  "proof_anchor_id": "redirect_outdated_packet_001",
+  "readiness": {
+    "acontext_sink_ready": false,
+    "blockers": [
+      "docker_daemon_unavailable",
+      "acontext_python_sdk_missing",
+      "local_acontext_api_unreachable",
+      "local_acontext_dashboard_unreachable"
+    ],
+    "coordination_intelligence_ready": true,
+    "live_acontext_retrieval_performed": false,
+    "live_acontext_write_performed": false,
+    "local_transport_parity_fixture_passed": true,
+    "patterns_promote_readiness": false,
+    "ready_to_attempt_live_transport": false,
+    "runtime_parity_proven": false,
+    "session_rebuild_ready": false,
+    "worker_copyable_doctrine_ready": false
+  },
+  "review_packet_id": "review_packet_redirect_outdated_packet_001",
+  "scaling_rules": [
+    {
+      "reason": "coordination_session_id, compact_decision_id, review_packet_id, and proof_anchor_id survive handoffs better than prose summaries",
+      "rule": "coordinate_by_invariant_ids"
+    },
+    {
+      "reason": "raw uploads and unreviewed memory can inform review but cannot become durable municipal doctrine",
+      "rule": "promote_only_after_review"
+    },
+    {
+      "reason": "fast agent coordination is safest when every handoff includes what not to say yet",
+      "rule": "keep_blocked_claims_adjacent_to_safe_claims"
+    },
+    {
+      "reason": "a polished console over unproven live retrieval would hide the most important risk",
+      "rule": "ship_transport_parity_before_ui_broadening"
+    },
+    {
+      "reason": "one redirect proof can justify cautious operator guidance, not general worker-copyable city doctrine",
+      "rule": "add_cases_before_doctrine"
+    }
+  ],
+  "schema": "city_ops.coordination_intelligence_snapshot.v1",
+  "snapshot_id": "coordination_intelligence:redirect_outdated_packet_001"
+}

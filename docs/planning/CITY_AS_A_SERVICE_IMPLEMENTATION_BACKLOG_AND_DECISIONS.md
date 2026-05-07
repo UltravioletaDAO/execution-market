@@ -1,6 +1,6 @@
 # City as a Service — Implementation Backlog and Decision Ledger
 
-> Last updated: 2026-05-07 03:00 America/New_York
+> Last updated: 2026-05-07 04:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_IMPLEMENTATION_SLICE_V1.md`
@@ -92,9 +92,9 @@ Without fixture-backed contracts, UI and projector work will drift.
 Current proof-ladder seed landed:
 - `mcp_server/city_ops/contracts.py` owns the first compact decision object, promotion/tone/placement enums, readiness posture, and copyability boundary.
 - `mcp_server/city_ops/decision_projection.py` turns a reviewed packet plus frozen proof-anchor note into one deterministic compact decision object.
-- `mcp_server/city_ops/coordination.py`, `dispatch_guidance.py`, `reuse.py`, `observability.py`, `closure.py`, `proof_block_artifacts.py`, `session_rebuild_consumer.py`, `acontext_transport.py`, `acontext_live_preflight.py`, `operator_debug_surface.py`, and `proof_observability.py` now carry the first anchor through continuity, runtime guidance, reuse, telemetry, bounded preview, persisted proof-block fixtures, one read-only rebuild consumer, one read-only rebuild report/debug fixture, Acontext transport parity, live preflight, thin operator/debug inspection, and proof observability metrics.
-- The first anchor is `redirect_outdated_packet_001`, intentionally conservative: it may promote an operator-visible memory delta, but may not become direct worker-copyable instruction yet.
-- `PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q` passes with 73 tests and should stay as the PR #108 gate before the next Acontext-sink seam starts.
+- `mcp_server/city_ops/coordination.py`, `dispatch_guidance.py`, `reuse.py`, `observability.py`, `closure.py`, `proof_block_artifacts.py`, `session_rebuild_consumer.py`, `acontext_transport.py`, `acontext_live_preflight.py`, `operator_debug_surface.py`, `proof_observability.py`, and `coordination_intelligence.py` now carry the first anchor through continuity, runtime guidance, reuse, telemetry, bounded preview, persisted proof-block fixtures, one read-only rebuild consumer, one read-only rebuild report/debug fixture, Acontext transport parity, live preflight, thin operator/debug inspection, proof observability metrics, and one read-only pattern-recognition packet for coordination strategy.
+- The first anchor is `redirect_outdated_packet_001`, intentionally conservative: it may promote an operator-visible memory delta and coordination insight, but may not become direct worker-copyable instruction yet.
+- `PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q` passes with 79 tests and should stay as the PR #108 gate before the next Acontext-sink seam starts.
 
 
 ### Phase 2 — review normalizer
@@ -148,10 +148,10 @@ By then the team is swapping plumbing, not redesigning product meaning.
 Final 2026-05-06 morning handoff plus 2026-05-07 continuation:
 - `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_06.md` is the 6am coordination packet.
 - `CITY_AS_A_SERVICE_SESSION_REBUILD_CONSUMER_IMPLEMENTATION.md` is the 7am closure-consumer implementation note.
-- `CITY_AS_A_SERVICE_ACONTEXT_TRANSPORT_PARITY_IMPLEMENTATION.md`, `CITY_AS_A_SERVICE_ACONTEXT_LIVE_PREFLIGHT_IMPLEMENTATION.md`, `CITY_AS_A_SERVICE_OPERATOR_DEBUG_SURFACE_IMPLEMENTATION.md`, and `CITY_AS_A_SERVICE_PROOF_OBSERVABILITY_IMPLEMENTATION.md` are the May 7 transport/inspection/metrics notes.
-- Honest label: `reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed + session_rebuild_report_fixture_landed + acontext_transport_parity_test_landed + acontext_live_preflight_landed + thin_operator_debug_surface_landed + proof_observability_metrics_landed`.
+- `CITY_AS_A_SERVICE_ACONTEXT_TRANSPORT_PARITY_IMPLEMENTATION.md`, `CITY_AS_A_SERVICE_ACONTEXT_LIVE_PREFLIGHT_IMPLEMENTATION.md`, `CITY_AS_A_SERVICE_OPERATOR_DEBUG_SURFACE_IMPLEMENTATION.md`, `CITY_AS_A_SERVICE_PROOF_OBSERVABILITY_IMPLEMENTATION.md`, and `CITY_AS_A_SERVICE_COORDINATION_INTELLIGENCE_IMPLEMENTATION.md` are the May 7 transport/inspection/metrics/coordination-intelligence notes.
+- Honest label: `reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed + session_rebuild_report_fixture_landed + acontext_transport_parity_test_landed + acontext_live_preflight_landed + thin_operator_debug_surface_landed + proof_observability_metrics_landed + coordination_intelligence_snapshot_landed`.
 - Immediate next build: once Docker/local Acontext prerequisites are available, run one live write/retrieve transport pass from the same consumer bundle/report fields without semantic strengthening.
-- Still blocked/false until proven by real consumers/sinks: `closure_proof_landed`, `session_rebuild_ready`, `acontext_sink_ready`, `runtime_parity_proven`, `acontext_live_transport_parity_landed`, and worker-copyable municipal doctrine.
+- Still blocked/false until proven by real consumers/sinks: `closure_proof_landed`, `session_rebuild_ready`, `acontext_sink_ready`, `runtime_parity_proven`, `acontext_live_transport_parity_landed`, worker-copyable municipal doctrine, multi-jurisdiction playbooks, and autonomous city dispatch.
 
 ## 5. The minimum viable artifact chain
 
