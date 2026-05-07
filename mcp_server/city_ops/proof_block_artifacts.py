@@ -16,7 +16,9 @@ from typing import Any
 from .closure import build_acontext_export_preview, build_session_rebuild_preview
 from .coordination import build_coordination_ledger_events, build_morning_pickup_brief
 from .decision_projection import load_json_artifact, project_compact_decision
+from .dispatch_guidance import build_dispatch_guidance_block
 from .observability import build_proof_block_telemetry_gate
+from .parity_scoreboard import build_shared_decision_parity_scoreboard
 from .reuse import (
     build_reuse_behavior_scoreboard,
     build_reuse_event,
@@ -28,6 +30,7 @@ PACKAGE_DIR = Path(__file__).resolve().parent
 FIXTURES_DIR = PACKAGE_DIR / "fixtures"
 DEFAULT_PROOF_ANCHOR_ID = "redirect_outdated_packet_001"
 PROOF_BLOCK_FILENAMES = {
+    "shared_decision_parity_scoreboard": "city_shared_decision_parity_scoreboard.json",
     "telemetry_gate": "proof_block_telemetry_gate.json",
     "session_rebuild_preview": "session_rebuild_preview.json",
     "acontext_export_preview": "acontext_export_preview.json",
@@ -54,6 +57,11 @@ def build_redirect_outdated_packet_001_proof_block() -> dict[str, Any]:
         occurred_at="2026-05-06T08:20:00Z",
     )
     pickup = build_morning_pickup_brief(decision, ledger)
+    dispatch_guidance_block = build_dispatch_guidance_block(
+        decision,
+        ledger_events=ledger,
+        morning_pickup_brief=pickup,
+    )
     reuse_event = build_reuse_event(
         decision,
         task_id="city_task_next_dispatch_001",
@@ -97,14 +105,29 @@ def build_redirect_outdated_packet_001_proof_block() -> dict[str, Any]:
         morning_pickup_brief=pickup,
         telemetry_gate=telemetry_gate,
     )
+    shared_decision_parity_scoreboard = build_shared_decision_parity_scoreboard(
+        decision,
+        ledger_events=ledger,
+        morning_pickup_brief=pickup,
+        dispatch_guidance_block=dispatch_guidance_block,
+        reuse_event=reuse_event,
+        worker_instruction_block=worker_block,
+        reuse_observability_row=reuse_row,
+        reuse_behavior_scoreboard=reuse_scoreboard,
+        telemetry_gate=telemetry_gate,
+        session_rebuild_preview=session_rebuild_preview,
+        acontext_export_preview=acontext_export_preview,
+    )
     return {
         "decision": decision,
         "ledger_events": ledger,
         "morning_pickup_brief": pickup,
+        "dispatch_guidance_block": dispatch_guidance_block,
         "reuse_event": reuse_event,
         "worker_instruction_block": worker_block,
         "reuse_observability_row": reuse_row,
         "reuse_behavior_scoreboard": reuse_scoreboard,
+        "shared_decision_parity_scoreboard": shared_decision_parity_scoreboard,
         "telemetry_gate": telemetry_gate,
         "session_rebuild_preview": session_rebuild_preview,
         "acontext_export_preview": acontext_export_preview,

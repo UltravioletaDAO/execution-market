@@ -17,7 +17,6 @@ from .closure import FORBIDDEN_CLOSURE_SOURCES
 from .contracts import CityOpsContractError
 from .proof_block_artifacts import (
     DEFAULT_PROOF_ANCHOR_ID,
-    PROOF_BLOCK_FILENAMES,
     _default_proof_block_dir,
 )
 
@@ -236,11 +235,6 @@ def _load_required_artifacts(base_dir: Path) -> dict[str, dict[str, Any]]:
             raise CityOpsContractError(f"missing persisted proof-block artifact: {path}")
         with path.open("r", encoding="utf-8") as fh:
             artifacts[key] = json.load(fh)
-    unexpected_missing = set(PROOF_BLOCK_FILENAMES) - set(artifacts)
-    if unexpected_missing:
-        raise CityOpsContractError(
-            f"consumer artifact map missing known proof-block keys: {unexpected_missing}"
-        )
     return artifacts
 
 

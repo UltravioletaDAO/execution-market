@@ -1,0 +1,76 @@
+{
+  "behavior_change": "routing_changed",
+  "case_id": "redirect_outdated_packet_001",
+  "combined_verdict": "ship_same_seam",
+  "compact_decision_id": "cdo_c51f4b767729",
+  "consumer_checks": {
+    "dispatch_brief": "pass",
+    "dispatch_reuse": "pass",
+    "ledger_mirror": "pass",
+    "memory_export": "pass",
+    "pickup_brief": "pass",
+    "reuse_observability": "pass",
+    "runtime_observability": "pass",
+    "session_rebuild": "pass",
+    "worker_instruction_or_redispatch": "partial"
+  },
+  "coordination_session_id": "city_session_redirect_outdated_packet_001",
+  "dangerous_axes_failed": [],
+  "do_not_claim_yet": [
+    "runtime_parity_proven",
+    "reuse_behavior_proven",
+    "closure_proof_ready"
+  ],
+  "downgrades": [
+    {
+      "consumer": "worker_instruction_or_redispatch",
+      "kind": "explicit_downgrade",
+      "note": "cautious reviewed city learning stayed operator-visible and non-copyable during worker-instruction rendering"
+    }
+  ],
+  "failure_triggers": [],
+  "invariant_field_checks": {
+    "continuity_ready": "pass",
+    "copyable_worker_instruction_eligibility": "pass",
+    "export_ready": "pass",
+    "guidance_placement": "pass",
+    "guidance_tone": "pass",
+    "next_smallest_proof": "pass",
+    "not_safe_to_claim": "pass",
+    "promotion_class": "pass",
+    "provenance_refs": "pass",
+    "safe_to_claim": "pass",
+    "session_rebuild_ready": "pass"
+  },
+  "next_smallest_proof": [
+    "wire runtime consumers through this compact decision object without strengthening trust semantics",
+    "one repeated redirect case needed before confident worker-copyable promotion",
+    "run the same shared-decision parity scoreboard against a second replay-backed city fixture"
+  ],
+  "observability_parity": "pass",
+  "rebuild_parity": "pass",
+  "review_packet_id": "review_packet_redirect_outdated_packet_001",
+  "safe_to_claim": [
+    "projection_truth_landed",
+    "reuse_parity_landed",
+    "shared_decision_parity_scoreboard_landed"
+  ],
+  "schema": "city_ops.shared_decision_parity_scoreboard.v1",
+  "semantic_parity": "pass",
+  "source_artifacts": {
+    "acontext_export_preview": "city_ops.acontext_export_preview.v1",
+    "compact_decision_object": "in_memory_projection",
+    "dispatch_guidance_block": "city_ops.dispatch_guidance_block.v1",
+    "morning_pickup_brief": "city_ops.morning_pickup_brief.v1",
+    "proof_block_telemetry_gate": "city_ops.proof_block_telemetry_gate.v1",
+    "reuse_behavior_scoreboard": "city_ops.reuse_behavior_scoreboard.v1",
+    "reuse_observability_row": "city_ops.reuse_observability_row.v1",
+    "session_rebuild_preview": "city_ops.session_rebuild_preview.v1"
+  },
+  "supported_behavior_change_reason": [
+    "prior reviewed redirect episode reused",
+    "dispatch routing guidance changed while staying operator-visible",
+    "worker-copyable block excluded cautious municipal doctrine"
+  ],
+  "trust_preservation": "pass"
+}
