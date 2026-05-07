@@ -744,3 +744,32 @@ reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + sessio
 ```
 
 The next smallest proof is an Acontext transport test that writes/retrieves the same consumer bundle/report fields and proves identity, claim, promotion, tone, placement, copyability, and readiness boundaries survive without semantic strengthening. Do **not** flip `session_rebuild_ready`, `acontext_sink_ready`, `closure_proof_landed`, or worker-copyable doctrine yet.
+
+## 18. 2026-05-07 midnight update — local Acontext transport parity fixture
+
+The next post-report seam now exists:
+
+- `mcp_server/city_ops/acontext_transport.py`
+- `mcp_server/tests/city_ops/test_acontext_transport.py`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_transport_parity_result.json`
+- `docs/planning/CITY_AS_A_SERVICE_ACONTEXT_TRANSPORT_PARITY_IMPLEMENTATION.md`
+
+This is a local parity fixture for the future Acontext write/retrieve path. It packages `city_ops.session_rebuild_report.v1` into `city_ops.acontext_transport_packet.v1`, retrieves it as `city_ops.acontext_transport_retrieval.v1`, and records `city_ops.acontext_transport_parity_result.v1` only if identity, claims, promotion, tone, placement, copyability, and readiness survive unchanged.
+
+New test gate:
+
+```bash
+cd ~/clawd/projects/execution-market
+PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
+# 56 passed, 1 warning
+```
+
+### 18.1 Daytime tie-breaker after this update
+
+The honest label is now:
+
+```text
+reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed + session_rebuild_report_fixture_landed + acontext_transport_parity_test_landed
+```
+
+The next smallest proof is a live local Acontext write/retrieve run using the same packet. Do **not** flip `acontext_sink_ready`, `session_rebuild_ready`, `closure_proof_landed`, `runtime_parity_proven`, or worker-copyable doctrine until the live transport path preserves the same boundaries without semantic strengthening.

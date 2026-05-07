@@ -789,3 +789,34 @@ PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
 ```
 
 CaaS should now claim **reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed + session_rebuild_report_fixture_landed**, not closure-proof readiness, `session_rebuild_ready`, `acontext_sink_ready`, or worker-copyable municipal doctrine.
+
+## 25. 2026-05-07 midnight local Acontext transport parity fixture
+
+New files:
+
+- `mcp_server/city_ops/acontext_transport.py`
+- `mcp_server/tests/city_ops/test_acontext_transport.py`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_transport_parity_result.json`
+- `docs/planning/CITY_AS_A_SERVICE_ACONTEXT_TRANSPORT_PARITY_IMPLEMENTATION.md`
+
+New schemas:
+
+```text
+city_ops.acontext_transport_packet.v1
+city_ops.acontext_transport_retrieval.v1
+city_ops.acontext_transport_parity_result.v1
+```
+
+Decision: the first Acontext step remains a local transport parity fixture, not a live sink claim. The packet is derived from `city_ops.session_rebuild_report.v1` only, and retrieval must preserve identity, safe/not-safe claims, promotion class, guidance tone, guidance placement, worker-copyability, and readiness without semantic reinterpretation.
+
+New gate:
+
+```bash
+cd ~/clawd/projects/execution-market
+PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
+# 56 passed, 1 warning
+```
+
+CaaS should now claim **reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed + session_rebuild_report_fixture_landed + acontext_transport_parity_test_landed**, not closure-proof readiness, `session_rebuild_ready`, `acontext_sink_ready`, runtime parity, or worker-copyable municipal doctrine.
+
+Immediate next build: run this same packet through a live local Acontext server once Docker is available and prove the retrieved payload preserves the same boundaries. Until then, keep `acontext_sink_ready=false`.
