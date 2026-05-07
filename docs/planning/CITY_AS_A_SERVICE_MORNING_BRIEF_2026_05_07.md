@@ -361,3 +361,57 @@ python3 -m py_compile mcp_server/city_ops/coordination_intelligence.py mcp_serve
 Strategic takeaway: Execution Market becomes exponentially more valuable when each reviewed real-world task becomes compact, traceable operational memory that can be handed across agents, dispatch, and future Acontext transport without leaking private context or overclaiming readiness.
 
 Next smallest proof remains live local Acontext transport parity after Docker, SDK, API, and dashboard prerequisites are available. Do not broaden into UI, multi-jurisdiction playbooks, autonomous dispatch, or worker-copyable doctrine from a single redirect proof block.
+
+---
+
+## 12. 05:00 update — pre-dawn synthesis and daytime handoff
+
+This synthesis again followed `~/clawd/DREAM-PRIORITIES.md` over the stale cron payload. No AutoJob, Frontier Academy, KK v2, or KarmaCadabra v2 work was performed.
+
+Added:
+
+- `docs/planning/CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_07.md`
+
+The synthesis connects the night’s proof artifacts into one operational handoff:
+
+```text
+compact decision object
+-> coordination ledger / pickup brief
+-> dispatch guidance
+-> reuse behavior scoreboard
+-> telemetry gate
+-> session rebuild report
+-> Acontext transport parity fixture
+-> live preflight
+-> operator debug surface
+-> proof observability snapshot
+-> coordination intelligence snapshot
+```
+
+Strategic conclusion: CaaS should keep proving dispatch compounding, not broaden into a generic city-task catalog. Acontext remains transport, not truth. Safe claims and blocked claims must travel together through every consumer.
+
+Current honest label remains:
+
+```text
+reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed + session_rebuild_report_fixture_landed + acontext_transport_parity_test_landed + acontext_live_preflight_landed + thin_operator_debug_surface_landed + proof_observability_metrics_landed + coordination_intelligence_snapshot_landed
+```
+
+Still false / blocked:
+
+```text
+closure_proof_landed
+session_rebuild_ready
+acontext_sink_ready
+runtime_parity_proven
+acontext_live_write_completed
+acontext_live_retrieval_completed
+acontext_live_transport_parity_landed
+worker-copyable municipal doctrine
+polished_review_console_ready
+office_memory_view_ready
+broad_operator_workflow_ready
+multi_jurisdiction_playbook_ready
+autonomous_city_dispatch_ready
+```
+
+Daytime recommendation: if environment access allows it, clear Docker/local Acontext/SDK prerequisites and run one live write/retrieve parity pass using the existing packet. If not, keep work to narrow proof-support guardrails that fail on dropped blocked claims, readiness overclaim, or worker-copyability drift. Do not broaden templates or UI from a single proof anchor.

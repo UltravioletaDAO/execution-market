@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-07 04:00 America/New_York
+> Last updated: 2026-05-07 05:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -93,6 +93,7 @@ The planning stack now also includes:
 - `CITY_AS_A_SERVICE_SESSION_REBUILD_CONSUMER_IMPLEMENTATION.md`
 - `CITY_AS_A_SERVICE_PROOF_OBSERVABILITY_IMPLEMENTATION.md`
 - `CITY_AS_A_SERVICE_COORDINATION_INTELLIGENCE_IMPLEMENTATION.md`
+- `CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_07.md`
 - `mcp_server/city_ops/decision_projection.py`
 - `mcp_server/city_ops/proof_observability.py`
 - `mcp_server/city_ops/coordination_intelligence.py`
@@ -108,7 +109,7 @@ This doc closes one daylight ambiguity that the earlier planning set still left 
 
 Daytime should treat that review protocol as the default tie-breaker whenever a replay bundle exists but implementation readiness still feels debatable.
 
-Final 6am narrowing plus May 7 04:00 continuation: do not broaden into more templates or UI. The read-only session rebuild consumer, Acontext transport parity fixture, live preflight, thin operator/debug surface, proof observability metrics, and coordination intelligence snapshot now exist over the persisted proof-block fixture set. The next engineering window should either clear local Acontext prerequisites and run one live write/retrieve parity pass, or continue adding narrow observability/decision-support guardrails that fail if they need raw transcripts, unreviewed memory, freeform worker chat, or private operator context.
+Latest May 7 05:00 synthesis: do not broaden into more templates or UI. The read-only session rebuild consumer, Acontext transport parity fixture, live preflight, thin operator/debug surface, proof observability metrics, coordination intelligence snapshot, and pre-dawn synthesis now exist over the persisted proof-block fixture set. The next engineering window should either clear local Acontext prerequisites and run one live write/retrieve parity pass, or continue adding narrow proof-support guardrails that fail if they need raw transcripts, unreviewed memory, freeform worker chat, private operator context, dropped blocked claims, readiness overclaim, or worker-copyability drift.
 
 ## 4. The next engineering window
 
@@ -205,6 +206,24 @@ Reference docs:
 Acceptance gate:
 - confident, cautious, held, and blocked learning render with distinct operator-facing tone and placement instead of collapsing into one warning style
 - each replay-proof block can emit one compact morning pickup brief that preserves the promotion/tone/placement verdict without forcing the next builder to reopen the whole bundle
+
+### 4.7 Track G — live Acontext parity or proof-support fallback
+Target files/seams:
+- existing Acontext live preflight fixture
+- existing Acontext transport parity packet/result
+- a live write/retrieve result, only after preflight is attemptable
+- or, if infra is blocked, a narrow proof-support guardrail that reads persisted proof artifacts only
+
+Reference docs:
+- `CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_07.md`
+- `CITY_AS_A_SERVICE_ACONTEXT_LIVE_PREFLIGHT_IMPLEMENTATION.md`
+- `CITY_AS_A_SERVICE_ACONTEXT_TRANSPORT_PARITY_IMPLEMENTATION.md`
+
+Acceptance gate:
+- preflight reports Docker, SDK, local API, and dashboard reachable before any live sink attempt
+- live retrieval preserves promotion class, guidance tone, guidance placement, copyability, readiness, safe claims, and blocked claims
+- if infra remains blocked, fallback work must fail on dropped `do_not_claim_yet[]`, readiness overclaim, raw transcript dependency, unreviewed memory dependency, or worker-copyability strengthening
+- neither path may claim `acontext_sink_ready` until live write/retrieve parity exists
 
 ## 5. File-by-file done criteria
 

@@ -1,6 +1,6 @@
 # City as a Service — Implementation Backlog and Decision Ledger
 
-> Last updated: 2026-05-07 04:00 America/New_York
+> Last updated: 2026-05-07 05:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_IMPLEMENTATION_SLICE_V1.md`
@@ -897,3 +897,49 @@ PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
 ```
 
 Immediate next build: start Docker/local Acontext prerequisites, rerun preflight until `ready_to_attempt_live_transport=true`, then perform exactly one live write/retrieve parity run using the existing packet and `assert_acontext_transport_parity`.
+
+## 26. 2026-05-07 05:00 implementation update — pre-dawn synthesis and proof spine
+
+The stale cron body still referenced stopped tracks, but `~/clawd/DREAM-PRIORITIES.md` explicitly wins. Work stayed inside Execution Market AAS / City-as-a-Service and avoided AutoJob, Frontier Academy, KK v2, and KarmaCadabra v2.
+
+The 5am synthesis added:
+
+- `docs/planning/CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_07.md`
+
+The first proof anchor now has a compact persisted spine from projection truth through coordination, reuse, telemetry, rebuild reporting, Acontext transport parity fixture, live preflight, debug surface, observability metrics, and coordination intelligence.
+
+Current earned label:
+
+```text
+reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed + session_rebuild_report_fixture_landed + acontext_transport_parity_test_landed + acontext_live_preflight_landed + thin_operator_debug_surface_landed + proof_observability_metrics_landed + coordination_intelligence_snapshot_landed
+```
+
+Still false / blocked:
+
+```text
+closure_proof_landed
+session_rebuild_ready
+acontext_sink_ready
+runtime_parity_proven
+acontext_live_write_completed
+acontext_live_retrieval_completed
+acontext_live_transport_parity_landed
+worker-copyable municipal doctrine
+polished_review_console_ready
+office_memory_view_ready
+broad_operator_workflow_ready
+multi_jurisdiction_playbook_ready
+autonomous_city_dispatch_ready
+```
+
+### 26.1 Daytime tie-breaker after this update
+
+If daytime can change local infrastructure, the best next move is to clear Docker/local Acontext/SDK prerequisites and run one live write/retrieve parity pass against the existing transport packet.
+
+If infrastructure remains blocked, the best next move is one narrow proof-support guardrail, not UI or template expansion. Good fallback candidates:
+
+- a readiness-summary command over persisted proof artifacts
+- a drift fixture proving observability/debug surfaces fail when `do_not_claim_yet[]` is dropped
+- a guardrail that refuses any worker-copyable text while the compact boundary says `allowed=false`
+
+Do not broaden into multi-jurisdiction playbooks, autonomous dispatch, polished dashboards, or worker-copyable municipal doctrine from a single proof anchor.
