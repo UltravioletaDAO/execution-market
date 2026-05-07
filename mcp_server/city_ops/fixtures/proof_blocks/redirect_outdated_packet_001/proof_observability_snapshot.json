@@ -1,0 +1,142 @@
+{
+  "claim_boundaries": {
+    "do_not_claim_yet": [
+      "runtime_parity_proven",
+      "reuse_behavior_proven",
+      "closure_proof_ready",
+      "closure_proof_landed",
+      "session_rebuild_ready",
+      "acontext_sink_ready",
+      "worker-copyable municipal doctrine",
+      "acontext_live_write_completed",
+      "acontext_live_retrieval_completed",
+      "acontext_live_transport_parity_landed",
+      "polished_review_console_ready",
+      "office_memory_view_ready",
+      "broad_operator_workflow_ready"
+    ],
+    "safe_to_claim": [
+      "projection_truth_landed",
+      "reuse_parity_landed",
+      "session_rebuild_consumer_landed",
+      "session_rebuild_report_fixture_landed",
+      "acontext_transport_parity_test_landed",
+      "acontext_live_preflight_landed",
+      "thin_operator_debug_surface_landed",
+      "proof_observability_metrics_landed"
+    ]
+  },
+  "compact_decision_id": "cdo_c51f4b767729",
+  "coordination_session_id": "city_session_redirect_outdated_packet_001",
+  "decision_support": {
+    "current_state": "observable_but_live_transport_blocked",
+    "decision_basis": [
+      "operator/debug surface is read-only",
+      "local transport parity fixture passed",
+      "live sink writes are still false",
+      "worker-copyable municipal doctrine remains blocked"
+    ],
+    "do_not_start_yet": [
+      "worker-copyable municipal doctrine",
+      "polished Review Console",
+      "broad Office Memory View",
+      "multi-template expansion"
+    ],
+    "highest_value_workstream": "CaaS Acontext transport parity without semantic strengthening",
+    "recommended_next_action": "clear Acontext prerequisites: docker_daemon_unavailable, acontext_python_sdk_missing, local_acontext_api_unreachable, local_acontext_dashboard_unreachable"
+  },
+  "derived_from": {
+    "forbidden_sources": [
+      "raw_transcript",
+      "unreviewed_memory",
+      "freeform_worker_chat",
+      "private_operator_context"
+    ],
+    "read_only": true,
+    "semantic_reinterpretation_performed": false,
+    "source_artifacts": [
+      "operator_debug_surface.json"
+    ],
+    "writes_live_sink": false
+  },
+  "metrics": {
+    "acontext_blocker_count": 4,
+    "all_critical_readiness_flags_false": true,
+    "blocked_claim_count": 13,
+    "copyable_worker_instruction_allowed": false,
+    "critical_readiness_false_count": 3,
+    "critical_readiness_flag_count": 3,
+    "debug_card_count": 5,
+    "live_acontext_retrieval_performed": false,
+    "live_acontext_write_performed": false,
+    "local_transport_parity_fixture_passed": true,
+    "ready_to_attempt_live_transport": false,
+    "safe_claim_count": 8,
+    "worker_copyable_surface_enabled": false
+  },
+  "next_smallest_proof": [
+    "start Docker and local Acontext without changing CaaS semantics",
+    "install or expose the Acontext Python SDK/CLI in this environment",
+    "verify http://localhost:8029/api/v1 and http://localhost:3000 are reachable",
+    "rerun this preflight before attempting any live Acontext sink write"
+  ],
+  "observability_verdict": "proof_observability_metrics_landed_live_transport_blocked",
+  "proof_anchor_id": "redirect_outdated_packet_001",
+  "readiness": {
+    "acontext_sink_ready": false,
+    "blockers": [
+      "docker_daemon_unavailable",
+      "acontext_python_sdk_missing",
+      "local_acontext_api_unreachable",
+      "local_acontext_dashboard_unreachable"
+    ],
+    "live_acontext_retrieval_performed": false,
+    "live_acontext_write_performed": false,
+    "local_transport_parity_fixture_passed": true,
+    "metrics_promote_readiness": false,
+    "observability_snapshot_ready": true,
+    "ready_to_attempt_live_transport": false,
+    "runtime_parity_proven": false,
+    "session_rebuild_ready": false,
+    "worker_copyable_doctrine_ready": false
+  },
+  "review_packet_id": "review_packet_redirect_outdated_packet_001",
+  "schema": "city_ops.proof_observability_snapshot.v1",
+  "signals": [
+    {
+      "evidence": "safe_to_claim and do_not_claim_yet cards remain explicit",
+      "signal": "claim_boundary_visibility",
+      "status": "passed"
+    },
+    {
+      "evidence": "operator_visible_before_worker_copy",
+      "signal": "operator_guidance_boundary",
+      "status": "passed"
+    },
+    {
+      "evidence": true,
+      "signal": "local_transport_parity_fixture",
+      "status": "passed"
+    },
+    {
+      "evidence": [
+        "docker_daemon_unavailable",
+        "acontext_python_sdk_missing",
+        "local_acontext_api_unreachable",
+        "local_acontext_dashboard_unreachable"
+      ],
+      "signal": "live_acontext_prerequisites",
+      "status": "blocked"
+    },
+    {
+      "evidence": {
+        "acontext_sink_ready": false,
+        "runtime_parity_proven": false,
+        "session_rebuild_ready": false
+      },
+      "signal": "readiness_honesty",
+      "status": "passed"
+    }
+  ],
+  "snapshot_id": "proof_observability:redirect_outdated_packet_001"
+}

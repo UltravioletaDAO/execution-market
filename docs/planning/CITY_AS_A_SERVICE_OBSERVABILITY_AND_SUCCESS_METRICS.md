@@ -1,6 +1,6 @@
 # City as a Service — Observability and Success Metrics
 
-> Last updated: 2026-04-26
+> Last updated: 2026-05-07
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_Acontext_MEMORY_BRIDGE.md`
@@ -34,6 +34,21 @@ The system is healthy when:
 - rejection causes become predictable
 - dispatch briefs become more useful
 - reviewed memory changes operator behavior in measurable ways
+
+## 2.1 First implementation status — proof observability snapshot
+
+The first implemented observability seam is intentionally narrower than the full product dashboard.
+It measures the conservative proof ladder for `redirect_outdated_packet_001` from the read-only operator/debug surface:
+
+- implementation: `mcp_server/city_ops/proof_observability.py`
+- tests: `mcp_server/tests/city_ops/test_proof_observability.py`
+- fixture: `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/proof_observability_snapshot.json`
+- schema: `city_ops.proof_observability_snapshot.v1`
+
+This earns only `proof_observability_metrics_landed`.
+It does **not** earn `session_rebuild_ready`, `acontext_sink_ready`, `runtime_parity_proven`, or worker-copyable municipal doctrine.
+
+The snapshot currently tracks claim-boundary visibility, blocker counts, local transport parity fixture state, live Acontext attemptability, readiness honesty, and worker-copyability boundaries. It is suitable for coordination handoffs and decision support while live Acontext remains blocked.
 
 ## 3. Product loop to measure
 

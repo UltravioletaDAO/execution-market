@@ -232,3 +232,60 @@ PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
 ```
 
 Next smallest proof: start Docker/local Acontext + expose the SDK, rerun preflight until attemptable, then perform the first live local write/retrieve parity run before claiming any live transport readiness.
+
+---
+
+## 10. 03:00 update — proof observability metrics landed
+
+The stale cron payload again asked for AutoJob / Frontier / KK v2, but `~/clawd/DREAM-PRIORITIES.md` explicitly stops those. This update stayed inside Execution Market AAS / City-as-a-Service only.
+
+Live Acontext is still blocked, so the session added a metrics snapshot over the thin operator/debug surface rather than pretending the sink exists.
+
+Added:
+
+- `mcp_server/city_ops/proof_observability.py`
+- `mcp_server/tests/city_ops/test_proof_observability.py`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/proof_observability_snapshot.json`
+- `docs/planning/CITY_AS_A_SERVICE_PROOF_OBSERVABILITY_IMPLEMENTATION.md`
+
+New schema:
+
+```text
+city_ops.proof_observability_snapshot.v1
+```
+
+The snapshot measures safe/blocked claim counts, Acontext blocker count, readiness honesty, local transport parity fixture state, worker-copyable boundary state, and live write/retrieval booleans. It also emits coordinator-friendly decision support for the next action.
+
+Current honest label:
+
+```text
+reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed + session_rebuild_report_fixture_landed + acontext_transport_parity_test_landed + acontext_live_preflight_landed + thin_operator_debug_surface_landed + proof_observability_metrics_landed
+```
+
+Still false / blocked:
+
+```text
+closure_proof_landed
+session_rebuild_ready
+acontext_sink_ready
+runtime_parity_proven
+acontext_live_write_completed
+acontext_live_retrieval_completed
+acontext_live_transport_parity_landed
+worker-copyable municipal doctrine
+polished_review_console_ready
+office_memory_view_ready
+broad_operator_workflow_ready
+```
+
+Verification:
+
+```bash
+PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
+# 73 passed, 1 warning
+
+python3 -m py_compile mcp_server/city_ops/proof_observability.py mcp_server/tests/city_ops/test_proof_observability.py
+# passed
+```
+
+Next smallest proof remains live local Acontext transport parity after Docker, SDK, API, and dashboard prerequisites are available. Until then, the useful system-integration work is observability and decision-support instrumentation over the existing proof artifacts, not broader templates or UI.

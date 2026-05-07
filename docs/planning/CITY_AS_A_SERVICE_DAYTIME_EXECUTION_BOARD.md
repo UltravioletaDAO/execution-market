@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-06 07:00 America/New_York
+> Last updated: 2026-05-07 03:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -91,8 +91,11 @@ The planning stack now also includes:
 - `CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_06.md`
 - `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_06.md`
 - `CITY_AS_A_SERVICE_SESSION_REBUILD_CONSUMER_IMPLEMENTATION.md`
+- `CITY_AS_A_SERVICE_PROOF_OBSERVABILITY_IMPLEMENTATION.md`
 - `mcp_server/city_ops/decision_projection.py`
+- `mcp_server/city_ops/proof_observability.py`
 - `mcp_server/tests/city_ops/test_decision_projection.py`
+- `mcp_server/tests/city_ops/test_proof_observability.py`
 
 This doc closes one daylight ambiguity that the earlier planning set still left too loose:
 - the exact artifact reading order for replay-proof PRs
@@ -102,7 +105,7 @@ This doc closes one daylight ambiguity that the earlier planning set still left 
 
 Daytime should treat that review protocol as the default tie-breaker whenever a replay bundle exists but implementation readiness still feels debatable.
 
-Final 6am narrowing: the next engineering window should not broaden into more templates or UI. Build one read-only session rebuild consumer over the persisted proof-block fixture set and fail if it needs raw transcripts, unreviewed memory, freeform worker chat, or private operator context.
+Final 6am narrowing plus May 7 03:00 continuation: do not broaden into more templates or UI. The read-only session rebuild consumer, Acontext transport parity fixture, live preflight, thin operator/debug surface, and proof observability metrics now exist over the persisted proof-block fixture set. The next engineering window should either clear local Acontext prerequisites and run one live write/retrieve parity pass, or continue adding narrow observability/decision-support guardrails that fail if they need raw transcripts, unreviewed memory, freeform worker chat, or private operator context.
 
 ## 4. The next engineering window
 
@@ -182,6 +185,7 @@ Acceptance gate:
 - one replay-backed reviewed case can be ingested into local Acontext after local artifact generation
 - session rebuild works from compact artifacts without transcript dependence
 - Acontext-assisted retrieval preserves the same next-dispatch guidance class as the local-only path
+- proof observability reports `ready_to_attempt_live_transport=true` before any live sink write is attempted, and still keeps `acontext_sink_ready=false` until write/retrieve parity passes
 
 ### 4.5 Track E — operator guidance expression seam
 Target files/seams:
@@ -238,6 +242,7 @@ Do not spend the next window on:
 - broad multi-city rollout logic
 - embeddings or semantic retrieval
 - heavy Acontext plumbing before local proof is solid
+- worker-copyable municipal doctrine before proof observability and live transport parity agree
 - polished executive dashboards
 - generalized workflow engines
 - more template expansion beyond what strengthens the first proof seam

@@ -12,6 +12,7 @@ from .closure import build_acontext_export_preview, build_session_rebuild_previe
 from .decision_projection import project_compact_decision
 from .observability import build_proof_block_telemetry_gate
 from .operator_debug_surface import build_operator_debug_surface
+from .proof_observability import build_proof_observability_snapshot
 from .session_rebuild_consumer import build_session_rebuild_report
 
 __all__ = [
@@ -24,6 +25,7 @@ __all__ = [
     "build_acontext_transport_parity_result",
     "build_operator_debug_surface",
     "build_proof_block_telemetry_gate",
+    "build_proof_observability_snapshot",
     "build_session_rebuild_report",
     "build_session_rebuild_preview",
     "project_compact_decision",
