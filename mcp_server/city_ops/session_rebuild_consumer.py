@@ -22,6 +22,7 @@ from .proof_block_artifacts import (
 )
 
 SESSION_REBUILD_CONSUMER_SCHEMA = "city_ops.session_rebuild_consumer_bundle.v1"
+SESSION_REBUILD_REPORT_SCHEMA = "city_ops.session_rebuild_report.v1"
 SESSION_REBUILD_CONSUMER_SOURCE_ARTIFACTS = {
     "telemetry_gate": "proof_block_telemetry_gate.json",
     "session_rebuild_preview": "session_rebuild_preview.json",
@@ -33,6 +34,13 @@ CONSUMER_ALLOWED_SOURCES = [
     "persisted_acontext_export_preview",
 ]
 CONSUMER_SAFE_CLAIM = "session_rebuild_consumer_landed"
+REPORT_SAFE_CLAIM = "session_rebuild_report_fixture_landed"
+REPORT_BLOCKED_CLAIMS = [
+    "closure_proof_landed",
+    "session_rebuild_ready",
+    "acontext_sink_ready",
+    "worker-copyable municipal doctrine",
+]
 
 
 def load_session_rebuild_consumer_bundle(
@@ -101,6 +109,123 @@ def load_session_rebuild_consumer_bundle(
         "next_smallest_proof": list(telemetry_gate.get("next_smallest_proof", [])),
         "consumer_verdict": "read_only_session_rebuild_consumer_landed",
     }
+
+
+def build_session_rebuild_report(
+    proof_anchor_id: str = DEFAULT_PROOF_ANCHOR_ID,
+    *,
+    artifact_dir: str | Path | None = None,
+    consumer_bundle: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Emit a read-only debug report from the validated consumer bundle only.
+
+    The report is intentionally a thin projection of
+    ``city_ops.session_rebuild_consumer_bundle.v1``.  It does not reopen proof
+    block source files, raw transcripts, unreviewed memory, private operator
+    context, worker chat, or any live sink.  Callers may pass an already-built
+    bundle in tests; otherwise this function first builds the consumer bundle
+    and then reads only that in-memory bundle.
+    """
+
+    bundle = consumer_bundle or load_session_rebuild_consumer_bundle(
+        proof_anchor_id,
+        artifact_dir=artifact_dir,
+    )
+    _assert_report_bundle_contract(bundle)
+
+    source_contract = bundle["source_read_contract"]
+    safe_to_claim = _dedupe([*bundle.get("safe_to_claim", []), REPORT_SAFE_CLAIM])
+    do_not_claim_yet = _dedupe(
+        [*bundle.get("do_not_claim_yet", []), *REPORT_BLOCKED_CLAIMS]
+    )
+    readiness = bundle["readiness"]
+
+    return {
+        "schema": SESSION_REBUILD_REPORT_SCHEMA,
+        "report_id": f"session_rebuild_report:{bundle['proof_anchor_id']}",
+        "proof_anchor_id": bundle["proof_anchor_id"],
+        "coordination_session_id": bundle["coordination_session_id"],
+        "compact_decision_id": bundle["compact_decision_id"],
+        "review_packet_id": bundle["review_packet_id"],
+        "derived_from": {
+            "schema": bundle["schema"],
+            "consumer_id": bundle["consumer_id"],
+            "source_artifacts": dict(bundle["source_artifacts"]),
+        },
+        "source_read_contract": {
+            "allowed_sources": [SESSION_REBUILD_CONSUMER_SCHEMA],
+            "forbidden_sources": list(source_contract["forbidden_sources"]),
+            "raw_transcript_required": False,
+            "read_only": True,
+            "writes_live_sink": False,
+            "derives_from_consumer_bundle_only": True,
+        },
+        "identity": {
+            "proof_anchor_id": bundle["proof_anchor_id"],
+            "coordination_session_id": bundle["coordination_session_id"],
+            "compact_decision_id": bundle["compact_decision_id"],
+            "review_packet_id": bundle["review_packet_id"],
+        },
+        "claim_boundaries": {
+            "safe_to_claim": safe_to_claim,
+            "inherited_safe_to_claim": list(bundle.get("safe_to_claim", [])),
+            "do_not_claim_yet": do_not_claim_yet,
+        },
+        "promotion_boundaries": dict(bundle["preserved_boundaries"]),
+        "readiness": {
+            "decision": dict(readiness["decision"]),
+            "telemetry_session_rebuild_ready": readiness[
+                "telemetry_session_rebuild_ready"
+            ],
+            "telemetry_acontext_sink_ready": readiness[
+                "telemetry_acontext_sink_ready"
+            ],
+            "consumer_promotes_readiness": readiness["consumer_promotes_readiness"],
+            "report_promotes_readiness": False,
+        },
+        "debug_sections": [
+            {
+                "section": "identity",
+                "source": "consumer_bundle",
+                "status": "preserved",
+            },
+            {
+                "section": "claim_boundaries",
+                "source": "consumer_bundle",
+                "status": "preserved_with_report_fixture_claim",
+            },
+            {
+                "section": "promotion_boundaries",
+                "source": "consumer_bundle",
+                "status": "preserved_without_worker_copyable_upgrade",
+            },
+            {
+                "section": "readiness",
+                "source": "consumer_bundle",
+                "status": "bounded_preview_only",
+            },
+        ],
+        "next_smallest_proof": list(bundle.get("next_smallest_proof", [])),
+        "report_verdict": "read_only_session_rebuild_report_fixture_landed",
+    }
+
+
+def write_session_rebuild_report_fixture(
+    proof_anchor_id: str = DEFAULT_PROOF_ANCHOR_ID,
+    *,
+    artifact_dir: str | Path | None = None,
+) -> Path:
+    """Write the deterministic read-only rebuild report fixture."""
+
+    base_dir = Path(artifact_dir) if artifact_dir else _default_proof_block_dir()
+    base_dir.mkdir(parents=True, exist_ok=True)
+    report = build_session_rebuild_report(proof_anchor_id, artifact_dir=base_dir)
+    path = base_dir / "session_rebuild_report.json"
+    path.write_text(
+        json.dumps(report, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return path
 
 
 def _load_required_artifacts(base_dir: Path) -> dict[str, dict[str, Any]]:
@@ -332,3 +457,122 @@ def _required_dict(artifact: dict[str, Any], key: str, label: str) -> dict[str, 
 def _require_equal(actual: Any, expected: Any, label: str) -> None:
     if actual != expected:
         raise CityOpsContractError(f"{label} drifted ({actual!r} != {expected!r})")
+
+
+def _assert_report_bundle_contract(bundle: dict[str, Any]) -> None:
+    _require_equal(
+        bundle.get("schema"),
+        SESSION_REBUILD_CONSUMER_SCHEMA,
+        "session_rebuild_report.source_bundle.schema",
+    )
+    for key in (
+        "consumer_id",
+        "proof_anchor_id",
+        "coordination_session_id",
+        "compact_decision_id",
+        "review_packet_id",
+        "source_artifacts",
+        "source_read_contract",
+        "preserved_boundaries",
+        "readiness",
+        "safe_to_claim",
+        "do_not_claim_yet",
+    ):
+        if key not in bundle:
+            raise CityOpsContractError(f"session rebuild report bundle missing {key}")
+
+    source_contract = _required_dict(
+        bundle,
+        "source_read_contract",
+        "session_rebuild_consumer_bundle",
+    )
+    _require_equal(
+        source_contract.get("raw_transcript_required"),
+        False,
+        "consumer_bundle.source_read_contract.raw_transcript_required",
+    )
+    _require_equal(
+        source_contract.get("read_only"),
+        True,
+        "consumer_bundle.source_read_contract.read_only",
+    )
+    _require_equal(
+        source_contract.get("writes_live_sink"),
+        False,
+        "consumer_bundle.source_read_contract.writes_live_sink",
+    )
+    _require_equal(
+        source_contract.get("forbidden_sources"),
+        list(FORBIDDEN_CLOSURE_SOURCES),
+        "consumer_bundle.source_read_contract.forbidden_sources",
+    )
+    for forbidden in FORBIDDEN_CLOSURE_SOURCES:
+        if forbidden in (source_contract.get("allowed_sources") or []):
+            raise CityOpsContractError(
+                "session rebuild report cannot derive from forbidden source "
+                f"{forbidden!r}"
+            )
+
+    safe_to_claim = set(bundle.get("safe_to_claim", []))
+    forbidden_safe_claims = safe_to_claim.intersection(REPORT_BLOCKED_CLAIMS)
+    if forbidden_safe_claims:
+        raise CityOpsContractError(
+            "session rebuild report cannot mark blocked claims safe: "
+            f"{sorted(forbidden_safe_claims)}"
+        )
+
+    boundaries = _required_dict(
+        bundle,
+        "preserved_boundaries",
+        "session_rebuild_consumer_bundle",
+    )
+    copyable = _required_dict(
+        boundaries,
+        "copyable_worker_instruction",
+        "session_rebuild_consumer_bundle.preserved_boundaries",
+    )
+    _require_equal(
+        copyable.get("allowed"),
+        False,
+        "session_rebuild_report.copyable_worker_instruction.allowed",
+    )
+
+    readiness = _required_dict(bundle, "readiness", "session_rebuild_consumer_bundle")
+    decision = _required_dict(
+        readiness,
+        "decision",
+        "session_rebuild_consumer_bundle.readiness",
+    )
+    _require_equal(
+        decision.get("session_rebuild_ready"),
+        False,
+        "session_rebuild_report.readiness.decision.session_rebuild_ready",
+    )
+    _require_equal(
+        decision.get("export_ready"),
+        False,
+        "session_rebuild_report.readiness.decision.export_ready",
+    )
+    _require_equal(
+        readiness.get("telemetry_session_rebuild_ready"),
+        False,
+        "session_rebuild_report.readiness.telemetry_session_rebuild_ready",
+    )
+    _require_equal(
+        readiness.get("telemetry_acontext_sink_ready"),
+        False,
+        "session_rebuild_report.readiness.telemetry_acontext_sink_ready",
+    )
+    _require_equal(
+        readiness.get("consumer_promotes_readiness"),
+        False,
+        "session_rebuild_report.readiness.consumer_promotes_readiness",
+    )
+
+
+def _dedupe(values: list[str]) -> list[str]:
+    deduped: list[str] = []
+    for value in values:
+        if value not in deduped:
+            deduped.append(value)
+    return deduped

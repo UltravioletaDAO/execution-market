@@ -41,7 +41,7 @@ Accomplished on the active CaaS proof ladder:
 Current honest label:
 
 ```text
-reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted
+reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed + session_rebuild_report_fixture_landed
 ```
 
 Do not yet claim:
@@ -74,6 +74,7 @@ Persisted proof-block fixtures:
 mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/proof_block_telemetry_gate.json
 mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/session_rebuild_preview.json
 mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_export_preview.json
+mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/session_rebuild_report.json
 ```
 
 Regeneration command:
@@ -143,6 +144,18 @@ session_rebuild_consumer_landed
 
 Keep `acontext_sink_ready=false` until a real local Acontext sink writes and retrieves the same fields without semantic strengthening.
 
+### 5.1 10pm continuation addendum
+
+The read-only session rebuild consumer and its downstream debug report fixture have now landed. The report schema is:
+
+```text
+city_ops.session_rebuild_report.v1
+```
+
+It is emitted from `city_ops.session_rebuild_consumer_bundle.v1` only and keeps raw transcripts, unreviewed memory, freeform worker chat, private operator context, and live sinks outside the source contract.
+
+The next daytime move is no longer the report fixture. It is an Acontext transport pass that writes/retrieves the same consumer bundle/report fields without strengthening identity, safe/not-safe claims, promotion, tone, placement, copyability, or readiness.
+
 ## 6. Positioning for the ecosystem
 
 Tonight moved CaaS from planning-heavy architecture toward a repeatable proof-block product pattern.
@@ -182,7 +195,7 @@ Final verification for the night:
 ```bash
 cd ~/clawd/projects/execution-market
 PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
-# 37 passed, 1 warning
+# 48 passed, 1 warning
 ```
 
 No live deployment was required or performed because this was a branch/PR proof-ladder slice, not a production endpoint/UI change.

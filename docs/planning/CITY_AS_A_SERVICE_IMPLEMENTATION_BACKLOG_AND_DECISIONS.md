@@ -92,9 +92,9 @@ Without fixture-backed contracts, UI and projector work will drift.
 Current proof-ladder seed landed:
 - `mcp_server/city_ops/contracts.py` owns the first compact decision object, promotion/tone/placement enums, readiness posture, and copyability boundary.
 - `mcp_server/city_ops/decision_projection.py` turns a reviewed packet plus frozen proof-anchor note into one deterministic compact decision object.
-- `mcp_server/city_ops/coordination.py`, `dispatch_guidance.py`, `reuse.py`, `observability.py`, `closure.py`, `proof_block_artifacts.py`, and `session_rebuild_consumer.py` now carry the first anchor through continuity, runtime guidance, reuse, telemetry, bounded preview, persisted proof-block fixtures, and one read-only rebuild consumer.
+- `mcp_server/city_ops/coordination.py`, `dispatch_guidance.py`, `reuse.py`, `observability.py`, `closure.py`, `proof_block_artifacts.py`, and `session_rebuild_consumer.py` now carry the first anchor through continuity, runtime guidance, reuse, telemetry, bounded preview, persisted proof-block fixtures, one read-only rebuild consumer, and one read-only rebuild report/debug fixture.
 - The first anchor is `redirect_outdated_packet_001`, intentionally conservative: it may promote an operator-visible memory delta, but may not become direct worker-copyable instruction yet.
-- `PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q` passes with 43 tests and should stay as the PR #108 gate before the next rebuild-report or Acontext-sink seam starts.
+- `PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q` passes with 48 tests and should stay as the PR #108 gate before the next Acontext-sink seam starts.
 
 
 ### Phase 2 — review normalizer
@@ -148,8 +148,8 @@ By then the team is swapping plumbing, not redesigning product meaning.
 Final 2026-05-06 morning handoff plus 7am continuation:
 - `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_06.md` is the 6am coordination packet.
 - `CITY_AS_A_SERVICE_SESSION_REBUILD_CONSUMER_IMPLEMENTATION.md` is the 7am closure-consumer implementation note.
-- Honest label: `reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed`.
-- Immediate next build: emit one read-only rebuild report/debug fixture from the consumer bundle, then test an Acontext write/retrieve transport pass without semantic strengthening.
+- Honest label: `reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed + session_rebuild_report_fixture_landed`.
+- Immediate next build: test an Acontext write/retrieve transport pass from the same consumer bundle/report fields without semantic strengthening.
 - Still blocked/false until proven by real consumers/sinks: `closure_proof_landed`, `session_rebuild_ready`, `acontext_sink_ready`, and worker-copyable municipal doctrine.
 
 ## 5. The minimum viable artifact chain
@@ -727,7 +727,7 @@ The next smallest proof is now a read-only consumer over those persisted artifac
 3. prove promotion class, tone, placement, claim limits, and worker-copyability boundaries survive the consumer unchanged
 4. flip `session_rebuild_ready` / `export_ready` only after real persisted consumers pass without reinterpretation
 
-CaaS should now claim **reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted**, not closure-proof readiness.
+CaaS should now claim **reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed + session_rebuild_report_fixture_landed**, not closure-proof readiness.
 
 ## 23. 2026-05-06 5am persisted closure-consumer generator
 
@@ -755,3 +755,37 @@ PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
 ```
 
 Decision: persisted previews still cannot promote readiness. They are allowed to make closure consumers deterministic; they are not allowed to claim `session_rebuild_ready`, `acontext_sink_ready`, or worker-copyable municipal doctrine.
+
+## 24. 2026-05-06 10pm read-only rebuild report/debug fixture
+
+New artifact:
+
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/session_rebuild_report.json`
+
+New report schema:
+
+```text
+city_ops.session_rebuild_report.v1
+```
+
+The report is emitted from `city_ops.session_rebuild_consumer_bundle.v1` only. Its read contract allows only the consumer bundle, explicitly remains read-only, and keeps raw transcripts, unreviewed memory, freeform worker chat, private operator context, and live sinks excluded.
+
+The report preserves:
+
+- `coordination_session_id`
+- `compact_decision_id`
+- `review_packet_id`
+- `proof_anchor_id`
+- inherited safe claims plus the narrow `session_rebuild_report_fixture_landed` claim
+- blocked claims for closure proof, session rebuild readiness, Acontext sink readiness, and worker-copyable municipal doctrine
+- promotion class, guidance tone, guidance placement, behavior-change class, and copyable-worker boundary
+
+New gate:
+
+```bash
+cd ~/clawd/projects/execution-market
+PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
+# 48 passed, 1 warning
+```
+
+CaaS should now claim **reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed + session_rebuild_report_fixture_landed**, not closure-proof readiness, `session_rebuild_ready`, `acontext_sink_ready`, or worker-copyable municipal doctrine.

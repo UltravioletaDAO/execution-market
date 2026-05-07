@@ -17,6 +17,7 @@ It does **not** claim full closure proof, Acontext sink readiness, or worker-cop
 ```text
 mcp_server/city_ops/session_rebuild_consumer.py
 mcp_server/tests/city_ops/test_session_rebuild_consumer.py
+mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/session_rebuild_report.json
 ```
 
 The consumer reads only the persisted proof-block fixture set:
@@ -34,6 +35,17 @@ The emitted bundle schema is:
 ```text
 city_ops.session_rebuild_consumer_bundle.v1
 ```
+
+The emitted read-only debug report schema is:
+
+```text
+city_ops.session_rebuild_report.v1
+```
+
+The report is derived from the validated consumer bundle only. Its source
+contract allows `city_ops.session_rebuild_consumer_bundle.v1` and keeps raw
+transcripts, unreviewed memory, freeform worker chat, private operator context,
+and live sinks out of scope.
 
 The bundle marks:
 
@@ -96,16 +108,33 @@ worker-copyable municipal doctrine ready
 
 The consumer is real and read-only. Readiness remains false because no live rebuild or Acontext sink has written/retrieved the same fields without semantic strengthening yet.
 
+## 5.1 Honest label after the report fixture slice
+
+Use this label now:
+
+```text
+reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed + session_rebuild_report_fixture_landed
+```
+
+Still do **not** claim:
+
+```text
+closure_proof_landed
+session_rebuild_ready
+acontext_sink_ready
+worker-copyable municipal doctrine ready
+```
+
+The report is a debug/read-only fixture for downstream UI inspection. It is not a live session rebuild, not an Acontext sink write/retrieve, and not worker-copyable municipal doctrine.
+
 ## 6. Verification
 
 ```bash
 cd ~/clawd/projects/execution-market
 PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
-# 43 passed, 1 warning
+# 48 passed, 1 warning
 ```
 
 ## 7. Next smallest proof
 
-The next safe move is an actual rebuild report/fixture emitted by this consumer, still read-only, that a downstream UI/debug surface can inspect without interpreting semantics itself.
-
-After that, the Acontext sink can be treated as a transport test: write/retrieve the same consumer bundle and prove the same boundaries survive.
+The next safe move is an Acontext transport test: write/retrieve the same consumer bundle and rebuild report fields, then prove the same identity, claim, promotion, copyability, and readiness boundaries survive without semantic strengthening.

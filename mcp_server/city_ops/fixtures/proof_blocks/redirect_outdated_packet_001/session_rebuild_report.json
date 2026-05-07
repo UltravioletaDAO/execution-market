@@ -1,0 +1,113 @@
+{
+  "claim_boundaries": {
+    "do_not_claim_yet": [
+      "runtime_parity_proven",
+      "reuse_behavior_proven",
+      "closure_proof_ready",
+      "closure_proof_landed",
+      "session_rebuild_ready",
+      "acontext_sink_ready",
+      "worker-copyable municipal doctrine"
+    ],
+    "inherited_safe_to_claim": [
+      "projection_truth_landed",
+      "reuse_parity_landed",
+      "session_rebuild_consumer_landed"
+    ],
+    "safe_to_claim": [
+      "projection_truth_landed",
+      "reuse_parity_landed",
+      "session_rebuild_consumer_landed",
+      "session_rebuild_report_fixture_landed"
+    ]
+  },
+  "compact_decision_id": "cdo_c51f4b767729",
+  "coordination_session_id": "city_session_redirect_outdated_packet_001",
+  "debug_sections": [
+    {
+      "section": "identity",
+      "source": "consumer_bundle",
+      "status": "preserved"
+    },
+    {
+      "section": "claim_boundaries",
+      "source": "consumer_bundle",
+      "status": "preserved_with_report_fixture_claim"
+    },
+    {
+      "section": "promotion_boundaries",
+      "source": "consumer_bundle",
+      "status": "preserved_without_worker_copyable_upgrade"
+    },
+    {
+      "section": "readiness",
+      "source": "consumer_bundle",
+      "status": "bounded_preview_only"
+    }
+  ],
+  "derived_from": {
+    "consumer_id": "session_rebuild_consumer:redirect_outdated_packet_001",
+    "schema": "city_ops.session_rebuild_consumer_bundle.v1",
+    "source_artifacts": {
+      "acontext_export_preview": "acontext_export_preview.json",
+      "session_rebuild_preview": "session_rebuild_preview.json",
+      "telemetry_gate": "proof_block_telemetry_gate.json"
+    }
+  },
+  "identity": {
+    "compact_decision_id": "cdo_c51f4b767729",
+    "coordination_session_id": "city_session_redirect_outdated_packet_001",
+    "proof_anchor_id": "redirect_outdated_packet_001",
+    "review_packet_id": "review_packet_redirect_outdated_packet_001"
+  },
+  "next_smallest_proof": [
+    "wire runtime consumers through this compact decision object without strengthening trust semantics",
+    "one repeated redirect case needed before confident worker-copyable promotion"
+  ],
+  "promotion_boundaries": {
+    "behavior_change_class": "routing_changed",
+    "copyable_worker_instruction": {
+      "allowed": false,
+      "reason": "Reviewed truth supports operator-visible routing/evidence guidance, but the guidance is not safe as direct worker-copyable instructions yet."
+    },
+    "guidance_placement": "operator_visible_before_worker_copy",
+    "guidance_tone": "cautionary_or_corrective",
+    "promotion_class": "conservative_memory_delta",
+    "source_episode_ids": [
+      "reviewed_episode_redirect_outdated_packet_001"
+    ],
+    "summary_judgment": "Reviewed municipal reality invalidated the old packet path; the next dispatch must warn the operator before worker-copyable instructions are issued."
+  },
+  "proof_anchor_id": "redirect_outdated_packet_001",
+  "readiness": {
+    "consumer_promotes_readiness": false,
+    "decision": {
+      "continuity_ready": true,
+      "export_ready": false,
+      "operator_surface_ready": true,
+      "session_rebuild_ready": false
+    },
+    "report_promotes_readiness": false,
+    "telemetry_acontext_sink_ready": false,
+    "telemetry_session_rebuild_ready": false
+  },
+  "report_id": "session_rebuild_report:redirect_outdated_packet_001",
+  "report_verdict": "read_only_session_rebuild_report_fixture_landed",
+  "review_packet_id": "review_packet_redirect_outdated_packet_001",
+  "schema": "city_ops.session_rebuild_report.v1",
+  "source_read_contract": {
+    "allowed_sources": [
+      "city_ops.session_rebuild_consumer_bundle.v1"
+    ],
+    "derives_from_consumer_bundle_only": true,
+    "forbidden_sources": [
+      "raw_transcript",
+      "unreviewed_memory",
+      "freeform_worker_chat",
+      "private_operator_context"
+    ],
+    "raw_transcript_required": false,
+    "read_only": true,
+    "writes_live_sink": false
+  }
+}

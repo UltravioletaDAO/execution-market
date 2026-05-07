@@ -703,10 +703,44 @@ PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
 
 ### 16.1 Daytime tie-breaker after this update
 
-The honest label is now:
+The 7am honest label was:
 
 ```text
 reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed
 ```
 
-The next smallest proof is a read-only rebuild report/debug fixture emitted from this consumer bundle. Do **not** flip `session_rebuild_ready`, `acontext_sink_ready`, or worker-copyable doctrine yet; those require a live rebuild/sink pass that preserves the same boundaries without semantic reinterpretation.
+The next smallest proof at that point was a read-only rebuild report/debug fixture emitted from this consumer bundle. Do **not** flip `session_rebuild_ready`, `acontext_sink_ready`, or worker-copyable doctrine yet; those require a live rebuild/sink pass that preserves the same boundaries without semantic reinterpretation.
+
+## 17. 2026-05-06 10pm implementation update — read-only rebuild report fixture
+
+The report/debug fixture seam now exists:
+
+- `mcp_server/city_ops/session_rebuild_consumer.py`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/session_rebuild_report.json`
+- `mcp_server/tests/city_ops/test_session_rebuild_consumer.py`
+
+This adds a bundle-derived report schema:
+
+```text
+city_ops.session_rebuild_report.v1
+```
+
+The report reads only `city_ops.session_rebuild_consumer_bundle.v1`; it does not reopen raw transcripts, unreviewed memory, freeform worker chat, private operator context, persisted preview files directly, or any live sink. Tests now fail if the report source contract stops being read-only, if identity fields drift, if safe/not-safe claims are promoted incorrectly, if tone/placement/promotion/copyability boundaries strengthen, or if readiness is marked safe.
+
+New test gate:
+
+```bash
+cd ~/clawd/projects/execution-market
+PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
+# 48 passed, 1 warning
+```
+
+### 17.1 Daytime tie-breaker after this update
+
+The honest label is now:
+
+```text
+reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed + session_rebuild_report_fixture_landed
+```
+
+The next smallest proof is an Acontext transport test that writes/retrieves the same consumer bundle/report fields and proves identity, claim, promotion, tone, placement, copyability, and readiness boundaries survive without semantic strengthening. Do **not** flip `session_rebuild_ready`, `acontext_sink_ready`, `closure_proof_landed`, or worker-copyable doctrine yet.
