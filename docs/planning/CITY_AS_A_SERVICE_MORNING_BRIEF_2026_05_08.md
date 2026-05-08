@@ -254,3 +254,62 @@ Result after the 04:00 slice:
 ```text
 135 passed, 1 warning in 0.14s
 ```
+
+## 16. 05:00 pre-dawn synthesis — Phase 1 fixture ladder meets proof-spine discipline
+
+Added:
+
+- `docs/planning/CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_08.md`
+
+The synthesis connects two CaaS workstreams:
+
+1. the May 7 proof spine for `redirect_outdated_packet_001`, which carries judged truth through dispatch/reuse/telemetry/rebuild/Acontext-preflight/debug/observability consumers without trust drift;
+2. tonight's Phase 1 offer fixture ladder, which now runs from offer cards through fixture specs, reviewed-output schemas, normalizer draft, Counter Reality Check reviewed fixture, and Posting Compliance Check reviewed fixture.
+
+Current Phase 1 proof-support labels:
+
+```text
+phase_1_offer_fixture_specs_landed
++ phase_1_review_output_schema_drafts_landed
++ phase_1_review_normalizer_draft_landed
++ counter_reality_check_reviewed_fixture_landed
++ posting_compliance_check_reviewed_fixture_landed
+```
+
+Still false / blocked:
+
+```text
+live_customer_schema_contract
+autonomous_review_closure
+durable_municipal_memory_write
+live_acontext_readiness
+acontext_sink_ready
+runtime_parity_proven
+autonomous_dispatch_readiness
+multi_jurisdiction_playbook_readiness
+worker_copyable_municipal_doctrine
+guaranteed_approval
+legal_sufficiency
+city_relationship_or_influence
+unlimited_retries
+broad_multi_office_base_order
+recurring_posting_automation_ready
+regulator_acceptance
+exact_gps_or_metadata_exposure
+```
+
+Live Acontext path remains blocked locally at synthesis time:
+
+```text
+docker_available=false
+acontext_python_sdk_available=false
+local_acontext_api_reachable=false
+local_dashboard_reachable=false
+```
+
+Daytime recommendation:
+
+1. create one non-redirect Packet Submission Attempt reviewed fixture;
+2. add a tiny reviewed-fixture registry / summary that counts proof coverage by Phase 1 offer and carries `safe_to_claim[]` beside `do_not_claim_yet[]`;
+3. only then consider operator/debug or customer-copy surfaces, and only if they preserve blocked claims next to safe claims;
+4. clear Docker/Acontext/SDK/API/dashboard prerequisites before any live transport claim.

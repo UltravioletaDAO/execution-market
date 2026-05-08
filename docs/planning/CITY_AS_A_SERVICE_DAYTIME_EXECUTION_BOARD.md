@@ -1068,3 +1068,40 @@ Next engineering window if Acontext infra is still blocked:
 3. keep the registry claim-level only; do not turn it into live readiness, customer-copy contract, or worker-copyable municipal doctrine.
 
 Do not broaden into recurring posting automation, exact GPS/metadata exposure, regulator acceptance language, polished UI, or multi-jurisdiction playbooks from this fixture.
+
+---
+
+## 18. 2026-05-08 05:00 — Pre-dawn synthesis handoff
+
+New synthesis packet:
+
+- `CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_08.md`
+
+The main takeaway is that CaaS now has two ladders that need to converge:
+
+1. **Proof-anchor ladder** — the original `redirect_outdated_packet_001` spine proves that reviewed truth can survive dispatch, reuse, telemetry, rebuild, Acontext-preflight, debug, observability, and coordination-intelligence consumers without claim drift.
+2. **Phase 1 offer ladder** — the current offer package proves that Counter Reality Check, Posting Compliance Check, and Packet Submission Attempt must become reviewed fixtures before broader customer copy, UI, reputation, Acontext, or worker-skill surfaces strengthen the claim.
+
+Latest Phase 1 earned labels:
+
+```text
+phase_1_offer_fixture_specs_landed + phase_1_review_output_schema_drafts_landed + phase_1_review_normalizer_draft_landed + counter_reality_check_reviewed_fixture_landed + posting_compliance_check_reviewed_fixture_landed
+```
+
+Daytime tie-breaker:
+
+1. build one non-redirect `packet_submission_attempt` reviewed fixture;
+2. add a tiny reviewed-fixture registry / summary;
+3. keep registry output claim-level only — safe claims and blocked claims must travel together;
+4. do not start customer-copy polish, broad UI, live Acontext claims, autonomous dispatch, recurring posting automation, regulator-acceptance language, or worker-copyable doctrine until fixture coverage and claim preservation are inspectable.
+
+Current local Acontext blockers observed at 05:00:
+
+```text
+docker_available=false
+acontext_python_sdk_available=false
+local_acontext_api_reachable=false
+local_dashboard_reachable=false
+```
+
+So if those blockers remain, choose boring proof-support work over infrastructure theater.
