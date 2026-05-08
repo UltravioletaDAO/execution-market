@@ -111,6 +111,8 @@ Daytime should treat that review protocol as the default tie-breaker whenever a 
 
 Latest May 7 06:00 final handoff: do not broaden into more templates or UI. The read-only session rebuild consumer, Acontext transport parity fixture, live preflight, thin operator/debug surface, proof observability metrics, coordination intelligence snapshot, and pre-dawn synthesis now exist over the persisted proof-block fixture set. The next engineering window should either clear local Acontext prerequisites and run one live write/retrieve parity pass, or continue adding narrow proof-support guardrails that fail if they need raw transcripts, unreviewed memory, freeform worker chat, private operator context, dropped blocked claims, readiness overclaim, or worker-copyability drift.
 
+Latest May 7 22:00 packaging audit: `CITY_AS_A_SERVICE_AAS_PACKAGING_AUDIT_2026_05_07.md` compresses the CaaS/AAS planning stack into a sellable-but-conservative package recommendation. Treat the first commercial surface as a concierge municipal proof service with three Phase 1 offer cards: Counter Reality Check, Packet Submission Attempt, and Posting Compliance Check. Do not turn it into a broad city-task catalog, live memory-backend promise, multi-jurisdiction rollout, or worker-copyable doctrine.
+
 ## 4. The next engineering window
 
 ### 4.1 Track A — contracts and validators
