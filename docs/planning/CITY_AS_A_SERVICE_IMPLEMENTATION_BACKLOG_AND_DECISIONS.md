@@ -1,6 +1,6 @@
 # City as a Service — Implementation Backlog and Decision Ledger
 
-> Last updated: 2026-05-07 22:00 America/New_York
+> Last updated: 2026-05-08 23:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_IMPLEMENTATION_SLICE_V1.md`
@@ -8,6 +8,7 @@
 > - `CITY_AS_A_SERVICE_RESULT_AND_MEMORY_CONTRACT.md`
 > - `CITY_AS_A_SERVICE_LOCAL_PROJECTOR_BOOTSTRAP.md`
 > - `CITY_AS_A_SERVICE_OBSERVABILITY_AND_SUCCESS_METRICS.md`
+> - `CITY_AS_A_SERVICE_PHASE_1_OFFER_CARDS.md`
 > Status: build-readiness synthesis
 
 ## 1. Why this doc exists
@@ -150,8 +151,9 @@ Final 2026-05-06 morning handoff plus 2026-05-07 continuation:
 - `CITY_AS_A_SERVICE_SESSION_REBUILD_CONSUMER_IMPLEMENTATION.md` is the 7am closure-consumer implementation note.
 - `CITY_AS_A_SERVICE_ACONTEXT_TRANSPORT_PARITY_IMPLEMENTATION.md`, `CITY_AS_A_SERVICE_ACONTEXT_LIVE_PREFLIGHT_IMPLEMENTATION.md`, `CITY_AS_A_SERVICE_OPERATOR_DEBUG_SURFACE_IMPLEMENTATION.md`, `CITY_AS_A_SERVICE_PROOF_OBSERVABILITY_IMPLEMENTATION.md`, `CITY_AS_A_SERVICE_COORDINATION_INTELLIGENCE_IMPLEMENTATION.md`, `CITY_AS_A_SERVICE_PERSISTED_ARTIFACT_GUARDRAIL_IMPLEMENTATION.md`, and `CITY_AS_A_SERVICE_PROOF_BLOCK_READINESS_IMPLEMENTATION.md` are the May 7 transport/inspection/metrics/coordination-intelligence/guardrail/readiness notes.
 - `CITY_AS_A_SERVICE_AAS_PACKAGING_AUDIT_2026_05_07.md` is the May 7 22:00 packaging audit: it recommends packaging the current proof/planning stack as a conservative concierge municipal proof service with three Phase 1 offer cards, not as a broad city-task catalog or live automation claim.
-- Honest label: `reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed + session_rebuild_report_fixture_landed + acontext_transport_parity_test_landed + acontext_live_preflight_landed + thin_operator_debug_surface_landed + proof_observability_metrics_landed + coordination_intelligence_snapshot_landed + final_morning_handoff_landed + persisted_artifact_guardrail_landed + proof_block_readiness_summary_landed`.
-- Immediate next build: once Docker/local Acontext prerequisites are available, run one live write/retrieve transport pass from the same consumer bundle/report fields without semantic strengthening.
+- `CITY_AS_A_SERVICE_PHASE_1_OFFER_CARDS.md` lands that recommended card pack for Counter Reality Check, Packet Submission Attempt, and Posting Compliance Check, including intake fields, deliverables, review gates, customer output fields, follow-on triggers, proof-status labels, and forbidden claims.
+- Honest label: `reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed + session_rebuild_report_fixture_landed + acontext_transport_parity_test_landed + acontext_live_preflight_landed + thin_operator_debug_surface_landed + proof_observability_metrics_landed + coordination_intelligence_snapshot_landed + final_morning_handoff_landed + persisted_artifact_guardrail_landed + proof_block_readiness_summary_landed + phase_1_offer_cards_landed`.
+- Immediate next build: convert the offer cards into three fixture specs plus one review-output JSON schema draft, without changing live customer copy. Once Docker/local Acontext prerequisites are available, run one live write/retrieve transport pass from the same consumer bundle/report fields without semantic strengthening.
 - Still blocked/false until proven by real consumers/sinks: `closure_proof_landed`, `session_rebuild_ready`, `acontext_sink_ready`, `runtime_parity_proven`, `acontext_live_transport_parity_landed`, worker-copyable municipal doctrine, multi-jurisdiction playbooks, and autonomous city dispatch.
 
 ## 5. The minimum viable artifact chain
