@@ -342,3 +342,75 @@ Immediate daytime order:
 
 Repo state at handoff: `projects/execution-market` was already up to date on `feat/operator-route-regret-panel`; pre-existing untracked `scripts/sign_req.mjs` remained untouched and unstaged. Stopped repos were not synced or used because the active dream priority file forbids those workstreams.
 
+
+## 18. 07:00 dream output — Packet Submission Attempt fixture + reviewed registry
+
+The Phase 1 CaaS reviewed-fixture ladder now covers all three conservative launch offers.
+
+Added:
+
+- `mcp_server/city_ops/fixtures/phase1_offer_fixture_specs/reviewed_outputs/packet_submission_attempt_rejected_fixable_non_redirect_001.json`
+- `mcp_server/city_ops/fixtures/phase1_offer_fixture_specs/reviewed_outputs/phase1_reviewed_fixture_registry_summary.json`
+
+Updated:
+
+- `mcp_server/city_ops/phase1_reviewed_fixtures.py`
+- `mcp_server/tests/city_ops/test_phase1_reviewed_fixtures.py`
+- `mcp_server/city_ops/__init__.py`
+- `docs/planning/CITY_AS_A_SERVICE_DAYTIME_EXECUTION_BOARD.md`
+
+New earned labels:
+
+```text
+packet_submission_attempt_reviewed_fixture_landed
+phase1_reviewed_fixture_registry_summary_landed
+```
+
+This remains local proof-support / operator-observability only. The Packet Submission Attempt fixture is a synthetic non-redirect rejected attempt with explicit source separation, no exact GPS or metadata exposure, no municipal fee payment, no bundled retry, and a bounded `rejection_diagnosis_resubmission_prep` follow-on trigger.
+
+The registry is read-only and exists so operator surfaces can count reviewed fixture coverage by offer while keeping `safe_to_claim[]` beside `do_not_claim_yet[]`.
+
+Still false / blocked:
+
+```text
+customer_copy_ready
+operator_ui_ready
+dispatch_routing_ready
+live_customer_schema_contract
+autonomous_review_closure
+durable_municipal_memory_write
+live_acontext_readiness
+acontext_sink_ready
+runtime_parity_proven
+autonomous_dispatch_readiness
+erc8004_reputation_ready
+worker_skill_dna_ready
+multi_jurisdiction_playbook_readiness
+worker_copyable_municipal_doctrine
+guaranteed_approval
+legal_sufficiency
+city_relationship_or_influence
+unlimited_retries
+broad_multi_office_base_order
+exact_gps_or_metadata_exposure
+```
+
+Test gate after 07:00:
+
+```bash
+python3 -m py_compile mcp_server/city_ops/phase1_reviewed_fixtures.py mcp_server/tests/city_ops/test_phase1_reviewed_fixtures.py
+PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
+```
+
+Result:
+
+```text
+142 passed, 1 warning in 0.14s
+```
+
+Next smallest honest move:
+
+1. wire a tiny read-only operator/admin coverage summary to the registry, or
+2. if infrastructure access changes, clear Docker/local Acontext/SDK/API/dashboard prerequisites and run exactly one live write/retrieve parity pass before claiming live transport readiness.
+
+Do not promote customer-copy, dispatch automation, Acontext, ERC-8004 reputation, or worker Skill DNA from this registry alone.

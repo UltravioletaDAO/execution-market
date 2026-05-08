@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from .contracts import CityOpsContractError
-from .phase1_offer_fixture_specs import REQUIRED_BLOCKED_CLAIMS
+from .phase1_offer_fixture_specs import REQUIRED_BLOCKED_CLAIMS, REQUIRED_OFFER_IDS
 from .phase1_review_normalizer import normalize_phase1_review_output
 from .phase1_review_output_schemas import OFFER_SPEC_DIR, validate_phase1_review_output
 
@@ -24,8 +24,17 @@ COUNTER_REALITY_CHECK_REVIEWED_FIXTURE_SAFE_CLAIM = (
 POSTING_COMPLIANCE_CHECK_REVIEWED_FIXTURE_SAFE_CLAIM = (
     "posting_compliance_check_reviewed_fixture_landed"
 )
+PACKET_SUBMISSION_ATTEMPT_REVIEWED_FIXTURE_SAFE_CLAIM = (
+    "packet_submission_attempt_reviewed_fixture_landed"
+)
+PHASE1_REVIEWED_FIXTURE_REGISTRY_SAFE_CLAIM = (
+    "phase1_reviewed_fixture_registry_summary_landed"
+)
 # Backward-compatible alias for the first landed reviewed fixture.
 PHASE1_REVIEWED_FIXTURE_SAFE_CLAIM = COUNTER_REALITY_CHECK_REVIEWED_FIXTURE_SAFE_CLAIM
+
+PHASE1_REVIEWED_FIXTURE_REGISTRY_SCHEMA = "city_ops.phase1_reviewed_fixture_registry.v1"
+PHASE1_REVIEWED_FIXTURE_REGISTRY_FILENAME = "phase1_reviewed_fixture_registry_summary.json"
 
 COUNTER_REALITY_CHECK_FIXTURE_FILENAME = (
     "counter_reality_check_redirect_outdated_packet_001.json"
@@ -38,6 +47,12 @@ POSTING_COMPLIANCE_CHECK_FIXTURE_FILENAME = (
 )
 POSTING_COMPLIANCE_CHECK_FIXTURE_ID = (
     "caas_phase1_posting_compliance_check_partial_legibility_001"
+)
+PACKET_SUBMISSION_ATTEMPT_FIXTURE_FILENAME = (
+    "packet_submission_attempt_rejected_fixable_non_redirect_001.json"
+)
+PACKET_SUBMISSION_ATTEMPT_FIXTURE_ID = (
+    "caas_phase1_packet_submission_attempt_rejected_fixable_non_redirect_001"
 )
 
 DO_NOT_CLAIM_YET = [
@@ -221,6 +236,209 @@ def build_posting_compliance_check_reviewed_fixture() -> dict[str, Any]:
     return fixture
 
 
+def build_packet_submission_attempt_reviewed_fixture() -> dict[str, Any]:
+    """Build a conservative non-redirect Packet Submission Attempt fixture.
+
+    This fixture proves only one operator-reviewed, synthetic, single-office
+    packet attempt that was rejected for a fixable preparation issue. It keeps
+    source separation explicit, avoids exact GPS / metadata exposure, and does
+    not claim approval, legal sufficiency, city influence, autonomous dispatch,
+    live Acontext readiness, or broad filing doctrine.
+    """
+
+    review_form = {
+        "offer": "packet_submission_attempt",
+        "outcome_status": "rejected",
+        "attempt_summary": (
+            "One prepared packet was presented for intake review at a scoped office. "
+            "The packet was not accepted because a supplemental checklist item was "
+            "missing from the prepared set."
+        ),
+        "source_type": "mixed",
+        "acceptance_evidence": (
+            "No acceptance receipt, stamp, or confirmation was produced; absence is "
+            "recorded as reviewed evidence, not as approval or denial on the merits."
+        ),
+        "rejection_reason": (
+            "Fixable preparation issue: intake identified a missing supplemental "
+            "checklist item before accepting the packet."
+        ),
+        "redirect_target": "not_applicable_non_redirect_attempt",
+        "blocked_reason": "not_applicable_not_blocked",
+        "evidence_summary": [
+            "Customer-supplied source: prepared packet list and checklist were used only as intake context, not municipal authority.",
+            "Observed source: one scoped intake attempt occurred; no exact GPS, address metadata, or private counter details are exposed.",
+            "Staff-heard source: intake identified a missing supplemental checklist item before acceptance; no raw transcript is treated as authority.",
+            "Operator review: result is a fixable non-redirect rejection, not approval, legal sufficiency, city influence, or a guaranteed resubmission path.",
+        ],
+        "structured_next_step": (
+            "Offer one bounded rejection_diagnosis_resubmission_prep task to identify "
+            "the missing checklist item and prepare a corrected packet; do not bundle "
+            "or guarantee a retry, approval, legal sufficiency, or municipal fee payment."
+        ),
+        "follow_on_task_trigger": "rejection_diagnosis_resubmission_prep",
+    }
+    reviewed_output = normalize_phase1_review_output(review_form)
+    validation = validate_phase1_review_output("packet_submission_attempt", reviewed_output)
+
+    fixture = {
+        "schema": PHASE1_REVIEWED_FIXTURE_SCHEMA,
+        "fixture_id": PACKET_SUBMISSION_ATTEMPT_FIXTURE_ID,
+        "offer_id": "packet_submission_attempt",
+        "source_fixture_spec": "packet_submission_attempt.json",
+        "source_normalizer": "phase1_review_normalizer.py",
+        "scenario": {
+            "case_pattern": "single_office_non_redirect_rejected_fixable_packet_attempt",
+            "municipal_objective": (
+                "Attempt one prepared packet submission and classify the reviewed outcome without implying approval."
+            ),
+            "intake_privacy": "synthetic_non_jurisdiction_specific_example",
+            "raw_transcript_used_as_authority": False,
+            "unreviewed_memory_used": False,
+            "exact_gps_or_metadata_exposed": False,
+            "municipal_fee_payment_performed": False,
+            "non_redirect_attempt": True,
+            "retry_or_resubmission_included": False,
+        },
+        "review_input_summary": {
+            "target_office_scope": "one synthetic scoped municipal intake office",
+            "documents_prepared_status": "packet_prepared_but_missing_supplemental_checklist_item",
+            "receipt_stamp_or_absence_explained": True,
+            "customer_success_definition": (
+                "Reviewed accepted/rejected/redirected/blocked/inconclusive classification, "
+                "evidence limits, and one safe operational next step."
+            ),
+        },
+        "reviewed_output": reviewed_output,
+        "validation": validation,
+        "promotion_gate": _local_fixture_promotion_gate(),
+        "safe_to_claim": [PACKET_SUBMISSION_ATTEMPT_REVIEWED_FIXTURE_SAFE_CLAIM],
+        "do_not_claim_yet": _unique_strings(
+            [
+                *DO_NOT_CLAIM_YET,
+                "city_relationship_or_influence",
+                "unlimited_retries",
+                "broad_multi_office_base_order",
+                "runtime_parity_proven",
+                "exact_gps_or_metadata_exposure",
+            ]
+        ),
+        "next_smallest_proof": (
+            "Use the reviewed-fixture registry/summary to count Phase 1 coverage before "
+            "any customer-copy, UI, dispatch, Acontext, reputation, or worker-skill surface is promoted."
+        ),
+    }
+    _assert_reviewed_fixture_contract(
+        fixture,
+        expected_offer_id="packet_submission_attempt",
+        expected_safe_claim=PACKET_SUBMISSION_ATTEMPT_REVIEWED_FIXTURE_SAFE_CLAIM,
+    )
+    _assert_packet_submission_fixture_boundaries(fixture)
+    return fixture
+
+
+def build_phase1_reviewed_fixture_registry_summary(
+    *, fixture_dir: str | Path | None = None, fixtures: list[dict[str, Any]] | None = None
+) -> dict[str, Any]:
+    """Summarize reviewed fixture coverage for operator observability.
+
+    The registry is deliberately a local, read-only summary. It carries safe and
+    blocked claims together so downstream operator surfaces can count proof
+    coverage without strengthening customer-copy, dispatch, Acontext, runtime,
+    legal, approval, or worker-copyable claims.
+    """
+
+    reviewed_fixtures = fixtures or [
+        load_counter_reality_check_reviewed_fixture(fixture_dir=fixture_dir),
+        load_packet_submission_attempt_reviewed_fixture(fixture_dir=fixture_dir),
+        load_posting_compliance_check_reviewed_fixture(fixture_dir=fixture_dir),
+    ]
+    coverage_by_offer: dict[str, dict[str, Any]] = {}
+    safe_claims: list[str] = [PHASE1_REVIEWED_FIXTURE_REGISTRY_SAFE_CLAIM]
+    blocked_claims: list[str] = list(DO_NOT_CLAIM_YET)
+    source_files_by_offer = {
+        "counter_reality_check": COUNTER_REALITY_CHECK_FIXTURE_FILENAME,
+        "packet_submission_attempt": PACKET_SUBMISSION_ATTEMPT_FIXTURE_FILENAME,
+        "posting_compliance_check": POSTING_COMPLIANCE_CHECK_FIXTURE_FILENAME,
+    }
+
+    for fixture in reviewed_fixtures:
+        offer_id = fixture.get("offer_id")
+        if offer_id not in REQUIRED_OFFER_IDS:
+            raise CityOpsContractError(f"unknown reviewed fixture offer_id: {offer_id}")
+        reviewed_output = fixture["reviewed_output"]
+        coverage_by_offer[offer_id] = {
+            "fixture_id": fixture["fixture_id"],
+            "source_file": source_files_by_offer[offer_id],
+            "outcome_status": reviewed_output["outcome_status"],
+            "source_type": reviewed_output["source_type"],
+            "follow_on_task_trigger": reviewed_output["follow_on_task_trigger"],
+            "proof_status_label": reviewed_output["proof_status_label"],
+            "safe_to_claim": list(fixture.get("safe_to_claim", [])),
+            "do_not_claim_yet": list(fixture.get("do_not_claim_yet", [])),
+            "customer_copy_changed": fixture["promotion_gate"]["customer_copy_changed"],
+            "durable_municipal_memory_write_performed": fixture["promotion_gate"][
+                "durable_municipal_memory_write_performed"
+            ],
+            "acontext_write_performed": fixture["promotion_gate"]["acontext_write_performed"],
+            "autonomous_dispatch_enabled": fixture["promotion_gate"][
+                "autonomous_dispatch_enabled"
+            ],
+        }
+        safe_claims.extend(fixture.get("safe_to_claim", []))
+        blocked_claims.extend(fixture.get("do_not_claim_yet", []))
+
+    missing_offers = [offer_id for offer_id in REQUIRED_OFFER_IDS if offer_id not in coverage_by_offer]
+    if missing_offers:
+        raise CityOpsContractError(f"reviewed fixture registry missing offers: {missing_offers}")
+
+    registry = {
+        "schema": PHASE1_REVIEWED_FIXTURE_REGISTRY_SCHEMA,
+        "registry_id": "caas_phase1_reviewed_fixture_registry_summary_v0",
+        "source_reviewed_outputs": [
+            COUNTER_REALITY_CHECK_FIXTURE_FILENAME,
+            PACKET_SUBMISSION_ATTEMPT_FIXTURE_FILENAME,
+            POSTING_COMPLIANCE_CHECK_FIXTURE_FILENAME,
+        ],
+        "offer_ids": list(REQUIRED_OFFER_IDS),
+        "total_reviewed_fixtures": len(reviewed_fixtures),
+        "coverage_by_offer": coverage_by_offer,
+        "safe_to_claim": _unique_strings(safe_claims),
+        "do_not_claim_yet": _unique_strings(
+            [
+                *blocked_claims,
+                "customer_copy_ready",
+                "operator_ui_ready",
+                "dispatch_routing_ready",
+                "acontext_sink_ready",
+                "erc8004_reputation_ready",
+                "worker_skill_dna_ready",
+                "exact_gps_or_metadata_exposure",
+            ]
+        ),
+        "operator_observability": {
+            "all_phase1_offers_have_reviewed_fixture": True,
+            "safe_and_blocked_claims_travel_together": True,
+            "source_files_are_local_reviewed_outputs_only": True,
+            "exact_gps_or_metadata_exposed": False,
+        },
+        "commercial_scope": {
+            "customer_copy_changed": False,
+            "durable_municipal_memory_write_performed": False,
+            "acontext_write_performed": False,
+            "autonomous_dispatch_enabled": False,
+            "legal_or_approval_claim_allowed": False,
+        },
+        "next_smallest_proof": (
+            "Use this registry only as an operator observability source; next surface may be "
+            "a read-only admin count/summary, not customer copy, dispatch automation, live "
+            "Acontext, ERC-8004 reputation, or worker Skill DNA."
+        ),
+    }
+    _assert_reviewed_fixture_registry_summary(registry)
+    return registry
+
+
 def write_counter_reality_check_reviewed_fixture(
     *, fixture_dir: str | Path | None = None
 ) -> Path:
@@ -241,6 +459,30 @@ def write_posting_compliance_check_reviewed_fixture(
     return _write_reviewed_fixture(
         build_posting_compliance_check_reviewed_fixture(),
         POSTING_COMPLIANCE_CHECK_FIXTURE_FILENAME,
+        fixture_dir=fixture_dir,
+    )
+
+
+def write_packet_submission_attempt_reviewed_fixture(
+    *, fixture_dir: str | Path | None = None
+) -> Path:
+    """Persist the non-redirect Packet Submission Attempt reviewed fixture."""
+
+    return _write_reviewed_fixture(
+        build_packet_submission_attempt_reviewed_fixture(),
+        PACKET_SUBMISSION_ATTEMPT_FIXTURE_FILENAME,
+        fixture_dir=fixture_dir,
+    )
+
+
+def write_phase1_reviewed_fixture_registry_summary(
+    *, fixture_dir: str | Path | None = None
+) -> Path:
+    """Persist the reviewed fixture registry/summary next to reviewed outputs."""
+
+    return _write_reviewed_fixture(
+        build_phase1_reviewed_fixture_registry_summary(fixture_dir=fixture_dir),
+        PHASE1_REVIEWED_FIXTURE_REGISTRY_FILENAME,
         fixture_dir=fixture_dir,
     )
 
@@ -272,6 +514,31 @@ def load_posting_compliance_check_reviewed_fixture(
     )
     _assert_posting_fixture_boundaries(fixture)
     return fixture
+
+
+def load_packet_submission_attempt_reviewed_fixture(
+    *, fixture_dir: str | Path | None = None
+) -> dict[str, Any]:
+    """Load the persisted non-redirect Packet Submission Attempt fixture."""
+
+    fixture = _load_reviewed_fixture(PACKET_SUBMISSION_ATTEMPT_FIXTURE_FILENAME, fixture_dir)
+    _assert_reviewed_fixture_contract(
+        fixture,
+        expected_offer_id="packet_submission_attempt",
+        expected_safe_claim=PACKET_SUBMISSION_ATTEMPT_REVIEWED_FIXTURE_SAFE_CLAIM,
+    )
+    _assert_packet_submission_fixture_boundaries(fixture)
+    return fixture
+
+
+def load_phase1_reviewed_fixture_registry_summary(
+    *, fixture_dir: str | Path | None = None
+) -> dict[str, Any]:
+    """Load the persisted reviewed fixture registry/summary."""
+
+    registry = _load_reviewed_fixture(PHASE1_REVIEWED_FIXTURE_REGISTRY_FILENAME, fixture_dir)
+    _assert_reviewed_fixture_registry_summary(registry)
+    return registry
 
 
 def _write_reviewed_fixture(
@@ -367,6 +634,73 @@ def _assert_posting_fixture_boundaries(fixture: dict[str, Any]) -> None:
     forbidden_words = ["regulator acceptance is confirmed", "legally sufficient", "GPS:"]
     if any(word in evidence for word in forbidden_words):
         raise CityOpsContractError("posting compliance fixture evidence overclaims status")
+
+
+def _assert_packet_submission_fixture_boundaries(fixture: dict[str, Any]) -> None:
+    reviewed_output = fixture["reviewed_output"]
+    if reviewed_output.get("outcome_status") != "rejected":
+        raise CityOpsContractError("packet submission fixture must stay rejected")
+    if reviewed_output.get("redirect_target") != "not_applicable_non_redirect_attempt":
+        raise CityOpsContractError("packet submission fixture must stay non-redirect")
+    if reviewed_output.get("follow_on_task_trigger") != "rejection_diagnosis_resubmission_prep":
+        raise CityOpsContractError(
+            "packet submission fixture must trigger bounded rejection diagnosis"
+        )
+    scenario = fixture.get("scenario", {})
+    if scenario.get("exact_gps_or_metadata_exposed") is not False:
+        raise CityOpsContractError("packet submission fixture cannot expose exact GPS or metadata")
+    if scenario.get("non_redirect_attempt") is not True:
+        raise CityOpsContractError("packet submission fixture must stay non-redirect")
+    if scenario.get("retry_or_resubmission_included") is not False:
+        raise CityOpsContractError("packet submission fixture cannot bundle retries")
+    evidence = " ".join(reviewed_output.get("evidence_summary", []))
+    forbidden_phrases = [
+        "approval is guaranteed",
+        "legally sufficient",
+        "city relationship confirmed",
+        "GPS:",
+        "autonomous dispatch enabled",
+        "live Acontext ready",
+    ]
+    if any(phrase in evidence for phrase in forbidden_phrases):
+        raise CityOpsContractError("packet submission fixture evidence overclaims status")
+
+
+def _assert_reviewed_fixture_registry_summary(registry: dict[str, Any]) -> None:
+    if registry.get("schema") != PHASE1_REVIEWED_FIXTURE_REGISTRY_SCHEMA:
+        raise CityOpsContractError("reviewed fixture registry schema mismatch")
+    coverage = registry.get("coverage_by_offer")
+    if not isinstance(coverage, dict):
+        raise CityOpsContractError("reviewed fixture registry missing coverage_by_offer")
+    missing_offers = [offer_id for offer_id in REQUIRED_OFFER_IDS if offer_id not in coverage]
+    if missing_offers:
+        raise CityOpsContractError(f"reviewed fixture registry missing offers: {missing_offers}")
+    if registry.get("total_reviewed_fixtures") != len(REQUIRED_OFFER_IDS):
+        raise CityOpsContractError("reviewed fixture registry fixture count mismatch")
+    if registry.get("operator_observability", {}).get("exact_gps_or_metadata_exposed") is not False:
+        raise CityOpsContractError("reviewed fixture registry cannot expose exact GPS or metadata")
+    scope = registry.get("commercial_scope", {})
+    if any(
+        scope.get(flag) is True
+        for flag in [
+            "customer_copy_changed",
+            "durable_municipal_memory_write_performed",
+            "acontext_write_performed",
+            "autonomous_dispatch_enabled",
+            "legal_or_approval_claim_allowed",
+        ]
+    ):
+        raise CityOpsContractError("reviewed fixture registry overclaims commercial scope")
+    safe_to_claim = set(registry.get("safe_to_claim", []))
+    blocked = set(registry.get("do_not_claim_yet", []))
+    overlap = sorted(safe_to_claim & blocked)
+    if overlap:
+        raise CityOpsContractError(f"reviewed fixture registry claim overlap: {overlap}")
+    for offer_id, row in coverage.items():
+        if not row.get("safe_to_claim") or not row.get("do_not_claim_yet"):
+            raise CityOpsContractError(f"reviewed fixture registry row missing claims: {offer_id}")
+        if row.get("customer_copy_changed") is not False:
+            raise CityOpsContractError(f"reviewed fixture registry row overclaims copy: {offer_id}")
 
 
 def _unique_strings(values: list[str]) -> list[str]:

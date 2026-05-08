@@ -1,0 +1,80 @@
+{
+  "do_not_claim_yet": [
+    "guaranteed_approval",
+    "legal_sufficiency",
+    "city_relationship_or_influence",
+    "unlimited_retries",
+    "broad_multi_office_base_order",
+    "live_acontext_readiness",
+    "autonomous_dispatch_readiness",
+    "multi_jurisdiction_playbook_readiness",
+    "worker_copyable_municipal_doctrine",
+    "live_customer_schema_contract",
+    "autonomous_review_closure",
+    "durable_municipal_memory_write",
+    "runtime_parity_proven",
+    "exact_gps_or_metadata_exposure"
+  ],
+  "fixture_id": "caas_phase1_packet_submission_attempt_rejected_fixable_non_redirect_001",
+  "next_smallest_proof": "Use the reviewed-fixture registry/summary to count Phase 1 coverage before any customer-copy, UI, dispatch, Acontext, reputation, or worker-skill surface is promoted.",
+  "offer_id": "packet_submission_attempt",
+  "promotion_gate": {
+    "acontext_write_performed": false,
+    "autonomous_dispatch_enabled": false,
+    "customer_copy_changed": false,
+    "durable_municipal_memory_write_performed": false,
+    "ready_for_local_replay_gate": true,
+    "requires_existing_replay_promotion_gates": true,
+    "requires_operator_review": true
+  },
+  "review_input_summary": {
+    "customer_success_definition": "Reviewed accepted/rejected/redirected/blocked/inconclusive classification, evidence limits, and one safe operational next step.",
+    "documents_prepared_status": "packet_prepared_but_missing_supplemental_checklist_item",
+    "receipt_stamp_or_absence_explained": true,
+    "target_office_scope": "one synthetic scoped municipal intake office"
+  },
+  "reviewed_output": {
+    "acceptance_evidence": "No acceptance receipt, stamp, or confirmation was produced; absence is recorded as reviewed evidence, not as approval or denial on the merits.",
+    "attempt_summary": "One prepared packet was presented for intake review at a scoped office. The packet was not accepted because a supplemental checklist item was missing from the prepared set.",
+    "blocked_reason": "not_applicable_not_blocked",
+    "evidence_summary": [
+      "Customer-supplied source: prepared packet list and checklist were used only as intake context, not municipal authority.",
+      "Observed source: one scoped intake attempt occurred; no exact GPS, address metadata, or private counter details are exposed.",
+      "Staff-heard source: intake identified a missing supplemental checklist item before acceptance; no raw transcript is treated as authority.",
+      "Operator review: result is a fixable non-redirect rejection, not approval, legal sufficiency, city influence, or a guaranteed resubmission path."
+    ],
+    "follow_on_task_trigger": "rejection_diagnosis_resubmission_prep",
+    "forbidden_claims_preserved": true,
+    "offer": "packet_submission_attempt",
+    "operator_review_status": "reviewed",
+    "outcome_status": "rejected",
+    "proof_status_label": "local_anchor_supported_redirect_outdated_packet_only",
+    "redirect_target": "not_applicable_non_redirect_attempt",
+    "rejection_reason": "Fixable preparation issue: intake identified a missing supplemental checklist item before accepting the packet.",
+    "source_type": "mixed",
+    "structured_next_step": "Offer one bounded rejection_diagnosis_resubmission_prep task to identify the missing checklist item and prepare a corrected packet; do not bundle or guarantee a retry, approval, legal sufficiency, or municipal fee payment."
+  },
+  "safe_to_claim": [
+    "packet_submission_attempt_reviewed_fixture_landed"
+  ],
+  "scenario": {
+    "case_pattern": "single_office_non_redirect_rejected_fixable_packet_attempt",
+    "exact_gps_or_metadata_exposed": false,
+    "intake_privacy": "synthetic_non_jurisdiction_specific_example",
+    "municipal_fee_payment_performed": false,
+    "municipal_objective": "Attempt one prepared packet submission and classify the reviewed outcome without implying approval.",
+    "non_redirect_attempt": true,
+    "raw_transcript_used_as_authority": false,
+    "retry_or_resubmission_included": false,
+    "unreviewed_memory_used": false
+  },
+  "schema": "city_ops.phase1_reviewed_fixture.v1",
+  "source_fixture_spec": "packet_submission_attempt.json",
+  "source_normalizer": "phase1_review_normalizer.py",
+  "validation": {
+    "check": "phase1_review_output_schema_contract",
+    "offer_id": "packet_submission_attempt",
+    "schema_id": "caas_phase1_packet_submission_attempt_review_output_schema_v0",
+    "status": "passed"
+  }
+}

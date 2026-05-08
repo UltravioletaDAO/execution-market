@@ -115,6 +115,8 @@ Latest May 7 22:00 packaging audit: `CITY_AS_A_SERVICE_AAS_PACKAGING_AUDIT_2026_
 
 Latest May 8 06:00 handoff: `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_08.md` is the current day/night coordination entrypoint. The immediate daytime order is: (1) non-redirect Packet Submission Attempt reviewed fixture, (2) reviewed-fixture registry/summary carrying safe and blocked claims together, (3) only then customer-copy/UI/dispatch/Acontext/reputation surfaces. Do not claim live Acontext readiness, autonomous dispatch, legal sufficiency, regulator acceptance, or worker-copyable municipal doctrine. AutoJob, Frontier Academy, and KK v2 were intentionally skipped because `DREAM-PRIORITIES.md` currently stops them.
 
+Latest May 8 07:00 implementation: all three Phase 1 offer cards now have at least one local reviewed fixture, and `phase1_reviewed_fixture_registry_summary.json` gives operator surfaces a read-only coverage count with `safe_to_claim[]` and `do_not_claim_yet[]` adjacent. This earns only `packet_submission_attempt_reviewed_fixture_landed` and `phase1_reviewed_fixture_registry_summary_landed`. It still does not make customer copy ready, does not prove live Acontext/runtime parity, does not enable autonomous dispatch or ERC-8004 reputation, and does not create worker-copyable municipal doctrine. The next safe surface is a read-only operator/admin count or summary sourced from the registry, not broader UI or dispatch automation.
+
 ## 4. The next engineering window
 
 ### 4.1 Track A — contracts and validators
