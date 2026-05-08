@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-07 06:00 America/New_York
+> Last updated: 2026-05-07 22:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -109,7 +109,7 @@ This doc closes one daylight ambiguity that the earlier planning set still left 
 
 Daytime should treat that review protocol as the default tie-breaker whenever a replay bundle exists but implementation readiness still feels debatable.
 
-Latest May 7 06:00 final handoff: do not broaden into more templates or UI. The read-only session rebuild consumer, Acontext transport parity fixture, live preflight, thin operator/debug surface, proof observability metrics, coordination intelligence snapshot, and pre-dawn synthesis now exist over the persisted proof-block fixture set. The next engineering window should either clear local Acontext prerequisites and run one live write/retrieve parity pass, or continue adding narrow proof-support guardrails that fail if they need raw transcripts, unreviewed memory, freeform worker chat, private operator context, dropped blocked claims, readiness overclaim, or worker-copyability drift.
+Latest May 7 22:00 continuation: do not broaden into more templates or UI. The read-only session rebuild consumer, Acontext transport parity fixture, live preflight, thin operator/debug surface, proof observability metrics, coordination intelligence snapshot, persisted-artifact guardrail, and proof-block readiness summary now exist over the persisted proof-block fixture set. The next engineering window should clear local Acontext prerequisites and run one live write/retrieve parity pass; if infra remains blocked, only continue narrow proof-support work that fails on raw transcripts, unreviewed memory, freeform worker chat, private operator context, dropped/drifted claims, readiness overclaim, or worker-copyability drift.
 
 Latest May 7 22:00 packaging audit: `CITY_AS_A_SERVICE_AAS_PACKAGING_AUDIT_2026_05_07.md` compresses the CaaS/AAS planning stack into a sellable-but-conservative package recommendation. Treat the first commercial surface as a concierge municipal proof service with three Phase 1 offer cards: Counter Reality Check, Packet Submission Attempt, and Posting Compliance Check. Do not turn it into a broad city-task catalog, live memory-backend promise, multi-jurisdiction rollout, or worker-copyable doctrine.
 
@@ -220,11 +220,13 @@ Reference docs:
 - `CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_07.md`
 - `CITY_AS_A_SERVICE_ACONTEXT_LIVE_PREFLIGHT_IMPLEMENTATION.md`
 - `CITY_AS_A_SERVICE_ACONTEXT_TRANSPORT_PARITY_IMPLEMENTATION.md`
+- `CITY_AS_A_SERVICE_PROOF_BLOCK_READINESS_IMPLEMENTATION.md`
 
 Acceptance gate:
 - preflight reports Docker, SDK, local API, and dashboard reachable before any live sink attempt
 - live retrieval preserves promotion class, guidance tone, guidance placement, copyability, readiness, safe claims, and blocked claims
-- if infra remains blocked, fallback work must fail on dropped `do_not_claim_yet[]`, readiness overclaim, raw transcript dependency, unreviewed memory dependency, or worker-copyability strengthening
+- if infra remains blocked, fallback work must fail on dropped/drifted `safe_to_claim[]` or `do_not_claim_yet[]`, readiness overclaim, raw transcript dependency, unreviewed memory dependency, or worker-copyability strengthening
+- proof-block readiness may report persisted artifacts as structurally sufficient, but must keep `ready_to_attempt_live_transport=false` while Docker, SDK, API, or dashboard prerequisites are missing
 - neither path may claim `acontext_sink_ready` until live write/retrieve parity exists
 
 ## 5. File-by-file done criteria

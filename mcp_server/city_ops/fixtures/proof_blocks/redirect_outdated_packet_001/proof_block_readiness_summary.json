@@ -1,0 +1,165 @@
+{
+  "claim_boundaries": {
+    "do_not_claim_yet": [
+      "runtime_parity_proven",
+      "reuse_behavior_proven",
+      "closure_proof_ready",
+      "closure_proof_landed",
+      "session_rebuild_ready",
+      "acontext_sink_ready",
+      "worker-copyable municipal doctrine",
+      "acontext_live_write_completed",
+      "acontext_live_retrieval_completed",
+      "acontext_live_transport_parity_landed",
+      "polished_review_console_ready",
+      "office_memory_view_ready",
+      "broad_operator_workflow_ready",
+      "multi_jurisdiction_playbook_ready",
+      "autonomous_city_dispatch_ready"
+    ],
+    "inherited_safe_to_claim": [
+      "projection_truth_landed",
+      "reuse_parity_landed",
+      "session_rebuild_consumer_landed",
+      "session_rebuild_report_fixture_landed",
+      "acontext_transport_parity_test_landed",
+      "acontext_live_preflight_landed",
+      "thin_operator_debug_surface_landed",
+      "proof_observability_metrics_landed",
+      "coordination_intelligence_snapshot_landed",
+      "persisted_artifact_guardrail_landed"
+    ],
+    "safe_to_claim": [
+      "projection_truth_landed",
+      "reuse_parity_landed",
+      "session_rebuild_consumer_landed",
+      "session_rebuild_report_fixture_landed",
+      "acontext_transport_parity_test_landed",
+      "acontext_live_preflight_landed",
+      "thin_operator_debug_surface_landed",
+      "proof_observability_metrics_landed",
+      "coordination_intelligence_snapshot_landed",
+      "persisted_artifact_guardrail_landed",
+      "proof_block_readiness_summary_landed"
+    ]
+  },
+  "compact_decision_id": "cdo_c51f4b767729",
+  "coordination_session_id": "city_session_redirect_outdated_packet_001",
+  "derived_from": {
+    "forbidden_sources": [
+      "raw_transcript",
+      "raw_transcripts",
+      "unreviewed_memory",
+      "unreviewed_worker_uploads",
+      "freeform_worker_chat",
+      "freeform_chat_as_authority",
+      "private_operator_context"
+    ],
+    "raw_conversation_reopened": false,
+    "read_only": true,
+    "semantic_reinterpretation_performed": false,
+    "source_artifacts": [
+      "session_rebuild_report.json",
+      "acontext_transport_parity_result.json",
+      "acontext_live_preflight_result.json",
+      "operator_debug_surface.json",
+      "proof_observability_snapshot.json",
+      "coordination_intelligence_snapshot.json",
+      "persisted_artifact_guardrail.json"
+    ],
+    "writes_live_sink": false
+  },
+  "next_smallest_proof": [
+    "clear missing local Acontext prerequisites: docker_daemon_unavailable, acontext_python_sdk_missing, local_acontext_api_unreachable, local_acontext_dashboard_unreachable",
+    "rerun the live preflight fixture until ready_to_attempt_live_transport=true",
+    "then run exactly one live write/retrieve pass using the existing transport packet",
+    "reuse assert_acontext_transport_parity before claiming any live transport label"
+  ],
+  "proof_anchor_id": "redirect_outdated_packet_001",
+  "readiness": {
+    "acontext_sink_ready": false,
+    "live_acontext_retrieval_performed": false,
+    "live_acontext_write_performed": false,
+    "missing_prerequisites": [
+      "docker_daemon_unavailable",
+      "acontext_python_sdk_missing",
+      "local_acontext_api_unreachable",
+      "local_acontext_dashboard_unreachable"
+    ],
+    "operational_prerequisites_satisfied": false,
+    "persisted_artifacts_sufficient_for_live_attempt": true,
+    "preflight_blockers": [
+      "docker_daemon_unavailable",
+      "acontext_python_sdk_missing",
+      "local_acontext_api_unreachable",
+      "local_acontext_dashboard_unreachable"
+    ],
+    "proof_block_readiness_summary_ready": true,
+    "ready_to_attempt_live_transport": false,
+    "runtime_parity_proven": false,
+    "session_rebuild_ready": false,
+    "summary_promotes_readiness": false,
+    "worker_copyable_doctrine_ready": false
+  },
+  "readiness_summary_verdict": "persisted_artifacts_ready_but_live_prerequisites_blocked",
+  "review_packet_id": "review_packet_redirect_outdated_packet_001",
+  "schema": "city_ops.proof_block_readiness_summary.v1",
+  "summary_checks": [
+    {
+      "check": "claim_boundary_drift",
+      "safe_to_claim_drift_by_artifact": {},
+      "status": "passed",
+      "unsafe_safe_claims_by_artifact": {}
+    },
+    {
+      "check": "readiness_honesty",
+      "must_not_be_true": [
+        "session_rebuild_ready",
+        "acontext_sink_ready",
+        "runtime_parity_proven",
+        "live_acontext_write_performed",
+        "live_acontext_retrieval_performed",
+        "worker_copyable_doctrine_ready"
+      ],
+      "overclaims_by_artifact": {},
+      "status": "passed"
+    },
+    {
+      "check": "raw_source_independence",
+      "forbidden_sources": [
+        "raw_transcript",
+        "raw_transcripts",
+        "unreviewed_memory",
+        "unreviewed_worker_uploads",
+        "freeform_worker_chat",
+        "freeform_chat_as_authority",
+        "private_operator_context"
+      ],
+      "status": "passed",
+      "violations_by_artifact": {}
+    },
+    {
+      "check": "worker_copyability_boundary",
+      "status": "passed",
+      "violations_by_artifact": {}
+    },
+    {
+      "check": "live_attempt_prerequisites",
+      "missing_prerequisites": [
+        "docker_daemon_unavailable",
+        "acontext_python_sdk_missing",
+        "local_acontext_api_unreachable",
+        "local_acontext_dashboard_unreachable"
+      ],
+      "preflight_ready_to_attempt_live_transport": false,
+      "required_prerequisites": [
+        "docker_available",
+        "acontext_python_sdk_available",
+        "local_acontext_api_reachable",
+        "local_acontext_dashboard_reachable"
+      ],
+      "status": "blocked"
+    }
+  ],
+  "summary_id": "proof_block_readiness:redirect_outdated_packet_001"
+}

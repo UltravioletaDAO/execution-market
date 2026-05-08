@@ -547,3 +547,88 @@ PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
 ```
 
 Next smallest proof remains live local Acontext transport parity once Docker, SDK, API, and dashboard prerequisites are actually available. Until then, only proof-support guardrails should continue.
+
+---
+
+## 15. 22:00 continuation — proof-block readiness summary landed
+
+This continuation read `~/clawd/DREAM-PRIORITIES.md` first and stayed inside Execution Market AAS / City-as-a-Service only. No AutoJob, Frontier Academy, KK v2, or KarmaCadabra v2 work was performed.
+
+Live Acontext remains blocked in this environment:
+
+```text
+docker_available=false
+acontext_python_sdk_available=false
+local_acontext_api_reachable=false
+local_acontext_dashboard_reachable=false
+```
+
+So the session added a read-only readiness summary over the persisted proof-block artifact set instead of attempting live transport.
+
+Added:
+
+- `mcp_server/city_ops/proof_block_readiness.py`
+- `mcp_server/tests/city_ops/test_proof_block_readiness.py`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/proof_block_readiness_summary.json`
+- `docs/planning/CITY_AS_A_SERVICE_PROOF_BLOCK_READINESS_IMPLEMENTATION.md`
+
+Updated:
+
+- `mcp_server/city_ops/__init__.py`
+- `docs/planning/CITY_AS_A_SERVICE_IMPLEMENTATION_BACKLOG_AND_DECISIONS.md`
+- `docs/planning/CITY_AS_A_SERVICE_DAYTIME_EXECUTION_BOARD.md`
+
+New schema:
+
+```text
+city_ops.proof_block_readiness_summary.v1
+```
+
+The summary reports:
+
+```text
+persisted_artifacts_sufficient_for_live_attempt=true
+operational_prerequisites_satisfied=false
+ready_to_attempt_live_transport=false
+```
+
+It fails on missing artifacts, exact claim-boundary drift, readiness overclaim, raw-source dependency, or worker-copyability promotion. Missing Docker/SDK/API/dashboard prerequisites are flagged as `live_attempt_prerequisites=blocked`, not hidden or softened.
+
+Current earned label:
+
+```text
+reuse_parity_landed + telemetry_gate_landed + closure_preview_persisted + session_rebuild_consumer_landed + session_rebuild_report_fixture_landed + acontext_transport_parity_test_landed + acontext_live_preflight_landed + thin_operator_debug_surface_landed + proof_observability_metrics_landed + coordination_intelligence_snapshot_landed + final_morning_handoff_landed + persisted_artifact_guardrail_landed + proof_block_readiness_summary_landed
+```
+
+Still false / blocked:
+
+```text
+closure_proof_landed
+session_rebuild_ready
+acontext_sink_ready
+runtime_parity_proven
+acontext_live_write_completed
+acontext_live_retrieval_completed
+acontext_live_transport_parity_landed
+worker-copyable municipal doctrine
+polished_review_console_ready
+office_memory_view_ready
+broad_operator_workflow_ready
+multi_jurisdiction_playbook_ready
+autonomous_city_dispatch_ready
+```
+
+Verification:
+
+```bash
+PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops/test_proof_block_readiness.py -q
+# 9 passed, 1 warning
+
+python3 -m py_compile mcp_server/city_ops/proof_block_readiness.py mcp_server/tests/city_ops/test_proof_block_readiness.py
+# passed
+
+PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
+# 94 passed, 1 warning
+```
+
+Next smallest proof remains unchanged: clear Docker, Acontext SDK, local API, and dashboard prerequisites; rerun preflight; then perform exactly one live write/retrieve parity pass using the existing transport packet before claiming live Acontext parity.
