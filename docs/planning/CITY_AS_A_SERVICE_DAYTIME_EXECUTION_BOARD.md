@@ -1035,3 +1035,36 @@ Next engineering window if Acontext infra is still blocked:
 4. only then consider customer-copy or UI surfaces, and only with the blocked-claim set traveling alongside the safe label
 
 Do not call the CaaS Phase 1 pack live, automated, memory-backed, or worker-copyable from this fixture. It is local proof support for one reviewed Counter Reality Check case.
+
+---
+
+## 17. 2026-05-08 04:00 — Posting Compliance Check reviewed fixture landed
+
+The Phase 1 CaaS pack now has a second concrete reviewed output fixture:
+
+- `CITY_AS_A_SERVICE_PHASE_1_POSTING_FIXTURE_IMPLEMENTATION.md`
+- `mcp_server/city_ops/fixtures/phase1_offer_fixture_specs/reviewed_outputs/posting_compliance_check_partial_legibility_001.json`
+- `mcp_server/city_ops/phase1_reviewed_fixtures.py`
+- `mcp_server/tests/city_ops/test_phase1_reviewed_fixtures.py`
+
+This fixture exercises a single-site posting state where wide/context evidence shows a posting present, but close/legibility evidence is incomplete because of access/angle constraints. It normalizes to `verified_partial`, keeps `source_type=observed`, preserves `exact_gps_or_metadata_exposed=false`, and uses a bounded `posting_recheck` trigger.
+
+Safe label added:
+
+```text
+posting_compliance_check_reviewed_fixture_landed
+```
+
+Still blocked:
+
+```text
+live_customer_schema_contract + autonomous_review_closure + durable_municipal_memory_write + live_acontext_readiness + autonomous_dispatch_readiness + multi_jurisdiction_playbook_readiness + worker_copyable_municipal_doctrine + guaranteed_approval + legal_sufficiency + city_relationship_or_influence + unlimited_retries + broad_multi_office_base_order
+```
+
+Next engineering window if Acontext infra is still blocked:
+
+1. create one non-redirect Packet Submission Attempt reviewed fixture,
+2. add a tiny reviewed-fixture registry/summary so operator/debug surfaces can count proof coverage by Phase 1 offer,
+3. keep the registry claim-level only; do not turn it into live readiness, customer-copy contract, or worker-copyable municipal doctrine.
+
+Do not broaden into recurring posting automation, exact GPS/metadata exposure, regulator acceptance language, polished UI, or multi-jurisdiction playbooks from this fixture.

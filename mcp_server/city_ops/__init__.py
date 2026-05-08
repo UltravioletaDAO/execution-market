@@ -22,7 +22,10 @@ from .phase1_review_output_schemas import (
     build_phase1_review_output_schema_bundle,
     validate_phase1_review_output,
 )
-from .phase1_reviewed_fixtures import build_counter_reality_check_reviewed_fixture
+from .phase1_reviewed_fixtures import (
+    build_counter_reality_check_reviewed_fixture,
+    build_posting_compliance_check_reviewed_fixture,
+)
 from .persisted_artifact_guardrail import build_persisted_artifact_guardrail_report
 from .proof_block_readiness import build_proof_block_readiness_summary
 from .proof_observability import build_proof_observability_snapshot
@@ -42,6 +45,7 @@ __all__ = [
     "build_phase1_review_normalizer_summary",
     "build_phase1_review_output_schema_bundle",
     "build_counter_reality_check_reviewed_fixture",
+    "build_posting_compliance_check_reviewed_fixture",
     "build_persisted_artifact_guardrail_report",
     "validate_phase1_review_output",
     "normalize_phase1_review_output",

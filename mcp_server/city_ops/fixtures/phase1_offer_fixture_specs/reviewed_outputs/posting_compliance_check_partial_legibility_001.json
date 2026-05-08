@@ -1,0 +1,73 @@
+{
+  "do_not_claim_yet": [
+    "guaranteed_approval",
+    "legal_sufficiency",
+    "city_relationship_or_influence",
+    "unlimited_retries",
+    "broad_multi_office_base_order",
+    "live_acontext_readiness",
+    "autonomous_dispatch_readiness",
+    "multi_jurisdiction_playbook_readiness",
+    "worker_copyable_municipal_doctrine",
+    "live_customer_schema_contract",
+    "autonomous_review_closure",
+    "durable_municipal_memory_write"
+  ],
+  "fixture_id": "caas_phase1_posting_compliance_check_partial_legibility_001",
+  "next_smallest_proof": "Create one non-redirect Packet Submission Attempt reviewed fixture, then add a reviewed-fixture registry/summary for operator observability.",
+  "offer_id": "posting_compliance_check",
+  "promotion_gate": {
+    "acontext_write_performed": false,
+    "autonomous_dispatch_enabled": false,
+    "customer_copy_changed": false,
+    "durable_municipal_memory_write_performed": false,
+    "ready_for_local_replay_gate": true,
+    "requires_existing_replay_promotion_gates": true,
+    "requires_operator_review": true
+  },
+  "review_input_summary": {
+    "access_constraint_present": true,
+    "customer_success_definition": "Reviewed pass/fail/partial posting state, evidence limits, and one safe operational next step.",
+    "required_close_legibility_evidence": true,
+    "required_wide_context_evidence": true
+  },
+  "reviewed_output": {
+    "checklist_result": "partial_visibility_legibility_not_confirmed",
+    "evidence_summary": [
+      "Observed source: wide/context evidence shows one posting visible at the expected exterior area.",
+      "Observed source: close/legibility evidence could confirm header and date but not the full notice body.",
+      "Observed source: access angle was constrained, so the review cannot certify complete checklist compliance.",
+      "Operator review: this is a partial posting evidence result, not regulator acceptance or legal sufficiency."
+    ],
+    "failure_reason": "Required close/legibility threshold was not fully met; exact GPS or metadata must remain out of customer copy.",
+    "follow_on_task_trigger": "posting_recheck",
+    "forbidden_claims_preserved": true,
+    "offer": "posting_compliance_check",
+    "operator_review_status": "reviewed",
+    "outcome_status": "verified_partial",
+    "proof_status_label": "planning_supported_needs_first_fixture",
+    "source_type": "observed",
+    "structured_next_step": "Offer one bounded posting_recheck with explicit close/legibility angle requirements; do not represent the current evidence as regulator acceptance.",
+    "visibility_notes": "Posting appears present from a public exterior vantage point, but glare and distance prevent full legibility confirmation without a recheck or improved angle."
+  },
+  "safe_to_claim": [
+    "posting_compliance_check_reviewed_fixture_landed"
+  ],
+  "scenario": {
+    "case_pattern": "single_site_posting_present_but_partially_legible",
+    "exact_gps_or_metadata_exposed": false,
+    "intake_privacy": "synthetic_non_jurisdiction_specific_example",
+    "municipal_objective": "Verify whether one scoped posting is visible and legible enough to satisfy the customer checklist.",
+    "raw_transcript_used_as_authority": false,
+    "unreviewed_memory_used": false
+  },
+  "schema": "city_ops.phase1_reviewed_fixture.v1",
+  "source_fixture_spec": "posting_compliance_check.json",
+  "source_normalizer": "phase1_review_normalizer.py",
+  "validation": {
+    "check": "phase1_review_output_schema_contract",
+    "offer_id": "posting_compliance_check",
+    "schema_id": "caas_phase1_posting_compliance_check_review_output_schema_v0",
+    "status": "passed"
+  }
+}

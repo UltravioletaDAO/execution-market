@@ -166,3 +166,91 @@ If local Acontext infra is still blocked, use this order:
 3. Add a small reviewed-fixture registry/summary so operator surfaces can count which Phase 1 offers have local proof support.
 
 If Docker/local Acontext/SDK/API/dashboard become available, run exactly one live write/retrieve parity pass before claiming any live transport readiness.
+
+## 11. 04:00 dream output — First Posting Compliance Check reviewed fixture
+
+The Phase 1 CaaS pack now has its second concrete reviewed proof fixture.
+
+Added:
+
+- `mcp_server/city_ops/fixtures/phase1_offer_fixture_specs/reviewed_outputs/posting_compliance_check_partial_legibility_001.json`
+- `docs/planning/CITY_AS_A_SERVICE_PHASE_1_POSTING_FIXTURE_IMPLEMENTATION.md`
+
+Updated:
+
+- `mcp_server/city_ops/phase1_reviewed_fixtures.py`
+- `mcp_server/tests/city_ops/test_phase1_reviewed_fixtures.py`
+- `mcp_server/city_ops/__init__.py`
+
+New earned label:
+
+```text
+posting_compliance_check_reviewed_fixture_landed
+```
+
+This remains a local fixture/proof-support claim only. It proves that one synthetic Posting Compliance Check case can move through the normalizer and reviewed-output schema with observed-only source type, a partial result, wide/close evidence boundaries, access-constraint preservation, and a bounded `posting_recheck` trigger.
+
+## 12. Still not safe to claim after 04:00
+
+```text
+live_customer_schema_contract
+autonomous_review_closure
+durable_municipal_memory_write
+live_acontext_readiness
+autonomous_dispatch_readiness
+multi_jurisdiction_playbook_readiness
+worker_copyable_municipal_doctrine
+guaranteed_approval
+legal_sufficiency
+city_relationship_or_influence
+unlimited_retries
+broad_multi_office_base_order
+```
+
+The fixture explicitly keeps these false:
+
+```text
+customer_copy_changed=false
+durable_municipal_memory_write_performed=false
+acontext_write_performed=false
+autonomous_dispatch_enabled=false
+exact_gps_or_metadata_exposed=false
+```
+
+## 13. 04:00 pattern insight
+
+The strongest multiplier tonight is the reviewed-fixture chain, not more planning surface area:
+
+```text
+offer card → fixture spec → reviewed-output schema → normalizer → reviewed fixture → registry/observability → runtime consumer
+```
+
+Counter Reality Check and Posting Compliance Check now cover two different evidence regimes:
+
+- contradictory/stale municipal knowledge,
+- visual posting evidence with access and privacy constraints.
+
+That is the useful bridge to broader agent coordination: IRC/chat can surface route ideas, but only replayable reviewed artifacts should graduate into worker Skill DNA, ERC-8004 reputation signals, dispatch routing, or Acontext memory. The safe claim and blocked claim must travel together at every hop.
+
+## 14. Next smallest proof/build after 04:00
+
+If local Acontext infra is still blocked, use this order:
+
+1. Create one non-redirect Packet Submission Attempt reviewed fixture.
+2. Add a tiny reviewed-fixture registry/summary for operator observability.
+3. Only then consider customer-copy or UI surfaces, and only with blocked claims preserved beside safe labels.
+
+If Docker/local Acontext/SDK/API/dashboard become available, run exactly one live write/retrieve parity pass before claiming any live transport readiness.
+
+## 15. Latest test gate
+
+```bash
+python3 -m py_compile mcp_server/city_ops/phase1_reviewed_fixtures.py mcp_server/tests/city_ops/test_phase1_reviewed_fixtures.py
+PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
+```
+
+Result after the 04:00 slice:
+
+```text
+135 passed, 1 warning in 0.14s
+```
