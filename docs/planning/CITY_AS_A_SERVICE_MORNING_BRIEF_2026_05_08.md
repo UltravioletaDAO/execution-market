@@ -110,3 +110,59 @@ PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
 ```
 
 Latest result after the 01:00 slice: `115 passed, 1 warning in 0.13s`.
+
+## 8. 03:00 dream output — First Counter Reality Check reviewed fixture
+
+The Phase 1 CaaS pack now has its first concrete reviewed proof fixture.
+
+Added:
+
+- `mcp_server/city_ops/phase1_reviewed_fixtures.py`
+- `mcp_server/tests/city_ops/test_phase1_reviewed_fixtures.py`
+- `mcp_server/city_ops/fixtures/phase1_offer_fixture_specs/reviewed_outputs/counter_reality_check_redirect_outdated_packet_001.json`
+- `docs/planning/CITY_AS_A_SERVICE_PHASE_1_COUNTER_REALITY_FIXTURE_IMPLEMENTATION.md`
+
+Updated:
+
+- `mcp_server/city_ops/__init__.py`
+
+New earned label:
+
+```text
+counter_reality_check_reviewed_fixture_landed
+```
+
+This remains a local fixture/proof-support claim only. It proves that one synthetic Counter Reality Check case can move through the normalizer and reviewed-output schema with source separation, an operator-reviewed redirect result, and a bounded follow-on trigger.
+
+## 9. Still not safe to claim after 03:00
+
+```text
+live_customer_schema_contract
+autonomous_review_closure
+durable_municipal_memory_write
+live_acontext_readiness
+autonomous_dispatch_readiness
+multi_jurisdiction_playbook_readiness
+worker_copyable_municipal_doctrine
+guaranteed_approval
+legal_sufficiency
+```
+
+The fixture explicitly keeps these false:
+
+```text
+customer_copy_changed=false
+durable_municipal_memory_write_performed=false
+acontext_write_performed=false
+autonomous_dispatch_enabled=false
+```
+
+## 10. Next smallest proof/build after 03:00
+
+If local Acontext infra is still blocked, use this order:
+
+1. Create the first Posting Compliance Check reviewed fixture.
+2. Create one non-redirect Packet Submission Attempt fixture.
+3. Add a small reviewed-fixture registry/summary so operator surfaces can count which Phase 1 offers have local proof support.
+
+If Docker/local Acontext/SDK/API/dashboard become available, run exactly one live write/retrieve parity pass before claiming any live transport readiness.

@@ -1001,3 +1001,37 @@ Next engineering window if Acontext infra is still blocked:
 5. only after those, add a non-redirect `packet_submission_attempt` fixture
 
 Do not broaden offers, publish customer-facing schema claims, add UI polish, call Acontext live, or make worker-copyable municipal doctrine from this draft. It is a local review contract, not a runtime automation claim.
+
+---
+
+## 16. 2026-05-08 03:00 — Counter Reality Check reviewed fixture landed
+
+The Phase 1 CaaS pack now has its first concrete reviewed output fixture:
+
+- `CITY_AS_A_SERVICE_PHASE_1_COUNTER_REALITY_FIXTURE_IMPLEMENTATION.md`
+- `mcp_server/city_ops/phase1_reviewed_fixtures.py`
+- `mcp_server/tests/city_ops/test_phase1_reviewed_fixtures.py`
+- `mcp_server/city_ops/fixtures/phase1_offer_fixture_specs/reviewed_outputs/counter_reality_check_redirect_outdated_packet_001.json`
+
+The fixture exercises a stale/contradictory public guidance case and normalizes it into a reviewed redirect result. It preserves documented/observed/staff-heard source separation, keeps the next step operational, and refuses to upgrade a redirect into legal sufficiency, guaranteed approval, live Acontext readiness, or autonomous closure.
+
+Safe label added:
+
+```text
+counter_reality_check_reviewed_fixture_landed
+```
+
+Still blocked:
+
+```text
+live_customer_schema_contract + autonomous_review_closure + durable_municipal_memory_write + live_acontext_readiness + autonomous_dispatch_readiness + multi_jurisdiction_playbook_readiness + worker_copyable_municipal_doctrine + guaranteed_approval + legal_sufficiency
+```
+
+Next engineering window if Acontext infra is still blocked:
+
+1. create the first Posting Compliance Check reviewed fixture
+2. create one non-redirect Packet Submission Attempt reviewed fixture
+3. add a tiny reviewed-fixture registry/summary for operator observability
+4. only then consider customer-copy or UI surfaces, and only with the blocked-claim set traveling alongside the safe label
+
+Do not call the CaaS Phase 1 pack live, automated, memory-backed, or worker-copyable from this fixture. It is local proof support for one reviewed Counter Reality Check case.
