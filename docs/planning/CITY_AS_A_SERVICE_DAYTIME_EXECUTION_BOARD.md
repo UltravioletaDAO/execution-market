@@ -966,3 +966,38 @@ Next engineering window if Acontext infra is still blocked:
 4. only then add a non-redirect Packet Submission Attempt reviewed-output fixture
 
 Do not call this a live customer schema, live review workflow, or autonomous closure loop until the normalizer exists and rejects incomplete closures end-to-end.
+
+---
+
+## 15. 2026-05-08 02:00 — Phase 1 review normalizer draft landed
+
+The reviewed-output schema bundle now has a deterministic operator/admin review normalizer:
+
+- `CITY_AS_A_SERVICE_PHASE_1_REVIEW_NORMALIZER_IMPLEMENTATION.md`
+- `mcp_server/city_ops/phase1_review_normalizer.py`
+- `mcp_server/tests/city_ops/test_phase1_review_normalizer.py`
+- `mcp_server/city_ops/fixtures/phase1_offer_fixture_specs/phase1_review_normalizer_summary.json`
+
+This closes the gap between a human/operator review form and a schema-valid Phase 1 reviewed output. The normalizer stamps the narrow review-only fields only when safe, rejects broadened proof labels, rejects unreviewed closure, rejects missing/empty required fields, and still performs no durable municipal memory write.
+
+Safe label added:
+
+```text
+phase_1_review_normalizer_draft_landed
+```
+
+Still blocked:
+
+```text
+live_customer_schema_contract + autonomous_review_closure + durable_municipal_memory_write + live_acontext_readiness + autonomous_dispatch_readiness + multi_jurisdiction_playbook_readiness + worker_copyable_municipal_doctrine
+```
+
+Next engineering window if Acontext infra is still blocked:
+
+1. feed the normalizer with the first `counter_reality_check` reviewed fixture
+2. preserve source separation and operator-reviewed next step
+3. emit a local proof artifact without durable memory write
+4. only then repeat for `posting_compliance_check`
+5. only after those, add a non-redirect `packet_submission_attempt` fixture
+
+Do not broaden offers, publish customer-facing schema claims, add UI polish, call Acontext live, or make worker-copyable municipal doctrine from this draft. It is a local review contract, not a runtime automation claim.

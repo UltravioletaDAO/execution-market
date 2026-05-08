@@ -1,0 +1,88 @@
+{
+  "commercial_scope": {
+    "automation_claim_allowed": false,
+    "concierge_only": true,
+    "customer_copy_changed": false,
+    "durable_memory_write_allowed": false,
+    "live_transport_claim_allowed": false,
+    "operator_review_required": true
+  },
+  "do_not_claim_yet": [
+    "live_customer_schema_contract",
+    "autonomous_review_closure",
+    "durable_municipal_memory_write",
+    "live_acontext_readiness",
+    "autonomous_dispatch_readiness",
+    "multi_jurisdiction_playbook_readiness",
+    "worker_copyable_municipal_doctrine"
+  ],
+  "next_daytime_task": "Feed the normalizer with the first Counter Reality Check reviewed fixture, then only promote proof artifacts after the existing replay/promotion gates pass.",
+  "normalizer_behavior": {
+    "accepts_operator_review_form": true,
+    "does_not_write_memory": true,
+    "emits_reviewed_output_schema": true,
+    "rejects_broadened_proof_status": true,
+    "rejects_empty_required_strings": true,
+    "rejects_missing_required_fields": true,
+    "rejects_unreviewed_operator_status": true,
+    "stamps_forbidden_claims_preserved_when_missing": true,
+    "stamps_offer_specific_proof_status_label_when_missing": true,
+    "stamps_operator_review_status_when_missing": "reviewed"
+  },
+  "offer_ids": [
+    "counter_reality_check",
+    "packet_submission_attempt",
+    "posting_compliance_check"
+  ],
+  "required_fields_by_offer": {
+    "counter_reality_check": [
+      "offer",
+      "outcome_status",
+      "answer_summary",
+      "source_type",
+      "evidence_summary",
+      "redirect_target",
+      "operator_review_status",
+      "structured_next_step",
+      "follow_on_task_trigger",
+      "proof_status_label",
+      "forbidden_claims_preserved"
+    ],
+    "packet_submission_attempt": [
+      "offer",
+      "outcome_status",
+      "attempt_summary",
+      "source_type",
+      "acceptance_evidence",
+      "rejection_reason",
+      "redirect_target",
+      "blocked_reason",
+      "operator_review_status",
+      "structured_next_step",
+      "follow_on_task_trigger",
+      "proof_status_label",
+      "forbidden_claims_preserved",
+      "evidence_summary"
+    ],
+    "posting_compliance_check": [
+      "offer",
+      "outcome_status",
+      "checklist_result",
+      "source_type",
+      "evidence_summary",
+      "visibility_notes",
+      "failure_reason",
+      "operator_review_status",
+      "structured_next_step",
+      "follow_on_task_trigger",
+      "proof_status_label",
+      "forbidden_claims_preserved"
+    ]
+  },
+  "safe_to_claim": [
+    "phase_1_review_normalizer_draft_landed"
+  ],
+  "schema": "city_ops.phase1_review_normalizer_summary.v1",
+  "source_schema_bundle": "phase1_review_output_schema_bundle.json",
+  "summary_id": "caas_phase1_review_normalizer_summary_v0"
+}
