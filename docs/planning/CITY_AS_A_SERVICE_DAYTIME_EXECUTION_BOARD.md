@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-07 22:00 America/New_York
+> Last updated: 2026-05-08 06:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -112,6 +112,8 @@ Daytime should treat that review protocol as the default tie-breaker whenever a 
 Latest May 7 22:00 continuation: do not broaden into more templates or UI. The read-only session rebuild consumer, Acontext transport parity fixture, live preflight, thin operator/debug surface, proof observability metrics, coordination intelligence snapshot, persisted-artifact guardrail, and proof-block readiness summary now exist over the persisted proof-block fixture set. The next engineering window should clear local Acontext prerequisites and run one live write/retrieve parity pass; if infra remains blocked, only continue narrow proof-support work that fails on raw transcripts, unreviewed memory, freeform worker chat, private operator context, dropped/drifted claims, readiness overclaim, or worker-copyability drift.
 
 Latest May 7 22:00 packaging audit: `CITY_AS_A_SERVICE_AAS_PACKAGING_AUDIT_2026_05_07.md` compresses the CaaS/AAS planning stack into a sellable-but-conservative package recommendation. Treat the first commercial surface as a concierge municipal proof service with three Phase 1 offer cards: Counter Reality Check, Packet Submission Attempt, and Posting Compliance Check. Do not turn it into a broad city-task catalog, live memory-backend promise, multi-jurisdiction rollout, or worker-copyable doctrine.
+
+Latest May 8 06:00 handoff: `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_08.md` is the current day/night coordination entrypoint. The immediate daytime order is: (1) non-redirect Packet Submission Attempt reviewed fixture, (2) reviewed-fixture registry/summary carrying safe and blocked claims together, (3) only then customer-copy/UI/dispatch/Acontext/reputation surfaces. Do not claim live Acontext readiness, autonomous dispatch, legal sufficiency, regulator acceptance, or worker-copyable municipal doctrine. AutoJob, Frontier Academy, and KK v2 were intentionally skipped because `DREAM-PRIORITIES.md` currently stops them.
 
 ## 4. The next engineering window
 

@@ -1,7 +1,7 @@
 # City as a Service — Morning Brief 2026-05-08
 
-> Scope: Execution Market AAS / City-as-a-Service only  
-> Dream priority: followed `~/clawd/DREAM-PRIORITIES.md`; did not work on AutoJob, Frontier Academy, KK v2, or KarmaCadabra v2.  
+> Scope: Execution Market AAS / City-as-a-Service only
+> Dream priority: followed `~/clawd/DREAM-PRIORITIES.md`; did not work on AutoJob, Frontier Academy, KK v2, or KarmaCadabra v2.
 > Branch: `feat/operator-route-regret-panel`
 
 ## 1. 00:00 dream output — Phase 1 fixture specs
@@ -313,3 +313,32 @@ Daytime recommendation:
 2. add a tiny reviewed-fixture registry / summary that counts proof coverage by Phase 1 offer and carries `safe_to_claim[]` beside `do_not_claim_yet[]`;
 3. only then consider operator/debug or customer-copy surfaces, and only if they preserve blocked claims next to safe claims;
 4. clear Docker/Acontext/SDK/API/dashboard prerequisites before any live transport claim.
+
+## 17. 06:00 final morning handoff
+
+Added:
+
+- `docs/planning/CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_08.md`
+
+The final handoff confirms the night stayed inside `DREAM-PRIORITIES.md` and did not work on AutoJob, Frontier Academy, KK v2, or KarmaCadabra v2 despite the stale cron payload.
+
+Final earned May 8 proof-support labels:
+
+```text
+phase_1_offer_fixture_specs_landed
++ phase_1_review_output_schema_drafts_landed
++ phase_1_review_normalizer_draft_landed
++ counter_reality_check_reviewed_fixture_landed
++ posting_compliance_check_reviewed_fixture_landed
++ final_morning_handoff_landed
+```
+
+Immediate daytime order:
+
+1. build one non-redirect Packet Submission Attempt reviewed fixture;
+2. add a reviewed-fixture registry / summary that keeps `safe_to_claim[]` beside `do_not_claim_yet[]`;
+3. only then consider customer-copy, UI, Acontext, dispatch routing, worker Skill DNA, or ERC-8004 reputation surfaces;
+4. if infrastructure access changes, clear Docker/local Acontext/SDK/API/dashboard prerequisites and run one live write/retrieve parity pass before claiming live transport readiness.
+
+Repo state at handoff: `projects/execution-market` was already up to date on `feat/operator-route-regret-panel`; pre-existing untracked `scripts/sign_req.mjs` remained untouched and unstaged. Stopped repos were not synced or used because the active dream priority file forbids those workstreams.
+
