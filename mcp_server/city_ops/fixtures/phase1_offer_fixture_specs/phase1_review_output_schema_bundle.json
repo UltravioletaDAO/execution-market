@@ -1,0 +1,397 @@
+{
+  "bundle_id": "caas_phase1_review_output_schema_bundle_v0",
+  "commercial_scope": {
+    "automation_claim_allowed": false,
+    "concierge_only": true,
+    "customer_copy_changed": false,
+    "live_transport_claim_allowed": false,
+    "operator_review_required": true
+  },
+  "do_not_claim_yet": [
+    "guaranteed_approval",
+    "legal_sufficiency",
+    "city_relationship_or_influence",
+    "unlimited_retries",
+    "broad_multi_office_base_order",
+    "live_acontext_readiness",
+    "autonomous_dispatch_readiness",
+    "multi_jurisdiction_playbook_readiness",
+    "worker_copyable_municipal_doctrine",
+    "review_normalizer_landed",
+    "live_customer_schema_contract",
+    "autonomous_review_closure"
+  ],
+  "next_daytime_task": "Wire these reviewed-output schemas into the first review normalizer draft before promoting any Phase 1 offer to live customer-copy contract.",
+  "offer_ids": [
+    "counter_reality_check",
+    "packet_submission_attempt",
+    "posting_compliance_check"
+  ],
+  "safe_to_claim": [
+    "phase_1_review_output_schema_drafts_landed"
+  ],
+  "schema": "city_ops.phase1_review_output_schema_bundle.v1",
+  "schema_validation_checks": [
+    {
+      "check": "phase1_review_output_schema_contract",
+      "guardrail_count": 5,
+      "offer_id": "counter_reality_check",
+      "required_field_count": 11,
+      "status": "passed"
+    },
+    {
+      "check": "phase1_review_output_schema_contract",
+      "guardrail_count": 5,
+      "offer_id": "packet_submission_attempt",
+      "required_field_count": 14,
+      "status": "passed"
+    },
+    {
+      "check": "phase1_review_output_schema_contract",
+      "guardrail_count": 5,
+      "offer_id": "posting_compliance_check",
+      "required_field_count": 12,
+      "status": "passed"
+    }
+  ],
+  "schemas_by_offer": {
+    "counter_reality_check": {
+      "automation_claim_allowed": false,
+      "boolean_constraints": {
+        "forbidden_claims_preserved": true
+      },
+      "customer_copy_changed": false,
+      "enum_constraints": {
+        "follow_on_task_trigger": [
+          "packet_submission_attempt",
+          "office_redirect_follow_through",
+          "rejection_diagnosis_prep",
+          null
+        ],
+        "operator_review_status": [
+          "reviewed"
+        ],
+        "outcome_status": [
+          "verified_present",
+          "verified_absent",
+          "redirected",
+          "blocked",
+          "inconclusive"
+        ],
+        "proof_status_label": [
+          "planning_supported_needs_first_fixture"
+        ],
+        "source_type": [
+          "observed",
+          "heard_from_staff",
+          "documented",
+          "mixed"
+        ]
+      },
+      "field_contracts": {
+        "evidence_summary": {
+          "meaning": "Concise reviewed evidence notes; never raw municipal authority by itself.",
+          "type": "array[string]"
+        },
+        "follow_on_task_trigger": {
+          "meaning": "Explicit add-on/new-task trigger; no silent extra retry bundled into the base order.",
+          "type": "enum|null"
+        },
+        "forbidden_claims_preserved": {
+          "meaning": "Reviewer asserts blocked customer/product claims were not upgraded.",
+          "type": "boolean:true"
+        },
+        "offer": {
+          "meaning": "The Phase 1 offer id that produced the reviewed output.",
+          "type": "string"
+        },
+        "operator_review_status": {
+          "meaning": "Phase 1 outputs must be operator reviewed before closure.",
+          "type": "enum"
+        },
+        "outcome_status": {
+          "meaning": "Reviewed municipal outcome classification from the offer spec.",
+          "type": "enum"
+        },
+        "proof_status_label": {
+          "meaning": "Narrow proof label inherited from the fixture spec.",
+          "type": "enum"
+        },
+        "source_type": {
+          "meaning": "Explicit separation of observed, documented, staff-heard, customer-supplied, or mixed source.",
+          "type": "enum"
+        },
+        "structured_next_step": {
+          "meaning": "Operational next step, not legal advice or guaranteed approval path.",
+          "type": "string"
+        }
+      },
+      "forbidden_customer_claims": [
+        "guaranteed_approval",
+        "legal_sufficiency",
+        "city_relationship_or_influence",
+        "unlimited_retries",
+        "broad_multi_office_base_order",
+        "live_acontext_readiness",
+        "autonomous_dispatch_readiness",
+        "multi_jurisdiction_playbook_readiness",
+        "worker_copyable_municipal_doctrine"
+      ],
+      "guardrails": [
+        "operator_review_required",
+        "no_customer_copy_change",
+        "no_automation_claim",
+        "preserve_forbidden_claims",
+        "proof_status_must_match_offer_spec"
+      ],
+      "offer_id": "counter_reality_check",
+      "operator_review_required": true,
+      "proof_status_label": "planning_supported_needs_first_fixture",
+      "required_fields": [
+        "offer",
+        "outcome_status",
+        "answer_summary",
+        "source_type",
+        "evidence_summary",
+        "redirect_target",
+        "operator_review_status",
+        "structured_next_step",
+        "follow_on_task_trigger",
+        "proof_status_label",
+        "forbidden_claims_preserved"
+      ],
+      "schema": "city_ops.phase1_review_output_schema.v1",
+      "schema_id": "caas_phase1_counter_reality_check_review_output_schema_v0"
+    },
+    "packet_submission_attempt": {
+      "automation_claim_allowed": false,
+      "boolean_constraints": {
+        "forbidden_claims_preserved": true
+      },
+      "customer_copy_changed": false,
+      "enum_constraints": {
+        "follow_on_task_trigger": [
+          "rejection_diagnosis_resubmission_prep",
+          "office_redirect_follow_through",
+          "permit_follow_through_bundle",
+          null
+        ],
+        "operator_review_status": [
+          "reviewed"
+        ],
+        "outcome_status": [
+          "accepted",
+          "rejected",
+          "redirected",
+          "blocked",
+          "inconclusive"
+        ],
+        "proof_status_label": [
+          "local_anchor_supported_redirect_outdated_packet_only"
+        ],
+        "source_type": [
+          "observed",
+          "heard_from_staff",
+          "documented",
+          "mixed"
+        ]
+      },
+      "field_contracts": {
+        "evidence_summary": {
+          "meaning": "Concise reviewed evidence notes; never raw municipal authority by itself.",
+          "type": "array[string]"
+        },
+        "follow_on_task_trigger": {
+          "meaning": "Explicit add-on/new-task trigger; no silent extra retry bundled into the base order.",
+          "type": "enum|null"
+        },
+        "forbidden_claims_preserved": {
+          "meaning": "Reviewer asserts blocked customer/product claims were not upgraded.",
+          "type": "boolean:true"
+        },
+        "offer": {
+          "meaning": "The Phase 1 offer id that produced the reviewed output.",
+          "type": "string"
+        },
+        "operator_review_status": {
+          "meaning": "Phase 1 outputs must be operator reviewed before closure.",
+          "type": "enum"
+        },
+        "outcome_status": {
+          "meaning": "Reviewed municipal outcome classification from the offer spec.",
+          "type": "enum"
+        },
+        "proof_status_label": {
+          "meaning": "Narrow proof label inherited from the fixture spec.",
+          "type": "enum"
+        },
+        "source_type": {
+          "meaning": "Explicit separation of observed, documented, staff-heard, customer-supplied, or mixed source.",
+          "type": "enum"
+        },
+        "structured_next_step": {
+          "meaning": "Operational next step, not legal advice or guaranteed approval path.",
+          "type": "string"
+        }
+      },
+      "forbidden_customer_claims": [
+        "guaranteed_approval",
+        "legal_sufficiency",
+        "city_relationship_or_influence",
+        "unlimited_retries",
+        "broad_multi_office_base_order",
+        "live_acontext_readiness",
+        "autonomous_dispatch_readiness",
+        "multi_jurisdiction_playbook_readiness",
+        "worker_copyable_municipal_doctrine"
+      ],
+      "guardrails": [
+        "operator_review_required",
+        "no_customer_copy_change",
+        "no_automation_claim",
+        "preserve_forbidden_claims",
+        "proof_status_must_match_offer_spec"
+      ],
+      "offer_id": "packet_submission_attempt",
+      "operator_review_required": true,
+      "proof_status_label": "local_anchor_supported_redirect_outdated_packet_only",
+      "required_fields": [
+        "offer",
+        "outcome_status",
+        "attempt_summary",
+        "source_type",
+        "acceptance_evidence",
+        "rejection_reason",
+        "redirect_target",
+        "blocked_reason",
+        "operator_review_status",
+        "structured_next_step",
+        "follow_on_task_trigger",
+        "proof_status_label",
+        "forbidden_claims_preserved",
+        "evidence_summary"
+      ],
+      "schema": "city_ops.phase1_review_output_schema.v1",
+      "schema_id": "caas_phase1_packet_submission_attempt_review_output_schema_v0"
+    },
+    "posting_compliance_check": {
+      "automation_claim_allowed": false,
+      "boolean_constraints": {
+        "forbidden_claims_preserved": true
+      },
+      "customer_copy_changed": false,
+      "enum_constraints": {
+        "follow_on_task_trigger": [
+          "posting_recheck",
+          "multi_site_posting_verification_bundle",
+          "permit_follow_through_bundle",
+          null
+        ],
+        "operator_review_status": [
+          "reviewed"
+        ],
+        "outcome_status": [
+          "verified_present",
+          "verified_absent",
+          "verified_partial",
+          "blocked",
+          "inconclusive"
+        ],
+        "proof_status_label": [
+          "planning_supported_needs_first_fixture"
+        ],
+        "source_type": [
+          "observed"
+        ]
+      },
+      "field_contracts": {
+        "evidence_summary": {
+          "meaning": "Concise reviewed evidence notes; never raw municipal authority by itself.",
+          "type": "array[string]"
+        },
+        "follow_on_task_trigger": {
+          "meaning": "Explicit add-on/new-task trigger; no silent extra retry bundled into the base order.",
+          "type": "enum|null"
+        },
+        "forbidden_claims_preserved": {
+          "meaning": "Reviewer asserts blocked customer/product claims were not upgraded.",
+          "type": "boolean:true"
+        },
+        "offer": {
+          "meaning": "The Phase 1 offer id that produced the reviewed output.",
+          "type": "string"
+        },
+        "operator_review_status": {
+          "meaning": "Phase 1 outputs must be operator reviewed before closure.",
+          "type": "enum"
+        },
+        "outcome_status": {
+          "meaning": "Reviewed municipal outcome classification from the offer spec.",
+          "type": "enum"
+        },
+        "proof_status_label": {
+          "meaning": "Narrow proof label inherited from the fixture spec.",
+          "type": "enum"
+        },
+        "source_type": {
+          "meaning": "Explicit separation of observed, documented, staff-heard, customer-supplied, or mixed source.",
+          "type": "enum"
+        },
+        "structured_next_step": {
+          "meaning": "Operational next step, not legal advice or guaranteed approval path.",
+          "type": "string"
+        }
+      },
+      "forbidden_customer_claims": [
+        "guaranteed_approval",
+        "legal_sufficiency",
+        "city_relationship_or_influence",
+        "unlimited_retries",
+        "broad_multi_office_base_order",
+        "live_acontext_readiness",
+        "autonomous_dispatch_readiness",
+        "multi_jurisdiction_playbook_readiness",
+        "worker_copyable_municipal_doctrine"
+      ],
+      "guardrails": [
+        "operator_review_required",
+        "no_customer_copy_change",
+        "no_automation_claim",
+        "preserve_forbidden_claims",
+        "proof_status_must_match_offer_spec"
+      ],
+      "offer_id": "posting_compliance_check",
+      "operator_review_required": true,
+      "proof_status_label": "planning_supported_needs_first_fixture",
+      "required_fields": [
+        "offer",
+        "outcome_status",
+        "checklist_result",
+        "source_type",
+        "evidence_summary",
+        "visibility_notes",
+        "failure_reason",
+        "operator_review_status",
+        "structured_next_step",
+        "follow_on_task_trigger",
+        "proof_status_label",
+        "forbidden_claims_preserved"
+      ],
+      "schema": "city_ops.phase1_review_output_schema.v1",
+      "schema_id": "caas_phase1_posting_compliance_check_review_output_schema_v0"
+    }
+  },
+  "shared_required_fields": [
+    "offer",
+    "outcome_status",
+    "source_type",
+    "evidence_summary",
+    "operator_review_status",
+    "structured_next_step",
+    "follow_on_task_trigger",
+    "proof_status_label",
+    "forbidden_claims_preserved"
+  ],
+  "source_fixture_spec_summary": "phase1_offer_fixture_spec_summary.json",
+  "source_offer_pack": "CITY_AS_A_SERVICE_PHASE_1_OFFER_CARDS.md"
+}

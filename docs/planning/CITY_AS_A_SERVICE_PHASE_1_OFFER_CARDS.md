@@ -439,3 +439,32 @@ The next proof-building order is now explicit:
 3. Non-redirect Packet Submission Attempt proof fixture.
 
 Do not change live customer copy, add front-door SKUs, claim live Acontext readiness, claim autonomous dispatch, or produce worker-copyable municipal doctrine before those fixture proofs exist.
+
+## 10. 2026-05-08 01:00 review-output schema continuation
+
+The remaining part of the Daytime pickup is now landed as deterministic reviewed-output schema drafts:
+
+- `mcp_server/city_ops/phase1_review_output_schemas.py`
+- `mcp_server/tests/city_ops/test_phase1_review_output_schemas.py`
+- `mcp_server/city_ops/fixtures/phase1_offer_fixture_specs/phase1_review_output_schema_bundle.json`
+- `CITY_AS_A_SERVICE_PHASE_1_REVIEW_OUTPUT_SCHEMAS.md`
+
+New safe internal claim:
+
+```text
+phase_1_review_output_schema_drafts_landed
+```
+
+The schema bundle standardizes the review seam across all three offers:
+
+- `offer`
+- `outcome_status`
+- `source_type`
+- `evidence_summary`
+- `operator_review_status`
+- `structured_next_step`
+- `follow_on_task_trigger`
+- `proof_status_label`
+- `forbidden_claims_preserved`
+
+This is still not a live customer schema contract. The next build should wire the bundle into a first review normalizer and produce the first Counter Reality Check reviewed-output fixture before any claim of review-normalizer readiness.

@@ -69,20 +69,44 @@ The guardrail fails if a future builder:
 - moves blocked claims into `safe_to_claim[]`
 - implies automation, live Acontext readiness, multi-jurisdiction readiness, or worker-copyable municipal doctrine
 
-## 5. Next smallest proof
+## 5. 01:00 dream output — Phase 1 review-output schemas
 
-If local Acontext infra is still blocked, use this fixture order:
+The fixture specs now have a deterministic reviewed-output schema bundle before the review normalizer exists.
 
-1. Counter Reality Check proof fixture.
-2. Posting Compliance Check proof fixture.
-3. Non-redirect Packet Submission Attempt proof fixture.
+Added:
+
+- `mcp_server/city_ops/phase1_review_output_schemas.py`
+- `mcp_server/tests/city_ops/test_phase1_review_output_schemas.py`
+- `mcp_server/city_ops/fixtures/phase1_offer_fixture_specs/phase1_review_output_schema_bundle.json`
+- `docs/planning/CITY_AS_A_SERVICE_PHASE_1_REVIEW_OUTPUT_SCHEMAS.md`
+
+Updated:
+
+- `mcp_server/city_ops/__init__.py`
+
+New earned label:
+
+```text
+phase_1_review_output_schema_drafts_landed
+```
+
+This remains an internal schema/review contract only. It does not claim `review_normalizer_landed`, live customer schema readiness, autonomous review closure, or live Acontext readiness.
+
+## 6. Next smallest proof/build
+
+If local Acontext infra is still blocked, use this order:
+
+1. Wire `phase1_review_output_schema_bundle.json` into a first review normalizer draft.
+2. Create the first Counter Reality Check reviewed-output proof fixture.
+3. Create the first Posting Compliance Check reviewed-output proof fixture.
+4. Create the Non-redirect Packet Submission Attempt proof fixture.
 
 If Docker/local Acontext/SDK/API/dashboard become available, run the already-defined live write/retrieve parity pass before claiming any live transport readiness.
 
-## 6. Test gate
+## 7. Test gate
 
 ```bash
 PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
 ```
 
-Expected after this slice: all city-ops tests pass, including the new Phase 1 fixture-spec tests.
+Latest result after the 01:00 slice: `115 passed, 1 warning in 0.13s`.
