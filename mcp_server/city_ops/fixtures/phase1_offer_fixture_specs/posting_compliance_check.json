@@ -1,0 +1,122 @@
+{
+  "schema": "city_ops.phase1_offer_fixture_spec.v1",
+  "fixture_spec_id": "caas_phase1_posting_compliance_check_fixture_spec_v0",
+  "offer_id": "posting_compliance_check",
+  "internal_sku": "caas_posting_compliance_check_v0",
+  "phase": "phase_1",
+  "phase_1_sellable": true,
+  "operator_review_required": true,
+  "automation_claim_allowed": false,
+  "proof_status_label": "planning_supported_needs_first_fixture",
+  "fixture_goal": "Define the first posting-proof fixture needed before recurring or broad posting-compliance claims are sold, while keeping the output limited to evidence, checklist state, and reviewed operational next step.",
+  "scenario_shape": {
+    "municipal_objective": "Verify whether one scoped posting is visible and legible at the target site according to the customer-provided checklist.",
+    "expected_case_pattern": "present_absent_partial_blocked_or_inconclusive_single_site_posting_state",
+    "must_include": [
+      "wide/context evidence requirement",
+      "close/legibility evidence requirement when safely accessible",
+      "pass, fail, partial, blocked, or inconclusive checklist result",
+      "operator-reviewed next step"
+    ],
+    "must_not_include": [
+      "regulator acceptance guarantee",
+      "legal sufficiency opinion",
+      "interior inspection unless separately scoped",
+      "exact GPS or metadata exposure in customer copy"
+    ]
+  },
+  "required_intake_fields": [
+    "site_address",
+    "posting_type",
+    "posting_location_expectation",
+    "visibility_rules_or_customer_checklist",
+    "legibility_requirements",
+    "required_photo_angles",
+    "recurrence_cadence_if_repeat",
+    "failure_threshold_for_escalation",
+    "access_constraints",
+    "customer_success_definition"
+  ],
+  "minimum_evidence": [
+    "wide_context_evidence",
+    "close_legibility_evidence_when_safely_accessible",
+    "visibility_or_access_constraint_note",
+    "operator_review_note"
+  ],
+  "outcome_status_options": [
+    "verified_present",
+    "verified_absent",
+    "verified_partial",
+    "blocked",
+    "inconclusive"
+  ],
+  "source_type_options": [
+    "observed"
+  ],
+  "customer_output_schema_draft": {
+    "required_fields": [
+      "offer",
+      "outcome_status",
+      "checklist_result",
+      "source_type",
+      "evidence_summary",
+      "visibility_notes",
+      "failure_reason",
+      "operator_review_status",
+      "structured_next_step",
+      "follow_on_task_trigger",
+      "proof_status_label",
+      "forbidden_claims_preserved"
+    ],
+    "operator_review_status_allowed": ["reviewed"],
+    "forbidden_claims_preserved_required": true
+  },
+  "review_gate_checks": [
+    "wide_close_evidence_sufficient_for_claim",
+    "access_constraints_preserved",
+    "pass_fail_partial_does_not_exceed_evidence",
+    "next_step_separates_remediation_suggestion_from_legal_determination",
+    "no_exact_gps_or_metadata_in_customer_copy"
+  ],
+  "follow_on_task_triggers": [
+    "posting_recheck",
+    "multi_site_posting_verification_bundle",
+    "permit_follow_through_bundle",
+    "null"
+  ],
+  "safe_to_claim": [
+    "posting_compliance_check_fixture_spec_ready",
+    "concierge_operator_review_required",
+    "customer_output_schema_draft_defined"
+  ],
+  "do_not_claim_yet": [
+    "guaranteed_approval",
+    "legal_sufficiency",
+    "city_relationship_or_influence",
+    "unlimited_retries",
+    "broad_multi_office_base_order",
+    "live_acontext_readiness",
+    "autonomous_dispatch_readiness",
+    "multi_jurisdiction_playbook_readiness",
+    "worker_copyable_municipal_doctrine"
+  ],
+  "forbidden_customer_claims": [
+    "guaranteed_approval",
+    "legal_sufficiency",
+    "city_relationship_or_influence",
+    "unlimited_retries",
+    "broad_multi_office_base_order",
+    "live_acontext_readiness",
+    "autonomous_dispatch_readiness",
+    "multi_jurisdiction_playbook_readiness",
+    "worker_copyable_municipal_doctrine"
+  ],
+  "fixture_acceptance_gate": {
+    "preserves_safe_and_blocked_claims": true,
+    "requires_reviewed_output": true,
+    "requires_source_type": true,
+    "requires_follow_on_trigger": true,
+    "rejects_customer_copy_changes": true
+  },
+  "next_smallest_proof": "Create one reviewed Posting Compliance Check proof fixture with wide/close evidence and a partial or fail outcome before selling recurring compliance automation."
+}

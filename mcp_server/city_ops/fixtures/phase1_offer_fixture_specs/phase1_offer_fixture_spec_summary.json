@@ -1,0 +1,152 @@
+{
+  "claim_boundaries": {
+    "do_not_claim_yet": [
+      "guaranteed_approval",
+      "legal_sufficiency",
+      "city_relationship_or_influence",
+      "unlimited_retries",
+      "broad_multi_office_base_order",
+      "live_acontext_readiness",
+      "autonomous_dispatch_readiness",
+      "multi_jurisdiction_playbook_readiness",
+      "worker_copyable_municipal_doctrine"
+    ],
+    "safe_to_claim": [
+      "phase_1_offer_fixture_specs_landed"
+    ]
+  },
+  "commercial_scope": {
+    "automation_claim_allowed": false,
+    "concierge_only": true,
+    "customer_copy_changed": false,
+    "one_metro_pilot": true,
+    "operator_review_required": true,
+    "phase_1_sellable": true
+  },
+  "next_daytime_task": "Create the first Counter Reality Check proof fixture, then the first Posting Compliance Check proof fixture, before expanding front-door offers.",
+  "next_fixture_order": [
+    "counter_reality_check",
+    "posting_compliance_check",
+    "packet_submission_attempt_non_redirect"
+  ],
+  "offer_ids": [
+    "counter_reality_check",
+    "packet_submission_attempt",
+    "posting_compliance_check"
+  ],
+  "proof_status_by_offer": {
+    "counter_reality_check": "planning_supported_needs_first_fixture",
+    "packet_submission_attempt": "local_anchor_supported_redirect_outdated_packet_only",
+    "posting_compliance_check": "planning_supported_needs_first_fixture"
+  },
+  "reviewed_output_fields_by_offer": {
+    "counter_reality_check": [
+      "offer",
+      "outcome_status",
+      "answer_summary",
+      "source_type",
+      "evidence_summary",
+      "redirect_target",
+      "operator_review_status",
+      "structured_next_step",
+      "follow_on_task_trigger",
+      "proof_status_label",
+      "forbidden_claims_preserved"
+    ],
+    "packet_submission_attempt": [
+      "offer",
+      "outcome_status",
+      "attempt_summary",
+      "source_type",
+      "acceptance_evidence",
+      "rejection_reason",
+      "redirect_target",
+      "blocked_reason",
+      "operator_review_status",
+      "structured_next_step",
+      "follow_on_task_trigger",
+      "proof_status_label",
+      "forbidden_claims_preserved"
+    ],
+    "posting_compliance_check": [
+      "offer",
+      "outcome_status",
+      "checklist_result",
+      "source_type",
+      "evidence_summary",
+      "visibility_notes",
+      "failure_reason",
+      "operator_review_status",
+      "structured_next_step",
+      "follow_on_task_trigger",
+      "proof_status_label",
+      "forbidden_claims_preserved"
+    ]
+  },
+  "schema": "city_ops.phase1_offer_fixture_spec_summary.v1",
+  "source_offer_pack": "CITY_AS_A_SERVICE_PHASE_1_OFFER_CARDS.md",
+  "spec_count": 3,
+  "spec_validation_checks": [
+    {
+      "check": "phase1_offer_fixture_spec_contract",
+      "offer_id": "counter_reality_check",
+      "proof_status_label": "planning_supported_needs_first_fixture",
+      "required_output_fields": [
+        "offer",
+        "outcome_status",
+        "answer_summary",
+        "source_type",
+        "evidence_summary",
+        "redirect_target",
+        "operator_review_status",
+        "structured_next_step",
+        "follow_on_task_trigger",
+        "proof_status_label",
+        "forbidden_claims_preserved"
+      ],
+      "status": "passed"
+    },
+    {
+      "check": "phase1_offer_fixture_spec_contract",
+      "offer_id": "packet_submission_attempt",
+      "proof_status_label": "local_anchor_supported_redirect_outdated_packet_only",
+      "required_output_fields": [
+        "offer",
+        "outcome_status",
+        "attempt_summary",
+        "source_type",
+        "acceptance_evidence",
+        "rejection_reason",
+        "redirect_target",
+        "blocked_reason",
+        "operator_review_status",
+        "structured_next_step",
+        "follow_on_task_trigger",
+        "proof_status_label",
+        "forbidden_claims_preserved"
+      ],
+      "status": "passed"
+    },
+    {
+      "check": "phase1_offer_fixture_spec_contract",
+      "offer_id": "posting_compliance_check",
+      "proof_status_label": "planning_supported_needs_first_fixture",
+      "required_output_fields": [
+        "offer",
+        "outcome_status",
+        "checklist_result",
+        "source_type",
+        "evidence_summary",
+        "visibility_notes",
+        "failure_reason",
+        "operator_review_status",
+        "structured_next_step",
+        "follow_on_task_trigger",
+        "proof_status_label",
+        "forbidden_claims_preserved"
+      ],
+      "status": "passed"
+    }
+  ],
+  "summary_id": "caas_phase1_offer_fixture_spec_summary_v0"
+}

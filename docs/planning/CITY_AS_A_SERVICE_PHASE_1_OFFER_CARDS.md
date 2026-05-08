@@ -405,3 +405,37 @@ Acceptance gate:
 - all three customer outputs preserve source type and review status
 - Packet Submission Attempt keeps its proof label narrow
 - no generated UI/copy mentions live Acontext, autonomous dispatch, multi-jurisdiction playbooks, or worker-copyable doctrine
+
+---
+
+## 9. 2026-05-08 00:00 fixture-spec continuation
+
+The Daytime pickup above is now landed as deterministic fixture specs and a summary guardrail:
+
+- `mcp_server/city_ops/phase1_offer_fixture_specs.py`
+- `mcp_server/tests/city_ops/test_phase1_offer_fixture_specs.py`
+- `mcp_server/city_ops/fixtures/phase1_offer_fixture_specs/counter_reality_check.json`
+- `mcp_server/city_ops/fixtures/phase1_offer_fixture_specs/packet_submission_attempt.json`
+- `mcp_server/city_ops/fixtures/phase1_offer_fixture_specs/posting_compliance_check.json`
+- `mcp_server/city_ops/fixtures/phase1_offer_fixture_specs/phase1_offer_fixture_spec_summary.json`
+- `CITY_AS_A_SERVICE_PHASE_1_FIXTURE_SPECS_IMPLEMENTATION.md`
+
+New safe internal claim:
+
+```text
+phase_1_offer_fixture_specs_landed
+```
+
+Proof labels were deliberately sharpened rather than broadened:
+
+- Counter Reality Check: `planning_supported_needs_first_fixture`
+- Packet Submission Attempt: `local_anchor_supported_redirect_outdated_packet_only`
+- Posting Compliance Check: `planning_supported_needs_first_fixture`
+
+The next proof-building order is now explicit:
+
+1. Counter Reality Check proof fixture.
+2. Posting Compliance Check proof fixture.
+3. Non-redirect Packet Submission Attempt proof fixture.
+
+Do not change live customer copy, add front-door SKUs, claim live Acontext readiness, claim autonomous dispatch, or produce worker-copyable municipal doctrine before those fixture proofs exist.

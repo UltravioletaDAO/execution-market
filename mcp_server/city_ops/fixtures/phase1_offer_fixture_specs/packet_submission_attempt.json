@@ -1,0 +1,131 @@
+{
+  "schema": "city_ops.phase1_offer_fixture_spec.v1",
+  "fixture_spec_id": "caas_phase1_packet_submission_attempt_fixture_spec_v0",
+  "offer_id": "packet_submission_attempt",
+  "internal_sku": "caas_packet_submission_attempt_v0",
+  "phase": "phase_1",
+  "phase_1_sellable": true,
+  "operator_review_required": true,
+  "automation_claim_allowed": false,
+  "proof_status_label": "local_anchor_supported_redirect_outdated_packet_only",
+  "fixture_goal": "Preserve the current redirect/outdated-packet proof anchor while defining the next packet-submission fixture needed before this offer can support broader submission behavior.",
+  "scenario_shape": {
+    "municipal_objective": "Attempt one prepared packet submission and classify what happened without implying approval, legal sufficiency, retry coverage, or general filing doctrine.",
+    "expected_case_pattern": "accepted_rejected_redirected_blocked_or_inconclusive_single_office_attempt",
+    "current_local_anchor": "redirect_outdated_packet_001",
+    "must_include": [
+      "one scoped submission office",
+      "packet checklist or named documents from intake",
+      "acceptance, rejection, redirect, blocked, or inconclusive classification",
+      "operator-reviewed next step"
+    ],
+    "must_not_include": [
+      "claim that the current anchor covers all packet submissions",
+      "municipal fee payment unless separately funded",
+      "retry or resubmission promise",
+      "worker-copyable filing doctrine"
+    ]
+  },
+  "required_intake_fields": [
+    "jurisdiction",
+    "target_office",
+    "office_address_if_known",
+    "workflow_type",
+    "packet_checklist",
+    "named_documents_included",
+    "acceptance_criteria_if_known",
+    "documents_prepared_status",
+    "municipal_fee_policy",
+    "what_to_do_if_redirected",
+    "what_to_do_if_rejected_for_fixable_reason",
+    "deadline_or_urgency_level",
+    "customer_success_definition"
+  ],
+  "minimum_evidence": [
+    "attempt_presence_or_dropoff_observation_when_observable",
+    "receipt_stamp_or_absence_explanation",
+    "rejection_redirect_or_blocked_reason_when_available",
+    "operator_review_note"
+  ],
+  "outcome_status_options": [
+    "accepted",
+    "rejected",
+    "redirected",
+    "blocked",
+    "inconclusive"
+  ],
+  "source_type_options": [
+    "observed",
+    "heard_from_staff",
+    "documented",
+    "mixed"
+  ],
+  "customer_output_schema_draft": {
+    "required_fields": [
+      "offer",
+      "outcome_status",
+      "attempt_summary",
+      "source_type",
+      "acceptance_evidence",
+      "rejection_reason",
+      "redirect_target",
+      "blocked_reason",
+      "operator_review_status",
+      "structured_next_step",
+      "follow_on_task_trigger",
+      "proof_status_label",
+      "forbidden_claims_preserved"
+    ],
+    "operator_review_status_allowed": ["reviewed"],
+    "forbidden_claims_preserved_required": true
+  },
+  "review_gate_checks": [
+    "outcome_status_matches_evidence",
+    "receipt_or_absence_explained",
+    "rejection_redirect_wording_preserves_uncertainty",
+    "next_step_is_actionable_not_legal_advice",
+    "reusable_learning_operator_only_unless_fixture_breadth_exists"
+  ],
+  "follow_on_task_triggers": [
+    "rejection_diagnosis_resubmission_prep",
+    "office_redirect_follow_through",
+    "permit_follow_through_bundle",
+    "null"
+  ],
+  "safe_to_claim": [
+    "packet_submission_attempt_fixture_spec_ready",
+    "redirect_outdated_packet_anchor_preserved",
+    "concierge_operator_review_required",
+    "customer_output_schema_draft_defined"
+  ],
+  "do_not_claim_yet": [
+    "guaranteed_approval",
+    "legal_sufficiency",
+    "city_relationship_or_influence",
+    "unlimited_retries",
+    "broad_multi_office_base_order",
+    "live_acontext_readiness",
+    "autonomous_dispatch_readiness",
+    "multi_jurisdiction_playbook_readiness",
+    "worker_copyable_municipal_doctrine"
+  ],
+  "forbidden_customer_claims": [
+    "guaranteed_approval",
+    "legal_sufficiency",
+    "city_relationship_or_influence",
+    "unlimited_retries",
+    "broad_multi_office_base_order",
+    "live_acontext_readiness",
+    "autonomous_dispatch_readiness",
+    "multi_jurisdiction_playbook_readiness",
+    "worker_copyable_municipal_doctrine"
+  ],
+  "fixture_acceptance_gate": {
+    "preserves_safe_and_blocked_claims": true,
+    "requires_reviewed_output": true,
+    "requires_source_type": true,
+    "requires_follow_on_trigger": true,
+    "rejects_customer_copy_changes": true
+  },
+  "next_smallest_proof": "Create one non-redirect Packet Submission Attempt proof fixture before broadening beyond the current redirect/outdated-packet anchor."
+}

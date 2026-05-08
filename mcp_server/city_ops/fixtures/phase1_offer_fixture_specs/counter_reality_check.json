@@ -1,0 +1,124 @@
+{
+  "schema": "city_ops.phase1_offer_fixture_spec.v1",
+  "fixture_spec_id": "caas_phase1_counter_reality_check_fixture_spec_v0",
+  "offer_id": "counter_reality_check",
+  "internal_sku": "caas_counter_reality_check_v0",
+  "phase": "phase_1",
+  "phase_1_sellable": true,
+  "operator_review_required": true,
+  "automation_claim_allowed": false,
+  "proof_status_label": "planning_supported_needs_first_fixture",
+  "fixture_goal": "Prove that one scoped municipal office question can be converted into a reviewed answer, explicit source type, redirect or confirmation result, and a safe next step without turning staff guidance into legal advice or worker-copyable doctrine.",
+  "scenario_shape": {
+    "municipal_objective": "Verify whether stale or ambiguous online guidance matches current counter/office reality.",
+    "expected_case_pattern": "contradictory_online_guidance_or_unclear_window",
+    "must_include": [
+      "one exact primary question from intake",
+      "one fallback clarification question if staff refuse or redirect",
+      "source separation between observed signage, staff answer, and documented material",
+      "operator-reviewed next step"
+    ],
+    "must_not_include": [
+      "raw transcript as authority",
+      "legal interpretation",
+      "guaranteed acceptance or approval",
+      "worker-copyable municipal doctrine"
+    ]
+  },
+  "required_intake_fields": [
+    "jurisdiction",
+    "office_name_or_suspected_office",
+    "office_address_if_known",
+    "workflow_type",
+    "exact_primary_question",
+    "acceptable_answer_format",
+    "urgency_window",
+    "fallback_question_if_staff_refuse",
+    "redirect_instruction",
+    "customer_success_definition"
+  ],
+  "minimum_evidence": [
+    "office_presence_or_open_state_observation_when_observable",
+    "answer_source_note",
+    "redirect_or_no_redirect_note",
+    "operator_review_note"
+  ],
+  "outcome_status_options": [
+    "verified_present",
+    "verified_absent",
+    "redirected",
+    "blocked",
+    "inconclusive"
+  ],
+  "source_type_options": [
+    "observed",
+    "heard_from_staff",
+    "documented",
+    "mixed"
+  ],
+  "customer_output_schema_draft": {
+    "required_fields": [
+      "offer",
+      "outcome_status",
+      "answer_summary",
+      "source_type",
+      "evidence_summary",
+      "redirect_target",
+      "operator_review_status",
+      "structured_next_step",
+      "follow_on_task_trigger",
+      "proof_status_label",
+      "forbidden_claims_preserved"
+    ],
+    "operator_review_status_allowed": ["reviewed"],
+    "forbidden_claims_preserved_required": true
+  },
+  "review_gate_checks": [
+    "question_match_or_deviation_explained",
+    "source_type_explicit",
+    "contradiction_or_refusal_preserved",
+    "redirect_not_upgraded_to_certainty",
+    "next_step_is_operational_not_legal"
+  ],
+  "follow_on_task_triggers": [
+    "packet_submission_attempt",
+    "office_redirect_follow_through",
+    "rejection_diagnosis_prep",
+    "null"
+  ],
+  "safe_to_claim": [
+    "counter_reality_check_fixture_spec_ready",
+    "concierge_operator_review_required",
+    "customer_output_schema_draft_defined"
+  ],
+  "do_not_claim_yet": [
+    "guaranteed_approval",
+    "legal_sufficiency",
+    "city_relationship_or_influence",
+    "unlimited_retries",
+    "broad_multi_office_base_order",
+    "live_acontext_readiness",
+    "autonomous_dispatch_readiness",
+    "multi_jurisdiction_playbook_readiness",
+    "worker_copyable_municipal_doctrine"
+  ],
+  "forbidden_customer_claims": [
+    "guaranteed_approval",
+    "legal_sufficiency",
+    "city_relationship_or_influence",
+    "unlimited_retries",
+    "broad_multi_office_base_order",
+    "live_acontext_readiness",
+    "autonomous_dispatch_readiness",
+    "multi_jurisdiction_playbook_readiness",
+    "worker_copyable_municipal_doctrine"
+  ],
+  "fixture_acceptance_gate": {
+    "preserves_safe_and_blocked_claims": true,
+    "requires_reviewed_output": true,
+    "requires_source_type": true,
+    "requires_follow_on_trigger": true,
+    "rejects_customer_copy_changes": true
+  },
+  "next_smallest_proof": "Create one reviewed Counter Reality Check proof fixture before claiming this card has local proof support."
+}

@@ -899,3 +899,36 @@ The next daytime action is intentionally binary:
 2. **If infra remains blocked:** add one narrow proof-support guardrail over persisted artifacts only. Good choices are a readiness summary command, a dropped-`do_not_claim_yet[]` drift fixture, or a no-worker-copyable-output guardrail.
 
 Do not broaden into polished UI, extra city templates, multi-jurisdiction playbooks, autonomous dispatch, or worker-copyable doctrine from one proof anchor.
+
+---
+
+## 13. 2026-05-08 00:00 — Phase 1 offer fixture specs landed
+
+The Phase 1 offer cards now have deterministic fixture specs and a summary guardrail:
+
+- `CITY_AS_A_SERVICE_PHASE_1_FIXTURE_SPECS_IMPLEMENTATION.md`
+- `mcp_server/city_ops/phase1_offer_fixture_specs.py`
+- `mcp_server/tests/city_ops/test_phase1_offer_fixture_specs.py`
+- `mcp_server/city_ops/fixtures/phase1_offer_fixture_specs/*.json`
+
+This closes the packaging gap between sellable offer cards and proof-building work. The new guardrail keeps every Phase 1 card concierge-only, operator-reviewed, source-typed, proof-labeled, and blocked-claim-preserving.
+
+Safe label added:
+
+```text
+phase_1_offer_fixture_specs_landed
+```
+
+Still blocked:
+
+```text
+guaranteed_approval + legal_sufficiency + city_relationship_or_influence + unlimited_retries + broad_multi_office_base_order + live_acontext_readiness + autonomous_dispatch_readiness + multi_jurisdiction_playbook_readiness + worker_copyable_municipal_doctrine
+```
+
+Next engineering window if Acontext infra is still blocked:
+
+1. create the first Counter Reality Check proof fixture from the spec
+2. create the first Posting Compliance Check proof fixture from the spec
+3. only then add a non-redirect Packet Submission Attempt proof fixture
+
+Do not broaden into customer copy, extra SKUs, polished UI, or automation language until fixture-backed proof exists.
