@@ -10,10 +10,12 @@ GPS/metadata exposure, or worker-copyable municipal doctrine.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
 from .contracts import CityOpsContractError
+from .phase1_review_output_schemas import OFFER_SPEC_DIR
 from .phase1_reviewed_fixtures import (
     PHASE1_REVIEWED_FIXTURE_REGISTRY_SCHEMA,
     load_phase1_reviewed_fixture_registry_summary,
@@ -21,6 +23,8 @@ from .phase1_reviewed_fixtures import (
 
 PHASE1_OPERATOR_COVERAGE_SUMMARY_SCHEMA = "city_ops.phase1_operator_coverage_summary.v1"
 PHASE1_OPERATOR_COVERAGE_SUMMARY_SAFE_CLAIM = "phase1_operator_coverage_summary_landed"
+PHASE1_OPERATOR_COVERAGE_ARTIFACT_SAFE_CLAIM = "phase1_operator_coverage_artifact_landed"
+PHASE1_OPERATOR_COVERAGE_SUMMARY_FILENAME = "phase1_operator_coverage_summary.json"
 
 # Claims this tiny operator/admin surface must never move into safe_to_claim.
 FORBIDDEN_OPERATOR_COVERAGE_SAFE_CLAIMS = [
@@ -94,7 +98,11 @@ def build_phase1_operator_coverage_summary(
 
     inherited_safe = list(source_registry.get("safe_to_claim", []))
     safe_to_claim = _dedupe(
-        [*inherited_safe, PHASE1_OPERATOR_COVERAGE_SUMMARY_SAFE_CLAIM]
+        [
+            *inherited_safe,
+            PHASE1_OPERATOR_COVERAGE_SUMMARY_SAFE_CLAIM,
+            PHASE1_OPERATOR_COVERAGE_ARTIFACT_SAFE_CLAIM,
+        ]
     )
     do_not_claim_yet = _dedupe(
         [
@@ -147,14 +155,60 @@ def build_phase1_operator_coverage_summary(
         "readiness": {flag: False for flag in READINESS_FALSE_FLAGS},
         "summary_verdict": "operator_coverage_summary_landed_read_only_not_customer_ready",
         "next_smallest_proof": (
-            "Use this only as an internal operator/admin count. Customer copy, "
-            "dispatch automation, live Acontext, ERC-8004 reputation, worker Skill DNA, "
-            "legal/regulator claims, GPS/metadata exposure, and worker-copyable municipal "
-            "doctrine remain blocked."
+            "Use this persisted internal operator/admin artifact only through thin read-only "
+            "surfaces. Customer copy, dispatch "
+            "automation, live Acontext, ERC-8004 reputation, worker Skill DNA, legal/regulator "
+            "claims, GPS/metadata exposure, and worker-copyable municipal doctrine remain blocked."
         ),
     }
     _assert_summary_is_conservative(summary)
     return summary
+
+
+def write_phase1_operator_coverage_summary(
+    *, fixture_dir: str | Path | None = None
+) -> Path:
+    """Persist the generated operator coverage summary as a local artifact.
+
+    Persistence is intentionally local and read-only for downstream consumers:
+    no customer copy, municipal memory, live Acontext, dispatch automation,
+    reputation, worker Skill DNA, legal/regulator readiness, GPS/metadata, or
+    worker-copyable doctrine is promoted by writing this file.
+    """
+
+    summary = build_phase1_operator_coverage_summary(fixture_dir=fixture_dir)
+    return _write_operator_coverage_summary(summary, fixture_dir=fixture_dir)
+
+
+def load_phase1_operator_coverage_summary(
+    *, fixture_dir: str | Path | None = None
+) -> dict[str, Any]:
+    """Load and validate the persisted operator coverage summary artifact."""
+
+    path = _operator_coverage_summary_dir(fixture_dir) / PHASE1_OPERATOR_COVERAGE_SUMMARY_FILENAME
+    with path.open("r", encoding="utf-8") as fh:
+        summary = json.load(fh)
+    if not isinstance(summary, dict):
+        raise CityOpsContractError("operator coverage summary artifact must be a JSON object")
+    _assert_summary_is_conservative(summary)
+    return summary
+
+
+def _write_operator_coverage_summary(
+    summary: dict[str, Any], *, fixture_dir: str | Path | None = None
+) -> Path:
+    _assert_summary_is_conservative(summary)
+    base_dir = _operator_coverage_summary_dir(fixture_dir)
+    base_dir.mkdir(parents=True, exist_ok=True)
+    path = base_dir / PHASE1_OPERATOR_COVERAGE_SUMMARY_FILENAME
+    path.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return path
+
+
+def _operator_coverage_summary_dir(fixture_dir: str | Path | None = None) -> Path:
+    if fixture_dir is not None:
+        return Path(fixture_dir)
+    return OFFER_SPEC_DIR / "reviewed_outputs"
 
 
 def _coverage_row(offer_id: str, row: dict[str, Any]) -> dict[str, Any]:
@@ -242,6 +296,8 @@ def _assert_claim_boundaries(
 
 
 def _assert_summary_is_conservative(summary: dict[str, Any]) -> None:
+    if summary.get("schema") != PHASE1_OPERATOR_COVERAGE_SUMMARY_SCHEMA:
+        raise CityOpsContractError("operator coverage summary schema mismatch")
     derived_from = summary["derived_from"]
     if derived_from.get("read_only") is not True:
         raise CityOpsContractError("operator coverage summary must stay read-only")

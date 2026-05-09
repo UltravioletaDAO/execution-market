@@ -1,17 +1,34 @@
 import copy
+import json
+from pathlib import Path
 
 import pytest
 
 from mcp_server.city_ops.contracts import CityOpsContractError
 from mcp_server.city_ops.phase1_operator_coverage_summary import (
+    PHASE1_OPERATOR_COVERAGE_ARTIFACT_SAFE_CLAIM,
+    PHASE1_OPERATOR_COVERAGE_SUMMARY_FILENAME,
     PHASE1_OPERATOR_COVERAGE_SUMMARY_SAFE_CLAIM,
     PHASE1_OPERATOR_COVERAGE_SUMMARY_SCHEMA,
     build_phase1_operator_coverage_summary,
+    load_phase1_operator_coverage_summary,
+    write_phase1_operator_coverage_summary,
 )
 from mcp_server.city_ops.phase1_reviewed_fixtures import (
+    PHASE1_REVIEWED_FIXTURE_REGISTRY_FILENAME,
     PHASE1_REVIEWED_FIXTURE_REGISTRY_SAFE_CLAIM,
     build_phase1_reviewed_fixture_registry_summary,
 )
+
+FIXTURES = Path(__file__).resolve().parents[2] / "city_ops" / "fixtures"
+REVIEWED_FIXTURE_DIR = FIXTURES / "phase1_offer_fixture_specs" / "reviewed_outputs"
+
+
+def read_operator_coverage_summary() -> dict:
+    with (REVIEWED_FIXTURE_DIR / PHASE1_OPERATOR_COVERAGE_SUMMARY_FILENAME).open(
+        "r", encoding="utf-8"
+    ) as fh:
+        return json.load(fh)
 
 
 def test_phase1_operator_coverage_summary_counts_reviewed_registry_only():
@@ -38,6 +55,16 @@ def test_phase1_operator_coverage_summary_counts_reviewed_registry_only():
     assert PHASE1_OPERATOR_COVERAGE_SUMMARY_SAFE_CLAIM in summary["claim_boundaries"][
         "safe_to_claim"
     ]
+    assert PHASE1_OPERATOR_COVERAGE_ARTIFACT_SAFE_CLAIM in summary["claim_boundaries"][
+        "safe_to_claim"
+    ]
+
+
+def test_phase1_operator_coverage_summary_matches_persisted_artifact():
+    summary = build_phase1_operator_coverage_summary()
+
+    assert summary == read_operator_coverage_summary()
+    assert load_phase1_operator_coverage_summary() == summary
 
 
 def test_phase1_operator_coverage_summary_preserves_adjacent_claims_per_offer():
@@ -111,3 +138,27 @@ def test_phase1_operator_coverage_summary_refuses_gps_metadata_exposure():
 
     with pytest.raises(CityOpsContractError, match="GPS or metadata"):
         build_phase1_operator_coverage_summary(registry=registry)
+
+
+def test_write_phase1_operator_coverage_summary_persists_valid_artifact(tmp_path):
+    (tmp_path / PHASE1_REVIEWED_FIXTURE_REGISTRY_FILENAME).write_text(
+        json.dumps(build_phase1_reviewed_fixture_registry_summary()), encoding="utf-8"
+    )
+
+    path = write_phase1_operator_coverage_summary(fixture_dir=tmp_path)
+
+    assert path == tmp_path / PHASE1_OPERATOR_COVERAGE_SUMMARY_FILENAME
+    assert load_phase1_operator_coverage_summary(fixture_dir=tmp_path) == json.loads(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def test_load_phase1_operator_coverage_summary_rejects_readiness_overclaim(tmp_path):
+    summary = build_phase1_operator_coverage_summary()
+    summary["readiness"]["dispatch_automation_ready"] = True
+    (tmp_path / PHASE1_OPERATOR_COVERAGE_SUMMARY_FILENAME).write_text(
+        json.dumps(summary), encoding="utf-8"
+    )
+
+    with pytest.raises(CityOpsContractError, match="promoted readiness"):
+        load_phase1_operator_coverage_summary(fixture_dir=tmp_path)
