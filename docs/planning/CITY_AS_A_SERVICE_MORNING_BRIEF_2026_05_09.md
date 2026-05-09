@@ -181,3 +181,65 @@ Code changes:
 ### Next smallest safe step
 
 Wire the read-surface contract to a real authenticated internal/admin route only after an admin auth boundary exists. Keep the route response identical to the persisted payload and do not add customer copy, dispatch routing, live Acontext writes, ERC-8004 reputation updates, worker Skill DNA, legal/regulator claims, GPS/metadata exposure, or worker-copyable doctrine.
+
+---
+
+## 03:00 continuation — decision-support readiness matrix
+
+### What landed
+
+Built the next conservative system-integration seam: a read-only decision-support readiness matrix derived from the coordination intelligence snapshot.
+
+Code changes:
+
+- `mcp_server/city_ops/decision_support_readiness_matrix.py`
+  - added `build_decision_support_readiness_matrix()`
+  - added `write_decision_support_readiness_matrix_fixture()`
+  - added `load_decision_support_readiness_matrix()`
+  - added schema validation and readiness-overclaim guards
+- `mcp_server/city_ops/__init__.py`
+  - exports the matrix builder/writer/loader
+- `mcp_server/tests/city_ops/test_decision_support_readiness_matrix.py`
+  - verifies fixture parity
+  - verifies the four system-integration axes
+  - verifies live Acontext can become attemptable without becoming ready
+  - verifies blocked claims, worker doctrine, and raw conversation replay are refused
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/decision_support_readiness_matrix.json`
+  - persisted deterministic matrix payload
+- `docs/planning/CITY_AS_A_SERVICE_DECISION_SUPPORT_READINESS_MATRIX_IMPLEMENTATION.md`
+  - documents safe claims, blocked claims, and the next smallest proof
+
+### Matrix axes
+
+- `memory_system_to_acontext_bridge` — blocked until live Acontext write/retrieve parity is proven
+- `irc_session_management` — compact ID handoff active
+- `cross_project_decision_support` — bounded verdict reusable for operator-only EM AAS planning
+- `agent_observability_success_metrics` — proof-block metrics landed
+
+### Safe to claim
+
+- `decision_support_readiness_matrix_landed`
+- one read-only matrix now joins memory/Acontext planning, IRC-style handoff discipline, cross-project decision support, and agent observability metrics
+- future agents can consume invariant IDs and safe/blocked claims without opening raw transcripts
+- Acontext transport may be shown as blocked or attemptable, but not sink-ready
+
+### Still blocked / not safe to claim
+
+- session rebuild readiness
+- live Acontext sink readiness
+- runtime parity
+- live Acontext write/retrieve completion
+- autonomous city dispatch readiness
+- polished operator console readiness
+- customer-visible catalog or public route readiness
+- worker Skill DNA readiness
+- worker-copyable municipal doctrine
+
+### Verification
+
+- `python3 -m py_compile mcp_server/city_ops/decision_support_readiness_matrix.py mcp_server/tests/city_ops/test_decision_support_readiness_matrix.py`
+- `PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops/test_decision_support_readiness_matrix.py -q`
+
+### Next smallest safe step
+
+Render this matrix as an internal/admin-only four-axis card that preserves safe/blocked claim adjacency and refuses to promote Acontext readiness until a live local write/retrieve parity pass exists.

@@ -1,6 +1,6 @@
 # City as a Service — Observability and Success Metrics
 
-> Last updated: 2026-05-07
+> Last updated: 2026-05-09
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_Acontext_MEMORY_BRIDGE.md`
@@ -49,6 +49,23 @@ This earns only `proof_observability_metrics_landed`.
 It does **not** earn `session_rebuild_ready`, `acontext_sink_ready`, `runtime_parity_proven`, or worker-copyable municipal doctrine.
 
 The snapshot currently tracks claim-boundary visibility, blocker counts, local transport parity fixture state, live Acontext attemptability, readiness honesty, and worker-copyability boundaries. It is suitable for coordination handoffs and decision support while live Acontext remains blocked.
+
+## 2.2 Decision-support matrix status
+
+The decision-support readiness matrix adds a small agent-observability layer over coordination intelligence:
+
+- implementation: `mcp_server/city_ops/decision_support_readiness_matrix.py`
+- fixture: `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/decision_support_readiness_matrix.json`
+- safe claim: `decision_support_readiness_matrix_landed`
+
+The first success definition is deliberately operational, not vanity-metric oriented:
+
+- future agents consume invariant IDs without raw transcript replay
+- future agents preserve `safe_to_claim[]` and `do_not_claim_yet[]` together
+- future agents recommend the next proof without promoting readiness
+- future agents record whether live Acontext remained blocked or became attemptable
+
+This is not a live dashboard, sink write, runtime parity proof, or customer-visible metric surface yet.
 
 ## 3. Product loop to measure
 

@@ -1,6 +1,6 @@
 # City as a Service — Decision Support Control Plane
 
-> Last updated: 2026-04-29
+> Last updated: 2026-05-09
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_Acontext_MEMORY_BRIDGE.md`
@@ -62,6 +62,26 @@ For any repeated office/template workflow, the system should be able to answer:
 - did reuse reduce redirects, repeated rejections, or uncertainty?
 
 If the system cannot answer those questions quickly, the CaaS memory loop is still decorative.
+
+## 3.1 First implementation status — readiness matrix
+
+The first conservative implementation seam now exists as a read-only decision-support readiness matrix:
+
+- implementation: `mcp_server/city_ops/decision_support_readiness_matrix.py`
+- tests: `mcp_server/tests/city_ops/test_decision_support_readiness_matrix.py`
+- fixture: `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/decision_support_readiness_matrix.json`
+- schema: `city_ops.decision_support_readiness_matrix.v1`
+- safe claim: `decision_support_readiness_matrix_landed`
+
+The matrix joins four axes without promoting readiness:
+
+1. memory system ↔ Acontext bridge
+2. IRC/session management
+3. cross-project decision support
+4. agent observability and success metrics
+
+It is safe for internal planning and future operator/admin read-only surfaces.
+It is not safe to call it live Acontext readiness, session rebuild readiness, runtime parity, autonomous dispatch, worker Skill DNA, or worker-copyable municipal doctrine.
 
 ## 4. System model
 

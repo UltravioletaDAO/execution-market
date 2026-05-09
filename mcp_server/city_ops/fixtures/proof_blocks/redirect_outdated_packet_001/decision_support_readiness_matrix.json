@@ -1,0 +1,172 @@
+{
+  "claim_boundaries": {
+    "do_not_claim_yet": [
+      "runtime_parity_proven",
+      "reuse_behavior_proven",
+      "closure_proof_ready",
+      "closure_proof_landed",
+      "session_rebuild_ready",
+      "acontext_sink_ready",
+      "worker-copyable municipal doctrine",
+      "acontext_live_write_completed",
+      "acontext_live_retrieval_completed",
+      "acontext_live_transport_parity_landed",
+      "polished_review_console_ready",
+      "office_memory_view_ready",
+      "broad_operator_workflow_ready",
+      "multi_jurisdiction_playbook_ready",
+      "autonomous_city_dispatch_ready",
+      "customer_visible_catalog_ready",
+      "public_route_ready",
+      "worker Skill DNA readiness"
+    ],
+    "safe_to_claim": [
+      "projection_truth_landed",
+      "reuse_parity_landed",
+      "session_rebuild_consumer_landed",
+      "session_rebuild_report_fixture_landed",
+      "acontext_transport_parity_test_landed",
+      "acontext_live_preflight_landed",
+      "thin_operator_debug_surface_landed",
+      "proof_observability_metrics_landed",
+      "coordination_intelligence_snapshot_landed",
+      "decision_support_readiness_matrix_landed"
+    ]
+  },
+  "compact_decision_id": "cdo_c51f4b767729",
+  "coordination_session_id": "city_session_redirect_outdated_packet_001",
+  "derived_from": {
+    "forbidden_sources": [
+      "raw_transcript",
+      "unreviewed_memory",
+      "freeform_worker_chat",
+      "private_operator_context"
+    ],
+    "raw_conversation_reopened": false,
+    "read_only": true,
+    "semantic_reinterpretation_performed": false,
+    "source_artifacts": [
+      "coordination_intelligence_snapshot.json",
+      "proof_observability_snapshot.json"
+    ],
+    "writes_live_sink": false
+  },
+  "handoff_axes": [
+    {
+      "axis": "memory_system_to_acontext_bridge",
+      "blocked_until": "one live local Acontext write/retrieve parity pass",
+      "evidence": [
+        "coordination_intelligence_snapshot.json",
+        "proof_observability_snapshot.json"
+      ],
+      "ready_now": false,
+      "safe_use": "operator planning from reviewed compact artifacts only",
+      "state": "blocked_prerequisites_missing"
+    },
+    {
+      "axis": "irc_session_management",
+      "blocked_until": "session rebuild consumer proves complete runtime handoff",
+      "evidence": [
+        "city_session_redirect_outdated_packet_001",
+        "cdo_c51f4b767729",
+        "review_packet_redirect_outdated_packet_001"
+      ],
+      "ready_now": true,
+      "safe_use": "handoff by invariant IDs instead of raw chat replay",
+      "state": "compact_id_handoff_active"
+    },
+    {
+      "axis": "cross_project_decision_support",
+      "blocked_until": "second reviewed municipal case confirms repeatability",
+      "evidence": [
+        "claim_boundaries.safe_to_claim",
+        "claim_boundaries.do_not_claim_yet"
+      ],
+      "ready_now": true,
+      "safe_use": "share safe/blocked verdicts and next-proof rules across EM AAS planning",
+      "state": "bounded_verdict_reusable_operator_only"
+    },
+    {
+      "axis": "agent_observability_success_metrics",
+      "blocked_until": "live Acontext and runtime parity metrics exist",
+      "evidence": [
+        "success_metrics.ready_axis_count",
+        "success_metrics.blocked_axis_count",
+        "success_metrics.claim_boundary_preservation"
+      ],
+      "ready_now": true,
+      "safe_use": "track whether future agents preserve claim boundaries and reuse IDs",
+      "state": "proof_block_metrics_landed"
+    }
+  ],
+  "matrix_id": "decision_support_readiness:redirect_outdated_packet_001",
+  "matrix_verdict": "decision_support_matrix_landed_live_transport_blocked",
+  "next_smallest_proof": [
+    "start Docker and local Acontext without changing CaaS semantics",
+    "install or expose the Acontext Python SDK/CLI in this environment",
+    "verify http://localhost:8029/api/v1 and http://localhost:3000 are reachable",
+    "rerun this preflight before attempting any live Acontext sink write",
+    "add a second reviewed municipal case before promoting cross-case doctrine",
+    "keep matrix consumption read-only until live Acontext parity is proven"
+  ],
+  "proof_anchor_id": "redirect_outdated_packet_001",
+  "readiness": {
+    "acontext_sink_ready": false,
+    "blockers": [
+      "docker_daemon_unavailable",
+      "acontext_python_sdk_missing",
+      "local_acontext_api_unreachable",
+      "local_acontext_dashboard_unreachable"
+    ],
+    "decision_support_matrix_ready": true,
+    "live_acontext_retrieval_performed": false,
+    "live_acontext_write_performed": false,
+    "local_transport_parity_fixture_passed": true,
+    "matrix_promotes_readiness": false,
+    "ready_to_attempt_live_transport": false,
+    "runtime_parity_proven": false,
+    "session_rebuild_ready": false,
+    "worker_copyable_doctrine_ready": false
+  },
+  "recommended_next_action": "clear Acontext prerequisites: docker_daemon_unavailable, acontext_python_sdk_missing, local_acontext_api_unreachable, local_acontext_dashboard_unreachable",
+  "review_packet_id": "review_packet_redirect_outdated_packet_001",
+  "schema": "city_ops.decision_support_readiness_matrix.v1",
+  "session_management_enhancements": [
+    {
+      "enhancement": "handoff_by_invariant_ids",
+      "implementation_rule": "carry coordination_session_id, compact_decision_id, review_packet_id, and proof_anchor_id in every packet"
+    },
+    {
+      "enhancement": "safe_and_blocked_claim_cards",
+      "implementation_rule": "render safe_to_claim and do_not_claim_yet adjacent in every operator/agent surface"
+    },
+    {
+      "enhancement": "no_raw_replay_default",
+      "implementation_rule": "future sessions consume reviewed artifacts unless an explicit audit requires raw source inspection"
+    },
+    {
+      "enhancement": "next_proof_queue",
+      "implementation_rule": "each handoff names one smallest next proof from coordination intelligence"
+    },
+    {
+      "enhancement": "blocker_visibility",
+      "implementation_rule": "show Acontext prerequisites before any sink write, retrieval, UI broadening, or customer copy"
+    }
+  ],
+  "success_metrics": {
+    "agent_handoff_success_definition": [
+      "agent consumes invariant IDs without raw transcript replay",
+      "agent preserves safe/blocked claims together",
+      "agent recommends the next proof without promoting readiness",
+      "agent records whether live Acontext remained blocked or became attemptable"
+    ],
+    "blocked_axis_count": 1,
+    "blocked_claim_count": 15,
+    "claim_boundary_preservation": "pass",
+    "forbidden_source_count": 4,
+    "live_sink_write_attempted": false,
+    "raw_conversation_reopened": false,
+    "ready_axis_count": 3,
+    "safe_claim_count": 9
+  }
+}

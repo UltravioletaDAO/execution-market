@@ -1,6 +1,6 @@
 # City as a Service — Acontext Memory Bridge
 
-> Last updated: 2026-04-25
+> Last updated: 2026-05-09
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_PILOT_BLUEPRINT.md`
@@ -43,6 +43,17 @@ It is the ability to accumulate **decision-quality municipal memory**:
 - which workers succeed in which environments
 
 Acontext is a strong candidate for the memory-and-observability layer that turns those episodes into reusable operational context.
+
+## 2.1 Current implemented bridge seam
+
+A conservative bridge seam now exists as a decision-support readiness matrix:
+
+- `mcp_server/city_ops/decision_support_readiness_matrix.py`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/decision_support_readiness_matrix.json`
+- `docs/planning/CITY_AS_A_SERVICE_DECISION_SUPPORT_READINESS_MATRIX_IMPLEMENTATION.md`
+
+The matrix lets operators and future agents inspect the memory/Acontext axis beside IRC/session management, cross-project decision support, and agent observability metrics.
+It keeps the Acontext bridge blocked or attemptable only; it does not claim `acontext_sink_ready` until a live local write/retrieve parity pass exists.
 
 ## 3. System split
 

@@ -11,6 +11,11 @@ from .acontext_transport import build_acontext_transport_parity_result
 from .closure import build_acontext_export_preview, build_session_rebuild_preview
 from .coordination_intelligence import build_coordination_intelligence_snapshot
 from .decision_projection import project_compact_decision
+from .decision_support_readiness_matrix import (
+    build_decision_support_readiness_matrix,
+    load_decision_support_readiness_matrix,
+    write_decision_support_readiness_matrix_fixture,
+)
 from .observability import build_proof_block_telemetry_gate
 from .operator_debug_surface import build_operator_debug_surface
 from .phase1_offer_fixture_specs import build_phase1_offer_fixture_spec_summary
@@ -58,6 +63,9 @@ __all__ = [
     "build_acontext_transport_parity_result",
     "build_coordination_intelligence_snapshot",
     "build_operator_debug_surface",
+    "build_decision_support_readiness_matrix",
+    "load_decision_support_readiness_matrix",
+    "write_decision_support_readiness_matrix_fixture",
     "build_phase1_offer_fixture_spec_summary",
     "build_phase1_operator_coverage_summary",
     "load_phase1_operator_coverage_summary",
