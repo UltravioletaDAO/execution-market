@@ -14,6 +14,7 @@ from .decision_projection import project_compact_decision
 from .observability import build_proof_block_telemetry_gate
 from .operator_debug_surface import build_operator_debug_surface
 from .phase1_offer_fixture_specs import build_phase1_offer_fixture_spec_summary
+from .phase1_operator_coverage_summary import build_phase1_operator_coverage_summary
 from .phase1_review_normalizer import (
     build_phase1_review_normalizer_summary,
     normalize_phase1_review_output,
@@ -44,6 +45,7 @@ __all__ = [
     "build_coordination_intelligence_snapshot",
     "build_operator_debug_surface",
     "build_phase1_offer_fixture_spec_summary",
+    "build_phase1_operator_coverage_summary",
     "build_phase1_review_normalizer_summary",
     "build_phase1_review_output_schema_bundle",
     "build_counter_reality_check_reviewed_fixture",
