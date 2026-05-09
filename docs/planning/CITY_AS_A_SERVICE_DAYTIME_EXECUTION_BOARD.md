@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-09 03:45 America/New_York
+> Last updated: 2026-05-09 06:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -130,6 +130,9 @@ Latest May 9 03:00 implementation: `mcp_server/city_ops/decision_support_readine
 Latest May 9 04:00 implementation: `mcp_server/city_ops/decision_support_matrix_card.py` now renders the persisted decision-support readiness matrix as an internal/admin-only four-axis card, persisted at `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/decision_support_matrix_card.json`. It consumes only `decision_support_readiness_matrix.json`, passes axis fields through without semantic reinterpretation, keeps `safe_to_claim[]` and `do_not_claim_yet[]` adjacent, and refuses promoted readiness, public route/access drift, interpretation drift, raw transcript replay, live-sink writes, and blocked-safe-claim drift. This earns only `decision_support_matrix_card_landed`. The next safe step is either an authenticated internal/admin route that returns the card payload as-is or a route-readiness preflight that fails closed until admin auth, card parity, and no-interpretation response rules are proven. It still does not make public route, customer copy/catalog, polished operator console, dispatch, live Acontext, ERC-8004 reputation, worker Skill DNA, legal/regulator claims, GPS/metadata exposure, or worker-copyable doctrine ready.
 
 Latest May 9 05:00 pre-dawn implementation: `mcp_server/city_ops/decision_support_matrix_route_preflight.py` now adds the fail-closed route-readiness gate for the decision-support matrix card, persisted at `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/decision_support_matrix_route_preflight.json`. It consumes only `decision_support_matrix_card.json`, defaults to blocked/not mount-ready, and only allows a mount-ready verdict when admin auth, internal path match, card payload parity, pass-through-only response semantics, and no external side effects are all proven. This earns only `decision_support_matrix_route_preflight_landed`. The next daytime slice is a real authenticated internal/admin route **only if** an admin auth boundary is clear; otherwise continue narrow proof-support guardrails. It still does not make authenticated route readiness, public route, customer copy/catalog, polished operator console, dispatch, live Acontext, ERC-8004 reputation, worker Skill DNA, legal/regulator claims, GPS/metadata exposure, or worker-copyable doctrine ready.
+
+
+Latest May 9 06:00 final handoff: `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_09.md` is the current day/night coordination entrypoint. The night produced a conservative proof-preserving CaaS ladder from Phase 1 reviewed fixtures through operator coverage artifacts, internal/admin read surfaces, a decision-support matrix/card, and a fail-closed route preflight. The next daytime slice is a real authenticated internal/admin route only if the admin auth boundary is clear; it must return `decision_support_matrix_card.json` as-is and prove response parity/pass-through semantics before the preflight can become mount-ready. If auth is unclear, continue narrow proof-support guardrails. AutoJob, Frontier Academy, KK v2, and KarmaCadabra v2 were intentionally skipped because `DREAM-PRIORITIES.md` currently stops those tracks during dreams.
 
 ## 4. The next engineering window
 

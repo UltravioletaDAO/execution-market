@@ -397,3 +397,47 @@ Best next daytime slice:
 5. Update the route preflight probe to mount-ready only after those tests pass.
 
 If the auth boundary is unclear, keep building proof-support guardrails rather than registering a route.
+
+---
+
+## 06:00 final handoff — day/night coordination package
+
+### What landed
+
+Added the final morning handoff for the May 9 CaaS dream session:
+
+- `docs/planning/CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_09.md`
+
+The final handoff consolidates the night into one daytime entrypoint and makes the active-priority decision explicit: `DREAM-PRIORITIES.md` overrode the stale cron prompt, so AutoJob, Frontier Academy, KK v2, and KarmaCadabra v2 were intentionally skipped.
+
+### Night outcome
+
+Tonight's CaaS ladder is now:
+
+```text
+Phase 1 reviewed fixtures
+-> operator coverage summary
+-> persisted coverage artifact
+-> read-only renderer
+-> internal/admin read-surface contract
+-> decision-support readiness matrix
+-> internal/admin four-axis card
+-> fail-closed route preflight
+-> final morning handoff
+```
+
+### Daytime recommendation
+
+Implement the real authenticated internal/admin route only if an admin auth boundary is clear:
+
+1. `GET /internal/admin/city-ops/decision-support-matrix`
+2. return the persisted `decision_support_matrix_card.json` payload as-is
+3. prove route response parity and pass-through-only semantics
+4. update the route preflight probe to mount-ready only after the gate passes
+
+If auth is unclear, keep building narrow proof-support guardrails instead of registering a route.
+
+### Still blocked
+
+No public route, customer copy/catalog, polished operator console, dispatch automation, live Acontext sink, ERC-8004 reputation, worker Skill DNA, legal/regulator claim, GPS/metadata exposure, or worker-copyable doctrine is ready yet.
+
