@@ -307,3 +307,93 @@ Code changes:
 Either mount the persisted card behind a real authenticated internal/admin route once an admin auth boundary exists, returning the payload as-is, or add a route-readiness preflight that fails closed unless admin auth, matrix-card parity, and no-interpretation response rules are all present.
 
 Do not add customer copy, public catalog, dispatch routing, live Acontext writes, ERC-8004 reputation updates, worker Skill DNA, legal/regulator claims, GPS/metadata exposure, or worker-copyable doctrine in the next slice.
+
+---
+
+## 05:00 pre-dawn synthesis — route preflight and daytime handoff
+
+### What landed
+
+Added the conservative fail-closed seam between the internal/admin decision-support card and any future real route.
+
+Code changes:
+
+- `mcp_server/city_ops/decision_support_matrix_route_preflight.py`
+  - added `build_decision_support_matrix_route_preflight()`
+  - added `write_decision_support_matrix_route_preflight_fixture()`
+  - added `load_decision_support_matrix_route_preflight()`
+  - consumes only `decision_support_matrix_card.json`
+  - defaults to blocked / not mount-ready
+  - allows mount readiness only when admin auth, path match, card payload parity, pass-through-only response semantics, and no external side effects are all proven
+- `mcp_server/city_ops/__init__.py`
+  - exports route-preflight builder/writer/loader
+- `mcp_server/tests/city_ops/test_decision_support_matrix_route_preflight.py`
+  - proves card-only consumption, default fail-closed behavior, persisted fixture parity, internal/admin mount-ready probe behavior, and drift rejection
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/decision_support_matrix_route_preflight.json`
+  - persisted deterministic preflight payload
+- `docs/planning/CITY_AS_A_SERVICE_DECISION_SUPPORT_ROUTE_PREFLIGHT_IMPLEMENTATION.md`
+  - documents the route gate, safe claims, blocked claims, and next daytime route step
+
+### Safe to claim
+
+- `decision_support_matrix_route_preflight_landed`
+- the decision-support matrix card now has a fail-closed internal/admin route-readiness preflight
+- future route work has an explicit gate: admin auth + card payload parity + pass-through semantics + no external side effects
+- route mount readiness can be represented without promoting public/customer/dispatch/Acontext/reputation claims
+
+### Still blocked / not safe to claim
+
+- authenticated internal/admin route readiness
+- route mount readiness in the default persisted fixture
+- route response verification
+- admin auth boundary proven
+- public route readiness
+- customer-visible catalog readiness
+- customer copy readiness
+- polished operator console readiness
+- operator UI readiness beyond generated internal/admin payload contracts
+- dispatch routing or dispatch automation readiness
+- live Acontext readiness / Acontext sink readiness
+- runtime parity
+- ERC-8004 reputation readiness
+- worker Skill DNA readiness
+- legal sufficiency or regulator acceptance
+- exact GPS/metadata exposure
+- worker-copyable municipal doctrine
+
+### Verification
+
+- `python3 -m py_compile mcp_server/city_ops/decision_support_matrix_route_preflight.py mcp_server/tests/city_ops/test_decision_support_matrix_route_preflight.py`
+- `PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops/test_decision_support_matrix_route_preflight.py -q` → `6 passed, 1 existing warning`
+- `PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q` → `192 passed, 1 existing warning`
+
+### Pre-dawn synthesis
+
+Tonight moved CaaS from reviewed local proof artifacts into a cautious operator-wiring ladder:
+
+```text
+Phase 1 reviewed fixtures
+-> operator coverage summary
+-> persisted coverage artifact
+-> read-only renderer
+-> internal/admin read-surface contract
+-> decision-support readiness matrix
+-> internal/admin four-axis card
+-> fail-closed route preflight
+```
+
+The useful strategic connection: Execution Market AAS should treat internal/admin surfaces as proof carriers, not marketing surfaces. Every new layer must preserve the same invariant: `safe_to_claim[]` beside `do_not_claim_yet[]`, no raw transcript dependency, no public route/customer copy until auth and parity are proven, and live Acontext/dispatch/reputation only after their own proof gates.
+
+### Daytime recommendation
+
+Do **not** jump to customer copy, catalog, dispatch, Acontext writes, ERC-8004 reputation, worker Skill DNA, or municipal doctrine yet.
+
+Best next daytime slice:
+
+1. Find or create the admin auth boundary for an internal route.
+2. Mount `GET /internal/admin/city-ops/decision-support-matrix` only behind that boundary.
+3. Return the persisted `decision_support_matrix_card.json` payload as-is.
+4. Add a route test proving payload parity and pass-through-only response semantics.
+5. Update the route preflight probe to mount-ready only after those tests pass.
+
+If the auth boundary is unclear, keep building proof-support guardrails rather than registering a route.
