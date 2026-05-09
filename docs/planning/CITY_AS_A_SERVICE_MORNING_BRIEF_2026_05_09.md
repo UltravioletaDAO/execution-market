@@ -243,3 +243,67 @@ Code changes:
 ### Next smallest safe step
 
 Render this matrix as an internal/admin-only four-axis card that preserves safe/blocked claim adjacency and refuses to promote Acontext readiness until a live local write/retrieve parity pass exists.
+
+---
+
+## 04:00 continuation — decision-support matrix card
+
+### What landed
+
+Rendered the read-only decision-support readiness matrix as a conservative internal/admin-only four-axis card.
+
+Code changes:
+
+- `mcp_server/city_ops/decision_support_matrix_card.py`
+  - added `build_decision_support_matrix_card()`
+  - added `write_decision_support_matrix_card_fixture()`
+  - added `load_decision_support_matrix_card()`
+  - consumes only `decision_support_readiness_matrix.json`
+  - renders matrix axes as pass-through cards without semantic reinterpretation
+  - keeps `safe_to_claim[]` and `do_not_claim_yet[]` adjacent as claim cards
+  - rejects promoted readiness, public route/access drift, interpretation drift, raw transcript replay, live-sink writes, and blocked-safe-claim drift
+- `mcp_server/city_ops/__init__.py`
+  - exports the card builder/writer/loader
+- `mcp_server/tests/city_ops/test_decision_support_matrix_card.py`
+  - verifies matrix-only consumption, four-axis pass-through rendering, persisted fixture parity, adjacent claim cards, blocked product/external claims, attemptable-but-not-ready Acontext display, and drift rejections
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/decision_support_matrix_card.json`
+  - persisted deterministic card payload
+- `docs/planning/CITY_AS_A_SERVICE_DECISION_SUPPORT_MATRIX_CARD_IMPLEMENTATION.md`
+  - documents safe claims, blocked claims, render contract, and next step
+
+### Safe to claim
+
+- `decision_support_matrix_card_landed`
+- the decision-support readiness matrix now has a persisted internal/admin-only four-axis card payload
+- the card consumes only `decision_support_readiness_matrix.json`
+- matrix axis fields are rendered without reinterpretation
+- safe and blocked claims remain visible together
+- live Acontext can be displayed as attemptable, but not as ready
+
+### Still blocked / not safe to claim
+
+- public route readiness
+- customer-visible catalog readiness
+- customer copy readiness
+- polished operator console readiness
+- operator UI readiness beyond a generated internal/admin payload contract
+- dispatch routing or dispatch automation readiness
+- live Acontext readiness / Acontext sink readiness
+- runtime parity
+- ERC-8004 reputation readiness
+- worker Skill DNA readiness
+- legal sufficiency or regulator acceptance
+- exact GPS/metadata exposure
+- worker-copyable municipal doctrine
+
+### Verification
+
+- `python3 -m py_compile mcp_server/city_ops/decision_support_matrix_card.py mcp_server/tests/city_ops/test_decision_support_matrix_card.py`
+- `PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops/test_decision_support_matrix_card.py -q` → `9 passed, 1 existing warning`
+- `PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q` → `186 passed, 1 existing warning`
+
+### Next smallest safe step
+
+Either mount the persisted card behind a real authenticated internal/admin route once an admin auth boundary exists, returning the payload as-is, or add a route-readiness preflight that fails closed unless admin auth, matrix-card parity, and no-interpretation response rules are all present.
+
+Do not add customer copy, public catalog, dispatch routing, live Acontext writes, ERC-8004 reputation updates, worker Skill DNA, legal/regulator claims, GPS/metadata exposure, or worker-copyable doctrine in the next slice.

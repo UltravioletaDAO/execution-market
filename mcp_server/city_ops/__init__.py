@@ -16,6 +16,11 @@ from .decision_support_readiness_matrix import (
     load_decision_support_readiness_matrix,
     write_decision_support_readiness_matrix_fixture,
 )
+from .decision_support_matrix_card import (
+    build_decision_support_matrix_card,
+    load_decision_support_matrix_card,
+    write_decision_support_matrix_card_fixture,
+)
 from .observability import build_proof_block_telemetry_gate
 from .operator_debug_surface import build_operator_debug_surface
 from .phase1_offer_fixture_specs import build_phase1_offer_fixture_spec_summary
@@ -66,6 +71,9 @@ __all__ = [
     "build_decision_support_readiness_matrix",
     "load_decision_support_readiness_matrix",
     "write_decision_support_readiness_matrix_fixture",
+    "build_decision_support_matrix_card",
+    "load_decision_support_matrix_card",
+    "write_decision_support_matrix_card_fixture",
     "build_phase1_offer_fixture_spec_summary",
     "build_phase1_operator_coverage_summary",
     "load_phase1_operator_coverage_summary",
