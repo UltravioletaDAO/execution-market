@@ -119,3 +119,65 @@ Code changes:
 ### Next smallest safe step
 
 Mount the renderer behind an internal/admin-only read surface that uses the renderer payload as-is and does not add interpretation, customer copy, dispatch routing, live Acontext writes, reputation updates, worker Skill DNA, legal/regulator claims, GPS/metadata exposure, or worker-copyable doctrine.
+
+---
+
+## 02:00 continuation — internal/admin coverage read surface
+
+### What landed
+
+Mounted the persisted Phase 1 operator coverage renderer behind a conservative internal/admin-only read-surface contract.
+
+Code changes:
+
+- `mcp_server/city_ops/phase1_operator_coverage_read_surface.py`
+  - added `build_phase1_operator_coverage_read_surface()`
+  - added `write_phase1_operator_coverage_read_surface()`
+  - added `load_phase1_operator_coverage_read_surface()`
+  - added conservative checks that reject promoted renderer readiness, public route drift, access-policy drift, and blocked-claim softening
+- `mcp_server/city_ops/__init__.py`
+  - exports read-surface builder/writer/loader
+- `mcp_server/tests/city_ops/test_phase1_operator_coverage_read_surface.py`
+  - verifies renderer-only consumption
+  - verifies pass-through coverage totals/table/display lines
+  - verifies persisted artifact parity
+  - verifies public/product claims stay blocked
+  - verifies safe/blocked claim cards remain visible
+- `mcp_server/city_ops/fixtures/phase1_offer_fixture_specs/reviewed_outputs/phase1_operator_coverage_read_surface.json`
+  - persisted deterministic read-surface payload
+- `docs/planning/CITY_AS_A_SERVICE_PHASE_1_OPERATOR_COVERAGE_READ_SURFACE_IMPLEMENTATION.md`
+  - documents the implementation, safe claims, blocked claims, and next step
+
+### Safe to claim
+
+- `phase1_operator_coverage_read_surface_landed`
+- the persisted renderer payload now has an internal/admin-only read-surface contract
+- the surface preserves renderer `coverage_totals`, `coverage_table`, and `display_lines` as-is
+- the surface keeps `safe_to_claim[]` and `do_not_claim_yet[]` visible together
+- the surface refuses public route drift and readiness promotion
+
+### Still blocked / not safe to claim
+
+- public route readiness
+- customer-visible catalog readiness
+- customer copy readiness
+- polished operator console readiness
+- operator UI readiness beyond a generated/read-only payload contract
+- worker instruction surface readiness
+- dispatch routing or dispatch automation readiness
+- live Acontext readiness / Acontext sink readiness
+- runtime parity
+- ERC-8004 reputation readiness
+- worker Skill DNA readiness
+- legal sufficiency or regulator acceptance
+- exact GPS/metadata exposure
+- worker-copyable municipal doctrine
+
+### Verification
+
+- `python3 -m py_compile mcp_server/city_ops/phase1_operator_coverage_read_surface.py mcp_server/tests/city_ops/test_phase1_operator_coverage_read_surface.py`
+- `PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q` → `169 passed, 1 existing warning`
+
+### Next smallest safe step
+
+Wire the read-surface contract to a real authenticated internal/admin route only after an admin auth boundary exists. Keep the route response identical to the persisted payload and do not add customer copy, dispatch routing, live Acontext writes, ERC-8004 reputation updates, worker Skill DNA, legal/regulator claims, GPS/metadata exposure, or worker-copyable doctrine.
