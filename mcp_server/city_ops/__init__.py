@@ -19,6 +19,11 @@ from .phase1_operator_coverage_summary import (
     load_phase1_operator_coverage_summary,
     write_phase1_operator_coverage_summary,
 )
+from .phase1_operator_coverage_renderer import (
+    build_phase1_operator_coverage_renderer,
+    load_phase1_operator_coverage_renderer,
+    write_phase1_operator_coverage_renderer,
+)
 from .phase1_review_normalizer import (
     build_phase1_review_normalizer_summary,
     normalize_phase1_review_output,
@@ -52,6 +57,9 @@ __all__ = [
     "build_phase1_operator_coverage_summary",
     "load_phase1_operator_coverage_summary",
     "write_phase1_operator_coverage_summary",
+    "build_phase1_operator_coverage_renderer",
+    "load_phase1_operator_coverage_renderer",
+    "write_phase1_operator_coverage_renderer",
     "build_phase1_review_normalizer_summary",
     "build_phase1_review_output_schema_bundle",
     "build_counter_reality_check_reviewed_fixture",
