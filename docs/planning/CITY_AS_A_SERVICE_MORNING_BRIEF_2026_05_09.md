@@ -441,3 +441,59 @@ If auth is unclear, keep building narrow proof-support guardrails instead of reg
 
 No public route, customer copy/catalog, polished operator console, dispatch automation, live Acontext sink, ERC-8004 reputation, worker Skill DNA, legal/regulator claim, GPS/metadata exposure, or worker-copyable doctrine is ready yet.
 
+
+---
+
+## 23:00 continuation — authenticated internal/admin decision-support route
+
+### What landed
+
+Implemented the next safe route slice from the 06:00 handoff: `GET /internal/admin/city-ops/decision-support-matrix` now exists behind the shared admin key boundary and returns the persisted decision-support matrix card payload as-is.
+
+Code/docs added or changed:
+
+- `mcp_server/admin_auth.py`
+- `mcp_server/api/admin.py`
+- `mcp_server/city_ops/decision_support_matrix_admin_route.py`
+- `mcp_server/city_ops/decision_support_matrix_route_preflight.py`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/decision_support_matrix_admin_route_preflight.json`
+- `mcp_server/main.py`
+- `mcp_server/city_ops/__init__.py`
+- `mcp_server/tests/city_ops/test_decision_support_matrix_admin_route.py`
+- `docs/planning/CITY_AS_A_SERVICE_INTERNAL_ADMIN_DECISION_SUPPORT_ROUTE_IMPLEMENTATION.md`
+
+### Safe to claim
+
+- `internal_admin_decision_support_matrix_route_landed`
+- the route-level preflight proof is mount-ready for internal/admin only
+- the decision-support matrix card has an authenticated internal/admin-only GET route
+- route response parity is proven against the persisted card payload
+- query-param admin auth is rejected for the internal/admin route
+- route semantics are pass-through only: no reinterpretation, no customer copy, no dispatch, no live Acontext writes, no reputation receipts, no GPS/metadata exposure, no worker doctrine
+
+### Still blocked / not safe to claim
+
+- public route readiness
+- customer-visible catalog readiness
+- customer copy readiness
+- polished operator console readiness
+- dispatch routing or dispatch automation readiness
+- live Acontext readiness / Acontext sink readiness
+- runtime parity
+- ERC-8004 reputation readiness
+- worker Skill DNA readiness
+- legal sufficiency or regulator acceptance
+- exact GPS/metadata exposure
+- worker-copyable municipal doctrine
+
+### Verification
+
+- `python3 -m py_compile mcp_server/admin_auth.py mcp_server/api/admin.py mcp_server/city_ops/decision_support_matrix_admin_route.py mcp_server/city_ops/decision_support_matrix_route_preflight.py mcp_server/tests/city_ops/test_decision_support_matrix_admin_route.py mcp_server/tests/city_ops/test_decision_support_matrix_route_preflight.py mcp_server/tests/test_admin_auth.py` → passed
+- `PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops/test_decision_support_matrix_admin_route.py mcp_server/tests/city_ops/test_decision_support_matrix_route_preflight.py mcp_server/tests/test_admin_auth.py -q` → `26 passed, 2 warnings`
+- `PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q` → `205 passed, 2 warnings`
+
+Legacy admin auth focused tests now import the shared auth module directly and pass locally. Broader admin endpoint integration suites were not expanded in this slice because the CaaS contract is covered by the route/auth/card parity tests above.
+
+### Next smallest safe step
+
+Wire a thin operator/admin consumer to this internal route only if it keeps the persisted card payload as the only response source and preserves all blocked public/customer/dispatch/Acontext/reputation/GPS/worker-doctrine claims.

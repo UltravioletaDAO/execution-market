@@ -30,6 +30,9 @@ DECISION_SUPPORT_MATRIX_ROUTE_PREFLIGHT_SCHEMA = (
 DECISION_SUPPORT_MATRIX_ROUTE_PREFLIGHT_SAFE_CLAIM = (
     "decision_support_matrix_route_preflight_landed"
 )
+DECISION_SUPPORT_MATRIX_AUTHENTICATED_ADMIN_ROUTE_SAFE_CLAIM = (
+    "internal_admin_decision_support_matrix_route_landed"
+)
 DECISION_SUPPORT_MATRIX_ROUTE_PREFLIGHT_FILENAME = (
     "decision_support_matrix_route_preflight.json"
 )
@@ -87,6 +90,13 @@ _FALSE_READINESS_FLAGS = [
     "worker_copyable_municipal_doctrine_ready",
 ]
 
+_PROVEN_ROUTE_CLAIMS_WHEN_MOUNT_READY = {
+    "authenticated_internal_admin_route_ready",
+    "route_mount_ready",
+    "route_response_verified",
+    "admin_auth_boundary_proven",
+}
+
 
 def build_decision_support_matrix_route_preflight(
     *,
@@ -102,18 +112,25 @@ def build_decision_support_matrix_route_preflight(
 
     route_mount_ready = _route_mount_ready(probe)
 
-    safe_to_claim = _dedupe(
-        [
-            *source_card["claim_boundaries"]["safe_to_claim"],
-            DECISION_SUPPORT_MATRIX_CARD_SAFE_CLAIM,
-            DECISION_SUPPORT_MATRIX_ROUTE_PREFLIGHT_SAFE_CLAIM,
-        ]
-    )
+    safe_candidates = [
+        *source_card["claim_boundaries"]["safe_to_claim"],
+        DECISION_SUPPORT_MATRIX_CARD_SAFE_CLAIM,
+        DECISION_SUPPORT_MATRIX_ROUTE_PREFLIGHT_SAFE_CLAIM,
+    ]
+    if route_mount_ready:
+        safe_candidates.append(DECISION_SUPPORT_MATRIX_AUTHENTICATED_ADMIN_ROUTE_SAFE_CLAIM)
+    safe_to_claim = _dedupe(safe_candidates)
+
+    route_blocked_claims = [
+        claim
+        for claim in DECISION_SUPPORT_MATRIX_ROUTE_PREFLIGHT_BLOCKED_CLAIMS
+        if not (route_mount_ready and claim in _PROVEN_ROUTE_CLAIMS_WHEN_MOUNT_READY)
+    ]
     do_not_claim_yet = _dedupe(
         [
             *source_card["claim_boundaries"]["do_not_claim_yet"],
             *DECISION_SUPPORT_MATRIX_CARD_BLOCKED_CLAIMS,
-            *DECISION_SUPPORT_MATRIX_ROUTE_PREFLIGHT_BLOCKED_CLAIMS,
+            *route_blocked_claims,
         ]
     )
     _assert_claim_boundaries(safe_to_claim, do_not_claim_yet)
@@ -379,6 +396,12 @@ def _assert_preflight_conservative(
     safe = preflight.get("claim_boundaries", {}).get("safe_to_claim", [])
     blocked = preflight.get("claim_boundaries", {}).get("do_not_claim_yet", [])
     _assert_claim_boundaries(safe, blocked)
+    if expected_ready:
+        for claim in _PROVEN_ROUTE_CLAIMS_WHEN_MOUNT_READY:
+            if claim in blocked:
+                raise CityOpsContractError(
+                    f"mount-ready route preflight still blocks proven claim: {claim}"
+                )
 
 
 def _assert_claim_boundaries(safe_to_claim: list[str], do_not_claim_yet: list[str]) -> None:

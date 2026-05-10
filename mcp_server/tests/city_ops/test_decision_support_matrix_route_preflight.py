@@ -14,6 +14,7 @@ from mcp_server.city_ops.decision_support_readiness_matrix import (
     DECISION_SUPPORT_READINESS_MATRIX_FILENAME,
 )
 from mcp_server.city_ops.decision_support_matrix_route_preflight import (
+    DECISION_SUPPORT_MATRIX_AUTHENTICATED_ADMIN_ROUTE_SAFE_CLAIM,
     DECISION_SUPPORT_MATRIX_ROUTE_PREFLIGHT_FILENAME,
     DECISION_SUPPORT_MATRIX_ROUTE_PREFLIGHT_SAFE_CLAIM,
     DECISION_SUPPORT_MATRIX_ROUTE_PREFLIGHT_SCHEMA,
@@ -85,6 +86,13 @@ def test_route_preflight_can_be_mount_ready_without_external_claims():
     assert preflight["readiness"]["route_mount_ready"] is True
     assert preflight["readiness"]["authenticated_internal_admin_route_ready"] is True
     assert preflight["readiness"]["route_response_verified"] is True
+    assert DECISION_SUPPORT_MATRIX_AUTHENTICATED_ADMIN_ROUTE_SAFE_CLAIM in preflight[
+        "claim_boundaries"
+    ]["safe_to_claim"]
+    assert "route_mount_ready" not in preflight["claim_boundaries"]["do_not_claim_yet"]
+    assert "authenticated_internal_admin_route_ready" not in preflight[
+        "claim_boundaries"
+    ]["do_not_claim_yet"]
     assert preflight["readiness"]["public_route_ready"] is False
     assert preflight["access_policy"]["public_route_registered"] is False
     assert preflight["access_policy"]["customer_visible"] is False
