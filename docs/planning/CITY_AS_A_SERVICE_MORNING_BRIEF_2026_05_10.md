@@ -281,3 +281,82 @@ Full city-ops gate also passed after the 03:00 slice:
 PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
 # 236 passed, 2 warnings
 ```
+
+---
+
+## 04:00 continuation — internal/admin route handoff packet
+
+The stale cron payload again listed AutoJob / Frontier Academy / KK v2, but `~/clawd/DREAM-PRIORITIES.md` explicitly stops those. This continuation stayed inside Execution Market AAS / City-as-a-Service only.
+
+### What landed
+
+- Added `mcp_server/city_ops/decision_support_route_handoff_packet.py`.
+- Added persisted artifact `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/decision_support_route_handoff_packet.json`.
+- Added tests in `mcp_server/tests/city_ops/test_decision_support_route_handoff_packet.py`.
+- Exported the handoff builder/loader/writer through `mcp_server/city_ops/__init__.py`.
+- Added implementation note `CITY_AS_A_SERVICE_INTERNAL_ADMIN_ROUTE_HANDOFF_PACKET_IMPLEMENTATION.md`.
+
+### New safe claim
+
+- `internal_admin_decision_support_route_handoff_packet_landed`
+
+### Pattern recognition captured
+
+The packet makes the route-boundary coordination insight explicit:
+
+- routes are artifact boundaries, not semantic truth engines
+- safe and blocked claims must remain adjacent through night/day handoff
+- an app-level mount smoke test is not customer/public/dispatch/live-transport readiness
+- the next multiplier is live transport parity, not another route layer
+
+### Guardrails preserved
+
+The handoff packet:
+
+- consumes only `decision_support_matrix_route_mount_manifest.json`
+- does not add a new route, UI, customer surface, dispatch behavior, live Acontext write, municipal memory write, reputation receipt, GPS/metadata exposure, or worker doctrine
+- keeps `safe_to_claim[]` and `do_not_claim_yet[]` adjacent
+- keeps public/customer/worker/dispatch/live-Acontext/memory/reputation/GPS/worker-doctrine access flags false
+- keeps public route, customer copy/catalog, polished console, broad operator UI, worker-visible surface, dispatch, live Acontext, runtime parity, ERC-8004 reputation, worker Skill DNA, legal/regulator, GPS/metadata, and worker-copyable doctrine readiness false
+
+### Verification
+
+Focused gate passed:
+
+```bash
+python3 -m py_compile \
+  mcp_server/city_ops/decision_support_route_handoff_packet.py \
+  mcp_server/city_ops/__init__.py \
+  mcp_server/tests/city_ops/test_decision_support_route_handoff_packet.py
+PYTHONPATH=. python3 -m pytest \
+  mcp_server/tests/city_ops/test_decision_support_route_handoff_packet.py -q
+# 7 passed, 2 warnings
+```
+
+Full city-ops gate also passed:
+
+```bash
+PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
+# 243 passed, 2 warnings
+```
+
+### Still blocked / not safe to claim
+
+- network/public route readiness outside the internal/admin proof boundary
+- customer-visible catalog readiness
+- customer copy readiness
+- polished operator console readiness
+- broad operator UI readiness
+- worker-visible readiness
+- dispatch routing or dispatch automation readiness
+- live Acontext readiness / Acontext sink readiness
+- runtime parity
+- ERC-8004 reputation readiness
+- worker Skill DNA readiness
+- legal sufficiency or regulator acceptance
+- exact GPS/metadata exposure
+- worker-copyable municipal doctrine
+
+### Next smallest safe step
+
+Stop route expansion by default. Rerun live Acontext preflight; if prerequisites are real, perform exactly one live write/retrieve parity pass using the same reviewed consumer/report fields. If prerequisites remain blocked, pause at the handoff packet instead of broadening into customer/public/dispatch/reputation/GPS/worker-doctrine surfaces.

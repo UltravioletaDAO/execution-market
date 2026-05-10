@@ -1,0 +1,233 @@
+{
+  "access_policy": {
+    "audience": "internal_admin_only",
+    "customer_visible": false,
+    "dispatch_enabled": false,
+    "emits_reputation_receipts": false,
+    "exposes_gps_or_metadata": false,
+    "public_route_registered": false,
+    "publishes_worker_doctrine": false,
+    "requires_admin_context": true,
+    "worker_visible": false,
+    "writes_live_acontext": false,
+    "writes_municipal_memory": false
+  },
+  "claim_boundaries": {
+    "do_not_claim_yet": [
+      "network_public_route_ready",
+      "customer_visible_catalog_ready",
+      "customer_copy_ready",
+      "polished_operator_console_ready",
+      "broad_operator_ui_ready",
+      "worker_visible_ready",
+      "dispatch_routing_ready",
+      "dispatch_automation_ready",
+      "live_acontext_ready",
+      "acontext_sink_ready",
+      "runtime_parity_proven",
+      "erc8004_reputation_ready",
+      "worker_skill_dna_ready",
+      "legal_or_regulator_ready",
+      "gps_or_metadata_exposure_allowed",
+      "worker_copyable_municipal_doctrine_ready",
+      "route_expansion_as_progress",
+      "public_or_customer_route_ready",
+      "live_acontext_transport_parity_landed",
+      "exact_gps_or_metadata_exposure",
+      "worker_copyable_municipal_doctrine"
+    ],
+    "safe_to_claim": [
+      "internal_admin_decision_support_matrix_route_landed",
+      "internal_admin_decision_support_matrix_operator_display_adapter_route_landed",
+      "internal_admin_decision_support_matrix_route_mount_smoke_landed",
+      "internal_admin_decision_support_route_handoff_packet_landed"
+    ]
+  },
+  "coordination_patterns": [
+    {
+      "evidence": [
+        "/internal/admin/city-ops/decision-support-matrix",
+        "/internal/admin/city-ops/decision-support-matrix/operator-display-adapter"
+      ],
+      "pattern": "artifact_route_boundary",
+      "status": "active",
+      "why_it_scales": "routes return reviewed persisted artifacts as-is, so future agents coordinate through stable proof objects instead of rewriting semantics"
+    },
+    {
+      "evidence": {
+        "blocked_claim_count": 16,
+        "safe_claim_count": 3
+      },
+      "pattern": "adjacent_claim_limits",
+      "status": "active",
+      "why_it_scales": "safe and blocked claims remain adjacent in the handoff, reducing overclaim drift across night/day sessions"
+    },
+    {
+      "evidence": {
+        "acontext_sink_ready": false,
+        "customer_copy_ready": false,
+        "customer_visible_catalog_ready": false,
+        "dispatch_automation_ready": false,
+        "dispatch_routing_ready": false,
+        "erc8004_reputation_ready": false,
+        "gps_or_metadata_exposure_allowed": false,
+        "legal_or_regulator_ready": false,
+        "live_acontext_ready": false,
+        "network_route_ready": false,
+        "operator_ui_ready": false,
+        "polished_operator_console_ready": false,
+        "public_route_ready": false,
+        "runtime_parity_proven": false,
+        "worker_copyable_municipal_doctrine_ready": false,
+        "worker_skill_dna_ready": false,
+        "worker_visible_ready": false
+      },
+      "pattern": "mount_smoke_is_not_product_readiness",
+      "status": "guardrail",
+      "why_it_scales": "admin route availability is useful, but it must not be promoted into customer, dispatch, reputation, or live transport readiness"
+    },
+    {
+      "evidence": "live_acontext_ready=false and runtime_parity_proven=false",
+      "pattern": "stop_route_expansion_until_transport_truth",
+      "status": "recommended",
+      "why_it_scales": "the next multiplier is not another read surface; it is proving that reviewed meaning survives a live write/retrieve transport pass"
+    }
+  ],
+  "derived_from": {
+    "adds_route": false,
+    "consumes_only": [
+      "decision_support_matrix_route_mount_manifest.json"
+    ],
+    "emits_reputation_receipts": false,
+    "enables_dispatch_automation": false,
+    "exposes_gps_or_metadata": false,
+    "private_operator_context_reopened": false,
+    "publishes_worker_doctrine": false,
+    "raw_conversation_reopened": false,
+    "raw_worker_evidence_reopened": false,
+    "read_only": true,
+    "semantic_reinterpretation_performed": false,
+    "source_artifacts": [
+      "decision_support_matrix_route_mount_manifest.json"
+    ],
+    "source_manifest_digest": "18f1c888fcfcf53d2da70368f223d2160dd340124536c992b606bd0ec1a04c25",
+    "unreviewed_memory_reopened": false,
+    "writes_customer_copy": false,
+    "writes_live_acontext": false,
+    "writes_municipal_memory": false
+  },
+  "handoff_cards": [
+    {
+      "card": "source_manifest",
+      "manifest_id": "decision_support_matrix_route_mount_manifest:internal_admin:v1",
+      "mounted_route_count": 2,
+      "verdict": "internal_admin_decision_support_routes_mount_in_app_without_external_claims"
+    },
+    {
+      "card": "internal_admin_routes",
+      "values": [
+        {
+          "methods": [
+            "GET"
+          ],
+          "path": "/internal/admin/city-ops/decision-support-matrix",
+          "returns_payload_as_is": true,
+          "route_key": "decision_support_matrix_card"
+        },
+        {
+          "methods": [
+            "GET"
+          ],
+          "path": "/internal/admin/city-ops/decision-support-matrix/operator-display-adapter",
+          "returns_payload_as_is": true,
+          "route_key": "operator_display_adapter"
+        }
+      ]
+    },
+    {
+      "card": "safe_to_claim",
+      "values": [
+        "internal_admin_decision_support_matrix_route_landed",
+        "internal_admin_decision_support_matrix_operator_display_adapter_route_landed",
+        "internal_admin_decision_support_matrix_route_mount_smoke_landed",
+        "internal_admin_decision_support_route_handoff_packet_landed"
+      ]
+    },
+    {
+      "card": "do_not_claim_yet",
+      "values": [
+        "network_public_route_ready",
+        "customer_visible_catalog_ready",
+        "customer_copy_ready",
+        "polished_operator_console_ready",
+        "broad_operator_ui_ready",
+        "worker_visible_ready",
+        "dispatch_routing_ready",
+        "dispatch_automation_ready",
+        "live_acontext_ready",
+        "acontext_sink_ready",
+        "runtime_parity_proven",
+        "erc8004_reputation_ready",
+        "worker_skill_dna_ready",
+        "legal_or_regulator_ready",
+        "gps_or_metadata_exposure_allowed",
+        "worker_copyable_municipal_doctrine_ready",
+        "route_expansion_as_progress",
+        "public_or_customer_route_ready",
+        "live_acontext_transport_parity_landed",
+        "exact_gps_or_metadata_exposure",
+        "worker_copyable_municipal_doctrine"
+      ]
+    },
+    {
+      "card": "next_smallest_proof",
+      "values": [
+        "full_city_ops_gate_before_more_wiring",
+        "single_live_acontext_write_retrieve_parity_pass_when_prerequisites_exist"
+      ]
+    }
+  ],
+  "handoff_id": "decision_support_route_handoff:decision_support_matrix_route_mount_manifest:internal_admin:v1",
+  "handoff_verdict": "route_boundary_handoff_ready_stop_route_expansion_until_live_transport_proof",
+  "not_next_actions": [
+    "Do not create public or customer-visible routes from this proof block.",
+    "Do not turn the display adapter into a polished operator console yet.",
+    "Do not start dispatch routing, reputation, worker Skill DNA, GPS/metadata exposure, or worker-copyable doctrine.",
+    "Do not treat route mount success as runtime parity or live Acontext readiness."
+  ],
+  "readiness": {
+    "acontext_sink_ready": false,
+    "admin_auth_boundary_proven": true,
+    "all_expected_routes_registered": true,
+    "app_level_router_include_smoke_passed": true,
+    "customer_copy_ready": false,
+    "customer_visible_catalog_ready": false,
+    "daytime_pickup_ready": true,
+    "dispatch_automation_ready": false,
+    "dispatch_routing_ready": false,
+    "erc8004_reputation_ready": false,
+    "gps_or_metadata_exposure_allowed": false,
+    "handoff_packet_landed": true,
+    "internal_admin_route_boundary_ready": true,
+    "legal_or_regulator_ready": false,
+    "live_acontext_ready": false,
+    "network_route_ready": false,
+    "operator_ui_ready": false,
+    "pass_through_response_semantics_preserved": true,
+    "polished_operator_console_ready": false,
+    "public_route_ready": false,
+    "route_expansion_paused": true,
+    "runtime_parity_proven": false,
+    "source_manifest_verified": true,
+    "worker_copyable_municipal_doctrine_ready": false,
+    "worker_skill_dna_ready": false,
+    "worker_visible_ready": false
+  },
+  "recommended_next_actions": [
+    "Run the focused route gate and full city-ops suite before touching this seam again.",
+    "If local Acontext prerequisites are real, attempt exactly one live write/retrieve parity pass using the same reviewed consumer/report fields.",
+    "If Acontext prerequisites are still blocked, stop at the handoff packet and avoid adding more route layers."
+  ],
+  "schema": "city_ops.decision_support_route_handoff_packet.v1",
+  "source_manifest_id": "decision_support_matrix_route_mount_manifest:internal_admin:v1"
+}
