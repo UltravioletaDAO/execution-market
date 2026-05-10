@@ -36,6 +36,11 @@ from .decision_support_matrix_operator_consumer import (
     load_decision_support_matrix_operator_consumer,
     write_decision_support_matrix_operator_consumer_fixture,
 )
+from .decision_support_matrix_operator_display_adapter import (
+    build_decision_support_matrix_operator_display_adapter,
+    load_decision_support_matrix_operator_display_adapter,
+    write_decision_support_matrix_operator_display_adapter_fixture,
+)
 from .observability import build_proof_block_telemetry_gate
 from .operator_debug_surface import build_operator_debug_surface
 from .phase1_offer_fixture_specs import build_phase1_offer_fixture_spec_summary
@@ -98,6 +103,9 @@ __all__ = [
     "build_decision_support_matrix_operator_consumer",
     "load_decision_support_matrix_operator_consumer",
     "write_decision_support_matrix_operator_consumer_fixture",
+    "build_decision_support_matrix_operator_display_adapter",
+    "load_decision_support_matrix_operator_display_adapter",
+    "write_decision_support_matrix_operator_display_adapter_fixture",
     "build_phase1_offer_fixture_spec_summary",
     "build_phase1_operator_coverage_summary",
     "load_phase1_operator_coverage_summary",

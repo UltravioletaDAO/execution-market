@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-09 06:00 America/New_York
+> Last updated: 2026-05-10 01:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -136,6 +136,8 @@ Latest May 9 06:00 final handoff: `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_
 
 
 Latest May 10 00:00 implementation: `mcp_server/city_ops/decision_support_matrix_operator_consumer.py` now adds a thin internal/admin operator consumer over the authenticated decision-support matrix route payload, with persisted output at `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/decision_support_matrix_operator_consumer.json`. It consumes only `GET /internal/admin/city-ops/decision-support-matrix`, verifies a stable source-payload digest, passes through the matrix card sections without semantic reinterpretation, keeps safe/blocked claims adjacent, and has an authenticated in-process route-response parity test. This earns only `decision_support_matrix_operator_consumer_landed`. It still does not make public route readiness, customer copy/catalog, polished operator console, broad operator UI, dispatch, live Acontext/runtime parity, ERC-8004 reputation, worker Skill DNA, legal/regulator claims, GPS/metadata exposure, or worker-copyable doctrine ready.
+
+Latest May 10 01:00 implementation: `mcp_server/city_ops/decision_support_matrix_operator_display_adapter.py` now adds the smallest data-only internal/admin display adapter over `decision_support_matrix_operator_consumer.json`, with persisted output at `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/decision_support_matrix_operator_display_adapter.json`. It consumes only the persisted consumer artifact, verifies a stable source-consumer digest, renders deterministic cards for route, axes, safe claims, blocked claims, metrics, readiness, and next action, and refuses display-card drift or readiness promotion. This earns only `decision_support_matrix_operator_display_adapter_landed`. It still does not make network route readiness, public route readiness, customer copy/catalog, polished operator console, broad operator UI, worker-visible surfaces, dispatch, live Acontext/runtime parity, ERC-8004 reputation, worker Skill DNA, legal/regulator claims, GPS/metadata exposure, or worker-copyable doctrine ready.
 
 ## 4. The next engineering window
 
