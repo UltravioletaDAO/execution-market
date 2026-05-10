@@ -1,0 +1,280 @@
+{
+  "access_policy": {
+    "audience": "internal_admin_only",
+    "customer_visible": false,
+    "dispatch_enabled": false,
+    "emits_reputation_receipts": false,
+    "exposes_gps_or_metadata": false,
+    "network_route_registered": false,
+    "public_route_registered": false,
+    "publishes_worker_doctrine": false,
+    "requires_admin_context": true,
+    "worker_visible": false,
+    "writes_live_acontext": false,
+    "writes_municipal_memory": false
+  },
+  "claim_boundaries": {
+    "do_not_claim_yet": [
+      "runtime_parity_proven",
+      "reuse_behavior_proven",
+      "closure_proof_ready",
+      "closure_proof_landed",
+      "session_rebuild_ready",
+      "acontext_sink_ready",
+      "worker-copyable municipal doctrine",
+      "acontext_live_write_completed",
+      "acontext_live_retrieval_completed",
+      "acontext_live_transport_parity_landed",
+      "polished_review_console_ready",
+      "office_memory_view_ready",
+      "broad_operator_workflow_ready",
+      "multi_jurisdiction_playbook_ready",
+      "autonomous_city_dispatch_ready",
+      "customer_visible_catalog_ready",
+      "public_route_ready",
+      "worker Skill DNA readiness",
+      "customer_copy_ready",
+      "polished_operator_console_ready",
+      "operator_ui_ready",
+      "dispatch_routing_ready",
+      "dispatch_automation_ready",
+      "live_acontext_readiness",
+      "erc8004_reputation_ready",
+      "worker_skill_dna_ready",
+      "worker_copyable_municipal_doctrine",
+      "legal_sufficiency",
+      "regulator_acceptance",
+      "exact_gps_or_metadata_exposure"
+    ],
+    "safe_to_claim": [
+      "projection_truth_landed",
+      "reuse_parity_landed",
+      "session_rebuild_consumer_landed",
+      "session_rebuild_report_fixture_landed",
+      "acontext_transport_parity_test_landed",
+      "acontext_live_preflight_landed",
+      "thin_operator_debug_surface_landed",
+      "proof_observability_metrics_landed",
+      "coordination_intelligence_snapshot_landed",
+      "decision_support_readiness_matrix_landed",
+      "decision_support_matrix_card_landed",
+      "decision_support_matrix_operator_consumer_landed"
+    ]
+  },
+  "consumer_id": "operator_consumer:decision_support_matrix_card:decision_support_readiness:redirect_outdated_packet_001",
+  "consumer_verdict": "operator_consumer_landed_internal_admin_only_no_external_readiness",
+  "operator_consumer_sections": {
+    "axis_cards": [
+      {
+        "blocked_until": "one live local Acontext write/retrieve parity pass",
+        "card": "memory_system_to_acontext_bridge",
+        "display_status": "blocked_or_attemptable_not_ready",
+        "evidence": [
+          "coordination_intelligence_snapshot.json",
+          "proof_observability_snapshot.json"
+        ],
+        "ready_now": false,
+        "safe_use": "operator planning from reviewed compact artifacts only",
+        "state": "blocked_prerequisites_missing"
+      },
+      {
+        "blocked_until": "session rebuild consumer proves complete runtime handoff",
+        "card": "irc_session_management",
+        "display_status": "ready_for_operator_planning",
+        "evidence": [
+          "city_session_redirect_outdated_packet_001",
+          "cdo_c51f4b767729",
+          "review_packet_redirect_outdated_packet_001"
+        ],
+        "ready_now": true,
+        "safe_use": "handoff by invariant IDs instead of raw chat replay",
+        "state": "compact_id_handoff_active"
+      },
+      {
+        "blocked_until": "second reviewed municipal case confirms repeatability",
+        "card": "cross_project_decision_support",
+        "display_status": "ready_for_operator_planning",
+        "evidence": [
+          "claim_boundaries.safe_to_claim",
+          "claim_boundaries.do_not_claim_yet"
+        ],
+        "ready_now": true,
+        "safe_use": "share safe/blocked verdicts and next-proof rules across EM AAS planning",
+        "state": "bounded_verdict_reusable_operator_only"
+      },
+      {
+        "blocked_until": "live Acontext and runtime parity metrics exist",
+        "card": "agent_observability_success_metrics",
+        "display_status": "ready_for_operator_planning",
+        "evidence": [
+          "success_metrics.ready_axis_count",
+          "success_metrics.blocked_axis_count",
+          "success_metrics.claim_boundary_preservation"
+        ],
+        "ready_now": true,
+        "safe_use": "track whether future agents preserve claim boundaries and reuse IDs",
+        "state": "proof_block_metrics_landed"
+      }
+    ],
+    "card_verdict": "decision_support_matrix_card_landed_live_transport_blocked",
+    "claim_cards": [
+      {
+        "card": "safe_to_claim",
+        "status": "visible_without_softening",
+        "values": [
+          "projection_truth_landed",
+          "reuse_parity_landed",
+          "session_rebuild_consumer_landed",
+          "session_rebuild_report_fixture_landed",
+          "acontext_transport_parity_test_landed",
+          "acontext_live_preflight_landed",
+          "thin_operator_debug_surface_landed",
+          "proof_observability_metrics_landed",
+          "coordination_intelligence_snapshot_landed",
+          "decision_support_readiness_matrix_landed",
+          "decision_support_matrix_card_landed"
+        ]
+      },
+      {
+        "card": "do_not_claim_yet",
+        "status": "visible_without_softening",
+        "values": [
+          "runtime_parity_proven",
+          "reuse_behavior_proven",
+          "closure_proof_ready",
+          "closure_proof_landed",
+          "session_rebuild_ready",
+          "acontext_sink_ready",
+          "worker-copyable municipal doctrine",
+          "acontext_live_write_completed",
+          "acontext_live_retrieval_completed",
+          "acontext_live_transport_parity_landed",
+          "polished_review_console_ready",
+          "office_memory_view_ready",
+          "broad_operator_workflow_ready",
+          "multi_jurisdiction_playbook_ready",
+          "autonomous_city_dispatch_ready",
+          "customer_visible_catalog_ready",
+          "public_route_ready",
+          "worker Skill DNA readiness",
+          "customer_copy_ready",
+          "polished_operator_console_ready",
+          "operator_ui_ready",
+          "dispatch_routing_ready",
+          "dispatch_automation_ready",
+          "live_acontext_readiness",
+          "erc8004_reputation_ready",
+          "worker_skill_dna_ready",
+          "worker_copyable_municipal_doctrine",
+          "legal_sufficiency",
+          "regulator_acceptance",
+          "exact_gps_or_metadata_exposure"
+        ]
+      }
+    ],
+    "matrix_verdict": "decision_support_matrix_landed_live_transport_blocked",
+    "next_smallest_proof": [
+      "start Docker and local Acontext without changing CaaS semantics",
+      "install or expose the Acontext Python SDK/CLI in this environment",
+      "verify http://localhost:8029/api/v1 and http://localhost:3000 are reachable",
+      "rerun this preflight before attempting any live Acontext sink write",
+      "add a second reviewed municipal case before promoting cross-case doctrine",
+      "keep matrix consumption read-only until live Acontext parity is proven"
+    ],
+    "readiness": {
+      "acontext_sink_ready": false,
+      "customer_visible_catalog_ready": false,
+      "dispatch_automation_ready": false,
+      "erc8004_reputation_ready": false,
+      "gps_or_metadata_exposure_allowed": false,
+      "legal_or_regulator_ready": false,
+      "live_acontext_ready": false,
+      "matrix_card_landed": true,
+      "matrix_card_promotes_readiness": false,
+      "public_route_ready": false,
+      "runtime_parity_proven": false,
+      "session_rebuild_ready": false,
+      "source_ready_to_attempt_live_transport": false,
+      "worker_copyable_municipal_doctrine_ready": false,
+      "worker_skill_dna_ready": false
+    },
+    "recommended_next_action": "clear Acontext prerequisites: docker_daemon_unavailable, acontext_python_sdk_missing, local_acontext_api_unreachable, local_acontext_dashboard_unreachable",
+    "success_metrics": {
+      "agent_handoff_success_definition": [
+        "agent consumes invariant IDs without raw transcript replay",
+        "agent preserves safe/blocked claims together",
+        "agent recommends the next proof without promoting readiness",
+        "agent records whether live Acontext remained blocked or became attemptable"
+      ],
+      "blocked_axis_count": 1,
+      "blocked_claim_count": 15,
+      "claim_boundary_preservation": "pass",
+      "forbidden_source_count": 4,
+      "live_sink_write_attempted": false,
+      "raw_conversation_reopened": false,
+      "ready_axis_count": 3,
+      "safe_claim_count": 9
+    }
+  },
+  "readiness": {
+    "acontext_sink_ready": false,
+    "customer_copy_ready": false,
+    "customer_visible_catalog_ready": false,
+    "dispatch_automation_ready": false,
+    "dispatch_routing_ready": false,
+    "erc8004_reputation_ready": false,
+    "gps_or_metadata_exposure_allowed": false,
+    "internal_admin_route_consumed": true,
+    "legal_or_regulator_ready": false,
+    "live_acontext_ready": false,
+    "operator_consumer_landed": true,
+    "operator_ui_ready": false,
+    "polished_operator_console_ready": false,
+    "public_route_ready": false,
+    "route_payload_digest_verified": true,
+    "runtime_parity_proven": false,
+    "worker_copyable_municipal_doctrine_ready": false,
+    "worker_skill_dna_ready": false
+  },
+  "render_contract": {
+    "allowed_interpretation": "pass_through_matrix_fields_only",
+    "layout": "internal_admin_passthrough_sections",
+    "network_route_registered": false,
+    "pass_through_sections": [
+      "axis_cards",
+      "claim_cards",
+      "success_metrics",
+      "readiness",
+      "recommended_next_action",
+      "next_smallest_proof"
+    ],
+    "render_status": "thin_internal_admin_consumer_landed_not_console",
+    "source_route_path": "/internal/admin/city-ops/decision-support-matrix"
+  },
+  "schema": "city_ops.decision_support_matrix_operator_consumer.v1",
+  "source_route": {
+    "audience": "internal_admin_only",
+    "consumes_only": [
+      "/internal/admin/city-ops/decision-support-matrix"
+    ],
+    "forbidden_inputs": [
+      "raw_transcript",
+      "raw_conversation_replay",
+      "raw_review_fixture",
+      "unreviewed_memory",
+      "freeform_worker_chat",
+      "private_operator_context",
+      "customer_copy_draft",
+      "live_acontext_transport",
+      "gps_or_metadata_payloads"
+    ],
+    "method": "GET",
+    "path": "/internal/admin/city-ops/decision-support-matrix",
+    "requires_admin_context": true,
+    "response_interpretation": "pass_through_matrix_fields_only",
+    "semantic_reinterpretation_performed": false,
+    "source_card_id": "decision_support_matrix_card:decision_support_readiness:redirect_outdated_packet_001",
+    "source_card_schema": "city_ops.decision_support_matrix_card.v1",
+    "source_payload_digest": "8e897d141024becbfa05fe980102fa84efcb99327b7485db77c884617074b458"
+  }
+}

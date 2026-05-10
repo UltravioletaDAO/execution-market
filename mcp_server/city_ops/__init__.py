@@ -31,6 +31,11 @@ from .decision_support_matrix_admin_route import (
     load_internal_admin_decision_support_matrix_card,
     write_internal_admin_decision_support_matrix_route_preflight,
 )
+from .decision_support_matrix_operator_consumer import (
+    build_decision_support_matrix_operator_consumer,
+    load_decision_support_matrix_operator_consumer,
+    write_decision_support_matrix_operator_consumer_fixture,
+)
 from .observability import build_proof_block_telemetry_gate
 from .operator_debug_surface import build_operator_debug_surface
 from .phase1_offer_fixture_specs import build_phase1_offer_fixture_spec_summary
@@ -90,6 +95,9 @@ __all__ = [
     "load_internal_admin_decision_support_matrix_card",
     "build_internal_admin_decision_support_matrix_route_preflight",
     "write_internal_admin_decision_support_matrix_route_preflight",
+    "build_decision_support_matrix_operator_consumer",
+    "load_decision_support_matrix_operator_consumer",
+    "write_decision_support_matrix_operator_consumer_fixture",
     "build_phase1_offer_fixture_spec_summary",
     "build_phase1_operator_coverage_summary",
     "load_phase1_operator_coverage_summary",
