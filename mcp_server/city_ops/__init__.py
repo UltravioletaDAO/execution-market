@@ -27,8 +27,11 @@ from .decision_support_matrix_route_preflight import (
     write_decision_support_matrix_route_preflight_fixture,
 )
 from .decision_support_matrix_admin_route import (
+    build_internal_admin_decision_support_matrix_operator_display_adapter_route_preflight,
     build_internal_admin_decision_support_matrix_route_preflight,
     load_internal_admin_decision_support_matrix_card,
+    load_internal_admin_decision_support_matrix_operator_display_adapter,
+    write_internal_admin_decision_support_matrix_operator_display_adapter_route_preflight,
     write_internal_admin_decision_support_matrix_route_preflight,
 )
 from .decision_support_matrix_operator_consumer import (
@@ -100,6 +103,9 @@ __all__ = [
     "load_internal_admin_decision_support_matrix_card",
     "build_internal_admin_decision_support_matrix_route_preflight",
     "write_internal_admin_decision_support_matrix_route_preflight",
+    "load_internal_admin_decision_support_matrix_operator_display_adapter",
+    "build_internal_admin_decision_support_matrix_operator_display_adapter_route_preflight",
+    "write_internal_admin_decision_support_matrix_operator_display_adapter_route_preflight",
     "build_decision_support_matrix_operator_consumer",
     "load_decision_support_matrix_operator_consumer",
     "write_decision_support_matrix_operator_consumer_fixture",

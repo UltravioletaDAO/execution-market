@@ -145,3 +145,69 @@ PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
 ### Next smallest safe step
 
 Keep this adapter as a local reviewed artifact, or wire it to an authenticated internal/admin route that returns the persisted adapter payload as-is and proves route-response parity. Do not broaden into customer/public/dispatch/live-sink/reputation/GPS/worker-doctrine surfaces.
+
+---
+
+## 02:00 continuation — internal/admin operator display adapter route
+
+The stale cron payload again listed stopped tracks, but `~/clawd/DREAM-PRIORITIES.md` explicitly keeps dream work on Execution Market AAS / City-as-a-Service and stops AutoJob, Frontier Academy, and KK v2. This continuation stayed inside CaaS only.
+
+### What landed
+
+- Extended `mcp_server/city_ops/decision_support_matrix_admin_route.py` with `GET /internal/admin/city-ops/decision-support-matrix/operator-display-adapter`.
+- Added route-contract validation that loads `decision_support_matrix_operator_display_adapter.json`, refuses drift, and returns the persisted adapter payload as-is.
+- Added persisted route proof `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/decision_support_matrix_operator_display_adapter_admin_route_preflight.json`.
+- Expanded `mcp_server/tests/city_ops/test_decision_support_matrix_admin_route.py` to cover admin auth, bearer auth, payload parity, adjacent safe/blocked cards, route preflight, access drift, and readiness promotion.
+- Exported adapter-route loader/preflight/writer helpers through `mcp_server/city_ops/__init__.py`.
+- Added implementation note `CITY_AS_A_SERVICE_INTERNAL_ADMIN_OPERATOR_DISPLAY_ADAPTER_ROUTE_IMPLEMENTATION.md`.
+
+### New safe claim
+
+- `internal_admin_decision_support_matrix_operator_display_adapter_route_landed`
+
+### Guardrails preserved
+
+The adapter route:
+
+- requires the existing internal admin auth boundary
+- consumes the persisted display adapter artifact only through the display-adapter loader
+- returns the adapter payload as-is after validation
+- proves route-response parity in-process
+- keeps `safe_to_claim[]` and `do_not_claim_yet[]` adjacent
+- keeps public/customer/worker/dispatch/live-Acontext/memory/reputation/GPS/worker-doctrine access flags false
+- keeps network/public/customer/polished-console/operator-UI/worker-visible/dispatch/live-Acontext/runtime/reputation/Skill-DNA/legal/GPS/worker-doctrine readiness false
+
+### Verification
+
+Focused route gate passed:
+
+```bash
+python3 -m py_compile \
+  mcp_server/city_ops/decision_support_matrix_admin_route.py \
+  mcp_server/city_ops/__init__.py \
+  mcp_server/tests/city_ops/test_decision_support_matrix_admin_route.py
+PYTHONPATH=. python3 -m pytest \
+  mcp_server/tests/city_ops/test_decision_support_matrix_admin_route.py -q
+# 22 passed, 2 warnings
+```
+
+### Still blocked / not safe to claim
+
+- network/public route readiness outside the internal/admin proof boundary
+- customer-visible catalog readiness
+- customer copy readiness
+- polished operator console readiness
+- broad operator UI readiness
+- worker-visible readiness
+- dispatch routing or dispatch automation readiness
+- live Acontext readiness / Acontext sink readiness
+- runtime parity
+- ERC-8004 reputation readiness
+- worker Skill DNA readiness
+- legal sufficiency or regulator acceptance
+- exact GPS/metadata exposure
+- worker-copyable municipal doctrine
+
+### Next smallest safe step
+
+Either add one app-level router-include smoke test for the mounted internal/admin adapter route, or pause route expansion and return to the proof ladder toward live Acontext write/retrieve parity only when local prerequisites are clear. Do not broaden into customer/public/dispatch/live-sink/reputation/GPS/worker-doctrine surfaces.
