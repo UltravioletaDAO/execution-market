@@ -360,3 +360,67 @@ PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
 ### Next smallest safe step
 
 Stop route expansion by default. Rerun live Acontext preflight; if prerequisites are real, perform exactly one live write/retrieve parity pass using the same reviewed consumer/report fields. If prerequisites remain blocked, pause at the handoff packet instead of broadening into customer/public/dispatch/reputation/GPS/worker-doctrine surfaces.
+
+---
+
+## 05:00 pre-dawn synthesis — route chain complete, Acontext still blocked
+
+The stale cron payload again listed AutoJob / Frontier Academy / KK v2, but `~/clawd/DREAM-PRIORITIES.md` explicitly stops those. This synthesis stayed inside Execution Market AAS / City-as-a-Service only.
+
+### What changed
+
+- Added `docs/planning/CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_10.md`.
+- Added `docs/planning/CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_10.md`.
+- Reran the read-only live Acontext preflight.
+- Updated daytime handoff guidance to stop route expansion by default and focus next on live Acontext prerequisites.
+
+### Synthesis result
+
+The internal/admin route proof chain is now sufficiently boxed in:
+
+```text
+matrix card -> route preflight -> authenticated route -> operator consumer -> display adapter -> display-adapter route -> app mount manifest -> route handoff packet
+```
+
+The handoff insight is that routes are artifact boundaries, not semantic truth engines. They can carry reviewed CaaS meaning, but they must not create stronger meaning.
+
+### Live Acontext preflight result
+
+```text
+preflight_verdict = live_transport_blocked_before_sink_write
+ready_to_attempt_live_transport = false
+acontext_sink_ready = false
+runtime_parity_proven = false
+live_acontext_write_performed = false
+live_acontext_retrieval_performed = false
+```
+
+Blockers:
+
+```text
+docker_daemon_unavailable
+acontext_python_sdk_missing
+local_acontext_api_unreachable
+local_acontext_dashboard_unreachable
+```
+
+### Daytime recommendation
+
+Best next action: clear Docker + Acontext SDK/API/dashboard prerequisites, rerun preflight, then perform exactly one live write/retrieve parity pass using the existing Acontext transport packet contract. If preflight remains blocked, do not add more route layers by default; only add narrow proof-support guardrails that fail on claim drift, readiness overclaim, raw transcript dependency, unreviewed memory dependency, or worker-copyability strengthening.
+
+### Still blocked / not safe to claim
+
+- live Acontext sink readiness
+- runtime parity
+- live transport parity
+- public/customer route readiness
+- customer copy/catalog readiness
+- polished operator console readiness
+- broad operator UI readiness
+- worker-visible readiness
+- dispatch routing or dispatch automation readiness
+- ERC-8004 reputation readiness
+- worker Skill DNA readiness
+- legal sufficiency or regulator acceptance
+- exact GPS/metadata exposure
+- worker-copyable municipal doctrine
