@@ -1,0 +1,135 @@
+{
+  "access_policy": {
+    "audience": "internal_admin_only",
+    "customer_visible": false,
+    "dispatch_enabled": false,
+    "emits_reputation_receipts": false,
+    "exposes_gps_or_metadata": false,
+    "public_route_registered": false,
+    "publishes_worker_doctrine": false,
+    "requires_admin_context": true,
+    "worker_visible": false,
+    "writes_live_acontext": false,
+    "writes_municipal_memory": false
+  },
+  "claim_boundaries": {
+    "do_not_claim_yet": [
+      "network_public_route_ready",
+      "customer_visible_catalog_ready",
+      "customer_copy_ready",
+      "polished_operator_console_ready",
+      "broad_operator_ui_ready",
+      "worker_visible_ready",
+      "dispatch_routing_ready",
+      "dispatch_automation_ready",
+      "live_acontext_ready",
+      "acontext_sink_ready",
+      "runtime_parity_proven",
+      "erc8004_reputation_ready",
+      "worker_skill_dna_ready",
+      "legal_or_regulator_ready",
+      "gps_or_metadata_exposure_allowed",
+      "worker_copyable_municipal_doctrine_ready"
+    ],
+    "safe_to_claim": [
+      "internal_admin_decision_support_matrix_route_landed",
+      "internal_admin_decision_support_matrix_operator_display_adapter_route_landed",
+      "internal_admin_decision_support_matrix_route_mount_smoke_landed"
+    ]
+  },
+  "derived_from": {
+    "emits_reputation_receipts": false,
+    "enables_dispatch_automation": false,
+    "exposes_gps_or_metadata": false,
+    "publishes_worker_doctrine": false,
+    "read_only": true,
+    "semantic_reinterpretation_performed": false,
+    "source_router": "city_ops.decision_support_matrix_admin_route.router",
+    "writes_customer_copy": false,
+    "writes_live_acontext": false,
+    "writes_municipal_memory": false
+  },
+  "manifest_id": "decision_support_matrix_route_mount_manifest:internal_admin:v1",
+  "manifest_verdict": "internal_admin_decision_support_routes_mount_in_app_without_external_claims",
+  "mount_contract": {
+    "allowed_methods": [
+      "GET"
+    ],
+    "expected_route_count": 2,
+    "mount_scope": "fastapi_app_include_router_smoke",
+    "mounted_route_count": 2,
+    "required_dependency": "verify_internal_admin_key",
+    "required_prefix": "/internal/admin/",
+    "response_semantics": "pass_through_persisted_artifacts_only"
+  },
+  "mounted_routes": [
+    {
+      "admin_auth_boundary_present": true,
+      "allowed_interpretation": "pass_through_matrix_fields_only",
+      "customer_visible": false,
+      "dispatch_enabled": false,
+      "emits_reputation_receipts": false,
+      "exposes_gps_or_metadata": false,
+      "internal_path_matches_contract": true,
+      "methods": [
+        "GET"
+      ],
+      "path": "/internal/admin/city-ops/decision-support-matrix",
+      "public_route_registered": false,
+      "publishes_worker_doctrine": false,
+      "response_source": "city_ops.decision_support_matrix_card.v1",
+      "returns_payload_as_is": true,
+      "route_handler_registered": true,
+      "route_key": "decision_support_matrix_card",
+      "worker_visible": false,
+      "writes_live_acontext": false,
+      "writes_municipal_memory": false
+    },
+    {
+      "admin_auth_boundary_present": true,
+      "allowed_interpretation": "pass_through_display_adapter_fields_only",
+      "customer_visible": false,
+      "dispatch_enabled": false,
+      "emits_reputation_receipts": false,
+      "exposes_gps_or_metadata": false,
+      "internal_path_matches_contract": true,
+      "methods": [
+        "GET"
+      ],
+      "path": "/internal/admin/city-ops/decision-support-matrix/operator-display-adapter",
+      "public_route_registered": false,
+      "publishes_worker_doctrine": false,
+      "response_source": "decision_support_matrix_operator_display_adapter.json",
+      "returns_payload_as_is": true,
+      "route_handler_registered": true,
+      "route_key": "operator_display_adapter",
+      "worker_visible": false,
+      "writes_live_acontext": false,
+      "writes_municipal_memory": false
+    }
+  ],
+  "readiness": {
+    "acontext_sink_ready": false,
+    "admin_auth_boundary_proven": true,
+    "all_expected_routes_registered": true,
+    "app_level_router_include_smoke_passed": true,
+    "customer_copy_ready": false,
+    "customer_visible_catalog_ready": false,
+    "dispatch_automation_ready": false,
+    "dispatch_routing_ready": false,
+    "erc8004_reputation_ready": false,
+    "gps_or_metadata_exposure_allowed": false,
+    "legal_or_regulator_ready": false,
+    "live_acontext_ready": false,
+    "network_route_ready": false,
+    "operator_ui_ready": false,
+    "pass_through_response_semantics_preserved": true,
+    "polished_operator_console_ready": false,
+    "public_route_ready": false,
+    "runtime_parity_proven": false,
+    "worker_copyable_municipal_doctrine_ready": false,
+    "worker_skill_dna_ready": false,
+    "worker_visible_ready": false
+  },
+  "schema": "city_ops.decision_support_matrix_route_mount_manifest.v1"
+}

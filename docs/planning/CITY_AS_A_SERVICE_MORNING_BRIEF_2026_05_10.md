@@ -211,3 +211,73 @@ PYTHONPATH=. python3 -m pytest \
 ### Next smallest safe step
 
 Either add one app-level router-include smoke test for the mounted internal/admin adapter route, or pause route expansion and return to the proof ladder toward live Acontext write/retrieve parity only when local prerequisites are clear. Do not broaden into customer/public/dispatch/live-sink/reputation/GPS/worker-doctrine surfaces.
+
+---
+
+## 03:00 continuation — internal/admin route mount manifest
+
+The stale cron payload again listed stopped tracks, but `~/clawd/DREAM-PRIORITIES.md` explicitly keeps dream work on Execution Market AAS / City-as-a-Service and stops AutoJob, Frontier Academy, and KK v2. This continuation stayed inside CaaS only.
+
+### What landed
+
+- Extended `mcp_server/city_ops/decision_support_matrix_admin_route.py` with an app-level route mount manifest builder/writer.
+- Added persisted manifest `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/decision_support_matrix_route_mount_manifest.json`.
+- Expanded `mcp_server/tests/city_ops/test_decision_support_matrix_admin_route.py` with app-level include-router smoke coverage, fail-closed missing-router coverage, and persisted manifest coverage.
+- Exported the manifest builder/writer through `mcp_server/city_ops/__init__.py`.
+- Added implementation note `CITY_AS_A_SERVICE_INTERNAL_ADMIN_ROUTE_MOUNT_MANIFEST_IMPLEMENTATION.md`.
+
+### New safe claim
+
+- `internal_admin_decision_support_matrix_route_mount_smoke_landed`
+
+### Guardrails preserved
+
+The mount manifest:
+
+- proves both internal/admin decision-support routes mount after `app.include_router(router)`
+- verifies both routes are GET-only and protected by `verify_internal_admin_key`
+- keeps route responses pass-through-only over persisted proof artifacts
+- keeps public/customer/worker/dispatch/live-Acontext/memory/reputation/GPS/worker-doctrine access flags false
+- keeps network/public/customer/polished-console/operator-UI/worker-visible/dispatch/live-Acontext/runtime/reputation/Skill-DNA/legal/GPS/worker-doctrine readiness false
+
+### Verification
+
+Focused route gate passed:
+
+```bash
+python3 -m py_compile \
+  mcp_server/city_ops/decision_support_matrix_admin_route.py \
+  mcp_server/city_ops/__init__.py \
+  mcp_server/tests/city_ops/test_decision_support_matrix_admin_route.py
+PYTHONPATH=. python3 -m pytest \
+  mcp_server/tests/city_ops/test_decision_support_matrix_admin_route.py -q
+# 25 passed, 2 warnings
+```
+
+### Still blocked / not safe to claim
+
+- network/public route readiness outside the internal/admin proof boundary
+- customer-visible catalog readiness
+- customer copy readiness
+- polished operator console readiness
+- broad operator UI readiness
+- worker-visible readiness
+- dispatch routing or dispatch automation readiness
+- live Acontext readiness / Acontext sink readiness
+- runtime parity
+- ERC-8004 reputation readiness
+- worker Skill DNA readiness
+- legal sufficiency or regulator acceptance
+- exact GPS/metadata exposure
+- worker-copyable municipal doctrine
+
+### Next smallest safe step
+
+Run the full city-ops gate, then pause route expansion unless a new proof-preserving internal/admin artifact is clearly needed. The next product-significant step remains live Acontext write/retrieve parity only after local prerequisites are real.
+
+Full city-ops gate also passed after the 03:00 slice:
+
+```bash
+PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
+# 236 passed, 2 warnings
+```

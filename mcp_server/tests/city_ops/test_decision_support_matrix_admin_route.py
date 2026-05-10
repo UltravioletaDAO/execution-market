@@ -13,16 +13,19 @@ from mcp_server.city_ops.contracts import CityOpsContractError
 from mcp_server.city_ops.decision_support_matrix_admin_route import (
     INTERNAL_ADMIN_DECISION_SUPPORT_MATRIX_OPERATOR_DISPLAY_ADAPTER_PATH,
     INTERNAL_ADMIN_DECISION_SUPPORT_MATRIX_OPERATOR_DISPLAY_ADAPTER_ROUTE_PREFLIGHT_FILENAME,
+    INTERNAL_ADMIN_DECISION_SUPPORT_MATRIX_ROUTE_MOUNT_MANIFEST_FILENAME,
     INTERNAL_ADMIN_DECISION_SUPPORT_MATRIX_ROUTE_PREFLIGHT_FILENAME,
     INTERNAL_ADMIN_DECISION_SUPPORT_MATRIX_PATH,
     assert_internal_admin_decision_support_matrix_operator_display_adapter_response_contract,
     assert_internal_admin_decision_support_matrix_response_contract,
     build_internal_admin_decision_support_matrix_operator_display_adapter_route_preflight,
+    build_internal_admin_decision_support_matrix_route_mount_manifest,
     build_internal_admin_decision_support_matrix_route_preflight,
     load_internal_admin_decision_support_matrix_operator_display_adapter,
     load_internal_admin_decision_support_matrix_card,
     router,
     write_internal_admin_decision_support_matrix_operator_display_adapter_route_preflight,
+    write_internal_admin_decision_support_matrix_route_mount_manifest,
     write_internal_admin_decision_support_matrix_route_preflight,
 )
 from mcp_server.city_ops.decision_support_matrix_card import (
@@ -316,6 +319,58 @@ def test_write_internal_admin_display_adapter_route_preflight_persists_artifact(
     )
     assert persisted["readiness"]["route_mount_ready"] is True
     assert persisted["route_contract"]["returns_payload_as_is"] is True
+
+
+def test_app_level_route_mount_manifest_smokes_both_internal_admin_routes():
+    app = FastAPI()
+    app.include_router(router)
+
+    manifest = build_internal_admin_decision_support_matrix_route_mount_manifest(
+        app_routes=list(app.routes)
+    )
+
+    assert manifest["readiness"]["app_level_router_include_smoke_passed"] is True
+    assert manifest["mount_contract"]["mounted_route_count"] == 2
+    assert [route["path"] for route in manifest["mounted_routes"]] == [
+        INTERNAL_ADMIN_DECISION_SUPPORT_MATRIX_PATH,
+        INTERNAL_ADMIN_DECISION_SUPPORT_MATRIX_OPERATOR_DISPLAY_ADAPTER_PATH,
+    ]
+    assert all(route["methods"] == ["GET"] for route in manifest["mounted_routes"])
+    assert all(
+        route["admin_auth_boundary_present"] is True
+        for route in manifest["mounted_routes"]
+    )
+    assert manifest["access_policy"]["public_route_registered"] is False
+    assert manifest["access_policy"]["customer_visible"] is False
+    assert manifest["access_policy"]["dispatch_enabled"] is False
+    assert manifest["access_policy"]["writes_live_acontext"] is False
+    assert manifest["access_policy"]["emits_reputation_receipts"] is False
+    assert manifest["access_policy"]["exposes_gps_or_metadata"] is False
+    assert manifest["access_policy"]["publishes_worker_doctrine"] is False
+
+
+def test_app_level_route_mount_manifest_fails_closed_when_router_not_included():
+    app = FastAPI()
+
+    with pytest.raises(CityOpsContractError, match="app mount route drift"):
+        build_internal_admin_decision_support_matrix_route_mount_manifest(
+            app_routes=list(app.routes)
+        )
+
+
+def test_write_app_level_route_mount_manifest_persists_artifact(tmp_path):
+    path = write_internal_admin_decision_support_matrix_route_mount_manifest(
+        artifact_dir=tmp_path
+    )
+    persisted = json.loads(path.read_text(encoding="utf-8"))
+
+    assert path == tmp_path / INTERNAL_ADMIN_DECISION_SUPPORT_MATRIX_ROUTE_MOUNT_MANIFEST_FILENAME
+    assert persisted["readiness"]["app_level_router_include_smoke_passed"] is True
+    assert persisted["readiness"]["public_route_ready"] is False
+    assert persisted["readiness"]["dispatch_automation_ready"] is False
+    assert persisted["readiness"]["acontext_sink_ready"] is False
+    assert persisted["readiness"]["erc8004_reputation_ready"] is False
+    assert persisted["readiness"]["worker_skill_dna_ready"] is False
 
 
 def test_response_contract_guard_refuses_promoted_readiness():

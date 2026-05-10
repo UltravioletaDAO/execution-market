@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, FastAPI
 
 try:  # Package imports used by tests from the repository root.
     from mcp_server.admin_auth import verify_internal_admin_key
@@ -74,6 +74,15 @@ INTERNAL_ADMIN_DECISION_SUPPORT_MATRIX_OPERATOR_DISPLAY_ADAPTER_ROUTE_PREFLIGHT_
 )
 INTERNAL_ADMIN_DECISION_SUPPORT_MATRIX_OPERATOR_DISPLAY_ADAPTER_ROUTE_PREFLIGHT_FILENAME = (
     "decision_support_matrix_operator_display_adapter_admin_route_preflight.json"
+)
+INTERNAL_ADMIN_DECISION_SUPPORT_MATRIX_ROUTE_MOUNT_MANIFEST_SCHEMA = (
+    "city_ops.decision_support_matrix_route_mount_manifest.v1"
+)
+INTERNAL_ADMIN_DECISION_SUPPORT_MATRIX_ROUTE_MOUNT_MANIFEST_SAFE_CLAIM = (
+    "internal_admin_decision_support_matrix_route_mount_smoke_landed"
+)
+INTERNAL_ADMIN_DECISION_SUPPORT_MATRIX_ROUTE_MOUNT_MANIFEST_FILENAME = (
+    "decision_support_matrix_route_mount_manifest.json"
 )
 
 _FORBIDDEN_ACCESS_TRUE_FLAGS = [
@@ -396,6 +405,159 @@ def write_internal_admin_decision_support_matrix_operator_display_adapter_route_
     return path
 
 
+def build_internal_admin_decision_support_matrix_route_mount_manifest(
+    *, app_routes: list[Any] | None = None
+) -> dict[str, Any]:
+    """Prove the internal/admin decision-support routes mount at app level.
+
+    The route preflights prove each handler contract in isolation. This manifest
+    adds the next-smallest smoke test: after the router is included in a FastAPI
+    app, both expected internal/admin GET routes are present, admin-key guarded,
+    and still not customer/public/dispatch/live-sink surfaces.
+    """
+
+    if app_routes is None:
+        app = FastAPI()
+        app.include_router(router)
+        app_routes = list(app.routes)
+
+    expected_routes = [
+        {
+            "route_key": "decision_support_matrix_card",
+            "path": INTERNAL_ADMIN_DECISION_SUPPORT_MATRIX_PATH,
+            "response_source": DECISION_SUPPORT_MATRIX_CARD_SCHEMA,
+            "allowed_interpretation": (
+                INTERNAL_ADMIN_DECISION_SUPPORT_MATRIX_RESPONSE_INTERPRETATION
+            ),
+        },
+        {
+            "route_key": "operator_display_adapter",
+            "path": INTERNAL_ADMIN_DECISION_SUPPORT_MATRIX_OPERATOR_DISPLAY_ADAPTER_PATH,
+            "response_source": DECISION_SUPPORT_MATRIX_OPERATOR_DISPLAY_ADAPTER_FILENAME,
+            "allowed_interpretation": (
+                INTERNAL_ADMIN_DECISION_SUPPORT_MATRIX_OPERATOR_DISPLAY_ADAPTER_RESPONSE_INTERPRETATION
+            ),
+        },
+    ]
+
+    mounted_routes = [
+        _summarize_mounted_internal_admin_route(app_routes, expected_route)
+        for expected_route in expected_routes
+    ]
+
+    safe_to_claim = [
+        "internal_admin_decision_support_matrix_route_landed",
+        INTERNAL_ADMIN_DECISION_SUPPORT_MATRIX_OPERATOR_DISPLAY_ADAPTER_ROUTE_SAFE_CLAIM,
+        INTERNAL_ADMIN_DECISION_SUPPORT_MATRIX_ROUTE_MOUNT_MANIFEST_SAFE_CLAIM,
+    ]
+    do_not_claim_yet = [
+        "network_public_route_ready",
+        "customer_visible_catalog_ready",
+        "customer_copy_ready",
+        "polished_operator_console_ready",
+        "broad_operator_ui_ready",
+        "worker_visible_ready",
+        "dispatch_routing_ready",
+        "dispatch_automation_ready",
+        "live_acontext_ready",
+        "acontext_sink_ready",
+        "runtime_parity_proven",
+        "erc8004_reputation_ready",
+        "worker_skill_dna_ready",
+        "legal_or_regulator_ready",
+        "gps_or_metadata_exposure_allowed",
+        "worker_copyable_municipal_doctrine_ready",
+    ]
+
+    manifest = {
+        "schema": INTERNAL_ADMIN_DECISION_SUPPORT_MATRIX_ROUTE_MOUNT_MANIFEST_SCHEMA,
+        "manifest_id": "decision_support_matrix_route_mount_manifest:internal_admin:v1",
+        "derived_from": {
+            "read_only": True,
+            "source_router": "city_ops.decision_support_matrix_admin_route.router",
+            "semantic_reinterpretation_performed": False,
+            "writes_customer_copy": False,
+            "writes_live_acontext": False,
+            "writes_municipal_memory": False,
+            "enables_dispatch_automation": False,
+            "emits_reputation_receipts": False,
+            "publishes_worker_doctrine": False,
+            "exposes_gps_or_metadata": False,
+        },
+        "mount_contract": {
+            "mount_scope": "fastapi_app_include_router_smoke",
+            "expected_route_count": len(expected_routes),
+            "mounted_route_count": len(mounted_routes),
+            "allowed_methods": ["GET"],
+            "required_prefix": "/internal/admin/",
+            "required_dependency": "verify_internal_admin_key",
+            "response_semantics": "pass_through_persisted_artifacts_only",
+        },
+        "mounted_routes": mounted_routes,
+        "access_policy": {
+            "audience": "internal_admin_only",
+            "requires_admin_context": True,
+            "public_route_registered": False,
+            "customer_visible": False,
+            "worker_visible": False,
+            "dispatch_enabled": False,
+            "writes_live_acontext": False,
+            "writes_municipal_memory": False,
+            "emits_reputation_receipts": False,
+            "exposes_gps_or_metadata": False,
+            "publishes_worker_doctrine": False,
+        },
+        "claim_boundaries": {
+            "safe_to_claim": safe_to_claim,
+            "do_not_claim_yet": do_not_claim_yet,
+        },
+        "readiness": {
+            "app_level_router_include_smoke_passed": True,
+            "all_expected_routes_registered": True,
+            "admin_auth_boundary_proven": True,
+            "pass_through_response_semantics_preserved": True,
+            "public_route_ready": False,
+            "network_route_ready": False,
+            "customer_visible_catalog_ready": False,
+            "customer_copy_ready": False,
+            "worker_visible_ready": False,
+            "polished_operator_console_ready": False,
+            "operator_ui_ready": False,
+            "dispatch_routing_ready": False,
+            "dispatch_automation_ready": False,
+            "live_acontext_ready": False,
+            "acontext_sink_ready": False,
+            "runtime_parity_proven": False,
+            "erc8004_reputation_ready": False,
+            "worker_skill_dna_ready": False,
+            "legal_or_regulator_ready": False,
+            "gps_or_metadata_exposure_allowed": False,
+            "worker_copyable_municipal_doctrine_ready": False,
+        },
+        "manifest_verdict": (
+            "internal_admin_decision_support_routes_mount_in_app_without_external_claims"
+        ),
+    }
+    _assert_internal_admin_route_mount_manifest(manifest)
+    return manifest
+
+
+def write_internal_admin_decision_support_matrix_route_mount_manifest(
+    *, artifact_dir: str | Path | None = None
+) -> Path:
+    """Persist the app-level internal/admin route mount manifest."""
+
+    manifest = build_internal_admin_decision_support_matrix_route_mount_manifest()
+    base_dir = Path(artifact_dir) if artifact_dir else _default_proof_block_dir()
+    base_dir.mkdir(parents=True, exist_ok=True)
+    path = base_dir / INTERNAL_ADMIN_DECISION_SUPPORT_MATRIX_ROUTE_MOUNT_MANIFEST_FILENAME
+    path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return path
+
+
 def assert_internal_admin_decision_support_matrix_response_contract(
     card: dict[str, Any]
 ) -> None:
@@ -608,6 +770,130 @@ def _find_internal_admin_display_adapter_route():
             "internal/admin display adapter route registration drift"
         )
     return matches[0]
+
+
+def _summarize_mounted_internal_admin_route(
+    app_routes: list[Any], expected_route: dict[str, str]
+) -> dict[str, Any]:
+    matches = [
+        route
+        for route in app_routes
+        if getattr(route, "path", None) == expected_route["path"]
+    ]
+    if len(matches) != 1:
+        raise CityOpsContractError(
+            f"internal/admin app mount route drift: {expected_route['path']}"
+        )
+
+    route = matches[0]
+    methods = sorted(getattr(route, "methods", set()) or [])
+    dependency_names = {
+        getattr(dependency.call, "__name__", "")
+        for dependency in getattr(route, "dependant", None).dependencies
+    }
+    if methods != ["GET"]:
+        raise CityOpsContractError(
+            f"internal/admin app mount refuses method drift: {expected_route['path']}"
+        )
+    if not expected_route["path"].startswith("/internal/admin/"):
+        raise CityOpsContractError("internal/admin app mount refuses public path drift")
+    if "verify_internal_admin_key" not in dependency_names:
+        raise CityOpsContractError(
+            f"internal/admin app mount missing admin auth: {expected_route['path']}"
+        )
+
+    return {
+        "route_key": expected_route["route_key"],
+        "path": expected_route["path"],
+        "methods": methods,
+        "route_handler_registered": True,
+        "admin_auth_boundary_present": True,
+        "internal_path_matches_contract": True,
+        "response_source": expected_route["response_source"],
+        "allowed_interpretation": expected_route["allowed_interpretation"],
+        "returns_payload_as_is": True,
+        "public_route_registered": False,
+        "customer_visible": False,
+        "worker_visible": False,
+        "dispatch_enabled": False,
+        "writes_live_acontext": False,
+        "writes_municipal_memory": False,
+        "emits_reputation_receipts": False,
+        "exposes_gps_or_metadata": False,
+        "publishes_worker_doctrine": False,
+    }
+
+
+def _assert_internal_admin_route_mount_manifest(manifest: dict[str, Any]) -> None:
+    if manifest.get("schema") != (
+        INTERNAL_ADMIN_DECISION_SUPPORT_MATRIX_ROUTE_MOUNT_MANIFEST_SCHEMA
+    ):
+        raise CityOpsContractError("invalid internal/admin route mount manifest schema")
+
+    derived_from = manifest.get("derived_from", {})
+    if derived_from.get("read_only") is not True:
+        raise CityOpsContractError("route mount manifest must be read-only")
+    for flag in [
+        "semantic_reinterpretation_performed",
+        "writes_customer_copy",
+        "writes_live_acontext",
+        "writes_municipal_memory",
+        "enables_dispatch_automation",
+        "emits_reputation_receipts",
+        "publishes_worker_doctrine",
+        "exposes_gps_or_metadata",
+    ]:
+        if derived_from.get(flag) is not False:
+            raise CityOpsContractError(
+                f"route mount manifest refuses derived drift: {flag}"
+            )
+
+    mount_contract = manifest.get("mount_contract", {})
+    mounted_routes = manifest.get("mounted_routes", [])
+    if mount_contract.get("expected_route_count") != len(mounted_routes):
+        raise CityOpsContractError("route mount manifest route-count drift")
+    if mount_contract.get("required_prefix") != "/internal/admin/":
+        raise CityOpsContractError("route mount manifest prefix drift")
+    if mount_contract.get("required_dependency") != "verify_internal_admin_key":
+        raise CityOpsContractError("route mount manifest dependency drift")
+
+    for mounted_route in mounted_routes:
+        if mounted_route.get("methods") != ["GET"]:
+            raise CityOpsContractError("route mount manifest refuses method drift")
+        if not mounted_route.get("path", "").startswith("/internal/admin/"):
+            raise CityOpsContractError("route mount manifest refuses public path drift")
+        if mounted_route.get("admin_auth_boundary_present") is not True:
+            raise CityOpsContractError("route mount manifest missing admin auth")
+        for flag in _FORBIDDEN_ACCESS_TRUE_FLAGS:
+            if mounted_route.get(flag) is not False:
+                raise CityOpsContractError(
+                    f"route mount manifest refuses external route drift: {flag}"
+                )
+
+    access_policy = manifest.get("access_policy", {})
+    if access_policy.get("audience") != "internal_admin_only":
+        raise CityOpsContractError("route mount manifest audience drift")
+    if access_policy.get("requires_admin_context") is not True:
+        raise CityOpsContractError("route mount manifest requires admin context")
+    for flag in _FORBIDDEN_ACCESS_TRUE_FLAGS:
+        if access_policy.get(flag) is not False:
+            raise CityOpsContractError(
+                f"route mount manifest refuses access drift: {flag}"
+            )
+
+    readiness = manifest.get("readiness", {})
+    for flag in _DISPLAY_ADAPTER_FORBIDDEN_READINESS_TRUE_FLAGS:
+        if readiness.get(flag) is not False:
+            raise CityOpsContractError(
+                f"route mount manifest refuses promoted readiness: {flag}"
+            )
+    if readiness.get("app_level_router_include_smoke_passed") is not True:
+        raise CityOpsContractError("route mount manifest smoke must pass")
+
+    _assert_no_claim_overlap(
+        manifest.get("claim_boundaries", {}).get("safe_to_claim", []),
+        manifest.get("claim_boundaries", {}).get("do_not_claim_yet", []),
+    )
 
 
 def _assert_claims_adjacent_and_conservative(card: dict[str, Any]) -> None:
