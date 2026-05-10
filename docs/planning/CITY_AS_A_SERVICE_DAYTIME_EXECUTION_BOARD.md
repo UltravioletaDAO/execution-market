@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-10 05:00 America/New_York
+> Last updated: 2026-05-10 06:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -143,6 +143,9 @@ Latest May 10 04:00 implementation: the internal/admin decision-support route pr
 
 
 Latest May 10 05:00 pre-dawn synthesis: `CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_10.md` and `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_10.md` are the current day/night coordination entrypoints. The internal/admin route proof chain is now sufficiently boxed in through operator consumer, display adapter, display-adapter admin route, app-level mount manifest, and compact route handoff packet. Stop route expansion by default. The 5 AM read-only Acontext live preflight still reports `ready_to_attempt_live_transport=false` with blockers: Docker daemon unavailable, Acontext Python SDK missing, local Acontext API unreachable, and local dashboard unreachable. The next product-significant step is to clear those prerequisites, rerun preflight, and then perform exactly one live write/retrieve parity pass using the existing `city_ops.acontext_transport_packet.v1` contract. If prerequisites remain blocked, fallback work must be narrow proof-support only: fail on claim drift, readiness overclaim, raw transcript dependency, unreviewed memory dependency, private operator context dependency, or worker-copyability strengthening. Do not claim live Acontext sink readiness, runtime parity, customer/public readiness, dispatch, reputation, GPS/metadata, legal/regulator readiness, or worker-copyable doctrine. AutoJob, Frontier Academy, KK v2, and KarmaCadabra v2 remain blocked by `DREAM-PRIORITIES.md` during dreams.
+
+
+Latest May 10 06:00 final handoff: `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_10.md` is now the daytime coordination entrypoint. No new surface was added at 6 AM; the handoff was sealed. `projects/execution-market` is up to date with `origin/feat/operator-route-regret-panel`, and the only visible untracked repo file remains the pre-existing `scripts/sign_req.mjs` left untouched. The working recommendation is unchanged: stop route expansion by default, clear Docker + Acontext SDK/API/dashboard prerequisites, rerun preflight, and perform exactly one live Acontext write/retrieve parity pass only if preflight says it is ready. If still blocked, fallback work must be narrow guardrails against claim drift, readiness overclaim, raw transcript dependency, unreviewed memory dependency, private operator context dependency, or worker-copyability strengthening.
 
 ## 4. The next engineering window
 
