@@ -64,6 +64,11 @@ from .phase1_packet_submission_internal_package_record import (
     load_phase1_packet_submission_internal_package_record,
     write_phase1_packet_submission_internal_package_record,
 )
+from .phase1_controlled_pilot_readiness_board import (
+    build_phase1_controlled_pilot_readiness_board,
+    load_phase1_controlled_pilot_readiness_board,
+    write_phase1_controlled_pilot_readiness_board,
+)
 from .phase1_operator_coverage_renderer import (
     build_phase1_operator_coverage_renderer,
     load_phase1_operator_coverage_renderer,
@@ -136,6 +141,9 @@ __all__ = [
     "build_phase1_packet_submission_internal_package_record",
     "load_phase1_packet_submission_internal_package_record",
     "write_phase1_packet_submission_internal_package_record",
+    "build_phase1_controlled_pilot_readiness_board",
+    "load_phase1_controlled_pilot_readiness_board",
+    "write_phase1_controlled_pilot_readiness_board",
     "build_phase1_operator_coverage_renderer",
     "load_phase1_operator_coverage_renderer",
     "write_phase1_operator_coverage_renderer",

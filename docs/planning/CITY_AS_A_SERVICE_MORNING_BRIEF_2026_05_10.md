@@ -445,3 +445,55 @@ The 6 AM session added no new route layer and no new readiness claim. It finaliz
 - live Acontext preflight exists and blocks before sink write
 - no live Acontext write/retrieval happened
 - no public/customer/dispatch/reputation/GPS/legal/worker-doctrine readiness should be claimed
+
+---
+
+## 23:00 continuation — controlled pilot readiness board
+
+The stale kickoff again included stopped AutoJob / Frontier Academy / KK v2 priorities. `~/clawd/DREAM-PRIORITIES.md` explicitly wins, so this continuation stayed inside Execution Market AAS / City-as-a-Service only.
+
+### What landed
+
+- Added `mcp_server/city_ops/phase1_controlled_pilot_readiness_board.py`.
+- Added persisted artifact `mcp_server/city_ops/fixtures/phase1_offer_fixture_specs/reviewed_outputs/phase1_controlled_pilot_readiness_board.json`.
+- Added tests in `mcp_server/tests/city_ops/test_phase1_controlled_pilot_readiness_board.py`.
+- Exported the builder/loader/writer through `mcp_server/city_ops/__init__.py`.
+- Added implementation note `CITY_AS_A_SERVICE_PHASE_1_CONTROLLED_PILOT_READINESS_BOARD_IMPLEMENTATION.md`.
+- Updated `CITY_AS_A_SERVICE_CUSTOMER_SAFE_PACKAGING_GATES_2026_05_10.md` with the new board status.
+
+### New safe claim
+
+- `phase1_controlled_pilot_readiness_board_landed`
+
+### Board result
+
+- all three Phase 1 offers have reviewed fixture coverage
+- only Packet Submission Attempt has an internal package record
+- Counter Reality Check and Posting Compliance Check still need internal package records
+- no offer is customer/pilot/public ready
+- customer copy, public catalog, front-door SKU, live Acontext, runtime parity, autonomous dispatch, reputation, worker Skill DNA, legal/regulator, GPS/raw metadata, and worker-copyable doctrine readiness all remain false
+
+### Verification
+
+Focused gate passed:
+
+```bash
+python3 -m py_compile \
+  mcp_server/city_ops/phase1_controlled_pilot_readiness_board.py \
+  mcp_server/city_ops/__init__.py \
+  mcp_server/tests/city_ops/test_phase1_controlled_pilot_readiness_board.py
+PYTHONPATH=. python3 -m pytest \
+  mcp_server/tests/city_ops/test_phase1_controlled_pilot_readiness_board.py -q
+# 10 passed, 2 warnings
+```
+
+Full city-ops gate also passed:
+
+```bash
+PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
+# 263 passed, 2 warnings
+```
+
+### Next smallest safe step
+
+Create conservative internal package records for Counter Reality Check and Posting Compliance Check. Do not add route wrappers, public copy, customer-facing SKU language, live Acontext language, dispatch, reputation, exact GPS/raw metadata exposure, or worker-copyable municipal doctrine.

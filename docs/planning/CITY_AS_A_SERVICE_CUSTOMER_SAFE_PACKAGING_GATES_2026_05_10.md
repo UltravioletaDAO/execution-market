@@ -228,3 +228,29 @@ exposure, or worker-copyable doctrine ready.
 If Acontext prerequisites become available first, prioritize the May 10 handoff
 path instead: rerun preflight and perform exactly one live write/retrieve parity
 pass before any live-memory language is allowed.
+
+---
+
+## 8. 2026-05-10 23:00 continuation — controlled pilot readiness board
+
+The package-record step above is now followed by a deterministic readiness board:
+
+- `mcp_server/city_ops/phase1_controlled_pilot_readiness_board.py`
+- `mcp_server/city_ops/fixtures/phase1_offer_fixture_specs/reviewed_outputs/phase1_controlled_pilot_readiness_board.json`
+- `mcp_server/tests/city_ops/test_phase1_controlled_pilot_readiness_board.py`
+- `CITY_AS_A_SERVICE_PHASE_1_CONTROLLED_PILOT_READINESS_BOARD_IMPLEMENTATION.md`
+
+New safe internal claim:
+
+```text
+phase1_controlled_pilot_readiness_board_landed
+```
+
+The board makes the current promotion state explicit:
+
+- all three Phase 1 offers have reviewed fixture coverage
+- only Packet Submission Attempt has an internal package record
+- no offer is customer/pilot/public ready
+- no live Acontext, runtime, dispatch, reputation, GPS/raw metadata, legal/regulator, or worker-doctrine gate is ready
+
+Next smallest safe build: create internal package records for Counter Reality Check and Posting Compliance Check, then add a separate customer-output schema review gate. Do not draft public copy or front-door SKUs from the board.
