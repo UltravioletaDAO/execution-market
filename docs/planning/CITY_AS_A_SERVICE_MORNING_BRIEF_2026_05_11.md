@@ -88,3 +88,74 @@ If live Acontext prerequisites remain blocked, the next narrow proof-support ste
 4. Keep live Acontext, runtime parity, dispatch, reputation, privacy, and worker-doctrine gates separate.
 
 Do not add another route wrapper by default.
+
+---
+
+## 01:00 dream implementation — customer-output schema review gate
+
+The stale cron payload again listed AutoJob, Frontier Academy, KK v2, and other stopped tracks. `DREAM-PRIORITIES.md` explicitly blocks those during dreams, so this slice stayed on Execution Market AAS / City-as-a-Service.
+
+### What landed
+
+- Added `mcp_server/city_ops/phase1_customer_output_schema_review_gate.py`
+  - `build/load/write_phase1_customer_output_schema_review_gate`
+  - consumes the three Phase 1 internal package records only
+  - defines a schema-only boundary for future customer outputs
+  - fails closed on readiness promotion, customer copy creation, dropped blocked claims, forbidden safe claims, field drift, field overlap, and source package drift
+- Added persisted artifact:
+  - `mcp_server/city_ops/fixtures/phase1_offer_fixture_specs/reviewed_outputs/phase1_customer_output_schema_review_gate.json`
+- Added tests:
+  - `mcp_server/tests/city_ops/test_phase1_customer_output_schema_review_gate.py`
+- Updated exports in `mcp_server/city_ops/__init__.py`
+- Added implementation doc:
+  - `CITY_AS_A_SERVICE_PHASE_1_CUSTOMER_OUTPUT_SCHEMA_REVIEW_GATE_IMPLEMENTATION.md`
+
+### Safe to claim
+
+- `phase1_customer_output_schema_review_gate_landed`
+- the internal schema boundary for future Phase 1 customer-output samples exists
+- allowed/forbidden customer-output fields are now machine-checked as an internal/admin artifact
+
+### Do not claim
+
+- customer copy readiness
+- customer-visible catalog readiness
+- public service catalog readiness
+- controlled concierge pilot readiness
+- customer pilot exposure
+- front-door SKU readiness
+- live Acontext readiness / sink readiness
+- runtime parity
+- autonomous dispatch or dispatch routing
+- ERC-8004 reputation readiness
+- worker Skill DNA or worker-copyable municipal doctrine
+- legal/regulator acceptance
+- filing success, broad office reuse, city relationship, or approval guarantees
+- exact GPS/raw metadata exposure
+
+### Verification
+
+Focused gate:
+
+```bash
+python3 -m py_compile \
+  mcp_server/city_ops/phase1_customer_output_schema_review_gate.py \
+  mcp_server/city_ops/__init__.py \
+  mcp_server/tests/city_ops/test_phase1_customer_output_schema_review_gate.py
+PYTHONPATH=. python3 -m pytest \
+  mcp_server/tests/city_ops/test_phase1_customer_output_schema_review_gate.py -q
+# 11 passed, 2 warnings
+```
+
+Full city-ops gate:
+
+```bash
+PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
+# 289 passed, 2 warnings
+```
+
+### Next smallest safe step
+
+Draft one operator-reviewed sample output per Phase 1 offer against this schema, with separate privacy/legal/non-guarantee review.
+
+Do not publish samples, route them publicly, dispatch from them, or claim pilot/customer/catalog readiness. Live Acontext, runtime parity, dispatch, reputation, GPS/raw metadata privacy, pilot exposure, and worker-doctrine gates remain separate.

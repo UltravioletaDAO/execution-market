@@ -77,6 +77,11 @@ from .phase1_controlled_pilot_readiness_board import (
     load_phase1_controlled_pilot_readiness_board,
     write_phase1_controlled_pilot_readiness_board,
 )
+from .phase1_customer_output_schema_review_gate import (
+    build_phase1_customer_output_schema_review_gate,
+    load_phase1_customer_output_schema_review_gate,
+    write_phase1_customer_output_schema_review_gate,
+)
 from .phase1_operator_coverage_renderer import (
     build_phase1_operator_coverage_renderer,
     load_phase1_operator_coverage_renderer,
@@ -158,6 +163,9 @@ __all__ = [
     "build_phase1_controlled_pilot_readiness_board",
     "load_phase1_controlled_pilot_readiness_board",
     "write_phase1_controlled_pilot_readiness_board",
+    "build_phase1_customer_output_schema_review_gate",
+    "load_phase1_customer_output_schema_review_gate",
+    "write_phase1_customer_output_schema_review_gate",
     "build_phase1_operator_coverage_renderer",
     "load_phase1_operator_coverage_renderer",
     "write_phase1_operator_coverage_renderer",
