@@ -1,9 +1,11 @@
 {
   "schema": "city_ops.phase1_controlled_pilot_readiness_board.v1",
-  "board_id": "city_counter_ops.phase1_controlled_pilot_readiness.2026_05_10",
+  "board_id": "city_counter_ops.phase1_controlled_pilot_readiness.2026_05_11",
   "scope": "internal_operator_packaging_gate_only",
   "source_registry_id": "caas_phase1_reviewed_fixture_registry_summary_v0",
+  "source_counter_package_id": "city_counter_ops.counter_reality_check.2026_05_11",
   "source_packet_package_id": "city_counter_ops.packet_submission_attempt.2026_05_10",
+  "source_posting_package_id": "city_counter_ops.posting_compliance_check.2026_05_11",
   "offer_order": [
     "counter_reality_check",
     "packet_submission_attempt",
@@ -17,12 +19,11 @@
       "outcome_status": "redirected",
       "follow_on_task_trigger": "office_redirect_follow_through",
       "reviewed_fixture_exists": true,
-      "internal_package_record_exists": false,
+      "internal_package_record_exists": true,
       "customer_output_schema_reviewed": false,
       "customer_pilot_exposure_allowed": false,
-      "pilot_readiness_status": "reviewed_fixture_exists_needs_internal_package_record",
+      "pilot_readiness_status": "internal_package_recorded_not_customer_ready",
       "blocking_gates": [
-        "counter_reality_check_internal_package_record",
         "customer_output_schema_review",
         "blocked_claim_adjacency_preservation",
         "operator_review_required_before_closure",
@@ -33,7 +34,7 @@
         "worker_copyability_review",
         "gps_and_raw_metadata_privacy_review"
       ],
-      "next_smallest_step": "Create a conservative Counter Reality Check internal package record from its reviewed fixture; keep customer/pilot/public readiness false."
+      "next_smallest_step": "Keep this package record internal; add customer-output schema review as a separate gate before any pilot-facing or catalog-facing language."
     },
     {
       "offer": "packet_submission_attempt",
@@ -57,7 +58,7 @@
         "worker_copyability_review",
         "gps_and_raw_metadata_privacy_review"
       ],
-      "next_smallest_step": "Keep Packet Submission Attempt internal; add customer-output schema review only after the same package-record gate exists for the other Phase 1 offers."
+      "next_smallest_step": "Keep this package record internal; add customer-output schema review as a separate gate before any pilot-facing or catalog-facing language."
     },
     {
       "offer": "posting_compliance_check",
@@ -66,12 +67,11 @@
       "outcome_status": "verified_partial",
       "follow_on_task_trigger": "posting_recheck",
       "reviewed_fixture_exists": true,
-      "internal_package_record_exists": false,
+      "internal_package_record_exists": true,
       "customer_output_schema_reviewed": false,
       "customer_pilot_exposure_allowed": false,
-      "pilot_readiness_status": "reviewed_fixture_exists_needs_internal_package_record",
+      "pilot_readiness_status": "internal_package_recorded_not_customer_ready",
       "blocking_gates": [
-        "posting_compliance_check_internal_package_record",
         "customer_output_schema_review",
         "blocked_claim_adjacency_preservation",
         "operator_review_required_before_closure",
@@ -82,13 +82,15 @@
         "worker_copyability_review",
         "gps_and_raw_metadata_privacy_review"
       ],
-      "next_smallest_step": "Create a conservative Posting Compliance Check internal package record from its reviewed fixture; preserve exact-GPS/raw-metadata blocks."
+      "next_smallest_step": "Keep this package record internal; add customer-output schema review as a separate gate before any pilot-facing or catalog-facing language."
     }
   ],
   "safe_to_claim": [
     "phase1_controlled_pilot_readiness_board_landed",
     "phase1_reviewed_fixture_registry_summary_landed",
-    "phase1_packet_submission_internal_package_record_landed"
+    "phase1_counter_reality_check_internal_package_record_landed",
+    "phase1_packet_submission_internal_package_record_landed",
+    "phase1_posting_compliance_internal_package_record_landed"
   ],
   "do_not_claim_yet": [
     "customer_copy_ready",
@@ -129,7 +131,7 @@
   ],
   "global_readiness": {
     "all_phase1_offers_have_reviewed_fixture": true,
-    "all_phase1_offers_have_internal_package_record": false,
+    "all_phase1_offers_have_internal_package_record": true,
     "customer_copy_ready": false,
     "customer_visible_catalog_ready": false,
     "public_service_catalog_ready": false,
@@ -143,5 +145,5 @@
     "exact_gps_or_raw_metadata_exposure_allowed": false
   },
   "operator_instruction": "Use this board to decide what to build next. It is not customer copy, not a public catalog, and not approval to expose a pilot SKU.",
-  "next_smallest_proof": "Create internal package records for Counter Reality Check and Posting Compliance Check, then add a separate customer-output schema review gate before any controlled concierge pilot wording."
+  "next_smallest_proof": "All Phase 1 offers now have internal package records. Add a separate customer-output schema review gate before any controlled concierge pilot wording; keep live Acontext, runtime, dispatch, reputation, privacy, and worker-doctrine gates separate."
 }

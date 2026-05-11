@@ -1,0 +1,83 @@
+{
+  "schema": "city_ops.phase1_counter_reality_check_internal_package_record.v1",
+  "package_id": "city_counter_ops.counter_reality_check.2026_05_11",
+  "promotion_level": "controlled_concierge_pilot_candidate",
+  "offer": "counter_reality_check",
+  "proof_status_label": "planning_supported_needs_first_fixture",
+  "reviewed_fixture_ids": [
+    "caas_phase1_counter_reality_check_redirect_outdated_packet_001"
+  ],
+  "safe_to_claim": [
+    "counter_reality_check_reviewed_fixture_landed",
+    "phase1_counter_reality_check_internal_package_record_landed"
+  ],
+  "do_not_claim_yet": [
+    "guaranteed_approval",
+    "legal_sufficiency",
+    "city_relationship_or_influence",
+    "unlimited_retries",
+    "broad_multi_office_base_order",
+    "live_acontext_readiness",
+    "autonomous_dispatch_readiness",
+    "multi_jurisdiction_playbook_readiness",
+    "worker_copyable_municipal_doctrine",
+    "live_customer_schema_contract",
+    "autonomous_review_closure",
+    "durable_municipal_memory_write",
+    "customer_copy_ready",
+    "customer_visible_catalog_ready",
+    "public_service_catalog_ready",
+    "controlled_concierge_pilot_ready",
+    "customer_pilot_exposure_ready",
+    "filing_success_ready",
+    "broad_office_reuse_ready",
+    "regulator_acceptance",
+    "live_acontext_ready",
+    "acontext_sink_ready",
+    "runtime_parity_proven",
+    "autonomous_dispatch_ready",
+    "dispatch_routing_ready",
+    "erc8004_reputation_ready",
+    "reputation_ready",
+    "worker_skill_dna_ready",
+    "worker_copyable_doctrine_ready",
+    "exact_gps_or_raw_metadata_exposure_allowed",
+    "exact_gps_or_metadata_exposure",
+    "raw_metadata_exposure_allowed",
+    "worker_copyable_municipal_doctrine_ready"
+  ],
+  "source_reviewed_artifacts": [
+    {
+      "fixture_id": "caas_phase1_counter_reality_check_redirect_outdated_packet_001",
+      "source_file": "counter_reality_check_redirect_outdated_packet_001.json",
+      "source_schema": "city_ops.phase1_reviewed_fixture.v1",
+      "outcome_status": "redirected",
+      "source_type": "mixed",
+      "follow_on_task_trigger": "office_redirect_follow_through"
+    }
+  ],
+  "customer_output_schema_reviewed": false,
+  "operator_review_required_before_closure": true,
+  "forbidden_claims_preserved": true,
+  "live_acontext_ready": false,
+  "runtime_parity_proven": false,
+  "autonomous_dispatch_ready": false,
+  "reputation_ready": false,
+  "worker_copyable_doctrine_ready": false,
+  "exact_gps_or_raw_metadata_exposure_allowed": false,
+  "internal_only": {
+    "customer_copy_changed": false,
+    "public_catalog_changed": false,
+    "route_wrapper_added": false,
+    "uses_only_reviewed_fixture_artifacts": true,
+    "raw_transcript_used": false,
+    "unreviewed_memory_used": false,
+    "private_operator_context_used": false
+  },
+  "package_limitations": [
+    "Tied only to the reviewed synthetic redirect/outdated-packet fixture.",
+    "Does not claim filing success, legal sufficiency, city influence, approval, or reusable office doctrine.",
+    "Requires operator review before any closure or pilot-facing use."
+  ],
+  "next_smallest_proof": "Keep this record internal. It can support package coverage accounting only; customer-output schema review must remain a separate gate."
+}

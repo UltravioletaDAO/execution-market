@@ -18,6 +18,14 @@ from mcp_server.city_ops.phase1_packet_submission_internal_package_record import
     PHASE1_PACKET_SUBMISSION_INTERNAL_PACKAGE_RECORD_SAFE_CLAIM,
     build_phase1_packet_submission_internal_package_record,
 )
+from mcp_server.city_ops.phase1_remaining_offer_internal_package_records import (
+    PHASE1_COUNTER_REALITY_CHECK_INTERNAL_PACKAGE_RECORD_FILENAME,
+    PHASE1_COUNTER_REALITY_CHECK_INTERNAL_PACKAGE_RECORD_SAFE_CLAIM,
+    PHASE1_POSTING_COMPLIANCE_INTERNAL_PACKAGE_RECORD_FILENAME,
+    PHASE1_POSTING_COMPLIANCE_INTERNAL_PACKAGE_RECORD_SAFE_CLAIM,
+    build_phase1_counter_reality_check_internal_package_record,
+    build_phase1_posting_compliance_internal_package_record,
+)
 from mcp_server.city_ops.phase1_reviewed_fixtures import (
     COUNTER_REALITY_CHECK_FIXTURE_FILENAME,
     PACKET_SUBMISSION_ATTEMPT_FIXTURE_FILENAME,
@@ -50,11 +58,19 @@ def seed_reviewed_outputs(tmp_path: Path) -> None:
     registry = build_phase1_reviewed_fixture_registry_summary(
         fixtures=list(artifacts.values())
     )
+    counter_record = build_phase1_counter_reality_check_internal_package_record(
+        reviewed_fixture=artifacts[COUNTER_REALITY_CHECK_FIXTURE_FILENAME]
+    )
     packet_record = build_phase1_packet_submission_internal_package_record(
         reviewed_fixture=artifacts[PACKET_SUBMISSION_ATTEMPT_FIXTURE_FILENAME]
     )
+    posting_record = build_phase1_posting_compliance_internal_package_record(
+        reviewed_fixture=artifacts[POSTING_COMPLIANCE_CHECK_FIXTURE_FILENAME]
+    )
     artifacts[PHASE1_REVIEWED_FIXTURE_REGISTRY_FILENAME] = registry
+    artifacts[PHASE1_COUNTER_REALITY_CHECK_INTERNAL_PACKAGE_RECORD_FILENAME] = counter_record
     artifacts[PHASE1_PACKET_SUBMISSION_INTERNAL_PACKAGE_RECORD_FILENAME] = packet_record
+    artifacts[PHASE1_POSTING_COMPLIANCE_INTERNAL_PACKAGE_RECORD_FILENAME] = posting_record
     for filename, payload in artifacts.items():
         (tmp_path / filename).write_text(json.dumps(payload), encoding="utf-8")
 
@@ -73,7 +89,13 @@ def test_controlled_pilot_readiness_board_matches_persisted_artifact():
     ]
     assert PHASE1_CONTROLLED_PILOT_READINESS_BOARD_SAFE_CLAIM in board["safe_to_claim"]
     assert PHASE1_REVIEWED_FIXTURE_REGISTRY_SAFE_CLAIM in board["safe_to_claim"]
+    assert PHASE1_COUNTER_REALITY_CHECK_INTERNAL_PACKAGE_RECORD_SAFE_CLAIM in board[
+        "safe_to_claim"
+    ]
     assert PHASE1_PACKET_SUBMISSION_INTERNAL_PACKAGE_RECORD_SAFE_CLAIM in board[
+        "safe_to_claim"
+    ]
+    assert PHASE1_POSTING_COMPLIANCE_INTERNAL_PACKAGE_RECORD_SAFE_CLAIM in board[
         "safe_to_claim"
     ]
 
@@ -83,7 +105,7 @@ def test_board_is_a_gate_not_customer_or_pilot_authorization():
 
     assert board["global_readiness"] == {
         "all_phase1_offers_have_reviewed_fixture": True,
-        "all_phase1_offers_have_internal_package_record": False,
+        "all_phase1_offers_have_internal_package_record": True,
         "customer_copy_ready": False,
         "customer_visible_catalog_ready": False,
         "public_service_catalog_ready": False,
@@ -108,17 +130,17 @@ def test_board_rows_preserve_offer_specific_next_steps():
     rows = {row["offer"]: row for row in board["offers"]}
 
     assert rows["counter_reality_check"]["pilot_readiness_status"] == (
-        "reviewed_fixture_exists_needs_internal_package_record"
+        "internal_package_recorded_not_customer_ready"
     )
     assert rows["packet_submission_attempt"]["pilot_readiness_status"] == (
         "internal_package_recorded_not_customer_ready"
     )
     assert rows["posting_compliance_check"]["pilot_readiness_status"] == (
-        "reviewed_fixture_exists_needs_internal_package_record"
+        "internal_package_recorded_not_customer_ready"
     )
     assert rows["packet_submission_attempt"]["internal_package_record_exists"] is True
-    assert rows["counter_reality_check"]["internal_package_record_exists"] is False
-    assert rows["posting_compliance_check"]["internal_package_record_exists"] is False
+    assert rows["counter_reality_check"]["internal_package_record_exists"] is True
+    assert rows["posting_compliance_check"]["internal_package_record_exists"] is True
     for row in rows.values():
         assert row["reviewed_fixture_exists"] is True
         assert row["customer_output_schema_reviewed"] is False
@@ -146,14 +168,12 @@ def test_board_fails_closed_on_missing_offer_from_registry():
         build_phase1_controlled_pilot_readiness_board(registry=registry)
 
 
-def test_board_fails_closed_on_packet_package_readiness_promotion():
+def test_board_fails_closed_on_package_readiness_promotion():
     packet_record = copy.deepcopy(build_phase1_packet_submission_internal_package_record())
     packet_record["live_acontext_ready"] = True
 
-    with pytest.raises(CityOpsContractError, match="packet package readiness drift"):
-        build_phase1_controlled_pilot_readiness_board(
-            packet_package_record=packet_record
-        )
+    with pytest.raises(CityOpsContractError, match="package readiness drift"):
+        build_phase1_controlled_pilot_readiness_board(packet_package_record=packet_record)
 
 
 def test_board_loader_fails_closed_on_pilot_exposure_flip(tmp_path):

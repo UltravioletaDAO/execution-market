@@ -18,6 +18,12 @@ from .phase1_packet_submission_internal_package_record import (
     PHASE1_PACKET_SUBMISSION_INTERNAL_PACKAGE_RECORD_SAFE_CLAIM,
     load_phase1_packet_submission_internal_package_record,
 )
+from .phase1_remaining_offer_internal_package_records import (
+    PHASE1_COUNTER_REALITY_CHECK_INTERNAL_PACKAGE_RECORD_SAFE_CLAIM,
+    PHASE1_POSTING_COMPLIANCE_INTERNAL_PACKAGE_RECORD_SAFE_CLAIM,
+    load_phase1_counter_reality_check_internal_package_record,
+    load_phase1_posting_compliance_internal_package_record,
+)
 from .phase1_review_output_schemas import OFFER_SPEC_DIR
 from .phase1_reviewed_fixtures import (
     PHASE1_REVIEWED_FIXTURE_REGISTRY_SAFE_CLAIM,
@@ -92,14 +98,15 @@ def build_phase1_controlled_pilot_readiness_board(
     fixture_dir: str | Path | None = None,
     registry: dict[str, Any] | None = None,
     packet_package_record: dict[str, Any] | None = None,
+    counter_package_record: dict[str, Any] | None = None,
+    posting_package_record: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build a conservative board for Phase 1 controlled-pilot readiness.
 
     The board is intentionally a stoplight, not a launch authorization. It shows
-    that reviewed fixture coverage exists for all three offers and that only the
-    Packet Submission Attempt currently has an internal package record. It still
-    blocks customer/pilot exposure until separate customer-output, live transport,
-    runtime, dispatch, reputation, privacy, and worker-doctrine gates pass.
+    that reviewed fixture coverage and internal package records exist for all three
+    offers. It still blocks customer/pilot exposure until separate customer-output,
+    live transport, runtime, dispatch, reputation, privacy, and worker-doctrine gates pass.
     """
 
     source_registry = registry or load_phase1_reviewed_fixture_registry_summary(
@@ -109,14 +116,27 @@ def build_phase1_controlled_pilot_readiness_board(
         packet_package_record
         or load_phase1_packet_submission_internal_package_record(fixture_dir=fixture_dir)
     )
+    source_counter_record = (
+        counter_package_record
+        or load_phase1_counter_reality_check_internal_package_record(fixture_dir=fixture_dir)
+    )
+    source_posting_record = (
+        posting_package_record
+        or load_phase1_posting_compliance_internal_package_record(fixture_dir=fixture_dir)
+    )
     _assert_source_registry(source_registry)
-    _assert_source_packet_record(source_packet_record)
+    package_records = {
+        "counter_reality_check": source_counter_record,
+        "packet_submission_attempt": source_packet_record,
+        "posting_compliance_check": source_posting_record,
+    }
+    _assert_source_package_records(package_records)
 
     coverage = source_registry["coverage_by_offer"]
     offers: list[dict[str, Any]] = []
     for offer_id in REQUIRED_OFFER_ORDER:
         row = coverage[offer_id]
-        has_internal_package_record = offer_id == "packet_submission_attempt"
+        has_internal_package_record = offer_id in package_records
         offers.append(
             {
                 "offer": offer_id,
@@ -144,30 +164,36 @@ def build_phase1_controlled_pilot_readiness_board(
         [
             PHASE1_CONTROLLED_PILOT_READINESS_BOARD_SAFE_CLAIM,
             PHASE1_REVIEWED_FIXTURE_REGISTRY_SAFE_CLAIM,
+            PHASE1_COUNTER_REALITY_CHECK_INTERNAL_PACKAGE_RECORD_SAFE_CLAIM,
             PHASE1_PACKET_SUBMISSION_INTERNAL_PACKAGE_RECORD_SAFE_CLAIM,
+            PHASE1_POSTING_COMPLIANCE_INTERNAL_PACKAGE_RECORD_SAFE_CLAIM,
         ]
     )
     do_not_claim_yet = _dedupe(
         [
             *REQUIRED_BLOCKED_CLAIMS,
             *source_registry.get("do_not_claim_yet", []),
+            *source_counter_record.get("do_not_claim_yet", []),
             *source_packet_record.get("do_not_claim_yet", []),
+            *source_posting_record.get("do_not_claim_yet", []),
         ]
     )
 
     board = {
         "schema": PHASE1_CONTROLLED_PILOT_READINESS_BOARD_SCHEMA,
-        "board_id": "city_counter_ops.phase1_controlled_pilot_readiness.2026_05_10",
+        "board_id": "city_counter_ops.phase1_controlled_pilot_readiness.2026_05_11",
         "scope": "internal_operator_packaging_gate_only",
         "source_registry_id": source_registry["registry_id"],
+        "source_counter_package_id": source_counter_record["package_id"],
         "source_packet_package_id": source_packet_record["package_id"],
+        "source_posting_package_id": source_posting_record["package_id"],
         "offer_order": REQUIRED_OFFER_ORDER,
         "offers": offers,
         "safe_to_claim": safe_to_claim,
         "do_not_claim_yet": do_not_claim_yet,
         "global_readiness": {
             "all_phase1_offers_have_reviewed_fixture": True,
-            "all_phase1_offers_have_internal_package_record": False,
+            "all_phase1_offers_have_internal_package_record": True,
             "customer_copy_ready": False,
             "customer_visible_catalog_ready": False,
             "public_service_catalog_ready": False,
@@ -185,9 +211,9 @@ def build_phase1_controlled_pilot_readiness_board(
             "not a public catalog, and not approval to expose a pilot SKU."
         ),
         "next_smallest_proof": (
-            "Create internal package records for Counter Reality Check and Posting "
-            "Compliance Check, then add a separate customer-output schema review gate "
-            "before any controlled concierge pilot wording."
+            "All Phase 1 offers now have internal package records. Add a separate "
+            "customer-output schema review gate before any controlled concierge pilot wording; "
+            "keep live Acontext, runtime, dispatch, reputation, privacy, and worker-doctrine gates separate."
         ),
     }
     _assert_board_is_conservative(board)
@@ -266,8 +292,8 @@ def _blocking_gates_for_offer(
 def _next_step_for_offer(offer_id: str, has_internal_package_record: bool) -> str:
     if has_internal_package_record:
         return (
-            "Keep Packet Submission Attempt internal; add customer-output schema review "
-            "only after the same package-record gate exists for the other Phase 1 offers."
+            "Keep this package record internal; add customer-output schema review as a "
+            "separate gate before any pilot-facing or catalog-facing language."
         )
     if offer_id == "counter_reality_check":
         return (
@@ -295,28 +321,43 @@ def _assert_source_registry(registry: dict[str, Any]) -> None:
         raise CityOpsContractError("controlled pilot board cannot source GPS/metadata exposure")
 
 
-def _assert_source_packet_record(record: dict[str, Any]) -> None:
-    if record.get("schema") != "city_ops.phase1_packet_submission_internal_package_record.v1":
-        raise CityOpsContractError("controlled pilot board packet package schema mismatch")
-    if record.get("offer") != "packet_submission_attempt":
-        raise CityOpsContractError("controlled pilot board packet package offer drift")
-    if record.get("operator_review_required_before_closure") is not True:
-        raise CityOpsContractError("controlled pilot board requires operator review source")
-    if record.get("forbidden_claims_preserved") is not True:
-        raise CityOpsContractError("controlled pilot board requires preserved forbidden claims")
-    for flag in [
-        "customer_output_schema_reviewed",
-        "live_acontext_ready",
-        "runtime_parity_proven",
-        "autonomous_dispatch_ready",
-        "reputation_ready",
-        "worker_copyable_doctrine_ready",
-        "exact_gps_or_raw_metadata_exposure_allowed",
-    ]:
-        if record.get(flag) is not False:
+def _assert_source_package_records(records: dict[str, dict[str, Any]]) -> None:
+    missing = [offer_id for offer_id in REQUIRED_OFFER_ORDER if offer_id not in records]
+    if missing:
+        raise CityOpsContractError(f"controlled pilot board missing package records: {missing}")
+
+    expected_schemas = {
+        "counter_reality_check": "city_ops.phase1_counter_reality_check_internal_package_record.v1",
+        "packet_submission_attempt": "city_ops.phase1_packet_submission_internal_package_record.v1",
+        "posting_compliance_check": "city_ops.phase1_posting_compliance_internal_package_record.v1",
+    }
+    for offer_id in REQUIRED_OFFER_ORDER:
+        record = records[offer_id]
+        if record.get("schema") != expected_schemas[offer_id]:
             raise CityOpsContractError(
-                f"controlled pilot board packet package readiness drift: {flag}"
+                f"controlled pilot board package schema mismatch: {offer_id}"
             )
+        if record.get("offer") != offer_id:
+            raise CityOpsContractError(
+                f"controlled pilot board package offer drift: {offer_id}"
+            )
+        if record.get("operator_review_required_before_closure") is not True:
+            raise CityOpsContractError("controlled pilot board requires operator review source")
+        if record.get("forbidden_claims_preserved") is not True:
+            raise CityOpsContractError("controlled pilot board requires preserved forbidden claims")
+        for flag in [
+            "customer_output_schema_reviewed",
+            "live_acontext_ready",
+            "runtime_parity_proven",
+            "autonomous_dispatch_ready",
+            "reputation_ready",
+            "worker_copyable_doctrine_ready",
+            "exact_gps_or_raw_metadata_exposure_allowed",
+        ]:
+            if record.get(flag) is not False:
+                raise CityOpsContractError(
+                    f"controlled pilot board package readiness drift: {offer_id}:{flag}"
+                )
 
 
 def _assert_board_is_conservative(board: dict[str, Any]) -> None:
@@ -345,8 +386,8 @@ def _assert_board_is_conservative(board: dict[str, Any]) -> None:
     global_readiness = board.get("global_readiness", {})
     if global_readiness.get("all_phase1_offers_have_reviewed_fixture") is not True:
         raise CityOpsContractError("controlled pilot readiness board lost fixture coverage")
-    if global_readiness.get("all_phase1_offers_have_internal_package_record") is not False:
-        raise CityOpsContractError("controlled pilot readiness board package coverage overclaim")
+    if global_readiness.get("all_phase1_offers_have_internal_package_record") is not True:
+        raise CityOpsContractError("controlled pilot readiness board lost package coverage")
     promoted = [flag for flag in READINESS_FALSE_FLAGS if global_readiness.get(flag) is True]
     if promoted:
         raise CityOpsContractError(
