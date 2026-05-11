@@ -375,3 +375,86 @@ Full city-ops gate:
 ### Next smallest safe step
 
 Record an explicit operator review decision against the draft packet. Do not flip `publication_approved` without a separate approval artifact, and do not expose a public/customer route by default.
+
+---
+
+## 05:00 pre-dawn synthesis — draft packet hold decision
+
+The cron payload requested old AutoJob/Frontier/KK work, but `~/clawd/DREAM-PRIORITIES.md` explicitly says those tracks are stopped during dreams. The 5 AM synthesis stayed on Execution Market AAS / City-as-a-Service and connected the Phase 1 customer-output ladder into a daytime-safe handoff.
+
+### What landed
+
+- Added `mcp_server/city_ops/phase1_draft_packet_operator_review_decision.py`
+  - `build/load/write_phase1_draft_packet_operator_review_decision`
+  - consumes only `phase1_customer_facing_draft_packet.json`
+  - records `review_decision=hold_not_approved_not_publishable`
+  - keeps `operator_review_recorded=true` while `operator_review_granted=false`
+  - holds every offer card for explicit human operator review
+  - fails closed on source readiness promotion, offer-card publishability, forbidden safe claims, missing blocked claims, and approval/readiness drift
+- Added persisted artifact:
+  - `mcp_server/city_ops/fixtures/phase1_offer_fixture_specs/reviewed_outputs/phase1_draft_packet_operator_review_decision.json`
+- Added tests:
+  - `mcp_server/tests/city_ops/test_phase1_draft_packet_operator_review_decision.py`
+- Updated exports in `mcp_server/city_ops/__init__.py`
+- Added implementation doc:
+  - `CITY_AS_A_SERVICE_PHASE_1_DRAFT_PACKET_OPERATOR_REVIEW_DECISION_IMPLEMENTATION.md`
+
+### Safe to claim
+
+- `phase1_draft_packet_operator_review_decision_landed`
+- an internal/admin hold decision exists over the Phase 1 draft packet
+- the draft packet has been explicitly kept out of publication/customer-delivery readiness
+- offer cards are held for human operator approval rather than promoted by default
+
+### Do not claim
+
+- operator review approval/grant
+- operator publish approval
+- customer delivery approval
+- draft packet publication readiness
+- publication approval/readiness
+- sample output publication readiness
+- customer copy creation/readiness
+- customer-visible catalog readiness
+- public service catalog readiness
+- controlled concierge pilot readiness
+- customer pilot exposure
+- front-door SKU readiness
+- live Acontext readiness / sink readiness
+- runtime parity
+- autonomous dispatch or dispatch routing
+- ERC-8004 reputation readiness
+- worker Skill DNA or worker-copyable municipal doctrine
+- legal/regulator acceptance
+- filing success, broad office reuse, city relationship, or approval guarantees
+- exact GPS/raw metadata exposure
+
+### Verification
+
+Focused gate:
+
+```bash
+/opt/homebrew/bin/python3.14 -m pytest -q \
+  mcp_server/tests/city_ops/test_phase1_draft_packet_operator_review_decision.py
+# 12 passed
+```
+
+Full city-ops gate:
+
+```bash
+/opt/homebrew/bin/python3.14 -m pytest -q mcp_server/tests/city_ops
+# 336 passed
+```
+
+### Daytime recommendation
+
+The Phase 1 customer-output ladder is now coherent enough to hand to Saúl without adding another route or public surface:
+
+1. internal package records for all three offers,
+2. customer-output schema review gate,
+3. operator-reviewed sample outputs,
+4. sample publication checklist,
+5. copy-shaped draft packet,
+6. explicit hold decision.
+
+If Saúl wants customer-facing exposure, the next artifact should be a **separate human operator approval record** for exactly one offer card. It should name approved text, passed redactions, delivery path, and still-blocked claims. Do not flip `publication_approved`, expose a public route, dispatch, attach reputation receipts, or claim catalog/pilot readiness from the hold decision.

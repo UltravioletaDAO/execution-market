@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-11 04:00 America/New_York
+> Last updated: 2026-05-11 05:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -154,6 +154,14 @@ Latest May 11 00:00 implementation: `mcp_server/city_ops/phase1_remaining_offer_
 Latest May 11 01:00 implementation: `mcp_server/city_ops/phase1_customer_output_schema_review_gate.py` now adds that separate internal/admin customer-output schema review gate, persisted at `phase1_customer_output_schema_review_gate.json`. It consumes only the three Phase 1 internal package records, defines allowed future customer-output fields (`plain_language_status`, `reviewed_evidence_summary`, limitations/non-guarantees, recommended next action, operator review notice), and explicitly forbids exact GPS, raw metadata, raw transcript authority, private operator context, legal sufficiency, regulator acceptance, filing success, dispatch instructions, reputation receipts, and worker-copyable doctrine. This earns only `phase1_customer_output_schema_review_gate_landed`. It still does not create customer copy, customer catalog, public route, pilot exposure, front-door SKU, live Acontext/runtime parity, dispatch, reputation, GPS/raw metadata exposure, or worker-copyable municipal doctrine. The next safe step is one operator-reviewed sample output per Phase 1 offer against this schema, with separate privacy/legal/non-guarantee review; do not publish or route those samples by default.
 
 Latest May 11 02:00 implementation: `mcp_server/city_ops/phase1_operator_reviewed_sample_outputs.py` now adds one operator-reviewed internal/admin sample output per Phase 1 offer, persisted at `phase1_operator_reviewed_sample_outputs.json`. It consumes only `phase1_customer_output_schema_review_gate.json`, populates only allowed schema fields, requires privacy-boundary, legal-advice-exclusion, and non-guarantee-language review flags, and keeps operator publish approval, customer delivery approval, sample publication readiness, customer copy, catalog, pilot exposure, live Acontext/runtime parity, dispatch, reputation, worker doctrine, and exact GPS/raw metadata readiness false. This earns only `phase1_operator_reviewed_sample_outputs_landed`. The next safe step, only if customer-facing copy is desired, is a tiny publication-approval checklist over these samples; do not publish, route, dispatch, attach reputation receipts, expose GPS/raw metadata, or claim customer/pilot/catalog readiness by default.
+
+
+Latest May 11 03:00 implementation: `mcp_server/city_ops/phase1_sample_publication_approval_checklist.py` adds an internal/admin checklist over the Phase 1 sample outputs, persisted at `phase1_sample_publication_approval_checklist.json`. It names publication prerequisites while keeping operator publish approval, customer delivery approval, and publication approval false. This earns only `phase1_sample_publication_approval_checklist_landed`; it does not make samples/customer copy/catalog/pilot/public routes ready.
+
+Latest May 11 04:00 implementation: `mcp_server/city_ops/phase1_customer_facing_draft_packet.py` adds one copy-shaped internal/admin draft packet over the publication checklist, persisted at `phase1_customer_facing_draft_packet.json`. It creates one draft card per Phase 1 offer but keeps the packet not approved, not publishable, not customer copy, and not routable. This earns only `phase1_customer_facing_draft_packet_landed`. The next gate is an explicit review decision, not publication.
+
+Latest May 11 05:00 pre-dawn synthesis: `mcp_server/city_ops/phase1_draft_packet_operator_review_decision.py` now records the explicit hold decision over the customer-facing draft packet, persisted at `phase1_draft_packet_operator_review_decision.json`. It sets `review_decision=hold_not_approved_not_publishable`, `operator_review_recorded=true`, and keeps `operator_review_granted`, `operator_publish_approval`, `customer_delivery_approval`, and `publication_approved` false. This earns only `phase1_draft_packet_operator_review_decision_landed`. The daytime entrypoint is `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_11.md`. If Saúl wants customer-facing exposure, create a separate human operator approval artifact for exactly one offer card; do not flip approval, publish, route, dispatch, attach reputation, expose GPS/raw metadata, or claim catalog/pilot readiness from the hold decision.
+
 
 ## 4. The next engineering window
 

@@ -1,0 +1,185 @@
+{
+  "schema": "city_ops.phase1_draft_packet_operator_review_decision.v1",
+  "decision_id": "city_counter_ops.phase1_draft_packet_operator_review_decision.2026_05_11",
+  "scope": "internal_admin_publication_hold_decision_only",
+  "source_draft_packet_id": "city_counter_ops.phase1_customer_facing_draft_packet.2026_05_11",
+  "source_draft_packet_schema": "city_ops.phase1_customer_facing_draft_packet.v1",
+  "source_artifact_filename": "phase1_customer_facing_draft_packet.json",
+  "offer_order": [
+    "counter_reality_check",
+    "packet_submission_attempt",
+    "posting_compliance_check"
+  ],
+  "safe_to_claim": [
+    "phase1_customer_output_schema_review_gate_landed",
+    "phase1_counter_reality_check_internal_package_record_landed",
+    "phase1_packet_submission_internal_package_record_landed",
+    "phase1_posting_compliance_internal_package_record_landed",
+    "phase1_operator_reviewed_sample_outputs_landed",
+    "phase1_sample_publication_approval_checklist_landed",
+    "phase1_customer_facing_draft_packet_landed",
+    "phase1_draft_packet_operator_review_decision_landed"
+  ],
+  "do_not_claim_yet": [
+    "operator_review_granted",
+    "operator_publish_approval",
+    "customer_delivery_approval",
+    "draft_packet_publication_ready",
+    "publication_approval_ready",
+    "publication_approved",
+    "sample_output_publication_ready",
+    "customer_sample_publication_ready",
+    "customer_copy_created",
+    "customer_copy_ready",
+    "customer_visible_catalog_ready",
+    "public_service_catalog_ready",
+    "controlled_concierge_pilot_ready",
+    "customer_pilot_exposure_ready",
+    "front_door_sku_ready",
+    "filing_success_ready",
+    "broad_office_reuse_ready",
+    "city_relationship_or_influence",
+    "guaranteed_approval",
+    "legal_sufficiency",
+    "regulator_acceptance",
+    "live_acontext_ready",
+    "live_acontext_readiness",
+    "acontext_sink_ready",
+    "runtime_parity_proven",
+    "autonomous_dispatch_ready",
+    "autonomous_dispatch_readiness",
+    "dispatch_routing_ready",
+    "erc8004_reputation_ready",
+    "reputation_ready",
+    "worker_skill_dna_ready",
+    "worker_copyable_doctrine_ready",
+    "worker_copyable_municipal_doctrine",
+    "exact_gps_or_raw_metadata_exposure_allowed",
+    "exact_gps_or_metadata_exposure",
+    "raw_metadata_exposure_allowed",
+    "unlimited_retries",
+    "broad_multi_office_base_order",
+    "multi_jurisdiction_playbook_readiness",
+    "live_customer_schema_contract",
+    "autonomous_review_closure",
+    "durable_municipal_memory_write",
+    "worker_copyable_municipal_doctrine_ready"
+  ],
+  "review_decision": "hold_not_approved_not_publishable",
+  "operator_review_recorded": true,
+  "operator_review_granted": false,
+  "operator_publish_approval": false,
+  "customer_delivery_approval": false,
+  "customer_copy_created": false,
+  "customer_copy_ready": false,
+  "customer_visible_catalog_ready": false,
+  "public_service_catalog_ready": false,
+  "controlled_concierge_pilot_ready": false,
+  "customer_pilot_exposure_allowed": false,
+  "front_door_sku_ready": false,
+  "draft_packet_publishable": false,
+  "draft_packet_publication_ready": false,
+  "sample_outputs_publishable": false,
+  "publication_approved": false,
+  "publish_route_ready": false,
+  "live_acontext_ready": false,
+  "runtime_parity_proven": false,
+  "autonomous_dispatch_ready": false,
+  "reputation_ready": false,
+  "worker_skill_dna_ready": false,
+  "worker_copyable_doctrine_ready": false,
+  "exact_gps_or_raw_metadata_exposure_allowed": false,
+  "review_findings": [
+    {
+      "finding": "safe_and_blocked_claims_remain_adjacent",
+      "verified": true,
+      "approval_granted": false
+    },
+    {
+      "finding": "draft_cards_are_copy_shaped_but_not_customer_ready",
+      "verified": true,
+      "approval_granted": false
+    },
+    {
+      "finding": "required_before_send_reviews_are_present",
+      "verified": true,
+      "approval_granted": false
+    },
+    {
+      "finding": "publication_and_customer_delivery_remain_unapproved",
+      "verified": true,
+      "approval_granted": false
+    },
+    {
+      "finding": "dispatch_and_reputation_claims_remain_absent",
+      "verified": true,
+      "approval_granted": false
+    },
+    {
+      "finding": "exact_gps_and_raw_metadata_remain_excluded",
+      "verified": true,
+      "approval_granted": false
+    }
+  ],
+  "offer_review_decisions": [
+    {
+      "offer": "counter_reality_check",
+      "source_package_id": "city_counter_ops.counter_reality_check.2026_05_11",
+      "source_draft_title": "Counter Reality Check \u2014 bounded status draft",
+      "review_decision": "hold_for_explicit_human_operator_review",
+      "draft_ready_for_customer": false,
+      "draft_publishable": false,
+      "operator_publish_approval": false,
+      "customer_delivery_approval": false,
+      "required_before_send": [
+        "final privacy/redaction review",
+        "operator publish approval",
+        "customer delivery approval",
+        "blocked-claim adjacency check",
+        "non-guarantee language check",
+        "no dispatch or reputation claim check"
+      ],
+      "hold_reason": "Draft shape is useful for review, but explicit human operator approval, final privacy/redaction review, and customer delivery approval are still missing."
+    },
+    {
+      "offer": "packet_submission_attempt",
+      "source_package_id": "city_counter_ops.packet_submission_attempt.2026_05_10",
+      "source_draft_title": "Packet Submission Attempt \u2014 bounded handoff draft",
+      "review_decision": "hold_for_explicit_human_operator_review",
+      "draft_ready_for_customer": false,
+      "draft_publishable": false,
+      "operator_publish_approval": false,
+      "customer_delivery_approval": false,
+      "required_before_send": [
+        "final privacy/redaction review",
+        "operator publish approval",
+        "customer delivery approval",
+        "blocked-claim adjacency check",
+        "non-guarantee language check",
+        "no dispatch or reputation claim check"
+      ],
+      "hold_reason": "Draft shape is useful for review, but explicit human operator approval, final privacy/redaction review, and customer delivery approval are still missing."
+    },
+    {
+      "offer": "posting_compliance_check",
+      "source_package_id": "city_counter_ops.posting_compliance_check.2026_05_11",
+      "source_draft_title": "Posting Compliance Check \u2014 privacy-safe draft",
+      "review_decision": "hold_for_explicit_human_operator_review",
+      "draft_ready_for_customer": false,
+      "draft_publishable": false,
+      "operator_publish_approval": false,
+      "customer_delivery_approval": false,
+      "required_before_send": [
+        "final privacy/redaction review",
+        "operator publish approval",
+        "customer delivery approval",
+        "blocked-claim adjacency check",
+        "non-guarantee language check",
+        "no dispatch or reputation claim check"
+      ],
+      "hold_reason": "Draft shape is useful for review, but explicit human operator approval, final privacy/redaction review, and customer delivery approval are still missing."
+    }
+  ],
+  "operator_instruction": "This decision records that the copy-shaped packet exists and has been held for explicit human operator review. Do not publish, deliver, route, dispatch, attach reputation, expose raw location/metadata, or flip publication_approved from this artifact.",
+  "next_smallest_proof": "If Sa\u00fal wants to proceed, capture a separate human operator approval artifact that names exactly which offer card is approved, which redactions passed, and which delivery path is authorized."
+}
