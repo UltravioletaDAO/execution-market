@@ -210,11 +210,20 @@ packaging work alone.
 
 Do not add more route wrappers by default. Do not draft public copy yet.
 
-The next planning-safe step is to create one internal package record for
+The next planning-safe step was to create one internal package record for
 **Packet Submission Attempt** only, because it has the strongest local proof
-anchor. That record should reference existing reviewed fixture IDs, keep safe
-and blocked claims adjacent, and leave all live/dispatch/reputation/GPS and
-worker-doctrine readiness flags false.
+anchor. That record now exists as
+`mcp_server/city_ops/fixtures/phase1_offer_fixture_specs/reviewed_outputs/phase1_packet_submission_internal_package_record.json`
+and is implemented by
+`mcp_server/city_ops/phase1_packet_submission_internal_package_record.py`. It
+references only the existing reviewed fixture ID, keeps safe and blocked claims
+adjacent, and leaves all live/dispatch/reputation/GPS and worker-doctrine
+readiness flags false.
+
+This earns only `phase1_packet_submission_internal_package_record_landed`; it
+does not make customer copy, public catalog language, route wrappers, filing
+success, office reuse, live Acontext, dispatch, reputation, GPS/raw metadata
+exposure, or worker-copyable doctrine ready.
 
 If Acontext prerequisites become available first, prioritize the May 10 handoff
 path instead: rerun preflight and perform exactly one live write/retrieve parity
