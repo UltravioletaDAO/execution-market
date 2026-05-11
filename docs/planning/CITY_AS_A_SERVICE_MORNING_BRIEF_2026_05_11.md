@@ -159,3 +159,75 @@ PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
 Draft one operator-reviewed sample output per Phase 1 offer against this schema, with separate privacy/legal/non-guarantee review.
 
 Do not publish samples, route them publicly, dispatch from them, or claim pilot/customer/catalog readiness. Live Acontext, runtime parity, dispatch, reputation, GPS/raw metadata privacy, pilot exposure, and worker-doctrine gates remain separate.
+
+---
+
+## 02:00 dream implementation — operator-reviewed sample outputs
+
+The stale cron payload again listed AutoJob, Frontier Academy, KK v2, and other stopped tracks. `DREAM-PRIORITIES.md` explicitly blocks those during dreams, so this slice stayed on Execution Market AAS / City-as-a-Service.
+
+### What landed
+
+- Added `mcp_server/city_ops/phase1_operator_reviewed_sample_outputs.py`
+  - `build/load/write_phase1_operator_reviewed_sample_outputs`
+  - consumes only `phase1_customer_output_schema_review_gate.json`
+  - creates one internal/admin sample output per Phase 1 offer
+  - keeps the samples as wording-shape review artifacts, not customer copy
+  - requires separate privacy-boundary, legal-advice exclusion, and non-guarantee-language review flags
+  - keeps operator publish approval and customer delivery approval false
+  - fails closed on readiness promotion, forbidden safe claims, missing blocked claims, forbidden field drift, publishability flips, and removed review gates
+- Added persisted artifact:
+  - `mcp_server/city_ops/fixtures/phase1_offer_fixture_specs/reviewed_outputs/phase1_operator_reviewed_sample_outputs.json`
+- Added tests:
+  - `mcp_server/tests/city_ops/test_phase1_operator_reviewed_sample_outputs.py`
+- Updated exports in `mcp_server/city_ops/__init__.py`
+- Added implementation doc:
+  - `CITY_AS_A_SERVICE_PHASE_1_OPERATOR_REVIEWED_SAMPLE_OUTPUTS_IMPLEMENTATION.md`
+
+### Safe to claim
+
+- `phase1_operator_reviewed_sample_outputs_landed`
+- one internal/admin sample output exists for each Phase 1 offer
+- sample fields are constrained to the customer-output schema gate
+- privacy/legal-advice-exclusion/non-guarantee review flags are machine-checked
+
+### Do not claim
+
+- customer copy readiness
+- sample publication readiness
+- customer-visible catalog readiness
+- public service catalog readiness
+- controlled concierge pilot readiness
+- customer pilot exposure
+- front-door SKU readiness
+- live Acontext readiness / sink readiness
+- runtime parity
+- autonomous dispatch or dispatch routing
+- ERC-8004 reputation readiness
+- worker Skill DNA or worker-copyable municipal doctrine
+- legal/regulator acceptance
+- filing success, broad office reuse, city relationship, or approval guarantees
+- exact GPS/raw metadata exposure
+
+### Verification
+
+Focused gate:
+
+```bash
+PYTHONPATH=. python3 -m pytest \
+  mcp_server/tests/city_ops/test_phase1_operator_reviewed_sample_outputs.py -q
+# 11 passed, 2 warnings
+```
+
+Full city-ops gate:
+
+```bash
+PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
+# 300 passed, 2 warnings
+```
+
+### Next smallest safe step
+
+If Saúl wants customer-facing Phase 1 copy, add a tiny publication-approval checklist over these internal samples only.
+
+Do not publish samples, route them publicly, dispatch from them, attach reputation receipts, expose exact GPS/raw metadata, or claim pilot/customer/catalog readiness by default. Live Acontext, runtime parity, dispatch, reputation, GPS/privacy, pilot exposure, and worker-doctrine gates remain separate.

@@ -1,0 +1,264 @@
+{
+  "schema": "city_ops.phase1_operator_reviewed_sample_outputs.v1",
+  "sample_packet_id": "city_counter_ops.phase1_operator_reviewed_sample_outputs.2026_05_11",
+  "scope": "internal_admin_sample_output_review_only",
+  "source_schema_gate_id": "city_counter_ops.phase1_customer_output_schema_review.2026_05_11",
+  "offer_order": [
+    "counter_reality_check",
+    "packet_submission_attempt",
+    "posting_compliance_check"
+  ],
+  "safe_to_claim": [
+    "phase1_customer_output_schema_review_gate_landed",
+    "phase1_counter_reality_check_internal_package_record_landed",
+    "phase1_packet_submission_internal_package_record_landed",
+    "phase1_posting_compliance_internal_package_record_landed",
+    "phase1_operator_reviewed_sample_outputs_landed"
+  ],
+  "do_not_claim_yet": [
+    "customer_copy_ready",
+    "customer_visible_catalog_ready",
+    "public_service_catalog_ready",
+    "controlled_concierge_pilot_ready",
+    "customer_pilot_exposure_ready",
+    "front_door_sku_ready",
+    "filing_success_ready",
+    "broad_office_reuse_ready",
+    "city_relationship_or_influence",
+    "guaranteed_approval",
+    "legal_sufficiency",
+    "regulator_acceptance",
+    "live_acontext_ready",
+    "live_acontext_readiness",
+    "acontext_sink_ready",
+    "runtime_parity_proven",
+    "autonomous_dispatch_ready",
+    "autonomous_dispatch_readiness",
+    "dispatch_routing_ready",
+    "erc8004_reputation_ready",
+    "reputation_ready",
+    "worker_skill_dna_ready",
+    "worker_copyable_doctrine_ready",
+    "worker_copyable_municipal_doctrine",
+    "exact_gps_or_raw_metadata_exposure_allowed",
+    "exact_gps_or_metadata_exposure",
+    "raw_metadata_exposure_allowed",
+    "customer_sample_publication_ready",
+    "unlimited_retries",
+    "broad_multi_office_base_order",
+    "multi_jurisdiction_playbook_readiness",
+    "live_customer_schema_contract",
+    "autonomous_review_closure",
+    "durable_municipal_memory_write",
+    "worker_copyable_municipal_doctrine_ready"
+  ],
+  "sample_review_status": "operator_reviewed_internal_samples_not_customer_copy",
+  "sample_output_fields": [
+    "task_id_or_local_case_reference",
+    "offer_type",
+    "plain_language_status",
+    "reviewed_evidence_summary",
+    "what_was_checked",
+    "what_was_not_checked",
+    "limitations_and_non_guarantees",
+    "recommended_next_action",
+    "operator_review_notice"
+  ],
+  "forbidden_customer_output_fields": [
+    "exact_gps_coordinates",
+    "raw_metadata_blob",
+    "raw_transcript_as_authority",
+    "private_operator_context",
+    "city_contact_private_details",
+    "guaranteed_approval_language",
+    "legal_advice_or_legal_sufficiency",
+    "regulator_acceptance_claim",
+    "filing_success_claim",
+    "worker_copyable_municipal_doctrine",
+    "dispatch_instruction_or_assignment",
+    "erc8004_reputation_receipt"
+  ],
+  "customer_copy_created": false,
+  "customer_copy_ready": false,
+  "customer_visible_catalog_ready": false,
+  "public_service_catalog_ready": false,
+  "customer_pilot_exposure_allowed": false,
+  "front_door_sku_ready": false,
+  "live_acontext_ready": false,
+  "runtime_parity_proven": false,
+  "autonomous_dispatch_ready": false,
+  "reputation_ready": false,
+  "worker_copyable_doctrine_ready": false,
+  "exact_gps_or_raw_metadata_exposure_allowed": false,
+  "sample_outputs_publishable": false,
+  "separate_reviews": {
+    "privacy_boundary_review_passed": true,
+    "legal_advice_exclusion_review_passed": true,
+    "non_guarantee_language_review_passed": true,
+    "operator_publish_approval": false,
+    "customer_delivery_approval": false
+  },
+  "offer_sample_outputs": [
+    {
+      "offer": "counter_reality_check",
+      "source_package_id": "city_counter_ops.counter_reality_check.2026_05_11",
+      "schema_review_status": "schema_shape_reviewed_not_customer_copy",
+      "sample_review_status": "operator_reviewed_internal_sample_not_customer_copy",
+      "sample_publishable": false,
+      "customer_copy_ready": false,
+      "customer_pilot_exposure_allowed": false,
+      "allowed_field_values": {
+        "task_id_or_local_case_reference": "sample-counter-reality-check-001",
+        "offer_type": "counter_reality_check",
+        "plain_language_status": "Reviewed source suggests a redirect or outdated packet path that an operator can explain carefully after final review.",
+        "reviewed_evidence_summary": "Synthetic reviewed fixture only: the source was checked for a redirect or outdated packet signal without using private operator context.",
+        "what_was_checked": [
+          "Whether the reviewed source indicated a redirect/outdated-packet condition.",
+          "Whether the source stayed inside the internal package record boundary.",
+          "Whether blocked claims remained adjacent to the sample language."
+        ],
+        "what_was_not_checked": [
+          "No city relationship, influence, acceptance, or approval was checked.",
+          "No legal advice or legal conclusion was produced.",
+          "No reusable office doctrine was created for workers."
+        ],
+        "limitations_and_non_guarantees": [
+          "This is an internal wording sample, not customer-ready copy.",
+          "It does not promise acceptance, approval, legal adequacy, or filing outcome.",
+          "Operator review is required before any customer-visible use."
+        ],
+        "recommended_next_action": "Operator may prepare a careful customer-facing explanation only after a separate publish approval; otherwise keep this as internal support.",
+        "operator_review_notice": "Internal/admin sample only. Requires separate operator publish approval before any customer-visible use."
+      },
+      "forbidden_fields_absent": [
+        "exact_gps_coordinates",
+        "raw_metadata_blob",
+        "raw_transcript_as_authority",
+        "private_operator_context",
+        "city_contact_private_details",
+        "guaranteed_approval_language",
+        "legal_advice_or_legal_sufficiency",
+        "regulator_acceptance_claim",
+        "filing_success_claim",
+        "worker_copyable_municipal_doctrine",
+        "dispatch_instruction_or_assignment",
+        "erc8004_reputation_receipt"
+      ],
+      "separate_reviews": {
+        "privacy_boundary_review_passed": true,
+        "legal_advice_exclusion_review_passed": true,
+        "non_guarantee_language_review_passed": true,
+        "operator_publish_approval": false,
+        "customer_delivery_approval": false
+      }
+    },
+    {
+      "offer": "packet_submission_attempt",
+      "source_package_id": "city_counter_ops.packet_submission_attempt.2026_05_10",
+      "schema_review_status": "schema_shape_reviewed_not_customer_copy",
+      "sample_review_status": "operator_reviewed_internal_sample_not_customer_copy",
+      "sample_publishable": false,
+      "customer_copy_ready": false,
+      "customer_pilot_exposure_allowed": false,
+      "allowed_field_values": {
+        "task_id_or_local_case_reference": "sample-packet-submission-attempt-001",
+        "offer_type": "packet_submission_attempt",
+        "plain_language_status": "Reviewed source supports describing a bounded submission-attempt artifact; operator closure is still required.",
+        "reviewed_evidence_summary": "Synthetic reviewed fixture only: a fixable non-redirect rejection pattern was checked through the internal package record.",
+        "what_was_checked": [
+          "Whether the reviewed artifact described a submission attempt boundary.",
+          "Whether the sample avoids raw transcripts and unreviewed memory as authority.",
+          "Whether non-guarantee language remains present."
+        ],
+        "what_was_not_checked": [
+          "No acceptance by an office was checked.",
+          "No broad office reuse or future filing pathway was proven.",
+          "No live Acontext write/retrieve parity was attempted."
+        ],
+        "limitations_and_non_guarantees": [
+          "This sample is internal/admin only and cannot be sent as-is.",
+          "It does not state that any packet was accepted or completed.",
+          "It requires operator review before closure or customer exposure."
+        ],
+        "recommended_next_action": "Operator may convert the reviewed artifact into a bounded status note only after separate privacy and publish review.",
+        "operator_review_notice": "Internal/admin sample only. Requires separate operator publish approval before any customer-visible use."
+      },
+      "forbidden_fields_absent": [
+        "exact_gps_coordinates",
+        "raw_metadata_blob",
+        "raw_transcript_as_authority",
+        "private_operator_context",
+        "city_contact_private_details",
+        "guaranteed_approval_language",
+        "legal_advice_or_legal_sufficiency",
+        "regulator_acceptance_claim",
+        "filing_success_claim",
+        "worker_copyable_municipal_doctrine",
+        "dispatch_instruction_or_assignment",
+        "erc8004_reputation_receipt"
+      ],
+      "separate_reviews": {
+        "privacy_boundary_review_passed": true,
+        "legal_advice_exclusion_review_passed": true,
+        "non_guarantee_language_review_passed": true,
+        "operator_publish_approval": false,
+        "customer_delivery_approval": false
+      }
+    },
+    {
+      "offer": "posting_compliance_check",
+      "source_package_id": "city_counter_ops.posting_compliance_check.2026_05_11",
+      "schema_review_status": "schema_shape_reviewed_not_customer_copy",
+      "sample_review_status": "operator_reviewed_internal_sample_not_customer_copy",
+      "sample_publishable": false,
+      "customer_copy_ready": false,
+      "customer_pilot_exposure_allowed": false,
+      "allowed_field_values": {
+        "task_id_or_local_case_reference": "sample-posting-compliance-check-001",
+        "offer_type": "posting_compliance_check",
+        "plain_language_status": "Reviewed source supports a partial observed posting/compliance check; privacy-sensitive evidence remains excluded.",
+        "reviewed_evidence_summary": "Synthetic reviewed fixture only: partial posting evidence was summarized without coordinates, source metadata blobs, or private contact details.",
+        "what_was_checked": [
+          "Whether the reviewed source supported a partial observed status.",
+          "Whether the sample avoids coordinates, source metadata blobs, and private contact details.",
+          "Whether approval/completion language remains blocked."
+        ],
+        "what_was_not_checked": [
+          "No checklist completion was checked.",
+          "No agency approval or completion was checked.",
+          "No worker-visible municipal doctrine was created."
+        ],
+        "limitations_and_non_guarantees": [
+          "This sample is internal/admin only and not a customer evidence packet.",
+          "It does not state compliance completion or approval.",
+          "A separate privacy review is required before any evidence language is exposed."
+        ],
+        "recommended_next_action": "Operator may request a privacy-safe customer summary only after a separate evidence and publish review.",
+        "operator_review_notice": "Internal/admin sample only. Requires separate operator publish approval before any customer-visible use."
+      },
+      "forbidden_fields_absent": [
+        "exact_gps_coordinates",
+        "raw_metadata_blob",
+        "raw_transcript_as_authority",
+        "private_operator_context",
+        "city_contact_private_details",
+        "guaranteed_approval_language",
+        "legal_advice_or_legal_sufficiency",
+        "regulator_acceptance_claim",
+        "filing_success_claim",
+        "worker_copyable_municipal_doctrine",
+        "dispatch_instruction_or_assignment",
+        "erc8004_reputation_receipt"
+      ],
+      "separate_reviews": {
+        "privacy_boundary_review_passed": true,
+        "legal_advice_exclusion_review_passed": true,
+        "non_guarantee_language_review_passed": true,
+        "operator_publish_approval": false,
+        "customer_delivery_approval": false
+      }
+    }
+  ],
+  "operator_instruction": "Use these only as internal/admin wording-shape samples. They are not customer-ready copy and must not be published, routed, dispatched, or used to claim pilot/catalog readiness.",
+  "next_smallest_proof": "Add a tiny publication-approval checklist over these samples only if Sa\u00fal wants customer-facing Phase 1 copy; keep live Acontext/runtime, dispatch, reputation, GPS/raw metadata, and worker-doctrine gates separate."
+}

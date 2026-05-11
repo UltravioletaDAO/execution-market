@@ -82,6 +82,11 @@ from .phase1_customer_output_schema_review_gate import (
     load_phase1_customer_output_schema_review_gate,
     write_phase1_customer_output_schema_review_gate,
 )
+from .phase1_operator_reviewed_sample_outputs import (
+    build_phase1_operator_reviewed_sample_outputs,
+    load_phase1_operator_reviewed_sample_outputs,
+    write_phase1_operator_reviewed_sample_outputs,
+)
 from .phase1_operator_coverage_renderer import (
     build_phase1_operator_coverage_renderer,
     load_phase1_operator_coverage_renderer,
@@ -166,6 +171,9 @@ __all__ = [
     "build_phase1_customer_output_schema_review_gate",
     "load_phase1_customer_output_schema_review_gate",
     "write_phase1_customer_output_schema_review_gate",
+    "build_phase1_operator_reviewed_sample_outputs",
+    "load_phase1_operator_reviewed_sample_outputs",
+    "write_phase1_operator_reviewed_sample_outputs",
     "build_phase1_operator_coverage_renderer",
     "load_phase1_operator_coverage_renderer",
     "write_phase1_operator_coverage_renderer",
