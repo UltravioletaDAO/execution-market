@@ -302,3 +302,76 @@ Full city-ops gate:
 If Saúl wants customer-facing Phase 1 copy, create one draft packet that consumes this checklist and still keeps `publication_approved=false` until explicit operator review is recorded.
 
 Do not publish samples, route them publicly, dispatch from them, attach reputation receipts, expose exact GPS/raw metadata, or claim pilot/customer/catalog readiness by default. Live Acontext, runtime parity, dispatch, reputation, GPS/privacy, pilot exposure, and worker-doctrine gates remain separate.
+
+---
+
+## 04:00 dream implementation — customer-facing draft packet, still unapproved
+
+The cron payload again listed stopped tracks, but `~/clawd/DREAM-PRIORITIES.md` explicitly blocks AutoJob, Frontier Academy, KK v2, and KarmaCadabra v2 during dreams. This slice stayed inside Execution Market AAS / City-as-a-Service.
+
+### What landed
+
+- Added `mcp_server/city_ops/phase1_customer_facing_draft_packet.py`
+  - `build/load/write_phase1_customer_facing_draft_packet`
+  - consumes only `phase1_sample_publication_approval_checklist.json`
+  - creates one internal/admin draft card per Phase 1 offer
+  - keeps the packet copy-shaped but **not customer copy**, not approved, and not publishable
+  - fails closed on source approval-gate promotion, publication approval, offer publishability, forbidden safe claims, missing blocked claims, and draft-card readiness drift
+- Added persisted artifact:
+  - `mcp_server/city_ops/fixtures/phase1_offer_fixture_specs/reviewed_outputs/phase1_customer_facing_draft_packet.json`
+- Added tests:
+  - `mcp_server/tests/city_ops/test_phase1_customer_facing_draft_packet.py`
+- Updated exports in `mcp_server/city_ops/__init__.py`
+- Added implementation doc:
+  - `CITY_AS_A_SERVICE_PHASE_1_CUSTOMER_FACING_DRAFT_PACKET_IMPLEMENTATION.md`
+
+### Safe to claim
+
+- `phase1_customer_facing_draft_packet_landed`
+- an internal/admin draft-review packet exists over the Phase 1 sample-publication checklist
+- each Phase 1 offer has a draft card requiring pre-send review gates
+
+### Do not claim
+
+- draft packet publication readiness
+- publication approval/readiness
+- sample output publication readiness
+- customer copy creation/readiness
+- customer-visible catalog readiness
+- public service catalog readiness
+- controlled concierge pilot readiness
+- customer pilot exposure
+- front-door SKU readiness
+- live Acontext readiness / sink readiness
+- runtime parity
+- autonomous dispatch or dispatch routing
+- ERC-8004 reputation readiness
+- worker Skill DNA or worker-copyable municipal doctrine
+- legal/regulator acceptance
+- filing success, broad office reuse, city relationship, or approval guarantees
+- exact GPS/raw metadata exposure
+
+### Verification
+
+Focused gate:
+
+```bash
+/opt/homebrew/bin/python3.14 -m py_compile \
+  mcp_server/city_ops/phase1_customer_facing_draft_packet.py \
+  mcp_server/city_ops/__init__.py \
+  mcp_server/tests/city_ops/test_phase1_customer_facing_draft_packet.py
+/opt/homebrew/bin/python3.14 -m pytest -q \
+  mcp_server/tests/city_ops/test_phase1_customer_facing_draft_packet.py
+# 12 passed
+```
+
+Full city-ops gate:
+
+```bash
+/opt/homebrew/bin/python3.14 -m pytest -q mcp_server/tests/city_ops
+# 324 passed
+```
+
+### Next smallest safe step
+
+Record an explicit operator review decision against the draft packet. Do not flip `publication_approved` without a separate approval artifact, and do not expose a public/customer route by default.

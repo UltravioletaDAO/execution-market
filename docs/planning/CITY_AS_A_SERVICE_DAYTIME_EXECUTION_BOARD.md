@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-10 06:00 America/New_York
+> Last updated: 2026-05-11 04:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -1180,3 +1180,31 @@ publication_approval_ready + sample_output_publication_ready + customer_copy_cre
 ```
 
 Next safe move only if needed: create one draft packet that consumes this checklist while still keeping publication approval false until explicit operator review is recorded. Do not publish, route, dispatch, attach reputation receipts, expose GPS/raw metadata, or claim pilot/catalog readiness by default.
+
+
+---
+
+## 20. 2026-05-11 04:00 — Phase 1 customer-facing draft packet landed, still not approved
+
+The Phase 1 internal/admin sample ladder now has one copy-shaped draft packet over the sample-publication checklist:
+
+- `CITY_AS_A_SERVICE_PHASE_1_CUSTOMER_FACING_DRAFT_PACKET_IMPLEMENTATION.md`
+- `mcp_server/city_ops/phase1_customer_facing_draft_packet.py`
+- `mcp_server/city_ops/fixtures/phase1_offer_fixture_specs/reviewed_outputs/phase1_customer_facing_draft_packet.json`
+- `mcp_server/tests/city_ops/test_phase1_customer_facing_draft_packet.py`
+
+Safe label added:
+
+```text
+phase1_customer_facing_draft_packet_landed
+```
+
+This label means only that an internal/admin draft-review packet exists. It creates one draft card per Phase 1 offer, but keeps `customer_copy_created=false`, `draft_packet_publishable=false`, `draft_packet_publication_ready=false`, `publication_approved=false`, operator publish approval false, and customer delivery approval false.
+
+Still blocked:
+
+```text
+draft_packet_publication_ready + publication_approval_ready + publication_approved + sample_output_publication_ready + customer_copy_created + customer_copy_ready + customer_visible_catalog_ready + public_service_catalog_ready + controlled_concierge_pilot_ready + customer_pilot_exposure_ready + front_door_sku_ready + live_acontext_readiness + runtime_parity_proven + autonomous_dispatch_readiness + erc8004_reputation_ready + worker_skill_dna_ready + worker_copyable_municipal_doctrine + legal_sufficiency + regulator_acceptance + guaranteed_approval + exact_gps_or_raw_metadata_exposure_allowed
+```
+
+Next safe move: record a separate operator review decision against this draft packet. Do not publish, route, dispatch, attach reputation receipts, expose GPS/raw metadata, or claim pilot/catalog readiness by default.

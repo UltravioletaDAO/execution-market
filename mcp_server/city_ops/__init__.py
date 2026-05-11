@@ -92,6 +92,11 @@ from .phase1_sample_publication_approval_checklist import (
     load_phase1_sample_publication_approval_checklist,
     write_phase1_sample_publication_approval_checklist,
 )
+from .phase1_customer_facing_draft_packet import (
+    build_phase1_customer_facing_draft_packet,
+    load_phase1_customer_facing_draft_packet,
+    write_phase1_customer_facing_draft_packet,
+)
 from .phase1_operator_coverage_renderer import (
     build_phase1_operator_coverage_renderer,
     load_phase1_operator_coverage_renderer,
@@ -182,6 +187,9 @@ __all__ = [
     "build_phase1_sample_publication_approval_checklist",
     "load_phase1_sample_publication_approval_checklist",
     "write_phase1_sample_publication_approval_checklist",
+    "build_phase1_customer_facing_draft_packet",
+    "load_phase1_customer_facing_draft_packet",
+    "write_phase1_customer_facing_draft_packet",
     "build_phase1_operator_coverage_renderer",
     "load_phase1_operator_coverage_renderer",
     "write_phase1_operator_coverage_renderer",
