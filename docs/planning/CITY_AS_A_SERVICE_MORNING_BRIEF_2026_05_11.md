@@ -231,3 +231,74 @@ PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops -q
 If Saúl wants customer-facing Phase 1 copy, add a tiny publication-approval checklist over these internal samples only.
 
 Do not publish samples, route them publicly, dispatch from them, attach reputation receipts, expose exact GPS/raw metadata, or claim pilot/customer/catalog readiness by default. Live Acontext, runtime parity, dispatch, reputation, GPS/privacy, pilot exposure, and worker-doctrine gates remain separate.
+
+---
+
+## 03:00 dream implementation — sample publication approval checklist
+
+The stale cron payload again listed AutoJob, Frontier Academy, KK v2, and other stopped tracks. `DREAM-PRIORITIES.md` explicitly blocks those during dreams, so this slice stayed on Execution Market AAS / City-as-a-Service.
+
+### What landed
+
+- Added `mcp_server/city_ops/phase1_sample_publication_approval_checklist.py`
+  - `build/load/write_phase1_sample_publication_approval_checklist`
+  - consumes only `phase1_operator_reviewed_sample_outputs.json`
+  - verifies the source samples remain internal/admin only and not publishable
+  - names pre-publication gates for privacy, legal-advice exclusion, non-guarantee language, evidence redaction, exact GPS/raw metadata exclusion, and no dispatch/reputation claim
+  - keeps operator publish approval, customer delivery approval, and publication approval false
+  - fails closed on readiness promotion, forbidden safe claims, source publishability drift, approval flips, missing blocked claims, and offer-review publication drift
+- Added persisted artifact:
+  - `mcp_server/city_ops/fixtures/phase1_offer_fixture_specs/reviewed_outputs/phase1_sample_publication_approval_checklist.json`
+- Added tests:
+  - `mcp_server/tests/city_ops/test_phase1_sample_publication_approval_checklist.py`
+- Updated exports in `mcp_server/city_ops/__init__.py`
+- Added implementation doc:
+  - `CITY_AS_A_SERVICE_PHASE_1_SAMPLE_PUBLICATION_APPROVAL_CHECKLIST_IMPLEMENTATION.md`
+
+### Safe to claim
+
+- `phase1_sample_publication_approval_checklist_landed`
+- an internal/admin checklist exists over the Phase 1 sample outputs
+- publication prerequisites are explicit and machine-checked as **not yet approved**
+
+### Do not claim
+
+- publication approval readiness
+- sample output publication readiness
+- customer copy creation/readiness
+- customer-visible catalog readiness
+- public service catalog readiness
+- controlled concierge pilot readiness
+- customer pilot exposure
+- front-door SKU readiness
+- live Acontext readiness / sink readiness
+- runtime parity
+- autonomous dispatch or dispatch routing
+- ERC-8004 reputation readiness
+- worker Skill DNA or worker-copyable municipal doctrine
+- legal/regulator acceptance
+- filing success, broad office reuse, city relationship, or approval guarantees
+- exact GPS/raw metadata exposure
+
+### Verification
+
+Focused gate:
+
+```bash
+/opt/homebrew/bin/python3.14 -m pytest -q \
+  mcp_server/tests/city_ops/test_phase1_sample_publication_approval_checklist.py
+# 12 passed
+```
+
+Full city-ops gate:
+
+```bash
+/opt/homebrew/bin/python3.14 -m pytest -q mcp_server/tests/city_ops
+# 312 passed
+```
+
+### Next smallest safe step
+
+If Saúl wants customer-facing Phase 1 copy, create one draft packet that consumes this checklist and still keeps `publication_approved=false` until explicit operator review is recorded.
+
+Do not publish samples, route them publicly, dispatch from them, attach reputation receipts, expose exact GPS/raw metadata, or claim pilot/customer/catalog readiness by default. Live Acontext, runtime parity, dispatch, reputation, GPS/privacy, pilot exposure, and worker-doctrine gates remain separate.

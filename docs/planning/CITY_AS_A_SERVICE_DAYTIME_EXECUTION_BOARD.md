@@ -1153,3 +1153,30 @@ Latest May 9 23:00 implementation: `mcp_server/city_ops/decision_support_matrix_
 Latest May 10 02:00 implementation: `mcp_server/city_ops/decision_support_matrix_admin_route.py` now exposes the persisted operator display adapter behind `GET /internal/admin/city-ops/decision-support-matrix/operator-display-adapter`, protected by the existing internal admin auth boundary. The route validates `decision_support_matrix_operator_display_adapter.json`, returns it as-is, and has in-process parity tests for `X-Admin-Key` and bearer admin auth. A persisted route proof now exists at `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/decision_support_matrix_operator_display_adapter_admin_route_preflight.json`. This earns only `internal_admin_decision_support_matrix_operator_display_adapter_route_landed`. It still does not make network/public route readiness, customer copy/catalog, polished console, broad operator UI, worker-visible surfaces, dispatch, live Acontext/runtime parity, ERC-8004 reputation, worker Skill DNA, legal/regulator claims, GPS/metadata exposure, or worker-copyable doctrine ready.
 
 Latest May 10 03:00 implementation: `mcp_server/city_ops/decision_support_matrix_admin_route.py` now emits an app-level route mount manifest for the internal/admin decision-support routes, persisted at `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/decision_support_matrix_route_mount_manifest.json`. The manifest proves both expected routes mount after `app.include_router(router)`, both are GET-only, both require `verify_internal_admin_key`, and both remain pass-through reads of persisted proof artifacts. This earns only `internal_admin_decision_support_matrix_route_mount_smoke_landed`. It still does not make network/public route readiness, customer copy/catalog, polished console, broad operator UI, worker-visible surfaces, dispatch, live Acontext/runtime parity, ERC-8004 reputation, worker Skill DNA, legal/regulator claims, GPS/metadata exposure, or worker-copyable doctrine ready. Next: run the full city-ops gate and avoid more route expansion unless a narrow proof-support artifact is needed; live Acontext write/retrieve parity remains gated on real local prerequisites.
+
+---
+
+## 19. 2026-05-11 03:00 — Phase 1 sample publication approval checklist landed
+
+The Phase 1 internal/admin sample ladder now has a pre-publication checklist over the operator-reviewed sample outputs:
+
+- `CITY_AS_A_SERVICE_PHASE_1_SAMPLE_PUBLICATION_APPROVAL_CHECKLIST_IMPLEMENTATION.md`
+- `mcp_server/city_ops/phase1_sample_publication_approval_checklist.py`
+- `mcp_server/city_ops/fixtures/phase1_offer_fixture_specs/reviewed_outputs/phase1_sample_publication_approval_checklist.json`
+- `mcp_server/tests/city_ops/test_phase1_sample_publication_approval_checklist.py`
+
+Safe label added:
+
+```text
+phase1_sample_publication_approval_checklist_landed
+```
+
+This label means only that an internal/admin checklist exists over the Phase 1 samples. It explicitly keeps `publication_approved=false`, `sample_outputs_publishable=false`, operator publish approval false, and customer delivery approval false.
+
+Still blocked:
+
+```text
+publication_approval_ready + sample_output_publication_ready + customer_copy_created + customer_copy_ready + customer_visible_catalog_ready + public_service_catalog_ready + controlled_concierge_pilot_ready + customer_pilot_exposure_ready + front_door_sku_ready + live_acontext_readiness + runtime_parity_proven + autonomous_dispatch_readiness + erc8004_reputation_ready + worker_skill_dna_ready + worker_copyable_municipal_doctrine + legal_sufficiency + regulator_acceptance + guaranteed_approval + exact_gps_or_raw_metadata_exposure_allowed
+```
+
+Next safe move only if needed: create one draft packet that consumes this checklist while still keeping publication approval false until explicit operator review is recorded. Do not publish, route, dispatch, attach reputation receipts, expose GPS/raw metadata, or claim pilot/catalog readiness by default.

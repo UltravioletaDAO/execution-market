@@ -1,0 +1,272 @@
+{
+  "schema": "city_ops.phase1_sample_publication_approval_checklist.v1",
+  "checklist_id": "city_counter_ops.phase1_sample_publication_approval_checklist.2026_05_11",
+  "scope": "internal_admin_publication_approval_checklist_only",
+  "source_sample_packet_id": "city_counter_ops.phase1_operator_reviewed_sample_outputs.2026_05_11",
+  "source_sample_schema": "city_ops.phase1_operator_reviewed_sample_outputs.v1",
+  "source_artifact_filename": "phase1_operator_reviewed_sample_outputs.json",
+  "offer_order": [
+    "counter_reality_check",
+    "packet_submission_attempt",
+    "posting_compliance_check"
+  ],
+  "safe_to_claim": [
+    "phase1_customer_output_schema_review_gate_landed",
+    "phase1_counter_reality_check_internal_package_record_landed",
+    "phase1_packet_submission_internal_package_record_landed",
+    "phase1_posting_compliance_internal_package_record_landed",
+    "phase1_operator_reviewed_sample_outputs_landed",
+    "phase1_sample_publication_approval_checklist_landed"
+  ],
+  "do_not_claim_yet": [
+    "publication_approval_ready",
+    "sample_output_publication_ready",
+    "customer_sample_publication_ready",
+    "customer_copy_created",
+    "customer_copy_ready",
+    "customer_visible_catalog_ready",
+    "public_service_catalog_ready",
+    "controlled_concierge_pilot_ready",
+    "customer_pilot_exposure_ready",
+    "front_door_sku_ready",
+    "filing_success_ready",
+    "broad_office_reuse_ready",
+    "city_relationship_or_influence",
+    "guaranteed_approval",
+    "legal_sufficiency",
+    "regulator_acceptance",
+    "live_acontext_ready",
+    "live_acontext_readiness",
+    "acontext_sink_ready",
+    "runtime_parity_proven",
+    "autonomous_dispatch_ready",
+    "autonomous_dispatch_readiness",
+    "dispatch_routing_ready",
+    "erc8004_reputation_ready",
+    "reputation_ready",
+    "worker_skill_dna_ready",
+    "worker_copyable_doctrine_ready",
+    "worker_copyable_municipal_doctrine",
+    "exact_gps_or_raw_metadata_exposure_allowed",
+    "exact_gps_or_metadata_exposure",
+    "raw_metadata_exposure_allowed",
+    "unlimited_retries",
+    "broad_multi_office_base_order",
+    "multi_jurisdiction_playbook_readiness",
+    "live_customer_schema_contract",
+    "autonomous_review_closure",
+    "durable_municipal_memory_write",
+    "worker_copyable_municipal_doctrine_ready"
+  ],
+  "publication_approval_status": "not_approved_internal_checklist_only",
+  "customer_copy_created": false,
+  "customer_copy_ready": false,
+  "customer_visible_catalog_ready": false,
+  "public_service_catalog_ready": false,
+  "customer_pilot_exposure_allowed": false,
+  "front_door_sku_ready": false,
+  "sample_outputs_publishable": false,
+  "publication_approved": false,
+  "publish_route_ready": false,
+  "live_acontext_ready": false,
+  "runtime_parity_proven": false,
+  "autonomous_dispatch_ready": false,
+  "reputation_ready": false,
+  "worker_skill_dna_ready": false,
+  "worker_copyable_doctrine_ready": false,
+  "exact_gps_or_raw_metadata_exposure_allowed": false,
+  "approval_gates_required": [
+    "source_sample_packet_validated",
+    "safe_and_blocked_claims_travel_together",
+    "privacy_boundary_review_required",
+    "legal_advice_exclusion_required",
+    "non_guarantee_language_required",
+    "evidence_redaction_review_required",
+    "exact_gps_and_raw_metadata_exclusion_required",
+    "no_dispatch_or_reputation_claim_required",
+    "operator_publish_approval_required",
+    "customer_delivery_approval_required"
+  ],
+  "approval_gates_status": {
+    "source_sample_packet_validated": {
+      "verified": true,
+      "approval_granted": false,
+      "note": "Structural boundary checked; this is not publish approval."
+    },
+    "safe_and_blocked_claims_travel_together": {
+      "verified": true,
+      "approval_granted": false,
+      "note": "Structural boundary checked; this is not publish approval."
+    },
+    "privacy_boundary_review_required": {
+      "verified": true,
+      "approval_granted": false,
+      "note": "Structural boundary checked; this is not publish approval."
+    },
+    "legal_advice_exclusion_required": {
+      "verified": true,
+      "approval_granted": false,
+      "note": "Structural boundary checked; this is not publish approval."
+    },
+    "non_guarantee_language_required": {
+      "verified": true,
+      "approval_granted": false,
+      "note": "Structural boundary checked; this is not publish approval."
+    },
+    "evidence_redaction_review_required": {
+      "verified": false,
+      "approval_granted": false,
+      "note": "Required before any customer-visible publication."
+    },
+    "exact_gps_and_raw_metadata_exclusion_required": {
+      "verified": true,
+      "approval_granted": false,
+      "note": "Structural boundary checked; this is not publish approval."
+    },
+    "no_dispatch_or_reputation_claim_required": {
+      "verified": true,
+      "approval_granted": false,
+      "note": "Structural boundary checked; this is not publish approval."
+    },
+    "operator_publish_approval_required": {
+      "verified": false,
+      "approval_granted": false,
+      "note": "Required before any customer-visible publication."
+    },
+    "customer_delivery_approval_required": {
+      "verified": false,
+      "approval_granted": false,
+      "note": "Required before any customer-visible publication."
+    }
+  },
+  "offer_publication_reviews": [
+    {
+      "offer": "counter_reality_check",
+      "source_package_id": "city_counter_ops.counter_reality_check.2026_05_11",
+      "source_sample_review_status": "operator_reviewed_internal_sample_not_customer_copy",
+      "allowed_field_values_present": [
+        "task_id_or_local_case_reference",
+        "offer_type",
+        "plain_language_status",
+        "reviewed_evidence_summary",
+        "what_was_checked",
+        "what_was_not_checked",
+        "limitations_and_non_guarantees",
+        "recommended_next_action",
+        "operator_review_notice"
+      ],
+      "blocked_fields_absent": [
+        "exact_gps_coordinates",
+        "raw_metadata_blob",
+        "raw_transcript_as_authority",
+        "private_operator_context",
+        "city_contact_private_details",
+        "guaranteed_approval_language",
+        "legal_advice_or_legal_sufficiency",
+        "regulator_acceptance_claim",
+        "filing_success_claim",
+        "worker_copyable_municipal_doctrine",
+        "dispatch_instruction_or_assignment",
+        "erc8004_reputation_receipt"
+      ],
+      "publication_ready": false,
+      "sample_publishable": false,
+      "customer_copy_ready": false,
+      "operator_publish_approval": false,
+      "customer_delivery_approval": false,
+      "required_before_publication": [
+        "final privacy/redaction review",
+        "operator publish approval",
+        "customer delivery approval",
+        "blocked-claim adjacency check",
+        "evidence-source limitation check"
+      ]
+    },
+    {
+      "offer": "packet_submission_attempt",
+      "source_package_id": "city_counter_ops.packet_submission_attempt.2026_05_10",
+      "source_sample_review_status": "operator_reviewed_internal_sample_not_customer_copy",
+      "allowed_field_values_present": [
+        "task_id_or_local_case_reference",
+        "offer_type",
+        "plain_language_status",
+        "reviewed_evidence_summary",
+        "what_was_checked",
+        "what_was_not_checked",
+        "limitations_and_non_guarantees",
+        "recommended_next_action",
+        "operator_review_notice"
+      ],
+      "blocked_fields_absent": [
+        "exact_gps_coordinates",
+        "raw_metadata_blob",
+        "raw_transcript_as_authority",
+        "private_operator_context",
+        "city_contact_private_details",
+        "guaranteed_approval_language",
+        "legal_advice_or_legal_sufficiency",
+        "regulator_acceptance_claim",
+        "filing_success_claim",
+        "worker_copyable_municipal_doctrine",
+        "dispatch_instruction_or_assignment",
+        "erc8004_reputation_receipt"
+      ],
+      "publication_ready": false,
+      "sample_publishable": false,
+      "customer_copy_ready": false,
+      "operator_publish_approval": false,
+      "customer_delivery_approval": false,
+      "required_before_publication": [
+        "final privacy/redaction review",
+        "operator publish approval",
+        "customer delivery approval",
+        "blocked-claim adjacency check",
+        "evidence-source limitation check"
+      ]
+    },
+    {
+      "offer": "posting_compliance_check",
+      "source_package_id": "city_counter_ops.posting_compliance_check.2026_05_11",
+      "source_sample_review_status": "operator_reviewed_internal_sample_not_customer_copy",
+      "allowed_field_values_present": [
+        "task_id_or_local_case_reference",
+        "offer_type",
+        "plain_language_status",
+        "reviewed_evidence_summary",
+        "what_was_checked",
+        "what_was_not_checked",
+        "limitations_and_non_guarantees",
+        "recommended_next_action",
+        "operator_review_notice"
+      ],
+      "blocked_fields_absent": [
+        "exact_gps_coordinates",
+        "raw_metadata_blob",
+        "raw_transcript_as_authority",
+        "private_operator_context",
+        "city_contact_private_details",
+        "guaranteed_approval_language",
+        "legal_advice_or_legal_sufficiency",
+        "regulator_acceptance_claim",
+        "filing_success_claim",
+        "worker_copyable_municipal_doctrine",
+        "dispatch_instruction_or_assignment",
+        "erc8004_reputation_receipt"
+      ],
+      "publication_ready": false,
+      "sample_publishable": false,
+      "customer_copy_ready": false,
+      "operator_publish_approval": false,
+      "customer_delivery_approval": false,
+      "required_before_publication": [
+        "final privacy/redaction review",
+        "operator publish approval",
+        "customer delivery approval",
+        "blocked-claim adjacency check",
+        "evidence-source limitation check"
+      ]
+    }
+  ],
+  "operator_instruction": "Treat this as a pre-publication checklist only. It does not approve customer copy or publication. Keep blocked claims attached to any future customer-facing draft, and require separate operator and customer-delivery approvals before exposure.",
+  "next_smallest_proof": "If Sa\u00fal wants customer-facing Phase 1 copy, create one draft packet that consumes this checklist and still keeps publication_approved=false until explicit operator review is recorded."
+}
