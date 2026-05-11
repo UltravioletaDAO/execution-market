@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-11 05:00 America/New_York
+> Last updated: 2026-05-11 06:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -161,6 +161,8 @@ Latest May 11 03:00 implementation: `mcp_server/city_ops/phase1_sample_publicati
 Latest May 11 04:00 implementation: `mcp_server/city_ops/phase1_customer_facing_draft_packet.py` adds one copy-shaped internal/admin draft packet over the publication checklist, persisted at `phase1_customer_facing_draft_packet.json`. It creates one draft card per Phase 1 offer but keeps the packet not approved, not publishable, not customer copy, and not routable. This earns only `phase1_customer_facing_draft_packet_landed`. The next gate is an explicit review decision, not publication.
 
 Latest May 11 05:00 pre-dawn synthesis: `mcp_server/city_ops/phase1_draft_packet_operator_review_decision.py` now records the explicit hold decision over the customer-facing draft packet, persisted at `phase1_draft_packet_operator_review_decision.json`. It sets `review_decision=hold_not_approved_not_publishable`, `operator_review_recorded=true`, and keeps `operator_review_granted`, `operator_publish_approval`, `customer_delivery_approval`, and `publication_approved` false. This earns only `phase1_draft_packet_operator_review_decision_landed`. The daytime entrypoint is `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_11.md`. If Saúl wants customer-facing exposure, create a separate human operator approval artifact for exactly one offer card; do not flip approval, publish, route, dispatch, attach reputation, expose GPS/raw metadata, or claim catalog/pilot readiness from the hold decision.
+
+Latest May 11 06:00 final handoff: `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_11.md` is now the daytime coordination entrypoint. No new product surface or readiness claim was added at 6 AM. `projects/execution-market` is up to date with `origin/feat/operator-route-regret-panel`, the full city-ops suite passed again (`336 passed`), and the only visible untracked repo file remains the pre-existing `scripts/sign_req.mjs` left untouched. The working recommendation is unchanged: if Saúl wants customer-facing Phase 1 exposure, create a separate human operator approval artifact for exactly one offer card; do not flip approval, publish, route, dispatch, attach reputation receipts, expose GPS/raw metadata, or claim catalog/pilot readiness from the hold decision. AutoJob, Frontier Academy, KK v2, and KarmaCadabra v2 remain blocked by `DREAM-PRIORITIES.md` during dreams.
 
 
 ## 4. The next engineering window
