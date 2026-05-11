@@ -102,6 +102,11 @@ from .phase1_draft_packet_operator_review_decision import (
     load_phase1_draft_packet_operator_review_decision,
     write_phase1_draft_packet_operator_review_decision,
 )
+from .phase1_offer_card_human_operator_approval_record import (
+    build_phase1_offer_card_human_operator_approval_record,
+    load_phase1_offer_card_human_operator_approval_record,
+    write_phase1_offer_card_human_operator_approval_record,
+)
 from .phase1_operator_coverage_renderer import (
     build_phase1_operator_coverage_renderer,
     load_phase1_operator_coverage_renderer,
@@ -198,6 +203,9 @@ __all__ = [
     "build_phase1_draft_packet_operator_review_decision",
     "load_phase1_draft_packet_operator_review_decision",
     "write_phase1_draft_packet_operator_review_decision",
+    "build_phase1_offer_card_human_operator_approval_record",
+    "load_phase1_offer_card_human_operator_approval_record",
+    "write_phase1_offer_card_human_operator_approval_record",
     "build_phase1_operator_coverage_renderer",
     "load_phase1_operator_coverage_renderer",
     "write_phase1_operator_coverage_renderer",
