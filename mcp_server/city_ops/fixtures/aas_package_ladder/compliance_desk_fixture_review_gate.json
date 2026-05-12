@@ -1,0 +1,233 @@
+{
+  "do_not_claim_yet": [
+    "customer_copy_ready",
+    "customer_visible_catalog_ready",
+    "public_service_catalog_ready",
+    "controlled_concierge_pilot_ready",
+    "customer_pilot_exposure_ready",
+    "front_door_sku_ready",
+    "pilot_authorized",
+    "catalog_customer_ready",
+    "operator_publish_approval",
+    "customer_delivery_approval",
+    "publication_approved",
+    "filing_success_ready",
+    "broad_office_reuse_ready",
+    "city_relationship_or_influence",
+    "guaranteed_approval",
+    "legal_sufficiency",
+    "regulator_acceptance",
+    "live_acontext_ready",
+    "live_acontext_readiness",
+    "acontext_sink_ready",
+    "runtime_parity_proven",
+    "autonomous_dispatch_ready",
+    "autonomous_dispatch_readiness",
+    "dispatch_routing_ready",
+    "erc8004_reputation_ready",
+    "reputation_ready",
+    "worker_skill_dna_ready",
+    "worker_copyable_doctrine_ready",
+    "worker_copyable_municipal_doctrine",
+    "exact_gps_or_raw_metadata_exposure_allowed",
+    "exact_gps_or_metadata_exposure",
+    "raw_metadata_exposure_allowed",
+    "legal_compliance",
+    "official_inspection",
+    "continuous_monitoring",
+    "worker_copyable_compliance_doctrine",
+    "permit_approval",
+    "appraisal_or_tenant_determination",
+    "trespass_or_access_guarantee",
+    "emergency_response",
+    "safety_certification",
+    "repair_diagnosis_or_completion",
+    "insurance_adjustment",
+    "legal_service",
+    "notarial_act_without_separate_credential_scope",
+    "guaranteed_acceptance",
+    "identity_verification_beyond_scoped_evidence",
+    "custody_guarantee_outside_documented_windows",
+    "procurement_authority",
+    "vendor_contract_enforcement",
+    "guaranteed_pricing_or_inventory_beyond_observation_window",
+    "employee_performance_judgment"
+  ],
+  "fixture_spec": {
+    "automation_claim_allowed": false,
+    "caas_source_pattern": "posting_compliance_check",
+    "customer_copy_changed": false,
+    "family_label": "Compliance Desk as a Service",
+    "fixture_acceptance_gate": {
+      "allows_customer_delivery": false,
+      "allows_publication": false,
+      "preserves_safe_and_blocked_claims": true,
+      "requires_local_reviewed_fixture": true,
+      "requires_non_guarantee_language_review": true,
+      "requires_operator_review_record": true,
+      "requires_privacy_redaction_review": true
+    },
+    "fixture_status": "spec_only_no_reviewed_fixture_yet",
+    "offer_id": "visible_posting_notice_compliance_snapshot",
+    "offer_label": "Visible Posting / Notice Compliance Snapshot",
+    "operator_review_required": true,
+    "phase_1_sellable_claim_allowed": false,
+    "required_evidence_fields": [
+      "wide_context_photo_or_permitted_visual_snapshot",
+      "close_notice_or_required_element_photo_where_allowed",
+      "timestamp_window",
+      "visible_element_checklist",
+      "source_type_observed_documented_or_heard",
+      "obstruction_or_legibility_notes",
+      "reviewed_limitations"
+    ],
+    "reviewed_output_schema_draft": {
+      "forbidden_fields": [
+        "exact_gps_coordinates",
+        "raw_metadata_blob",
+        "raw_transcript_as_authority",
+        "private_operator_context",
+        "guaranteed_compliance_language",
+        "legal_advice_or_legal_sufficiency",
+        "regulator_acceptance_claim",
+        "filing_success_claim",
+        "dispatch_instruction_or_assignment",
+        "erc8004_reputation_receipt",
+        "worker_copyable_compliance_doctrine"
+      ],
+      "required_fields": [
+        "task_id_or_local_case_reference",
+        "offer_type",
+        "plain_language_status",
+        "visible_elements_reviewed",
+        "evidence_summary",
+        "source_type_split",
+        "obstruction_or_legibility_notes",
+        "what_was_checked",
+        "what_was_not_checked",
+        "limitations_and_non_guarantees",
+        "recommended_next_action",
+        "operator_review_notice"
+      ],
+      "status": "draft_internal_only_not_customer_output"
+    },
+    "source_caas_offer": "posting_compliance_check"
+  },
+  "gate_id": "execution_market.aas.compliance_desk.fixture_review_gate.2026_05_12",
+  "ladder_boundary": {
+    "covered_steps": [
+      "narrow_concierge_offer_card",
+      "fixture_spec",
+      "review_gate_checklist"
+    ],
+    "next_required_steps_before_promotion": [
+      "reviewed_output_schema",
+      "local_reviewed_fixture",
+      "internal_package_record",
+      "coverage_summary_or_read_only_operator_surface",
+      "customer_output_schema_gate",
+      "internal_sample_output",
+      "explicit_approval_or_hold_decision"
+    ],
+    "promotion_allowed": false,
+    "required_full_ladder": [
+      "narrow_concierge_offer_card",
+      "fixture_spec",
+      "reviewed_output_schema",
+      "local_reviewed_fixture",
+      "internal_package_record",
+      "coverage_summary_or_read_only_operator_surface",
+      "customer_output_schema_gate",
+      "internal_sample_output",
+      "explicit_approval_or_hold_decision"
+    ]
+  },
+  "next_smallest_proof": "Create one local reviewed Compliance Desk fixture for a visible posting snapshot that fills this evidence contract while keeping all promotion and customer/public readiness flags false.",
+  "operator_instruction": "Use this only as the Compliance Desk fixture boundary. The next valid step is a local reviewed fixture plus reviewed-output schema, not customer copy, catalog routing, dispatch, reputation, live memory, or worker-copyable compliance doctrine.",
+  "package_family_id": "compliance_desk_as_a_service",
+  "readiness": {
+    "autonomous_dispatch_ready": false,
+    "controlled_concierge_pilot_ready": false,
+    "customer_copy_ready": false,
+    "customer_delivery_approval": false,
+    "customer_pilot_exposure_allowed": false,
+    "customer_visible_catalog_ready": false,
+    "exact_gps_or_raw_metadata_exposure_allowed": false,
+    "front_door_sku_ready": false,
+    "live_acontext_ready": false,
+    "operator_publish_approval": false,
+    "public_service_catalog_ready": false,
+    "publication_approved": false,
+    "reputation_ready": false,
+    "runtime_parity_proven": false,
+    "worker_copyable_doctrine_ready": false,
+    "worker_skill_dna_ready": false
+  },
+  "review_gate_checklist": [
+    {
+      "blocks_promotion_until_passed": true,
+      "check_id": "source_template_family_row_matches_compliance_desk",
+      "required": true,
+      "status": "pending_future_review"
+    },
+    {
+      "blocks_promotion_until_passed": true,
+      "check_id": "evidence_contract_requires_context_and_close_notice_proof",
+      "required": true,
+      "status": "pending_future_review"
+    },
+    {
+      "blocks_promotion_until_passed": true,
+      "check_id": "visible_element_checklist_is_required_but_not_treated_as_legal_compliance",
+      "required": true,
+      "status": "pending_future_review"
+    },
+    {
+      "blocks_promotion_until_passed": true,
+      "check_id": "source_type_split_preserved_observed_documented_heard",
+      "required": true,
+      "status": "pending_future_review"
+    },
+    {
+      "blocks_promotion_until_passed": true,
+      "check_id": "privacy_redaction_required_before_any_customer_language",
+      "required": true,
+      "status": "pending_future_review"
+    },
+    {
+      "blocks_promotion_until_passed": true,
+      "check_id": "exact_gps_and_raw_metadata_blocked",
+      "required": true,
+      "status": "pending_future_review"
+    },
+    {
+      "blocks_promotion_until_passed": true,
+      "check_id": "legal_advice_and_regulator_acceptance_claims_blocked",
+      "required": true,
+      "status": "pending_future_review"
+    },
+    {
+      "blocks_promotion_until_passed": true,
+      "check_id": "operator_review_required_before_fixture_acceptance",
+      "required": true,
+      "status": "pending_future_review"
+    },
+    {
+      "blocks_promotion_until_passed": true,
+      "check_id": "publication_customer_delivery_dispatch_reputation_and_worker_doctrine_blocked",
+      "required": true,
+      "status": "pending_future_review"
+    }
+  ],
+  "safe_to_claim": [
+    "compliance_desk_fixture_review_gate_landed",
+    "aas_minimum_ladder_template_landed"
+  ],
+  "schema": "city_ops.compliance_desk_fixture_review_gate.v1",
+  "scope": "internal_admin_compliance_desk_fixture_spec_and_review_gate_only",
+  "source_template_id": "execution_market.aas.minimum_ladder_template.2026_05_12",
+  "source_template_safe_claims_inherited": [
+    "aas_minimum_ladder_template_landed"
+  ],
+  "source_template_schema": "city_ops.aas_minimum_ladder_template.v1"
+}

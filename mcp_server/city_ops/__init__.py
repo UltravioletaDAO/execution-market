@@ -122,6 +122,11 @@ from .aas_minimum_ladder_template import (
     load_aas_minimum_ladder_template,
     write_aas_minimum_ladder_template,
 )
+from .compliance_desk_fixture_review_gate import (
+    build_compliance_desk_fixture_review_gate,
+    load_compliance_desk_fixture_review_gate,
+    write_compliance_desk_fixture_review_gate,
+)
 from .phase1_operator_coverage_renderer import (
     build_phase1_operator_coverage_renderer,
     load_phase1_operator_coverage_renderer,
@@ -230,6 +235,9 @@ __all__ = [
     "build_aas_minimum_ladder_template",
     "load_aas_minimum_ladder_template",
     "write_aas_minimum_ladder_template",
+    "build_compliance_desk_fixture_review_gate",
+    "load_compliance_desk_fixture_review_gate",
+    "write_compliance_desk_fixture_review_gate",
     "build_phase1_operator_coverage_renderer",
     "load_phase1_operator_coverage_renderer",
     "write_phase1_operator_coverage_renderer",
