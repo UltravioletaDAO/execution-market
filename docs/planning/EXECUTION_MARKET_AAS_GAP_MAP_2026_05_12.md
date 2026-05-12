@@ -164,7 +164,7 @@ No family may skip directly to public catalog, live dispatch, live memory, reput
 All three slices are conservative and doc/planning or local-artifact oriented. None should create customer routes, public copy, dispatch, live Acontext writes, reputation receipts, exact GPS/raw metadata exposure, or worker-copyable doctrine.
 
 1. **Phase 1 offer-card approval coverage matrix.** Add one internal planning/artifact slice that compares the three draft cards against the current approval-record boundary: approved fields, missing approvals, redaction checks, delivery-path limits, and still-blocked claims. Keep approvals false for unapproved offers.
-2. **Adjacent AAS minimum-ladder template.** Add an internal doc or deterministic JSON fixture template that every adjacent family must fill before promotion: offer card, fixture spec, reviewed-output schema, internal package record, coverage summary, schema gate, sample output, approval/hold decision.
+2. **Adjacent AAS minimum-ladder template.** ✅ Landed at 2026-05-12 01:00 as `mcp_server/city_ops/aas_minimum_ladder_template.py`, with persisted artifact `mcp_server/city_ops/fixtures/aas_package_ladder/aas_minimum_ladder_template.json`, tests, and implementation note `docs/planning/EXECUTION_MARKET_AAS_MINIMUM_LADDER_TEMPLATE_IMPLEMENTATION.md`. Safe claim: `aas_minimum_ladder_template_landed` only.
 3. **One adjacent-family fixture stub, held.** Pick **Compliance Desk** or **Document / Handoff Logistics** because they most directly reuse Posting Compliance Check and Packet Submission Attempt. Add only a fixture spec and review-gate checklist with all customer/public/dispatch/reputation/privacy/worker-doctrine readiness flags false.
 
 ## 5. Standing blocked claims
