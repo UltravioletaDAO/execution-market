@@ -137,6 +137,11 @@ from .compliance_desk_internal_package_record import (
     load_compliance_desk_internal_package_record,
     write_compliance_desk_internal_package_record,
 )
+from .compliance_desk_operator_read_surface import (
+    build_compliance_desk_operator_read_surface,
+    load_compliance_desk_operator_read_surface,
+    write_compliance_desk_operator_read_surface,
+)
 from .phase1_operator_coverage_renderer import (
     build_phase1_operator_coverage_renderer,
     load_phase1_operator_coverage_renderer,
@@ -254,6 +259,9 @@ __all__ = [
     "build_compliance_desk_internal_package_record",
     "load_compliance_desk_internal_package_record",
     "write_compliance_desk_internal_package_record",
+    "build_compliance_desk_operator_read_surface",
+    "load_compliance_desk_operator_read_surface",
+    "write_compliance_desk_operator_read_surface",
     "build_phase1_operator_coverage_renderer",
     "load_phase1_operator_coverage_renderer",
     "write_phase1_operator_coverage_renderer",
