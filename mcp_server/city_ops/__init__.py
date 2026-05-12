@@ -112,6 +112,11 @@ from .phase1_offer_card_approval_coverage_matrix import (
     load_phase1_offer_card_approval_coverage_matrix,
     write_phase1_offer_card_approval_coverage_matrix,
 )
+from .phase1_approved_offer_customer_delivery_hold_checklist import (
+    build_phase1_approved_offer_customer_delivery_hold_checklist,
+    load_phase1_approved_offer_customer_delivery_hold_checklist,
+    write_phase1_approved_offer_customer_delivery_hold_checklist,
+)
 from .phase1_operator_coverage_renderer import (
     build_phase1_operator_coverage_renderer,
     load_phase1_operator_coverage_renderer,
@@ -214,6 +219,9 @@ __all__ = [
     "build_phase1_offer_card_approval_coverage_matrix",
     "load_phase1_offer_card_approval_coverage_matrix",
     "write_phase1_offer_card_approval_coverage_matrix",
+    "build_phase1_approved_offer_customer_delivery_hold_checklist",
+    "load_phase1_approved_offer_customer_delivery_hold_checklist",
+    "write_phase1_approved_offer_customer_delivery_hold_checklist",
     "build_phase1_operator_coverage_renderer",
     "load_phase1_operator_coverage_renderer",
     "write_phase1_operator_coverage_renderer",
