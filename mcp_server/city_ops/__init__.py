@@ -107,6 +107,11 @@ from .phase1_offer_card_human_operator_approval_record import (
     load_phase1_offer_card_human_operator_approval_record,
     write_phase1_offer_card_human_operator_approval_record,
 )
+from .phase1_offer_card_approval_coverage_matrix import (
+    build_phase1_offer_card_approval_coverage_matrix,
+    load_phase1_offer_card_approval_coverage_matrix,
+    write_phase1_offer_card_approval_coverage_matrix,
+)
 from .phase1_operator_coverage_renderer import (
     build_phase1_operator_coverage_renderer,
     load_phase1_operator_coverage_renderer,
@@ -206,6 +211,9 @@ __all__ = [
     "build_phase1_offer_card_human_operator_approval_record",
     "load_phase1_offer_card_human_operator_approval_record",
     "write_phase1_offer_card_human_operator_approval_record",
+    "build_phase1_offer_card_approval_coverage_matrix",
+    "load_phase1_offer_card_approval_coverage_matrix",
+    "write_phase1_offer_card_approval_coverage_matrix",
     "build_phase1_operator_coverage_renderer",
     "load_phase1_operator_coverage_renderer",
     "write_phase1_operator_coverage_renderer",
