@@ -127,6 +127,11 @@ from .compliance_desk_fixture_review_gate import (
     load_compliance_desk_fixture_review_gate,
     write_compliance_desk_fixture_review_gate,
 )
+from .compliance_desk_local_reviewed_fixture import (
+    build_compliance_desk_local_reviewed_fixture,
+    load_compliance_desk_local_reviewed_fixture,
+    write_compliance_desk_local_reviewed_fixture,
+)
 from .phase1_operator_coverage_renderer import (
     build_phase1_operator_coverage_renderer,
     load_phase1_operator_coverage_renderer,
@@ -238,6 +243,9 @@ __all__ = [
     "build_compliance_desk_fixture_review_gate",
     "load_compliance_desk_fixture_review_gate",
     "write_compliance_desk_fixture_review_gate",
+    "build_compliance_desk_local_reviewed_fixture",
+    "load_compliance_desk_local_reviewed_fixture",
+    "write_compliance_desk_local_reviewed_fixture",
     "build_phase1_operator_coverage_renderer",
     "load_phase1_operator_coverage_renderer",
     "write_phase1_operator_coverage_renderer",

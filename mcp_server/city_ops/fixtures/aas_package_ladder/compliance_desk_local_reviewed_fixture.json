@@ -1,0 +1,285 @@
+{
+  "do_not_claim_yet": [
+    "customer_copy_ready",
+    "customer_visible_catalog_ready",
+    "public_service_catalog_ready",
+    "controlled_concierge_pilot_ready",
+    "customer_pilot_exposure_ready",
+    "front_door_sku_ready",
+    "pilot_authorized",
+    "catalog_customer_ready",
+    "operator_publish_approval",
+    "customer_delivery_approval",
+    "publication_approved",
+    "filing_success_ready",
+    "broad_office_reuse_ready",
+    "city_relationship_or_influence",
+    "guaranteed_approval",
+    "legal_sufficiency",
+    "regulator_acceptance",
+    "live_acontext_ready",
+    "live_acontext_readiness",
+    "acontext_sink_ready",
+    "runtime_parity_proven",
+    "autonomous_dispatch_ready",
+    "autonomous_dispatch_readiness",
+    "dispatch_routing_ready",
+    "erc8004_reputation_ready",
+    "reputation_ready",
+    "worker_skill_dna_ready",
+    "worker_copyable_doctrine_ready",
+    "worker_copyable_municipal_doctrine",
+    "exact_gps_or_raw_metadata_exposure_allowed",
+    "exact_gps_or_metadata_exposure",
+    "raw_metadata_exposure_allowed",
+    "legal_compliance",
+    "official_inspection",
+    "continuous_monitoring",
+    "worker_copyable_compliance_doctrine",
+    "permit_approval",
+    "appraisal_or_tenant_determination",
+    "trespass_or_access_guarantee",
+    "emergency_response",
+    "safety_certification",
+    "repair_diagnosis_or_completion",
+    "insurance_adjustment",
+    "legal_service",
+    "notarial_act_without_separate_credential_scope",
+    "guaranteed_acceptance",
+    "identity_verification_beyond_scoped_evidence",
+    "custody_guarantee_outside_documented_windows",
+    "procurement_authority",
+    "vendor_contract_enforcement",
+    "guaranteed_pricing_or_inventory_beyond_observation_window",
+    "employee_performance_judgment",
+    "local_fixture_customer_delivery_ready",
+    "local_fixture_publication_ready",
+    "local_fixture_catalog_ready",
+    "local_fixture_dispatch_ready",
+    "local_fixture_reputation_ready",
+    "local_fixture_worker_doctrine_ready",
+    "local_fixture_live_acontext_ready"
+  ],
+  "fixture_id": "execution_market.aas.compliance_desk.local_reviewed_fixture.001",
+  "ladder_boundary": {
+    "covered_steps": [
+      "narrow_concierge_offer_card",
+      "fixture_spec",
+      "review_gate_checklist",
+      "reviewed_output_schema",
+      "local_reviewed_fixture"
+    ],
+    "next_required_steps_before_promotion": [
+      "internal_package_record",
+      "coverage_summary_or_read_only_operator_surface",
+      "customer_output_schema_gate",
+      "internal_sample_output",
+      "explicit_approval_or_hold_decision"
+    ],
+    "promotion_allowed": false
+  },
+  "local_fixture": {
+    "customer_copy_changed": false,
+    "customer_delivery_allowed": false,
+    "dispatch_allowed": false,
+    "evidence_contract_snapshot": {
+      "close_notice_or_required_element_photo_where_allowed": "synthetic close snapshot: notice header and date window visible; body text partially obstructed",
+      "obstruction_or_legibility_notes": "glare and distance limit the body-text review; fixture remains partial",
+      "reviewed_limitations": [
+        "not_legal_advice",
+        "not_regulator_acceptance",
+        "not_customer_ready",
+        "not_publication_ready",
+        "not_dispatch_ready"
+      ],
+      "source_type_observed_documented_or_heard": {
+        "documented": true,
+        "heard": false,
+        "observed": true,
+        "raw_transcript_used_as_authority": false
+      },
+      "timestamp_window": "relative_business_day_window_no_exact_location",
+      "visible_element_checklist": [
+        "posting_area_present",
+        "notice_header_visible",
+        "notice_date_window_visible",
+        "notice_body_partially_legible",
+        "exact_location_data_removed"
+      ],
+      "wide_context_photo_or_permitted_visual_snapshot": "synthetic permitted visual snapshot: exterior posting area visible; no street address, exact coordinates, or raw metadata retained"
+    },
+    "fixture_kind": "synthetic_non_jurisdiction_specific_visible_posting_snapshot",
+    "publication_allowed": false,
+    "reputation_attachment_allowed": false,
+    "review_status": "reviewed_internal_fixture_only_not_promoted",
+    "reviewed_output": {
+      "evidence_summary": [
+        "Wide/context visual snapshot shows the expected posting area and one visible notice.",
+        "Close visual snapshot confirms the header and date window but not the full body text.",
+        "Documented checklist context was used only to define what to look for, not as legal authority.",
+        "No exact GPS coordinates, raw metadata, private counter details, or raw transcript are exposed."
+      ],
+      "limitations_and_non_guarantees": [
+        "This fixture is synthetic and local; it does not represent a real municipal case.",
+        "The review does not certify legal compliance or regulator acceptance.",
+        "Partial legibility means the status cannot be promoted to customer-ready pass language.",
+        "No customer delivery, public catalog, dispatch route, or ERC-8004 reputation receipt is authorized."
+      ],
+      "obstruction_or_legibility_notes": "Glare and distance prevented full-body legibility confirmation from the permitted vantage point. A recheck should request a closer permitted angle.",
+      "offer_type": "visible_posting_notice_compliance_snapshot",
+      "operator_review_notice": "Reviewed for local fixture shape only. Keep all customer/public/pilot/dispatch/reputation/live-runtime/worker-doctrine readiness false.",
+      "plain_language_status": "A required notice appears visible in the scoped public-facing area, but full-body legibility is only partially confirmed. This is an operator-reviewed evidence snapshot, not a legal compliance finding.",
+      "recommended_next_action": "Create one bounded posting recheck task with explicit close/legibility requirements, then route the result through a separate internal package record before any customer-output schema or approval decision.",
+      "source_type_split": {
+        "documented": [
+          "customer_supplied_visible_element_checklist_used_as_review_scope_only"
+        ],
+        "heard": [],
+        "observed": [
+          "posting_area_present",
+          "notice_header_visible",
+          "date_window_visible",
+          "body_text_partially_legible"
+        ],
+        "raw_transcript_used_as_authority": false
+      },
+      "task_id_or_local_case_reference": "local_compliance_fixture_visible_posting_001",
+      "visible_elements_reviewed": [
+        "notice_board_or_posting_area_present",
+        "notice_header_visible",
+        "notice_date_window_visible",
+        "notice_body_partially_legible",
+        "no_exact_address_or_gps_in_output"
+      ],
+      "what_was_checked": [
+        "presence_of_posting_area",
+        "presence_of_notice",
+        "header_visibility",
+        "date_window_visibility",
+        "partial_body_legibility",
+        "absence_of_exact_location_data_in_reviewed_output"
+      ],
+      "what_was_not_checked": [
+        "legal_sufficiency",
+        "regulator_acceptance",
+        "complete_notice_body_text",
+        "continuous_monitoring",
+        "official_inspection",
+        "filing_or_permit_approval_outcome"
+      ]
+    },
+    "reviewed_output_schema": {
+      "forbidden_fields": [
+        "exact_gps_coordinates",
+        "raw_metadata_blob",
+        "raw_transcript_as_authority",
+        "private_operator_context",
+        "guaranteed_compliance_language",
+        "legal_advice_or_legal_sufficiency",
+        "regulator_acceptance_claim",
+        "filing_success_claim",
+        "dispatch_instruction_or_assignment",
+        "erc8004_reputation_receipt",
+        "worker_copyable_compliance_doctrine"
+      ],
+      "required_fields": [
+        "task_id_or_local_case_reference",
+        "offer_type",
+        "plain_language_status",
+        "visible_elements_reviewed",
+        "evidence_summary",
+        "source_type_split",
+        "obstruction_or_legibility_notes",
+        "what_was_checked",
+        "what_was_not_checked",
+        "limitations_and_non_guarantees",
+        "recommended_next_action",
+        "operator_review_notice"
+      ],
+      "status": "local_reviewed_fixture_internal_only_not_customer_output"
+    },
+    "worker_copyable_doctrine_allowed": false
+  },
+  "local_review_checks": [
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "source_gate_safe_claims_present",
+      "status": "passed_for_local_fixture_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "all_required_evidence_fields_populated",
+      "status": "passed_for_local_fixture_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "reviewed_output_uses_only_allowed_fields",
+      "status": "passed_for_local_fixture_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "observed_documented_heard_source_split_preserved",
+      "status": "passed_for_local_fixture_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "privacy_redaction_completed_for_local_fixture",
+      "status": "passed_for_local_fixture_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "exact_gps_and_raw_metadata_absent",
+      "status": "passed_for_local_fixture_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "legal_advice_and_regulator_acceptance_claims_absent",
+      "status": "passed_for_local_fixture_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "non_guarantee_language_present",
+      "status": "passed_for_local_fixture_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "customer_public_dispatch_reputation_and_worker_doctrine_still_blocked",
+      "status": "passed_for_local_fixture_only"
+    }
+  ],
+  "next_smallest_proof": "Create a Compliance Desk internal package record that consumes this local fixture and keeps customer/public/dispatch/reputation/privacy/worker-doctrine readiness false.",
+  "offer_id": "visible_posting_notice_compliance_snapshot",
+  "operator_instruction": "Use this fixture only to prove the Compliance Desk reviewed-output shape. The next valid step is an internal package record, not customer copy, catalog routing, dispatch, reputation, live Acontext, or worker-copyable doctrine.",
+  "package_family_id": "compliance_desk_as_a_service",
+  "readiness": {
+    "autonomous_dispatch_ready": false,
+    "controlled_concierge_pilot_ready": false,
+    "customer_copy_ready": false,
+    "customer_delivery_approval": false,
+    "customer_pilot_exposure_allowed": false,
+    "customer_visible_catalog_ready": false,
+    "exact_gps_or_raw_metadata_exposure_allowed": false,
+    "front_door_sku_ready": false,
+    "live_acontext_ready": false,
+    "operator_publish_approval": false,
+    "public_service_catalog_ready": false,
+    "publication_approved": false,
+    "reputation_ready": false,
+    "runtime_parity_proven": false,
+    "worker_copyable_doctrine_ready": false,
+    "worker_skill_dna_ready": false
+  },
+  "safe_to_claim": [
+    "compliance_desk_local_reviewed_fixture_landed",
+    "compliance_desk_fixture_review_gate_landed",
+    "aas_minimum_ladder_template_landed"
+  ],
+  "schema": "city_ops.compliance_desk_local_reviewed_fixture.v1",
+  "scope": "internal_admin_compliance_desk_local_reviewed_fixture_only",
+  "source_gate_id": "execution_market.aas.compliance_desk.fixture_review_gate.2026_05_12",
+  "source_gate_schema": "city_ops.compliance_desk_fixture_review_gate.v1",
+  "source_safe_claims_inherited": [
+    "compliance_desk_fixture_review_gate_landed",
+    "aas_minimum_ladder_template_landed"
+  ]
+}
