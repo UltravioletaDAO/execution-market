@@ -132,6 +132,11 @@ from .compliance_desk_local_reviewed_fixture import (
     load_compliance_desk_local_reviewed_fixture,
     write_compliance_desk_local_reviewed_fixture,
 )
+from .compliance_desk_internal_package_record import (
+    build_compliance_desk_internal_package_record,
+    load_compliance_desk_internal_package_record,
+    write_compliance_desk_internal_package_record,
+)
 from .phase1_operator_coverage_renderer import (
     build_phase1_operator_coverage_renderer,
     load_phase1_operator_coverage_renderer,
@@ -246,6 +251,9 @@ __all__ = [
     "build_compliance_desk_local_reviewed_fixture",
     "load_compliance_desk_local_reviewed_fixture",
     "write_compliance_desk_local_reviewed_fixture",
+    "build_compliance_desk_internal_package_record",
+    "load_compliance_desk_internal_package_record",
+    "write_compliance_desk_internal_package_record",
     "build_phase1_operator_coverage_renderer",
     "load_phase1_operator_coverage_renderer",
     "write_phase1_operator_coverage_renderer",
