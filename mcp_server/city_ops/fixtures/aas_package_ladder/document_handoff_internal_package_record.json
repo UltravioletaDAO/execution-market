@@ -1,0 +1,324 @@
+{
+  "do_not_claim_yet": [
+    "customer_copy_ready",
+    "customer_visible_catalog_ready",
+    "public_service_catalog_ready",
+    "controlled_concierge_pilot_ready",
+    "customer_pilot_exposure_ready",
+    "front_door_sku_ready",
+    "pilot_authorized",
+    "catalog_customer_ready",
+    "operator_publish_approval",
+    "customer_delivery_approval",
+    "publication_approved",
+    "filing_success_ready",
+    "broad_office_reuse_ready",
+    "city_relationship_or_influence",
+    "guaranteed_approval",
+    "legal_sufficiency",
+    "regulator_acceptance",
+    "live_acontext_ready",
+    "live_acontext_readiness",
+    "acontext_sink_ready",
+    "runtime_parity_proven",
+    "autonomous_dispatch_ready",
+    "autonomous_dispatch_readiness",
+    "dispatch_routing_ready",
+    "erc8004_reputation_ready",
+    "reputation_ready",
+    "worker_skill_dna_ready",
+    "worker_copyable_doctrine_ready",
+    "worker_copyable_municipal_doctrine",
+    "exact_gps_or_raw_metadata_exposure_allowed",
+    "exact_gps_or_metadata_exposure",
+    "raw_metadata_exposure_allowed",
+    "legal_service",
+    "notarial_act_without_separate_credential_scope",
+    "guaranteed_acceptance",
+    "identity_verification_beyond_scoped_evidence",
+    "custody_guarantee_outside_documented_windows",
+    "worker_copyable_handoff_doctrine",
+    "legal_compliance",
+    "official_inspection",
+    "continuous_monitoring",
+    "permit_approval",
+    "appraisal_or_tenant_determination",
+    "trespass_or_access_guarantee",
+    "emergency_response",
+    "safety_certification",
+    "repair_diagnosis_or_completion",
+    "insurance_adjustment",
+    "procurement_authority",
+    "vendor_contract_enforcement",
+    "guaranteed_pricing_or_inventory_beyond_observation_window",
+    "employee_performance_judgment",
+    "document_handoff_local_fixture_customer_delivery_ready",
+    "document_handoff_local_fixture_publication_ready",
+    "document_handoff_local_fixture_catalog_ready",
+    "document_handoff_local_fixture_dispatch_ready",
+    "document_handoff_local_fixture_reputation_ready",
+    "document_handoff_local_fixture_worker_doctrine_ready",
+    "document_handoff_local_fixture_live_acontext_ready",
+    "document_handoff_local_fixture_notarial_ready",
+    "document_handoff_local_fixture_custody_guarantee_ready",
+    "document_handoff_internal_package_customer_delivery_ready",
+    "document_handoff_internal_package_publication_ready",
+    "document_handoff_internal_package_catalog_ready",
+    "document_handoff_internal_package_dispatch_ready",
+    "document_handoff_internal_package_reputation_ready",
+    "document_handoff_internal_package_worker_doctrine_ready",
+    "document_handoff_internal_package_live_acontext_ready",
+    "document_handoff_internal_package_approval_ready",
+    "document_handoff_internal_package_notarial_ready",
+    "document_handoff_internal_package_custody_guarantee_ready",
+    "document_handoff_customer_ready",
+    "document_handoff_catalog_ready",
+    "document_handoff_dispatch_ready",
+    "document_handoff_reputation_ready",
+    "document_handoff_worker_doctrine_ready",
+    "document_handoff_notarial_ready",
+    "document_handoff_custody_guarantee_ready"
+  ],
+  "internal_package_record": {
+    "acceptance_guarantee_claimed": false,
+    "custody_guarantee_outside_documented_windows_claimed": false,
+    "customer_copy_changed": false,
+    "customer_delivery_allowed": false,
+    "dispatch_allowed": false,
+    "exact_gps_or_raw_metadata_exposure_allowed": false,
+    "identity_verification_beyond_scoped_evidence_claimed": false,
+    "legal_service_claimed": false,
+    "live_acontext_or_runtime_parity_claimed": false,
+    "notarial_act_claimed": false,
+    "package_limitations": [
+      "Internal package record only; not a customer-facing handoff report.",
+      "Synthetic local fixture does not represent a real document movement case.",
+      "Custody language is limited to documented events inside the scoped window.",
+      "Recipient/source identity is summarized only by type; private identity artifacts stay excluded.",
+      "Receipt or stamp proof is source-bounded and does not prove legal sufficiency, filing success, acceptance, or notarial completion.",
+      "No publication, catalog, pilot, dispatch, reputation, legal/notarial, acceptance promise, extended custody promise, or worker-doctrine readiness is authorized."
+    ],
+    "packaged_evidence_contract": {
+      "chain_of_custody_events_inside_scoped_windows": [
+        "synthetic_packet_observed_sealed_before_pickup_inside_scoped_window",
+        "synthetic_counter_handoff_attempt_recorded_inside_scoped_window",
+        "custody_language_limited_to_documented_events_only"
+      ],
+      "failed_handoff_reason": "not_applicable_for_fixture_attempt_recorded_without_acceptance_guarantee",
+      "pickup_or_dropoff_timestamp": "relative_business_day_window_no_exact_location_or_raw_metadata",
+      "queue_or_wait_boundary": "bounded_queue_wait_note_inside_attempt_window_no_unlimited_waiting_claim",
+      "receipt_stamp_or_photo_where_available": "redacted_synthetic_receipt_indicator_no_signature_or_id_blob",
+      "recipient_or_source_type": "office_counter_staff_source_type_only_no_private_identity",
+      "recommended_next_action": "package_as_internal_record_before_any_customer_output_schema_or_approval_decision"
+    },
+    "packaged_reviewed_output": {
+      "chain_of_custody_event_summary": [
+        "Prepared packet was observed as sealed before pickup within the scoped window.",
+        "Worker captured a permitted queue/wait boundary note before counter handoff.",
+        "Counter handoff was recorded as attempted and source-bounded to the documented window.",
+        "No custody claim is made before pickup, after handoff, or outside the documented window."
+      ],
+      "failed_handoff_reason": "not_applicable_handoff_attempt_recorded_but_not_acceptance_guaranteed",
+      "handoff_window_summary": "Synthetic same-business-day pickup/drop-off window; no exact address, GPS coordinate, raw metadata, private identity document, or signature image is retained in the reviewed output.",
+      "limitations_and_non_guarantees": [
+        "This fixture is synthetic and local; it does not represent a real handoff case.",
+        "The review does not provide legal service, notarial service, or acceptance guarantee.",
+        "Recipient/source identity is intentionally summarized by type, not exposed as private identity data.",
+        "Custody is only described for documented events inside the scoped window.",
+        "No customer delivery, public catalog, dispatch route, or ERC-8004 reputation receipt is authorized."
+      ],
+      "offer_type": "document_handoff_proof_run",
+      "operator_review_notice": "Reviewed for local fixture shape only. Keep all customer/public/pilot/dispatch/reputation/live-runtime/notarial/custody-guarantee/worker-doctrine readiness false.",
+      "plain_language_status": "A bounded document handoff attempt was completed within the scoped window and produced source-bounded proof of the attempt. This is an operator-reviewed evidence snapshot, not a legal service, not a notarial act, and not a guarantee of acceptance or custody outside the documented window.",
+      "queue_or_wait_boundary": "Queue/wait was bounded to the scoped attempt window; no unlimited waiting or future availability claim is made.",
+      "receipt_or_stamp_summary": "Permitted receipt/stamp proof is represented as a redacted synthetic receipt indicator. It proves only that a handoff proof artifact exists, not acceptance, legal sufficiency, or filing success.",
+      "recipient_or_source_type_summary": "Recipient/source is classified only as office_counter_staff_source; no private person name, ID document, signature image, or private contact detail is exposed.",
+      "recommended_next_action": "Create a Document / Handoff internal package record that consumes this local fixture and keeps customer/public/dispatch/reputation/privacy/worker-doctrine readiness false.",
+      "task_id_or_local_case_reference": "local_document_handoff_fixture_001",
+      "what_was_checked": [
+        "scoped_pickup_or_dropoff_window",
+        "sealed_packet_observation",
+        "source_type_classification",
+        "permitted_receipt_or_stamp_indicator",
+        "queue_or_wait_boundary",
+        "absence_of_exact_location_private_identity_signature_and_raw_metadata"
+      ],
+      "what_was_not_checked": [
+        "legal_service",
+        "notarial_act",
+        "identity_verification_beyond_scoped_evidence",
+        "guaranteed_acceptance",
+        "custody_outside_documented_windows",
+        "filing_success",
+        "customer_delivery_readiness",
+        "dispatch_readiness"
+      ]
+    },
+    "publication_allowed": false,
+    "record_kind": "adjacent_aas_internal_package_record",
+    "reputation_attachment_allowed": false,
+    "review_status": "packaged_internal_only_not_promoted",
+    "reviewed_output_schema": {
+      "forbidden_fields": [
+        "exact_gps_coordinates",
+        "raw_metadata_blob",
+        "raw_transcript_as_authority",
+        "private_operator_context",
+        "private_recipient_identity",
+        "private_sender_identity",
+        "signature_or_id_document_blob",
+        "legal_service_claim",
+        "notarial_act_claim",
+        "identity_verification_claim_beyond_scoped_evidence",
+        "guaranteed_acceptance_language",
+        "custody_guarantee_outside_documented_windows",
+        "dispatch_instruction_or_assignment",
+        "erc8004_reputation_receipt",
+        "worker_copyable_handoff_doctrine"
+      ],
+      "required_fields": [
+        "task_id_or_local_case_reference",
+        "offer_type",
+        "plain_language_status",
+        "handoff_window_summary",
+        "chain_of_custody_event_summary",
+        "recipient_or_source_type_summary",
+        "receipt_or_stamp_summary",
+        "failed_handoff_reason",
+        "queue_or_wait_boundary",
+        "what_was_checked",
+        "what_was_not_checked",
+        "limitations_and_non_guarantees",
+        "recommended_next_action",
+        "operator_review_notice"
+      ],
+      "status": "local_reviewed_fixture_internal_only_not_customer_output"
+    },
+    "source_artifacts": [
+      {
+        "fixture_id": "execution_market.aas.document_handoff.local_reviewed_fixture.001",
+        "fixture_kind": "synthetic_non_jurisdiction_specific_document_handoff_proof_run",
+        "plain_language_status": "A bounded document handoff attempt was completed within the scoped window and produced source-bounded proof of the attempt. This is an operator-reviewed evidence snapshot, not a legal service, not a notarial act, and not a guarantee of acceptance or custody outside the documented window.",
+        "review_status": "reviewed_internal_fixture_only_not_promoted",
+        "source_file": "document_handoff_local_reviewed_fixture.json",
+        "source_schema": "city_ops.document_handoff_local_reviewed_fixture.v1"
+      }
+    ],
+    "uses_only_local_reviewed_fixture_artifact": true,
+    "worker_copyable_doctrine_allowed": false
+  },
+  "ladder_boundary": {
+    "covered_steps": [
+      "narrow_concierge_offer_card",
+      "fixture_spec",
+      "review_gate_checklist",
+      "reviewed_output_schema",
+      "local_reviewed_fixture",
+      "internal_package_record"
+    ],
+    "next_required_steps_before_promotion": [
+      "coverage_summary_or_read_only_operator_surface",
+      "customer_output_schema_gate",
+      "internal_sample_output",
+      "explicit_approval_or_hold_decision"
+    ],
+    "promotion_allowed": false
+  },
+  "next_smallest_proof": "Create a Document / Handoff coverage summary or read-only operator surface over this internal package record while keeping customer/public/dispatch/reputation/privacy/notarial/custody/worker-doctrine readiness false.",
+  "offer_id": "document_handoff_proof_run",
+  "operator_instruction": "Use this only as the Document / Handoff internal package record. The next valid step is a read-only operator coverage surface or explicit customer-output schema gate, not customer copy, catalog routing, dispatch, reputation, live Acontext, exact-location release, legal/notarial service, acceptance promises, extended custody promises, or worker-copyable doctrine.",
+  "package_family_id": "document_handoff_logistics_as_a_service",
+  "package_id": "execution_market.aas.document_handoff.internal_package_record.001",
+  "package_review_checks": [
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "source_local_fixture_safe_claims_present",
+      "status": "passed_for_internal_package_record_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "source_fixture_review_status_internal_only",
+      "status": "passed_for_internal_package_record_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "package_uses_only_local_reviewed_fixture_artifact",
+      "status": "passed_for_internal_package_record_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "handoff_evidence_and_reviewed_output_fields_preserved",
+      "status": "passed_for_internal_package_record_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "chain_of_custody_remains_scoped_to_documented_windows",
+      "status": "passed_for_internal_package_record_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "recipient_or_source_type_preserves_no_private_identity_exposure",
+      "status": "passed_for_internal_package_record_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "receipt_or_stamp_summary_remains_source_bounded",
+      "status": "passed_for_internal_package_record_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "legal_notarial_identity_acceptance_and_custody_guarantee_claims_absent",
+      "status": "passed_for_internal_package_record_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "privacy_redaction_and_no_exact_location_preserved",
+      "status": "passed_for_internal_package_record_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "customer_public_dispatch_reputation_and_worker_doctrine_still_blocked",
+      "status": "passed_for_internal_package_record_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "next_ladder_steps_require_separate_artifacts",
+      "status": "passed_for_internal_package_record_only"
+    }
+  ],
+  "package_status": "internal_package_record_only_not_customer_ready",
+  "readiness": {
+    "autonomous_dispatch_ready": false,
+    "controlled_concierge_pilot_ready": false,
+    "customer_copy_ready": false,
+    "customer_delivery_approval": false,
+    "customer_pilot_exposure_allowed": false,
+    "customer_visible_catalog_ready": false,
+    "exact_gps_or_raw_metadata_exposure_allowed": false,
+    "front_door_sku_ready": false,
+    "live_acontext_ready": false,
+    "operator_publish_approval": false,
+    "public_service_catalog_ready": false,
+    "publication_approved": false,
+    "reputation_ready": false,
+    "runtime_parity_proven": false,
+    "worker_copyable_doctrine_ready": false,
+    "worker_skill_dna_ready": false
+  },
+  "safe_to_claim": [
+    "document_handoff_internal_package_record_landed",
+    "document_handoff_local_reviewed_fixture_landed",
+    "document_handoff_fixture_review_gate_landed",
+    "aas_minimum_ladder_template_landed"
+  ],
+  "schema": "city_ops.document_handoff_internal_package_record.v1",
+  "scope": "internal_admin_document_handoff_package_record_only",
+  "source_fixture_file": "document_handoff_local_reviewed_fixture.json",
+  "source_fixture_id": "execution_market.aas.document_handoff.local_reviewed_fixture.001",
+  "source_fixture_schema": "city_ops.document_handoff_local_reviewed_fixture.v1",
+  "source_safe_claims_inherited": [
+    "document_handoff_local_reviewed_fixture_landed",
+    "document_handoff_fixture_review_gate_landed",
+    "aas_minimum_ladder_template_landed"
+  ]
+}

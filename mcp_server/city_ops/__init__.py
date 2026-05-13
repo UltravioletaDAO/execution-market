@@ -167,6 +167,11 @@ from .document_handoff_local_reviewed_fixture import (
     load_document_handoff_local_reviewed_fixture,
     write_document_handoff_local_reviewed_fixture,
 )
+from .document_handoff_internal_package_record import (
+    build_document_handoff_internal_package_record,
+    load_document_handoff_internal_package_record,
+    write_document_handoff_internal_package_record,
+)
 from .phase1_operator_coverage_renderer import (
     build_phase1_operator_coverage_renderer,
     load_phase1_operator_coverage_renderer,
@@ -302,6 +307,9 @@ __all__ = [
     "build_document_handoff_local_reviewed_fixture",
     "load_document_handoff_local_reviewed_fixture",
     "write_document_handoff_local_reviewed_fixture",
+    "build_document_handoff_internal_package_record",
+    "load_document_handoff_internal_package_record",
+    "write_document_handoff_internal_package_record",
     "build_phase1_operator_coverage_renderer",
     "load_phase1_operator_coverage_renderer",
     "write_phase1_operator_coverage_renderer",
