@@ -177,6 +177,11 @@ from .document_handoff_operator_read_surface import (
     load_document_handoff_operator_read_surface,
     write_document_handoff_operator_read_surface,
 )
+from .document_handoff_customer_output_schema_gate import (
+    build_document_handoff_customer_output_schema_gate,
+    load_document_handoff_customer_output_schema_gate,
+    write_document_handoff_customer_output_schema_gate,
+)
 from .phase1_operator_coverage_renderer import (
     build_phase1_operator_coverage_renderer,
     load_phase1_operator_coverage_renderer,
@@ -315,6 +320,12 @@ __all__ = [
     "build_document_handoff_internal_package_record",
     "load_document_handoff_internal_package_record",
     "write_document_handoff_internal_package_record",
+    "build_document_handoff_operator_read_surface",
+    "load_document_handoff_operator_read_surface",
+    "write_document_handoff_operator_read_surface",
+    "build_document_handoff_customer_output_schema_gate",
+    "load_document_handoff_customer_output_schema_gate",
+    "write_document_handoff_customer_output_schema_gate",
     "build_phase1_operator_coverage_renderer",
     "load_phase1_operator_coverage_renderer",
     "write_phase1_operator_coverage_renderer",

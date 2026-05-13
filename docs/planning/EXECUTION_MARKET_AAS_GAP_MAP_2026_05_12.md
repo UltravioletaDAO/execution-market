@@ -172,9 +172,9 @@ All three slices are conservative and doc/planning or local-artifact oriented. N
 The adjacent-family ladder has now been exercised beyond the original three recommended slices:
 
 - Compliance Desk has advanced through fixture gate, local reviewed fixture, internal package record, read-only operator surface, customer-output schema gate, internal sample output, and explicit hold decision. Safe latest claim: `compliance_desk_sample_output_review_decision_landed` only; still no customer/public/pilot/dispatch/reputation/live-runtime/GPS/legal/worker-doctrine readiness.
-- Document / Handoff Logistics has advanced through fixture gate, one local reviewed fixture, one internal package record, and one read-only operator surface. Safe latest claim: `document_handoff_operator_read_surface_landed` only; still no customer/public/pilot/dispatch/reputation/live-runtime/GPS/legal-service/notarial/private-identity/guaranteed-acceptance/filing-success/custody-guarantee/worker-doctrine readiness.
+- Document / Handoff Logistics has advanced through fixture gate, one local reviewed fixture, one internal package record, one read-only operator surface, and one customer-output schema gate. Safe latest claim: `document_handoff_customer_output_schema_gate_landed` only; still no customer/public/pilot/dispatch/reputation/live-runtime/GPS/legal-service/notarial/private-identity/guaranteed-acceptance/filing-success/custody-guarantee/worker-doctrine readiness.
 
-Current next safe implementation slice: create a **Document / Handoff customer-output schema gate** over `document_handoff_operator_read_surface.json`, preserving safe and blocked claims side by side and keeping every readiness flag false.
+Current next safe implementation slice: draft one **Document / Handoff internal/admin sample output** against `document_handoff_customer_output_schema_gate.json`, then record a separate explicit hold/approval decision; preserve safe and blocked claims side by side and keep every readiness flag false.
 
 ## 5. Standing blocked claims
 
