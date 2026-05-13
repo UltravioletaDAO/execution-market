@@ -3,7 +3,7 @@
 > Scope: Execution Market AAS / City-as-a-Service only  
 > Governing priority file: `~/clawd/DREAM-PRIORITIES.md`  
 > Branch: `feat/operator-route-regret-panel`  
-> Final seal: 05:00 America/New_York
+> Final seal: 06:00 America/New_York
 
 ## TL;DR
 
@@ -136,12 +136,23 @@ Do not broaden tonight's artifacts into:
 
 ## Verification
 
-Final 5 AM gate:
+Final 6 AM gate:
 
 ```bash
 /opt/homebrew/bin/python3.14 -m pytest -q mcp_server/tests/city_ops
-# 536 passed in 0.64s
+# 536 passed in 0.50s
 ```
+
+
+## 6 AM seal
+
+No new product surface or readiness claim was added at 6 AM. The final pass was deliberately a handoff seal:
+
+- re-read the governing priority file and kept the stopped tracks stopped
+- synced `projects/execution-market` with `git pull --ff-only` → already up to date
+- reran the full city-ops suite → `536 passed`
+- confirmed the only visible untracked repo file remains the pre-existing `scripts/sign_req.mjs`, left untouched
+- kept the daytime recommendation unchanged: one internal/admin Document / Handoff sample output, then a separate explicit hold/approval decision
 
 ## Repo hygiene
 
