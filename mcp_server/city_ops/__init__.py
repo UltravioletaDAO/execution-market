@@ -172,6 +172,11 @@ from .document_handoff_internal_package_record import (
     load_document_handoff_internal_package_record,
     write_document_handoff_internal_package_record,
 )
+from .document_handoff_operator_read_surface import (
+    build_document_handoff_operator_read_surface,
+    load_document_handoff_operator_read_surface,
+    write_document_handoff_operator_read_surface,
+)
 from .phase1_operator_coverage_renderer import (
     build_phase1_operator_coverage_renderer,
     load_phase1_operator_coverage_renderer,
