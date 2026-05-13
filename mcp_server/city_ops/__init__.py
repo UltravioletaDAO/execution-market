@@ -152,6 +152,11 @@ from .compliance_desk_internal_sample_output import (
     load_compliance_desk_internal_sample_output,
     write_compliance_desk_internal_sample_output,
 )
+from .compliance_desk_sample_output_review_decision import (
+    build_compliance_desk_sample_output_review_decision,
+    load_compliance_desk_sample_output_review_decision,
+    write_compliance_desk_sample_output_review_decision,
+)
 from .phase1_operator_coverage_renderer import (
     build_phase1_operator_coverage_renderer,
     load_phase1_operator_coverage_renderer,
@@ -278,6 +283,9 @@ __all__ = [
     "build_compliance_desk_internal_sample_output",
     "load_compliance_desk_internal_sample_output",
     "write_compliance_desk_internal_sample_output",
+    "build_compliance_desk_sample_output_review_decision",
+    "load_compliance_desk_sample_output_review_decision",
+    "write_compliance_desk_sample_output_review_decision",
     "build_phase1_operator_coverage_renderer",
     "load_phase1_operator_coverage_renderer",
     "write_phase1_operator_coverage_renderer",
