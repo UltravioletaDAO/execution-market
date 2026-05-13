@@ -4,9 +4,11 @@
 # 1. Static IP blocklist for confirmed abusers
 # 2. AWS Managed Common Rule Set (OWASP Top 10: SQLi, XSS, path traversal)
 # 3. AWS Managed Known Bad Inputs (Log4j, host header injection)
-# 4. AWS Managed Anonymous IP List (Tor exits — hosting providers COUNT-only)
-# 5. A2A-specific rate limit: 100 req/5min for /a2a/ path
-# 6. Global rate limit: 600 req/5min per IP (coarse safety net)
+# 4. AWS Managed Amazon IP Reputation List (known scanners, botnets, abusive VPS)
+# 5. AWS Managed Anonymous IP List (Tor exits — hosting providers COUNT-only)
+# 6. Stricter rate limit for non-legitimate Host headers (50 req/5min)
+# 7. A2A-specific rate limit: 100 req/5min for /a2a/ path
+# 8. Global rate limit: 600 req/5min per IP (coarse safety net)
 #
 # Cost: ~$12/mo at current traffic levels
 #   - $5/mo web ACL
@@ -125,7 +127,34 @@ resource "aws_wafv2_web_acl" "main" {
     }
   }
 
-  # Rule 4: AWS Managed — Anonymous IP List (Tor exits, VPNs, hosting providers)
+  # Rule 4: AWS Managed — Amazon IP Reputation List (added 2026-05-13)
+  # Blocks IPs identified by AWS threat intelligence: known scanners, botnets,
+  # malicious actors, and IPs associated with bitcoin/DDoS abuse. Catches abusive
+  # VPS providers (Contabo, Hetzner, OVH, etc.) automatically without manual CIDR
+  # maintenance. Replaces the brittle approach of blocking AS51167 by CIDR.
+  rule {
+    name     = "aws-amazon-ip-reputation"
+    priority = 4
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesAmazonIpReputationList"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      sampled_requests_enabled   = true
+      cloudwatch_metrics_enabled = true
+      metric_name                = "${local.name_prefix}-amazon-ip-reputation"
+    }
+  }
+
+  # Rule 5: AWS Managed — Anonymous IP List (Tor exits, VPNs, hosting providers)
   #
   # IMPORTANT: HostingProviderIPList is set to COUNT-only because Execution
   # Market is an API for AI agents — agents overwhelmingly run on cloud infra
@@ -133,7 +162,7 @@ resource "aws_wafv2_web_acl" "main" {
   # Tor exits and anonymous proxies are still BLOCKED.
   rule {
     name     = "aws-anonymous-ip-list"
-    priority = 4
+    priority = 5
 
     override_action {
       none {}
@@ -161,11 +190,117 @@ resource "aws_wafv2_web_acl" "main" {
     }
   }
 
-  # Rule 5: Stricter rate limit for /a2a/ path (100 requests per 5 minutes)
+  # Rule 6: Strict rate limit for non-legitimate Host headers (added 2026-05-13)
+  #
+  # Legitimate clients ALWAYS use one of our DNS hostnames as the Host header
+  # (mcp.execution.market, api.execution.market, admin.execution.market).
+  # Scanners typically hit the raw ALB IP — Host header becomes the IP itself.
+  #
+  # This rule fires BEFORE rate-limit-global (lower priority number) so abusive
+  # IP-direct traffic is throttled aggressively at 50 req/5min/IP, regardless
+  # of whether the global 600 threshold has been crossed.
+  #
+  # Scope-down: rate-limit ONLY requests whose Host header is NOT one of our
+  # legitimate hostnames. Built via AND(NOT host=mcp, NOT host=api, NOT host=admin).
+  #
+  # SAFETY NOTE re: ALB health checks — ALB->target health checks run inside the
+  # VPC and never traverse this WAF (WAF only inspects external client requests),
+  # so this rule cannot affect them. External uptime probes (Pingdom, StatusCake,
+  # canaries) that target real hostnames are unaffected.
+  rule {
+    name     = "rate-limit-bad-host"
+    priority = 6
+
+    action {
+      block {
+        custom_response {
+          response_code            = 429
+          custom_response_body_key = "rate-limited"
+        }
+      }
+    }
+
+    statement {
+      rate_based_statement {
+        limit              = 50
+        aggregate_key_type = "IP"
+
+        scope_down_statement {
+          and_statement {
+            statement {
+              not_statement {
+                statement {
+                  byte_match_statement {
+                    search_string         = "mcp.${var.domain_name}"
+                    positional_constraint = "EXACTLY"
+                    field_to_match {
+                      single_header {
+                        name = "host"
+                      }
+                    }
+                    text_transformation {
+                      priority = 0
+                      type     = "LOWERCASE"
+                    }
+                  }
+                }
+              }
+            }
+            statement {
+              not_statement {
+                statement {
+                  byte_match_statement {
+                    search_string         = "api.${var.domain_name}"
+                    positional_constraint = "EXACTLY"
+                    field_to_match {
+                      single_header {
+                        name = "host"
+                      }
+                    }
+                    text_transformation {
+                      priority = 0
+                      type     = "LOWERCASE"
+                    }
+                  }
+                }
+              }
+            }
+            statement {
+              not_statement {
+                statement {
+                  byte_match_statement {
+                    search_string         = "admin.${var.domain_name}"
+                    positional_constraint = "EXACTLY"
+                    field_to_match {
+                      single_header {
+                        name = "host"
+                      }
+                    }
+                    text_transformation {
+                      priority = 0
+                      type     = "LOWERCASE"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    visibility_config {
+      sampled_requests_enabled   = true
+      cloudwatch_metrics_enabled = true
+      metric_name                = "${local.name_prefix}-rate-limit-bad-host"
+    }
+  }
+
+  # Rule 7: Stricter rate limit for /a2a/ path (100 requests per 5 minutes)
   # Priority BEFORE global rate limit so the stricter check fires first for A2A.
   rule {
     name     = "rate-limit-a2a"
-    priority = 5
+    priority = 7
 
     action {
       block {
@@ -206,13 +341,13 @@ resource "aws_wafv2_web_acl" "main" {
     }
   }
 
-  # Rule 6: Global rate limit — coarse safety net for volumetric abuse
+  # Rule 8: Global rate limit — coarse safety net for volumetric abuse
   # Set to 600/5min (2 req/sec) to avoid false positives on legitimate AI agents
   # doing multi-step task lifecycles. App-layer rate limiters handle fine-grained
   # per-agent, per-endpoint throttling.
   rule {
     name     = "rate-limit-global"
-    priority = 6
+    priority = 8
 
     action {
       block {

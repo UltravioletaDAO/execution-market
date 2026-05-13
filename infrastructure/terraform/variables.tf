@@ -159,9 +159,12 @@ variable "em_balances_allowed_origins" {
 
 # WAF
 variable "waf_blocked_ips" {
-  description = "List of CIDR blocks to permanently block at WAF level. Added 2026-04-04 after Tor exit node 104.244.78.233 flood."
+  description = "List of CIDR blocks to permanently block at WAF level. Added 2026-04-04 after Tor exit node 104.244.78.233 flood. Added 2026-05-13: 207.180.201.164 (Contabo FR VPS, AS51167) generated 3k+ blocked requests/hr scanning ALB IP directly with vulnerability wordlist."
   type        = list(string)
-  default     = ["104.244.78.233/32"]
+  default = [
+    "104.244.78.233/32", # Tor exit node, 2026-04-04 POST /a2a/v1 flood
+    "207.180.201.164/32", # Contabo GmbH FR VPS, 2026-05-13 vulnerability scanner against ALB raw IP
+  ]
 }
 
 # Build metadata (injected by CI, used in Lambda env vars for version tracking)
