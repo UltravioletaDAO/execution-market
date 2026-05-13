@@ -165,7 +165,16 @@ All three slices are conservative and doc/planning or local-artifact oriented. N
 
 1. **Phase 1 offer-card approval coverage matrix.** Add one internal planning/artifact slice that compares the three draft cards against the current approval-record boundary: approved fields, missing approvals, redaction checks, delivery-path limits, and still-blocked claims. Keep approvals false for unapproved offers.
 2. **Adjacent AAS minimum-ladder template.** ✅ Landed at 2026-05-12 01:00 as `mcp_server/city_ops/aas_minimum_ladder_template.py`, with persisted artifact `mcp_server/city_ops/fixtures/aas_package_ladder/aas_minimum_ladder_template.json`, tests, and implementation note `docs/planning/EXECUTION_MARKET_AAS_MINIMUM_LADDER_TEMPLATE_IMPLEMENTATION.md`. Safe claim: `aas_minimum_ladder_template_landed` only.
-3. **One adjacent-family fixture stub, held.** ✅ Compliance Desk landed at 2026-05-12 02:00 as `mcp_server/city_ops/compliance_desk_fixture_review_gate.py`, with persisted artifact `mcp_server/city_ops/fixtures/aas_package_ladder/compliance_desk_fixture_review_gate.json`, tests, and implementation note `docs/planning/EXECUTION_MARKET_COMPLIANCE_DESK_FIXTURE_REVIEW_GATE_IMPLEMENTATION.md`. Safe claim: `compliance_desk_fixture_review_gate_landed` only. Next safe slice: one local reviewed Compliance Desk fixture; keep all customer/public/dispatch/reputation/privacy/worker-doctrine readiness flags false.
+3. **One adjacent-family fixture stub, held.** ✅ Compliance Desk landed at 2026-05-12 02:00 as `mcp_server/city_ops/compliance_desk_fixture_review_gate.py`, with persisted artifact `mcp_server/city_ops/fixtures/aas_package_ladder/compliance_desk_fixture_review_gate.json`, tests, and implementation note `docs/planning/EXECUTION_MARKET_COMPLIANCE_DESK_FIXTURE_REVIEW_GATE_IMPLEMENTATION.md`. Safe claim: `compliance_desk_fixture_review_gate_landed` only.
+
+### 4.1 Update after May 13 01:00 dream continuation
+
+The adjacent-family ladder has now been exercised beyond the original three recommended slices:
+
+- Compliance Desk has advanced through fixture gate, local reviewed fixture, internal package record, read-only operator surface, customer-output schema gate, internal sample output, and explicit hold decision. Safe latest claim: `compliance_desk_sample_output_review_decision_landed` only; still no customer/public/pilot/dispatch/reputation/live-runtime/GPS/legal/worker-doctrine readiness.
+- Document / Handoff Logistics has advanced through fixture gate and one local reviewed fixture. Safe latest claim: `document_handoff_local_reviewed_fixture_landed` only; still no customer/public/pilot/dispatch/reputation/live-runtime/GPS/legal-service/notarial/private-identity/guaranteed-acceptance/custody-guarantee/worker-doctrine readiness.
+
+Current next safe implementation slice: create a **Document / Handoff internal package record** over `document_handoff_local_reviewed_fixture.json`, preserving safe and blocked claims side by side and keeping every readiness flag false.
 
 ## 5. Standing blocked claims
 
