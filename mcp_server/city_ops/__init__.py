@@ -147,6 +147,11 @@ from .compliance_desk_customer_output_schema_gate import (
     load_compliance_desk_customer_output_schema_gate,
     write_compliance_desk_customer_output_schema_gate,
 )
+from .compliance_desk_internal_sample_output import (
+    build_compliance_desk_internal_sample_output,
+    load_compliance_desk_internal_sample_output,
+    write_compliance_desk_internal_sample_output,
+)
 from .phase1_operator_coverage_renderer import (
     build_phase1_operator_coverage_renderer,
     load_phase1_operator_coverage_renderer,
@@ -270,6 +275,9 @@ __all__ = [
     "build_compliance_desk_customer_output_schema_gate",
     "load_compliance_desk_customer_output_schema_gate",
     "write_compliance_desk_customer_output_schema_gate",
+    "build_compliance_desk_internal_sample_output",
+    "load_compliance_desk_internal_sample_output",
+    "write_compliance_desk_internal_sample_output",
     "build_phase1_operator_coverage_renderer",
     "load_phase1_operator_coverage_renderer",
     "write_phase1_operator_coverage_renderer",
