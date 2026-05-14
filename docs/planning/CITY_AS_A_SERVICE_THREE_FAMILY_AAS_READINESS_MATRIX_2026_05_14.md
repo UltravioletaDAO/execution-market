@@ -65,6 +65,16 @@ Recommended daytime fork:
 
 Do **not** use this matrix as authorization for publication, routes, dispatch, reputation, live runtime, exact GPS/raw metadata release, or worker-copyable doctrine.
 
+## 07:00 no-customer-exposure follow-up
+
+The no-customer-exposure fork now has a compact internal/admin review artifact:
+
+- `mcp_server/city_ops/fixtures/aas_package_ladder/aas_three_family_packaging_review_packet.json`
+- implementation note: `CITY_AS_A_SERVICE_AAS_THREE_FAMILY_PACKAGING_REVIEW_PACKET_IMPLEMENTATION.md`
+- safe claim: `aas_three_family_packaging_review_packet_landed`
+
+It keeps all three families held and makes only package labels, pricing inputs, and operator queue/workflow shape reviewable. It does not approve customer copy, delivery, routes, public prices, dispatch, reputation, live runtime, exact GPS/raw metadata release, or worker doctrine.
+
 ## Source artifacts
 
 - `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_14.md`
