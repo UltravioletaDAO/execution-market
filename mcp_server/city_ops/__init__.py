@@ -212,6 +212,11 @@ from .incident_verification_operator_read_surface import (
     load_incident_verification_operator_read_surface,
     write_incident_verification_operator_read_surface,
 )
+from .incident_verification_customer_output_schema_gate import (
+    build_incident_verification_customer_output_schema_gate,
+    load_incident_verification_customer_output_schema_gate,
+    write_incident_verification_customer_output_schema_gate,
+)
 from .phase1_operator_coverage_renderer import (
     build_phase1_operator_coverage_renderer,
     load_phase1_operator_coverage_renderer,
@@ -374,6 +379,9 @@ __all__ = [
     "build_incident_verification_operator_read_surface",
     "load_incident_verification_operator_read_surface",
     "write_incident_verification_operator_read_surface",
+    "build_incident_verification_customer_output_schema_gate",
+    "load_incident_verification_customer_output_schema_gate",
+    "write_incident_verification_customer_output_schema_gate",
     "build_phase1_operator_coverage_renderer",
     "load_phase1_operator_coverage_renderer",
     "write_phase1_operator_coverage_renderer",
