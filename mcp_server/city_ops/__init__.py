@@ -192,6 +192,16 @@ from .document_handoff_sample_output_review_decision import (
     load_document_handoff_sample_output_review_decision,
     write_document_handoff_sample_output_review_decision,
 )
+from .incident_verification_fixture_review_gate import (
+    build_incident_verification_fixture_review_gate,
+    load_incident_verification_fixture_review_gate,
+    write_incident_verification_fixture_review_gate,
+)
+from .incident_verification_local_reviewed_fixture import (
+    build_incident_verification_local_reviewed_fixture,
+    load_incident_verification_local_reviewed_fixture,
+    write_incident_verification_local_reviewed_fixture,
+)
 from .phase1_operator_coverage_renderer import (
     build_phase1_operator_coverage_renderer,
     load_phase1_operator_coverage_renderer,
@@ -342,6 +352,12 @@ __all__ = [
     "build_document_handoff_sample_output_review_decision",
     "load_document_handoff_sample_output_review_decision",
     "write_document_handoff_sample_output_review_decision",
+    "build_incident_verification_fixture_review_gate",
+    "load_incident_verification_fixture_review_gate",
+    "write_incident_verification_fixture_review_gate",
+    "build_incident_verification_local_reviewed_fixture",
+    "load_incident_verification_local_reviewed_fixture",
+    "write_incident_verification_local_reviewed_fixture",
     "build_phase1_operator_coverage_renderer",
     "load_phase1_operator_coverage_renderer",
     "write_phase1_operator_coverage_renderer",
