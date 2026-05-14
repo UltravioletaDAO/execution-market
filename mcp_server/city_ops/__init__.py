@@ -207,6 +207,11 @@ from .incident_verification_internal_package_record import (
     load_incident_verification_internal_package_record,
     write_incident_verification_internal_package_record,
 )
+from .incident_verification_operator_read_surface import (
+    build_incident_verification_operator_read_surface,
+    load_incident_verification_operator_read_surface,
+    write_incident_verification_operator_read_surface,
+)
 from .phase1_operator_coverage_renderer import (
     build_phase1_operator_coverage_renderer,
     load_phase1_operator_coverage_renderer,
@@ -366,6 +371,9 @@ __all__ = [
     "build_incident_verification_internal_package_record",
     "load_incident_verification_internal_package_record",
     "write_incident_verification_internal_package_record",
+    "build_incident_verification_operator_read_surface",
+    "load_incident_verification_operator_read_surface",
+    "write_incident_verification_operator_read_surface",
     "build_phase1_operator_coverage_renderer",
     "load_phase1_operator_coverage_renderer",
     "write_phase1_operator_coverage_renderer",
