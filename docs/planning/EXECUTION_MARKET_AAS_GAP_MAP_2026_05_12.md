@@ -177,6 +177,13 @@ The adjacent-family ladder has now been exercised through an explicit internal/a
 
 Current next safe implementation slice: do **not** publish by default. If customer exposure is desired, create a separate human-operator approval artifact for exactly one held sample/text boundary, naming exact approved text, redactions, authorized delivery path, and still-blocked claims. If customer exposure is not desired, create an internal three-family AAS readiness matrix that summarizes current ladder step, latest safe claim, blocked authority class, readiness flags, and next smallest gate without broadening routes, dispatch, reputation, live runtime, exact GPS/raw metadata exposure, or worker-copyable doctrine.
 
+### 4.2 Update after May 14 06:00 final seal
+
+The internal three-family readiness matrix now exists as `docs/planning/CITY_AS_A_SERVICE_THREE_FAMILY_AAS_READINESS_MATRIX_2026_05_14.md`. It summarizes Compliance Desk, Document / Handoff Logistics, and Incident Verification at the same conservative ladder boundary: explicit internal/admin sample-output hold decision. This is a review shortcut only; it does not create customer copy, customer delivery approval, public/catalog routes, pilot exposure, dispatch, reputation, live Acontext/runtime parity, exact GPS/raw metadata release, domain-authority claims, or worker-copyable doctrine.
+
+Daytime should treat the matrix as the decision fork: either approve exactly one held text boundary through a separate human-operator artifact, or keep all families held while packaging/pricing/operator workflow is reviewed.
+
+
 ## 5. Standing blocked claims
 
 Until separate gates prove otherwise, every CaaS and adjacent AAS artifact must continue blocking:

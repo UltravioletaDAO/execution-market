@@ -3,7 +3,7 @@
 > Scope: Execution Market AAS / City-as-a-Service only
 > Governing priority file: `~/clawd/DREAM-PRIORITIES.md`
 > Branch: `feat/operator-route-regret-panel`
-> Final seal: 05:00 America/New_York
+> Final seal: 06:00 America/New_York
 
 ## TL;DR
 
@@ -17,17 +17,18 @@ Daytime should treat the current state as:
 
 Read in this order:
 
-1. `CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_14.md`
-2. `EXECUTION_MARKET_AAS_GAP_MAP_2026_05_12.md`
-3. `EXECUTION_MARKET_AAS_MINIMUM_LADDER_TEMPLATE_IMPLEMENTATION.md`
-4. `EXECUTION_MARKET_INCIDENT_VERIFICATION_FIXTURE_REVIEW_GATE_IMPLEMENTATION.md`
-5. `CITY_AS_A_SERVICE_INCIDENT_VERIFICATION_LOCAL_FIXTURE_IMPLEMENTATION.md`
-6. `CITY_AS_A_SERVICE_INCIDENT_VERIFICATION_INTERNAL_PACKAGE_RECORD_IMPLEMENTATION.md`
-7. `CITY_AS_A_SERVICE_INCIDENT_VERIFICATION_OPERATOR_READ_SURFACE_IMPLEMENTATION.md`
-8. `CITY_AS_A_SERVICE_INCIDENT_VERIFICATION_CUSTOMER_OUTPUT_SCHEMA_GATE_IMPLEMENTATION.md`
-9. `CITY_AS_A_SERVICE_INCIDENT_VERIFICATION_INTERNAL_SAMPLE_OUTPUT_IMPLEMENTATION.md`
-10. `CITY_AS_A_SERVICE_INCIDENT_VERIFICATION_SAMPLE_OUTPUT_REVIEW_DECISION_IMPLEMENTATION.md`
-11. `mcp_server/city_ops/fixtures/aas_package_ladder/incident_verification_sample_output_review_decision.json`
+1. `CITY_AS_A_SERVICE_THREE_FAMILY_AAS_READINESS_MATRIX_2026_05_14.md`
+2. `CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_14.md`
+3. `EXECUTION_MARKET_AAS_GAP_MAP_2026_05_12.md`
+4. `EXECUTION_MARKET_AAS_MINIMUM_LADDER_TEMPLATE_IMPLEMENTATION.md`
+5. `EXECUTION_MARKET_INCIDENT_VERIFICATION_FIXTURE_REVIEW_GATE_IMPLEMENTATION.md`
+6. `CITY_AS_A_SERVICE_INCIDENT_VERIFICATION_LOCAL_FIXTURE_IMPLEMENTATION.md`
+7. `CITY_AS_A_SERVICE_INCIDENT_VERIFICATION_INTERNAL_PACKAGE_RECORD_IMPLEMENTATION.md`
+8. `CITY_AS_A_SERVICE_INCIDENT_VERIFICATION_OPERATOR_READ_SURFACE_IMPLEMENTATION.md`
+9. `CITY_AS_A_SERVICE_INCIDENT_VERIFICATION_CUSTOMER_OUTPUT_SCHEMA_GATE_IMPLEMENTATION.md`
+10. `CITY_AS_A_SERVICE_INCIDENT_VERIFICATION_INTERNAL_SAMPLE_OUTPUT_IMPLEMENTATION.md`
+11. `CITY_AS_A_SERVICE_INCIDENT_VERIFICATION_SAMPLE_OUTPUT_REVIEW_DECISION_IMPLEMENTATION.md`
+12. `mcp_server/city_ops/fixtures/aas_package_ladder/incident_verification_sample_output_review_decision.json`
 
 ## What was accomplished vs planned
 
@@ -147,9 +148,18 @@ Do not broaden tonight's artifacts into:
 - exact GPS/raw metadata exposure
 - live Acontext sink or runtime parity claim
 
+
+## 6 AM final seal
+
+The 6 AM pass added one documentation-only internal review artifact:
+
+- `CITY_AS_A_SERVICE_THREE_FAMILY_AAS_READINESS_MATRIX_2026_05_14.md`
+
+This matrix compresses the three adjacent AAS families into one daytime review table. It does not add a customer surface or a new readiness claim. Its purpose is to make the day/night handoff easier: Compliance Desk, Document / Handoff Logistics, and Incident Verification are all at explicit internal/admin hold decisions, with publication, delivery, routing, dispatch, reputation, live-runtime, GPS/raw-metadata, domain-authority, and worker-doctrine claims still blocked.
+
 ## Verification
 
-Final 5 AM gate:
+Final 6 AM gate:
 
 ```bash
 /opt/homebrew/bin/python3.14 -m pytest -q mcp_server/tests/city_ops
@@ -160,7 +170,8 @@ Final 5 AM gate:
 
 - `projects/execution-market` synced at session start: `git pull --ff-only` → already up to date.
 - Branch: `feat/operator-route-regret-panel`
-- Latest implementation commit before this handoff: `b3036f40 Add incident verification sample hold decision`
+- Latest implementation commit before documentation seal: `b3036f40 Add incident verification sample hold decision`
+- Latest documentation commit before 6 AM seal: `bfb7843c docs: add May 14 caas handoff`
 - Known untouched untracked file: `scripts/sign_req.mjs` remains pre-existing and was left alone.
 - Stopped repos were not used for work. AutoJob, Frontier Academy, KK v2, and KarmaCadabra v2 remained blocked by `DREAM-PRIORITIES.md`.
 
