@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-14 04:00 America/New_York
+> Last updated: 2026-05-14 05:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -199,6 +199,9 @@ Latest May 14 00:00 implementation: `mcp_server/city_ops/incident_verification_i
 
 
 Latest May 14 04:00 implementation: `mcp_server/city_ops/incident_verification_sample_output_review_decision.py` now records the separate explicit hold decision over the Incident Verification internal/admin sample output, persisted at `mcp_server/city_ops/fixtures/aas_package_ladder/incident_verification_sample_output_review_decision.json`. It consumes only `incident_verification_internal_sample_output.json`, sets `review_decision=hold_not_approved_not_publishable`, records the explicit hold, and keeps operator approval, publish approval, customer delivery, publication, public route/catalog/pilot, dispatch, reputation, live Acontext/runtime parity, exact GPS/raw metadata release, emergency response, safety certification, repair diagnosis/completion, insurance adjustment, SLA uptime, official incident reporting, fault/liability assignment, and worker-copyable incident doctrine false/blocked. This earns only `incident_verification_sample_output_review_decision_landed`, inheriting prior Incident Verification safe claims. The next safe step is no publication by default; if customer exposure is desired later, create a separate human-operator approval artifact naming exact text, redactions, delivery path, and still-blocked claims. The 04:00 synthesis is `CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_14.md`.
+
+
+Latest May 14 05:00 final handoff: `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_14.md` is now the daytime coordination entrypoint. No new product surface or readiness claim was added at 5 AM; the handoff sealed the Incident Verification ladder and synthesized the three-family AAS pattern. Compliance Desk, Document / Handoff Logistics, and Incident Verification have now each reached an explicit internal/admin sample-output hold decision. Treat this as a reusable packaging proof, not a launch: customer copy, public catalog/routes, controlled pilot exposure, dispatch, ERC-8004 reputation, live Acontext/runtime parity, exact GPS/raw metadata release, domain-authority claims, and worker-copyable doctrine remain false/blocked. The next safe daytime move, if customer exposure is desired, is one separate human-operator approval artifact for exactly one held sample/text boundary naming exact approved text, redactions, delivery path, and still-blocked claims. If customer exposure is not desired, create an internal three-family AAS readiness matrix rather than broadening routes or verticals by default.
 
 
 ## 4. The next engineering window
