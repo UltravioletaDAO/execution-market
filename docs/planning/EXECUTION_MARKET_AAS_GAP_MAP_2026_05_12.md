@@ -173,8 +173,9 @@ The adjacent-family ladder has now been exercised beyond the original three reco
 
 - Compliance Desk has advanced through fixture gate, local reviewed fixture, internal package record, read-only operator surface, customer-output schema gate, internal sample output, and explicit hold decision. Safe latest claim: `compliance_desk_sample_output_review_decision_landed` only; still no customer/public/pilot/dispatch/reputation/live-runtime/GPS/legal/worker-doctrine readiness.
 - Document / Handoff Logistics has advanced through fixture gate, one local reviewed fixture, one internal package record, one read-only operator surface, and one customer-output schema gate. Safe latest claim: `document_handoff_customer_output_schema_gate_landed` only; still no customer/public/pilot/dispatch/reputation/live-runtime/GPS/legal-service/notarial/private-identity/guaranteed-acceptance/filing-success/custody-guarantee/worker-doctrine readiness.
+- Incident Verification has advanced through fixture gate, one local reviewed fixture, and one internal package record. Safe latest claim: `incident_verification_internal_package_record_landed` only; still no customer/public/pilot/dispatch/reputation/live-runtime/GPS/emergency-response/safety-certification/repair/insurance/SLA/official-report/worker-doctrine readiness.
 
-Current next safe implementation slice: draft one **Document / Handoff internal/admin sample output** against `document_handoff_customer_output_schema_gate.json`, then record a separate explicit hold/approval decision; preserve safe and blocked claims side by side and keep every readiness flag false.
+Current next safe implementation slice: create an **Incident Verification read-only operator surface** over `incident_verification_internal_package_record.json`, mirroring the Compliance Desk and Document / Handoff pattern; preserve safe and blocked claims side by side and keep every readiness flag false.
 
 ## 5. Standing blocked claims
 

@@ -1,0 +1,347 @@
+{
+  "do_not_claim_yet": [
+    "customer_copy_ready",
+    "customer_visible_catalog_ready",
+    "public_service_catalog_ready",
+    "controlled_concierge_pilot_ready",
+    "customer_pilot_exposure_ready",
+    "front_door_sku_ready",
+    "pilot_authorized",
+    "catalog_customer_ready",
+    "operator_publish_approval",
+    "customer_delivery_approval",
+    "publication_approved",
+    "filing_success_ready",
+    "broad_office_reuse_ready",
+    "city_relationship_or_influence",
+    "guaranteed_approval",
+    "legal_sufficiency",
+    "regulator_acceptance",
+    "live_acontext_ready",
+    "live_acontext_readiness",
+    "acontext_sink_ready",
+    "runtime_parity_proven",
+    "autonomous_dispatch_ready",
+    "autonomous_dispatch_readiness",
+    "dispatch_routing_ready",
+    "erc8004_reputation_ready",
+    "reputation_ready",
+    "worker_skill_dna_ready",
+    "worker_copyable_doctrine_ready",
+    "worker_copyable_municipal_doctrine",
+    "exact_gps_or_raw_metadata_exposure_allowed",
+    "exact_gps_or_metadata_exposure",
+    "raw_metadata_exposure_allowed",
+    "emergency_response",
+    "safety_certification",
+    "repair_diagnosis",
+    "repair_completion",
+    "repair_diagnosis_or_completion",
+    "insurance_adjustment",
+    "sla_uptime",
+    "official_incident_report",
+    "live_dispatch",
+    "erc8004_reputation_receipt",
+    "worker_copyable_incident_doctrine",
+    "legal_compliance",
+    "official_inspection",
+    "continuous_monitoring",
+    "permit_approval",
+    "appraisal_or_tenant_determination",
+    "trespass_or_access_guarantee",
+    "legal_service",
+    "notarial_act_without_separate_credential_scope",
+    "guaranteed_acceptance",
+    "identity_verification_beyond_scoped_evidence",
+    "custody_guarantee_outside_documented_windows",
+    "procurement_authority",
+    "vendor_contract_enforcement",
+    "guaranteed_pricing_or_inventory_beyond_observation_window",
+    "employee_performance_judgment",
+    "incident_verification_local_fixture_customer_delivery_ready",
+    "incident_verification_local_fixture_publication_ready",
+    "incident_verification_local_fixture_catalog_ready",
+    "incident_verification_local_fixture_dispatch_ready",
+    "incident_verification_local_fixture_reputation_ready",
+    "incident_verification_local_fixture_worker_doctrine_ready",
+    "incident_verification_local_fixture_live_acontext_ready",
+    "incident_verification_local_fixture_emergency_ready",
+    "incident_verification_local_fixture_safety_certification_ready",
+    "incident_verification_local_fixture_repair_ready",
+    "incident_verification_local_fixture_insurance_ready",
+    "incident_verification_local_fixture_official_report_ready",
+    "incident_verification_local_fixture_sla_ready",
+    "incident_verification_internal_package_customer_delivery_ready",
+    "incident_verification_internal_package_publication_ready",
+    "incident_verification_internal_package_catalog_ready",
+    "incident_verification_internal_package_dispatch_ready",
+    "incident_verification_internal_package_reputation_ready",
+    "incident_verification_internal_package_worker_doctrine_ready",
+    "incident_verification_internal_package_live_acontext_ready",
+    "incident_verification_internal_package_approval_ready",
+    "incident_verification_internal_package_emergency_ready",
+    "incident_verification_internal_package_safety_certification_ready",
+    "incident_verification_internal_package_repair_ready",
+    "incident_verification_internal_package_insurance_ready",
+    "incident_verification_internal_package_official_report_ready",
+    "incident_verification_internal_package_sla_ready",
+    "incident_verification_customer_ready",
+    "incident_verification_catalog_ready",
+    "incident_verification_dispatch_ready",
+    "incident_verification_reputation_ready",
+    "incident_verification_worker_doctrine_ready",
+    "incident_verification_official_report_ready",
+    "incident_verification_safety_ready",
+    "incident_verification_repair_ready"
+  ],
+  "internal_package_record": {
+    "customer_copy_changed": false,
+    "customer_delivery_allowed": false,
+    "dispatch_allowed": false,
+    "emergency_response_claimed": false,
+    "exact_gps_or_raw_metadata_exposure_allowed": false,
+    "insurance_adjustment_claimed": false,
+    "live_acontext_or_runtime_parity_claimed": false,
+    "official_incident_report_claimed": false,
+    "package_limitations": [
+      "Internal package record only; not a customer-facing incident report.",
+      "Synthetic local fixture does not represent a real incident case.",
+      "Incident state is observational and bounded to permitted evidence summaries.",
+      "Severity taxonomy is not a safety certification, emergency determination, repair diagnosis, insurance adjustment, SLA, or official report.",
+      "Follow-on trigger is only an operator next-step suggestion and does not authorize live dispatch.",
+      "No publication, catalog, pilot, dispatch, reputation, live runtime, exact-location release, emergency/safety/repair/insurance/SLA/official-report claim, or worker-doctrine readiness is authorized."
+    ],
+    "packaged_evidence_contract": {
+      "close_evidence_photo_where_allowed": "permitted_close_evidence_summary_without_private_identifiers_or_unsafe_access_claims",
+      "follow_on_task_trigger_if_another_visit_or_specialist_needed": "operator_review_next_step_only_no_live_dispatch",
+      "incident_question": "bounded_obstruction_like_condition_state_question",
+      "place_time_window_without_exact_public_coordinates": "synthetic_public_facing_place_category_and_relative_window_no_precise_address_or_gps",
+      "recommended_next_action": "package_as_internal_record_before_any_customer_output_schema_or_approval_decision",
+      "severity_taxonomy": "observational_taxonomy_not_safety_certification",
+      "uncertainty_note": "cause_fault_safety_repair_insurance_and_official_status_unverified",
+      "what_was_not_checked": "emergency_response_safety_certification_repair_insurance_official_report_sla_and_dispatch",
+      "wide_context_photo_or_permitted_visual_snapshot": "permitted_visual_summary_only_no_raw_metadata"
+    },
+    "packaged_reviewed_output": {
+      "close_evidence_summary": "Close evidence summary captured the observable condition category and approximate relative placement. It does not include raw photo metadata, precise measurements, private identifiers, or unsafe access claims.",
+      "follow_on_task_trigger": "operator_review_next_step_only: consider a separate scoped follow-up verification or specialist referral if the customer requests more than an observational state snapshot; do not auto-dispatch.",
+      "incident_question": "Is the reported obstruction-like condition visibly present during the scoped observation window, and what bounded next action should an operator consider?",
+      "limitations_and_non_guarantees": [
+        "This fixture is synthetic and local; it does not represent a real incident case.",
+        "The review does not certify safety, diagnose repairs, assign fault, or adjust insurance.",
+        "The output summarizes permitted evidence and excludes exact GPS/raw metadata/private addresses.",
+        "The follow-on trigger is only an operator next-step suggestion, not live dispatch.",
+        "No customer delivery, public catalog, dispatch route, ERC-8004 reputation receipt, SLA, official report, or worker doctrine is authorized."
+      ],
+      "offer_type": "one_location_incident_state_snapshot",
+      "operator_review_notice": "Reviewed for local fixture shape only. Keep all customer/public/pilot/dispatch/reputation/live-runtime/emergency/safety/repair/insurance/SLA/official-report/worker-doctrine readiness false.",
+      "place_time_window_summary": "Synthetic public-facing location category and same-day observation window only; no precise address, exact GPS coordinate, raw metadata, or private resident/tenant identity is retained in reviewed output.",
+      "plain_language_status": "A bounded one-location incident state snapshot was reviewed from permitted synthetic visual evidence and a scoped time window. This is an operator-reviewed evidence snapshot, not emergency response, not a safety certification, not a repair diagnosis, not an insurance adjustment, and not an official incident report.",
+      "recommended_next_action": "Create an Incident Verification internal package record that consumes this local fixture and keeps customer/public/dispatch/reputation/privacy/emergency/safety/repair/insurance/SLA/official-report/worker-doctrine readiness false.",
+      "severity_taxonomy": "observed_minor_to_moderate_obstruction_unverified_safety_impact",
+      "task_id_or_local_case_reference": "local_incident_verification_fixture_001",
+      "uncertainty_note": "The fixture cannot determine cause, legal responsibility, safety risk, repair scope, emergency urgency, insurance value, or official status.",
+      "what_was_checked": [
+        "incident_question_present",
+        "scoped_place_time_window_without_exact_public_coordinates",
+        "wide_context_visual_summary",
+        "close_evidence_visual_summary_where_allowed",
+        "observational_severity_taxonomy",
+        "uncertainty_and_limitations",
+        "follow_on_trigger_as_operator_next_step_only"
+      ],
+      "what_was_not_checked": [
+        "emergency_response_need",
+        "safety_certification",
+        "repair_diagnosis_or_completion",
+        "insurance_adjustment",
+        "official_incident_report",
+        "sla_uptime_or_resolution_time",
+        "exact_location_publication",
+        "live_dispatch_readiness",
+        "customer_delivery_readiness"
+      ],
+      "wide_context_evidence_summary": "Wide-context permitted visual snapshot showed the general scene and approach boundary, enough to classify that an obstruction-like condition was visible in the scoped window without exposing exact coordinates."
+    },
+    "publication_allowed": false,
+    "record_kind": "adjacent_aas_internal_package_record",
+    "repair_diagnosis_or_completion_claimed": false,
+    "reputation_attachment_allowed": false,
+    "review_status": "packaged_internal_only_not_promoted",
+    "reviewed_output_schema": {
+      "forbidden_fields": [
+        "exact_gps_coordinates",
+        "raw_metadata_blob",
+        "precise_address_or_private_location",
+        "raw_transcript_as_authority",
+        "private_operator_context",
+        "emergency_response_instruction",
+        "safety_certification_claim",
+        "repair_diagnosis_claim",
+        "repair_completion_claim",
+        "insurance_adjustment_claim",
+        "sla_uptime_claim",
+        "official_incident_report_claim",
+        "dispatch_instruction_or_assignment",
+        "erc8004_reputation_receipt",
+        "worker_copyable_incident_doctrine"
+      ],
+      "required_fields": [
+        "task_id_or_local_case_reference",
+        "offer_type",
+        "plain_language_status",
+        "incident_question",
+        "place_time_window_summary",
+        "wide_context_evidence_summary",
+        "close_evidence_summary",
+        "severity_taxonomy",
+        "uncertainty_note",
+        "what_was_checked",
+        "what_was_not_checked",
+        "limitations_and_non_guarantees",
+        "recommended_next_action",
+        "follow_on_task_trigger",
+        "operator_review_notice"
+      ],
+      "status": "local_reviewed_fixture_internal_only_not_customer_output"
+    },
+    "safety_certification_claimed": false,
+    "sla_uptime_claimed": false,
+    "source_artifacts": [
+      {
+        "fixture_id": "execution_market.aas.incident_verification.local_reviewed_fixture.001",
+        "fixture_kind": "synthetic_non_jurisdiction_specific_incident_state_snapshot",
+        "plain_language_status": "A bounded one-location incident state snapshot was reviewed from permitted synthetic visual evidence and a scoped time window. This is an operator-reviewed evidence snapshot, not emergency response, not a safety certification, not a repair diagnosis, not an insurance adjustment, and not an official incident report.",
+        "review_status": "reviewed_internal_fixture_only_not_promoted",
+        "source_file": "incident_verification_local_reviewed_fixture.json",
+        "source_schema": "city_ops.incident_verification_local_reviewed_fixture.v1"
+      }
+    ],
+    "uses_only_local_reviewed_fixture_artifact": true,
+    "worker_copyable_doctrine_allowed": false
+  },
+  "ladder_boundary": {
+    "covered_steps": [
+      "narrow_concierge_offer_card",
+      "fixture_spec",
+      "review_gate_checklist",
+      "reviewed_output_schema",
+      "local_reviewed_fixture",
+      "internal_package_record"
+    ],
+    "next_required_steps_before_promotion": [
+      "coverage_summary_or_read_only_operator_surface",
+      "customer_output_schema_gate",
+      "internal_sample_output",
+      "explicit_approval_or_hold_decision"
+    ],
+    "promotion_allowed": false
+  },
+  "next_smallest_proof": "Create an Incident Verification coverage summary or read-only operator surface over this internal package record while keeping customer/public/dispatch/reputation/privacy/emergency/safety/repair/insurance/SLA/official-report/worker-doctrine readiness false.",
+  "offer_id": "one_location_incident_state_snapshot",
+  "operator_instruction": "Use this only as the Incident Verification internal package record. The next valid step is a read-only operator coverage surface or explicit customer-output schema gate, not customer copy, catalog routing, dispatch, reputation, live Acontext, exact-location release, emergency/safety/repair/insurance/SLA/official-report claims, or worker-copyable doctrine.",
+  "package_family_id": "incident_verification_as_a_service",
+  "package_id": "execution_market.aas.incident_verification.internal_package_record.001",
+  "package_review_checks": [
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "source_local_fixture_safe_claims_present",
+      "status": "passed_for_internal_package_record_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "source_fixture_review_status_internal_only",
+      "status": "passed_for_internal_package_record_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "package_uses_only_local_reviewed_fixture_artifact",
+      "status": "passed_for_internal_package_record_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "incident_evidence_and_reviewed_output_fields_preserved",
+      "status": "passed_for_internal_package_record_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "incident_question_remains_observational_and_bounded",
+      "status": "passed_for_internal_package_record_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "place_time_window_preserves_no_exact_public_coordinates",
+      "status": "passed_for_internal_package_record_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "wide_and_close_evidence_remain_permitted_summaries_only",
+      "status": "passed_for_internal_package_record_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "severity_taxonomy_remains_observational_not_safety_certification",
+      "status": "passed_for_internal_package_record_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "uncertainty_and_what_was_not_checked_remain_explicit",
+      "status": "passed_for_internal_package_record_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "follow_on_trigger_remains_operator_next_step_only_not_dispatch",
+      "status": "passed_for_internal_package_record_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "emergency_safety_repair_insurance_sla_and_official_report_claims_absent",
+      "status": "passed_for_internal_package_record_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "customer_public_dispatch_reputation_and_worker_doctrine_still_blocked",
+      "status": "passed_for_internal_package_record_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "next_ladder_steps_require_separate_artifacts",
+      "status": "passed_for_internal_package_record_only"
+    }
+  ],
+  "package_status": "internal_package_record_only_not_customer_ready",
+  "readiness": {
+    "autonomous_dispatch_ready": false,
+    "controlled_concierge_pilot_ready": false,
+    "customer_copy_ready": false,
+    "customer_delivery_approval": false,
+    "customer_pilot_exposure_allowed": false,
+    "customer_visible_catalog_ready": false,
+    "exact_gps_or_raw_metadata_exposure_allowed": false,
+    "front_door_sku_ready": false,
+    "live_acontext_ready": false,
+    "operator_publish_approval": false,
+    "public_service_catalog_ready": false,
+    "publication_approved": false,
+    "reputation_ready": false,
+    "runtime_parity_proven": false,
+    "worker_copyable_doctrine_ready": false,
+    "worker_skill_dna_ready": false
+  },
+  "safe_to_claim": [
+    "incident_verification_internal_package_record_landed",
+    "incident_verification_local_reviewed_fixture_landed",
+    "incident_verification_fixture_review_gate_landed",
+    "aas_minimum_ladder_template_landed"
+  ],
+  "schema": "city_ops.incident_verification_internal_package_record.v1",
+  "scope": "internal_admin_incident_verification_package_record_only",
+  "source_fixture_file": "incident_verification_local_reviewed_fixture.json",
+  "source_fixture_id": "execution_market.aas.incident_verification.local_reviewed_fixture.001",
+  "source_fixture_schema": "city_ops.incident_verification_local_reviewed_fixture.v1",
+  "source_safe_claims_inherited": [
+    "incident_verification_local_reviewed_fixture_landed",
+    "incident_verification_fixture_review_gate_landed",
+    "aas_minimum_ladder_template_landed"
+  ]
+}
