@@ -1,7 +1,7 @@
 # Execution Market AAS Gap Map — CaaS-Derived Package Families (2026-05-12)
 
-> Scope: Execution Market AAS / City-as-a-Service planning only.  
-> Status: internal gap map; no runtime code change; not public copy; not customer-facing readiness.  
+> Scope: Execution Market AAS / City-as-a-Service planning only.
+> Status: internal gap map; no runtime code change; not public copy; not customer-facing readiness.
 > Governing priority: `~/clawd/DREAM-PRIORITIES.md` keeps dream work on Execution Market AAS / CaaS and blocks stopped projects.
 
 ## 1. Current CaaS ladder inventory
@@ -199,19 +199,6 @@ Safe latest claim: `aas_single_boundary_approval_record_schema_gate_landed` only
 The next safe step is not automatable while Saúl/operator is asleep: a real human operator must create one separate approval record for this exact boundary if customer exposure is desired.
 
 
-## 5. Standing blocked claims
-
-Until separate gates prove otherwise, every CaaS and adjacent AAS artifact must continue blocking:
-
-- public readiness, customer readiness, customer-visible catalog, front-door SKU, controlled pilot exposure
-- legal approval, legal sufficiency, filing success, regulator acceptance, city relationship or influence
-- live dispatch, autonomous dispatch, worker Skill DNA, worker-copyable doctrine
-- exact GPS/raw metadata exposure or raw transcript authority
-- live Acontext sink readiness, runtime parity, durable live memory writes
-- ERC-8004 reputation or reputation receipt attachment
-
-The safe product direction remains: use CaaS to harden Execution Market's reviewed real-world execution primitive, then reuse that primitive cautiously across adjacent AAS packages only when each package carries its own reviewed evidence and blocked claims beside any safe claims.
-
 ### 4.5 Update after May 15 01:00 dream continuation
 
 The single-boundary approval gate now has a human-operator review brief:
@@ -259,3 +246,28 @@ Current latest safe claims remain:
 The customer-exposure switch is now explicit: either keep the Compliance Desk package-label boundary held, or have a real human operator create one separate approval record for exactly `Visible posting / notice compliance snapshot` and validate it fail-closed. Even a valid record must not authorize customer delivery, publication, public pricing, routes/catalog/pilot, queue launch, dispatch, reputation, live runtime, exact GPS/raw metadata release, domain-authority claims, or worker doctrine.
 
 The system-integration switch is also explicit: run exactly one live Acontext write/retrieve parity pass only after prerequisites are real. If prerequisites remain blocked, continue only narrow internal/admin pass-through or guardrail work preserving invariant IDs, declared-vs-verified badges, sticky blocked claims, and one next-proof slot. Payment and production-infra confidence must be re-probed separately before being repeated as current claims.
+
+### 4.9 Update after May 15 06:00 final morning brief
+
+The final 6 AM pass added `docs/planning/CITY_AS_A_SERVICE_6AM_MORNING_BRIEF_2026_05_15.md` as the compact day/night coordination entrypoint. It adds no product surface, no route, no customer copy, and no new readiness claim. The active safe claims remain:
+
+```text
+aas_single_boundary_approval_record_validator_landed
+admin_system_integration_flywheel_surface_landed
+```
+
+Daytime should treat the brief as a launch-control summary only: either create one real human approval record for exactly the Compliance Desk label boundary (`Visible posting / notice compliance snapshot`) and validate it fail-closed, or keep that boundary held. Separately, run one live Acontext write/retrieve parity pass only after prerequisites are real. Any current payment/API/dashboard/infra claim needs a fresh probe before it is repeated.
+
+
+## 5. Standing blocked claims
+
+Until separate gates prove otherwise, every CaaS and adjacent AAS artifact must continue blocking:
+
+- public readiness, customer readiness, customer-visible catalog, front-door SKU, controlled pilot exposure
+- legal approval, legal sufficiency, filing success, regulator acceptance, city relationship or influence
+- live dispatch, autonomous dispatch, worker Skill DNA, worker-copyable doctrine
+- exact GPS/raw metadata exposure or raw transcript authority
+- live Acontext sink readiness, runtime parity, durable live memory writes
+- ERC-8004 reputation or reputation receipt attachment
+
+The safe product direction remains: use CaaS to harden Execution Market's reviewed real-world execution primitive, then reuse that primitive cautiously across adjacent AAS packages only when each package carries its own reviewed evidence and blocked claims beside any safe claims.

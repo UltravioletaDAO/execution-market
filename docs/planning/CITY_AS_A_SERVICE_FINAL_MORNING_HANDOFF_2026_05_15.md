@@ -1,8 +1,8 @@
 # City as a Service — Final Morning Handoff 2026-05-15
 
-> Status: 5 AM dream handoff for daytime operations  
-> Scope: Execution Market AAS / City-as-a-Service only  
-> Priority source: `~/clawd/DREAM-PRIORITIES.md`  
+> Status: 6 AM final dream handoff for daytime operations
+> Scope: Execution Market AAS / City-as-a-Service only
+> Priority source: `~/clawd/DREAM-PRIORITIES.md`
 > Product posture: internal/admin only; no customer/public launch claim
 
 ## Morning state
@@ -93,15 +93,20 @@ Run a separate current probe. The 05:00 synthesis did not reverify payment cover
 
 Read in this order:
 
-1. `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_15.md`
-2. `CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_15.md`
-3. `CITY_AS_A_SERVICE_THREE_FAMILY_AAS_READINESS_MATRIX_2026_05_14.md`
-4. `EXECUTION_MARKET_AAS_GAP_MAP_2026_05_12.md`
-5. `CITY_AS_A_SERVICE_DAYTIME_EXECUTION_BOARD.md`
+1. `CITY_AS_A_SERVICE_6AM_MORNING_BRIEF_2026_05_15.md`
+2. `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_15.md`
+3. `CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_15.md`
+4. `CITY_AS_A_SERVICE_THREE_FAMILY_AAS_READINESS_MATRIX_2026_05_14.md`
+5. `EXECUTION_MARKET_AAS_GAP_MAP_2026_05_12.md`
+6. `CITY_AS_A_SERVICE_DAYTIME_EXECUTION_BOARD.md`
+
+## 6 AM final seal
+
+The final 6 AM pass added `CITY_AS_A_SERVICE_6AM_MORNING_BRIEF_2026_05_15.md` as the concise day/night coordination entrypoint. It adds no product surface and no readiness claim. It preserves the same two decision switches: one exact human approval record for the Compliance Desk label boundary if customer exposure is desired, and one live Acontext parity pass only after prerequisites are real.
 
 ## Verification status
 
-This handoff is documentation-only. Full city-ops suite after the handoff docs:
+This handoff is documentation-only. Full city-ops suite after the final docs seal:
 
 ```bash
 PYTHONPATH=. /opt/homebrew/bin/python3.14 -m pytest -q mcp_server/tests/city_ops
