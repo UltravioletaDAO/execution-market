@@ -1,0 +1,355 @@
+{
+  "access_policy": {
+    "audience": "internal_admin_only",
+    "customer_visible": false,
+    "dispatch_enabled": false,
+    "emits_reputation_receipts": false,
+    "exposes_gps_or_metadata": false,
+    "public_route_registered": false,
+    "publishes_worker_doctrine": false,
+    "requires_admin_context": true,
+    "worker_visible": false,
+    "writes_live_acontext": false,
+    "writes_municipal_memory": false
+  },
+  "claim_boundaries": {
+    "do_not_claim_yet": [
+      "runtime_parity_proven",
+      "reuse_behavior_proven",
+      "closure_proof_ready",
+      "closure_proof_landed",
+      "session_rebuild_ready",
+      "acontext_sink_ready",
+      "worker-copyable municipal doctrine",
+      "acontext_live_write_completed",
+      "acontext_live_retrieval_completed",
+      "acontext_live_transport_parity_landed",
+      "polished_review_console_ready",
+      "office_memory_view_ready",
+      "broad_operator_workflow_ready",
+      "multi_jurisdiction_playbook_ready",
+      "autonomous_city_dispatch_ready",
+      "customer_visible_catalog_ready",
+      "public_route_ready",
+      "worker Skill DNA readiness",
+      "live_acontext_sink_ready",
+      "customer_visible_aas_packaging_ready",
+      "payment_coverage_reverified_by_this_artifact",
+      "eight_chain_payment_perfection_revalidated_by_this_artifact",
+      "worker_copyable_municipal_doctrine_ready",
+      "raw_transcript_replay_required_for_normal_handoff",
+      "live_memory_write_completed",
+      "customer_copy_ready",
+      "operator_queue_launch_ready",
+      "payment_coverage_reverified_by_this_surface",
+      "production_infrastructure_reverified_by_this_surface",
+      "erc8004_reputation_ready",
+      "worker_skill_dna_ready",
+      "exact_gps_or_metadata_exposure_allowed"
+    ],
+    "safe_to_claim": [
+      "projection_truth_landed",
+      "reuse_parity_landed",
+      "session_rebuild_consumer_landed",
+      "session_rebuild_report_fixture_landed",
+      "acontext_transport_parity_test_landed",
+      "acontext_live_preflight_landed",
+      "thin_operator_debug_surface_landed",
+      "proof_observability_metrics_landed",
+      "coordination_intelligence_snapshot_landed",
+      "decision_support_readiness_matrix_landed",
+      "aas_system_integration_flywheel_landed",
+      "admin_system_integration_flywheel_surface_landed"
+    ]
+  },
+  "claim_boundary_footer": {
+    "do_not_claim_yet": [
+      "runtime_parity_proven",
+      "reuse_behavior_proven",
+      "closure_proof_ready",
+      "closure_proof_landed",
+      "session_rebuild_ready",
+      "acontext_sink_ready",
+      "worker-copyable municipal doctrine",
+      "acontext_live_write_completed",
+      "acontext_live_retrieval_completed",
+      "acontext_live_transport_parity_landed",
+      "polished_review_console_ready",
+      "office_memory_view_ready",
+      "broad_operator_workflow_ready",
+      "multi_jurisdiction_playbook_ready",
+      "autonomous_city_dispatch_ready",
+      "customer_visible_catalog_ready",
+      "public_route_ready",
+      "worker Skill DNA readiness",
+      "live_acontext_sink_ready",
+      "customer_visible_aas_packaging_ready",
+      "payment_coverage_reverified_by_this_artifact",
+      "eight_chain_payment_perfection_revalidated_by_this_artifact",
+      "worker_copyable_municipal_doctrine_ready",
+      "raw_transcript_replay_required_for_normal_handoff",
+      "live_memory_write_completed",
+      "customer_copy_ready",
+      "operator_queue_launch_ready",
+      "payment_coverage_reverified_by_this_surface",
+      "production_infrastructure_reverified_by_this_surface",
+      "erc8004_reputation_ready",
+      "worker_skill_dna_ready",
+      "exact_gps_or_metadata_exposure_allowed"
+    ],
+    "placement": "sticky_after_every_recommendation",
+    "safe_to_claim": [
+      "projection_truth_landed",
+      "reuse_parity_landed",
+      "session_rebuild_consumer_landed",
+      "session_rebuild_report_fixture_landed",
+      "acontext_transport_parity_test_landed",
+      "acontext_live_preflight_landed",
+      "thin_operator_debug_surface_landed",
+      "proof_observability_metrics_landed",
+      "coordination_intelligence_snapshot_landed",
+      "decision_support_readiness_matrix_landed",
+      "aas_system_integration_flywheel_landed",
+      "admin_system_integration_flywheel_surface_landed"
+    ]
+  },
+  "compact_decision_id": "cdo_c51f4b767729",
+  "connection_loop_cards": [
+    {
+      "axis_state": "blocked_prerequisites_missing",
+      "card": "reviewed_memory_to_acontext_to_better_dispatch",
+      "guardrail": "do not promote acontext_sink_ready until live write/retrieve parity passes",
+      "operator_effect": "convert reviewed municipal episodes into compact retrieval candidates without live sink writes",
+      "source_strength": "intelligent_memory_with_26_plus_insights",
+      "uses_axis": "memory_system_to_acontext_bridge"
+    },
+    {
+      "axis_state": "compact_id_handoff_active",
+      "card": "irc_session_ids_to_cross_session_continuity",
+      "guardrail": "no raw transcript replay on the normal path",
+      "operator_effect": "handoff by coordination_session_id, compact_decision_id, review_packet_id, and proof_anchor_id",
+      "source_strength": "legendary_agent_coordination",
+      "uses_axis": "irc_session_management"
+    },
+    {
+      "axis_state": "bounded_verdict_reusable_operator_only",
+      "card": "decision_matrix_to_cross_project_operator_choices",
+      "guardrail": "require a second reviewed municipal case before cross-case doctrine",
+      "operator_effect": "reuse safe/blocked verdicts across AAS families without copying customer-facing claims",
+      "source_strength": "latest_city_ops_code_changes",
+      "uses_axis": "cross_project_decision_support"
+    },
+    {
+      "axis_state": "proof_block_metrics_landed",
+      "card": "observability_to_agent_success_metrics",
+      "guardrail": "do not treat planning metrics as a live dashboard or customer-visible metric surface",
+      "operator_effect": "measure whether future agents preserve boundaries, consume IDs, and recommend the next proof",
+      "source_strength": "production_infrastructure_operational",
+      "uses_axis": "agent_observability_success_metrics"
+    },
+    {
+      "axis_state": "bounded_verdict_reusable_operator_only",
+      "card": "payment_confidence_to_deployable_aas_boundaries",
+      "guardrail": "this artifact does not rerun or restate 8/8 chain payment verification",
+      "operator_effect": "keep AAS packaging aligned with operational payment rails while separating proof claims",
+      "source_strength": "eight_chain_payment_integration",
+      "uses_axis": "cross_project_decision_support"
+    }
+  ],
+  "coordination_session_id": "city_session_redirect_outdated_packet_001",
+  "derived_from": {
+    "consumes_only": [
+      "aas_system_integration_flywheel.json"
+    ],
+    "emits_reputation_receipts": false,
+    "enables_dispatch_automation": false,
+    "exposes_gps_or_metadata": false,
+    "forbidden_inputs": [
+      "raw_transcript",
+      "raw_conversation_replay",
+      "unreviewed_memory",
+      "private_operator_context",
+      "freeform_worker_chat",
+      "live_acontext_transport",
+      "payment_processor_probe",
+      "production_health_probe",
+      "gps_or_metadata_payloads"
+    ],
+    "publishes_worker_doctrine": false,
+    "read_only": true,
+    "reads_private_operator_context": false,
+    "reads_raw_transcripts": false,
+    "reads_unreviewed_memory": false,
+    "reverifies_payment_coverage": false,
+    "reverifies_production_infrastructure": false,
+    "semantic_reinterpretation_performed": false,
+    "source_artifacts": [
+      "aas_system_integration_flywheel.json"
+    ],
+    "writes_customer_copy": false,
+    "writes_live_acontext": false,
+    "writes_municipal_memory": false
+  },
+  "four_id_session_header": {
+    "compact_decision_id": "cdo_c51f4b767729",
+    "coordination_session_id": "city_session_redirect_outdated_packet_001",
+    "normal_handoff_rule": "handoff by invariant IDs; do not reopen raw transcripts",
+    "proof_anchor_id": "redirect_outdated_packet_001",
+    "review_packet_id": "review_packet_redirect_outdated_packet_001"
+  },
+  "next_smallest_proof": [
+    "start Docker and local Acontext without changing CaaS semantics",
+    "install or expose the Acontext Python SDK/CLI in this environment",
+    "verify http://localhost:8029/api/v1 and http://localhost:3000 are reachable",
+    "rerun this preflight before attempting any live Acontext sink write",
+    "add a second reviewed municipal case before promoting cross-case doctrine",
+    "keep matrix consumption read-only until live Acontext parity is proven",
+    "run one live Acontext write/retrieve parity pass before promoting sink readiness",
+    "add one dashboard/admin consumer that renders this flywheel without changing claim boundaries",
+    "rerun payment and production probes separately before repeating 8/8 or operational claims"
+  ],
+  "operator_next_action_cards": [
+    {
+      "card": "live_acontext_parity_probe",
+      "claim_unlocked_only_if_passes": "acontext_live_transport_parity_landed",
+      "surface_approval_granted": "false",
+      "why": "turn the memory/Acontext bridge from planned or attemptable into verified sink behavior"
+    },
+    {
+      "card": "admin_flywheel_read_surface",
+      "claim_unlocked_only_if_passes": "admin_system_integration_flywheel_surface_landed",
+      "surface_approval_granted": "false",
+      "why": "let operators see how strengths connect without reading the full proof bundle"
+    },
+    {
+      "card": "separate_payment_and_infra_probe",
+      "claim_unlocked_only_if_passes": "payment_and_infra_status_reverified_for_aas_packaging",
+      "surface_approval_granted": "false",
+      "why": "avoid mixing AAS planning proof with payment or production-health claims"
+    },
+    {
+      "card": "preserve_matrix_recommendation",
+      "claim_unlocked_only_if_passes": "clear Acontext prerequisites: docker_daemon_unavailable, acontext_python_sdk_missing, local_acontext_api_unreachable, local_acontext_dashboard_unreachable",
+      "surface_approval_granted": "false",
+      "why": "keep the current decision-support next step visible"
+    }
+  ],
+  "proof_anchor_id": "redirect_outdated_packet_001",
+  "readiness": {
+    "acontext_sink_ready": false,
+    "autonomous_dispatch_ready": false,
+    "customer_visible_packaging_ready": false,
+    "erc8004_reputation_ready": false,
+    "gps_or_metadata_exposure_allowed": false,
+    "operator_queue_launch_ready": false,
+    "payment_coverage_reverified_by_this_surface": false,
+    "production_infrastructure_reverified_by_this_surface": false,
+    "public_route_ready": false,
+    "runtime_parity_proven": false,
+    "source_flywheel_artifact_ready": true,
+    "source_ready_to_attempt_live_transport": false,
+    "surface_landed": true,
+    "surface_promotes_live_readiness": false,
+    "worker_copyable_doctrine_ready": false,
+    "worker_skill_dna_ready": false
+  },
+  "render_contract": {
+    "allowed_interpretation": "pass_through_flywheel_fields_only",
+    "layout": "four_id_header_strength_loop_cards_sticky_claim_footer",
+    "network_route_registered": false,
+    "render_status": "internal_admin_flywheel_read_surface_landed_not_route",
+    "response_fields": [
+      "four_id_session_header",
+      "strength_cards",
+      "connection_loop_cards",
+      "success_metric_cards",
+      "operator_next_action_cards",
+      "claim_boundary_footer",
+      "readiness"
+    ],
+    "suggested_internal_path": "/internal/admin/city-ops/aas-system-integration-flywheel"
+  },
+  "review_packet_id": "review_packet_redirect_outdated_packet_001",
+  "schema": "city_ops.aas_system_integration_flywheel_read_surface.v1",
+  "session_management_cards": [
+    {
+      "card": "four_id_session_header",
+      "implementation_rule": "include proof_anchor_id, coordination_session_id, compact_decision_id, and review_packet_id at the top of every IRC/admin handoff"
+    },
+    {
+      "card": "declared_vs_verified_badges",
+      "implementation_rule": "label payment, infrastructure, and memory-strength claims by verification_level before agents repeat them"
+    },
+    {
+      "card": "blocked_claim_sticky_footer",
+      "implementation_rule": "render blocked claims after every recommendation, not only in debug artifacts"
+    },
+    {
+      "card": "single_next_proof_slot",
+      "implementation_rule": "default next proof remains: clear Acontext prerequisites: docker_daemon_unavailable, acontext_python_sdk_missing, local_acontext_api_unreachable, local_acontext_dashboard_unreachable"
+    }
+  ],
+  "source_flywheel_id": "aas_system_integration_flywheel:redirect_outdated_packet_001",
+  "source_verdict": "system_integration_flywheel_landed_live_acontext_blocked",
+  "strength_cards": [
+    {
+      "card": "latest_city_ops_code_changes",
+      "may_be_repeated_as_freshly_reverified": false,
+      "safe_use": "treat recent city_ops proof slices as the bounded implementation substrate",
+      "verification_badge": "consumed_from_local_artifact_graph"
+    },
+    {
+      "card": "eight_chain_payment_integration",
+      "may_be_repeated_as_freshly_reverified": false,
+      "safe_use": "use as production-confidence context only; do not claim fresh payment verification",
+      "verification_badge": "declared_not_reverified_by_this_artifact"
+    },
+    {
+      "card": "intelligent_memory_with_26_plus_insights",
+      "may_be_repeated_as_freshly_reverified": false,
+      "safe_use": "shape memory/Acontext bridge requirements without writing live memory",
+      "verification_badge": "declared_not_recounted_by_this_artifact"
+    },
+    {
+      "card": "production_infrastructure_operational",
+      "may_be_repeated_as_freshly_reverified": false,
+      "safe_use": "prefer deployable admin/operator seams, but keep this artifact non-deploying",
+      "verification_badge": "declared_not_reverified_by_this_artifact"
+    },
+    {
+      "card": "legendary_agent_coordination",
+      "may_be_repeated_as_freshly_reverified": false,
+      "safe_use": "codify invariant-ID handoff and claim-boundary preservation",
+      "verification_badge": "consumed_from_decision_support_matrix"
+    }
+  ],
+  "success_metric_cards": [
+    {
+      "metric": "required_axis_coverage",
+      "value": "4 required axes / 5 loops"
+    },
+    {
+      "metric": "ready_vs_blocked_axes",
+      "value": "3 ready / 1 blocked"
+    },
+    {
+      "metric": "declared_strengths",
+      "value": 5
+    },
+    {
+      "metric": "claim_boundary_preservation",
+      "value": "pass"
+    },
+    {
+      "metric": "future_agent_success_definition",
+      "value": [
+        "consume flywheel_id plus invariant IDs without reopening raw transcript context",
+        "preserve safe_to_claim and do_not_claim_yet together",
+        "distinguish declared strengths from independently reverified facts",
+        "recommend live Acontext parity or admin rendering as the next smallest proof"
+      ]
+    }
+  ],
+  "surface_id": "aas_system_integration_flywheel_read_surface:aas_system_integration_flywheel:redirect_outdated_packet_001",
+  "surface_verdict": "admin_flywheel_read_surface_landed_live_transport_blocked"
+}

@@ -140,3 +140,13 @@ The pending Compliance Desk single-boundary review now has a fail-closed validat
 The validator consumes only `aas_single_boundary_operator_review_brief.json`. It creates no approval record and satisfies no checklist, redaction, delivery, publication, route, pricing, queue, dispatch, reputation, live-runtime, GPS/raw-metadata, domain-authority, or worker-doctrine field by itself.
 
 If a real human approval record is created later, the validator may accept only the exact Compliance Desk package-label boundary (`Visible posting / notice compliance snapshot`) with source digest parity, a non-secret human reference, UTC timestamp, redaction evidence references, delivery path still set to none, all future false flags false, and all still-blocked claims carried forward.
+
+## 2026-05-15 04:00 system-integration read-surface follow-up
+
+The AAS system-integration flywheel now has a pass-through internal/admin read surface:
+
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/aas_system_integration_flywheel_read_surface.json`
+- implementation note: `CITY_AS_A_SERVICE_AAS_SYSTEM_INTEGRATION_FLYWHEEL_READ_SURFACE_IMPLEMENTATION.md`
+- safe claim: `admin_system_integration_flywheel_surface_landed`
+
+This is not a customer-exposure approval and not a package-launch gate. It makes the scalable coordination pattern visible: invariant IDs, declared-vs-verified badges, sticky blocked claims, and one next-proof slot. It still records no live Acontext parity, dispatch readiness, payment/infra reverification, public/customer route, queue launch, reputation attachment, exact GPS/raw metadata release, or worker-copyable doctrine.

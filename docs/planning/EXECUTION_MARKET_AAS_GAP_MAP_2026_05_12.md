@@ -223,3 +223,23 @@ The single-boundary approval gate now has a human-operator review brief:
 Safe latest claim: `aas_single_boundary_operator_review_brief_landed` only. The brief is a daytime checklist over the pending Compliance Desk package-label boundary (`Visible posting / notice compliance snapshot`). It does not record human approval, satisfy redactions, approve the selected boundary, authorize delivery, approve publication, approve public prices/customer quotes, launch queues, mount routes/catalog/pilots, dispatch, attach reputation, prove live runtime/Acontext parity, expose exact GPS/raw metadata, make domain-authority claims, or create worker-copyable doctrine.
 
 The next safe step remains non-automatic: either keep the boundary held, or have a real human operator create one separate approval record for this exact boundary while preserving all blocked claims and false readiness flags.
+
+### 4.6 Update after May 15 02:00 dream continuation
+
+The single-boundary approval flow now has a fail-closed validator contract:
+
+- `mcp_server/city_ops/fixtures/aas_package_ladder/aas_single_boundary_approval_record_validator.json`
+- `mcp_server/city_ops/aas_single_boundary_approval_record_validator.py`
+- `docs/planning/CITY_AS_A_SERVICE_AAS_SINGLE_BOUNDARY_APPROVAL_RECORD_VALIDATOR_IMPLEMENTATION.md`
+
+Safe latest claim: `aas_single_boundary_approval_record_validator_landed` only. The validator does not create approval. It only defines how a later real human approval record for the exact Compliance Desk package-label boundary can be accepted: source digest parity, non-secret human reference, UTC timestamp, redaction evidence references, delivery path still none, future false flags false, and still-blocked claims carried forward.
+
+### 4.7 Update after May 15 04:00 dream continuation
+
+The system-integration flywheel now has a read-only internal/admin read surface:
+
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/aas_system_integration_flywheel_read_surface.json`
+- `mcp_server/city_ops/aas_system_integration_flywheel_read_surface.py`
+- `docs/planning/CITY_AS_A_SERVICE_AAS_SYSTEM_INTEGRATION_FLYWHEEL_READ_SURFACE_IMPLEMENTATION.md`
+
+Safe latest claim: `admin_system_integration_flywheel_surface_landed` only. The surface makes the cross-project coordination pattern inspectable — invariant IDs, declared-vs-verified badges, sticky blocked claims, and one next-proof slot — but it does not approve customer exposure, mount public/customer routes, write live Acontext, prove runtime parity, reverify payment/infra, enable dispatch, launch queues, attach reputation, expose exact GPS/raw metadata, or create worker-copyable doctrine.

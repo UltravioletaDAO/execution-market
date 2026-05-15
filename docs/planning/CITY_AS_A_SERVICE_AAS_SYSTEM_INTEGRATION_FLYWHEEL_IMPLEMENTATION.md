@@ -165,3 +165,15 @@ Targeted gate:
 ```bash
 PYTHONPATH=. python3 -m pytest mcp_server/tests/city_ops/test_aas_system_integration_flywheel.py
 ```
+
+## 11. 04:00 read-surface follow-up
+
+The flywheel now has a deterministic internal/admin read surface:
+
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/aas_system_integration_flywheel_read_surface.json`
+- implementation note: `CITY_AS_A_SERVICE_AAS_SYSTEM_INTEGRATION_FLYWHEEL_READ_SURFACE_IMPLEMENTATION.md`
+- safe claim: `admin_system_integration_flywheel_surface_landed`
+
+The surface consumes only `aas_system_integration_flywheel.json` and renders the four-ID session header, declared-vs-verified strength cards, connection-loop cards, success metrics, session-management rules, operator next actions, and a sticky claim-boundary footer.
+
+It registers no network route and still does not prove live Acontext sink readiness, runtime parity, autonomous dispatch, customer-visible packaging, public route readiness, payment/infra reverification, operator queue launch, ERC-8004 reputation, worker Skill DNA, exact GPS/raw metadata exposure, or worker-copyable doctrine.
