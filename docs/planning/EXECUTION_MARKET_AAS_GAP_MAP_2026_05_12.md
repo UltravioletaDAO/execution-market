@@ -271,3 +271,15 @@ Until separate gates prove otherwise, every CaaS and adjacent AAS artifact must 
 - ERC-8004 reputation or reputation receipt attachment
 
 The safe product direction remains: use CaaS to harden Execution Market's reviewed real-world execution primitive, then reuse that primitive cautiously across adjacent AAS packages only when each package carries its own reviewed evidence and blocked claims beside any safe claims.
+
+### 4.8 Update after May 15 07:00 dream continuation
+
+The live Acontext path has a narrow blocker-delta artifact rather than a parity claim:
+
+- `mcp_server/city_ops/acontext_live_preflight_blocker_delta.py`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_live_preflight_blocker_delta.json`
+- `docs/planning/CITY_AS_A_SERVICE_ACONTEXT_LIVE_PREFLIGHT_BLOCKER_DELTA_IMPLEMENTATION.md`
+
+Safe latest claim added: `acontext_live_preflight_blocker_delta_landed` only. The delta records that Docker is now available, but `acontext_python_sdk_missing`, `local_acontext_api_unreachable`, and `local_acontext_dashboard_unreachable` still block the live write/retrieve parity attempt.
+
+This does not prove live Acontext sink readiness, runtime parity, session rebuild readiness, customer/public packaging readiness, route readiness, operator queue launch readiness, dispatch, reputation receipts, payment/infra reverification, exact GPS/raw metadata release, or worker-copyable doctrine. The next safe step is still prerequisite cleanup plus a rerun of the read-only preflight before any single live parity attempt.

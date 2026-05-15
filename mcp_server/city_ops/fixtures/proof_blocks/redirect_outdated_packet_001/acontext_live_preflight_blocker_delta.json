@@ -1,0 +1,147 @@
+{
+  "baseline_blockers": [
+    "docker_daemon_unavailable",
+    "acontext_python_sdk_missing",
+    "local_acontext_api_unreachable",
+    "local_acontext_dashboard_unreachable"
+  ],
+  "claim_boundaries": {
+    "do_not_claim_yet": [
+      "runtime_parity_proven",
+      "reuse_behavior_proven",
+      "closure_proof_ready",
+      "closure_proof_landed",
+      "session_rebuild_ready",
+      "acontext_sink_ready",
+      "worker-copyable municipal doctrine",
+      "acontext_live_write_completed",
+      "acontext_live_retrieval_completed",
+      "acontext_live_transport_parity_landed",
+      "acontext_prerequisites_fully_cleared",
+      "acontext_live_parity_attempt_authorized",
+      "live_acontext_sink_ready",
+      "customer_visible_aas_packaging_ready",
+      "public_route_ready",
+      "autonomous_city_dispatch_ready",
+      "operator_queue_launch_ready",
+      "erc8004_reputation_ready",
+      "payment_coverage_reverified_by_this_delta",
+      "production_infrastructure_reverified_by_this_delta",
+      "exact_gps_or_metadata_exposure_allowed",
+      "worker_copyable_municipal_doctrine_ready"
+    ],
+    "safe_to_claim": [
+      "projection_truth_landed",
+      "reuse_parity_landed",
+      "session_rebuild_consumer_landed",
+      "session_rebuild_report_fixture_landed",
+      "acontext_transport_parity_test_landed",
+      "acontext_live_preflight_landed",
+      "acontext_live_preflight_blocker_delta_landed"
+    ]
+  },
+  "cleared_blockers": [
+    "docker_daemon_unavailable"
+  ],
+  "compact_decision_id": "cdo_c51f4b767729",
+  "coordination_session_id": "city_session_redirect_outdated_packet_001",
+  "current_blockers": [
+    "acontext_python_sdk_missing",
+    "local_acontext_api_unreachable",
+    "local_acontext_dashboard_unreachable"
+  ],
+  "delta_id": "acontext_live_preflight_blocker_delta:acontext_live_preflight:redirect_outdated_packet_001",
+  "delta_verdict": "live_transport_still_blocked_with_partial_prerequisite_progress",
+  "derived_from": {
+    "consumes_only": [
+      "acontext_live_preflight_result"
+    ],
+    "emits_reputation_receipts": false,
+    "enables_dispatch": false,
+    "forbidden_inputs": [
+      "raw_transcripts",
+      "unreviewed_memory",
+      "private_operator_context",
+      "freeform_worker_chat",
+      "live_acontext_sink_writes",
+      "live_acontext_retrievals",
+      "payment_processor_probe",
+      "production_health_probe",
+      "gps_or_raw_metadata_payloads"
+    ],
+    "read_only": true,
+    "retrieves_live_acontext": false,
+    "reverifies_payment_coverage": false,
+    "reverifies_production_infrastructure": false,
+    "source_schema": "city_ops.acontext_live_preflight.v1",
+    "source_verdict": "live_transport_blocked_before_sink_write",
+    "writes_customer_copy": false,
+    "writes_live_acontext": false
+  },
+  "newly_blocked": [],
+  "next_smallest_proof": [
+    "install or expose the Acontext Python SDK/CLI in this environment",
+    "start the local Acontext API at http://localhost:8029/api/v1",
+    "start the local Acontext dashboard at http://localhost:3000",
+    "rerun the read-only preflight before any live write/retrieve parity attempt"
+  ],
+  "operator_note": "Docker is no longer the blocker, but Acontext SDK/API/dashboard remain absent; do not attempt or claim live write/retrieve parity yet.",
+  "packet_id": "acontext_transport_packet:redirect_outdated_packet_001",
+  "prerequisite_cards": [
+    {
+      "authorizes_live_write": false,
+      "prerequisite": "docker_daemon",
+      "required_for_live_parity": true,
+      "status": "cleared"
+    },
+    {
+      "authorizes_live_write": false,
+      "prerequisite": "acontext_python_sdk",
+      "required_for_live_parity": true,
+      "status": "blocked"
+    },
+    {
+      "authorizes_live_write": false,
+      "prerequisite": "local_acontext_api",
+      "required_for_live_parity": true,
+      "status": "blocked"
+    },
+    {
+      "authorizes_live_write": false,
+      "prerequisite": "local_acontext_dashboard",
+      "required_for_live_parity": true,
+      "status": "blocked"
+    }
+  ],
+  "proof_anchor_id": "redirect_outdated_packet_001",
+  "readiness": {
+    "acontext_python_sdk_available": false,
+    "acontext_sink_ready": false,
+    "autonomous_dispatch_ready": false,
+    "blocker_delta_landed": true,
+    "customer_visible_aas_packaging_ready": false,
+    "docker_available": true,
+    "erc8004_reputation_ready": false,
+    "gps_or_metadata_exposure_allowed": false,
+    "live_acontext_retrieval_performed": false,
+    "live_acontext_write_performed": false,
+    "local_acontext_api_reachable": false,
+    "local_acontext_dashboard_reachable": false,
+    "operator_queue_launch_ready": false,
+    "payment_coverage_reverified_by_this_delta": false,
+    "production_infrastructure_reverified_by_this_delta": false,
+    "public_route_ready": false,
+    "ready_to_attempt_live_transport": false,
+    "runtime_parity_proven": false,
+    "session_rebuild_ready": false,
+    "worker_copyable_doctrine_ready": false
+  },
+  "remaining_blockers": [
+    "acontext_python_sdk_missing",
+    "local_acontext_api_unreachable",
+    "local_acontext_dashboard_unreachable"
+  ],
+  "review_packet_id": "review_packet_redirect_outdated_packet_001",
+  "schema": "city_ops.acontext_live_preflight_blocker_delta.v1",
+  "source_preflight_id": "acontext_live_preflight:redirect_outdated_packet_001"
+}

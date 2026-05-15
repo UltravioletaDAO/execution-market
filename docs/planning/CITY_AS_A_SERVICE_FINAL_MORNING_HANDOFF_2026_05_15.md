@@ -114,3 +114,23 @@ PYTHONPATH=. /opt/homebrew/bin/python3.14 -m pytest -q mcp_server/tests/city_ops
 ```
 
 No runtime endpoint, deployment, route, customer surface, or production probe was changed by this handoff.
+
+## 7 AM continuation — Acontext blocker delta
+
+The 7 AM dream did not attempt live Acontext parity because prerequisites are still incomplete. It added a narrow internal/admin blocker-delta artifact instead:
+
+```text
+mcp_server/city_ops/acontext_live_preflight_blocker_delta.py
+mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_live_preflight_blocker_delta.json
+docs/planning/CITY_AS_A_SERVICE_ACONTEXT_LIVE_PREFLIGHT_BLOCKER_DELTA_IMPLEMENTATION.md
+```
+
+Safe claim added:
+
+```text
+acontext_live_preflight_blocker_delta_landed
+```
+
+Meaning: Docker has cleared as a blocker, but the Acontext Python SDK, local API, and local dashboard still block a live write/retrieve parity attempt. No live write, retrieval, sink readiness, runtime parity, customer/public route, dispatch, reputation, payment/infra reverification, GPS/raw metadata exposure, or worker doctrine claim was added.
+
+Next safe step: install/expose the Acontext SDK, start local API/dashboard, rerun read-only preflight, then perform exactly one live write/retrieve parity pass only if blockers are empty.
