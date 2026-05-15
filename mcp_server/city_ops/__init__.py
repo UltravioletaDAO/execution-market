@@ -237,6 +237,11 @@ from .aas_packaging_pricing_operator_workflow_review_board import (
     load_aas_packaging_pricing_operator_workflow_review_board,
     write_aas_packaging_pricing_operator_workflow_review_board,
 )
+from .aas_single_boundary_human_operator_approval_request import (
+    build_aas_single_boundary_human_operator_approval_request,
+    load_aas_single_boundary_human_operator_approval_request,
+    write_aas_single_boundary_human_operator_approval_request,
+)
 from .phase1_operator_coverage_renderer import (
     build_phase1_operator_coverage_renderer,
     load_phase1_operator_coverage_renderer,
