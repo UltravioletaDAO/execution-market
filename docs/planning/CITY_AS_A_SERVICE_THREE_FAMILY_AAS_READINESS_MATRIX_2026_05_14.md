@@ -150,3 +150,22 @@ The AAS system-integration flywheel now has a pass-through internal/admin read s
 - safe claim: `admin_system_integration_flywheel_surface_landed`
 
 This is not a customer-exposure approval and not a package-launch gate. It makes the scalable coordination pattern visible: invariant IDs, declared-vs-verified badges, sticky blocked claims, and one next-proof slot. It still records no live Acontext parity, dispatch readiness, payment/infra reverification, public/customer route, queue launch, reputation attachment, exact GPS/raw metadata release, or worker-copyable doctrine.
+
+## 2026-05-15 05:00 pre-dawn synthesis / morning handoff
+
+The 05:00 synthesis added documentation only:
+
+- `docs/planning/CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_15.md`
+- `docs/planning/CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_15.md`
+
+No product surface or readiness claim was promoted. The active state remains:
+
+- single Compliance Desk package-label boundary pending real human approval or hold
+- fail-closed validator available for a future real approval record
+- internal/admin system-integration flywheel read surface available for coordination inspection
+
+Current daytime fork:
+
+1. If customer exposure is desired, create one real human approval record for the exact Compliance Desk label boundary and validate it. Even if valid, it approves only that internal label boundary.
+2. If runtime-memory proof is desired, clear prerequisites and run exactly one live Acontext write/retrieve parity pass.
+3. If neither is ready, keep all customer/public/dispatch/reputation/runtime/GPS/domain-authority/worker-doctrine claims blocked.

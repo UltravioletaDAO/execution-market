@@ -243,3 +243,19 @@ The system-integration flywheel now has a read-only internal/admin read surface:
 - `docs/planning/CITY_AS_A_SERVICE_AAS_SYSTEM_INTEGRATION_FLYWHEEL_READ_SURFACE_IMPLEMENTATION.md`
 
 Safe latest claim: `admin_system_integration_flywheel_surface_landed` only. The surface makes the cross-project coordination pattern inspectable — invariant IDs, declared-vs-verified badges, sticky blocked claims, and one next-proof slot — but it does not approve customer exposure, mount public/customer routes, write live Acontext, prove runtime parity, reverify payment/infra, enable dispatch, launch queues, attach reputation, expose exact GPS/raw metadata, or create worker-copyable doctrine.
+
+### 4.8 Update after May 15 05:00 pre-dawn synthesis
+
+The pre-dawn synthesis added no new product surface and no new readiness claim. It consolidated the two active decision switches into:
+
+- `docs/planning/CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_15.md`
+- `docs/planning/CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_15.md`
+
+Current latest safe claims remain:
+
+- `aas_single_boundary_approval_record_validator_landed`
+- `admin_system_integration_flywheel_surface_landed`
+
+The customer-exposure switch is now explicit: either keep the Compliance Desk package-label boundary held, or have a real human operator create one separate approval record for exactly `Visible posting / notice compliance snapshot` and validate it fail-closed. Even a valid record must not authorize customer delivery, publication, public pricing, routes/catalog/pilot, queue launch, dispatch, reputation, live runtime, exact GPS/raw metadata release, domain-authority claims, or worker doctrine.
+
+The system-integration switch is also explicit: run exactly one live Acontext write/retrieve parity pass only after prerequisites are real. If prerequisites remain blocked, continue only narrow internal/admin pass-through or guardrail work preserving invariant IDs, declared-vs-verified badges, sticky blocked claims, and one next-proof slot. Payment and production-infra confidence must be re-probed separately before being repeated as current claims.
