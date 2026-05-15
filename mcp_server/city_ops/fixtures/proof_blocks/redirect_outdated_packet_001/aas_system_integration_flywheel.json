@@ -1,0 +1,224 @@
+{
+  "claim_boundaries": {
+    "do_not_claim_yet": [
+      "runtime_parity_proven",
+      "reuse_behavior_proven",
+      "closure_proof_ready",
+      "closure_proof_landed",
+      "session_rebuild_ready",
+      "acontext_sink_ready",
+      "worker-copyable municipal doctrine",
+      "acontext_live_write_completed",
+      "acontext_live_retrieval_completed",
+      "acontext_live_transport_parity_landed",
+      "polished_review_console_ready",
+      "office_memory_view_ready",
+      "broad_operator_workflow_ready",
+      "multi_jurisdiction_playbook_ready",
+      "autonomous_city_dispatch_ready",
+      "customer_visible_catalog_ready",
+      "public_route_ready",
+      "worker Skill DNA readiness",
+      "live_acontext_sink_ready",
+      "customer_visible_aas_packaging_ready",
+      "payment_coverage_reverified_by_this_artifact",
+      "eight_chain_payment_perfection_revalidated_by_this_artifact",
+      "worker_copyable_municipal_doctrine_ready",
+      "raw_transcript_replay_required_for_normal_handoff"
+    ],
+    "safe_to_claim": [
+      "projection_truth_landed",
+      "reuse_parity_landed",
+      "session_rebuild_consumer_landed",
+      "session_rebuild_report_fixture_landed",
+      "acontext_transport_parity_test_landed",
+      "acontext_live_preflight_landed",
+      "thin_operator_debug_surface_landed",
+      "proof_observability_metrics_landed",
+      "coordination_intelligence_snapshot_landed",
+      "decision_support_readiness_matrix_landed",
+      "aas_system_integration_flywheel_landed"
+    ]
+  },
+  "compact_decision_id": "cdo_c51f4b767729",
+  "connection_loops": [
+    {
+      "axis_state": "blocked_prerequisites_missing",
+      "decision_support_effect": "convert reviewed municipal episodes into compact retrieval candidates without live sink writes",
+      "guardrail": "do not promote acontext_sink_ready until live write/retrieve parity passes",
+      "loop": "reviewed_memory_to_acontext_to_better_dispatch",
+      "source_strength": "intelligent_memory_with_26_plus_insights",
+      "uses_axis": "memory_system_to_acontext_bridge"
+    },
+    {
+      "axis_state": "compact_id_handoff_active",
+      "decision_support_effect": "handoff by coordination_session_id, compact_decision_id, review_packet_id, and proof_anchor_id",
+      "guardrail": "no raw transcript replay on the normal path",
+      "loop": "irc_session_ids_to_cross_session_continuity",
+      "source_strength": "legendary_agent_coordination",
+      "uses_axis": "irc_session_management"
+    },
+    {
+      "axis_state": "bounded_verdict_reusable_operator_only",
+      "decision_support_effect": "reuse safe/blocked verdicts across AAS families without copying customer-facing claims",
+      "guardrail": "require a second reviewed municipal case before cross-case doctrine",
+      "loop": "decision_matrix_to_cross_project_operator_choices",
+      "source_strength": "latest_city_ops_code_changes",
+      "uses_axis": "cross_project_decision_support"
+    },
+    {
+      "axis_state": "proof_block_metrics_landed",
+      "decision_support_effect": "measure whether future agents preserve boundaries, consume IDs, and recommend the next proof",
+      "guardrail": "do not treat planning metrics as a live dashboard or customer-visible metric surface",
+      "loop": "observability_to_agent_success_metrics",
+      "source_strength": "production_infrastructure_operational",
+      "uses_axis": "agent_observability_success_metrics"
+    },
+    {
+      "axis_state": "bounded_verdict_reusable_operator_only",
+      "decision_support_effect": "keep AAS packaging aligned with operational payment rails while separating proof claims",
+      "guardrail": "this artifact does not rerun or restate 8/8 chain payment verification",
+      "loop": "payment_confidence_to_deployable_aas_boundaries",
+      "source_strength": "eight_chain_payment_integration",
+      "uses_axis": "cross_project_decision_support"
+    }
+  ],
+  "coordination_session_id": "city_session_redirect_outdated_packet_001",
+  "declared_strength_inputs": [
+    {
+      "safe_use": "treat recent city_ops proof slices as the bounded implementation substrate",
+      "strength": "latest_city_ops_code_changes",
+      "verification_level": "consumed_from_local_artifact_graph"
+    },
+    {
+      "safe_use": "use as production-confidence context only; do not claim fresh payment verification",
+      "strength": "eight_chain_payment_integration",
+      "verification_level": "declared_not_reverified_by_this_artifact"
+    },
+    {
+      "safe_use": "shape memory/Acontext bridge requirements without writing live memory",
+      "strength": "intelligent_memory_with_26_plus_insights",
+      "verification_level": "declared_not_recounted_by_this_artifact"
+    },
+    {
+      "safe_use": "prefer deployable admin/operator seams, but keep this artifact non-deploying",
+      "strength": "production_infrastructure_operational",
+      "verification_level": "declared_not_reverified_by_this_artifact"
+    },
+    {
+      "safe_use": "codify invariant-ID handoff and claim-boundary preservation",
+      "strength": "legendary_agent_coordination",
+      "verification_level": "consumed_from_decision_support_matrix"
+    }
+  ],
+  "derived_from": {
+    "payment_system_reverified": false,
+    "production_infrastructure_reverified": false,
+    "raw_conversation_reopened": false,
+    "read_only": true,
+    "semantic_reinterpretation_performed": false,
+    "source_artifacts": [
+      "decision_support_readiness_matrix.json",
+      "coordination_intelligence_snapshot.json",
+      "proof_observability_snapshot.json"
+    ],
+    "writes_live_sink": false
+  },
+  "flywheel_id": "aas_system_integration_flywheel:redirect_outdated_packet_001",
+  "flywheel_verdict": "system_integration_flywheel_landed_live_acontext_blocked",
+  "next_smallest_proof": [
+    "start Docker and local Acontext without changing CaaS semantics",
+    "install or expose the Acontext Python SDK/CLI in this environment",
+    "verify http://localhost:8029/api/v1 and http://localhost:3000 are reachable",
+    "rerun this preflight before attempting any live Acontext sink write",
+    "add a second reviewed municipal case before promoting cross-case doctrine",
+    "keep matrix consumption read-only until live Acontext parity is proven",
+    "run one live Acontext write/retrieve parity pass before promoting sink readiness",
+    "add one dashboard/admin consumer that renders this flywheel without changing claim boundaries",
+    "rerun payment and production probes separately before repeating 8/8 or operational claims"
+  ],
+  "operator_next_actions": [
+    {
+      "action": "live_acontext_parity_probe",
+      "claim_unlocked_only_if_passes": "acontext_live_transport_parity_landed",
+      "why": "turn the memory/Acontext bridge from planned or attemptable into verified sink behavior"
+    },
+    {
+      "action": "admin_flywheel_read_surface",
+      "claim_unlocked_only_if_passes": "admin_system_integration_flywheel_surface_landed",
+      "why": "let operators see how strengths connect without reading the full proof bundle"
+    },
+    {
+      "action": "separate_payment_and_infra_probe",
+      "claim_unlocked_only_if_passes": "payment_and_infra_status_reverified_for_aas_packaging",
+      "why": "avoid mixing AAS planning proof with payment or production-health claims"
+    },
+    {
+      "action": "preserve_matrix_recommendation",
+      "claim_unlocked_only_if_passes": "clear Acontext prerequisites: docker_daemon_unavailable, acontext_python_sdk_missing, local_acontext_api_unreachable, local_acontext_dashboard_unreachable",
+      "why": "keep the current decision-support next step visible"
+    }
+  ],
+  "proof_anchor_id": "redirect_outdated_packet_001",
+  "readiness": {
+    "acontext_sink_ready": false,
+    "agent_observability_metrics_planned": true,
+    "autonomous_dispatch_ready": false,
+    "blockers": [
+      "docker_daemon_unavailable",
+      "acontext_python_sdk_missing",
+      "local_acontext_api_unreachable",
+      "local_acontext_dashboard_unreachable",
+      "live_acontext_write_retrieve_parity_not_completed_here",
+      "payment_and_production_claims_need_separate_probe_before_restatement"
+    ],
+    "cross_project_decision_support_planned": true,
+    "customer_visible_packaging_ready": false,
+    "decision_support_matrix_ready": true,
+    "flywheel_artifact_ready": true,
+    "flywheel_promotes_live_readiness": false,
+    "irc_session_handoff_planned": true,
+    "local_transport_parity_fixture_passed": true,
+    "memory_to_acontext_bridge_planned": true,
+    "payment_coverage_reverified_by_this_artifact": false,
+    "ready_to_attempt_live_transport": false,
+    "runtime_parity_proven": false,
+    "worker_copyable_doctrine_ready": false
+  },
+  "review_packet_id": "review_packet_redirect_outdated_packet_001",
+  "schema": "city_ops.aas_system_integration_flywheel.v1",
+  "session_management_enhancements": [
+    {
+      "enhancement": "four_id_session_header",
+      "implementation_rule": "include proof_anchor_id, coordination_session_id, compact_decision_id, and review_packet_id at the top of every IRC/admin handoff"
+    },
+    {
+      "enhancement": "declared_vs_verified_badges",
+      "implementation_rule": "label payment, infrastructure, and memory-strength claims by verification_level before agents repeat them"
+    },
+    {
+      "enhancement": "blocked_claim_sticky_footer",
+      "implementation_rule": "render blocked claims after every recommendation, not only in debug artifacts"
+    },
+    {
+      "enhancement": "single_next_proof_slot",
+      "implementation_rule": "default next proof remains: clear Acontext prerequisites: docker_daemon_unavailable, acontext_python_sdk_missing, local_acontext_api_unreachable, local_acontext_dashboard_unreachable"
+    }
+  ],
+  "system_integration_metrics": {
+    "blocked_axis_count_from_matrix": 1,
+    "blocked_claim_count": 24,
+    "claim_boundary_preservation": "pass",
+    "connection_loop_count": 5,
+    "declared_strength_count": 5,
+    "future_agent_success_definition": [
+      "consume flywheel_id plus invariant IDs without reopening raw transcript context",
+      "preserve safe_to_claim and do_not_claim_yet together",
+      "distinguish declared strengths from independently reverified facts",
+      "recommend live Acontext parity or admin rendering as the next smallest proof"
+    ],
+    "ready_axis_count_from_matrix": 3,
+    "required_axis_count": 4,
+    "safe_claim_count": 11
+  }
+}
