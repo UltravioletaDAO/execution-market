@@ -242,6 +242,11 @@ from .aas_single_boundary_human_operator_approval_request import (
     load_aas_single_boundary_human_operator_approval_request,
     write_aas_single_boundary_human_operator_approval_request,
 )
+from .aas_single_boundary_approval_record_schema_gate import (
+    build_aas_single_boundary_approval_record_schema_gate,
+    load_aas_single_boundary_approval_record_schema_gate,
+    write_aas_single_boundary_approval_record_schema_gate,
+)
 from .phase1_operator_coverage_renderer import (
     build_phase1_operator_coverage_renderer,
     load_phase1_operator_coverage_renderer,
@@ -419,6 +424,12 @@ __all__ = [
     "build_aas_packaging_pricing_operator_workflow_review_board",
     "load_aas_packaging_pricing_operator_workflow_review_board",
     "write_aas_packaging_pricing_operator_workflow_review_board",
+    "build_aas_single_boundary_human_operator_approval_request",
+    "load_aas_single_boundary_human_operator_approval_request",
+    "write_aas_single_boundary_human_operator_approval_request",
+    "build_aas_single_boundary_approval_record_schema_gate",
+    "load_aas_single_boundary_approval_record_schema_gate",
+    "write_aas_single_boundary_approval_record_schema_gate",
     "build_phase1_operator_coverage_renderer",
     "load_phase1_operator_coverage_renderer",
     "write_phase1_operator_coverage_renderer",

@@ -187,6 +187,17 @@ Daytime should treat the matrix as the decision fork: either approve exactly one
 
 The no-customer-exposure fork now has a concrete internal/admin artifact: `mcp_server/city_ops/fixtures/aas_package_ladder/aas_three_family_packaging_review_packet.json`, built by `mcp_server/city_ops/aas_three_family_packaging_review_packet.py`. It consumes only the three explicit hold decisions and creates a compact review packet for package labels, pricing inputs, and operator queue/workflow shape. Safe latest claim: `aas_three_family_packaging_review_packet_landed` only. It does not authorize customer copy or delivery, public/catalog routes, controlled pilot exposure, public pricing/customer quotes, dispatch, reputation, live Acontext/runtime parity, exact GPS/raw metadata release, legal/regulator/notarial/custody/emergency/safety/repair/insurance/SLA/official-report/fault-liability claims, or worker-copyable doctrine.
 
+### 4.4 Update after May 15 00:00 dream continuation
+
+The cautious customer-exposure fork is now staged without pretending approval exists:
+
+- `mcp_server/city_ops/fixtures/aas_package_ladder/aas_single_boundary_human_operator_approval_request.json` requests review of exactly one Compliance Desk package-label boundary.
+- `mcp_server/city_ops/fixtures/aas_package_ladder/aas_single_boundary_approval_record_schema_gate.json` defines the required shape of a later real human approval record for that boundary.
+
+Safe latest claim: `aas_single_boundary_approval_record_schema_gate_landed` only. The gate names required future fields (`source_request_id`, source digest, exact approved text, approved text fields, human approval reference, timestamp, redaction checks, authorized delivery path, approval scope, approvals not granted, and still-blocked claims) but marks them all unsatisfied by the gate. It does not record human approval, approve the selected boundary, pass redactions, authorize customer delivery, approve publication, mount routes/catalog/pilots, approve prices/quotes, launch queues, dispatch, attach reputation, prove live runtime/Acontext parity, expose GPS/raw metadata, make domain-authority claims, or create worker-copyable doctrine.
+
+The next safe step is not automatable while Saúl/operator is asleep: a real human operator must create one separate approval record for this exact boundary if customer exposure is desired.
+
 
 ## 5. Standing blocked claims
 

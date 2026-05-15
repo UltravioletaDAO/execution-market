@@ -95,6 +95,16 @@ The cautious customer-exposure fork now has one pending approval-request packet:
 
 The request consumes only `aas_packaging_pricing_operator_workflow_review_board.json` and selects exactly one held text boundary for possible future human review: the Compliance Desk internal package label `Visible posting / notice compliance snapshot`. It records no human approval, no selected-boundary approval, no customer copy, no delivery path, no publication, no public price/customer quote, no route/pilot, no queue launch, no dispatch, no reputation, no live runtime, no exact GPS/raw metadata release, and no domain-authority or worker-doctrine claim.
 
+## 2026-05-15 00:00 approval-record schema-gate follow-up
+
+The pending request now has a schema gate for a later real human approval record:
+
+- `mcp_server/city_ops/fixtures/aas_package_ladder/aas_single_boundary_approval_record_schema_gate.json`
+- implementation note: `CITY_AS_A_SERVICE_AAS_SINGLE_BOUNDARY_APPROVAL_RECORD_SCHEMA_GATE_IMPLEMENTATION.md`
+- safe claim: `aas_single_boundary_approval_record_schema_gate_landed`
+
+The schema gate consumes only `aas_single_boundary_human_operator_approval_request.json` and names the required future approval-record fields: source request, digest, exact text, approved text fields, human approval reference, timestamp, redaction checks, authorized delivery path, approval scope, still-blocked claims, and approvals not granted. It deliberately marks every future field `satisfied_by_this_gate=false` and still records no approval, no redaction pass, no delivery path authorization, no publication, no route/catalog/pilot, no pricing, no queue launch, no dispatch, no reputation, no live runtime, no GPS/raw metadata release, and no worker doctrine.
+
 ## Source artifacts
 
 - `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_14.md`
@@ -105,3 +115,4 @@ The request consumes only `aas_packaging_pricing_operator_workflow_review_board.
 - `mcp_server/city_ops/fixtures/aas_package_ladder/incident_verification_sample_output_review_decision.json`
 - `mcp_server/city_ops/fixtures/aas_package_ladder/aas_packaging_pricing_operator_workflow_review_board.json`
 - `mcp_server/city_ops/fixtures/aas_package_ladder/aas_single_boundary_human_operator_approval_request.json`
+- `mcp_server/city_ops/fixtures/aas_package_ladder/aas_single_boundary_approval_record_schema_gate.json`
