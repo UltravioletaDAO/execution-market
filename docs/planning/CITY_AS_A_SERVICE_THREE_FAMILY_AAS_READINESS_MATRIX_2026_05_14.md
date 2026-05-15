@@ -128,3 +128,15 @@ The pending Compliance Desk single-boundary review now has a daytime operator ch
 The brief consumes only `aas_single_boundary_approval_record_schema_gate.json` and makes the later human review steps explicit: source digest confirmation, exact boundary text confirmation, non-secret human reference, timestamp only if approved, redaction evidence, absence of domain-authority/guarantee/dispatch/reputation/pricing/queue language, delivery path staying none unless a separate delivery gate exists, blocked-claims carry-forward, and future false flags staying false.
 
 Every checklist item remains unsatisfied by the brief. It records no human approval, no selected-boundary approval, no redaction pass, no customer copy, no delivery authorization, no publication, no public pricing/customer quote, no route/catalog/pilot, no queue launch, no dispatch, no reputation, no live runtime/Acontext parity, no exact GPS/raw metadata release, no domain-authority claim, and no worker-copyable doctrine.
+
+## 2026-05-15 02:00 approval-record validator follow-up
+
+The pending Compliance Desk single-boundary review now has a fail-closed validator contract for a later real human approval record:
+
+- `mcp_server/city_ops/fixtures/aas_package_ladder/aas_single_boundary_approval_record_validator.json`
+- implementation note: `CITY_AS_A_SERVICE_AAS_SINGLE_BOUNDARY_APPROVAL_RECORD_VALIDATOR_IMPLEMENTATION.md`
+- safe claim: `aas_single_boundary_approval_record_validator_landed`
+
+The validator consumes only `aas_single_boundary_operator_review_brief.json`. It creates no approval record and satisfies no checklist, redaction, delivery, publication, route, pricing, queue, dispatch, reputation, live-runtime, GPS/raw-metadata, domain-authority, or worker-doctrine field by itself.
+
+If a real human approval record is created later, the validator may accept only the exact Compliance Desk package-label boundary (`Visible posting / notice compliance snapshot`) with source digest parity, a non-secret human reference, UTC timestamp, redaction evidence references, delivery path still set to none, all future false flags false, and all still-blocked claims carried forward.

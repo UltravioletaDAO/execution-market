@@ -252,6 +252,12 @@ from .aas_single_boundary_operator_review_brief import (
     load_aas_single_boundary_operator_review_brief,
     write_aas_single_boundary_operator_review_brief,
 )
+from .aas_single_boundary_approval_record_validator import (
+    build_aas_single_boundary_approval_record_validator,
+    load_aas_single_boundary_approval_record_validator,
+    validate_aas_single_boundary_human_operator_approval_record,
+    write_aas_single_boundary_approval_record_validator,
+)
 from .phase1_operator_coverage_renderer import (
     build_phase1_operator_coverage_renderer,
     load_phase1_operator_coverage_renderer,
@@ -438,6 +444,10 @@ __all__ = [
     "build_aas_single_boundary_operator_review_brief",
     "load_aas_single_boundary_operator_review_brief",
     "write_aas_single_boundary_operator_review_brief",
+    "build_aas_single_boundary_approval_record_validator",
+    "load_aas_single_boundary_approval_record_validator",
+    "validate_aas_single_boundary_human_operator_approval_record",
+    "write_aas_single_boundary_approval_record_validator",
     "build_phase1_operator_coverage_renderer",
     "load_phase1_operator_coverage_renderer",
     "write_phase1_operator_coverage_renderer",
