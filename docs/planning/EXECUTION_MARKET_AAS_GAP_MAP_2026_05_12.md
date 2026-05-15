@@ -211,3 +211,15 @@ Until separate gates prove otherwise, every CaaS and adjacent AAS artifact must 
 - ERC-8004 reputation or reputation receipt attachment
 
 The safe product direction remains: use CaaS to harden Execution Market's reviewed real-world execution primitive, then reuse that primitive cautiously across adjacent AAS packages only when each package carries its own reviewed evidence and blocked claims beside any safe claims.
+
+### 4.5 Update after May 15 01:00 dream continuation
+
+The single-boundary approval gate now has a human-operator review brief:
+
+- `mcp_server/city_ops/fixtures/aas_package_ladder/aas_single_boundary_operator_review_brief.json`
+- `mcp_server/city_ops/aas_single_boundary_operator_review_brief.py`
+- `docs/planning/CITY_AS_A_SERVICE_AAS_SINGLE_BOUNDARY_OPERATOR_REVIEW_BRIEF_IMPLEMENTATION.md`
+
+Safe latest claim: `aas_single_boundary_operator_review_brief_landed` only. The brief is a daytime checklist over the pending Compliance Desk package-label boundary (`Visible posting / notice compliance snapshot`). It does not record human approval, satisfy redactions, approve the selected boundary, authorize delivery, approve publication, approve public prices/customer quotes, launch queues, mount routes/catalog/pilots, dispatch, attach reputation, prove live runtime/Acontext parity, expose exact GPS/raw metadata, make domain-authority claims, or create worker-copyable doctrine.
+
+The next safe step remains non-automatic: either keep the boundary held, or have a real human operator create one separate approval record for this exact boundary while preserving all blocked claims and false readiness flags.

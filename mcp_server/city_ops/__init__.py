@@ -247,6 +247,11 @@ from .aas_single_boundary_approval_record_schema_gate import (
     load_aas_single_boundary_approval_record_schema_gate,
     write_aas_single_boundary_approval_record_schema_gate,
 )
+from .aas_single_boundary_operator_review_brief import (
+    build_aas_single_boundary_operator_review_brief,
+    load_aas_single_boundary_operator_review_brief,
+    write_aas_single_boundary_operator_review_brief,
+)
 from .phase1_operator_coverage_renderer import (
     build_phase1_operator_coverage_renderer,
     load_phase1_operator_coverage_renderer,
@@ -430,6 +435,9 @@ __all__ = [
     "build_aas_single_boundary_approval_record_schema_gate",
     "load_aas_single_boundary_approval_record_schema_gate",
     "write_aas_single_boundary_approval_record_schema_gate",
+    "build_aas_single_boundary_operator_review_brief",
+    "load_aas_single_boundary_operator_review_brief",
+    "write_aas_single_boundary_operator_review_brief",
     "build_phase1_operator_coverage_renderer",
     "load_phase1_operator_coverage_renderer",
     "write_phase1_operator_coverage_renderer",

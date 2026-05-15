@@ -116,3 +116,15 @@ The schema gate consumes only `aas_single_boundary_human_operator_approval_reque
 - `mcp_server/city_ops/fixtures/aas_package_ladder/aas_packaging_pricing_operator_workflow_review_board.json`
 - `mcp_server/city_ops/fixtures/aas_package_ladder/aas_single_boundary_human_operator_approval_request.json`
 - `mcp_server/city_ops/fixtures/aas_package_ladder/aas_single_boundary_approval_record_schema_gate.json`
+
+## 2026-05-15 01:00 operator-review-brief follow-up
+
+The pending Compliance Desk single-boundary review now has a daytime operator checklist artifact:
+
+- `mcp_server/city_ops/fixtures/aas_package_ladder/aas_single_boundary_operator_review_brief.json`
+- implementation note: `CITY_AS_A_SERVICE_AAS_SINGLE_BOUNDARY_OPERATOR_REVIEW_BRIEF_IMPLEMENTATION.md`
+- safe claim: `aas_single_boundary_operator_review_brief_landed`
+
+The brief consumes only `aas_single_boundary_approval_record_schema_gate.json` and makes the later human review steps explicit: source digest confirmation, exact boundary text confirmation, non-secret human reference, timestamp only if approved, redaction evidence, absence of domain-authority/guarantee/dispatch/reputation/pricing/queue language, delivery path staying none unless a separate delivery gate exists, blocked-claims carry-forward, and future false flags staying false.
+
+Every checklist item remains unsatisfied by the brief. It records no human approval, no selected-boundary approval, no redaction pass, no customer copy, no delivery authorization, no publication, no public pricing/customer quote, no route/catalog/pilot, no queue launch, no dispatch, no reputation, no live runtime/Acontext parity, no exact GPS/raw metadata release, no domain-authority claim, and no worker-copyable doctrine.
