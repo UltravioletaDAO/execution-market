@@ -232,6 +232,11 @@ from .aas_three_family_packaging_review_packet import (
     load_aas_three_family_packaging_review_packet,
     write_aas_three_family_packaging_review_packet,
 )
+from .aas_packaging_pricing_operator_workflow_review_board import (
+    build_aas_packaging_pricing_operator_workflow_review_board,
+    load_aas_packaging_pricing_operator_workflow_review_board,
+    write_aas_packaging_pricing_operator_workflow_review_board,
+)
 from .phase1_operator_coverage_renderer import (
     build_phase1_operator_coverage_renderer,
     load_phase1_operator_coverage_renderer,
@@ -406,6 +411,9 @@ __all__ = [
     "build_aas_three_family_packaging_review_packet",
     "load_aas_three_family_packaging_review_packet",
     "write_aas_three_family_packaging_review_packet",
+    "build_aas_packaging_pricing_operator_workflow_review_board",
+    "load_aas_packaging_pricing_operator_workflow_review_board",
+    "write_aas_packaging_pricing_operator_workflow_review_board",
     "build_phase1_operator_coverage_renderer",
     "load_phase1_operator_coverage_renderer",
     "write_phase1_operator_coverage_renderer",

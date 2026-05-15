@@ -75,6 +75,16 @@ The no-customer-exposure fork now has a compact internal/admin review artifact:
 
 It keeps all three families held and makes only package labels, pricing inputs, and operator queue/workflow shape reviewable. It does not approve customer copy, delivery, routes, public prices, dispatch, reputation, live runtime, exact GPS/raw metadata release, or worker doctrine.
 
+## 22:30 no-customer-exposure review-board follow-up
+
+The packaging packet now feeds one further internal/admin board:
+
+- `mcp_server/city_ops/fixtures/aas_package_ladder/aas_packaging_pricing_operator_workflow_review_board.json`
+- implementation note: `CITY_AS_A_SERVICE_AAS_PACKAGING_PRICING_OPERATOR_WORKFLOW_REVIEW_BOARD_IMPLEMENTATION.md`
+- safe claim: `aas_packaging_pricing_operator_workflow_review_board_landed`
+
+The board consumes only `aas_three_family_packaging_review_packet.json` and makes package labels, pricing inputs, and operator queue/workflow questions reviewable. It still does not approve customer copy, customer delivery, public prices/customer quotes, routes, pilots, dispatch, reputation, live runtime, exact GPS/raw metadata release, domain authority, or worker doctrine.
+
 ## Source artifacts
 
 - `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_14.md`

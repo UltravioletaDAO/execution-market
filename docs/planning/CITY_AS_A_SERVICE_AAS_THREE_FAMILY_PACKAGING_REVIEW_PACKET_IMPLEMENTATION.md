@@ -53,8 +53,17 @@ The packet does **not** approve or imply:
 - legal/regulator/notarial/custody/emergency/safety/repair/insurance/SLA/official-report/fault-liability claims
 - worker-copyable doctrine
 
+## 22:30 internal review-board follow-up
+
+A downstream internal/admin board now consumes only this persisted packet:
+
+- `mcp_server/city_ops/fixtures/aas_package_ladder/aas_packaging_pricing_operator_workflow_review_board.json`
+- safe claim: `aas_packaging_pricing_operator_workflow_review_board_landed`
+
+It makes package labels, pricing inputs, and operator queue/workflow questions reviewable without approving customer copy, public prices/customer quotes, routes, pilots, dispatch, reputation, live runtime, exact GPS/raw metadata release, domain authority, or worker doctrine.
+
 ## Next safe step
 
 If customer exposure is explicitly desired, create one separate human-operator approval artifact for exactly one held text boundary.
 
-Otherwise, keep all three families held and use this packet for package labels, pricing-input discussion, and operator workflow review only.
+Otherwise, keep all three families held and use the packet/board pair for package labels, pricing-input discussion, and operator workflow review only.
