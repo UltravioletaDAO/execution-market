@@ -319,3 +319,22 @@ The Acontext prerequisite chain now has a recovery-attempt log:
 This narrows the live-runtime gap without closing it. Docker, the Acontext CLI, Compose files, and the dedicated SDK venv exist; however the active runner still cannot import `acontext`, compose image pulling/startup did not complete, and local API/dashboard health checks remain unreachable. Therefore the gap map still treats live Acontext sink readiness and runtime parity as blocked, not merely untested.
 
 No customer-facing AAS gap is closed by this log. It does not approve customer copy, customer delivery, public/catalog routes, controlled pilots, queue launch, dispatch, ERC-8004 reputation, payment/infra claims, exact GPS/raw metadata exposure, or worker-copyable doctrine.
+
+---
+
+## 2026-05-16 03:00 gap update — Coordination metrics board landed, runtime still blocked
+
+Landed: `admin_aas_coordination_observability_success_metrics_board_landed`.
+
+This closes a coordination-observability planning gap only: future agents now have a deterministic internal board for measuring whether they preserve claim boundaries, carry invariant IDs, keep declared-vs-verified badges honest, and choose exactly one next proof.
+
+It does **not** close:
+- Acontext live write/retrieve parity;
+- runtime-memory integration;
+- customer/public routes or metric dashboards;
+- customer packaging/delivery;
+- operator queue launch or autonomous dispatch;
+- ERC-8004 reputation or worker Skill DNA;
+- payment/production reverification;
+- GPS/raw metadata exposure;
+- worker-copyable doctrine.

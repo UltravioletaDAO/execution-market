@@ -211,3 +211,16 @@ Acontext live-runtime readiness remains false across all three AAS families. The
 - safe claim: `admin_acontext_prerequisite_recovery_attempt_log_landed`
 
 records setup progress only: Docker/CLI/Compose assets and the dedicated SDK venv are present, but active-runner SDK import, completed Compose startup, API reachability, and dashboard reachability are still blocked. This matrix therefore keeps `live Acontext sink ready` and `runtime parity proven` false for Compliance Desk, Document / Handoff Logistics, and Incident Verification.
+
+---
+
+## 2026-05-16 03:00 matrix note — Internal coordination metrics only
+
+`aas_coordination_observability_success_metrics_board.json` is now available as an internal/admin board over the system-integration flywheel and Acontext recovery-attempt log.
+
+Matrix impact:
+- improves operator continuity and future-agent scoring;
+- keeps all three families at the same customer/public readiness boundary as before;
+- does not authorize customer copy, publication, public routes, queue launch, dispatch, reputation, worker Skill DNA, or live Acontext claims.
+
+Required next proof before any runtime-memory claim: complete Acontext prerequisites and pass exactly one live write/retrieve parity attempt behind an empty readiness gate.

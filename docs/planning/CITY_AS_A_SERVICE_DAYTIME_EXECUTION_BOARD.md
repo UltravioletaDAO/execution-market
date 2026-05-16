@@ -1296,3 +1296,28 @@ Latest May 16 22:00 dream kickoff implementation: `mcp_server/city_ops/acontext_
 Latest May 16 00:00 implementation: `mcp_server/city_ops/acontext_prerequisite_activation_board.py` now adds a fail-closed internal/admin activation board over the Acontext live-parity attempt gate, persisted at `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_prerequisite_activation_board.json`. It records actual setup progress — Docker available, Acontext CLI present, Compose manifest present, dedicated SDK virtualenv present — while keeping active-runner SDK import, local API reachability, and dashboard reachability blocked. This earns only `admin_acontext_prerequisite_activation_board_landed`. It still does not authorize live write/retrieve, sink readiness, runtime parity, live memory transport swap, customer/public packaging, route readiness, queue launch, dispatch, ERC-8004 reputation, payment/infra claims, exact GPS/raw metadata exposure, or worker-copyable doctrine. The next safe step is finishing local Acontext startup, making the active runner import the SDK, rerunning read-only preflight, rebuilding the gate, and attempting exactly one live parity pass only if the rebuilt gate explicitly authorizes it.
 
 Latest May 16 01:00 implementation: `mcp_server/city_ops/acontext_prerequisite_recovery_attempt_log.py` now records the next Acontext prerequisite recovery attempt after the activation board, persisted at `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_prerequisite_recovery_attempt_log.json`. It confirms Docker/CLI/Compose assets and the dedicated `.venv-acontext` SDK import are present, but the active runner still lacks `acontext`, the compose image pull/start did not complete inside the cron window, services did not start, and API/dashboard remained unreachable. This earns only `admin_acontext_prerequisite_recovery_attempt_log_landed`. It does not authorize live write/retrieve, sink readiness, runtime parity, customer/public packaging, routes, queue launch, dispatch, reputation, payment/infra claims, exact GPS/raw metadata exposure, or worker-copyable doctrine. The next product-significant step is still prerequisite cleanup plus a fresh read-only preflight; only a rebuilt no-blocker gate may authorize exactly one live parity attempt.
+
+---
+
+## 2026-05-16 03:00 — Coordination observability success metrics board
+
+New internal/admin artifact: `aas_coordination_observability_success_metrics_board.json`.
+
+Safe claim added: `admin_aas_coordination_observability_success_metrics_board_landed` only.
+
+What it does:
+- connects the flywheel read surface with the Acontext prerequisite recovery-attempt log;
+- defines future-agent success as boundary preservation + invariant-ID handoff + declared-vs-verified honesty + one next proof;
+- renders memory/Acontext, IRC/session management, cross-project decision support, observability, and payment/infra context as read-only operator cards.
+
+Still blocked:
+- live Acontext memory integration;
+- runtime parity;
+- IRC runtime/session-manager changes;
+- customer/public success-metric dashboard;
+- customer-visible AAS packaging;
+- queue launch, dispatch, ERC-8004 reputation, worker Skill DNA;
+- payment/production claims unless separately re-probed;
+- GPS/raw metadata exposure and worker-copyable doctrine.
+
+Next safe step: finish Acontext prerequisites, rerun read-only preflight, and attempt one live write/retrieve parity pass only if the rebuilt readiness gate has empty blockers.
