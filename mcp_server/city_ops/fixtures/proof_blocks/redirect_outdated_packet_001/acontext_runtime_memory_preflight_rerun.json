@@ -1,0 +1,213 @@
+{
+  "access_policy": {
+    "audience": "internal_admin_only",
+    "customer_visible": false,
+    "dispatch_enabled": false,
+    "emits_reputation_receipts": false,
+    "exposes_gps_or_metadata": false,
+    "network_route_registered": false,
+    "public_route_registered": false,
+    "publishes_worker_doctrine": false,
+    "requires_admin_context": true,
+    "retrieves_live_acontext": false,
+    "worker_visible": false,
+    "writes_live_acontext": false
+  },
+  "claim_boundaries": {
+    "do_not_claim_yet": [
+      "runtime_parity_proven",
+      "reuse_behavior_proven",
+      "closure_proof_ready",
+      "closure_proof_landed",
+      "session_rebuild_ready",
+      "acontext_sink_ready",
+      "worker-copyable municipal doctrine",
+      "acontext_live_write_completed",
+      "acontext_live_retrieval_completed",
+      "acontext_live_transport_parity_landed",
+      "acontext_compose_pull_completed_by_runtime_memory_rerun",
+      "acontext_services_started_by_runtime_memory_rerun",
+      "acontext_api_dashboard_reachable_by_runtime_memory_rerun",
+      "acontext_preflight_rebuilt_empty_by_runtime_memory_rerun",
+      "acontext_live_parity_attempt_authorized_by_runtime_memory_rerun",
+      "acontext_live_write_completed_by_runtime_memory_rerun",
+      "acontext_live_retrieval_completed_by_runtime_memory_rerun",
+      "acontext_sink_ready_by_runtime_memory_rerun",
+      "runtime_parity_proven_by_runtime_memory_rerun",
+      "customer_visible_aas_packaging_ready_by_runtime_memory_rerun",
+      "public_route_ready_by_runtime_memory_rerun",
+      "operator_queue_launch_ready_by_runtime_memory_rerun",
+      "autonomous_city_dispatch_ready_by_runtime_memory_rerun",
+      "erc8004_reputation_ready_by_runtime_memory_rerun",
+      "payment_coverage_reverified_by_runtime_memory_rerun",
+      "production_infrastructure_reverified_by_runtime_memory_rerun",
+      "exact_gps_or_metadata_exposure_allowed_by_runtime_memory_rerun",
+      "worker_copyable_municipal_doctrine_ready_by_runtime_memory_rerun"
+    ],
+    "safe_to_claim": [
+      "projection_truth_landed",
+      "reuse_parity_landed",
+      "session_rebuild_consumer_landed",
+      "session_rebuild_report_fixture_landed",
+      "acontext_transport_parity_test_landed",
+      "acontext_live_preflight_landed",
+      "admin_acontext_runtime_memory_preflight_rerun_landed"
+    ]
+  },
+  "compact_decision_id": "cdo_c51f4b767729",
+  "compose_startup_observation": {
+    "compose_env_file_found": true,
+    "compose_manifest_found": true,
+    "compose_up_command_settled": false,
+    "compose_up_command_started": true,
+    "compose_up_stop_reason": "silent_multi_image_pull_did_not_settle_inside_7am_window",
+    "compose_up_stopped_by_operator": true,
+    "compose_workdir": "~/clawd/infra/acontext",
+    "containers_started": false,
+    "docker_daemon_available": true,
+    "live_acontext_retrieval_performed": false,
+    "live_acontext_write_performed": false,
+    "local_acontext_api_reachable_after_startup": false,
+    "local_acontext_dashboard_reachable_after_startup": false,
+    "observation_window": "2026-05-16T07:00:00-04:00",
+    "services_healthy": false
+  },
+  "coordination_session_id": "city_session_redirect_outdated_packet_001",
+  "current_blockers": [
+    "local_acontext_api_unreachable",
+    "local_acontext_dashboard_unreachable"
+  ],
+  "derived_from": {
+    "consumes_only": [
+      "acontext_live_preflight_result"
+    ],
+    "emits_reputation_receipts": false,
+    "enables_dispatch_automation": false,
+    "exposes_gps_or_metadata": false,
+    "forbidden_inputs": [
+      "raw_transcripts",
+      "unreviewed_memory",
+      "private_operator_context",
+      "freeform_worker_chat",
+      "live_acontext_sink_writes",
+      "live_acontext_retrievals",
+      "payment_processor_probe",
+      "production_health_probe",
+      "gps_or_raw_metadata_payloads",
+      "customer_copy_drafts",
+      "worker_instruction_templates"
+    ],
+    "publishes_worker_doctrine": false,
+    "read_only": true,
+    "retrieves_live_acontext": false,
+    "reverifies_payment_coverage": false,
+    "reverifies_production_infrastructure": false,
+    "semantic_reinterpretation_performed": false,
+    "source_schema": "city_ops.acontext_live_preflight.v1",
+    "source_verdict": "live_transport_blocked_before_sink_write",
+    "starts_customer_or_public_services": false,
+    "writes_customer_copy": false,
+    "writes_live_acontext": false
+  },
+  "operator_instruction": "Treat this as read-only runtime-memory prerequisite progress only. The active runner can expose the dedicated Acontext venv for SDK import, but local API/dashboard blockers remain. Do not run a live write/retrieve parity pass until a rebuilt preflight has empty blockers and a new gate explicitly authorizes exactly one attempt.",
+  "operator_next_actions": [
+    {
+      "action_id": "complete_local_acontext_api_startup",
+      "status": "blocked",
+      "success_signal": "http://localhost:8029/api/v1 responds to a read-only health probe"
+    },
+    {
+      "action_id": "complete_local_acontext_dashboard_startup",
+      "status": "blocked",
+      "success_signal": "http://localhost:3000 responds to a read-only dashboard probe"
+    },
+    {
+      "action_id": "rerun_preflight_and_rebuild_gate",
+      "status": "next_after_service_health",
+      "success_signal": "rebuilt blocker delta/read surface/gate has empty blockers before one live parity attempt"
+    }
+  ],
+  "packet_id": "acontext_transport_packet:redirect_outdated_packet_001",
+  "preflight_probe": {
+    "api": {
+      "checked": true,
+      "error": "connection refused during 7am runtime-memory preflight",
+      "reachable": false,
+      "status_code": null,
+      "url": "http://localhost:8029/api/v1"
+    },
+    "dashboard": {
+      "checked": true,
+      "error": "connection refused during 7am runtime-memory preflight",
+      "reachable": false,
+      "status_code": null,
+      "url": "http://localhost:3000"
+    },
+    "docker": {
+      "available": true,
+      "checked": true,
+      "error": null,
+      "exit_code": 0
+    },
+    "live_acontext_retrieval_performed": false,
+    "live_acontext_write_performed": false,
+    "python_sdk": {
+      "active_runner_importable": false,
+      "available": true,
+      "checked": true,
+      "error": null,
+      "explicit_venv_consulted": true,
+      "explicit_venv_path": "~/clawd/.venv-acontext",
+      "import_mode": "explicit_venv_site_packages",
+      "package": "acontext",
+      "path_added_to_sys_path": true,
+      "site_packages_path": "~/clawd/.venv-acontext/lib/python3.14/site-packages"
+    }
+  },
+  "proof_anchor_id": "redirect_outdated_packet_001",
+  "readiness": {
+    "acontext_python_sdk_available": true,
+    "acontext_sink_ready": false,
+    "active_runner_can_import_acontext_via_explicit_venv": true,
+    "api_reachable_after_rerun": false,
+    "autonomous_dispatch_ready": false,
+    "compose_pull_completed": false,
+    "compose_services_started": false,
+    "customer_visible_aas_packaging_ready": false,
+    "dashboard_reachable_after_rerun": false,
+    "docker_available": true,
+    "erc8004_reputation_ready": false,
+    "gps_or_metadata_exposure_allowed": false,
+    "live_acontext_retrieval_performed": false,
+    "live_acontext_write_performed": false,
+    "operator_queue_launch_ready": false,
+    "payment_coverage_reverified_by_this_rerun": false,
+    "preflight_rebuilt_with_empty_blockers": false,
+    "production_infrastructure_reverified_by_this_rerun": false,
+    "public_route_ready": false,
+    "read_only_preflight_reran": true,
+    "ready_to_attempt_live_transport": false,
+    "remaining_blockers": [
+      "local_acontext_api_unreachable",
+      "local_acontext_dashboard_unreachable"
+    ],
+    "runtime_memory_preflight_rerun_landed": true,
+    "runtime_parity_proven": false,
+    "worker_copyable_doctrine_ready": false
+  },
+  "rerun_id": "acontext_runtime_memory_preflight_rerun:acontext_live_preflight:redirect_outdated_packet_001",
+  "rerun_verdict": "runtime_memory_preflight_reran_still_blocked_by_local_services",
+  "review_packet_id": "review_packet_redirect_outdated_packet_001",
+  "runner_bridge": {
+    "active_runner_can_import_acontext_via_explicit_venv": true,
+    "active_runner_importable_without_bridge": false,
+    "authorizes_live_retrieve": false,
+    "authorizes_live_write": false,
+    "authorizes_runtime_parity_claim": false,
+    "explicit_venv_consulted": true,
+    "import_mode": "explicit_venv_site_packages",
+    "path_added_to_sys_path": true
+  },
+  "schema": "city_ops.acontext_runtime_memory_preflight_rerun.v1",
+  "source_preflight_id": "acontext_live_preflight:redirect_outdated_packet_001"
+}

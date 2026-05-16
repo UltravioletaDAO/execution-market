@@ -1,4 +1,5 @@
 import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -8,6 +9,7 @@ from mcp_server.city_ops.acontext_live_preflight import (
     ACONTEXT_LIVE_PREFLIGHT_SCHEMA,
     build_acontext_live_preflight_result,
     build_blocked_acontext_preflight_probe,
+    probe_acontext_python_sdk,
 )
 from mcp_server.city_ops.acontext_transport import build_acontext_transport_packet
 from mcp_server.city_ops.contracts import CityOpsContractError
@@ -89,3 +91,25 @@ def test_acontext_live_preflight_refuses_safe_live_readiness_claim():
             packet=packet,
             probe=build_blocked_acontext_preflight_probe(),
         )
+
+
+def test_acontext_python_sdk_probe_can_bridge_explicit_venv_site_packages(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(sys, "path", list(sys.path))
+    venv = tmp_path / ".venv-acontext"
+    package_dir = venv / "lib" / "python3.14" / "site-packages" / "acontext"
+    package_dir.mkdir(parents=True)
+    (package_dir / "__init__.py").write_text("__version__ = 'fixture'\n", encoding="utf-8")
+
+    probe = probe_acontext_python_sdk(
+        allow_explicit_venv_sdk=True,
+        explicit_venv_path=venv,
+    )
+
+    assert probe["available"] is True
+    assert probe["import_mode"] == "explicit_venv_site_packages"
+    assert probe["active_runner_importable"] is False
+    assert probe["explicit_venv_consulted"] is True
+    assert probe["path_added_to_sys_path"] is True
+    assert str(venv / "lib" / "python3.14" / "site-packages") in sys.path

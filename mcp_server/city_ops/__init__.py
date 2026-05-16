@@ -32,6 +32,11 @@ from .acontext_prerequisite_recovery_attempt_log import (
     load_acontext_prerequisite_recovery_attempt_log,
     write_acontext_prerequisite_recovery_attempt_log,
 )
+from .acontext_runtime_memory_preflight_rerun import (
+    build_acontext_runtime_memory_preflight_rerun,
+    load_acontext_runtime_memory_preflight_rerun,
+    write_acontext_runtime_memory_preflight_rerun,
+)
 from .aas_coordination_observability_success_metrics_board import (
     build_aas_coordination_observability_success_metrics_board,
     load_aas_coordination_observability_success_metrics_board,
@@ -345,6 +350,9 @@ __all__ = [
     "build_acontext_live_preflight_blocker_delta_read_surface",
     "load_acontext_live_preflight_blocker_delta_read_surface",
     "write_acontext_live_preflight_blocker_delta_read_surface",
+    "build_acontext_runtime_memory_preflight_rerun",
+    "load_acontext_runtime_memory_preflight_rerun",
+    "write_acontext_runtime_memory_preflight_rerun",
     "build_acontext_transport_parity_result",
     "build_coordination_intelligence_snapshot",
     "build_operator_debug_surface",

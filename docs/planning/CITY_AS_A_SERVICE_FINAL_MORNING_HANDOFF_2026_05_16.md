@@ -165,3 +165,34 @@ Full city-ops suite after the synthesis updates:
 PYTHONPATH=. /opt/homebrew/bin/python3.14 -m pytest -q mcp_server/tests/city_ops
 # 816 passed
 ```
+
+## 7 AM runtime-memory update
+
+The next Acontext prerequisite slice landed as an internal/admin blocker-progress artifact, not a live parity claim:
+
+```text
+acontext_runtime_memory_preflight_rerun.json
+safe claim: admin_acontext_runtime_memory_preflight_rerun_landed
+```
+
+What improved:
+
+- active City Ops preflight runner can expose the dedicated Acontext SDK venv for read-only import;
+- read-only preflight now narrows remaining blockers to local API/dashboard reachability.
+
+Still blocked:
+
+- local Acontext API is unreachable;
+- local Acontext dashboard is unreachable;
+- compose startup/image pulls did not settle in-window;
+- no live Acontext write/retrieve parity pass was attempted;
+- no sink, runtime, customer/public, dispatch, reputation, payment/production, GPS/raw metadata, or worker-doctrine readiness was promoted.
+
+Focused verification for the 7 AM slice:
+
+```bash
+PYTHONPATH=. /opt/homebrew/bin/python3.14 -m pytest -q \
+  mcp_server/tests/city_ops/test_acontext_live_preflight.py \
+  mcp_server/tests/city_ops/test_acontext_runtime_memory_preflight_rerun.py
+# 14 passed
+```

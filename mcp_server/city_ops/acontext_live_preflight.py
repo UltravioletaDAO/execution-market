@@ -14,6 +14,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 from urllib.error import URLError
@@ -37,6 +38,7 @@ ACONTEXT_LIVE_PREFLIGHT_BLOCKED_CLAIMS = [
 ]
 DEFAULT_ACONTEXT_API_URL = "http://localhost:8029/api/v1"
 DEFAULT_ACONTEXT_DASHBOARD_URL = "http://localhost:3000"
+DEFAULT_EXPLICIT_ACONTEXT_VENV_PATH = "~/clawd/.venv-acontext"
 
 
 def probe_local_acontext_environment(
@@ -46,6 +48,8 @@ def probe_local_acontext_environment(
     timeout_seconds: float = 1.0,
     run_docker_check: bool = True,
     run_http_checks: bool = True,
+    allow_explicit_venv_sdk: bool = False,
+    explicit_venv_path: str | Path = DEFAULT_EXPLICIT_ACONTEXT_VENV_PATH,
 ) -> dict[str, Any]:
     """Probe local prerequisites for the live Acontext transport test.
 
@@ -60,7 +64,10 @@ def probe_local_acontext_environment(
         "exit_code": None,
         "error": "docker check skipped",
     }
-    sdk_available = importlib.util.find_spec("acontext") is not None
+    sdk_probe = probe_acontext_python_sdk(
+        allow_explicit_venv_sdk=allow_explicit_venv_sdk,
+        explicit_venv_path=explicit_venv_path,
+    )
     api_probe = _probe_http(api_url, timeout_seconds) if run_http_checks else {
         "checked": False,
         "url": api_url,
@@ -78,15 +85,106 @@ def probe_local_acontext_environment(
 
     return {
         "docker": docker_probe,
-        "python_sdk": {
-            "checked": True,
-            "package": "acontext",
-            "available": sdk_available,
-        },
+        "python_sdk": sdk_probe,
         "api": api_probe,
         "dashboard": dashboard_probe,
         "live_acontext_write_performed": False,
         "live_acontext_retrieval_performed": False,
+    }
+
+
+def probe_acontext_python_sdk(
+    *,
+    allow_explicit_venv_sdk: bool = False,
+    explicit_venv_path: str | Path = DEFAULT_EXPLICIT_ACONTEXT_VENV_PATH,
+) -> dict[str, Any]:
+    """Probe whether the active runner can import Acontext.
+
+    By default this preserves the historical active-runner check.  When an
+    explicit Acontext venv is allowed, the probe may expose that venv's
+    ``site-packages`` to the active Python process so read-only preflights can
+    import the SDK without moving the whole City Ops test runner into the
+    dedicated SDK venv.  It does not contact Acontext and does not perform a
+    live write or retrieval.
+    """
+
+    active_spec = importlib.util.find_spec("acontext")
+    if active_spec is not None:
+        return {
+            "checked": True,
+            "package": "acontext",
+            "available": True,
+            "import_mode": "active_python",
+            "active_runner_importable": True,
+            "explicit_venv_consulted": False,
+            "explicit_venv_path": None,
+            "site_packages_path": None,
+            "path_added_to_sys_path": False,
+            "error": None,
+        }
+
+    if not allow_explicit_venv_sdk:
+        return {
+            "checked": True,
+            "package": "acontext",
+            "available": False,
+            "import_mode": "missing",
+            "active_runner_importable": False,
+            "explicit_venv_consulted": False,
+            "explicit_venv_path": None,
+            "site_packages_path": None,
+            "path_added_to_sys_path": False,
+            "error": "acontext module not importable by active runner",
+        }
+
+    venv = Path(explicit_venv_path).expanduser()
+    site_packages = _resolve_explicit_venv_site_packages(venv)
+    if site_packages is None:
+        return {
+            "checked": True,
+            "package": "acontext",
+            "available": False,
+            "import_mode": "explicit_venv_missing_site_packages",
+            "active_runner_importable": False,
+            "explicit_venv_consulted": True,
+            "explicit_venv_path": str(venv),
+            "site_packages_path": None,
+            "path_added_to_sys_path": False,
+            "error": "explicit Acontext venv site-packages not found",
+        }
+
+    if importlib.machinery.PathFinder.find_spec("acontext", [str(site_packages)]) is None:
+        return {
+            "checked": True,
+            "package": "acontext",
+            "available": False,
+            "import_mode": "explicit_venv_without_acontext",
+            "active_runner_importable": False,
+            "explicit_venv_consulted": True,
+            "explicit_venv_path": str(venv),
+            "site_packages_path": str(site_packages),
+            "path_added_to_sys_path": False,
+            "error": "explicit Acontext venv does not expose acontext module",
+        }
+
+    path_added = False
+    site_packages_str = str(site_packages)
+    if site_packages_str not in sys.path:
+        sys.path.insert(0, site_packages_str)
+        importlib.invalidate_caches()
+        path_added = True
+
+    return {
+        "checked": True,
+        "package": "acontext",
+        "available": importlib.util.find_spec("acontext") is not None,
+        "import_mode": "explicit_venv_site_packages",
+        "active_runner_importable": False,
+        "explicit_venv_consulted": True,
+        "explicit_venv_path": str(venv),
+        "site_packages_path": site_packages_str,
+        "path_added_to_sys_path": path_added,
+        "error": None,
     }
 
 
@@ -380,6 +478,14 @@ def _probe_http(url: str, timeout_seconds: float) -> dict[str, Any]:
         "status_code": status_code,
         "error": None,
     }
+
+
+def _resolve_explicit_venv_site_packages(venv_path: Path) -> Path | None:
+    candidates = sorted((venv_path / "lib").glob("python*/site-packages"))
+    for candidate in candidates:
+        if candidate.is_dir():
+            return candidate
+    return None
 
 
 def _dedupe(values: list[str]) -> list[str]:
