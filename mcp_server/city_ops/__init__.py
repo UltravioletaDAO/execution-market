@@ -22,6 +22,11 @@ from .acontext_live_parity_attempt_readiness_gate import (
     load_acontext_live_parity_attempt_readiness_gate,
     write_acontext_live_parity_attempt_readiness_gate,
 )
+from .acontext_prerequisite_activation_board import (
+    build_acontext_prerequisite_activation_board,
+    load_acontext_prerequisite_activation_board,
+    write_acontext_prerequisite_activation_board,
+)
 from .acontext_transport import build_acontext_transport_parity_result
 from .closure import build_acontext_export_preview, build_session_rebuild_preview
 from .coordination_intelligence import build_coordination_intelligence_snapshot

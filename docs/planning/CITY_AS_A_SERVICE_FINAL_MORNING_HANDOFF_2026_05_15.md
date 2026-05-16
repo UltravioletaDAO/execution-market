@@ -156,3 +156,34 @@ Meaning: operators can inspect the prerequisite state as cards: Docker is cleare
 Still blocked: live Acontext sink readiness, runtime parity, session rebuild readiness, customer/public packaging, routes, operator queue launch, dispatch, ERC-8004 reputation, payment/infra reverification, exact GPS/raw metadata exposure, and worker-copyable doctrine.
 
 Next safe step remains prerequisite cleanup plus a rerun of read-only preflight before any single live write/retrieve parity attempt.
+
+## May 16 00:00 continuation — Acontext prerequisite activation board
+
+The midnight dream did not work on AutoJob, Frontier Academy, KK v2, or KarmaCadabra v2; `DREAM-PRIORITIES.md` kept the focus on Execution Market AAS / City-as-a-Service.
+
+A local Acontext setup attempt found partial progress but not live readiness: Docker is available, the Acontext CLI exists, a Compose manifest exists, and a dedicated SDK virtualenv exists; however the active city-ops runner still cannot import `acontext`, the local API/dashboard are not reachable, the direct SDK install attempt into Homebrew Python hit a local `pyexpat` linkage issue, and the Compose startup did not complete inside the dream window.
+
+A fail-closed internal/admin activation board now captures that state:
+
+```text
+mcp_server/city_ops/acontext_prerequisite_activation_board.py
+mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_prerequisite_activation_board.json
+docs/planning/CITY_AS_A_SERVICE_ACONTEXT_PREREQUISITE_ACTIVATION_BOARD_IMPLEMENTATION.md
+```
+
+Safe claim added:
+
+```text
+admin_acontext_prerequisite_activation_board_landed
+```
+
+Meaning: setup progress is visible, but this is **not** a live parity authorization. Still blocked: preflight rerun completion, live Acontext write/retrieve, sink readiness, runtime parity, live memory transport swap, customer/public packaging, routes, queue launch, dispatch, ERC-8004 reputation, payment/infra claims, exact GPS/raw metadata exposure, and worker-copyable doctrine.
+
+Verification after this slice:
+
+```bash
+PYTHONPATH=. /opt/homebrew/bin/python3.14 -m pytest -q mcp_server/tests/city_ops
+# 781 passed
+```
+
+Next safe step remains: finish local Acontext service startup, make the active runner import the SDK, rerun read-only preflight, rebuild the blocker delta/read surface/gate, and attempt exactly one live write/retrieve parity pass only if the rebuilt gate explicitly authorizes it.

@@ -191,3 +191,13 @@ The Acontext blocker-delta read surface now feeds a fail-closed live-parity atte
 This gate answers the narrow launch-control question: whether a live Acontext write/retrieve parity attempt may run now. Current verdict: `live_parity_attempt_blocked_prerequisites_missing`. Docker progress remains visible, but Acontext SDK/API/dashboard blockers keep the attempt disallowed.
 
 Allowed next work is prerequisite-only plus a preflight rerun. The gate does not approve customer copy, customer delivery, public/catalog routes, public prices/customer quotes, queue launch, dispatch, reputation, live runtime parity, exact GPS/raw metadata release, domain authority, payment/production claims, or worker-copyable doctrine.
+
+## 2026-05-16 00:00 Acontext prerequisite activation board follow-up
+
+The runtime-memory proof lane now has an internal/admin activation board over the fail-closed live-parity attempt gate:
+
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_prerequisite_activation_board.json`
+- implementation note: `CITY_AS_A_SERVICE_ACONTEXT_PREREQUISITE_ACTIVATION_BOARD_IMPLEMENTATION.md`
+- safe claim: `admin_acontext_prerequisite_activation_board_landed`
+
+This board records setup progress only: Docker, Acontext CLI, Compose manifest, and a dedicated SDK virtualenv are present, but the active preflight runner still cannot import `acontext`, the API/dashboard remain unreachable, and the Compose startup did not finish in-window. It does not approve customer copy, delivery, routes, public prices, queue launch, dispatch, reputation, live runtime/Acontext parity, exact GPS/raw metadata release, domain authority, or worker doctrine.

@@ -295,3 +295,15 @@ The Acontext blocker delta now has a pass-through internal/admin read surface:
 Safe latest claim added: `admin_acontext_blocker_delta_surface_landed` only. The surface consumes only `acontext_live_preflight_blocker_delta.json`, renders prerequisite cards and next actions, and keeps claim boundaries sticky. Docker is shown as cleared but not authority; Acontext SDK/API/dashboard still block the live write/retrieve parity attempt.
 
 This does not prove live Acontext sink readiness, runtime parity, session rebuild readiness, customer/public packaging readiness, route readiness, operator queue launch readiness, dispatch, reputation receipts, payment/infra reverification, exact GPS/raw metadata release, or worker-copyable doctrine. The next safe step is still prerequisite cleanup plus a rerun of read-only preflight before any single live parity attempt.
+
+### 4.11 Update after May 16 00:00 Acontext activation attempt
+
+The Acontext live-memory proof path now has an internal/admin prerequisite activation board:
+
+- `mcp_server/city_ops/acontext_prerequisite_activation_board.py`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_prerequisite_activation_board.json`
+- `docs/planning/CITY_AS_A_SERVICE_ACONTEXT_PREREQUISITE_ACTIVATION_BOARD_IMPLEMENTATION.md`
+
+Safe latest claim added: `admin_acontext_prerequisite_activation_board_landed` only. The board records setup progress — Docker available, Acontext CLI present, Compose manifest present, dedicated SDK virtualenv present — while preserving the active blockers: the city-ops runner still lacks SDK import readiness, the local API/dashboard are not reachable, and the Compose startup did not complete during the dream window.
+
+This does not authorize a live Acontext write/retrieve attempt and does not prove live sink readiness, runtime parity, customer/public packaging readiness, route readiness, queue launch, dispatch, reputation receipts, payment/infra health, exact GPS/raw metadata release, domain authority, or worker-copyable doctrine. The next safe step is still prerequisite cleanup plus a read-only preflight rerun before any single live parity attempt.
