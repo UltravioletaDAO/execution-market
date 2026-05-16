@@ -12,6 +12,11 @@ from .acontext_live_preflight_blocker_delta import (
     load_acontext_live_preflight_blocker_delta,
     write_acontext_live_preflight_blocker_delta,
 )
+from .acontext_live_preflight_blocker_delta_read_surface import (
+    build_acontext_live_preflight_blocker_delta_read_surface,
+    load_acontext_live_preflight_blocker_delta_read_surface,
+    write_acontext_live_preflight_blocker_delta_read_surface,
+)
 from .acontext_transport import build_acontext_transport_parity_result
 from .closure import build_acontext_export_preview, build_session_rebuild_preview
 from .coordination_intelligence import build_coordination_intelligence_snapshot
@@ -312,6 +317,9 @@ __all__ = [
     "build_acontext_live_preflight_blocker_delta",
     "load_acontext_live_preflight_blocker_delta",
     "write_acontext_live_preflight_blocker_delta",
+    "build_acontext_live_preflight_blocker_delta_read_surface",
+    "load_acontext_live_preflight_blocker_delta_read_surface",
+    "write_acontext_live_preflight_blocker_delta_read_surface",
     "build_acontext_transport_parity_result",
     "build_coordination_intelligence_snapshot",
     "build_operator_debug_surface",

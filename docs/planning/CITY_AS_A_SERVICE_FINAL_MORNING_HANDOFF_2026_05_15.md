@@ -134,3 +134,25 @@ acontext_live_preflight_blocker_delta_landed
 Meaning: Docker has cleared as a blocker, but the Acontext Python SDK, local API, and local dashboard still block a live write/retrieve parity attempt. No live write, retrieval, sink readiness, runtime parity, customer/public route, dispatch, reputation, payment/infra reverification, GPS/raw metadata exposure, or worker doctrine claim was added.
 
 Next safe step: install/expose the Acontext SDK, start local API/dashboard, rerun read-only preflight, then perform exactly one live write/retrieve parity pass only if blockers are empty.
+
+## 10 PM continuation — Acontext blocker delta read surface
+
+The 10 PM dream stayed inside Execution Market AAS / City-as-a-Service and added a pass-through internal/admin surface over the Acontext blocker delta:
+
+```text
+mcp_server/city_ops/acontext_live_preflight_blocker_delta_read_surface.py
+mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_live_preflight_blocker_delta_read_surface.json
+docs/planning/CITY_AS_A_SERVICE_ACONTEXT_BLOCKER_DELTA_READ_SURFACE_IMPLEMENTATION.md
+```
+
+Safe claim added:
+
+```text
+admin_acontext_blocker_delta_surface_landed
+```
+
+Meaning: operators can inspect the prerequisite state as cards: Docker is cleared, while Acontext SDK, local API, and local dashboard remain blockers. This is not a live parity claim and does not authorize a live write.
+
+Still blocked: live Acontext sink readiness, runtime parity, session rebuild readiness, customer/public packaging, routes, operator queue launch, dispatch, ERC-8004 reputation, payment/infra reverification, exact GPS/raw metadata exposure, and worker-copyable doctrine.
+
+Next safe step remains prerequisite cleanup plus a rerun of read-only preflight before any single live write/retrieve parity attempt.

@@ -283,3 +283,15 @@ The live Acontext path has a narrow blocker-delta artifact rather than a parity 
 Safe latest claim added: `acontext_live_preflight_blocker_delta_landed` only. The delta records that Docker is now available, but `acontext_python_sdk_missing`, `local_acontext_api_unreachable`, and `local_acontext_dashboard_unreachable` still block the live write/retrieve parity attempt.
 
 This does not prove live Acontext sink readiness, runtime parity, session rebuild readiness, customer/public packaging readiness, route readiness, operator queue launch readiness, dispatch, reputation receipts, payment/infra reverification, exact GPS/raw metadata release, or worker-copyable doctrine. The next safe step is still prerequisite cleanup plus a rerun of the read-only preflight before any single live parity attempt.
+
+### 4.10 Update after May 16 22:00 dream kickoff
+
+The Acontext blocker delta now has a pass-through internal/admin read surface:
+
+- `mcp_server/city_ops/acontext_live_preflight_blocker_delta_read_surface.py`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_live_preflight_blocker_delta_read_surface.json`
+- `docs/planning/CITY_AS_A_SERVICE_ACONTEXT_BLOCKER_DELTA_READ_SURFACE_IMPLEMENTATION.md`
+
+Safe latest claim added: `admin_acontext_blocker_delta_surface_landed` only. The surface consumes only `acontext_live_preflight_blocker_delta.json`, renders prerequisite cards and next actions, and keeps claim boundaries sticky. Docker is shown as cleared but not authority; Acontext SDK/API/dashboard still block the live write/retrieve parity attempt.
+
+This does not prove live Acontext sink readiness, runtime parity, session rebuild readiness, customer/public packaging readiness, route readiness, operator queue launch readiness, dispatch, reputation receipts, payment/infra reverification, exact GPS/raw metadata release, or worker-copyable doctrine. The next safe step is still prerequisite cleanup plus a rerun of read-only preflight before any single live parity attempt.

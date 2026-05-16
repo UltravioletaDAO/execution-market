@@ -169,3 +169,13 @@ Current daytime fork:
 1. If customer exposure is desired, create one real human approval record for the exact Compliance Desk label boundary and validate it. Even if valid, it approves only that internal label boundary.
 2. If runtime-memory proof is desired, clear prerequisites and run exactly one live Acontext write/retrieve parity pass.
 3. If neither is ready, keep all customer/public/dispatch/reputation/runtime/GPS/domain-authority/worker-doctrine claims blocked.
+
+## 2026-05-16 22:00 Acontext blocker-delta read-surface follow-up
+
+The live-memory proof path now has an internal/admin read surface over the Acontext blocker delta:
+
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_live_preflight_blocker_delta_read_surface.json`
+- implementation note: `CITY_AS_A_SERVICE_ACONTEXT_BLOCKER_DELTA_READ_SURFACE_IMPLEMENTATION.md`
+- safe claim: `admin_acontext_blocker_delta_surface_landed`
+
+This is a blocker display only. It shows Docker cleared and Acontext SDK/API/dashboard still blocked. It does not approve customer copy, delivery, routes, public prices, queue launch, dispatch, reputation, live runtime/Acontext parity, exact GPS/raw metadata release, domain authority, or worker doctrine.
