@@ -17,6 +17,11 @@ from .acontext_live_preflight_blocker_delta_read_surface import (
     load_acontext_live_preflight_blocker_delta_read_surface,
     write_acontext_live_preflight_blocker_delta_read_surface,
 )
+from .acontext_live_parity_attempt_readiness_gate import (
+    build_acontext_live_parity_attempt_readiness_gate,
+    load_acontext_live_parity_attempt_readiness_gate,
+    write_acontext_live_parity_attempt_readiness_gate,
+)
 from .acontext_transport import build_acontext_transport_parity_result
 from .closure import build_acontext_export_preview, build_session_rebuild_preview
 from .coordination_intelligence import build_coordination_intelligence_snapshot

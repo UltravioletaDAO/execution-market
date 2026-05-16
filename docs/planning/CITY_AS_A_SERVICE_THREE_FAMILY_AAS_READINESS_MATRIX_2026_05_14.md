@@ -179,3 +179,15 @@ The live-memory proof path now has an internal/admin read surface over the Acont
 - safe claim: `admin_acontext_blocker_delta_surface_landed`
 
 This is a blocker display only. It shows Docker cleared and Acontext SDK/API/dashboard still blocked. It does not approve customer copy, delivery, routes, public prices, queue launch, dispatch, reputation, live runtime/Acontext parity, exact GPS/raw metadata release, domain authority, or worker doctrine.
+
+## 2026-05-15 23:00 Acontext live-parity attempt gate follow-up
+
+The Acontext blocker-delta read surface now feeds a fail-closed live-parity attempt gate:
+
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_live_parity_attempt_readiness_gate.json`
+- implementation note: `CITY_AS_A_SERVICE_ACONTEXT_LIVE_PARITY_ATTEMPT_READINESS_GATE_IMPLEMENTATION.md`
+- safe claim: `admin_acontext_live_parity_attempt_gate_landed`
+
+This gate answers the narrow launch-control question: whether a live Acontext write/retrieve parity attempt may run now. Current verdict: `live_parity_attempt_blocked_prerequisites_missing`. Docker progress remains visible, but Acontext SDK/API/dashboard blockers keep the attempt disallowed.
+
+Allowed next work is prerequisite-only plus a preflight rerun. The gate does not approve customer copy, customer delivery, public/catalog routes, public prices/customer quotes, queue launch, dispatch, reputation, live runtime parity, exact GPS/raw metadata release, domain authority, payment/production claims, or worker-copyable doctrine.
