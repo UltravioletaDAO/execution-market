@@ -27,6 +27,11 @@ from .acontext_prerequisite_activation_board import (
     load_acontext_prerequisite_activation_board,
     write_acontext_prerequisite_activation_board,
 )
+from .acontext_prerequisite_recovery_attempt_log import (
+    build_acontext_prerequisite_recovery_attempt_log,
+    load_acontext_prerequisite_recovery_attempt_log,
+    write_acontext_prerequisite_recovery_attempt_log,
+)
 from .acontext_transport import build_acontext_transport_parity_result
 from .closure import build_acontext_export_preview, build_session_rebuild_preview
 from .coordination_intelligence import build_coordination_intelligence_snapshot

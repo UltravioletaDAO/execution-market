@@ -187,3 +187,34 @@ PYTHONPATH=. /opt/homebrew/bin/python3.14 -m pytest -q mcp_server/tests/city_ops
 ```
 
 Next safe step remains: finish local Acontext service startup, make the active runner import the SDK, rerun read-only preflight, rebuild the blocker delta/read surface/gate, and attempt exactly one live write/retrieve parity pass only if the rebuilt gate explicitly authorizes it.
+
+## May 16 01:00 continuation — Acontext prerequisite recovery attempt log
+
+The 1 AM dream again followed `DREAM-PRIORITIES.md` over the stale cron payload and did **not** work on AutoJob, Frontier Academy, KK v2, or KarmaCadabra v2.
+
+The next real Acontext prerequisite recovery pass found the same narrow state: Docker is available; Acontext CLI, Compose manifest, `.env`, and the dedicated `.venv-acontext` SDK install exist; the dedicated venv imports `acontext==0.1.13`; however the active Homebrew Python runner still cannot import `acontext`. A `docker compose --env-file .env -f .docker-compose-1411407133.yaml up -d` attempt started pulling the Acontext image set but did not complete inside the cron window, so it was killed before containers/services started. API `localhost:8029` and dashboard `localhost:3000` remained unreachable.
+
+A fail-closed internal/admin recovery attempt log now captures that state:
+
+```text
+mcp_server/city_ops/acontext_prerequisite_recovery_attempt_log.py
+mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_prerequisite_recovery_attempt_log.json
+docs/planning/CITY_AS_A_SERVICE_ACONTEXT_PREREQUISITE_RECOVERY_ATTEMPT_LOG_IMPLEMENTATION.md
+```
+
+Safe claim added:
+
+```text
+admin_acontext_prerequisite_recovery_attempt_log_landed
+```
+
+Meaning: the recovery attempt is documented and reviewable, but it is **not** a live parity authorization. Still blocked: completed image pull/service startup, active-runner SDK wiring, fresh preflight rerun, live write/retrieve, sink readiness, runtime parity, customer/public packaging, routes, queue launch, dispatch, reputation, payment/infra claims, exact GPS/raw metadata exposure, and worker-copyable doctrine.
+
+Verification after this slice:
+
+```bash
+PYTHONPATH=. /opt/homebrew/bin/python3.14 -m pytest -q mcp_server/tests/city_ops/test_acontext_prerequisite_recovery_attempt_log.py
+# 8 passed
+```
+
+Next safe step remains unchanged but sharper: complete image pulls/startup outside a tight cron window, verify API/dashboard, wire the active parity runner to Acontext (or explicitly use the dedicated venv), rerun read-only preflight, then attempt exactly one live write/retrieve parity pass only if the rebuilt gate explicitly authorizes it.

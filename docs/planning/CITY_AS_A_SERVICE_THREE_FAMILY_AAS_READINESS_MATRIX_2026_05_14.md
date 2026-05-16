@@ -201,3 +201,13 @@ The runtime-memory proof lane now has an internal/admin activation board over th
 - safe claim: `admin_acontext_prerequisite_activation_board_landed`
 
 This board records setup progress only: Docker, Acontext CLI, Compose manifest, and a dedicated SDK virtualenv are present, but the active preflight runner still cannot import `acontext`, the API/dashboard remain unreachable, and the Compose startup did not finish in-window. It does not approve customer copy, delivery, routes, public prices, queue launch, dispatch, reputation, live runtime/Acontext parity, exact GPS/raw metadata release, domain authority, or worker doctrine.
+
+## 2026-05-16 01:00 live-runtime prerequisite follow-up
+
+Acontext live-runtime readiness remains false across all three AAS families. The new recovery-attempt log:
+
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_prerequisite_recovery_attempt_log.json`
+- implementation note: `CITY_AS_A_SERVICE_ACONTEXT_PREREQUISITE_RECOVERY_ATTEMPT_LOG_IMPLEMENTATION.md`
+- safe claim: `admin_acontext_prerequisite_recovery_attempt_log_landed`
+
+records setup progress only: Docker/CLI/Compose assets and the dedicated SDK venv are present, but active-runner SDK import, completed Compose startup, API reachability, and dashboard reachability are still blocked. This matrix therefore keeps `live Acontext sink ready` and `runtime parity proven` false for Compliance Desk, Document / Handoff Logistics, and Incident Verification.

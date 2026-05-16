@@ -307,3 +307,15 @@ The Acontext live-memory proof path now has an internal/admin prerequisite activ
 Safe latest claim added: `admin_acontext_prerequisite_activation_board_landed` only. The board records setup progress — Docker available, Acontext CLI present, Compose manifest present, dedicated SDK virtualenv present — while preserving the active blockers: the city-ops runner still lacks SDK import readiness, the local API/dashboard are not reachable, and the Compose startup did not complete during the dream window.
 
 This does not authorize a live Acontext write/retrieve attempt and does not prove live sink readiness, runtime parity, customer/public packaging readiness, route readiness, queue launch, dispatch, reputation receipts, payment/infra health, exact GPS/raw metadata release, domain authority, or worker-copyable doctrine. The next safe step is still prerequisite cleanup plus a read-only preflight rerun before any single live parity attempt.
+
+## 2026-05-16 01:00 Acontext prerequisite recovery attempt
+
+The Acontext prerequisite chain now has a recovery-attempt log:
+
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_prerequisite_recovery_attempt_log.json`
+- implementation note: `CITY_AS_A_SERVICE_ACONTEXT_PREREQUISITE_RECOVERY_ATTEMPT_LOG_IMPLEMENTATION.md`
+- safe claim: `admin_acontext_prerequisite_recovery_attempt_log_landed`
+
+This narrows the live-runtime gap without closing it. Docker, the Acontext CLI, Compose files, and the dedicated SDK venv exist; however the active runner still cannot import `acontext`, compose image pulling/startup did not complete, and local API/dashboard health checks remain unreachable. Therefore the gap map still treats live Acontext sink readiness and runtime parity as blocked, not merely untested.
+
+No customer-facing AAS gap is closed by this log. It does not approve customer copy, customer delivery, public/catalog routes, controlled pilots, queue launch, dispatch, ERC-8004 reputation, payment/infra claims, exact GPS/raw metadata exposure, or worker-copyable doctrine.
