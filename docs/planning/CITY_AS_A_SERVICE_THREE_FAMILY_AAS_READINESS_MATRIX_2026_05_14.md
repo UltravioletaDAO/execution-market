@@ -235,3 +235,17 @@ Matrix impact:
 - does not authorize customer copy, customer delivery, publication, public routes, queue launch, pricing, dispatch, reputation, worker Skill DNA, live Acontext claims, exact GPS/raw metadata release, or worker-copyable doctrine.
 
 Required next proof before any runtime-memory claim remains unchanged: complete Acontext prerequisites and pass exactly one live write/retrieve parity attempt behind an empty readiness gate.
+
+## 2026-05-16 05:00 matrix note — Pre-dawn synthesis / no readiness promotion
+
+`CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_16.md` and `CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_16.md` are now the daytime entrypoints.
+
+Matrix impact:
+- Compliance Desk, Document / Handoff Logistics, and Incident Verification remain held at their internal/admin boundaries.
+- The Acontext lane is better instrumented but still not live-runtime-ready.
+- The coordination lane now has an internal/admin metrics board and multiplier pattern map.
+- No family gains customer copy, customer delivery, publication, route, pilot, pricing, queue launch, dispatch, reputation, worker Skill DNA, live runtime/Acontext parity, GPS/raw metadata release, domain-authority, or worker-copyable-doctrine readiness.
+
+Required next proof before any runtime-memory claim: complete local Acontext startup, verify API/dashboard, rerun read-only preflight through the explicit venv path if needed, rebuild blocker/gate artifacts, and run exactly one live write/retrieve parity attempt only if the rebuilt gate has no blockers.
+
+Required next proof before any customer-exposure claim: one real human-operator approval record for exactly one held text boundary, starting with the selected Compliance Desk label boundary if Saúl wants that path.
