@@ -338,3 +338,28 @@ It does **not** close:
 - payment/production reverification;
 - GPS/raw metadata exposure;
 - worker-copyable doctrine.
+
+---
+
+## 2026-05-16 04:00 gap update — Coordination multiplier pattern map landed
+
+Landed: `admin_aas_coordination_multiplier_pattern_map_landed`.
+
+This closes a strategy/coordination-pattern gap only. Future AAS agents now have a deterministic internal map for the patterns that create multiplier effects:
+
+- invariant four-ID handoffs scale better than raw transcript replay;
+- prerequisite honesty beats optimistic live-runtime claims;
+- cross-project intelligence is safe as a filter only when blocked claims travel with safe claims;
+- agent success should reward boundary preservation and one-next-proof discipline.
+
+It does **not** close:
+- live Acontext write/retrieve parity;
+- runtime-memory integration;
+- IRC runtime/session-manager changes;
+- customer/public routes or metric dashboards;
+- customer packaging/delivery/publication;
+- operator queue launch, pricing, or autonomous dispatch;
+- ERC-8004 reputation or worker Skill DNA;
+- payment/production reverification;
+- GPS/raw metadata exposure;
+- worker-copyable doctrine.

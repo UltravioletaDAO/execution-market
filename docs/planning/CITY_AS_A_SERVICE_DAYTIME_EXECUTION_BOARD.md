@@ -1321,3 +1321,27 @@ Still blocked:
 - GPS/raw metadata exposure and worker-copyable doctrine.
 
 Next safe step: finish Acontext prerequisites, rerun read-only preflight, and attempt one live write/retrieve parity pass only if the rebuilt readiness gate has empty blockers.
+
+---
+
+## 2026-05-16 04:00 — Coordination multiplier pattern map
+
+New internal/admin artifact: `aas_coordination_multiplier_pattern_map.json`.
+
+Safe claim added: `admin_aas_coordination_multiplier_pattern_map_landed` only.
+
+What it does:
+- turns the 03:00 coordination metrics board into a compact pattern map;
+- identifies the coordination habits that compound across AAS: four-ID handoffs, declared-vs-verified badges, sticky blocked claims, prerequisite honesty, and one-next-proof discipline;
+- frames cross-project intelligence as an internal operator filter, not customer/public autopilot;
+- gives future AAS agents scaling rules without reopening raw transcripts or promoting stale claims.
+
+Still blocked:
+- live Acontext memory integration and runtime parity;
+- IRC runtime/session-manager changes;
+- customer-visible packaging, public/catalog routes, customer delivery, publication, queue launch, pricing/quotes;
+- dispatch, ERC-8004 reputation, worker Skill DNA;
+- payment/production claims unless separately re-probed;
+- GPS/raw metadata exposure and worker-copyable doctrine.
+
+Next safe step remains prerequisite work: finish Acontext setup, rerun read-only preflight, rebuild the blocker/gate chain, and attempt exactly one live write/retrieve parity pass only if the rebuilt gate has empty blockers.

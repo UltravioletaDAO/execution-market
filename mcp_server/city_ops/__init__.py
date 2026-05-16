@@ -37,6 +37,11 @@ from .aas_coordination_observability_success_metrics_board import (
     load_aas_coordination_observability_success_metrics_board,
     write_aas_coordination_observability_success_metrics_board,
 )
+from .aas_coordination_multiplier_pattern_map import (
+    build_aas_coordination_multiplier_pattern_map,
+    load_aas_coordination_multiplier_pattern_map,
+    write_aas_coordination_multiplier_pattern_map,
+)
 from .acontext_transport import build_acontext_transport_parity_result
 from .closure import build_acontext_export_preview, build_session_rebuild_preview
 from .coordination_intelligence import build_coordination_intelligence_snapshot
