@@ -377,3 +377,9 @@ The May 16 night did not broaden the package ladder or approve customer exposure
 Safe latest claims remain internal/admin only: `admin_acontext_explicit_venv_preflight_rerun_landed`, `admin_aas_coordination_observability_success_metrics_board_landed`, and `admin_aas_coordination_multiplier_pattern_map_landed`.
 
 Gap map impact: no customer/public/pilot/dispatch/reputation/runtime/payment/GPS/domain-authority/worker-doctrine gap is closed. The only gap that improved is operational clarity: future AAS work should carry invariant IDs, declared-vs-verified badges, sticky blocked claims, and one next-proof slot through every handoff. Runtime-memory proof still requires completed Acontext service startup, API/dashboard reachability, a read-only preflight rerun, rebuilt blocker/gate artifacts, and exactly one live write/retrieve parity attempt only if the rebuilt gate is empty.
+
+## May 16 06:00 final morning brief
+
+Daytime entrypoint: `CITY_AS_A_SERVICE_6AM_MORNING_BRIEF_2026_05_16.md`. No new product surface or readiness claim was added at the final seal. The safe state remains internal/admin only: Acontext prerequisites are partially present but live parity is blocked, and coordination observability is a handoff discipline rather than a customer/public metric surface. The next proof must be either a rebuilt no-blocker Acontext gate followed by exactly one live write/retrieve parity pass, or one real human-operator approval record for the exact Compliance Desk package-label boundary.
+
+Do not treat tonight's docs, boards, or pattern maps as customer delivery, publication, public route/catalog readiness, pricing, queue launch, dispatch, ERC-8004 reputation, payment/infra reverification, exact GPS/raw metadata release, domain authority, or worker-copyable doctrine.

@@ -1,6 +1,6 @@
 # City as a Service — Final Morning Handoff 2026-05-16
 
-> Status: 5 AM final dream handoff for daytime operations
+> Status: 6 AM final dream handoff for daytime operations
 > Scope: Execution Market AAS / City-as-a-Service only
 > Priority source: `~/clawd/DREAM-PRIORITIES.md`
 > Product posture: internal/admin only; no customer/public launch claim
@@ -139,15 +139,21 @@ Recommended next work if neither of the above is ready:
 
 ## Current daytime entrypoints
 
-1. `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_16.md`
-2. `CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_16.md`
-3. `CITY_AS_A_SERVICE_2AM_HANDOFF_2026_05_16.md`
-4. `CITY_AS_A_SERVICE_AAS_COORDINATION_MULTIPLIER_PATTERN_MAP_IMPLEMENTATION.md`
-5. `CITY_AS_A_SERVICE_AAS_COORDINATION_OBSERVABILITY_SUCCESS_METRICS_BOARD_IMPLEMENTATION.md`
-6. `CITY_AS_A_SERVICE_ACONTEXT_EXPLICIT_VENV_PREFLIGHT_RERUN_IMPLEMENTATION.md`
-7. `CITY_AS_A_SERVICE_THREE_FAMILY_AAS_READINESS_MATRIX_2026_05_14.md`
-8. `EXECUTION_MARKET_AAS_GAP_MAP_2026_05_12.md`
-9. `CITY_AS_A_SERVICE_DAYTIME_EXECUTION_BOARD.md`
+1. `CITY_AS_A_SERVICE_6AM_MORNING_BRIEF_2026_05_16.md`
+2. `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_16.md`
+3. `CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_16.md`
+4. `CITY_AS_A_SERVICE_2AM_HANDOFF_2026_05_16.md`
+5. `CITY_AS_A_SERVICE_AAS_COORDINATION_MULTIPLIER_PATTERN_MAP_IMPLEMENTATION.md`
+6. `CITY_AS_A_SERVICE_AAS_COORDINATION_OBSERVABILITY_SUCCESS_METRICS_BOARD_IMPLEMENTATION.md`
+7. `CITY_AS_A_SERVICE_ACONTEXT_EXPLICIT_VENV_PREFLIGHT_RERUN_IMPLEMENTATION.md`
+8. `CITY_AS_A_SERVICE_THREE_FAMILY_AAS_READINESS_MATRIX_2026_05_14.md`
+9. `EXECUTION_MARKET_AAS_GAP_MAP_2026_05_12.md`
+10. `CITY_AS_A_SERVICE_DAYTIME_EXECUTION_BOARD.md`
+
+
+## 6 AM seal
+
+`CITY_AS_A_SERVICE_6AM_MORNING_BRIEF_2026_05_16.md` is the compact morning entrypoint. No new product surface or readiness claim was added after the 5 AM synthesis. The final pass synced the repo, reran the full city-ops suite, and preserved the same blocked-claim set.
 
 ## Verification status
 

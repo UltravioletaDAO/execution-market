@@ -249,3 +249,7 @@ Matrix impact:
 Required next proof before any runtime-memory claim: complete local Acontext startup, verify API/dashboard, rerun read-only preflight through the explicit venv path if needed, rebuild blocker/gate artifacts, and run exactly one live write/retrieve parity attempt only if the rebuilt gate has no blockers.
 
 Required next proof before any customer-exposure claim: one real human-operator approval record for exactly one held text boundary, starting with the selected Compliance Desk label boundary if Saúl wants that path.
+
+## May 16 06:00 final seal
+
+The 6 AM brief does not change family readiness. Compliance Desk, Document / Handoff Logistics, and Incident Verification remain internal/admin proof ladders only. The active next decision is external to the matrix: either clear Acontext prerequisites and run one gated live parity pass, or create one real human-operator approval record for the exact Compliance Desk package-label boundary. No family gained customer/public/catalog/pilot/dispatch/reputation/live-runtime/GPS/domain-authority/worker-doctrine readiness.
