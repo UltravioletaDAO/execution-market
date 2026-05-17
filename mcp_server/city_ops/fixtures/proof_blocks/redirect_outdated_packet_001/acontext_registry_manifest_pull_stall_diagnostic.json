@@ -1,0 +1,390 @@
+{
+  "access_policy": {
+    "audience": "internal_admin_only",
+    "customer_visible": false,
+    "dispatch_enabled": false,
+    "emits_reputation_receipts": false,
+    "exposes_gps_or_metadata": false,
+    "network_route_registered": false,
+    "public_route_registered": false,
+    "publishes_worker_doctrine": false,
+    "requires_admin_context": true,
+    "retrieves_live_acontext": false,
+    "worker_visible": false,
+    "writes_live_acontext": false
+  },
+  "claim_boundaries": {
+    "do_not_claim_yet": [
+      "runtime_parity_proven",
+      "reuse_behavior_proven",
+      "closure_proof_ready",
+      "closure_proof_landed",
+      "session_rebuild_ready",
+      "acontext_sink_ready",
+      "worker-copyable municipal doctrine",
+      "acontext_live_write_completed",
+      "acontext_live_retrieval_completed",
+      "acontext_live_transport_parity_landed",
+      "acontext_compose_pull_completed_by_runtime_memory_rerun",
+      "acontext_services_started_by_runtime_memory_rerun",
+      "acontext_api_dashboard_reachable_by_runtime_memory_rerun",
+      "acontext_preflight_rebuilt_empty_by_runtime_memory_rerun",
+      "acontext_live_parity_attempt_authorized_by_runtime_memory_rerun",
+      "acontext_live_write_completed_by_runtime_memory_rerun",
+      "acontext_live_retrieval_completed_by_runtime_memory_rerun",
+      "acontext_sink_ready_by_runtime_memory_rerun",
+      "runtime_parity_proven_by_runtime_memory_rerun",
+      "customer_visible_aas_packaging_ready_by_runtime_memory_rerun",
+      "public_route_ready_by_runtime_memory_rerun",
+      "operator_queue_launch_ready_by_runtime_memory_rerun",
+      "autonomous_city_dispatch_ready_by_runtime_memory_rerun",
+      "erc8004_reputation_ready_by_runtime_memory_rerun",
+      "payment_coverage_reverified_by_runtime_memory_rerun",
+      "production_infrastructure_reverified_by_runtime_memory_rerun",
+      "exact_gps_or_metadata_exposure_allowed_by_runtime_memory_rerun",
+      "worker_copyable_municipal_doctrine_ready_by_runtime_memory_rerun",
+      "acontext_cli_available_by_runtime_memory_prerequisite_probe",
+      "default_active_runner_sdk_import_ready_by_runtime_memory_prerequisite_probe",
+      "compose_long_window_pull_completed_by_runtime_memory_prerequisite_probe",
+      "compose_services_started_by_runtime_memory_prerequisite_probe",
+      "localhost_api_reachable_by_runtime_memory_prerequisite_probe",
+      "localhost_dashboard_reachable_by_runtime_memory_prerequisite_probe",
+      "readiness_gate_rebuilt_empty_by_runtime_memory_prerequisite_probe",
+      "one_live_parity_attempt_authorized_by_runtime_memory_prerequisite_probe",
+      "live_acontext_write_completed_by_runtime_memory_prerequisite_probe",
+      "live_acontext_retrieval_completed_by_runtime_memory_prerequisite_probe",
+      "runtime_parity_proven_by_runtime_memory_prerequisite_probe",
+      "compose_image_pull_completed_by_attempt_log",
+      "all_required_acontext_images_present_by_attempt_log",
+      "acontext_compose_services_started_by_attempt_log",
+      "acontext_api_reachable_by_attempt_log",
+      "acontext_dashboard_reachable_by_attempt_log",
+      "readiness_gate_rebuilt_empty_by_attempt_log",
+      "live_acontext_write_completed_by_attempt_log",
+      "live_acontext_retrieval_completed_by_attempt_log",
+      "runtime_parity_proven_by_attempt_log",
+      "customer_visible_aas_packaging_ready_by_attempt_log",
+      "public_route_ready_by_attempt_log",
+      "operator_queue_launch_ready_by_attempt_log",
+      "dispatch_ready_by_attempt_log",
+      "erc8004_reputation_ready_by_attempt_log",
+      "payment_or_production_reverified_by_attempt_log",
+      "gps_or_raw_metadata_release_allowed_by_attempt_log",
+      "worker_copyable_doctrine_ready_by_attempt_log",
+      "first_required_image_pulled_by_individual_probe",
+      "all_required_images_attempted_by_individual_probe",
+      "all_required_images_present_by_individual_probe",
+      "docker_registry_reachability_implies_image_availability",
+      "compose_services_started_by_individual_probe",
+      "acontext_api_reachable_by_individual_probe",
+      "acontext_dashboard_reachable_by_individual_probe",
+      "readiness_gate_rebuilt_empty_by_individual_probe",
+      "live_acontext_write_completed_by_individual_probe",
+      "live_acontext_retrieval_completed_by_individual_probe",
+      "runtime_parity_proven_by_individual_probe",
+      "customer_visible_aas_packaging_ready_by_individual_probe",
+      "public_route_ready_by_individual_probe",
+      "operator_queue_launch_ready_by_individual_probe",
+      "dispatch_ready_by_individual_probe",
+      "erc8004_reputation_ready_by_individual_probe",
+      "payment_or_production_reverified_by_individual_probe",
+      "gps_or_raw_metadata_release_allowed_by_individual_probe",
+      "worker_copyable_doctrine_ready_by_individual_probe",
+      "registry_manifest_success_implies_docker_pull_success",
+      "linux_arm64_manifest_success_implies_local_image_present",
+      "docker_desktop_pull_stall_resolved_by_manifest_probe",
+      "first_required_image_pulled_by_manifest_diagnostic",
+      "all_required_images_attempted_by_manifest_diagnostic",
+      "all_required_images_present_by_manifest_diagnostic",
+      "compose_services_started_by_manifest_diagnostic",
+      "acontext_api_reachable_by_manifest_diagnostic",
+      "acontext_dashboard_reachable_by_manifest_diagnostic",
+      "readiness_gate_rebuilt_empty_by_manifest_diagnostic",
+      "live_acontext_write_completed_by_manifest_diagnostic",
+      "live_acontext_retrieval_completed_by_manifest_diagnostic",
+      "runtime_parity_proven_by_manifest_diagnostic",
+      "customer_visible_aas_packaging_ready_by_manifest_diagnostic",
+      "public_route_ready_by_manifest_diagnostic",
+      "operator_queue_launch_ready_by_manifest_diagnostic",
+      "dispatch_ready_by_manifest_diagnostic",
+      "erc8004_reputation_ready_by_manifest_diagnostic",
+      "payment_or_production_reverified_by_manifest_diagnostic",
+      "gps_or_raw_metadata_release_allowed_by_manifest_diagnostic",
+      "worker_copyable_doctrine_ready_by_manifest_diagnostic"
+    ],
+    "safe_to_claim": [
+      "projection_truth_landed",
+      "reuse_parity_landed",
+      "session_rebuild_consumer_landed",
+      "session_rebuild_report_fixture_landed",
+      "acontext_transport_parity_test_landed",
+      "acontext_live_preflight_landed",
+      "admin_acontext_runtime_memory_preflight_rerun_landed",
+      "admin_acontext_runtime_memory_prerequisite_probe_landed",
+      "admin_acontext_compose_image_pull_attempt_log_landed",
+      "admin_acontext_individual_image_pull_timeout_probe_landed",
+      "admin_acontext_registry_manifest_pull_stall_diagnostic_landed"
+    ]
+  },
+  "compact_decision_id": "cdo_c51f4b767729",
+  "coordination_session_id": "city_session_redirect_outdated_packet_001",
+  "derived_from": {
+    "emits_reputation_receipts": false,
+    "enables_dispatch_automation": false,
+    "exposes_gps_or_metadata": false,
+    "forbidden_inputs": [
+      "raw_transcripts",
+      "unreviewed_memory",
+      "private_operator_context",
+      "freeform_worker_chat",
+      "live_acontext_sink_writes",
+      "live_acontext_retrievals",
+      "payment_processor_probe",
+      "production_health_probe",
+      "gps_or_raw_metadata_payloads",
+      "customer_copy_drafts",
+      "worker_instruction_templates"
+    ],
+    "publishes_worker_doctrine": false,
+    "read_only": true,
+    "retrieves_live_acontext": false,
+    "reverifies_payment_coverage": false,
+    "reverifies_production_infrastructure": false,
+    "source_artifacts": [
+      "acontext_individual_image_pull_timeout_probe.json"
+    ],
+    "starts_customer_or_public_services": false,
+    "writes_customer_copy": false,
+    "writes_live_acontext": false
+  },
+  "diagnostic_id": "acontext_registry_manifest_pull_stall_diagnostic:acontext_individual_image_pull_timeout_probe:acontext_compose_image_pull_attempt_log:acontext_runtime_memory_prerequisite_probe:acontext_runtime_memory_preflight_rerun:acontext_live_preflight:redirect_outdated_packet_001",
+  "diagnostic_observation": {
+    "api_checked_after_diagnostic": false,
+    "dashboard_checked_after_diagnostic": false,
+    "diagnostic_reason": "diagnose_docker_pull_stall_after_individual_image_timeout",
+    "docker_environment": {
+      "client_version": "29.1.3",
+      "docker_context": "desktop-linux",
+      "docker_desktop_version": "4.57.0",
+      "server_arch": "arm64",
+      "server_version": "29.1.3"
+    },
+    "docker_pull_stall_check": {
+      "command": "docker --debug pull ghcr.io/memodb-io/acontext-ui:latest",
+      "duration_seconds": 45.01,
+      "exit_code": null,
+      "image": "ghcr.io/memodb-io/acontext-ui:latest",
+      "pulled_or_present_after_check": false,
+      "stderr_tail": [],
+      "stdout_tail": [],
+      "timed_out": true,
+      "timeout_seconds": 45
+    },
+    "ghcr_manifest_checks": [
+      {
+        "anonymous_bearer_token_received": true,
+        "image": "ghcr.io/memodb-io/acontext-ui:latest",
+        "linux_arm64_manifest_advertised": true,
+        "manifest_fetch_succeeded": true,
+        "manifest_http_status": 200,
+        "media_type": "application/vnd.oci.image.index.v1+json",
+        "platforms": [
+          "linux/amd64",
+          "linux/arm64",
+          "unknown/unknown",
+          "unknown/unknown"
+        ],
+        "schema_version": 2
+      },
+      {
+        "anonymous_bearer_token_received": true,
+        "image": "ghcr.io/memodb-io/acontext-api:latest",
+        "linux_arm64_manifest_advertised": true,
+        "manifest_fetch_succeeded": true,
+        "manifest_http_status": 200,
+        "media_type": "application/vnd.oci.image.index.v1+json",
+        "platforms": [
+          "linux/amd64",
+          "linux/arm64",
+          "unknown/unknown",
+          "unknown/unknown"
+        ],
+        "schema_version": 2
+      },
+      {
+        "anonymous_bearer_token_received": true,
+        "image": "ghcr.io/memodb-io/acontext-core:latest",
+        "linux_arm64_manifest_advertised": true,
+        "manifest_fetch_succeeded": true,
+        "manifest_http_status": 200,
+        "media_type": "application/vnd.oci.image.index.v1+json",
+        "platforms": [
+          "linux/amd64",
+          "linux/arm64",
+          "unknown/unknown",
+          "unknown/unknown"
+        ],
+        "schema_version": 2
+      }
+    ],
+    "host_scope": "local_only_no_external_publish",
+    "live_acontext_retrieval_performed": false,
+    "live_acontext_write_performed": false,
+    "local_images_observed_after_diagnostic": [
+      "pgvector/pgvector:pg16"
+    ],
+    "observation_window": "2026-05-17T01:01:51-04:00/2026-05-17T01:03:12-04:00",
+    "readiness_gate_rebuilt_with_empty_blockers": false,
+    "registry_endpoint_checks": [
+      {
+        "endpoint": "https://ghcr.io/v2/",
+        "http_status": 405,
+        "meaning": "registry_base_responded_but_does_not_prove_image_pull_success",
+        "method": "HEAD",
+        "reachable": true
+      },
+      {
+        "endpoint": "https://registry-1.docker.io/v2/",
+        "http_status": 401,
+        "meaning": "dockerhub_base_responded_but_does_not_prove_image_pull_success",
+        "method": "HEAD",
+        "reachable": true
+      },
+      {
+        "auth_challenge_present": true,
+        "endpoint": "https://ghcr.io/v2/memodb-io/acontext-ui/manifests/latest",
+        "http_status": 401,
+        "meaning": "image_manifest_requires_bearer_token_before_manifest_fetch",
+        "method": "HEAD",
+        "reachable": true
+      }
+    ],
+    "services_started": false,
+    "working_directory": "~/clawd/infra/acontext"
+  },
+  "diagnostic_verdict": "registry_manifests_available_but_docker_pull_still_stalls",
+  "docker_pull_stall_summary": {
+    "docker_pull_blocker_remains": true,
+    "duration_seconds": 45.01,
+    "exit_code": null,
+    "image": "ghcr.io/memodb-io/acontext-ui:latest",
+    "pulled_or_present_after_check": false,
+    "timed_out_without_output": true,
+    "timeout_seconds": 45
+  },
+  "image_inventory": {
+    "all_required_images_present": false,
+    "image_pull_blocker_remains": true,
+    "missing_required_image_count": 8,
+    "missing_required_images": [
+      "ghcr.io/memodb-io/acontext-ui:latest",
+      "chrislusf/seaweedfs:4.02",
+      "redis:7.4",
+      "rabbitmq:4-management",
+      "ghcr.io/memodb-io/acontext-api:latest",
+      "amazon/aws-cli:2.32.6",
+      "ghcr.io/memodb-io/acontext-core:latest",
+      "jaegertracing/all-in-one:1.75.0"
+    ],
+    "present_required_images": [
+      "pgvector/pgvector:pg16"
+    ],
+    "required_image_count": 9
+  },
+  "operator_instruction": "Treat the GHCR manifests as availability evidence only. They narrow the blocker away from missing anonymous manifests or missing linux/arm64 indexes, but they do not prove Docker Desktop can pull layers locally. Keep Acontext startup and live write/retrieve parity blocked until the Docker pull stall is resolved, all images are present, API/dashboard health passes, and the readiness gate is rebuilt empty.",
+  "operator_next_actions": [
+    {
+      "action": "Capture Docker Desktop/containerd diagnostics for the GHCR layer pull path without tokens, including daemon events and DNS/proxy errors if available.",
+      "authorizes_live_attempt": false,
+      "must_record": [
+        "daemon_event_window",
+        "containerd_error",
+        "dns_or_proxy_signal"
+      ],
+      "step_id": "inspect_docker_desktop_layer_pull_path"
+    },
+    {
+      "action": "Retry only ghcr.io/memodb-io/acontext-ui:latest with a short bounded timeout, explicit --platform linux/arm64, or a trusted cache/mirror after the daemon path is understood.",
+      "authorizes_live_attempt": false,
+      "must_record": [
+        "image",
+        "platform",
+        "duration_seconds",
+        "exit_code",
+        "present_after_retry"
+      ],
+      "step_id": "retry_first_image_with_explicit_platform_or_mirror"
+    },
+    {
+      "action": "Do not start compose until all nine required images are present locally.",
+      "authorizes_live_attempt": false,
+      "must_record": [
+        "required_image_count",
+        "present_image_count",
+        "missing_images"
+      ],
+      "step_id": "start_compose_only_after_all_images_present"
+    },
+    {
+      "action": "Rerun read-only preflight and rebuild the readiness gate before any Acontext write/retrieve parity attempt.",
+      "authorizes_live_attempt": "only_if_gate_empty",
+      "must_record": [
+        "empty_blocker_gate",
+        "write_allowed",
+        "retrieve_allowed"
+      ],
+      "step_id": "rebuild_gate_before_any_parity_write"
+    }
+  ],
+  "packet_id": "acontext_transport_packet:redirect_outdated_packet_001",
+  "proof_anchor_id": "redirect_outdated_packet_001",
+  "readiness": {
+    "acontext_sink_ready": false,
+    "all_required_images_attempted": false,
+    "all_required_images_present": false,
+    "api_reachable_after_diagnostic": false,
+    "autonomous_dispatch_ready": false,
+    "compose_services_started": false,
+    "customer_visible_aas_packaging_ready": false,
+    "dashboard_reachable_after_diagnostic": false,
+    "diagnostic_landed": true,
+    "dispatch_ready": false,
+    "docker_pull_stall_reproduced": true,
+    "erc8004_reputation_ready": false,
+    "first_required_image_pulled": false,
+    "ghcr_linux_arm64_manifests_advertised": true,
+    "ghcr_manifest_checks_recorded": true,
+    "ghcr_manifests_fetchable_anonymously": true,
+    "gps_or_metadata_exposure_allowed": false,
+    "live_acontext_retrieval_performed": false,
+    "live_acontext_write_performed": false,
+    "operator_queue_launch_ready": false,
+    "payment_coverage_reverified_by_this_diagnostic": false,
+    "production_infrastructure_reverified_by_this_diagnostic": false,
+    "public_route_ready": false,
+    "readiness_gate_rebuilt_with_empty_blockers": false,
+    "remaining_blockers": [
+      "docker_pull_still_times_out_without_output",
+      "docker_layer_fetch_or_daemon_path_not_explained",
+      "required_acontext_images_missing",
+      "acontext_compose_services_not_started",
+      "local_acontext_api_not_rechecked_reachable",
+      "local_acontext_dashboard_not_rechecked_reachable",
+      "readiness_gate_not_rebuilt_empty"
+    ],
+    "runtime_parity_proven": false,
+    "source_individual_probe_consumed": true,
+    "worker_copyable_doctrine_ready": false
+  },
+  "registry_manifest_summary": {
+    "all_ghcr_images_advertise_linux_arm64": true,
+    "all_ghcr_manifests_fetchable_anonymously": true,
+    "docker_pull_success_proven": false,
+    "ghcr_image_count": 3,
+    "manifest_availability_is_not_pull_success": true,
+    "manifest_fetch_success_count": 3
+  },
+  "review_packet_id": "review_packet_redirect_outdated_packet_001",
+  "schema": "city_ops.acontext_registry_manifest_pull_stall_diagnostic.v1",
+  "source_probe_id": "acontext_individual_image_pull_timeout_probe:acontext_compose_image_pull_attempt_log:acontext_runtime_memory_prerequisite_probe:acontext_runtime_memory_preflight_rerun:acontext_live_preflight:redirect_outdated_packet_001"
+}

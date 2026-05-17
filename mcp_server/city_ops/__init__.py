@@ -52,6 +52,11 @@ from .acontext_individual_image_pull_timeout_probe import (
     load_acontext_individual_image_pull_timeout_probe,
     write_acontext_individual_image_pull_timeout_probe,
 )
+from .acontext_registry_manifest_pull_stall_diagnostic import (
+    build_acontext_registry_manifest_pull_stall_diagnostic,
+    load_acontext_registry_manifest_pull_stall_diagnostic,
+    write_acontext_registry_manifest_pull_stall_diagnostic,
+)
 from .aas_coordination_observability_success_metrics_board import (
     build_aas_coordination_observability_success_metrics_board,
     load_aas_coordination_observability_success_metrics_board,

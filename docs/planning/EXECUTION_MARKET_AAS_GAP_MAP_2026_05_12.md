@@ -419,3 +419,16 @@ The live-runtime/Acontext prerequisite lane now has per-image pull evidence, but
 The probe attempted the first required image individually and observed no Docker progress before a 180s timeout. It also recorded that GHCR and Docker Hub registry endpoints responded over HTTP, while explicitly preserving the rule that registry reachability is not image-pull success. Required-image inventory remains incomplete: only `pgvector/pgvector:pg16` is present locally from the nine-image Acontext compose set.
 
 AAS gap impact: no customer/public/catalog/pilot/dispatch/reputation/live-runtime/GPS/domain-authority/worker-doctrine gap is closed. The remaining runtime-memory gap is narrower and better diagnosed: explain the GHCR Docker pull stall, complete/cache all required images, start services, verify API/dashboard, rerun read-only preflight, rebuild an empty readiness gate, and only then attempt exactly one live write/retrieve parity pass.
+
+## 2026-05-17 01:02 Acontext registry-manifest / pull-stall diagnostic
+
+The runtime-memory lane now has a bounded diagnostic that separates registry manifest availability from local Docker pull success:
+
+- `mcp_server/city_ops/acontext_registry_manifest_pull_stall_diagnostic.py`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_registry_manifest_pull_stall_diagnostic.json`
+- implementation note: `CITY_AS_A_SERVICE_ACONTEXT_REGISTRY_MANIFEST_PULL_STALL_DIAGNOSTIC_IMPLEMENTATION.md`
+- safe claim: `admin_acontext_registry_manifest_pull_stall_diagnostic_landed`
+
+Gap map impact: no live-runtime gap is closed. GHCR anonymous manifest fetches for the three Acontext images succeeded and advertised `linux/arm64`, so the blocker is no longer likely to be missing public manifests or missing arm64 indexes. However Docker Desktop still timed out silently on the first image pull, and local required-image inventory remains only `pgvector/pgvector:pg16` from the nine-image compose set. Compose startup, API/dashboard health, empty readiness gate, live write/retrieve parity, customer/public packaging, dispatch, reputation, payment/infra claims, GPS/raw metadata exposure, and worker doctrine remain blocked.
+
+Next proof is Docker pull-path specific: inspect Docker Desktop/containerd/network diagnostics without secrets, then retry only the first GHCR UI image with a short bounded timeout and explicit `--platform linux/arm64` or a trusted cache/mirror strategy after the stall path is understood.

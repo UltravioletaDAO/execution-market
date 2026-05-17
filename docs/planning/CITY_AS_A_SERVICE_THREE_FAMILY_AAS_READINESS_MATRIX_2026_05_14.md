@@ -271,3 +271,13 @@ Matrix impact: all three families still have no live Acontext sink readiness, no
 The Acontext prerequisite lane now includes `acontext_individual_image_pull_timeout_probe.json` with safe claim `admin_acontext_individual_image_pull_timeout_probe_landed` only. It records that the first required image (`ghcr.io/memodb-io/acontext-ui:latest`) timed out after 180 seconds without Docker progress, that the second image attempt was stopped deliberately to avoid an unbounded cron pull loop, and that GHCR/Docker Hub HTTP reachability does not prove image availability or pull success.
 
 Matrix impact: all three families still have no live Acontext sink readiness, no runtime parity, no customer/public route, no queue launch, no dispatch, no reputation attachment, no payment/infra reverification, no GPS/raw metadata release, no domain-authority readiness, and no worker-copyable doctrine. The next safe proof is a bounded Docker pull stall diagnostic, then successful required-image inventory, service health, read-only preflight, and an empty gate before any single live write/retrieve parity attempt.
+
+## 2026-05-17 01:02 runtime-memory prerequisite diagnostic follow-up
+
+The AAS package families remain held exactly as before; no family gained customer exposure, publication, dispatch, reputation, or live-runtime readiness. The only update is in the shared runtime-memory prerequisite lane:
+
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_registry_manifest_pull_stall_diagnostic.json`
+- implementation note: `CITY_AS_A_SERVICE_ACONTEXT_REGISTRY_MANIFEST_PULL_STALL_DIAGNOSTIC_IMPLEMENTATION.md`
+- safe claim: `admin_acontext_registry_manifest_pull_stall_diagnostic_landed`
+
+The diagnostic proves GHCR manifests for the three Acontext images are anonymously fetchable and advertise `linux/arm64`, while Docker Desktop still silently times out pulling the first image. Therefore `live Acontext sink ready` and `runtime parity proven` remain false across all families. Do not use this diagnostic to approve customer copy, routes, pilots, queue launch, dispatch, reputation, exact GPS/raw metadata release, domain-authority claims, or worker-copyable doctrine.
