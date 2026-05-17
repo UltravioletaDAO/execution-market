@@ -462,3 +462,17 @@ Gap map impact: no live-runtime, customer/public, dispatch, reputation, payment/
 The artifact explicitly quarantines five claim classes behind separate gates: live runtime memory, customer/public packaging, dispatch/operator queue, reputation or worker Skill DNA, and payment/production health. It does not enable autonomous routing or prioritization, customer delivery, publication, public/catalog routes, controlled pilots, queue launch, dispatch, ERC-8004 reputation receipts, live Acontext parity, current payment/production confidence, exact GPS/raw metadata release, or worker-copyable doctrine.
 
 Next proof remains prerequisite-first: fix or bypass the Docker Desktop/containerd/layer-fetch stall, verify all nine Acontext images are present, start services, healthcheck API/dashboard, rerun read-only preflight, rebuild an empty gate, and only then attempt exactly one live write/retrieve parity pass if blockers are empty.
+
+### 4.10 Update after May 17 05:00 pre-dawn synthesis
+
+The runtime-memory lane now has a sharper blocker boundary and a coordination handoff:
+
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_docker_pull_path_diagnostic.json`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/aas_runtime_memory_blocker_decision_board.json`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/aas_intelligence_flow_compounder.json`
+- `docs/planning/CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_17.md`
+- `docs/planning/CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_17.md`
+
+Safe latest claims are `admin_acontext_docker_pull_path_diagnostic_landed`, `admin_aas_runtime_memory_blocker_decision_board_landed`, and `admin_aas_intelligence_flow_compounder_landed` only. The blocker is not registry reachability or arm64 manifest availability; it is still Docker Desktop / containerd / network / layer-fetch success for the first GHCR Acontext image, or the need for a trusted image cache/mirror.
+
+This does not promote any customer copy, catalog/public route, pilot, operator queue, dispatch, ERC-8004 reputation, worker Skill DNA, live Acontext/runtime parity, payment/production health, exact GPS/raw metadata release, domain-authority claim, or worker-copyable doctrine. The next safe proof is image inventory from trusted provenance, followed by compose health, API/dashboard health, rebuilt empty readiness gate, and exactly one live write/retrieve parity pass only if the gate allows it.

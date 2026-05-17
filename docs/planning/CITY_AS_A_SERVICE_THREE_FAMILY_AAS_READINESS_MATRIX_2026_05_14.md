@@ -281,3 +281,15 @@ The AAS package families remain held exactly as before; no family gained custome
 - safe claim: `admin_acontext_registry_manifest_pull_stall_diagnostic_landed`
 
 The diagnostic proves GHCR manifests for the three Acontext images are anonymously fetchable and advertise `linux/arm64`, while Docker Desktop still silently times out pulling the first image. Therefore `live Acontext sink ready` and `runtime parity proven` remain false across all families. Do not use this diagnostic to approve customer copy, routes, pilots, queue launch, dispatch, reputation, exact GPS/raw metadata release, domain-authority claims, or worker-copyable doctrine.
+
+## 2026-05-17 05:00 runtime-memory and coordination follow-up
+
+The AAS family readiness state remains unchanged: Compliance Desk, Document / Handoff Logistics, and Incident Verification are still held at internal/admin boundaries and have no customer/public/dispatch/reputation/live-runtime/GPS/domain-authority/worker-doctrine readiness.
+
+The new May 17 artifacts affect only the shared runtime-memory and coordination lanes:
+
+- `acontext_docker_pull_path_diagnostic.json` narrows the Acontext blocker to Docker Desktop / containerd / network / layer-fetch or trusted cache/mirror selection.
+- `aas_runtime_memory_blocker_decision_board.json` converts that blocker into a daytime fork without authorizing live runtime.
+- `aas_intelligence_flow_compounder.json` makes the handoff rule explicit: source artifact, invariant IDs, declared/verified badge, blocked claims, and one next proof must travel together.
+
+Safe latest claims: `admin_acontext_docker_pull_path_diagnostic_landed`, `admin_aas_runtime_memory_blocker_decision_board_landed`, and `admin_aas_intelligence_flow_compounder_landed` only. The matrix still forbids interpreting any of these as customer exposure, route readiness, dispatch, reputation, payment/production health, live Acontext parity, exact GPS/raw metadata release, or worker-copyable doctrine.
