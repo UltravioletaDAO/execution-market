@@ -328,6 +328,11 @@ from .aas_single_boundary_approval_record_validator import (
     validate_aas_single_boundary_human_operator_approval_record,
     write_aas_single_boundary_approval_record_validator,
 )
+from .aas_single_boundary_human_operator_approval_record import (
+    build_aas_single_boundary_human_operator_approval_record,
+    load_aas_single_boundary_human_operator_approval_record,
+    write_aas_single_boundary_human_operator_approval_record,
+)
 from .aas_system_integration_flywheel import (
     build_aas_system_integration_flywheel,
     load_aas_system_integration_flywheel,
@@ -537,6 +542,9 @@ __all__ = [
     "load_aas_single_boundary_approval_record_validator",
     "validate_aas_single_boundary_human_operator_approval_record",
     "write_aas_single_boundary_approval_record_validator",
+    "build_aas_single_boundary_human_operator_approval_record",
+    "load_aas_single_boundary_human_operator_approval_record",
+    "write_aas_single_boundary_human_operator_approval_record",
     "build_aas_system_integration_flywheel",
     "load_aas_system_integration_flywheel",
     "write_aas_system_integration_flywheel",
