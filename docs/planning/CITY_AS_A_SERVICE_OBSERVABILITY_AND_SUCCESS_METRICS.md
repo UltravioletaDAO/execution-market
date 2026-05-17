@@ -67,6 +67,24 @@ The first success definition is deliberately operational, not vanity-metric orie
 
 This is not a live dashboard, sink write, runtime parity proof, or customer-visible metric surface yet.
 
+## 2.3 Runtime-memory blocker board status
+
+The May 17 runtime-memory blocker board adds a narrower success scoreboard for the current Acontext startup blocker:
+
+- implementation: `mcp_server/city_ops/aas_runtime_memory_blocker_decision_board.py`
+- fixture: `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/aas_runtime_memory_blocker_decision_board.json`
+- safe claim: `admin_aas_runtime_memory_blocker_decision_board_landed`
+
+It defines five agent-success cards without promoting live readiness:
+
+- claim-boundary integrity
+- four-ID handoff completeness
+- Docker image inventory gate
+- live runtime parity gate
+- coordination metrics board continuity
+
+The Docker inventory and live parity gates remain `observed=false` until all required images are present, compose services start, API/dashboard healthchecks pass, the readiness gate rebuilds empty, and exactly one write/retrieve parity pass succeeds.
+
 ## 3. Product loop to measure
 
 The loop to instrument is:

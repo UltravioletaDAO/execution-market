@@ -55,6 +55,17 @@ A conservative bridge seam now exists as a decision-support readiness matrix:
 The matrix lets operators and future agents inspect the memory/Acontext axis beside IRC/session management, cross-project decision support, and agent observability metrics.
 It keeps the Acontext bridge blocked or attemptable only; it does not claim `acontext_sink_ready` until a live local write/retrieve parity pass exists.
 
+## 2.2 Runtime-memory blocker decision board
+
+A May 17 internal/admin board now turns the latest Acontext Docker pull-path diagnostic into a daytime pickup ticket:
+
+- `mcp_server/city_ops/aas_runtime_memory_blocker_decision_board.py`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/aas_runtime_memory_blocker_decision_board.json`
+- `docs/planning/CITY_AS_A_SERVICE_AAS_RUNTIME_MEMORY_BLOCKER_DECISION_BOARD_IMPLEMENTATION.md`
+
+The board connects memory/Acontext planning, IRC/session handoff, cross-project decision support, and agent observability while preserving the hard runtime boundary: Docker layer-fetch still blocks local Acontext startup, eight required images are still missing, and no live write/retrieve parity has run.
+Its safe claim is only `admin_aas_runtime_memory_blocker_decision_board_landed`.
+
 ## 3. System split
 
 ### 3.1 Execution Market should remain the canonical ledger
