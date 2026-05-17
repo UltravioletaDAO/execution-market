@@ -42,6 +42,11 @@ from .acontext_runtime_memory_prerequisite_probe import (
     load_acontext_runtime_memory_prerequisite_probe,
     write_acontext_runtime_memory_prerequisite_probe,
 )
+from .acontext_compose_image_pull_attempt_log import (
+    build_acontext_compose_image_pull_attempt_log,
+    load_acontext_compose_image_pull_attempt_log,
+    write_acontext_compose_image_pull_attempt_log,
+)
 from .aas_coordination_observability_success_metrics_board import (
     build_aas_coordination_observability_success_metrics_board,
     load_aas_coordination_observability_success_metrics_board,

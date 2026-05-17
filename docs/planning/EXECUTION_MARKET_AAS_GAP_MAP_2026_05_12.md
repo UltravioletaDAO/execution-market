@@ -395,3 +395,15 @@ The runtime-memory lane now has one more internal/admin prerequisite evidence ar
 Gap map impact: no live-runtime gap is closed. The probe confirms Docker/Compose and the dedicated SDK venv are present, but `acontext` CLI is not on PATH, the default active runner still cannot import `acontext`, compose image pulling did not complete, services did not start, API/dashboard remain unreachable, and the readiness gate was not rebuilt empty. Therefore live Acontext sink readiness, runtime parity, durable live memory writes, customer/public packaging, dispatch, reputation, payment/infra, GPS/raw metadata, and worker-doctrine claims remain blocked.
 
 Next proof remains prerequisite-first: resolve the Docker pull hang or pre-pull compose images, start local Acontext, verify localhost API/dashboard, rerun read-only preflight, rebuild the blocker/gate chain, and attempt exactly one live write/retrieve parity pass only if the rebuilt gate has empty blockers.
+
+## 2026-05-16 23:04 Acontext compose image-pull attempt log
+
+The runtime-memory lane now also has a follow-up local-only pull-attempt evidence artifact:
+
+- `mcp_server/city_ops/acontext_compose_image_pull_attempt_log.py`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_compose_image_pull_attempt_log.json`
+- safe claim: `admin_acontext_compose_image_pull_attempt_log_landed`
+
+Gap map impact: no live-runtime gap is closed. The attempt proves the blocker is more specific, not smaller: the compose config requires nine Acontext images, the pull command produced only initial `Pulling` lines, no new required image was observed afterward, and only `pgvector/pgvector:pg16` was present locally from the required set. Therefore compose pull completion, all-images-present status, service startup, API/dashboard reachability, empty readiness gate, live write/retrieve parity, customer/public packaging, dispatch, reputation, payment/infra, GPS/raw metadata, and worker-doctrine claims remain blocked.
+
+Next proof is narrowed to per-image pull evidence: pre-pull each required Acontext image individually with visible progress, exit code, duration, and last progress line; only after all required images are present should compose services be started and health checked.
