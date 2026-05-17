@@ -1,0 +1,283 @@
+{
+  "access_policy": {
+    "audience": "internal_admin_only",
+    "customer_visible": false,
+    "dispatch_enabled": false,
+    "emits_reputation_receipts": false,
+    "exposes_gps_or_metadata": false,
+    "network_route_registered": false,
+    "public_route_registered": false,
+    "publishes_worker_doctrine": false,
+    "requires_admin_context": true,
+    "retrieves_live_acontext": false,
+    "worker_visible": false,
+    "writes_live_acontext": false
+  },
+  "claim_boundaries": {
+    "do_not_claim_yet": [
+      "runtime_parity_proven",
+      "reuse_behavior_proven",
+      "closure_proof_ready",
+      "closure_proof_landed",
+      "session_rebuild_ready",
+      "acontext_sink_ready",
+      "worker-copyable municipal doctrine",
+      "acontext_live_write_completed",
+      "acontext_live_retrieval_completed",
+      "acontext_live_transport_parity_landed",
+      "acontext_compose_pull_completed_by_runtime_memory_rerun",
+      "acontext_services_started_by_runtime_memory_rerun",
+      "acontext_api_dashboard_reachable_by_runtime_memory_rerun",
+      "acontext_preflight_rebuilt_empty_by_runtime_memory_rerun",
+      "acontext_live_parity_attempt_authorized_by_runtime_memory_rerun",
+      "acontext_live_write_completed_by_runtime_memory_rerun",
+      "acontext_live_retrieval_completed_by_runtime_memory_rerun",
+      "acontext_sink_ready_by_runtime_memory_rerun",
+      "runtime_parity_proven_by_runtime_memory_rerun",
+      "customer_visible_aas_packaging_ready_by_runtime_memory_rerun",
+      "public_route_ready_by_runtime_memory_rerun",
+      "operator_queue_launch_ready_by_runtime_memory_rerun",
+      "autonomous_city_dispatch_ready_by_runtime_memory_rerun",
+      "erc8004_reputation_ready_by_runtime_memory_rerun",
+      "payment_coverage_reverified_by_runtime_memory_rerun",
+      "production_infrastructure_reverified_by_runtime_memory_rerun",
+      "exact_gps_or_metadata_exposure_allowed_by_runtime_memory_rerun",
+      "worker_copyable_municipal_doctrine_ready_by_runtime_memory_rerun",
+      "acontext_cli_available_by_runtime_memory_prerequisite_probe",
+      "default_active_runner_sdk_import_ready_by_runtime_memory_prerequisite_probe",
+      "compose_long_window_pull_completed_by_runtime_memory_prerequisite_probe",
+      "compose_services_started_by_runtime_memory_prerequisite_probe",
+      "localhost_api_reachable_by_runtime_memory_prerequisite_probe",
+      "localhost_dashboard_reachable_by_runtime_memory_prerequisite_probe",
+      "readiness_gate_rebuilt_empty_by_runtime_memory_prerequisite_probe",
+      "one_live_parity_attempt_authorized_by_runtime_memory_prerequisite_probe",
+      "live_acontext_write_completed_by_runtime_memory_prerequisite_probe",
+      "live_acontext_retrieval_completed_by_runtime_memory_prerequisite_probe",
+      "runtime_parity_proven_by_runtime_memory_prerequisite_probe"
+    ],
+    "safe_to_claim": [
+      "projection_truth_landed",
+      "reuse_parity_landed",
+      "session_rebuild_consumer_landed",
+      "session_rebuild_report_fixture_landed",
+      "acontext_transport_parity_test_landed",
+      "acontext_live_preflight_landed",
+      "admin_acontext_runtime_memory_preflight_rerun_landed",
+      "admin_acontext_runtime_memory_prerequisite_probe_landed"
+    ]
+  },
+  "compact_decision_id": "cdo_c51f4b767729",
+  "coordination_session_id": "city_session_redirect_outdated_packet_001",
+  "derived_from": {
+    "emits_reputation_receipts": false,
+    "enables_dispatch_automation": false,
+    "exposes_gps_or_metadata": false,
+    "forbidden_inputs": [
+      "raw_transcripts",
+      "unreviewed_memory",
+      "private_operator_context",
+      "freeform_worker_chat",
+      "live_acontext_sink_writes",
+      "live_acontext_retrievals",
+      "payment_processor_probe",
+      "production_health_probe",
+      "gps_or_raw_metadata_payloads",
+      "customer_copy_drafts",
+      "worker_instruction_templates"
+    ],
+    "publishes_worker_doctrine": false,
+    "read_only": true,
+    "retrieves_live_acontext": false,
+    "reverifies_payment_coverage": false,
+    "reverifies_production_infrastructure": false,
+    "source_artifacts": [
+      "acontext_runtime_memory_preflight_rerun.json"
+    ],
+    "source_schema": "city_ops.acontext_runtime_memory_preflight_rerun.v1",
+    "source_verdict": "runtime_memory_preflight_reran_still_blocked_by_local_services",
+    "starts_customer_or_public_services": false,
+    "writes_customer_copy": false,
+    "writes_live_acontext": false
+  },
+  "operator_instruction": "Treat this as prerequisite evidence only. Do not run live Acontext write/retrieve parity until image pulls complete, services start, localhost API/dashboard probes pass, the default runner import path or explicit runner decision is resolved, and a rebuilt gate has empty blockers.",
+  "operator_next_actions": [
+    {
+      "action_id": "resolve_docker_pull_hang_or_pre_pull_images_individually",
+      "authorizes_live_attempt_by_itself": false,
+      "status": "blocked",
+      "success_signal": "all compose images exist locally and compose pull exits cleanly"
+    },
+    {
+      "action_id": "start_acontext_compose_services",
+      "authorizes_live_attempt_by_itself": false,
+      "status": "blocked_until_pull_completes",
+      "success_signal": "docker compose ps shows API and UI containers running/healthy"
+    },
+    {
+      "action_id": "verify_localhost_api_dashboard",
+      "authorizes_live_attempt_by_itself": false,
+      "status": "blocked_until_services_start",
+      "success_signal": "http://localhost:8029/api/v1 and http://localhost:3000 respond locally"
+    },
+    {
+      "action_id": "resolve_default_runner_or_formally_use_explicit_venv_runner",
+      "authorizes_live_attempt_by_itself": false,
+      "status": "blocked",
+      "success_signal": "default runner imports acontext or the gate records the explicit venv as the authorized preflight runner"
+    },
+    {
+      "action_id": "rebuild_read_only_preflight_delta_surface_and_gate",
+      "authorizes_live_attempt_by_itself": false,
+      "status": "next_after_prerequisites",
+      "success_signal": "rebuilt gate has empty blockers and authorizes exactly one live parity attempt"
+    }
+  ],
+  "packet_id": "acontext_transport_packet:redirect_outdated_packet_001",
+  "prerequisite_cards": [
+    {
+      "authorizes_live_attempt": false,
+      "card_id": "docker_and_compose",
+      "compose_available": true,
+      "docker_daemon_available": true,
+      "pull_completed": false,
+      "services_started": false,
+      "status": "available_but_pull_not_completed"
+    },
+    {
+      "acontext_cli_available_on_path": false,
+      "authorizes_live_attempt": false,
+      "card_id": "cli_and_sdk",
+      "dedicated_venv_imports_acontext": true,
+      "default_active_runner_imports_acontext": false,
+      "status": "explicit_sdk_available_default_runner_and_cli_blocked"
+    },
+    {
+      "api_reachable": false,
+      "authorizes_live_attempt": false,
+      "card_id": "localhost_reachability",
+      "dashboard_reachable": false,
+      "status": "api_and_dashboard_unreachable"
+    },
+    {
+      "authorizes_live_attempt": false,
+      "card_id": "live_parity_gate",
+      "live_acontext_retrieval_performed": false,
+      "live_acontext_write_performed": false,
+      "readiness_gate_rebuilt_with_empty_blockers": false,
+      "status": "not_rebuilt_empty_not_authorized"
+    }
+  ],
+  "probe_id": "acontext_runtime_memory_prerequisite_probe:acontext_runtime_memory_preflight_rerun:acontext_live_preflight:redirect_outdated_packet_001",
+  "probe_verdict": "runtime_memory_prerequisites_still_block_live_parity",
+  "proof_anchor_id": "redirect_outdated_packet_001",
+  "readiness": {
+    "acontext_cli_available_on_path": false,
+    "acontext_sink_ready": false,
+    "api_reachable_after_probe": false,
+    "autonomous_dispatch_ready": false,
+    "compose_available": true,
+    "compose_pull_completed": false,
+    "compose_services_started": false,
+    "customer_visible_aas_packaging_ready": false,
+    "dashboard_reachable_after_probe": false,
+    "dedicated_venv_imports_acontext": true,
+    "default_active_runner_sdk_import_ready": false,
+    "docker_available": true,
+    "erc8004_reputation_ready": false,
+    "explicit_venv_bridge_available_for_read_only_preflight": true,
+    "gps_or_metadata_exposure_allowed": false,
+    "live_acontext_retrieval_performed": false,
+    "live_acontext_write_performed": false,
+    "operator_queue_launch_ready": false,
+    "payment_coverage_reverified_by_this_probe": false,
+    "production_infrastructure_reverified_by_this_probe": false,
+    "public_route_ready": false,
+    "readiness_gate_rebuilt_with_empty_blockers": false,
+    "ready_to_attempt_live_transport": false,
+    "remaining_blockers": [
+      "acontext_cli_not_on_path",
+      "default_active_runner_acontext_import_missing",
+      "compose_image_pull_not_completed",
+      "acontext_compose_services_not_started",
+      "local_acontext_api_unreachable",
+      "local_acontext_dashboard_unreachable",
+      "readiness_gate_not_rebuilt_empty"
+    ],
+    "runtime_memory_prerequisite_probe_landed": true,
+    "runtime_parity_proven": false,
+    "worker_copyable_doctrine_ready": false
+  },
+  "review_packet_id": "review_packet_redirect_outdated_packet_001",
+  "runtime_memory_prerequisite_observation": {
+    "api": {
+      "checked": true,
+      "error": "connection refused",
+      "reachable": false,
+      "url": "http://localhost:8029/api/v1"
+    },
+    "cli": {
+      "acontext_binary_on_path": false,
+      "checked": true,
+      "error": "which acontext failed and python -m acontext has no __main__",
+      "python_module_cli_available": false
+    },
+    "compose": {
+      "checked": true,
+      "compose_available": true,
+      "compose_env_file_found": true,
+      "compose_manifest_found": true,
+      "compose_up_started": false,
+      "containers_running": false,
+      "individual_redis_pull_completed": false,
+      "individual_redis_pull_timeout_seconds": 180,
+      "local_images_observed": [
+        "pgvector/pgvector:pg16"
+      ],
+      "pull_command_started": true,
+      "pull_completed": false,
+      "pull_stop_reason": "no_progress_after_about_10_minutes_sigkill",
+      "pull_stopped_by_operator": true,
+      "pull_window_seconds_approx": 585,
+      "service_names_observed": [
+        "acontext-server-jaeger",
+        "acontext-server-pg",
+        "acontext-server-rabbitmq",
+        "acontext-server-redis",
+        "acontext-server-seaweedfs",
+        "acontext-server-seaweedfs-setup",
+        "acontext-server-core",
+        "acontext-server-api",
+        "acontext-server-ui"
+      ],
+      "services_started": false
+    },
+    "dashboard": {
+      "checked": true,
+      "error": "connection refused",
+      "reachable": false,
+      "url": "http://localhost:3000"
+    },
+    "docker": {
+      "checked": true,
+      "daemon_available": true,
+      "version_command_exit_code": 0
+    },
+    "host_scope": "local_only_no_external_publish",
+    "live_acontext_retrieval_performed": false,
+    "live_acontext_write_performed": false,
+    "observation_window": "2026-05-16T22:01:00-04:00",
+    "readiness_gate_rebuilt_with_empty_blockers": false,
+    "sdk": {
+      "checked": true,
+      "dedicated_venv_acontext_version": "0.1.13",
+      "dedicated_venv_found": true,
+      "dedicated_venv_imports_acontext": true,
+      "dedicated_venv_path": "~/clawd/.venv-acontext",
+      "default_active_runner_error": "ModuleNotFoundError: No module named 'acontext'",
+      "default_active_runner_imports_acontext": false,
+      "explicit_venv_bridge_available_for_read_only_preflight": true
+    }
+  },
+  "schema": "city_ops.acontext_runtime_memory_prerequisite_probe.v1",
+  "source_rerun_id": "acontext_runtime_memory_preflight_rerun:acontext_live_preflight:redirect_outdated_packet_001"
+}

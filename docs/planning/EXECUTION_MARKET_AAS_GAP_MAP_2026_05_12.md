@@ -383,3 +383,15 @@ Gap map impact: no customer/public/pilot/dispatch/reputation/runtime/payment/GPS
 Daytime entrypoint: `CITY_AS_A_SERVICE_6AM_MORNING_BRIEF_2026_05_16.md`. No new product surface or readiness claim was added at the final seal. The safe state remains internal/admin only: Acontext prerequisites are partially present but live parity is blocked, and coordination observability is a handoff discipline rather than a customer/public metric surface. The next proof must be either a rebuilt no-blocker Acontext gate followed by exactly one live write/retrieve parity pass, or one real human-operator approval record for the exact Compliance Desk package-label boundary.
 
 Do not treat tonight's docs, boards, or pattern maps as customer delivery, publication, public route/catalog readiness, pricing, queue launch, dispatch, ERC-8004 reputation, payment/infra reverification, exact GPS/raw metadata release, domain authority, or worker-copyable doctrine.
+
+## 2026-05-16 22:01 Acontext runtime-memory prerequisite probe
+
+The runtime-memory lane now has one more internal/admin prerequisite evidence artifact:
+
+- `mcp_server/city_ops/acontext_runtime_memory_prerequisite_probe.py`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_runtime_memory_prerequisite_probe.json`
+- safe claim: `admin_acontext_runtime_memory_prerequisite_probe_landed`
+
+Gap map impact: no live-runtime gap is closed. The probe confirms Docker/Compose and the dedicated SDK venv are present, but `acontext` CLI is not on PATH, the default active runner still cannot import `acontext`, compose image pulling did not complete, services did not start, API/dashboard remain unreachable, and the readiness gate was not rebuilt empty. Therefore live Acontext sink readiness, runtime parity, durable live memory writes, customer/public packaging, dispatch, reputation, payment/infra, GPS/raw metadata, and worker-doctrine claims remain blocked.
+
+Next proof remains prerequisite-first: resolve the Docker pull hang or pre-pull compose images, start local Acontext, verify localhost API/dashboard, rerun read-only preflight, rebuild the blocker/gate chain, and attempt exactly one live write/retrieve parity pass only if the rebuilt gate has empty blockers.

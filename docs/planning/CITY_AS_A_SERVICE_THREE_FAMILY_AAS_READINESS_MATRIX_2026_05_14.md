@@ -253,3 +253,9 @@ Required next proof before any customer-exposure claim: one real human-operator 
 ## May 16 06:00 final seal
 
 The 6 AM brief does not change family readiness. Compliance Desk, Document / Handoff Logistics, and Incident Verification remain internal/admin proof ladders only. The active next decision is external to the matrix: either clear Acontext prerequisites and run one gated live parity pass, or create one real human-operator approval record for the exact Compliance Desk package-label boundary. No family gained customer/public/catalog/pilot/dispatch/reputation/live-runtime/GPS/domain-authority/worker-doctrine readiness.
+
+## 2026-05-16 22:01 runtime-memory prerequisite probe follow-up
+
+The Acontext prerequisite lane now includes `acontext_runtime_memory_prerequisite_probe.json` as an internal/admin probe artifact with safe claim `admin_acontext_runtime_memory_prerequisite_probe_landed` only. It improves precision, not readiness: Docker/Compose and the dedicated SDK venv are present, but the CLI/default-runner import/pull/start/API/dashboard/gate prerequisites remain blocked.
+
+Matrix impact: Compliance Desk, Document / Handoff Logistics, and Incident Verification still have no live Acontext sink readiness, no runtime parity, no customer/public route, no queue launch, no dispatch, no reputation attachment, no payment/infra reverification, no GPS/raw metadata release, no domain-authority readiness, and no worker-copyable doctrine. Required next proof is unchanged: complete local startup, verify API/dashboard, rerun read-only preflight, rebuild an empty gate, then run exactly one live write/retrieve parity pass only if authorized.

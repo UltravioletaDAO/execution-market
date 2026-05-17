@@ -196,3 +196,29 @@ PYTHONPATH=. /opt/homebrew/bin/python3.14 -m pytest -q \
   mcp_server/tests/city_ops/test_acontext_runtime_memory_preflight_rerun.py
 # 14 passed
 ```
+
+## 22:01 runtime-memory prerequisite probe
+
+A later local-only prerequisite probe landed as an internal/admin evidence artifact, not a live parity claim:
+
+```text
+acontext_runtime_memory_prerequisite_probe.json
+safe claim: admin_acontext_runtime_memory_prerequisite_probe_landed
+```
+
+Precise state after the probe:
+
+- Docker daemon and Docker Compose are available.
+- Compose manifest/env file are present.
+- Dedicated `~/clawd/.venv-acontext` imports `acontext==0.1.13`.
+- Default active runner still cannot import `acontext`.
+- `acontext` CLI is not on PATH; `python -m acontext` is not a CLI entrypoint.
+- A longer local `docker compose pull` window still did not complete; only `pgvector/pgvector:pg16` was observed locally afterward.
+- A separate `docker pull redis:7.4` timed out silently after 180 seconds.
+- Compose services did not start.
+- Local API/dashboard remain unreachable.
+- The readiness gate was not rebuilt empty, and no live write/retrieve parity pass was attempted.
+
+Remaining blockers: `acontext_cli_not_on_path`, `default_active_runner_acontext_import_missing`, `compose_image_pull_not_completed`, `acontext_compose_services_not_started`, `local_acontext_api_unreachable`, `local_acontext_dashboard_unreachable`, and `readiness_gate_not_rebuilt_empty`.
+
+Safe next action: resolve the Docker pull hang or pre-pull compose images, start local services, verify localhost API/dashboard, rerun read-only preflight, rebuild the gate, and attempt exactly one live parity pass only if the rebuilt gate has empty blockers.

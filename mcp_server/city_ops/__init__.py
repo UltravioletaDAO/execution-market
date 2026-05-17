@@ -37,6 +37,11 @@ from .acontext_runtime_memory_preflight_rerun import (
     load_acontext_runtime_memory_preflight_rerun,
     write_acontext_runtime_memory_preflight_rerun,
 )
+from .acontext_runtime_memory_prerequisite_probe import (
+    build_acontext_runtime_memory_prerequisite_probe,
+    load_acontext_runtime_memory_prerequisite_probe,
+    write_acontext_runtime_memory_prerequisite_probe,
+)
 from .aas_coordination_observability_success_metrics_board import (
     build_aas_coordination_observability_success_metrics_board,
     load_aas_coordination_observability_success_metrics_board,
