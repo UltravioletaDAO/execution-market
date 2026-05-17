@@ -447,3 +447,18 @@ Gap map impact: no live-runtime gap is closed. Docker context/buildx availabilit
 Therefore compose startup, API/dashboard health, empty readiness gate, live write/retrieve parity, customer/public packaging, dispatch, reputation, payment/infra claims, GPS/raw metadata exposure, and worker doctrine remain blocked.
 
 Next proof is still pull-path specific: fix or bypass the Docker Desktop/containerd/layer-fetch stall, or use a trusted pre-populated image cache/mirror; verify all nine required images are present; then start services, healthcheck API/dashboard, rerun read-only preflight, rebuild the gate, and only then attempt exactly one live write/retrieve parity pass if blockers are empty.
+
+## 2026-05-17 04:00 AAS intelligence-flow compounder
+
+The coordination/pattern-recognition lane now has a bounded internal/admin compounder:
+
+- `mcp_server/city_ops/aas_intelligence_flow_compounder.py`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/aas_intelligence_flow_compounder.json`
+- implementation note: `CITY_AS_A_SERVICE_AAS_INTELLIGENCE_FLOW_COMPOUNDER_IMPLEMENTATION.md`
+- safe claim: `admin_aas_intelligence_flow_compounder_landed`
+
+Gap map impact: no live-runtime, customer/public, dispatch, reputation, payment/infra, GPS/raw metadata, domain-authority, or worker-doctrine gap is closed. The compounder maps four intelligence flows — memory prerequisites to next proof, IRC/session IDs to coordination compression, cross-project patterns to claim quarantine, and agent selection to boundary preservation — but treats them as internal filters only.
+
+The artifact explicitly quarantines five claim classes behind separate gates: live runtime memory, customer/public packaging, dispatch/operator queue, reputation or worker Skill DNA, and payment/production health. It does not enable autonomous routing or prioritization, customer delivery, publication, public/catalog routes, controlled pilots, queue launch, dispatch, ERC-8004 reputation receipts, live Acontext parity, current payment/production confidence, exact GPS/raw metadata release, or worker-copyable doctrine.
+
+Next proof remains prerequisite-first: fix or bypass the Docker Desktop/containerd/layer-fetch stall, verify all nine Acontext images are present, start services, healthcheck API/dashboard, rerun read-only preflight, rebuild an empty gate, and only then attempt exactly one live write/retrieve parity pass if blockers are empty.

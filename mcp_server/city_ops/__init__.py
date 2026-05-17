@@ -72,6 +72,11 @@ from .aas_coordination_multiplier_pattern_map import (
     load_aas_coordination_multiplier_pattern_map,
     write_aas_coordination_multiplier_pattern_map,
 )
+from .aas_intelligence_flow_compounder import (
+    build_aas_intelligence_flow_compounder,
+    load_aas_intelligence_flow_compounder,
+    write_aas_intelligence_flow_compounder,
+)
 from .acontext_transport import build_acontext_transport_parity_result
 from .closure import build_acontext_export_preview, build_session_rebuild_preview
 from .coordination_intelligence import build_coordination_intelligence_snapshot
