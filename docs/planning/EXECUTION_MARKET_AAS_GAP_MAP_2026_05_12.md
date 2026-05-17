@@ -407,3 +407,15 @@ The runtime-memory lane now also has a follow-up local-only pull-attempt evidenc
 Gap map impact: no live-runtime gap is closed. The attempt proves the blocker is more specific, not smaller: the compose config requires nine Acontext images, the pull command produced only initial `Pulling` lines, no new required image was observed afterward, and only `pgvector/pgvector:pg16` was present locally from the required set. Therefore compose pull completion, all-images-present status, service startup, API/dashboard reachability, empty readiness gate, live write/retrieve parity, customer/public packaging, dispatch, reputation, payment/infra, GPS/raw metadata, and worker-doctrine claims remain blocked.
 
 Next proof is narrowed to per-image pull evidence: pre-pull each required Acontext image individually with visible progress, exit code, duration, and last progress line; only after all required images are present should compose services be started and health checked.
+
+### 4.8 Update after May 17 00:02 dream continuation
+
+The live-runtime/Acontext prerequisite lane now has per-image pull evidence, but no readiness promotion:
+
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_individual_image_pull_timeout_probe.json`
+- implementation note: `CITY_AS_A_SERVICE_ACONTEXT_INDIVIDUAL_IMAGE_PULL_TIMEOUT_PROBE_IMPLEMENTATION.md`
+- safe claim: `admin_acontext_individual_image_pull_timeout_probe_landed`
+
+The probe attempted the first required image individually and observed no Docker progress before a 180s timeout. It also recorded that GHCR and Docker Hub registry endpoints responded over HTTP, while explicitly preserving the rule that registry reachability is not image-pull success. Required-image inventory remains incomplete: only `pgvector/pgvector:pg16` is present locally from the nine-image Acontext compose set.
+
+AAS gap impact: no customer/public/catalog/pilot/dispatch/reputation/live-runtime/GPS/domain-authority/worker-doctrine gap is closed. The remaining runtime-memory gap is narrower and better diagnosed: explain the GHCR Docker pull stall, complete/cache all required images, start services, verify API/dashboard, rerun read-only preflight, rebuild an empty readiness gate, and only then attempt exactly one live write/retrieve parity pass.
