@@ -432,3 +432,18 @@ The runtime-memory lane now has a bounded diagnostic that separates registry man
 Gap map impact: no live-runtime gap is closed. GHCR anonymous manifest fetches for the three Acontext images succeeded and advertised `linux/arm64`, so the blocker is no longer likely to be missing public manifests or missing arm64 indexes. However Docker Desktop still timed out silently on the first image pull, and local required-image inventory remains only `pgvector/pgvector:pg16` from the nine-image compose set. Compose startup, API/dashboard health, empty readiness gate, live write/retrieve parity, customer/public packaging, dispatch, reputation, payment/infra claims, GPS/raw metadata exposure, and worker doctrine remain blocked.
 
 Next proof is Docker pull-path specific: inspect Docker Desktop/containerd/network diagnostics without secrets, then retry only the first GHCR UI image with a short bounded timeout and explicit `--platform linux/arm64` or a trusted cache/mirror strategy after the stall path is understood.
+
+## 2026-05-17 02:05 Acontext Docker pull-path diagnostic
+
+The runtime-memory lane now has a sanitized Docker pull-path diagnostic:
+
+- `mcp_server/city_ops/acontext_docker_pull_path_diagnostic.py`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_docker_pull_path_diagnostic.json`
+- implementation note: `CITY_AS_A_SERVICE_ACONTEXT_DOCKER_PULL_PATH_DIAGNOSTIC_IMPLEMENTATION.md`
+- safe claim: `admin_acontext_docker_pull_path_diagnostic_landed`
+
+Gap map impact: no live-runtime gap is closed. Docker context/buildx availability is recorded and `linux/arm64` platform support is present, but an explicit `docker pull --platform linux/arm64 ghcr.io/memodb-io/acontext-ui:latest` retry still timed out silently after 60 seconds and did not place the first required image locally. Required-image inventory remains incomplete: only `pgvector/pgvector:pg16` is present locally from the nine-image compose set.
+
+Therefore compose startup, API/dashboard health, empty readiness gate, live write/retrieve parity, customer/public packaging, dispatch, reputation, payment/infra claims, GPS/raw metadata exposure, and worker doctrine remain blocked.
+
+Next proof is still pull-path specific: fix or bypass the Docker Desktop/containerd/layer-fetch stall, or use a trusted pre-populated image cache/mirror; verify all nine required images are present; then start services, healthcheck API/dashboard, rerun read-only preflight, rebuild the gate, and only then attempt exactly one live write/retrieve parity pass if blockers are empty.

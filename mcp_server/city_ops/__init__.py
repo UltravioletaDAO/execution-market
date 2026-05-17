@@ -57,6 +57,11 @@ from .acontext_registry_manifest_pull_stall_diagnostic import (
     load_acontext_registry_manifest_pull_stall_diagnostic,
     write_acontext_registry_manifest_pull_stall_diagnostic,
 )
+from .acontext_docker_pull_path_diagnostic import (
+    build_acontext_docker_pull_path_diagnostic,
+    load_acontext_docker_pull_path_diagnostic,
+    write_acontext_docker_pull_path_diagnostic,
+)
 from .aas_coordination_observability_success_metrics_board import (
     build_aas_coordination_observability_success_metrics_board,
     load_aas_coordination_observability_success_metrics_board,
