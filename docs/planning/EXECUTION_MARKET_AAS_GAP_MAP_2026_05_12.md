@@ -476,3 +476,18 @@ The runtime-memory lane now has a sharper blocker boundary and a coordination ha
 Safe latest claims are `admin_acontext_docker_pull_path_diagnostic_landed`, `admin_aas_runtime_memory_blocker_decision_board_landed`, and `admin_aas_intelligence_flow_compounder_landed` only. The blocker is not registry reachability or arm64 manifest availability; it is still Docker Desktop / containerd / network / layer-fetch success for the first GHCR Acontext image, or the need for a trusted image cache/mirror.
 
 This does not promote any customer copy, catalog/public route, pilot, operator queue, dispatch, ERC-8004 reputation, worker Skill DNA, live Acontext/runtime parity, payment/production health, exact GPS/raw metadata release, domain-authority claim, or worker-copyable doctrine. The next safe proof is image inventory from trusted provenance, followed by compose health, API/dashboard health, rebuilt empty readiness gate, and exactly one live write/retrieve parity pass only if the gate allows it.
+
+
+## 2026-05-18 06:00 single-boundary approval record / final wrap
+
+The customer-exposure fork now has one narrow internal/admin approval record, but no delivery or publication authorization:
+
+- `mcp_server/city_ops/aas_single_boundary_human_operator_approval_record.py`
+- `mcp_server/city_ops/fixtures/aas_package_ladder/aas_single_boundary_human_operator_approval_record.json`
+- implementation note: `CITY_AS_A_SERVICE_AAS_SINGLE_BOUNDARY_HUMAN_OPERATOR_APPROVAL_RECORD_IMPLEMENTATION.md`
+- final handoff: `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_18.md`
+- safe claim: `aas_single_boundary_human_operator_approval_record_landed`
+
+Gap map impact: one internal Compliance Desk text boundary is approved for the package label `Visible posting / notice compliance snapshot`, with delivery path still set to none. This closes only the selected-label approval-record gap. It does **not** close customer copy, customer delivery, publication, public/catalog route, controlled pilot, pricing, queue launch, dispatch, ERC-8004 reputation, worker Skill DNA, live Acontext/runtime parity, payment/production reverification, exact GPS/raw metadata release, domain-authority/legal/regulator/notarial/custody/emergency/safety/repair/insurance/SLA/official-report/fault-liability claims, or worker-copyable doctrine gaps.
+
+Next proof on the customer-exposure path is a separate delivery/publication gate over this approval record. Next proof on the runtime-memory path remains trusted image inventory, compose/API/dashboard health, read-only preflight, empty gate, then exactly one live Acontext write/retrieve parity pass only if allowed.
