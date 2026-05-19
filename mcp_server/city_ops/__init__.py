@@ -272,6 +272,11 @@ from .document_handoff_human_operator_approval_request import (
     load_document_handoff_human_operator_approval_request,
     write_document_handoff_human_operator_approval_request,
 )
+from .document_handoff_approval_request_read_surface import (
+    build_document_handoff_approval_request_read_surface,
+    load_document_handoff_approval_request_read_surface,
+    write_document_handoff_approval_request_read_surface,
+)
 from .incident_verification_fixture_review_gate import (
     build_incident_verification_fixture_review_gate,
     load_incident_verification_fixture_review_gate,
