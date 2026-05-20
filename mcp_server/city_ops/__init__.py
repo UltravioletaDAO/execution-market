@@ -327,6 +327,11 @@ from .incident_verification_approval_request_read_surface import (
     load_incident_verification_approval_request_read_surface,
     write_incident_verification_approval_request_read_surface,
 )
+from .incident_verification_approval_record_schema_gate import (
+    build_incident_verification_approval_record_schema_gate,
+    load_incident_verification_approval_record_schema_gate,
+    write_incident_verification_approval_record_schema_gate,
+)
 from .aas_three_family_packaging_review_packet import (
     build_aas_three_family_packaging_review_packet,
     load_aas_three_family_packaging_review_packet,
@@ -573,6 +578,9 @@ __all__ = [
     "build_incident_verification_approval_request_read_surface",
     "load_incident_verification_approval_request_read_surface",
     "write_incident_verification_approval_request_read_surface",
+    "build_incident_verification_approval_record_schema_gate",
+    "load_incident_verification_approval_record_schema_gate",
+    "write_incident_verification_approval_record_schema_gate",
     "build_aas_three_family_packaging_review_packet",
     "load_aas_three_family_packaging_review_packet",
     "write_aas_three_family_packaging_review_packet",
