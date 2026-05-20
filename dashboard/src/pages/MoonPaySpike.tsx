@@ -12,6 +12,7 @@
  */
 
 import { useEffect, useMemo, useState } from 'react'
+import { MoonPayFailureFallback } from '../components/MoonPayFailureFallback'
 import { MoonPayFrame } from '../components/MoonPayFrame'
 import {
   getMoonPayHealth,
@@ -220,6 +221,21 @@ export function MoonPaySpike() {
           </div>
         )}
       </section>
+
+      {walletAddress && (
+        <section className="mb-6">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-800">
+            3. Failure fallback (Phase 4.10)
+          </h2>
+          <MoonPayFailureFallback
+            walletAddress={walletAddress}
+            targetUsdc={fiatAmount}
+            reason="manual test"
+            onSkip={(bal) => logEvent('fallback.skip_ok', { balance: bal })}
+            onRetry={() => logEvent('fallback.retry_clicked', null)}
+          />
+        </section>
+      )}
 
       <section className="rounded-md border border-zinc-200 bg-white p-4">
         <h2 className="mb-3 text-sm font-semibold text-zinc-800">Event log</h2>
