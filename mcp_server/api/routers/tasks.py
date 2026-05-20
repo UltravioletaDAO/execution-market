@@ -629,6 +629,40 @@ async def create_task(
         total_required = bounty * (1 + platform_fee_pct)
         total_required = total_required.quantize(Decimal("0.01"))
 
+        # ── Solana balance gate (Phase 4.7) ───────────────────────────
+        # Solana has no escrow at publish (Fase 1 — funds stay in agent's
+        # wallet until release). If the wallet does not currently hold
+        # enough USDC to cover bounty + fee, return 402 with a signed
+        # MoonPay on-ramp URL so the frontend can offer one-tap top-up.
+        if (request.payment_network or "").lower() == "solana":
+            from integrations.moonpay.balance_gate import (
+                check_solana_balance_gate,
+            )
+
+            solana_wallet = getattr(auth, "wallet_address", None) or auth.agent_id
+            gate = await check_solana_balance_gate(
+                wallet=solana_wallet,
+                required_usdc=total_required,
+            )
+            if not gate.sufficient:
+                body: Dict[str, Any] = {
+                    "error": "INSUFFICIENT_FUNDS",
+                    "message": (
+                        f"Solana wallet has {gate.balance} USDC; task requires "
+                        f"{total_required} USDC (bounty {bounty} + "
+                        f"{platform_fee_pct * 100}% fee). Top up via MoonPay "
+                        f"or transfer USDC to {solana_wallet} and retry."
+                    ),
+                    "required_usdc": str(total_required),
+                    "balance_usdc": str(gate.balance),
+                    "shortfall_usdc": str(gate.shortfall),
+                    "wallet_address": solana_wallet,
+                    "network": "solana",
+                }
+                if gate.onramp is not None:
+                    body["onramp"] = gate.onramp
+                return JSONResponse(status_code=402, content=body)
+
         # Verify x402 payment (or balance check for fase1 mode)
         payment_result = None
         x_payment_header = None  # Store original header for later settlement
@@ -3225,6 +3259,47 @@ async def assign_task_to_worker(
 ) -> SuccessResponse:
     """Assign a published task to a specific worker executor."""
     try:
+        # ── Solana balance gate (Phase 4.7) ───────────────────────────
+        # Solana Fase 1 has no escrow at publish — the agent must hold
+        # enough USDC at assign time or the post-approval settlement will
+        # fail. Re-check now (balance may have dropped since publish) and
+        # surface a MoonPay on-ramp before db.assign_task touches state.
+        pre_task = await db.get_task(task_id)
+        if pre_task and (pre_task.get("payment_network") or "").lower() == "solana":
+            from integrations.moonpay.balance_gate import (
+                check_solana_balance_gate,
+            )
+
+            bounty_pre = Decimal(str(pre_task.get("bounty_usd", 0)))
+            fee_pct_pre = await get_platform_fee_percent()
+            total_required_pre = (bounty_pre * (1 + fee_pct_pre)).quantize(
+                Decimal("0.01")
+            )
+
+            solana_wallet = getattr(auth, "wallet_address", None) or auth.agent_id
+            gate = await check_solana_balance_gate(
+                wallet=solana_wallet,
+                required_usdc=total_required_pre,
+            )
+            if not gate.sufficient:
+                body: Dict[str, Any] = {
+                    "error": "INSUFFICIENT_FUNDS",
+                    "message": (
+                        f"Solana wallet has {gate.balance} USDC; assignment "
+                        f"requires {total_required_pre} USDC (bounty {bounty_pre} "
+                        f"+ {fee_pct_pre * 100}% fee). Top up via MoonPay or "
+                        f"transfer USDC to {solana_wallet} and retry."
+                    ),
+                    "required_usdc": str(total_required_pre),
+                    "balance_usdc": str(gate.balance),
+                    "shortfall_usdc": str(gate.shortfall),
+                    "wallet_address": solana_wallet,
+                    "network": "solana",
+                }
+                if gate.onramp is not None:
+                    body["onramp"] = gate.onramp
+                return JSONResponse(status_code=402, content=body)
+
         result = await db.assign_task(
             task_id=task_id,
             agent_id=auth.agent_id,

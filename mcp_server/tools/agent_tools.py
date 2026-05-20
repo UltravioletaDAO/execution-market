@@ -479,6 +479,44 @@ def register_agent_tools(mcp, db):
             if task["status"] != "published":
                 return f"Error: Task cannot be assigned (status: {task['status']})"
 
+            # ── Solana balance gate (Phase 4.7) ──────────────────────
+            # Re-check agent balance at assign time — Solana has no escrow
+            # at publish (Fase 1), so balance can drop between publish and
+            # assign and silently break post-approval settlement.
+            if (task.get("payment_network") or "").lower() == "solana":
+                from decimal import Decimal
+
+                from integrations.moonpay.balance_gate import (
+                    check_solana_balance_gate,
+                )
+                from platform_config import get_platform_fee_percent
+
+                bounty_dec = Decimal(str(task.get("bounty_usd", 0)))
+                fee_pct = await get_platform_fee_percent()
+                total_required = (bounty_dec * (1 + fee_pct)).quantize(Decimal("0.01"))
+                gate = await check_solana_balance_gate(
+                    wallet=params.agent_id,
+                    required_usdc=total_required,
+                )
+                if not gate.sufficient:
+                    err_body: Dict[str, Any] = {
+                        "error": "INSUFFICIENT_FUNDS",
+                        "message": (
+                            f"Solana wallet has {gate.balance} USDC; "
+                            f"assignment requires {total_required} USDC "
+                            f"(bounty {bounty_dec} + {fee_pct * 100}% fee). "
+                            "Top up via MoonPay and retry."
+                        ),
+                        "required_usdc": str(total_required),
+                        "balance_usdc": str(gate.balance),
+                        "shortfall_usdc": str(gate.shortfall),
+                        "wallet_address": params.agent_id,
+                        "network": "solana",
+                    }
+                    if gate.onramp is not None:
+                        err_body["onramp"] = gate.onramp
+                    return json.dumps(err_body)
+
             # Self-assignment guard
             executor_data = (
                 client.table("executors")
@@ -573,7 +611,18 @@ def register_agent_tools(mcp, db):
             except ImportError:
                 dispatcher = None
 
-            if worker_wallet and dispatcher:
+            # Solana: no EVM pre-auth to relay. The pay.sh MPP channel will
+            # open lazily on the worker's first gated request — no on-chain
+            # lock happens at assignment. We still emit a status section so
+            # the agent UI shows the right expectation.
+            task_network = (task_data.get("payment_network") or "").lower()
+            if task_network == "solana":
+                escrow_section = """
+## Solana Payment Channel
+- **Status**: PENDING (opens on first worker request)
+- **Settlement**: via pay.sh MPP — no on-chain lock at assignment
+- **Refund safety**: bounded by channel cap; idle close after 15s of inactivity"""
+            elif worker_wallet and dispatcher:
                 try:
                     esc_row = (
                         client.table("escrows")

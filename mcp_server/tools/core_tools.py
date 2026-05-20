@@ -281,6 +281,45 @@ def register_core_tools(
                         "[MCP] Geocoding failed for '%s': %s", params.location_hint, e
                     )
 
+            # ── Solana balance gate (Phase 4.7) ──────────────────────
+            # Solana Fase 1 has no escrow — agent's wallet must hold the
+            # bounty + fee at publish or settlement will fail. Surface a
+            # MoonPay on-ramp inline (JSON-encoded string) so the calling
+            # agent can hand the signed URL to a UI or pay.sh widget.
+            if (params.payment_network or "base").lower() == "solana":
+                import json as _json
+
+                from integrations.moonpay.balance_gate import (
+                    check_solana_balance_gate,
+                )
+                from platform_config import get_platform_fee_percent
+
+                fee_pct = await get_platform_fee_percent()
+                bounty_dec = Decimal(str(params.bounty_usd))
+                total_required = (bounty_dec * (1 + fee_pct)).quantize(Decimal("0.01"))
+                gate = await check_solana_balance_gate(
+                    wallet=params.agent_id,
+                    required_usdc=total_required,
+                )
+                if not gate.sufficient:
+                    err_body: Dict[str, Any] = {
+                        "error": "INSUFFICIENT_FUNDS",
+                        "message": (
+                            f"Solana wallet has {gate.balance} USDC; task "
+                            f"requires {total_required} USDC "
+                            f"(bounty {bounty_dec} + {fee_pct * 100}% fee). "
+                            "Top up via MoonPay and retry."
+                        ),
+                        "required_usdc": str(total_required),
+                        "balance_usdc": str(gate.balance),
+                        "shortfall_usdc": str(gate.shortfall),
+                        "wallet_address": params.agent_id,
+                        "network": "solana",
+                    }
+                    if gate.onramp is not None:
+                        err_body["onramp"] = gate.onramp
+                    return _json.dumps(err_body)
+
             task = await _get_db().create_task(
                 agent_id=params.agent_id,
                 title=params.title,
@@ -312,7 +351,37 @@ def register_core_tools(
             if dispatcher:
                 try:
                     mode = dispatcher.get_mode()
-                    if mode == "fase2":
+                    # Solana: pay.sh MPP channels. No on-chain escrow at
+                    # creation — the channel opens lazily when the worker's
+                    # pay.sh proxy sees the first gated request. We still
+                    # call authorize_payment so payment_events records the
+                    # intent (Phase 2.5 / 2.6 audit trail).
+                    if (params.payment_network or "").lower() == "solana":
+                        auth_result = await dispatcher.authorize_payment(
+                            task_id=task["id"],
+                            receiver=params.agent_id,
+                            amount_usdc=Decimal(str(params.bounty_usd)),
+                            agent_address=params.agent_id,
+                            network="solana",
+                            token=params.payment_token or "USDC",
+                        )
+                        escrow_info = {
+                            "escrow_id": task["id"],
+                            "status": auth_result.get(
+                                "escrow_status", "channel_pending"
+                            ),
+                            "deposit_tx": "",
+                            "network": "solana",
+                            "settlement": "delegated_to_payshell",
+                        }
+                        if not auth_result.get("success"):
+                            balance_warning = (
+                                f"Solana session authorize failed: "
+                                f"{auth_result.get('error', 'unknown')}. "
+                                "Task created; channel will not open until "
+                                "this is resolved."
+                            )
+                    elif mode == "fase2":
                         auth_result = await dispatcher.authorize_payment(
                             task_id=task["id"],
                             receiver=params.agent_id,
