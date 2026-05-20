@@ -24,7 +24,11 @@
     "kk:relay-wallets": "tsx kk/generate-relay-wallets.ts",
     "kk:leaderboard": "tsx kk/lib/reputation-query.ts",
     "kk:leaderboard:json": "tsx kk/lib/reputation-query.ts --json",
-    "agentkit:server": "tsx agentkit-server.ts"
+    "agentkit:server": "tsx agentkit-server.ts",
+    "demo:prefund:check": "tsx demo/prefund-demo-wallets.ts --check",
+    "demo:prefund:surfpool": "tsx demo/prefund-demo-wallets.ts --surfpool",
+    "demo:prefund:mainnet-plan": "tsx demo/prefund-demo-wallets.ts --mainnet-plan",
+    "demo:prefund:reset": "tsx demo/prefund-demo-wallets.ts --reset"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.12",
