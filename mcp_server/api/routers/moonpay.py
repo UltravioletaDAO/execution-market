@@ -2,7 +2,7 @@
 
   POST /api/v1/moonpay/sign-url  — HMAC-sign a Widget URL (PRODUCTION path)
   POST /api/v1/moonpay/session   — create a sessionToken (LEGACY — Phase 1D spike)
-  POST /api/v1/moonpay/webhook   — receive transaction events from MoonPay
+  POST /api/v1/moonpay/webhook   — receive transaction events + persist mirror
   GET  /api/v1/moonpay/health    — config sanity check (no secrets exposed)
 
 Master switch: EM_MOONPAY_ENABLED. When unset/false the routes are not even
@@ -13,6 +13,12 @@ The `/sign-url` endpoint is the canonical Phase 4 surface; the frontend
 overlay (`@moonpay/moonpay-js`, see Phase 4.8) calls it to get a pre-signed
 URL ready for `widget.show()`. The `/session` endpoint stays alive only for
 the existing `/spike/moonpay` page and is removed in Phase 4.8.
+
+The `/webhook` endpoint verifies Moonpay-Signature-V2 and upserts each event
+into the `moonpay_transactions` table (migration 109). Persistence is
+best-effort: a failed UPSERT is logged but the endpoint still ACKs 200, so
+MoonPay does not enter a retry storm. The dashboard hook useMoonPayOnramp
+(Phase 4.9) subscribes to that table via Supabase Realtime.
 """
 
 from __future__ import annotations
@@ -278,13 +284,112 @@ async def create_session(body: SessionRequest, request: Request) -> SessionRespo
     )
 
 
+def _extract_moonpay_row(payload: dict) -> Optional[dict]:
+    """Project a MoonPay webhook payload onto the moonpay_transactions schema.
+
+    Returns None when the payload lacks the columns we *require* to persist
+    a row (moonpay_transaction_id + wallet_address). MoonPay's payload
+    shape varies by event type, but the canonical wrapper is:
+
+        {
+          "type": "transaction_updated",
+          "data": {
+            "id": "<uuid>",
+            "status": "completed",
+            "walletAddress": "...",
+            "externalCustomerId": "<executor uuid>" | null,
+            "currency":     {"code": "usdc_sol"} | null,
+            "currencyCode": "usdc_sol",  # sometimes flat, sometimes nested
+            "baseCurrencyAmount":  100.0,
+            "quoteCurrencyAmount": 99.5,
+            "feeAmount":           0.5,
+            "cryptoTransactionId": "<chain tx hash>"
+          }
+        }
+
+    We accept both nested (`currency.code`) and flat (`currencyCode`) forms
+    because MoonPay emits both depending on event version. Numbers are
+    coerced to float and trimmed to 6 decimal places by NUMERIC(20,6).
+    """
+    data = payload.get("data") if isinstance(payload, dict) else None
+    if not isinstance(data, dict):
+        return None
+
+    txn_id = data.get("id") or payload.get("id")
+    wallet = data.get("walletAddress") or data.get("wallet_address")
+    if not txn_id or not wallet:
+        return None
+
+    currency_obj = data.get("currency")
+    currency_code = (
+        (currency_obj.get("code") if isinstance(currency_obj, dict) else None)
+        or data.get("currencyCode")
+        or data.get("cryptoCurrencyCode")
+        or "unknown"
+    )
+
+    def _num(value: object) -> Optional[float]:
+        if value is None:
+            return None
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
+    return {
+        "moonpay_transaction_id": str(txn_id),
+        "external_customer_id": data.get("externalCustomerId"),
+        "wallet_address": str(wallet),
+        "crypto_currency_code": str(currency_code),
+        "base_amount": _num(data.get("baseCurrencyAmount")),
+        "quote_amount": _num(data.get("quoteCurrencyAmount")),
+        "fee_amount": _num(data.get("feeAmount")),
+        "status": str(data.get("status") or "pending"),
+        "crypto_transaction_id": data.get("cryptoTransactionId")
+        or data.get("crypto_transaction_id"),
+        "raw_event": payload,
+    }
+
+
+def _persist_moonpay_webhook(payload: dict) -> bool:
+    """Upsert the MoonPay webhook into moonpay_transactions.
+
+    Returns True on success, False on any failure (missing fields, DB error).
+    Best-effort: NEVER raises — the webhook endpoint must ACK regardless so
+    MoonPay does not retry-storm.
+    """
+    row = _extract_moonpay_row(payload)
+    if row is None:
+        logger.warning(
+            "MoonPay webhook missing required fields (id/walletAddress); skipping persist"
+        )
+        return False
+
+    try:
+        import supabase_client as db
+
+        db.get_client().table("moonpay_transactions").upsert(
+            row, on_conflict="moonpay_transaction_id"
+        ).execute()
+        return True
+    except Exception as exc:
+        logger.error(
+            "MoonPay webhook persist failed: txn=%s err=%s",
+            str(row["moonpay_transaction_id"])[:16],
+            exc,
+        )
+        return False
+
+
 @router.post(
     "/webhook",
     summary="Receive MoonPay transaction webhooks",
     description=(
         "MoonPay POSTs transaction lifecycle events here with a "
-        "Moonpay-Signature-V2 header. The body is HMAC-verified before being "
-        "logged. ACKs with 200 on success; signature mismatch returns 401."
+        "Moonpay-Signature-V2 header. The body is HMAC-verified, then "
+        "upserted into moonpay_transactions. ACKs with 200 on signature "
+        "success even if persistence fails (logged); signature mismatch "
+        "returns 401."
     ),
 )
 async def receive_webhook(
@@ -317,12 +422,16 @@ async def receive_webhook(
 
     event_type = payload.get("type") or payload.get("eventType") or "unknown"
     txn_id = (payload.get("data") or {}).get("id") or payload.get("id") or "unknown"
+
+    persisted = _persist_moonpay_webhook(payload)
+
     logger.info(
-        "MoonPay webhook accepted: type=%s txn=%s",
+        "MoonPay webhook accepted: type=%s txn=%s persisted=%s",
         event_type,
         str(txn_id)[:16],
+        persisted,
     )
-    return {"ok": True, "event": event_type}
+    return {"ok": True, "event": event_type, "persisted": persisted}
 
 
 @router.get(
