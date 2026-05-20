@@ -67,6 +67,11 @@ from .aas_coordination_observability_success_metrics_board import (
     load_aas_coordination_observability_success_metrics_board,
     write_aas_coordination_observability_success_metrics_board,
 )
+from .aas_coordination_observability_success_metrics_read_surface import (
+    build_aas_coordination_observability_success_metrics_read_surface,
+    load_aas_coordination_observability_success_metrics_read_surface,
+    write_aas_coordination_observability_success_metrics_read_surface,
+)
 from .aas_coordination_multiplier_pattern_map import (
     build_aas_coordination_multiplier_pattern_map,
     load_aas_coordination_multiplier_pattern_map,
