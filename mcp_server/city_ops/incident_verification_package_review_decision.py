@@ -312,7 +312,7 @@ def _build_review_questions() -> list[dict[str, Any]]:
         },
         {
             "question": "When must a follow-on or specialist path be used instead of an AAS claim?",
-            "answer": list(FOLLOW_ON_ESCALATION_BOUNDARIES),
+            "answer": [dict(row) for row in FOLLOW_ON_ESCALATION_BOUNDARIES],
             "decision": "escalation_boundaries_named_without_authorizing_execution_market_action",
             "approval_granted": False,
         },
@@ -367,7 +367,7 @@ def build_incident_verification_package_review_decision(
         "selected_internal_label_customer_copy_approved": False,
         "allowed_future_customer_output_fields": list(ALLOWED_FUTURE_CUSTOMER_OUTPUT_FIELDS),
         "forbidden_field_classes": list(FORBIDDEN_FIELD_CLASSES),
-        "follow_on_escalation_boundaries": list(FOLLOW_ON_ESCALATION_BOUNDARIES),
+        "follow_on_escalation_boundaries": [dict(row) for row in FOLLOW_ON_ESCALATION_BOUNDARIES],
         "next_required_gate_before_any_delivery_path": NEXT_REQUIRED_GATE,
         "next_gate_satisfied": False,
         "review_questions": _build_review_questions(),
@@ -454,11 +454,11 @@ def _assert_package_review_decision(decision: dict[str, Any]) -> None:
         raise CityOpsContractError(
             f"incident forbidden field drift: {sorted(missing_forbidden_fields)}"
         )
-    if decision.get("follow_on_escalation_boundaries") != FOLLOW_ON_ESCALATION_BOUNDARIES:
-        raise CityOpsContractError("incident follow-on boundary drift")
     for boundary in decision.get("follow_on_escalation_boundaries", []):
         if boundary.get("execution_market_action_authorized") is not False:
             raise CityOpsContractError("incident follow-on boundary authorized action")
+    if decision.get("follow_on_escalation_boundaries") != FOLLOW_ON_ESCALATION_BOUNDARIES:
+        raise CityOpsContractError("incident follow-on boundary drift")
     if decision.get("next_required_gate_before_any_delivery_path") != NEXT_REQUIRED_GATE:
         raise CityOpsContractError("incident next gate drift")
     if decision.get("next_gate_satisfied") is not False:
