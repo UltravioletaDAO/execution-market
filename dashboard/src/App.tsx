@@ -57,6 +57,10 @@ const ProfilePageWrapper = lazy(() => import('./pages/ProfilePageWrapper'))
 const EarningsPage = lazy(() => import('./pages/EarningsPage'))
 const AgentDashboardPage = lazy(() => import('./pages/AgentDashboardPage'))
 
+// Phase 1D spike — mounted only when VITE_MOONPAY_ENABLED=true
+const MoonPaySpike = lazy(() => import('./pages/MoonPaySpike').then(m => ({ default: m.MoonPaySpike })))
+const MOONPAY_SPIKE_ENABLED = import.meta.env.VITE_MOONPAY_ENABLED === 'true'
+
 // Lazy-loaded heavy components (modals)
 const TaskDetailModal = lazy(() => import('./components/TaskDetailModal').then(m => ({ default: m.TaskDetailModal })))
 const SubmissionReviewModal = lazy(() => import('./components/SubmissionReviewModal').then(m => ({ default: m.SubmissionReviewModal })))
@@ -195,6 +199,9 @@ function AppRoutes() {
         <Route path="/terms" element={<TermsOfService />} />
         <Route path="/support" element={<SupportPage />} />
         <Route path="/delete-account" element={<DeleteAccount />} />
+        {MOONPAY_SPIKE_ENABLED && (
+          <Route path="/spike/moonpay" element={<MoonPaySpike />} />
+        )}
         <Route
           path="/activity"
           element={

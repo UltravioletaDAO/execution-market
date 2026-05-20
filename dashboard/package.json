@@ -17,6 +17,7 @@
   "dependencies": {
     "@dynamic-labs/ethereum": "^4.77.3",
     "@dynamic-labs/sdk-react-core": "^4.77.3",
+    "@moonpay/moonpay-js": "^0.7.6",
     "@sentry/react": "^8.55.1",
     "@supabase/supabase-js": "^2.100.0",
     "@tanstack/react-query": "^5.91.3",
