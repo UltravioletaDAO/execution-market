@@ -61,6 +61,10 @@ const AgentDashboardPage = lazy(() => import('./pages/AgentDashboardPage'))
 const MoonPaySpike = lazy(() => import('./pages/MoonPaySpike').then(m => ({ default: m.MoonPaySpike })))
 const MOONPAY_SPIKE_ENABLED = import.meta.env.VITE_MOONPAY_ENABLED === 'true'
 
+// Phase 5.7 — MoonPay NYC demo URL. Mounted behind the same flag as the spike,
+// since both need VITE_MOONPAY_ENABLED + the staging backend to be useful.
+const NycDemoPage = lazy(() => import('./pages/NycDemoPage').then(m => ({ default: m.NycDemoPage })))
+
 // Lazy-loaded heavy components (modals)
 const TaskDetailModal = lazy(() => import('./components/TaskDetailModal').then(m => ({ default: m.TaskDetailModal })))
 const SubmissionReviewModal = lazy(() => import('./components/SubmissionReviewModal').then(m => ({ default: m.SubmissionReviewModal })))
@@ -201,6 +205,9 @@ function AppRoutes() {
         <Route path="/delete-account" element={<DeleteAccount />} />
         {MOONPAY_SPIKE_ENABLED && (
           <Route path="/spike/moonpay" element={<MoonPaySpike />} />
+        )}
+        {MOONPAY_SPIKE_ENABLED && (
+          <Route path="/demo/nyc" element={<NycDemoPage />} />
         )}
         <Route
           path="/activity"
