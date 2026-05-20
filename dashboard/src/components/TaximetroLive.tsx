@@ -16,10 +16,18 @@
  * The component owns the stream subscription. Callers that already
  * have stream state can use the lower-level `useTaximetroStream` hook
  * directly and render their own UI.
+ *
+ * Audio cue (Phase 5.4): a subtle "tick" plays on each new voucher.
+ * Muted by default — the operator unmutes from the on-screen toggle
+ * just before rolling. The asset is loaded lazily from
+ * `/audio/voucher-tick.mp3`; if it's missing or blocked, the playback
+ * silently fails (no UI break — the meter still works on camera).
  */
 
 import { useEffect, useRef, useState } from 'react'
 import { useTaximetroStream } from '../hooks/useTaximetroStream'
+
+const VOUCHER_TICK_AUDIO_SRC = '/audio/voucher-tick.mp3'
 
 interface Props {
   channelId: string | null | undefined
@@ -51,6 +59,13 @@ export function TaximetroLive({ channelId, cap, ratePerSec, enabled = true }: Pr
   const [displayUsdc, setDisplayUsdc] = useState(cumulativeUsdc)
   const baseRef = useRef({ value: cumulativeUsdc, at: performance.now() })
 
+  // Audio cue (Phase 5.4): muted by default, single Audio instance
+  // reused across ticks so we never queue overlapping playbacks. We
+  // track the last seen voucherCount to fire only on transitions.
+  const [audioMuted, setAudioMuted] = useState(true)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const lastVoucherCountRef = useRef(voucherCount)
+
   useEffect(() => {
     baseRef.current = { value: cumulativeUsdc, at: performance.now() }
     setDisplayUsdc(cumulativeUsdc)
@@ -71,6 +86,26 @@ export function TaximetroLive({ channelId, cap, ratePerSec, enabled = true }: Pr
     return () => cancelAnimationFrame(frame)
   }, [ratePerSec, status, cap])
 
+  useEffect(() => {
+    if (voucherCount === lastVoucherCountRef.current) return
+    const advanced = voucherCount > lastVoucherCountRef.current
+    lastVoucherCountRef.current = voucherCount
+    if (!advanced || audioMuted) return
+    if (!audioRef.current) {
+      audioRef.current = new Audio(VOUCHER_TICK_AUDIO_SRC)
+      audioRef.current.preload = 'auto'
+      audioRef.current.volume = 0.35
+    }
+    const el = audioRef.current
+    try {
+      el.currentTime = 0
+      void el.play().catch(() => undefined)
+    } catch {
+      // Asset missing or autoplay blocked — fail silently per
+      // header comment; the meter remains the source of truth.
+    }
+  }, [voucherCount, audioMuted])
+
   const capPct =
     typeof cap === 'number' && cap > 0
       ? Math.min(100, (displayUsdc / cap) * 100)
@@ -78,8 +113,17 @@ export function TaximetroLive({ channelId, cap, ratePerSec, enabled = true }: Pr
 
   return (
     <div className="rounded-lg border border-black bg-white p-8 font-mono text-black">
-      <div className="mb-2 text-xs uppercase tracking-widest text-zinc-600">
-        Taxímetro · channel {channelId ? channelId.slice(0, 8) + '…' : '—'}
+      <div className="mb-2 flex items-baseline justify-between gap-3 text-xs uppercase tracking-widest text-zinc-600">
+        <span>Taxímetro · channel {channelId ? channelId.slice(0, 8) + '…' : '—'}</span>
+        <button
+          type="button"
+          onClick={() => setAudioMuted((prev) => !prev)}
+          aria-pressed={!audioMuted}
+          aria-label={audioMuted ? 'Unmute voucher tick' : 'Mute voucher tick'}
+          className="border border-black bg-white px-2 py-0.5 text-[10px] uppercase tracking-widest text-black hover:bg-black hover:text-white"
+        >
+          {audioMuted ? 'tick muted' : 'tick on'}
+        </button>
       </div>
 
       <div

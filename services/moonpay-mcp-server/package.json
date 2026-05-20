@@ -1,0 +1,32 @@
+{
+  "name": "@execution-market/moonpay-mcp-server",
+  "version": "0.0.1",
+  "description": "MoonPay MCP Server — agentic on-ramp tools wrapping `mp mcp` for Solana USDC just-in-time funding",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "build": "tsc",
+    "start:built": "node dist/server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "@types/node": "^22.0.0"
+  },
+  "keywords": [
+    "moonpay",
+    "mcp",
+    "model-context-protocol",
+    "ai-agents",
+    "on-ramp",
+    "usdc",
+    "solana",
+    "execution-market"
+  ],
+  "license": "MIT"
+}
