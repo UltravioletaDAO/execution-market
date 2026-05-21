@@ -177,3 +177,22 @@ The flywheel now has a deterministic internal/admin read surface:
 The surface consumes only `aas_system_integration_flywheel.json` and renders the four-ID session header, declared-vs-verified strength cards, connection-loop cards, success metrics, session-management rules, operator next actions, and a sticky claim-boundary footer.
 
 It registers no network route and still does not prove live Acontext sink readiness, runtime parity, autonomous dispatch, customer-visible packaging, public route readiness, payment/infra reverification, operator queue launch, ERC-8004 reputation, worker Skill DNA, exact GPS/raw metadata exposure, or worker-copyable doctrine.
+
+## 12. 2026-05-21 strength-connection control packet follow-up
+
+The flywheel now has a later internal/admin control packet that joins the coordination metrics read surface with the intelligence-flow compounder:
+
+- `mcp_server/city_ops/aas_strength_connection_control_packet.py`
+- `mcp_server/tests/city_ops/test_aas_strength_connection_control_packet.py`
+- `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/aas_strength_connection_control_packet.json`
+- implementation note: `CITY_AS_A_SERVICE_AAS_STRENGTH_CONNECTION_CONTROL_PACKET_IMPLEMENTATION.md`
+- safe claim: `admin_aas_strength_connection_control_packet_landed`
+
+The packet keeps the original flywheel boundary intact while making the current-strength connections easier to hand off:
+
+- latest `city_ops` code changes are consumed from the local artifact graph;
+- 8/8 payment integration and production infrastructure remain declared context only, not reverified proof;
+- intelligent memory becomes bounded Acontext candidate structure, not a live sink claim;
+- legendary coordination is rendered as invariant IDs, declared-vs-verified badges, sticky blocked claims, and exactly one next-proof slot.
+
+The packet's only next-proof queue item is still Acontext runtime-memory prerequisites followed by one live parity attempt **after** prerequisites clear. If that remains blocked, future agents should add only internal/admin guardrails that preserve the same four-ID and claim-boundary discipline.

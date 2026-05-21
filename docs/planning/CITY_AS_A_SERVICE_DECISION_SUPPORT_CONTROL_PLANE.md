@@ -83,6 +83,27 @@ The matrix joins four axes without promoting readiness:
 It is safe for internal planning and future operator/admin read-only surfaces.
 It is not safe to call it live Acontext readiness, session rebuild readiness, runtime parity, autonomous dispatch, worker Skill DNA, or worker-copyable municipal doctrine.
 
+## 3.2 2026-05-21 status — strength-connection control packet
+
+A later conservative control-plane handoff now exists:
+
+- implementation: `mcp_server/city_ops/aas_strength_connection_control_packet.py`
+- fixture: `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/aas_strength_connection_control_packet.json`
+- schema: `city_ops.aas_strength_connection_control_packet.v1`
+- safe claim: `admin_aas_strength_connection_control_packet_landed`
+
+This packet connects the active AAS strengths into one internal/admin decision object. It consumes only the coordination-observability read surface and the intelligence-flow compounder. It is safe to use as a compact handoff before choosing the next proof, especially in dream sessions where stale cron payloads may still mention stopped projects.
+
+It does **not** prove live Acontext, IRC runtime changes, cross-project autorouting, autonomous dispatch, customer/public packaging, payment or production health, ERC-8004 reputation, worker Skill DNA, GPS/raw metadata release, or worker-copyable doctrine.
+
+Operationally, the packet makes the control plane stricter:
+
+- every strength must carry a verification badge;
+- declared payment/infra confidence cannot be repeated as current proof;
+- memory insight work becomes an Acontext candidate path, not a live sink claim;
+- agent coordination quality remains an internal selection signal until a separate scoring/reputation gate exists;
+- the system keeps exactly one next-proof slot: clear Acontext runtime-memory prerequisites, then run one live write/retrieve parity attempt.
+
 ## 4. System model
 
 ## 4.1 Source-of-truth split

@@ -82,6 +82,11 @@ from .aas_intelligence_flow_compounder import (
     load_aas_intelligence_flow_compounder,
     write_aas_intelligence_flow_compounder,
 )
+from .aas_strength_connection_control_packet import (
+    build_aas_strength_connection_control_packet,
+    load_aas_strength_connection_control_packet,
+    write_aas_strength_connection_control_packet,
+)
 from .acontext_transport import build_acontext_transport_parity_result
 from .closure import build_acontext_export_preview, build_session_rebuild_preview
 from .coordination_intelligence import build_coordination_intelligence_snapshot
