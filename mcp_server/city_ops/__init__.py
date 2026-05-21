@@ -384,6 +384,11 @@ from .aas_single_boundary_delivery_publication_gate import (
     load_aas_single_boundary_delivery_publication_gate,
     write_aas_single_boundary_delivery_publication_gate,
 )
+from .aas_cross_family_approval_state_matrix import (
+    build_aas_cross_family_approval_state_matrix,
+    load_aas_cross_family_approval_state_matrix,
+    write_aas_cross_family_approval_state_matrix,
+)
 from .aas_system_integration_flywheel import (
     build_aas_system_integration_flywheel,
     load_aas_system_integration_flywheel,
@@ -621,6 +626,9 @@ __all__ = [
     "build_aas_single_boundary_delivery_publication_gate",
     "load_aas_single_boundary_delivery_publication_gate",
     "write_aas_single_boundary_delivery_publication_gate",
+    "build_aas_cross_family_approval_state_matrix",
+    "load_aas_cross_family_approval_state_matrix",
+    "write_aas_cross_family_approval_state_matrix",
     "build_aas_system_integration_flywheel",
     "load_aas_system_integration_flywheel",
     "write_aas_system_integration_flywheel",
