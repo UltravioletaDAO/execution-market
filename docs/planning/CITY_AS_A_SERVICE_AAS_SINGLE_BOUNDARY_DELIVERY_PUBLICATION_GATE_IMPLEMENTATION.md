@@ -79,3 +79,21 @@ Full city-ops suite:
 ```bash
 PYTHONPATH=. /opt/homebrew/bin/python3.14 -m pytest -q mcp_server/tests/city_ops
 ```
+
+## May 20 22:00 handoff re-verification
+
+The May 20 daytime handoff again selected this exact fork as the safest
+customer-exposure boundary over the existing Compliance Desk approval record.
+The already-landed gate remains the correct implementation target and still
+fails closed:
+
+- source approval record: `aas_single_boundary_human_operator_approval_record.json`
+- approved boundary: `Visible posting / notice compliance snapshot`
+- verdict: `hold_no_authorized_delivery_path`
+- delivery path: `none_no_customer_delivery_authorized`
+- customer delivery/publication authorization: `false`
+
+No additional route, catalog, pilot, dispatch, reputation, live-runtime,
+GPS/raw-metadata, legal/domain-authority, or worker-doctrine promotion was added.
+The current safe claim remains only `delivery_publication_gate_landed`; all
+customer/public/runtime claims stay in `do_not_claim_yet[]` / `still_blocked_claims[]`.
