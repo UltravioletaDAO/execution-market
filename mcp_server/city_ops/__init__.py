@@ -389,6 +389,16 @@ from .aas_cross_family_approval_state_matrix import (
     load_aas_cross_family_approval_state_matrix,
     write_aas_cross_family_approval_state_matrix,
 )
+from .aas_claim_quarantine_board import (
+    build_aas_claim_quarantine_board,
+    load_aas_claim_quarantine_board,
+    write_aas_claim_quarantine_board,
+)
+from .aas_claim_quarantine_read_surface import (
+    build_aas_claim_quarantine_read_surface,
+    load_aas_claim_quarantine_read_surface,
+    write_aas_claim_quarantine_read_surface,
+)
 from .aas_system_integration_flywheel import (
     build_aas_system_integration_flywheel,
     load_aas_system_integration_flywheel,
@@ -629,6 +639,12 @@ __all__ = [
     "build_aas_cross_family_approval_state_matrix",
     "load_aas_cross_family_approval_state_matrix",
     "write_aas_cross_family_approval_state_matrix",
+    "build_aas_claim_quarantine_board",
+    "load_aas_claim_quarantine_board",
+    "write_aas_claim_quarantine_board",
+    "build_aas_claim_quarantine_read_surface",
+    "load_aas_claim_quarantine_read_surface",
+    "write_aas_claim_quarantine_read_surface",
     "build_aas_system_integration_flywheel",
     "load_aas_system_integration_flywheel",
     "write_aas_system_integration_flywheel",
