@@ -47,6 +47,9 @@ from api.h2a import router as h2a_router
 from city_ops.decision_support_matrix_admin_route import (
     router as city_ops_internal_admin_router,
 )
+from city_ops.aas_claim_quarantine_admin_route import (
+    router as city_ops_aas_claim_quarantine_internal_admin_router,
+)
 from health import router as health_router
 
 # Chat relay (IRC bridge)
@@ -578,6 +581,10 @@ app.include_router(admin_router)
 # Include internal/admin City-as-a-Service proof-preserving read routes
 # Provides /internal/admin/city-ops/decision-support-matrix
 app.include_router(city_ops_internal_admin_router)
+
+# Include internal/admin AAS claim quarantine read route
+# Provides /internal/admin/city-ops/aas-claim-quarantine
+app.include_router(city_ops_aas_claim_quarantine_internal_admin_router)
 
 # Include Agent Auth router for dashboard login
 # Provides /api/v1/agent/auth

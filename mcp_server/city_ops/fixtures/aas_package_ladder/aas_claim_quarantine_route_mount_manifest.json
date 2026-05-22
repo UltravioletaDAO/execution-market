@@ -1,0 +1,131 @@
+{
+  "access_policy": {
+    "audience": "internal_admin_only",
+    "catalog_route_registered": false,
+    "customer_visible": false,
+    "dispatch_enabled": false,
+    "emits_reputation_receipts": false,
+    "exposes_gps_or_metadata": false,
+    "public_route_registered": false,
+    "publishes_worker_doctrine": false,
+    "requires_admin_context": true,
+    "retrieves_live_acontext": false,
+    "worker_visible": false,
+    "writes_live_acontext": false,
+    "writes_municipal_memory": false
+  },
+  "claim_boundaries": {
+    "do_not_claim_yet": [
+      "claim_quarantine_read_surface_is_human_approval_record",
+      "claim_quarantine_read_surface_approves_customer_copy",
+      "claim_quarantine_read_surface_authorizes_delivery",
+      "claim_quarantine_read_surface_authorizes_publication",
+      "claim_quarantine_read_surface_registers_public_or_catalog_route",
+      "claim_quarantine_read_surface_approves_public_price_or_quote",
+      "claim_quarantine_read_surface_authorizes_pilot_or_queue_launch",
+      "claim_quarantine_read_surface_authorizes_dispatch",
+      "claim_quarantine_read_surface_authorizes_erc8004_reputation",
+      "claim_quarantine_read_surface_proves_worker_skill_dna",
+      "claim_quarantine_read_surface_proves_live_acontext_or_runtime_parity",
+      "claim_quarantine_read_surface_reverifies_payment_or_production",
+      "claim_quarantine_read_surface_allows_exact_gps_or_raw_metadata",
+      "claim_quarantine_read_surface_grants_domain_or_legal_authority",
+      "claim_quarantine_read_surface_creates_worker_copyable_doctrine",
+      "claim_quarantine_route_is_public_or_customer_route",
+      "claim_quarantine_route_authorizes_customer_delivery_or_publication",
+      "claim_quarantine_route_approves_public_price_or_quote",
+      "claim_quarantine_route_authorizes_pilot_or_queue_launch",
+      "claim_quarantine_route_authorizes_dispatch",
+      "claim_quarantine_route_emits_erc8004_reputation",
+      "claim_quarantine_route_proves_worker_skill_dna",
+      "claim_quarantine_route_proves_live_acontext_or_runtime_parity",
+      "claim_quarantine_route_reverifies_payment_or_production",
+      "claim_quarantine_route_allows_exact_gps_or_raw_metadata",
+      "claim_quarantine_route_grants_domain_or_legal_authority",
+      "claim_quarantine_route_creates_worker_copyable_doctrine"
+    ],
+    "safe_to_claim": [
+      "admin_aas_claim_quarantine_read_surface_landed",
+      "internal_admin_aas_claim_quarantine_route_mount_smoke_landed"
+    ]
+  },
+  "derived_from": {
+    "consumes_only": [
+      "aas_claim_quarantine_read_surface.json"
+    ],
+    "emits_reputation_receipts": false,
+    "enables_dispatch_automation": false,
+    "exposes_gps_or_metadata": false,
+    "publishes_worker_doctrine": false,
+    "read_only": true,
+    "retrieves_live_acontext": false,
+    "semantic_reinterpretation_performed": false,
+    "source_artifacts": [
+      "aas_claim_quarantine_read_surface.json"
+    ],
+    "source_router": "city_ops.aas_claim_quarantine_admin_route.router",
+    "writes_customer_copy": false,
+    "writes_live_acontext": false,
+    "writes_municipal_memory": false
+  },
+  "manifest_id": "aas_claim_quarantine_route_mount_manifest:internal_admin:v1",
+  "manifest_verdict": "internal_admin_aas_claim_quarantine_route_mounts_without_external_claims",
+  "mount_contract": {
+    "allowed_methods": [
+      "GET"
+    ],
+    "expected_route_count": 1,
+    "mount_scope": "fastapi_app_include_router_smoke",
+    "mounted_route_count": 1,
+    "required_dependency": "verify_internal_admin_key",
+    "required_prefix": "/internal/admin/",
+    "response_semantics": "pass_through_persisted_artifact_only"
+  },
+  "mounted_routes": [
+    {
+      "allowed_interpretation": "pass_through_claim_quarantine_read_surface_fields_only",
+      "dependency_names": [
+        "verify_internal_admin_key"
+      ],
+      "dispatch_enabled": false,
+      "emits_reputation_receipts": false,
+      "handler": "get_aas_claim_quarantine_read_surface",
+      "methods": [
+        "GET"
+      ],
+      "path": "/internal/admin/city-ops/aas-claim-quarantine",
+      "public_or_customer_visible": false,
+      "response_schema": "city_ops.aas_claim_quarantine_read_surface.v1",
+      "response_source": "aas_claim_quarantine_read_surface.json",
+      "route_key": "aas_claim_quarantine_read_surface",
+      "writes_live_acontext": false
+    }
+  ],
+  "readiness": {
+    "acontext_sink_ready": false,
+    "admin_auth_boundary_proven": true,
+    "app_level_router_include_smoke_passed": true,
+    "customer_copy_ready": false,
+    "customer_delivery_ready": false,
+    "customer_visible_catalog_ready": false,
+    "dispatch_automation_ready": false,
+    "dispatch_routing_ready": false,
+    "erc8004_reputation_ready": false,
+    "expected_route_registered": true,
+    "gps_or_metadata_exposure_allowed": false,
+    "legal_or_regulator_ready": false,
+    "live_acontext_ready": false,
+    "network_route_ready": false,
+    "operator_queue_launch_ready": false,
+    "pass_through_response_semantics_preserved": true,
+    "payment_or_production_reverified": false,
+    "polished_operator_console_ready": false,
+    "public_route_ready": false,
+    "publication_ready": false,
+    "runtime_parity_proven": false,
+    "worker_copyable_municipal_doctrine_ready": false,
+    "worker_skill_dna_ready": false,
+    "worker_visible_ready": false
+  },
+  "schema": "city_ops.aas_claim_quarantine_route_mount_manifest.v1"
+}
