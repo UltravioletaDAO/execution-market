@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-22 04:00 America/New_York
+> Last updated: 2026-05-22 05:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -8,6 +8,10 @@
 > - `CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md`
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
+
+## Latest May 22 05:00 synthesis
+
+`CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_22.md` and `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_22.md` are the current daytime coordination entrypoints. The night connected the claim quarantine route, route+panel handoff packet, prevented-claim trend summary, and prevented-claim trend read surface into one operator-learning loop. The strategic pattern is: prevented overclaim = roadmap signal, not failure. Memory patterns become reviewed proof slots, IRC coordination becomes state cards/source digests, cross-project intelligence becomes a priority firewall, agent metrics reward restraint before reputation, and claim quarantine becomes product sequencing. Safe claims remain internal/admin-only: `internal_admin_aas_claim_quarantine_route_mount_smoke_landed`, `internal_admin_aas_claim_quarantine_route_panel_handoff_packet_landed`, `internal_admin_aas_claim_quarantine_prevented_claim_trend_summary_landed`, and `internal_admin_aas_claim_quarantine_prevented_claim_trend_read_surface_landed`. The next daytime fork should be one of three narrow moves: route preflight/mount manifest for the prevented-claim trend read surface if there is a real operator need; one explicit human selected-boundary approval/delivery artifact if customer exposure is desired; or Acontext prerequisite repair before any runtime parity attempt. AutoJob, Frontier Academy, KK v2, and KarmaCadabra v2 remain stopped by `DREAM-PRIORITIES.md` during dreams.
 
 ## Latest May 22 04:00 implementation
 
