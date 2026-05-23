@@ -50,4 +50,4 @@ Related claim-quarantine regression:
 
 ## Next safe step
 
-Stay internal/admin unless Saúl explicitly wants customer exposure. The next customer-facing fork still requires a separate human-operator selected-boundary approval record naming exact text, redactions, delivery path, and still-blocked claims.
+The internal/admin route preflight for this surface now exists in `CITY_AS_A_SERVICE_AAS_CLAIM_QUARANTINE_PREVENTED_CLAIM_TREND_ROUTE_PREFLIGHT_IMPLEMENTATION.md`. Stay internal/admin unless Saúl explicitly wants customer exposure. The next customer-facing fork still requires a separate human-operator selected-boundary approval record naming exact text, redactions, delivery path, and still-blocked claims.
