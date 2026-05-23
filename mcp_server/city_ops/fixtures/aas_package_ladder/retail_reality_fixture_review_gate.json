@@ -1,0 +1,236 @@
+{
+  "do_not_claim_yet": [
+    "customer_copy_ready",
+    "customer_visible_catalog_ready",
+    "public_service_catalog_ready",
+    "controlled_concierge_pilot_ready",
+    "customer_pilot_exposure_ready",
+    "front_door_sku_ready",
+    "pilot_authorized",
+    "catalog_customer_ready",
+    "operator_publish_approval",
+    "customer_delivery_approval",
+    "publication_approved",
+    "filing_success_ready",
+    "broad_office_reuse_ready",
+    "city_relationship_or_influence",
+    "guaranteed_approval",
+    "legal_sufficiency",
+    "regulator_acceptance",
+    "live_acontext_ready",
+    "live_acontext_readiness",
+    "acontext_sink_ready",
+    "runtime_parity_proven",
+    "autonomous_dispatch_ready",
+    "autonomous_dispatch_readiness",
+    "dispatch_routing_ready",
+    "erc8004_reputation_ready",
+    "reputation_ready",
+    "worker_skill_dna_ready",
+    "worker_copyable_doctrine_ready",
+    "worker_copyable_municipal_doctrine",
+    "exact_gps_or_raw_metadata_exposure_allowed",
+    "exact_gps_or_metadata_exposure",
+    "raw_metadata_exposure_allowed",
+    "permanent_business_status_claim",
+    "inventory_guarantee",
+    "brand_compliance_certification",
+    "employee_performance_judgment",
+    "consumer_safety_claim",
+    "worker_copyable_retail_doctrine"
+  ],
+  "fixture_spec": {
+    "automation_claim_allowed": false,
+    "caas_source_pattern": "verify_place + counter_question + site_audit",
+    "customer_copy_changed": false,
+    "family_label": "Retail Reality as a Service",
+    "fixture_acceptance_gate": {
+      "allows_customer_delivery": false,
+      "allows_publication": false,
+      "preserves_safe_and_blocked_claims": true,
+      "requires_local_reviewed_fixture": true,
+      "requires_non_guarantee_language_review": true,
+      "requires_operator_review_record": true,
+      "requires_privacy_redaction_review": true
+    },
+    "fixture_status": "spec_only_no_reviewed_fixture_yet",
+    "offer_id": "storefront_hours_availability_check",
+    "offer_label": "Storefront Hours + Availability Check",
+    "operator_review_required": true,
+    "phase_1_sellable_claim_allowed": false,
+    "required_evidence_fields": [
+      "storefront_context_photo_or_permitted_visual_snapshot",
+      "posted_hours_or_open_closed_state_proof",
+      "observation_window",
+      "staff_answer_source_type_where_available",
+      "availability_or_service_observed_state",
+      "discrepancy_summary_between_posted_and_observed_state",
+      "uncertainty_note",
+      "what_was_not_checked"
+    ],
+    "reviewed_output_schema_draft": {
+      "forbidden_fields": [
+        "exact_gps_coordinates",
+        "raw_metadata_blob",
+        "raw_transcript_as_authority",
+        "private_operator_context",
+        "private_staff_identity",
+        "employee_performance_judgment",
+        "permanent_business_status_claim",
+        "inventory_guarantee_language",
+        "brand_compliance_certification_claim",
+        "consumer_safety_claim",
+        "dispatch_instruction_or_assignment",
+        "erc8004_reputation_receipt",
+        "worker_copyable_retail_doctrine"
+      ],
+      "required_fields": [
+        "task_id_or_local_case_reference",
+        "offer_type",
+        "plain_language_observation_status",
+        "observed_open_closed_or_unable_to_determine_state",
+        "posted_hours_summary",
+        "availability_or_service_state_summary",
+        "source_type_summary",
+        "discrepancy_summary",
+        "observation_window_summary",
+        "what_was_checked",
+        "what_was_not_checked",
+        "limitations_and_non_guarantees",
+        "recommended_next_action",
+        "operator_review_notice"
+      ],
+      "status": "draft_internal_only_not_customer_output"
+    },
+    "source_caas_offer": "one_storefront_hours_availability_observation"
+  },
+  "gate_id": "execution_market.aas.retail_reality.fixture_review_gate.2026_05_23",
+  "ladder_boundary": {
+    "covered_steps": [
+      "narrow_concierge_offer_card",
+      "fixture_spec",
+      "review_gate_checklist"
+    ],
+    "next_required_steps_before_promotion": [
+      "reviewed_output_schema",
+      "local_reviewed_fixture",
+      "internal_package_record",
+      "coverage_summary_or_read_only_operator_surface",
+      "customer_output_schema_gate",
+      "internal_sample_output",
+      "explicit_approval_or_hold_decision"
+    ],
+    "promotion_allowed": false,
+    "required_full_ladder": [
+      "narrow_concierge_offer_card",
+      "fixture_spec",
+      "reviewed_output_schema",
+      "local_reviewed_fixture",
+      "internal_package_record",
+      "coverage_summary_or_read_only_operator_surface",
+      "customer_output_schema_gate",
+      "internal_sample_output",
+      "explicit_approval_or_hold_decision"
+    ]
+  },
+  "next_smallest_proof": "Create one local reviewed Retail Reality fixture for a scoped storefront hours + availability check that fills this evidence contract while keeping all promotion and customer/public readiness flags false.",
+  "operator_instruction": "Use this only as the Retail Reality fixture boundary. The next valid step is a local reviewed fixture plus reviewed-output schema, not customer copy, catalog routing, dispatch, reputation, live memory, or worker-copyable retail doctrine.",
+  "package_family_id": "retail_reality_as_a_service",
+  "readiness": {
+    "autonomous_dispatch_ready": false,
+    "controlled_concierge_pilot_ready": false,
+    "customer_copy_ready": false,
+    "customer_delivery_approval": false,
+    "customer_pilot_exposure_allowed": false,
+    "customer_visible_catalog_ready": false,
+    "exact_gps_or_raw_metadata_exposure_allowed": false,
+    "front_door_sku_ready": false,
+    "live_acontext_ready": false,
+    "operator_publish_approval": false,
+    "public_service_catalog_ready": false,
+    "publication_approved": false,
+    "reputation_ready": false,
+    "runtime_parity_proven": false,
+    "worker_copyable_doctrine_ready": false,
+    "worker_skill_dna_ready": false
+  },
+  "review_gate_checklist": [
+    {
+      "blocks_promotion_until_passed": true,
+      "check_id": "source_concept_boundary_matches_retail_reality_storefront_hours_availability_check",
+      "required": true,
+      "status": "pending_future_review"
+    },
+    {
+      "blocks_promotion_until_passed": true,
+      "check_id": "evidence_contract_requires_one_storefront_one_window_one_question",
+      "required": true,
+      "status": "pending_future_review"
+    },
+    {
+      "blocks_promotion_until_passed": true,
+      "check_id": "posted_hours_and_observed_state_are_required_but_not_treated_as_permanent_status",
+      "required": true,
+      "status": "pending_future_review"
+    },
+    {
+      "blocks_promotion_until_passed": true,
+      "check_id": "staff_answer_preserved_as_source_type_not_authority",
+      "required": true,
+      "status": "pending_future_review"
+    },
+    {
+      "blocks_promotion_until_passed": true,
+      "check_id": "availability_observation_preserved_without_inventory_guarantee",
+      "required": true,
+      "status": "pending_future_review"
+    },
+    {
+      "blocks_promotion_until_passed": true,
+      "check_id": "discrepancy_summary_and_uncertainty_note_preserved",
+      "required": true,
+      "status": "pending_future_review"
+    },
+    {
+      "blocks_promotion_until_passed": true,
+      "check_id": "privacy_redaction_required_before_any_customer_language",
+      "required": true,
+      "status": "pending_future_review"
+    },
+    {
+      "blocks_promotion_until_passed": true,
+      "check_id": "exact_gps_and_raw_metadata_blocked",
+      "required": true,
+      "status": "pending_future_review"
+    },
+    {
+      "blocks_promotion_until_passed": true,
+      "check_id": "brand_compliance_employee_performance_and_consumer_safety_claims_blocked",
+      "required": true,
+      "status": "pending_future_review"
+    },
+    {
+      "blocks_promotion_until_passed": true,
+      "check_id": "operator_review_required_before_fixture_acceptance",
+      "required": true,
+      "status": "pending_future_review"
+    },
+    {
+      "blocks_promotion_until_passed": true,
+      "check_id": "publication_customer_delivery_dispatch_reputation_and_worker_doctrine_blocked",
+      "required": true,
+      "status": "pending_future_review"
+    }
+  ],
+  "safe_to_claim": [
+    "retail_reality_fixture_review_gate_landed",
+    "aas_minimum_ladder_template_landed"
+  ],
+  "schema": "city_ops.retail_reality_fixture_review_gate.v1",
+  "scope": "internal_admin_retail_reality_fixture_spec_and_review_gate_only",
+  "source_concept_doc": "docs/planning/EXECUTION_MARKET_AAS_NEXT_CONCEPTS_2026_05_21_10PM.md",
+  "source_concept_section": "Retail Reality AAS \u2014 Storefront hours + availability check",
+  "source_template_safe_claims_inherited": [
+    "aas_minimum_ladder_template_landed"
+  ]
+}
