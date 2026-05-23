@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-23 02:00 America/New_York
+> Last updated: 2026-05-23 05:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -8,6 +8,14 @@
 > - `CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md`
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
+
+## Latest May 23 05:00 synthesis
+
+`CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_23.md` and `CITY_AS_A_SERVICE_FINAL_MORNING_HANDOFF_2026_05_23.md` are the current daytime coordination entrypoints. The night connected three AAS lanes: prevented-claim route proof became a compact handoff packet with `route_expansion_paused=true`; Retail Reality advanced from fixture/review gate to local reviewed fixture to internal package record; and Acontext runtime memory stayed honestly blocked by the daemon-down recheck. Safe claims remain internal/admin or local package only: `internal_admin_aas_claim_quarantine_prevented_claim_trend_route_handoff_packet_landed`, `retail_reality_fixture_review_gate_landed`, `retail_reality_local_reviewed_fixture_landed`, `retail_reality_internal_package_record_landed`, and `admin_acontext_runtime_memory_daemon_recheck_landed`. Best daytime fork: build a read-only Retail Reality operator surface over `retail_reality_internal_package_record.json`, or repair Docker/Acontext prerequisites before any live parity attempt. Do not infer customer copy/delivery/publication, public/catalog routes, pricing/quote, controlled pilot, queue launch, dispatch, ERC-8004 reputation, worker Skill DNA, live Acontext/runtime parity, payment/production proof, exact GPS/raw metadata release, permanent business status, inventory guarantees, brand compliance, employee performance, consumer-safety claims, legal/domain authority, or worker-copyable AAS/retail doctrine.
+
+## Latest May 23 04:00 implementation
+
+`mcp_server/city_ops/retail_reality_internal_package_record.py` now advances Retail Reality AAS exactly one rung after the local reviewed fixture, persisted at `mcp_server/city_ops/fixtures/aas_package_ladder/retail_reality_internal_package_record.json`. It packages one bounded storefront hours + availability observation while preserving source artifact IDs, safe/blocked claim adjacency, and false readiness flags. This earns only `retail_reality_internal_package_record_landed`, inheriting `retail_reality_local_reviewed_fixture_landed` and `retail_reality_fixture_review_gate_landed`. It does not authorize customer copy, customer delivery, publication, public/catalog routes, pricing/quote, controlled pilot, queue launch, dispatch, ERC-8004 reputation, worker Skill DNA, live Acontext/runtime parity, payment/production proof, exact GPS/raw metadata release, permanent business status, inventory guarantee, brand compliance certification, employee performance judgment, consumer-safety claim, or worker-copyable retail doctrine. The next safe step is a read-only internal/admin operator coverage surface over the package record, not public/customer copy.
 
 ## Latest May 23 02:00 implementation
 
