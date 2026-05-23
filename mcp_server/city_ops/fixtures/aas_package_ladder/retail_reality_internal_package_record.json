@@ -1,0 +1,322 @@
+{
+  "do_not_claim_yet": [
+    "customer_copy_ready",
+    "customer_visible_catalog_ready",
+    "public_service_catalog_ready",
+    "controlled_concierge_pilot_ready",
+    "customer_pilot_exposure_ready",
+    "front_door_sku_ready",
+    "pilot_authorized",
+    "catalog_customer_ready",
+    "operator_publish_approval",
+    "customer_delivery_approval",
+    "publication_approved",
+    "filing_success_ready",
+    "broad_office_reuse_ready",
+    "city_relationship_or_influence",
+    "guaranteed_approval",
+    "legal_sufficiency",
+    "regulator_acceptance",
+    "live_acontext_ready",
+    "live_acontext_readiness",
+    "acontext_sink_ready",
+    "runtime_parity_proven",
+    "autonomous_dispatch_ready",
+    "autonomous_dispatch_readiness",
+    "dispatch_routing_ready",
+    "erc8004_reputation_ready",
+    "reputation_ready",
+    "worker_skill_dna_ready",
+    "worker_copyable_doctrine_ready",
+    "worker_copyable_municipal_doctrine",
+    "exact_gps_or_raw_metadata_exposure_allowed",
+    "exact_gps_or_metadata_exposure",
+    "raw_metadata_exposure_allowed",
+    "permanent_business_status_claim",
+    "inventory_guarantee",
+    "brand_compliance_certification",
+    "employee_performance_judgment",
+    "consumer_safety_claim",
+    "worker_copyable_retail_doctrine",
+    "retail_reality_local_fixture_customer_delivery_ready",
+    "retail_reality_local_fixture_publication_ready",
+    "retail_reality_local_fixture_catalog_ready",
+    "retail_reality_local_fixture_pricing_ready",
+    "retail_reality_local_fixture_dispatch_ready",
+    "retail_reality_local_fixture_reputation_ready",
+    "retail_reality_local_fixture_worker_skill_dna_ready",
+    "retail_reality_local_fixture_worker_doctrine_ready",
+    "retail_reality_local_fixture_live_acontext_ready",
+    "retail_reality_local_fixture_permanent_status_ready",
+    "retail_reality_local_fixture_inventory_guarantee_ready",
+    "retail_reality_local_fixture_brand_compliance_ready",
+    "retail_reality_local_fixture_employee_performance_ready",
+    "retail_reality_local_fixture_consumer_safety_ready",
+    "retail_reality_internal_package_customer_delivery_ready",
+    "retail_reality_internal_package_publication_ready",
+    "retail_reality_internal_package_catalog_ready",
+    "retail_reality_internal_package_pricing_ready",
+    "retail_reality_internal_package_dispatch_ready",
+    "retail_reality_internal_package_reputation_ready",
+    "retail_reality_internal_package_worker_skill_dna_ready",
+    "retail_reality_internal_package_worker_doctrine_ready",
+    "retail_reality_internal_package_live_acontext_ready",
+    "retail_reality_internal_package_approval_ready",
+    "retail_reality_internal_package_permanent_status_ready",
+    "retail_reality_internal_package_inventory_guarantee_ready",
+    "retail_reality_internal_package_brand_compliance_ready",
+    "retail_reality_internal_package_employee_performance_ready",
+    "retail_reality_internal_package_consumer_safety_ready",
+    "retail_reality_customer_ready",
+    "retail_reality_catalog_ready",
+    "retail_reality_pricing_ready",
+    "retail_reality_dispatch_ready",
+    "retail_reality_reputation_ready",
+    "retail_reality_worker_doctrine_ready"
+  ],
+  "internal_package_record": {
+    "brand_compliance_claim_allowed": false,
+    "catalog_allowed": false,
+    "consumer_safety_claim_allowed": false,
+    "customer_copy_changed": false,
+    "customer_delivery_allowed": false,
+    "dispatch_allowed": false,
+    "employee_performance_judgment_allowed": false,
+    "exact_gps_or_raw_metadata_exposure_allowed": false,
+    "inventory_guarantee_allowed": false,
+    "live_acontext_or_runtime_parity_claimed": false,
+    "package_limitations": [
+      "Internal package record only; not a customer-facing storefront report.",
+      "Synthetic local fixture does not represent a real storefront case.",
+      "Open/closed and availability language is source-bounded to one scoped observation window only.",
+      "Posted-hours proof is a local observation artifact, not a permanent business-status claim.",
+      "Availability language is not an inventory guarantee, future promise, or suitability claim.",
+      "Staff answer sources are summarized by source type only; private staff identity and raw transcripts stay excluded.",
+      "No brand compliance certification, employee performance judgment, consumer-safety claim, publication, catalog, pilot, pricing quote, dispatch, reputation, live runtime, exact metadata release, or worker-doctrine readiness is authorized."
+    ],
+    "packaged_evidence_contract": {
+      "availability_or_service_observed_state": "single_service_question_observed_available_for_window_only_no_inventory_guarantee",
+      "discrepancy_summary_between_posted_and_observed_state": "no_synthetic_discrepancy_detected_future_status_unchecked",
+      "observation_window": "relative_synthetic_window_no_exact_timestamp_gps_address_or_route_trace",
+      "posted_hours_or_open_closed_state_proof": "posted_hours_indicator_and_observed_open_state_inside_single_window",
+      "staff_answer_source_type_where_available": "staff_answer_source_type_only_no_private_staff_identity_or_raw_transcript",
+      "storefront_context_photo_or_permitted_visual_snapshot": "redacted_synthetic_storefront_context_source_type_no_exact_location_or_raw_metadata",
+      "uncertainty_note": "future_hours_future_availability_inventory_safety_and_compliance_not_checked",
+      "what_was_not_checked": "permanent_status_inventory_guarantee_brand_compliance_employee_performance_consumer_safety"
+    },
+    "packaged_reviewed_output": {
+      "availability_or_service_state_summary": "A single service-availability question was answered as observed_available for the scoped window only. This does not guarantee inventory, future availability, brand compliance, safety, or suitability.",
+      "discrepancy_summary": "No discrepancy was detected between the synthetic posted-hours indicator and the observed open state inside the scoped window; future state remains unchecked and unclaimed.",
+      "limitations_and_non_guarantees": [
+        "This fixture is synthetic and local; it does not represent a real storefront case.",
+        "The review covers one storefront-style observation window and one question only.",
+        "The observed state is source-bounded and not a permanent business-status claim.",
+        "Availability language is an observation, not an inventory guarantee or future promise.",
+        "Source identity is summarized by type; private staff identity and private contact details are blocked.",
+        "No customer delivery, public catalog, pricing quote, dispatch route, or ERC-8004 reputation receipt is authorized."
+      ],
+      "observation_window_summary": "Single synthetic observation window only; no exact GPS, raw timestamp metadata, camera metadata, address, or route trace is included.",
+      "observed_open_closed_or_unable_to_determine_state": "observed_open_during_synthetic_window_source_bounded_not_permanent_status",
+      "offer_type": "storefront_hours_availability_check",
+      "operator_review_notice": "Reviewed for local fixture shape only. Keep all customer/public/catalog/pricing/dispatch/reputation/live-runtime/permanent-status/inventory/brand-compliance/safety/worker-doctrine readiness false.",
+      "plain_language_observation_status": "A bounded storefront hours + availability observation was reviewed inside one synthetic observation window. The output records what was posted, what was observed, and what remained uncertain. It is not a permanent business-status claim, not an inventory guarantee, not brand compliance certification, not employee performance judgment, and not a consumer-safety claim.",
+      "posted_hours_summary": "Posted-hours source was represented as a redacted synthetic storefront hours indicator for the scoped window only; no exact address, GPS coordinate, raw image metadata, or private staff identity is retained.",
+      "recommended_next_action": "Create a Retail Reality internal package record that consumes this local fixture and keeps customer/public/pricing/dispatch/reputation/privacy/worker-doctrine readiness false.",
+      "source_type_summary": "Sources are summarized only by type: posted_hours_source plus storefront_observation_source plus optional staff_answer_source_type. No private staff name, private contact detail, raw transcript, or identity artifact is exposed.",
+      "task_id_or_local_case_reference": "local_retail_reality_fixture_001",
+      "what_was_checked": [
+        "one_storefront_context_snapshot_source_type",
+        "posted_hours_or_open_closed_state_indicator",
+        "single_observation_window",
+        "one_availability_or_service_question",
+        "source_type_classification_without_private_identity",
+        "discrepancy_and_uncertainty_language",
+        "absence_of_exact_gps_raw_metadata_private_staff_identity_and_raw_transcript"
+      ],
+      "what_was_not_checked": [
+        "permanent_business_status",
+        "future_hours_or_future_availability",
+        "inventory_count_or_inventory_guarantee",
+        "brand_compliance",
+        "employee_performance",
+        "consumer_safety",
+        "pricing_quote",
+        "customer_delivery_readiness",
+        "dispatch_readiness",
+        "erc8004_reputation_readiness"
+      ]
+    },
+    "permanent_business_status_claim_allowed": false,
+    "pricing_quote_allowed": false,
+    "publication_allowed": false,
+    "record_kind": "adjacent_aas_internal_package_record",
+    "reputation_attachment_allowed": false,
+    "review_status": "packaged_internal_only_not_promoted",
+    "reviewed_output_schema": {
+      "forbidden_fields": [
+        "exact_gps_coordinates",
+        "raw_metadata_blob",
+        "raw_transcript_as_authority",
+        "private_operator_context",
+        "private_staff_identity",
+        "employee_performance_judgment",
+        "permanent_business_status_claim",
+        "inventory_guarantee_language",
+        "brand_compliance_certification_claim",
+        "consumer_safety_claim",
+        "dispatch_instruction_or_assignment",
+        "erc8004_reputation_receipt",
+        "worker_copyable_retail_doctrine"
+      ],
+      "required_fields": [
+        "task_id_or_local_case_reference",
+        "offer_type",
+        "plain_language_observation_status",
+        "observed_open_closed_or_unable_to_determine_state",
+        "posted_hours_summary",
+        "availability_or_service_state_summary",
+        "source_type_summary",
+        "discrepancy_summary",
+        "observation_window_summary",
+        "what_was_checked",
+        "what_was_not_checked",
+        "limitations_and_non_guarantees",
+        "recommended_next_action",
+        "operator_review_notice"
+      ],
+      "status": "local_reviewed_fixture_internal_only_not_customer_output"
+    },
+    "source_artifacts": [
+      {
+        "fixture_id": "execution_market.aas.retail_reality.local_reviewed_fixture.001",
+        "fixture_kind": "synthetic_non_business_specific_storefront_hours_availability_check",
+        "plain_language_observation_status": "A bounded storefront hours + availability observation was reviewed inside one synthetic observation window. The output records what was posted, what was observed, and what remained uncertain. It is not a permanent business-status claim, not an inventory guarantee, not brand compliance certification, not employee performance judgment, and not a consumer-safety claim.",
+        "review_status": "reviewed_internal_fixture_only_not_promoted",
+        "source_file": "retail_reality_local_reviewed_fixture.json",
+        "source_schema": "city_ops.retail_reality_local_reviewed_fixture.v1"
+      }
+    ],
+    "uses_only_local_reviewed_fixture_artifact": true,
+    "worker_copyable_doctrine_allowed": false,
+    "worker_skill_dna_allowed": false
+  },
+  "ladder_boundary": {
+    "covered_steps": [
+      "narrow_concierge_offer_card",
+      "fixture_spec",
+      "review_gate_checklist",
+      "reviewed_output_schema",
+      "local_reviewed_fixture",
+      "internal_package_record"
+    ],
+    "next_required_steps_before_promotion": [
+      "coverage_summary_or_read_only_operator_surface",
+      "customer_output_schema_gate",
+      "internal_sample_output",
+      "explicit_approval_or_hold_decision"
+    ],
+    "promotion_allowed": false
+  },
+  "next_smallest_proof": "Create a Retail Reality read-only operator coverage surface over this internal package record while keeping customer/public/pricing/dispatch/reputation/privacy/runtime/permanent-status/inventory/compliance/safety/worker-doctrine readiness false.",
+  "offer_id": "storefront_hours_availability_check",
+  "operator_instruction": "Use this only as the Retail Reality internal package record. The next valid step is a read-only operator coverage surface or customer-output schema gate, not customer copy, catalog routing, pricing, dispatch, reputation, live Acontext, exact-location release, permanent status, inventory guarantees, brand/safety certification, employee judgment, or worker-copyable retail doctrine.",
+  "package_family_id": "retail_reality_as_a_service",
+  "package_id": "execution_market.aas.retail_reality.internal_package_record.001",
+  "package_review_checks": [
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "source_local_fixture_safe_claims_present",
+      "status": "passed_for_internal_package_record_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "source_fixture_review_status_internal_only",
+      "status": "passed_for_internal_package_record_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "package_uses_only_retail_local_reviewed_fixture_artifact",
+      "status": "passed_for_internal_package_record_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "storefront_hours_and_availability_fields_preserved",
+      "status": "passed_for_internal_package_record_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "one_storefront_one_window_one_question_boundary_preserved",
+      "status": "passed_for_internal_package_record_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "posted_hours_and_observed_state_remain_source_bounded_not_permanent_status",
+      "status": "passed_for_internal_package_record_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "staff_answer_source_type_preserved_without_private_identity_or_raw_transcript",
+      "status": "passed_for_internal_package_record_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "availability_observation_preserved_without_inventory_guarantee",
+      "status": "passed_for_internal_package_record_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "brand_compliance_employee_performance_and_consumer_safety_claims_absent",
+      "status": "passed_for_internal_package_record_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "privacy_redaction_exact_location_and_raw_metadata_blocks_preserved",
+      "status": "passed_for_internal_package_record_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "customer_public_pricing_dispatch_reputation_runtime_and_worker_doctrine_still_blocked",
+      "status": "passed_for_internal_package_record_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "next_ladder_steps_require_separate_artifacts",
+      "status": "passed_for_internal_package_record_only"
+    }
+  ],
+  "package_status": "internal_package_record_only_not_customer_ready",
+  "readiness": {
+    "autonomous_dispatch_ready": false,
+    "controlled_concierge_pilot_ready": false,
+    "customer_copy_ready": false,
+    "customer_delivery_approval": false,
+    "customer_pilot_exposure_allowed": false,
+    "customer_visible_catalog_ready": false,
+    "exact_gps_or_raw_metadata_exposure_allowed": false,
+    "front_door_sku_ready": false,
+    "live_acontext_ready": false,
+    "operator_publish_approval": false,
+    "public_service_catalog_ready": false,
+    "publication_approved": false,
+    "reputation_ready": false,
+    "runtime_parity_proven": false,
+    "worker_copyable_doctrine_ready": false,
+    "worker_skill_dna_ready": false
+  },
+  "safe_to_claim": [
+    "retail_reality_internal_package_record_landed",
+    "retail_reality_local_reviewed_fixture_landed",
+    "retail_reality_fixture_review_gate_landed",
+    "aas_minimum_ladder_template_landed"
+  ],
+  "schema": "city_ops.retail_reality_internal_package_record.v1",
+  "scope": "internal_admin_retail_reality_package_record_only",
+  "source_fixture_file": "retail_reality_local_reviewed_fixture.json",
+  "source_fixture_id": "execution_market.aas.retail_reality.local_reviewed_fixture.001",
+  "source_fixture_schema": "city_ops.retail_reality_local_reviewed_fixture.v1",
+  "source_safe_claims_inherited": [
+    "retail_reality_local_reviewed_fixture_landed",
+    "retail_reality_fixture_review_gate_landed",
+    "aas_minimum_ladder_template_landed"
+  ]
+}
