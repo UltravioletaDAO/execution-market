@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-24 02:00 America/New_York
+> Last updated: 2026-05-24 05:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -8,6 +8,10 @@
 > - `CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md`
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
+
+## Latest May 24 05:00 pre-dawn synthesis
+
+`CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_24.md` is the current 5 AM daytime coordination entrypoint. The night advanced Retail Reality from internal/admin output shaping into an auditable approval-boundary ladder: customer-output schema gate -> synthetic internal sample -> explicit hold decision -> pending human-operator approval request. The safe claims remain internal/admin or approval-request-only: `retail_reality_customer_output_schema_gate_landed`, `retail_reality_internal_sample_output_landed`, `retail_reality_sample_output_review_decision_landed`, and `retail_reality_human_operator_approval_request_landed`. The latest artifact records `approval_request_status=pending_human_operator_review_not_approved` and `authorized_delivery_path.path=none_until_separate_human_operator_approval_record`, so it gives daytime a clean decision point without approving customer exposure. Recommended daytime fork: if Saúl wants Retail Reality customer exposure, create a separate human-operator approval record over the exact selected text boundary and redactions; otherwise build only a read-only internal/admin pending-approval queue/status card, or repair Docker/Acontext prerequisites before runtime parity. Do not infer human approval, customer copy/delivery/publication, public/catalog routes, pricing/quote, controlled pilot, queue launch, dispatch, ERC-8004 reputation, worker Skill DNA, live Acontext/runtime parity, payment/production proof, exact GPS/raw metadata release, private retail context release, permanent business status, inventory guarantee, brand-compliance certification, employee-performance judgment, consumer-safety certification, continuous availability monitoring, retail-authority claims, or worker-copyable retail doctrine.
 
 ## Latest May 24 02:00 implementation
 
