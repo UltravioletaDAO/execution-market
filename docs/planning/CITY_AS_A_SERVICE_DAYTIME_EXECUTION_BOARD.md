@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-24 00:00 America/New_York
+> Last updated: 2026-05-24 02:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -8,6 +8,10 @@
 > - `CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md`
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
+
+## Latest May 24 02:00 implementation
+
+`mcp_server/city_ops/retail_reality_sample_output_review_decision.py` now advances Retail Reality AAS exactly one safe rung after the internal/admin sample output, persisted at `mcp_server/city_ops/fixtures/aas_package_ladder/retail_reality_sample_output_review_decision.json`. It consumes only `retail_reality_internal_sample_output.json` and records the required explicit decision over that exact sample. The decision is a hold: no customer delivery, no publication, no public route, no catalog, no pilot, no dispatch, no reputation attachment, and no retail-authority promotion. This earns only `retail_reality_sample_output_review_decision_landed`; it does not create or approve customer copy, public/customer delivery, publication, catalog/pilot routing, dispatch, ERC-8004 reputation, live Acontext/runtime parity, exact GPS/raw metadata release, permanent business status, inventory guarantee, brand-compliance certification, employee-performance judgment, consumer-safety certification, continuous availability monitoring, private retail context release, or worker-copyable retail doctrine. Targeted verification: review decision + internal sample + schema gate tests `40 passed`; full city-ops suite `1227 passed`. The next safe step, only if Saúl wants customer exposure, is a separate human-operator approval artifact naming the exact sample text, redactions, delivery path, and still-blocked claims. Default remains hold.
 
 ## Latest May 24 01:00 implementation
 
