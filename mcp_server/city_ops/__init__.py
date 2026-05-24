@@ -307,6 +307,11 @@ from .retail_reality_internal_package_record import (
     load_retail_reality_internal_package_record,
     write_retail_reality_internal_package_record,
 )
+from .retail_reality_operator_read_surface import (
+    build_retail_reality_operator_read_surface,
+    load_retail_reality_operator_read_surface,
+    write_retail_reality_operator_read_surface,
+)
 from .incident_verification_fixture_review_gate import (
     build_incident_verification_fixture_review_gate,
     load_incident_verification_fixture_review_gate,
