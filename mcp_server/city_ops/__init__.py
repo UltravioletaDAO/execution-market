@@ -312,6 +312,11 @@ from .retail_reality_operator_read_surface import (
     load_retail_reality_operator_read_surface,
     write_retail_reality_operator_read_surface,
 )
+from .retail_reality_customer_output_schema_gate import (
+    build_retail_reality_customer_output_schema_gate,
+    load_retail_reality_customer_output_schema_gate,
+    write_retail_reality_customer_output_schema_gate,
+)
 from .incident_verification_fixture_review_gate import (
     build_incident_verification_fixture_review_gate,
     load_incident_verification_fixture_review_gate,

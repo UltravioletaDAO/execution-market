@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-23 06:00 America/New_York
+> Last updated: 2026-05-24 00:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -8,6 +8,10 @@
 > - `CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md`
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
+
+## Latest May 24 00:00 implementation
+
+`mcp_server/city_ops/retail_reality_customer_output_schema_gate.py` now advances Retail Reality AAS exactly one safe rung after the read-only operator surface, persisted at `mcp_server/city_ops/fixtures/aas_package_ladder/retail_reality_customer_output_schema_gate.json`. It consumes only `retail_reality_operator_read_surface.json`, defines allowed future customer-output fields for bounded storefront observation summaries, and explicitly forbids exact-location/raw-metadata, permanent business status, inventory guarantees, brand compliance certification, employee performance judgment, consumer-safety claims, continuous availability monitoring, dispatch instructions, reputation receipts, public/customer/catalog readiness, and worker-copyable retail doctrine. This earns only `retail_reality_customer_output_schema_gate_landed`; it does not create customer copy, approve delivery/publication, register routes, price work, launch a pilot/queue, dispatch work, attach ERC-8004 reputation, prove live Acontext/runtime parity, reverify payment/production, or authorize any retail authority claim. Verification: targeted Retail Reality suite `66 passed`; full city-ops suite `1199 passed`. The next safe step, only if sample-output exploration is desired, is one internal/admin Retail Reality sample output against this schema plus a separate explicit hold/approval decision.
 
 ## Latest May 23 23:00 implementation
 
