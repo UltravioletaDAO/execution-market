@@ -337,6 +337,11 @@ from .retail_reality_pending_approval_status_card import (
     load_retail_reality_pending_approval_status_card,
     write_retail_reality_pending_approval_status_card,
 )
+from .local_data_collection_fixture_review_gate import (
+    build_local_data_collection_fixture_review_gate,
+    load_local_data_collection_fixture_review_gate,
+    write_local_data_collection_fixture_review_gate,
+)
 from .incident_verification_fixture_review_gate import (
     build_incident_verification_fixture_review_gate,
     load_incident_verification_fixture_review_gate,
@@ -643,6 +648,9 @@ __all__ = [
     "build_retail_reality_pending_approval_status_card",
     "load_retail_reality_pending_approval_status_card",
     "write_retail_reality_pending_approval_status_card",
+    "build_local_data_collection_fixture_review_gate",
+    "load_local_data_collection_fixture_review_gate",
+    "write_local_data_collection_fixture_review_gate",
     "build_compliance_desk_fixture_review_gate",
     "load_compliance_desk_fixture_review_gate",
     "write_compliance_desk_fixture_review_gate",

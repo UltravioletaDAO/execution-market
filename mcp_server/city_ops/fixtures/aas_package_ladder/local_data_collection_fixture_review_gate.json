@@ -1,0 +1,237 @@
+{
+  "do_not_claim_yet": [
+    "customer_copy_ready",
+    "customer_visible_catalog_ready",
+    "public_service_catalog_ready",
+    "controlled_concierge_pilot_ready",
+    "customer_pilot_exposure_ready",
+    "front_door_sku_ready",
+    "pilot_authorized",
+    "catalog_customer_ready",
+    "operator_publish_approval",
+    "customer_delivery_approval",
+    "publication_approved",
+    "filing_success_ready",
+    "broad_office_reuse_ready",
+    "city_relationship_or_influence",
+    "guaranteed_approval",
+    "legal_sufficiency",
+    "regulator_acceptance",
+    "live_acontext_ready",
+    "live_acontext_readiness",
+    "acontext_sink_ready",
+    "runtime_parity_proven",
+    "autonomous_dispatch_ready",
+    "autonomous_dispatch_readiness",
+    "dispatch_routing_ready",
+    "erc8004_reputation_ready",
+    "reputation_ready",
+    "worker_skill_dna_ready",
+    "worker_copyable_doctrine_ready",
+    "worker_copyable_municipal_doctrine",
+    "exact_gps_or_raw_metadata_exposure_allowed",
+    "exact_gps_or_metadata_exposure",
+    "raw_metadata_exposure_allowed",
+    "statistical_representativeness",
+    "continuous_monitoring",
+    "official_dataset_certification",
+    "exactness_beyond_observed_method",
+    "predictive_analytics",
+    "public_dataset_ready",
+    "worker_copyable_data_collection_doctrine"
+  ],
+  "fixture_spec": {
+    "analytics_created": false,
+    "automation_claim_allowed": false,
+    "caas_source_pattern": "measurement + proof_observability + site_audit",
+    "customer_copy_changed": false,
+    "dataset_created": false,
+    "family_label": "Local Data Collection as a Service",
+    "fixture_acceptance_gate": {
+      "allows_analytics_publication": false,
+      "allows_customer_delivery": false,
+      "allows_dataset_publication": false,
+      "allows_publication": false,
+      "preserves_safe_and_blocked_claims": true,
+      "requires_local_reviewed_fixture": true,
+      "requires_method_and_uncertainty_review": true,
+      "requires_operator_review_record": true,
+      "requires_privacy_redaction_review": true
+    },
+    "fixture_status": "spec_only_no_reviewed_fixture_yet",
+    "offer_id": "one_window_count_or_measurement_snapshot",
+    "offer_label": "One-Window Count / Measurement Snapshot",
+    "operator_review_required": true,
+    "phase_1_sellable_claim_allowed": false,
+    "required_evidence_fields": [
+      "single_place_or_context_reference_without_exact_public_coordinates",
+      "single_observation_window",
+      "single_count_or_measurement_question",
+      "allowed_observation_method",
+      "visible_context_photo_or_permitted_visual_snapshot",
+      "raw_count_or_measurement_value_with_units_where_applicable",
+      "method_note_and_uncertainty_range",
+      "ambiguity_or_occlusion_note",
+      "what_was_not_checked"
+    ],
+    "reviewed_output_schema_draft": {
+      "forbidden_fields": [
+        "exact_gps_coordinates",
+        "raw_metadata_blob",
+        "raw_transcript_as_authority",
+        "private_operator_context",
+        "private_subject_identity",
+        "dataset_publication_url",
+        "statistical_representativeness_claim",
+        "continuous_monitoring_claim",
+        "official_dataset_certification_claim",
+        "exactness_beyond_observed_method_claim",
+        "predictive_analytics_claim",
+        "dispatch_instruction_or_assignment",
+        "erc8004_reputation_receipt",
+        "worker_copyable_data_collection_doctrine"
+      ],
+      "required_fields": [
+        "task_id_or_local_case_reference",
+        "offer_type",
+        "plain_language_observation_status",
+        "question_answered",
+        "observed_value_or_range",
+        "unit_or_count_basis",
+        "method_summary",
+        "observation_window_summary",
+        "uncertainty_and_ambiguity_summary",
+        "what_was_checked",
+        "what_was_not_checked",
+        "limitations_and_non_guarantees",
+        "recommended_next_action",
+        "operator_review_notice"
+      ],
+      "status": "draft_internal_only_not_customer_output_not_dataset"
+    },
+    "source_caas_offer": "one_place_one_window_one_count_or_measurement_question"
+  },
+  "gate_id": "execution_market.aas.local_data_collection.fixture_review_gate.2026_05_24",
+  "ladder_boundary": {
+    "covered_steps": [
+      "narrow_concierge_offer_card",
+      "fixture_spec",
+      "review_gate_checklist"
+    ],
+    "next_required_steps_before_promotion": [
+      "reviewed_output_schema",
+      "local_reviewed_fixture",
+      "internal_package_record",
+      "coverage_summary_or_read_only_operator_surface",
+      "customer_output_schema_gate",
+      "internal_sample_output",
+      "explicit_approval_or_hold_decision"
+    ],
+    "promotion_allowed": false,
+    "required_full_ladder": [
+      "narrow_concierge_offer_card",
+      "fixture_spec",
+      "reviewed_output_schema",
+      "local_reviewed_fixture",
+      "internal_package_record",
+      "coverage_summary_or_read_only_operator_surface",
+      "customer_output_schema_gate",
+      "internal_sample_output",
+      "explicit_approval_or_hold_decision"
+    ]
+  },
+  "next_smallest_proof": "Create one synthetic local reviewed fixture for one place, one observation window, and one count/measurement question that fills this evidence contract while keeping all promotion and customer/public readiness flags false.",
+  "operator_instruction": "Use this only as the Local Data Collection fixture boundary. The next valid step is a reviewed-output schema plus one local reviewed fixture, not a customer dataset, analytics product, catalog route, dispatch path, reputation receipt, live memory claim, or worker-copyable data doctrine.",
+  "package_family_id": "local_data_collection_as_a_service",
+  "readiness": {
+    "autonomous_dispatch_ready": false,
+    "controlled_concierge_pilot_ready": false,
+    "customer_copy_ready": false,
+    "customer_delivery_approval": false,
+    "customer_pilot_exposure_allowed": false,
+    "customer_visible_catalog_ready": false,
+    "exact_gps_or_raw_metadata_exposure_allowed": false,
+    "front_door_sku_ready": false,
+    "live_acontext_ready": false,
+    "operator_publish_approval": false,
+    "public_service_catalog_ready": false,
+    "publication_approved": false,
+    "reputation_ready": false,
+    "runtime_parity_proven": false,
+    "worker_copyable_doctrine_ready": false,
+    "worker_skill_dna_ready": false
+  },
+  "review_gate_checklist": [
+    {
+      "blocks_promotion_until_passed": true,
+      "check_id": "source_plan_boundary_matches_local_data_collection_one_place_one_window_one_question",
+      "required": true,
+      "status": "pending_future_review"
+    },
+    {
+      "blocks_promotion_until_passed": true,
+      "check_id": "evidence_contract_requires_single_place_single_window_single_measurement_question",
+      "required": true,
+      "status": "pending_future_review"
+    },
+    {
+      "blocks_promotion_until_passed": true,
+      "check_id": "method_and_uncertainty_are_required_and_not_treated_as_exactness",
+      "required": true,
+      "status": "pending_future_review"
+    },
+    {
+      "blocks_promotion_until_passed": true,
+      "check_id": "observed_value_preserved_without_statistical_representativeness_claim",
+      "required": true,
+      "status": "pending_future_review"
+    },
+    {
+      "blocks_promotion_until_passed": true,
+      "check_id": "ambiguity_occlusion_and_what_was_not_checked_are_preserved",
+      "required": true,
+      "status": "pending_future_review"
+    },
+    {
+      "blocks_promotion_until_passed": true,
+      "check_id": "privacy_redaction_required_before_any_customer_language",
+      "required": true,
+      "status": "pending_future_review"
+    },
+    {
+      "blocks_promotion_until_passed": true,
+      "check_id": "exact_gps_and_raw_metadata_blocked",
+      "required": true,
+      "status": "pending_future_review"
+    },
+    {
+      "blocks_promotion_until_passed": true,
+      "check_id": "analytics_prediction_and_official_dataset_claims_blocked",
+      "required": true,
+      "status": "pending_future_review"
+    },
+    {
+      "blocks_promotion_until_passed": true,
+      "check_id": "operator_review_required_before_fixture_acceptance",
+      "required": true,
+      "status": "pending_future_review"
+    },
+    {
+      "blocks_promotion_until_passed": true,
+      "check_id": "publication_customer_delivery_dispatch_reputation_runtime_and_worker_doctrine_blocked",
+      "required": true,
+      "status": "pending_future_review"
+    }
+  ],
+  "safe_to_claim": [
+    "local_data_collection_fixture_review_gate_landed",
+    "aas_minimum_ladder_template_landed"
+  ],
+  "schema": "city_ops.local_data_collection_fixture_review_gate.v1",
+  "scope": "internal_admin_local_data_collection_fixture_spec_and_review_gate_only",
+  "source_plan_doc": "docs/planning/EXECUTION_MARKET_AAS_NEXT_LOW_AUTHORITY_PACKAGING_PLAN_2026_05_23_10PM.md",
+  "source_plan_section": "Rank 2 \u2014 Local Data Collection AAS",
+  "source_template_safe_claims_inherited": [
+    "aas_minimum_ladder_template_landed"
+  ]
+}
