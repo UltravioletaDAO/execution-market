@@ -332,6 +332,11 @@ from .retail_reality_human_operator_approval_request import (
     load_retail_reality_human_operator_approval_request,
     write_retail_reality_human_operator_approval_request,
 )
+from .retail_reality_pending_approval_status_card import (
+    build_retail_reality_pending_approval_status_card,
+    load_retail_reality_pending_approval_status_card,
+    write_retail_reality_pending_approval_status_card,
+)
 from .incident_verification_fixture_review_gate import (
     build_incident_verification_fixture_review_gate,
     load_incident_verification_fixture_review_gate,
@@ -635,6 +640,9 @@ __all__ = [
     "build_retail_reality_human_operator_approval_request",
     "load_retail_reality_human_operator_approval_request",
     "write_retail_reality_human_operator_approval_request",
+    "build_retail_reality_pending_approval_status_card",
+    "load_retail_reality_pending_approval_status_card",
+    "write_retail_reality_pending_approval_status_card",
     "build_compliance_desk_fixture_review_gate",
     "load_compliance_desk_fixture_review_gate",
     "write_compliance_desk_fixture_review_gate",

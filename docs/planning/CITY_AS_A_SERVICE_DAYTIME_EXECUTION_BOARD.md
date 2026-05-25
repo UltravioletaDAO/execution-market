@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-24 06:00 America/New_York
+> Last updated: 2026-05-24 22:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -8,6 +8,10 @@
 > - `CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md`
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
+
+## Latest May 24 22:00 implementation
+
+`mcp_server/city_ops/retail_reality_pending_approval_status_card.py` now adds the read-only internal/admin queue/status card over the pending Retail Reality human-operator approval request, persisted at `mcp_server/city_ops/fixtures/aas_package_ladder/retail_reality_pending_approval_status_card.json`. It consumes only `retail_reality_human_operator_approval_request.json`, preserves the source request digest and selected-boundary digest, shows field names/check counts/safe claims/blocked claims, and hides candidate text values. This earns only `retail_reality_pending_approval_status_card_landed`, inheriting the pending request safe claim. It does not record human approval, approve the selected boundary, create or rewrite customer copy, authorize customer delivery/publication, register public/catalog/network routes, enable pricing/quotes, launch a pilot or queue, dispatch workers, attach ERC-8004 reputation, prove live Acontext/runtime parity, expose exact GPS/raw metadata/private retail context, assert retail authority, or publish worker-copyable retail doctrine. Verification: focused Retail Reality pending-status + approval-request tests `23 passed`; full city-ops suite `1250 passed`. The next safe step remains either keep this internal/admin-only status card, or create a separate human-operator approval record only if Saúl explicitly wants customer exposure for the exact selected Retail Reality text boundary.
 
 ## Latest May 24 06:00 final wrap
 
