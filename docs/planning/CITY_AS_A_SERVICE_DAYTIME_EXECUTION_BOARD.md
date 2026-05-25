@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-25 04:00 America/New_York
+> Last updated: 2026-05-25 05:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -8,6 +8,10 @@
 > - `CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md`
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
+
+## Latest May 25 05:00 pre-dawn synthesis
+
+`CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_25.md` is the current daytime coordination entrypoint. The night advanced Local Data Collection AAS from ranked concept to conservative internal/admin ladder: fixture/review gate -> synthetic local reviewed fixture -> internal package record -> read-only operator surface -> customer-output schema gate. Safe claims are `local_data_collection_fixture_review_gate_landed`, `local_data_collection_local_reviewed_fixture_landed`, `local_data_collection_internal_package_record_landed`, `local_data_collection_operator_read_surface_landed`, and `local_data_collection_customer_output_schema_gate_landed`. The latest schema gate defines allowed/forbidden future customer-output fields only; it creates no customer copy and approves no delivery/publication route. Daytime's best next move is one synthetic internal/admin Local Data Collection sample output against the schema, followed by a separate explicit hold/approval decision over the exact sample digest; default remains hold. Still blocked: customer copy/delivery/publication, public/catalog routes, dataset publication, analytics, statistical representativeness, continuous monitoring, official dataset certification, exactness beyond observed method, predictive analytics, pricing/quote, queue/dispatch, ERC-8004 reputation, worker Skill DNA, live Acontext/runtime parity, exact GPS/raw metadata/private context exposure, and worker-copyable data-collection doctrine. Verification after the doc-only synthesis: `git diff --check` clean; full city-ops suite `1316 passed`. AutoJob, Frontier Academy, KK v2, and KarmaCadabra v2 remain stopped by `DREAM-PRIORITIES.md` during dreams.
 
 ## Latest May 25 04:00 implementation
 
