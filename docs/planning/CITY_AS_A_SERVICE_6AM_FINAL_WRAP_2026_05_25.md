@@ -140,7 +140,7 @@ git diff --check
 .venv/bin/python -m pytest -q mcp_server/tests/city_ops
 ```
 
-Expected final suite state from the last implementation/synthesis pass: `1316 passed`. This final wrap does not add code or product-surface behavior.
+Final suite result: `1316 passed`. This final wrap does not add code or product-surface behavior.
 
 ## Repo continuity
 
