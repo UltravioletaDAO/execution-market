@@ -1,0 +1,277 @@
+{
+  "do_not_claim_yet": [
+    "customer_copy_ready",
+    "customer_visible_catalog_ready",
+    "public_service_catalog_ready",
+    "controlled_concierge_pilot_ready",
+    "customer_pilot_exposure_ready",
+    "front_door_sku_ready",
+    "pilot_authorized",
+    "catalog_customer_ready",
+    "operator_publish_approval",
+    "customer_delivery_approval",
+    "publication_approved",
+    "filing_success_ready",
+    "broad_office_reuse_ready",
+    "city_relationship_or_influence",
+    "guaranteed_approval",
+    "legal_sufficiency",
+    "regulator_acceptance",
+    "live_acontext_ready",
+    "live_acontext_readiness",
+    "acontext_sink_ready",
+    "runtime_parity_proven",
+    "autonomous_dispatch_ready",
+    "autonomous_dispatch_readiness",
+    "dispatch_routing_ready",
+    "erc8004_reputation_ready",
+    "reputation_ready",
+    "worker_skill_dna_ready",
+    "worker_copyable_doctrine_ready",
+    "worker_copyable_municipal_doctrine",
+    "exact_gps_or_raw_metadata_exposure_allowed",
+    "exact_gps_or_metadata_exposure",
+    "raw_metadata_exposure_allowed",
+    "statistical_representativeness",
+    "continuous_monitoring",
+    "official_dataset_certification",
+    "exactness_beyond_observed_method",
+    "predictive_analytics",
+    "public_dataset_ready",
+    "worker_copyable_data_collection_doctrine",
+    "local_data_collection_local_fixture_customer_delivery_ready",
+    "local_data_collection_local_fixture_publication_ready",
+    "local_data_collection_local_fixture_catalog_ready",
+    "local_data_collection_local_fixture_dataset_ready",
+    "local_data_collection_local_fixture_analytics_ready",
+    "local_data_collection_local_fixture_pricing_ready",
+    "local_data_collection_local_fixture_dispatch_ready",
+    "local_data_collection_local_fixture_reputation_ready",
+    "local_data_collection_local_fixture_live_acontext_ready",
+    "local_data_collection_local_fixture_worker_skill_dna_ready",
+    "local_data_collection_local_fixture_worker_doctrine_ready",
+    "local_data_collection_local_fixture_statistical_representativeness_ready",
+    "local_data_collection_local_fixture_continuous_monitoring_ready",
+    "local_data_collection_local_fixture_official_dataset_certification_ready",
+    "local_data_collection_local_fixture_predictive_analytics_ready",
+    "local_data_collection_local_fixture_exactness_certification_ready"
+  ],
+  "fixture_id": "execution_market.aas.local_data_collection.local_reviewed_fixture.001",
+  "ladder_boundary": {
+    "covered_steps": [
+      "narrow_concierge_offer_card",
+      "fixture_spec",
+      "review_gate_checklist",
+      "reviewed_output_schema",
+      "local_reviewed_fixture"
+    ],
+    "next_required_steps_before_promotion": [
+      "internal_package_record",
+      "coverage_summary_or_read_only_operator_surface",
+      "customer_output_schema_gate",
+      "internal_sample_output",
+      "explicit_approval_or_hold_decision"
+    ],
+    "promotion_allowed": false
+  },
+  "local_fixture": {
+    "analytics_publication_allowed": false,
+    "catalog_allowed": false,
+    "continuous_monitoring_claim_allowed": false,
+    "customer_copy_changed": false,
+    "customer_delivery_allowed": false,
+    "dataset_publication_allowed": false,
+    "dispatch_allowed": false,
+    "evidence_contract_snapshot": {
+      "allowed_observation_method": "manual_visual_count_from_permitted_redacted_synthetic_snapshot",
+      "ambiguity_or_occlusion_note": "one edge case partially occluded; output remains a range not an exact certified count",
+      "method_note_and_uncertainty_range": "manual_count_with_plus_minus_one_uncertainty_due_to_partial_occlusion",
+      "raw_count_or_measurement_value_with_units_where_applicable": "count_range_7_to_9_visible_positions",
+      "single_count_or_measurement_question": "visible_queue_position_count_inside_one_window",
+      "single_observation_window": "relative_synthetic_window_no_exact_timestamp_address_route_trace_or_raw_metadata",
+      "single_place_or_context_reference_without_exact_public_coordinates": "redacted_synthetic_local_context_reference_no_exact_public_coordinates",
+      "visible_context_photo_or_permitted_visual_snapshot": "redacted_synthetic_visual_snapshot_source_type_only",
+      "what_was_not_checked": "representativeness_continuous_monitoring_official_dataset_predictive_analytics_future_state"
+    },
+    "exactness_beyond_method_allowed": false,
+    "fixture_kind": "synthetic_one_window_count_measurement_snapshot",
+    "live_runtime_write_allowed": false,
+    "official_dataset_certification_allowed": false,
+    "predictive_analytics_allowed": false,
+    "pricing_quote_allowed": false,
+    "publication_allowed": false,
+    "reputation_attachment_allowed": false,
+    "review_status": "reviewed_internal_fixture_only_not_promoted",
+    "reviewed_output": {
+      "limitations_and_non_guarantees": [
+        "This fixture is synthetic and local; it does not represent a real location or customer case.",
+        "The reviewed observation covers one place/context, one window, and one count question only.",
+        "The value is method-bounded and includes an uncertainty range; it is not certified exactness.",
+        "No statistical representativeness, continuous monitoring, official dataset status, predictive analytics, or future-state claim is made.",
+        "No customer dataset, publication, catalog route, pricing quote, dispatch path, reputation receipt, live runtime proof, or worker doctrine is authorized."
+      ],
+      "method_summary": "Manual visual count from a redacted synthetic context snapshot. The review preserves a +/-1 uncertainty range because one edge case was partially occluded.",
+      "observation_window_summary": "Single synthetic observation window only; no exact timestamp, GPS, address, route trace, raw metadata, or private subject identity is included.",
+      "observed_value_or_range": "observed_count_range_7_to_9_visible_positions",
+      "offer_type": "one_window_count_or_measurement_snapshot",
+      "operator_review_notice": "Reviewed for local fixture shape only. Keep customer/public/catalog/dataset/analytics/pricing/dispatch/reputation/live-runtime/exactness/representativeness/continuous-monitoring/worker-doctrine readiness false.",
+      "plain_language_observation_status": "A bounded one-window count/measurement observation was reviewed for a synthetic local fixture. The output records the question, observed value, method, uncertainty, and exclusions. It is not a representative dataset, not continuous monitoring, not official certification, not predictive analytics, and not exact beyond the reviewed method.",
+      "question_answered": "How many visible queue positions were occupied during one synthetic observation window?",
+      "recommended_next_action": "Create a Local Data Collection internal package record that consumes this reviewed fixture while keeping all customer/public/dataset/analytics/pricing/dispatch/reputation/runtime/GPS/worker-doctrine readiness false.",
+      "task_id_or_local_case_reference": "local_data_collection_fixture_001",
+      "uncertainty_and_ambiguity_summary": "Count is expressed as a range because one visible item was ambiguous. The fixture does not infer averages, trends, future conditions, or population-level representativeness.",
+      "unit_or_count_basis": "visible_positions_counted_by_redacted_synthetic_snapshot_review",
+      "what_was_checked": [
+        "one_synthetic_place_or_context_reference_without_exact_coordinates",
+        "one_observation_window",
+        "one_visible_count_question",
+        "redacted_visual_snapshot_source_type",
+        "method_note_and_uncertainty_range",
+        "ambiguity_or_occlusion_note",
+        "absence_of_exact_gps_raw_metadata_private_identity_dataset_publication_and_dispatch_fields"
+      ],
+      "what_was_not_checked": [
+        "statistical_representativeness",
+        "continuous_monitoring",
+        "official_dataset_certification",
+        "exactness_beyond_reviewed_method",
+        "predictive_analytics",
+        "future_conditions_or_trends",
+        "customer_delivery_readiness",
+        "dispatch_readiness",
+        "erc8004_reputation_readiness",
+        "worker_copyable_data_collection_doctrine"
+      ]
+    },
+    "reviewed_output_schema": {
+      "forbidden_fields": [
+        "exact_gps_coordinates",
+        "raw_metadata_blob",
+        "raw_transcript_as_authority",
+        "private_operator_context",
+        "private_subject_identity",
+        "dataset_publication_url",
+        "statistical_representativeness_claim",
+        "continuous_monitoring_claim",
+        "official_dataset_certification_claim",
+        "exactness_beyond_observed_method_claim",
+        "predictive_analytics_claim",
+        "dispatch_instruction_or_assignment",
+        "erc8004_reputation_receipt",
+        "worker_copyable_data_collection_doctrine"
+      ],
+      "required_fields": [
+        "task_id_or_local_case_reference",
+        "offer_type",
+        "plain_language_observation_status",
+        "question_answered",
+        "observed_value_or_range",
+        "unit_or_count_basis",
+        "method_summary",
+        "observation_window_summary",
+        "uncertainty_and_ambiguity_summary",
+        "what_was_checked",
+        "what_was_not_checked",
+        "limitations_and_non_guarantees",
+        "recommended_next_action",
+        "operator_review_notice"
+      ],
+      "status": "local_reviewed_fixture_internal_only_not_customer_output_not_dataset"
+    },
+    "statistical_representativeness_claim_allowed": false,
+    "worker_copyable_doctrine_allowed": false,
+    "worker_skill_dna_allowed": false
+  },
+  "local_review_checks": [
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "source_gate_safe_claims_present",
+      "status": "passed_for_local_fixture_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "all_required_local_data_evidence_fields_populated",
+      "status": "passed_for_local_fixture_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "reviewed_output_uses_only_allowed_fields",
+      "status": "passed_for_local_fixture_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "one_place_one_window_one_question_boundary_preserved",
+      "status": "passed_for_local_fixture_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "observed_value_preserved_as_method_bounded_not_exact_or_representative",
+      "status": "passed_for_local_fixture_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "uncertainty_range_and_ambiguity_note_preserved",
+      "status": "passed_for_local_fixture_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "privacy_redaction_completed_for_local_fixture",
+      "status": "passed_for_local_fixture_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "exact_gps_raw_metadata_private_identity_and_raw_context_absent",
+      "status": "passed_for_local_fixture_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "dataset_analytics_prediction_and_official_certification_claims_absent",
+      "status": "passed_for_local_fixture_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "non_representativeness_and_non_monitoring_language_present",
+      "status": "passed_for_local_fixture_only"
+    },
+    {
+      "blocks_promotion_until_later_gate": true,
+      "check_id": "customer_public_dispatch_reputation_runtime_and_worker_doctrine_still_blocked",
+      "status": "passed_for_local_fixture_only"
+    }
+  ],
+  "next_smallest_proof": "Create a Local Data Collection internal package record that consumes this local fixture, summarizes evidence coverage, and preserves all customer/public/dataset/analytics/pricing/dispatch/reputation/runtime/GPS/exactness/worker-doctrine blocks.",
+  "offer_id": "one_window_count_or_measurement_snapshot",
+  "operator_instruction": "Use this only as the Local Data Collection local reviewed fixture. The next valid step is an internal package record; do not convert it into a customer dataset, analytics product, catalog listing, pricing quote, dispatch path, reputation receipt, live memory proof, or worker-copyable data-collection doctrine.",
+  "package_family_id": "local_data_collection_as_a_service",
+  "readiness": {
+    "autonomous_dispatch_ready": false,
+    "controlled_concierge_pilot_ready": false,
+    "customer_copy_ready": false,
+    "customer_delivery_approval": false,
+    "customer_pilot_exposure_allowed": false,
+    "customer_visible_catalog_ready": false,
+    "exact_gps_or_raw_metadata_exposure_allowed": false,
+    "front_door_sku_ready": false,
+    "live_acontext_ready": false,
+    "operator_publish_approval": false,
+    "public_service_catalog_ready": false,
+    "publication_approved": false,
+    "reputation_ready": false,
+    "runtime_parity_proven": false,
+    "worker_copyable_doctrine_ready": false,
+    "worker_skill_dna_ready": false
+  },
+  "safe_to_claim": [
+    "local_data_collection_local_reviewed_fixture_landed",
+    "local_data_collection_fixture_review_gate_landed",
+    "aas_minimum_ladder_template_landed"
+  ],
+  "schema": "city_ops.local_data_collection_local_reviewed_fixture.v1",
+  "scope": "internal_admin_local_data_collection_local_reviewed_fixture_only",
+  "source_gate_id": "execution_market.aas.local_data_collection.fixture_review_gate.2026_05_24",
+  "source_gate_schema": "city_ops.local_data_collection_fixture_review_gate.v1",
+  "source_safe_claims_inherited": [
+    "local_data_collection_fixture_review_gate_landed",
+    "aas_minimum_ladder_template_landed"
+  ]
+}
