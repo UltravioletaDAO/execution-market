@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-25 05:00 America/New_York
+> Last updated: 2026-05-25 06:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -8,6 +8,10 @@
 > - `CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md`
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
+
+## Latest May 25 06:00 final wrap
+
+`CITY_AS_A_SERVICE_6AM_FINAL_WRAP_2026_05_25.md` is the sealed morning coordination entrypoint. The final pass re-read `~/clawd/DREAM-PRIORITIES.md`, synced only `projects/execution-market` (`git pull --ff-only` returned `Already up to date`), preserved the pre-existing untracked `scripts/sign_req.mjs`, and kept the session inside Execution Market AAS / City-as-a-Service. The stale cron requests for AutoJob, Frontier Academy, and KK v2 were intentionally skipped because the active priority file blocks those tracks. Tonight's Local Data Collection ladder is now: fixture/review gate -> synthetic local reviewed fixture -> internal package record -> read-only operator surface -> customer-output schema gate -> 6 AM final wrap. Safe claims remain internal/admin or schema-gate-only: `local_data_collection_fixture_review_gate_landed`, `local_data_collection_local_reviewed_fixture_landed`, `local_data_collection_internal_package_record_landed`, `local_data_collection_operator_read_surface_landed`, and `local_data_collection_customer_output_schema_gate_landed`. Default daytime recommendation: build one synthetic internal/admin Local Data Collection sample output against the schema gate, then a separate explicit hold/approval decision over the exact sample digest. Do not infer customer copy/delivery/publication, public/catalog routes, dataset publication, analytics, statistical representativeness, continuous monitoring, official dataset certification, exactness beyond observed method, predictive analytics, pricing/quote, queue/dispatch, ERC-8004 reputation, worker Skill DNA, live Acontext/runtime parity, exact GPS/raw metadata/private context exposure, or worker-copyable data-collection doctrine.
 
 ## Latest May 25 05:00 pre-dawn synthesis
 
