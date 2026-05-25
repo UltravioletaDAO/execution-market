@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-25 02:00 America/New_York
+> Last updated: 2026-05-25 04:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -8,6 +8,10 @@
 > - `CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md`
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
+
+## Latest May 25 04:00 implementation
+
+`mcp_server/city_ops/local_data_collection_operator_read_surface.py` and `mcp_server/city_ops/local_data_collection_customer_output_schema_gate.py` now advance Local Data Collection AAS two safe internal/admin rungs after the internal package record. The operator read surface consumes only `local_data_collection_internal_package_record.json`, preserves the package digest and source lineage, renders pass-through operator cards, and keeps safe/blocked claims adjacent. The schema gate consumes only `local_data_collection_operator_read_surface.json` and defines allowed/forbidden future customer-output fields for a bounded `one_window_count_or_measurement_snapshot`; it creates no customer copy and grants no delivery/publication approval. Safe claims: `local_data_collection_operator_read_surface_landed` and `local_data_collection_customer_output_schema_gate_landed`. Still blocked: customer copy/delivery/publication, public/catalog routes, controlled pilot, dataset publication, analytics, statistical representativeness, continuous monitoring, official dataset certification, exactness beyond method, predictive analytics, pricing/quote, queue/dispatch, ERC-8004 reputation, worker Skill DNA, live Acontext/runtime parity, exact GPS/raw metadata/private context release, and worker-copyable data-collection doctrine. Focused verification: Local Data Collection ladder through schema gate `66 passed`. The next safe step is one synthetic internal/admin sample output against the schema plus a separate explicit hold/approval decision; default remains hold.
 
 ## Latest May 25 02:00 implementation
 

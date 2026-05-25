@@ -352,6 +352,16 @@ from .local_data_collection_internal_package_record import (
     load_local_data_collection_internal_package_record,
     write_local_data_collection_internal_package_record,
 )
+from .local_data_collection_operator_read_surface import (
+    build_local_data_collection_operator_read_surface,
+    load_local_data_collection_operator_read_surface,
+    write_local_data_collection_operator_read_surface,
+)
+from .local_data_collection_customer_output_schema_gate import (
+    build_local_data_collection_customer_output_schema_gate,
+    load_local_data_collection_customer_output_schema_gate,
+    write_local_data_collection_customer_output_schema_gate,
+)
 from .incident_verification_fixture_review_gate import (
     build_incident_verification_fixture_review_gate,
     load_incident_verification_fixture_review_gate,
@@ -667,6 +677,12 @@ __all__ = [
     "build_local_data_collection_internal_package_record",
     "load_local_data_collection_internal_package_record",
     "write_local_data_collection_internal_package_record",
+    "build_local_data_collection_operator_read_surface",
+    "load_local_data_collection_operator_read_surface",
+    "write_local_data_collection_operator_read_surface",
+    "build_local_data_collection_customer_output_schema_gate",
+    "load_local_data_collection_customer_output_schema_gate",
+    "write_local_data_collection_customer_output_schema_gate",
     "build_compliance_desk_fixture_review_gate",
     "load_compliance_desk_fixture_review_gate",
     "write_compliance_desk_fixture_review_gate",
