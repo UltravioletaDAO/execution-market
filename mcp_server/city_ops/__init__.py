@@ -484,6 +484,11 @@ from .aas_portfolio_promotion_ledger import (
     load_aas_portfolio_promotion_ledger,
     write_aas_portfolio_promotion_ledger,
 )
+from .aas_portfolio_next_gate_board import (
+    build_aas_portfolio_next_gate_board,
+    load_aas_portfolio_next_gate_board,
+    write_aas_portfolio_next_gate_board,
+)
 from .aas_claim_quarantine_board import (
     build_aas_claim_quarantine_board,
     load_aas_claim_quarantine_board,
@@ -820,6 +825,9 @@ __all__ = [
     "build_aas_portfolio_promotion_ledger",
     "load_aas_portfolio_promotion_ledger",
     "write_aas_portfolio_promotion_ledger",
+    "build_aas_portfolio_next_gate_board",
+    "load_aas_portfolio_next_gate_board",
+    "write_aas_portfolio_next_gate_board",
     "build_aas_claim_quarantine_board",
     "load_aas_claim_quarantine_board",
     "write_aas_claim_quarantine_board",
