@@ -48,16 +48,35 @@ export function startWsListener(): void {
 }
 
 function connect(): void {
-  const url = config.em.apiKey
-    ? `${config.em.wsUrl}?api_key=${config.em.apiKey}`
-    : config.em.wsUrl;
+  // The User-Agent header is required on the WS handshake: the WAF managed rule
+  // NoUserAgent_HEADER blocks header-less clients, and the Node `ws` lib omits
+  // User-Agent by default — this silently broke the bot for 7 weeks
+  // (INC-2026-04-04, see aws-alarms-audit-2026-05-21).
+  const headers = { "User-Agent": "execution-market-xmtp-bot/1.0" };
 
   logger.info({ url: config.em.wsUrl }, "Connecting to EM WebSocket...");
-  ws = new WebSocket(url);
+  ws = new WebSocket(config.em.wsUrl, { headers });
 
   ws.on("open", () => {
     logger.info("WebSocket connected to EM API");
     reconnectDelay = 1000;
+
+    // Authenticate via the message body — NOT the query string — so the API
+    // key never lands in ALB access logs or WAF samples (INC-2026-04-04). The
+    // server processes WS messages in order, so the connection is authenticated
+    // before the subscribe below is handled.
+    if (config.em.apiKey) {
+      ws!.send(
+        JSON.stringify({
+          type: "auth",
+          payload: {
+            user_id: config.em.agentId,
+            user_type: "agent",
+            token: config.em.apiKey,
+          },
+        }),
+      );
+    }
 
     // Subscribe to global events
     ws!.send(JSON.stringify({ type: "subscribe", payload: { room: "global" } }));

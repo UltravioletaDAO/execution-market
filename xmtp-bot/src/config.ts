@@ -9,6 +9,9 @@ export const config = {
     apiUrl: process.env.EM_API_URL ?? "https://api.execution.market",
     apiKey: process.env.EM_API_KEY ?? "",
     wsUrl: process.env.EM_WS_URL ?? "wss://api.execution.market/ws",
+    // agent_id of the bot's API key — must match the api_keys row so the
+    // server's WS auth (which checks key_data.agent_id == user_id) accepts it.
+    agentId: process.env.EM_AGENT_ID ?? "xmtp-bot",
   },
   health: {
     port: parseInt(process.env.HEALTH_PORT ?? "8090", 10),
