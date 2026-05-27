@@ -97,6 +97,11 @@ from .aas_exponential_value_pathfinder import (
     load_aas_exponential_value_pathfinder,
     write_aas_exponential_value_pathfinder,
 )
+from .aas_pre_dawn_synthesis_handoff import (
+    build_aas_pre_dawn_synthesis_handoff,
+    load_aas_pre_dawn_synthesis_handoff,
+    write_aas_pre_dawn_synthesis_handoff,
+)
 from .acontext_transport import build_acontext_transport_parity_result
 from .closure import build_acontext_export_preview, build_session_rebuild_preview
 from .coordination_intelligence import build_coordination_intelligence_snapshot
@@ -876,6 +881,12 @@ __all__ = [
     "build_aas_system_integration_flywheel_read_surface",
     "load_aas_system_integration_flywheel_read_surface",
     "write_aas_system_integration_flywheel_read_surface",
+    "build_aas_exponential_value_pathfinder",
+    "load_aas_exponential_value_pathfinder",
+    "write_aas_exponential_value_pathfinder",
+    "build_aas_pre_dawn_synthesis_handoff",
+    "load_aas_pre_dawn_synthesis_handoff",
+    "write_aas_pre_dawn_synthesis_handoff",
     "build_phase1_operator_coverage_renderer",
     "load_phase1_operator_coverage_renderer",
     "write_phase1_operator_coverage_renderer",

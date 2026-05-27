@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-27 04:05 America/New_York
+> Last updated: 2026-05-27 05:30 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -8,6 +8,11 @@
 > - `CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md`
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
+
+
+## Latest May 27 05:30 pre-dawn synthesis
+
+`mcp_server/city_ops/aas_pre_dawn_synthesis_handoff.py` now adds the 5 AM internal/admin handoff over `aas_exponential_value_pathfinder.json`, persisted at `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/aas_pre_dawn_synthesis_handoff.json`. It records that `~/clawd/DREAM-PRIORITIES.md` won over stale cron tasks, so AutoJob, Frontier Academy, KK v2, and KarmaCadabra v2 were not pulled/analyzed/edited/expanded. Safe claim: `admin_aas_pre_dawn_synthesis_handoff_landed`. The daytime queue is now explicit: first attempt Acontext runtime-memory prerequisites/parity only if Docker/runtime readiness can be separately proven; second, answer exactly one portfolio operator authorization question only if a real human answer exists; third, preserve the priority firewall and claim quarantine. The handoff is not customer delivery/publication, not public/catalog/pricing, not queue/dispatch, not live Acontext/runtime parity, not IRC runtime mutation, not AutoJob integration, not Frontier expansion, not KK v2 work, not ERC-8004 reputation or Worker Skill DNA, not payment/production reverification, not GPS/raw metadata/private-context release, and not worker-copyable doctrine. Focused verification: `test_aas_pre_dawn_synthesis_handoff.py` -> `9 passed`. Daytime entrypoint: `CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_27.md`.
 
 
 ## Latest May 27 04:05 implementation
