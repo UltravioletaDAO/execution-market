@@ -362,6 +362,16 @@ from .local_data_collection_customer_output_schema_gate import (
     load_local_data_collection_customer_output_schema_gate,
     write_local_data_collection_customer_output_schema_gate,
 )
+from .local_data_collection_internal_sample_output import (
+    build_local_data_collection_internal_sample_output,
+    load_local_data_collection_internal_sample_output,
+    write_local_data_collection_internal_sample_output,
+)
+from .local_data_collection_sample_output_review_decision import (
+    build_local_data_collection_sample_output_review_decision,
+    load_local_data_collection_sample_output_review_decision,
+    write_local_data_collection_sample_output_review_decision,
+)
 from .incident_verification_fixture_review_gate import (
     build_incident_verification_fixture_review_gate,
     load_incident_verification_fixture_review_gate,
@@ -683,6 +693,12 @@ __all__ = [
     "build_local_data_collection_customer_output_schema_gate",
     "load_local_data_collection_customer_output_schema_gate",
     "write_local_data_collection_customer_output_schema_gate",
+    "build_local_data_collection_internal_sample_output",
+    "load_local_data_collection_internal_sample_output",
+    "write_local_data_collection_internal_sample_output",
+    "build_local_data_collection_sample_output_review_decision",
+    "load_local_data_collection_sample_output_review_decision",
+    "write_local_data_collection_sample_output_review_decision",
     "build_compliance_desk_fixture_review_gate",
     "load_compliance_desk_fixture_review_gate",
     "write_compliance_desk_fixture_review_gate",

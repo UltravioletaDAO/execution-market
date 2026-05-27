@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-25 06:00 America/New_York
+> Last updated: 2026-05-26 22:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -8,6 +8,10 @@
 > - `CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md`
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
+
+## Latest May 26 22:00 dream rung
+
+`mcp_server/city_ops/local_data_collection_internal_sample_output.py` and `mcp_server/city_ops/local_data_collection_sample_output_review_decision.py` now complete the next two safe Local Data Collection AAS rungs after the customer-output schema gate: one synthetic internal/admin sample output and a separate explicit hold decision over that exact sample. The persisted artifacts are `mcp_server/city_ops/fixtures/aas_package_ladder/local_data_collection_internal_sample_output.json` and `mcp_server/city_ops/fixtures/aas_package_ladder/local_data_collection_sample_output_review_decision.json`, with tests in `mcp_server/tests/city_ops/test_local_data_collection_internal_sample_output.py` and `mcp_server/tests/city_ops/test_local_data_collection_sample_output_review_decision.py`. Safe claims: `local_data_collection_internal_sample_output_landed` and `local_data_collection_sample_output_review_decision_landed`, inheriting prior Local Data Collection ladder claims. The decision is `hold_not_approved_not_publishable`; customer copy, customer delivery, publication, public/catalog routes, controlled pilot, pricing, dispatch, ERC-8004 reputation, worker Skill DNA/doctrine, live Acontext/runtime parity, exact GPS/raw metadata, dataset publication, analytics publication, statistical representativeness, continuous monitoring, official certification, prediction, and exactness certification remain false/blocked. Focused verification: Local Data Collection internal-sample + review-decision tests `28 passed`; full city-ops suite `1344 passed`. Default next safe step is no publication; if Saúl wants customer exposure later, create a separate human-operator approval artifact naming exact sample text, redactions, delivery path, and still-blocked claims.
 
 ## Latest May 25 06:00 final wrap
 
