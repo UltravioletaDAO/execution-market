@@ -441,13 +441,41 @@ resource "aws_wafv2_web_acl_association" "alb" {
   web_acl_arn  = aws_wafv2_web_acl.main.arn
 }
 
-# ── CloudWatch Alarm: WAF blocked requests spike ────────────────────────────
+# ── CloudWatch Alarms: WAF block-rate (split by signal) ─────────────────────
+#
+# WHY THE SPLIT (replaces the old single "waf-high-block-rate" alarm).
+#   The original alarm watched Rule="ALL" with threshold 100/5min. After the
+#   xmtp-bot self-block bug was fixed (it no longer generates blocks), the WAF
+#   still blocks internet background scanners (phpunit/.env/webshell probes).
+#   A 14-day baseline (2026-05-13 → 2026-05-26) measured at TRUE 5-min
+#   granularity shows steady-state ALL-rule scanner bursts of 145–265 blocks/
+#   5min (peak 265 on 2026-05-24 19:05). With threshold 100, the alarm flapped
+#   continuously (e.g. ALARM 14:25 → OK 14:30 on 2026-05-27) on pure noise.
+#
+#   A single raised threshold (e.g. 750/ALL) would silence the noise but would
+#   ALSO mask a targeted exploit campaign against one managed rule, because the
+#   scanner noise floor (~265) would dominate the aggregate. So we split by
+#   SIGNAL into two alarms with distinct, individually-justified thresholds:
+#
+#   1. known-bad-inputs — real exploit probes (AWSManagedRulesKnownBadInputsRuleSet).
+#      14-day per-rule 5-min peak = 38 blocks. Threshold 100 (~2.6x peak) with
+#      M-of-N (10 of 15 min) only fires on a sustained, coordinated campaign.
+#   2. rate-limit-global — a single IP exceeded 600 req/5min (the rate rule's
+#      limit). Legit AI agents stay < 2 req/s, so any sustained trip is a real
+#      volumetric flood. 14-day per-rule 5-min level is negligible; threshold
+#      500 with M-of-N fires only on a genuine sustained flood.
+#
+# CloudWatch dimension note: the per-rule "Rule" dimension value equals each
+# rule's visibility_config.metric_name (NOT the rule "name"). Hence the
+# "-known-bad-inputs" / "-rate-limit-global" suffixes below match Rule 3 and
+# Rule 8 metric_name fields verbatim.
 
-resource "aws_cloudwatch_metric_alarm" "waf_blocked_requests" {
-  alarm_name          = "${local.name_prefix}-waf-high-block-rate"
-  alarm_description   = "WAF is blocking > 100 requests per 5 minutes - possible attack"
+resource "aws_cloudwatch_metric_alarm" "waf_known_bad_inputs" {
+  alarm_name          = "${local.name_prefix}-waf-known-bad-inputs"
+  alarm_description   = "WAF blocked > 100 known-bad-input (exploit) requests per 5min for 2 of 3 periods - likely targeted attack campaign (baseline peak 38/5min)"
   comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 1
+  evaluation_periods  = 3
+  datapoints_to_alarm = 2
   metric_name         = "BlockedRequests"
   namespace           = "AWS/WAFV2"
   period              = 300
@@ -458,13 +486,42 @@ resource "aws_cloudwatch_metric_alarm" "waf_blocked_requests" {
   dimensions = {
     WebACL = aws_wafv2_web_acl.main.name
     Region = local.region
-    Rule   = "ALL"
+    Rule   = "${local.name_prefix}-known-bad-inputs"
   }
 
   alarm_actions = [aws_sns_topic.mcp_alerts.arn]
+  ok_actions    = [aws_sns_topic.mcp_alerts.arn]
 
   tags = {
-    Name     = "${local.name_prefix}-waf-high-block-rate"
+    Name     = "${local.name_prefix}-waf-known-bad-inputs"
+    Severity = "warning"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "waf_rate_limit_global" {
+  alarm_name          = "${local.name_prefix}-waf-rate-limit-global"
+  alarm_description   = "WAF global rate-limit blocked > 500 requests per 5min for 2 of 3 periods - sustained volumetric flood (IP exceeding 600 req/5min; legit agents are < 2 req/s)"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 3
+  datapoints_to_alarm = 2
+  metric_name         = "BlockedRequests"
+  namespace           = "AWS/WAFV2"
+  period              = 300
+  statistic           = "Sum"
+  threshold           = 500
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    WebACL = aws_wafv2_web_acl.main.name
+    Region = local.region
+    Rule   = "${local.name_prefix}-rate-limit-global"
+  }
+
+  alarm_actions = [aws_sns_topic.mcp_alerts.arn]
+  ok_actions    = [aws_sns_topic.mcp_alerts.arn]
+
+  tags = {
+    Name     = "${local.name_prefix}-waf-rate-limit-global"
     Severity = "warning"
   }
 }

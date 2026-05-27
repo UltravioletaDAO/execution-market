@@ -27,6 +27,21 @@
 # TRAFFIC TYPE
 #   ALL (accepted + rejected). Rejected traffic is the most interesting
 #   signal for security investigations (port scans, failed exfil attempts).
+#
+# CURRENT STATE (re-verified 2026-05-27)
+#   `aws ec2 describe-flow-logs --region us-east-2` still returns an empty list
+#   for the em-production VPC. Flow logs are NOT active. This is the intended
+#   gated state, NOT drift: var.enable_vpc_flow_logs defaults to false because
+#   the CI deploy user lacks ec2:CreateFlowLogs (see variables.tf). The audit's
+#   "disabled" finding is ACCURATE for VPC flow logs (unlike ALB access logs and
+#   CloudTrail, which were already on).
+#
+# HOW TO ENABLE (admin workstation only — do NOT flip the default, that would
+# break the next CI terraform apply with UnauthorizedOperation on
+# ec2:CreateFlowLogs). From a profile that has ec2:CreateFlowLogs:
+#     terraform apply -var enable_vpc_flow_logs=true
+# This provisions the S3 bucket + policy + flow log atomically (all gated on the
+# same count). Forensics path afterward: Athena over the parquet partitions.
 
 # ── S3 Bucket for Flow Logs ──────────────────────────────────────────────────
 
