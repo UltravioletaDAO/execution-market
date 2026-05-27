@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-27 02:35 America/New_York
+> Last updated: 2026-05-27 04:05 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -9,6 +9,10 @@
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
 
+
+## Latest May 27 04:05 implementation
+
+`mcp_server/city_ops/aas_exponential_value_pathfinder.py` now adds the internal/admin 4 AM pathfinder over `aas_strength_connection_control_packet.json`, persisted at `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/aas_exponential_value_pathfinder.json`. It maps five compounding loops — memory insight -> Acontext proof, IRC four-ID handoffs -> swarm coordination, cross-project signal -> AAS gate selection, agent observability -> private selection, and landed code -> proof ladder — without reopening stopped AutoJob/Frontier/KK work or promoting launch claims. Safe claim: `admin_aas_exponential_value_pathfinder_landed`. The recommended one-next-proof remains `acontext_runtime_memory_prerequisites_then_single_live_parity_attempt`; the pathfinder is explicitly not live Acontext, not an IRC runtime change, not customer/public packaging, not delivery/publication/pricing, not queue/dispatch, not ERC-8004 reputation or Worker Skill DNA, not payment/production reverification, not GPS/raw metadata exposure, and not worker-copyable doctrine. Focused verification: `test_aas_exponential_value_pathfinder.py` -> `9 passed`. Next safe slice: pick exactly one internal/admin proof slot from the pathfinder; default to Acontext prerequisite/parity work unless Saúl supplies a real human operator answer for a customer-exposure gate.
 
 ## Latest May 27 02:35 implementation
 
