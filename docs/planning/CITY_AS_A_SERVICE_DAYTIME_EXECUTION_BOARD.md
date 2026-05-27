@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-26 22:00 America/New_York
+> Last updated: 2026-05-27 00:35 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -8,6 +8,10 @@
 > - `CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md`
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
+
+## Latest May 27 00:35 implementation
+
+`mcp_server/city_ops/aas_portfolio_promotion_ledger.py` now implements the default no-human/no-runtime gate from the May 26 portfolio promotion map. It consumes five current AAS boundary artifacts — Compliance Desk single-boundary approval record, Document / Handoff explicit hold decision, Incident Verification explicit hold decision, Retail Reality pending approval status card, and Local Data Collection explicit hold decision — and persists `mcp_server/city_ops/fixtures/aas_package_ladder/aas_portfolio_promotion_ledger.json`. Safe claim: `admin_aas_portfolio_promotion_ledger_landed`. Summary counters stay fail-closed: 5 families tracked; 0 with customer delivery authorization, publication readiness, public/catalog routes, pricing/quotes, queue/dispatch, reputation attachment, live Acontext/runtime parity, exact GPS/raw metadata release, or worker-copyable doctrine. Focused verification: `test_aas_portfolio_promotion_ledger.py` -> `12 passed`. The next morning choice is now clean: choose exactly one narrow human-review gate, keep runtime repair isolated, or continue internal proof seams; do not infer customer exposure from the ledger.
 
 ## Latest May 26 23:00 portfolio promotion map
 

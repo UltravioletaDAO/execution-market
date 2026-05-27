@@ -479,6 +479,11 @@ from .aas_cross_family_approval_state_matrix import (
     load_aas_cross_family_approval_state_matrix,
     write_aas_cross_family_approval_state_matrix,
 )
+from .aas_portfolio_promotion_ledger import (
+    build_aas_portfolio_promotion_ledger,
+    load_aas_portfolio_promotion_ledger,
+    write_aas_portfolio_promotion_ledger,
+)
 from .aas_claim_quarantine_board import (
     build_aas_claim_quarantine_board,
     load_aas_claim_quarantine_board,
@@ -812,6 +817,9 @@ __all__ = [
     "build_aas_cross_family_approval_state_matrix",
     "load_aas_cross_family_approval_state_matrix",
     "write_aas_cross_family_approval_state_matrix",
+    "build_aas_portfolio_promotion_ledger",
+    "load_aas_portfolio_promotion_ledger",
+    "write_aas_portfolio_promotion_ledger",
     "build_aas_claim_quarantine_board",
     "load_aas_claim_quarantine_board",
     "write_aas_claim_quarantine_board",
