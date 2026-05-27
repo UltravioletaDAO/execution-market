@@ -489,6 +489,11 @@ from .aas_portfolio_next_gate_board import (
     load_aas_portfolio_next_gate_board,
     write_aas_portfolio_next_gate_board,
 )
+from .aas_portfolio_operator_authorization_packet import (
+    build_aas_portfolio_operator_authorization_packet,
+    load_aas_portfolio_operator_authorization_packet,
+    write_aas_portfolio_operator_authorization_packet,
+)
 from .aas_claim_quarantine_board import (
     build_aas_claim_quarantine_board,
     load_aas_claim_quarantine_board,
@@ -828,6 +833,9 @@ __all__ = [
     "build_aas_portfolio_next_gate_board",
     "load_aas_portfolio_next_gate_board",
     "write_aas_portfolio_next_gate_board",
+    "build_aas_portfolio_operator_authorization_packet",
+    "load_aas_portfolio_operator_authorization_packet",
+    "write_aas_portfolio_operator_authorization_packet",
     "build_aas_claim_quarantine_board",
     "load_aas_claim_quarantine_board",
     "write_aas_claim_quarantine_board",
