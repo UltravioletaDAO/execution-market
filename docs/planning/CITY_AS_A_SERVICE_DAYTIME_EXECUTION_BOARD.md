@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-28 00:00 America/New_York
+> Last updated: 2026-05-28 03:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -8,6 +8,11 @@
 > - `CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md`
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
+
+
+## Latest May 28 03:00 implementation
+
+`mcp_server/city_ops/aas_system_integration_runtime_truth_queue.py` now consumes the system-integration route regret panel plus the latest Acontext daemon-down recheck, persisted at `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/aas_system_integration_runtime_truth_queue.json`. It turns the "stop adding route layers" conclusion into a runtime-truth gate order: Docker daemon/socket -> required image inventory -> local Acontext API/dashboard -> empty readiness gate -> exactly one bounded live write/retrieve parity attempt. Safe claim: `internal_admin_aas_system_integration_runtime_truth_queue_landed`. All gates are currently blocked/not authorized because the source daemon recheck still has Docker/API/dashboard/runtime parity false. The queue also captures planning-only connection cards for Memory ↔ Acontext, IRC session discipline, cross-project decision support, and agent observability metrics, without changing runtime session management or enabling autorouting. It is not a live Acontext write/retrieve, not customer copy/delivery/publication, not public/catalog/pricing, not queue/dispatch, not ERC-8004 reputation or Worker Skill DNA, not payment/production reverification, not exact GPS/raw metadata/private-context exposure, not authority, and not worker-copyable doctrine. Focused verification: runtime truth queue + route regret + daemon recheck tests -> `24 passed`; full city-ops suite -> `1433 passed`. Next safe move: do not add more route layers; repair/prove Docker prerequisites in a separate observation before any parity attempt.
 
 
 ## Latest May 28 00:00 implementation
