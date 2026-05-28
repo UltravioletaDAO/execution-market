@@ -389,7 +389,7 @@ jobs:
           VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS: ${{ secrets.VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS || 'false' }}
           VITE_ENABLE_EVIDENCE_CAROUSEL: ${{ secrets.VITE_ENABLE_EVIDENCE_CAROUSEL || 'false' }}
           VITE_WORLD_ID_ENABLED: ${{ secrets.VITE_WORLD_ID_ENABLED || 'false' }}
-          VITE_VERYAI_ENABLED: ${{ secrets.VITE_VERYAI_ENABLED || 'true' }}
+          VITE_VERYAI_ENABLED: ${{ secrets.VITE_VERYAI_ENABLED || '' }}
           VITE_BALANCES_LAMBDA_URL: ${{ steps.tf-outputs.outputs.balances_url || secrets.VITE_BALANCES_LAMBDA_URL }}
           VITE_GIT_SHA: ${{ github.sha }}
           VITE_BUILD_TIMESTAMP: ${{ steps.timestamp.outputs.value }}
@@ -402,6 +402,9 @@ jobs:
       # snapshot before syncing to S3.
       - name: Verify build embeds feature flags
         working-directory: dashboard
+        env:
+          # Mirror the build env so the verifier knows which flags were shipped on.
+          VITE_VERYAI_ENABLED: ${{ secrets.VITE_VERYAI_ENABLED || '' }}
         run: |
           set -euo pipefail
           BUNDLE=$(ls dist/assets/index-*.js 2>/dev/null | head -1)
@@ -411,9 +414,10 @@ jobs:
           fi
           echo "Inspecting bundle: $BUNDLE"
 
-          # Each entry: "VITE_VAR=expected_value". Add lines as new flags
-          # ship "on" by default. Flags that ship "off" rely on the gated
-          # branch being tree-shaken and do NOT need to be checked here.
+          # Each entry: "VITE_VAR=expected_value". Verified only when the flag
+          # is ACTIVELY shipped on (its env var equals the expected value at
+          # build time). Flags whose secret is unset are skipped — Vite then
+          # tree-shakes the gated branch and that is the intended behavior.
           declare -A REQUIRED=(
             [VITE_VERYAI_ENABLED]="true"
           )
@@ -421,10 +425,15 @@ jobs:
           MISSING=0
           for VAR in "${!REQUIRED[@]}"; do
             EXPECTED="${REQUIRED[$VAR]}"
+            VAR_VALUE="$(printenv "$VAR" 2>/dev/null || echo '')"
+            if [ "$VAR_VALUE" != "$EXPECTED" ]; then
+              echo "  ${VAR} not shipped on (env=${VAR_VALUE:-unset}, expected=${EXPECTED}) — skipping verification"
+              continue
+            fi
             if grep -qE "${VAR}:\"${EXPECTED}\"" "$BUNDLE"; then
               echo "  ${VAR}=\"${EXPECTED}\" — embedded"
             else
-              echo "::error::${VAR} not embedded as \"${EXPECTED}\" in bundle. Build env was likely unset (Vite tree-shook the gated branch)."
+              echo "::error::${VAR} shipped on but not embedded in bundle (Vite likely tree-shook the gated branch). Check the build env."
               MISSING=1
             fi
           done
