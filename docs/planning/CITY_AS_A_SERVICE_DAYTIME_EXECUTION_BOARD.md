@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-28 03:00 America/New_York
+> Last updated: 2026-05-28 05:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -8,6 +8,11 @@
 > - `CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md`
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
+
+
+## Latest May 28 05:00 pre-dawn synthesis
+
+`CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_28.md` is the current daytime coordination entrypoint. The 5 AM pass re-read `~/clawd/DREAM-PRIORITIES.md` first, synced only `projects/execution-market` (`git pull --ff-only` -> already up to date), preserved the pre-existing untracked `scripts/sign_req.mjs`, and stayed inside Execution Market AAS / City-as-a-Service. The stale cron requests for AutoJob, Frontier Academy, and KK v2 were intentionally skipped because the active priority file blocks those tracks. The night now resolves to a truth-selection posture: portfolio coordination -> system-integration route handoff -> pickup board -> route regret panel -> runtime truth queue -> next truth selector. Safe claims remain internal/admin-only: `internal_admin_aas_system_integration_flywheel_route_handoff_packet_landed`, `internal_admin_aas_system_integration_flywheel_route_pickup_board_landed`, `internal_admin_aas_system_integration_flywheel_route_regret_panel_landed`, `internal_admin_aas_system_integration_runtime_truth_queue_landed`, and `admin_aas_next_truth_selector_landed`. Daytime should not add more route layers. Pick exactly one truth-producing fork: prove Docker/Acontext prerequisites and rerun the read-only live preflight before any bounded parity attempt, or create exactly one separate human/operator decision artifact for Retail Reality or Compliance Desk if Saúl gives a real answer. If neither is available, stop and reuse the current handoff/selector artifacts. Do not infer customer copy/delivery/publication, public/catalog/pricing, queue/dispatch, ERC-8004 reputation, Worker Skill DNA, live Acontext runtime parity, payment/production proof, exact GPS/raw metadata/private-context release, domain/emergency/legal/repair/insurance authority, dataset/analytics publication, or worker-copyable doctrine.
 
 
 ## Latest May 28 03:00 implementation
