@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 
 import click
 
-from ..config import get_api_key, get_config_manager
+from ..config import get_wallet, get_config_manager
 from ..api import (
     EMAPIClient,
     APIError,
@@ -184,9 +184,9 @@ def publish(
             --deadline 48 \\
             --instructions @menu_instructions.txt
     """
-    api_key = get_api_key()
-    if not api_key:
-        print_error("Not logged in. Run 'em login --wallet <address>' first.")
+    wallet = get_wallet()
+    if not wallet:
+        print_error("Not logged in. Run 'em login' to bind your OWS wallet.")
         sys.exit(1)
 
     # Handle instructions from file
@@ -306,9 +306,9 @@ def review(ctx, task_id: str, output: str):
 
         em agent review abc123 --output json
     """
-    api_key = get_api_key()
-    if not api_key:
-        print_error("Not logged in. Run 'em login --wallet <address>' first.")
+    wallet = get_wallet()
+    if not wallet:
+        print_error("Not logged in. Run 'em login' to bind your OWS wallet.")
         sys.exit(1)
 
     try:
@@ -373,9 +373,9 @@ def approve(ctx, submission_id: str, notes: Optional[str], output: str):
 
         em agent approve sub_abc123 --notes "Great work, thank you!"
     """
-    api_key = get_api_key()
-    if not api_key:
-        print_error("Not logged in. Run 'em login --wallet <address>' first.")
+    wallet = get_wallet()
+    if not wallet:
+        print_error("Not logged in. Run 'em login' to bind your OWS wallet.")
         sys.exit(1)
 
     try:
@@ -425,9 +425,9 @@ def reject(ctx, submission_id: str, reason: str, output: str):
 
         em agent reject sub_abc123 --reason "Photo is blurry, please retake"
     """
-    api_key = get_api_key()
-    if not api_key:
-        print_error("Not logged in. Run 'em login --wallet <address>' first.")
+    wallet = get_wallet()
+    if not wallet:
+        print_error("Not logged in. Run 'em login' to bind your OWS wallet.")
         sys.exit(1)
 
     if not confirm(f"Reject submission {submission_id}?"):
@@ -479,9 +479,9 @@ def list_agent_tasks(ctx, status: Optional[str], limit: int, output: str):
 
         em agent list --status submitted
     """
-    api_key = get_api_key()
-    if not api_key:
-        print_error("Not logged in. Run 'em login --wallet <address>' first.")
+    wallet = get_wallet()
+    if not wallet:
+        print_error("Not logged in. Run 'em login' to bind your OWS wallet.")
         sys.exit(1)
 
     try:
@@ -529,9 +529,9 @@ def cancel(ctx, task_id: str, reason: Optional[str]):
 
         em agent cancel abc123 --reason "No longer needed"
     """
-    api_key = get_api_key()
-    if not api_key:
-        print_error("Not logged in. Run 'em login --wallet <address>' first.")
+    wallet = get_wallet()
+    if not wallet:
+        print_error("Not logged in. Run 'em login' to bind your OWS wallet.")
         sys.exit(1)
 
     try:

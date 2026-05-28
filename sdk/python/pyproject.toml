@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "execution-market"
-version = "0.1.0"
+version = "1.0.0"
 description = "Execution Market SDK - Universal Execution Layer"
 readme = "README.md"
 license = "MIT"
@@ -22,7 +22,7 @@ keywords = [
     "web3"
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",

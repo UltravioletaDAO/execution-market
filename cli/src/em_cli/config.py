@@ -1,36 +1,45 @@
 """
 Configuration management for Execution Market CLI.
 
-Handles:
-- API key storage in ~/.execution-market/config
-- Environment variable overrides
-- Multiple profile support
+Stores OWS wallet identity (name + EVM address) per profile. The private
+key NEVER lives in this config — it stays encrypted in the OWS vault.
+Auth to the API is wallet-based ERC-8128 signing (see api.py + the
+canonical signer in `execution_market._signer`).
+
+Migration v1.0.0 (2026-05-28): API key auth removed (backend disabled
+it with `EM_API_KEYS_ENABLED=false`). Existing profiles with `api_key`
+are migrated on load — the field is dropped silently. Users re-run
+`em login` to bind a wallet.
 """
 
-import os
 import json
+import os
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Optional, Dict, Any
-from dataclasses import dataclass, asdict, field
+from typing import Any, Dict, Optional
 
 
 # Default configuration directory
 DEFAULT_CONFIG_DIR = Path.home() / ".execution-market"
 DEFAULT_CONFIG_FILE = DEFAULT_CONFIG_DIR / "config.json"
 DEFAULT_API_URL = "https://api.execution.market"
+DEFAULT_CHAIN_ID = 8453  # Base mainnet
 
 
 @dataclass
 class Profile:
-    """An Execution Market CLI profile configuration."""
+    """An Execution Market CLI profile — wallet-based auth (ERC-8128 via OWS)."""
 
     name: str
-    api_key: str
+    wallet_name: str            # OWS wallet identifier (`ows wallet list`)
+    wallet_address: str         # 0x... EVM address (same on all EVM chains)
+    chain_id: int = DEFAULT_CHAIN_ID
     api_url: str = DEFAULT_API_URL
     default_payment_token: str = "USDC"
     default_timeout: float = 30.0
     output_format: str = "table"  # table, json
     executor_id: Optional[str] = None  # For worker profiles
+    agent_id: Optional[int] = None     # Cached ERC-8004 numeric agent ID on this chain
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert profile to dictionary."""
@@ -38,8 +47,11 @@ class Profile:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Profile":
-        """Create profile from dictionary."""
-        return cls(**data)
+        """Create profile from dictionary; silently drops legacy `api_key` field."""
+        # Strip any field this dataclass no longer accepts (notably api_key from
+        # pre-1.0.0 configs). Avoids TypeError on schema migration.
+        valid = {k: v for k, v in data.items() if k in cls.__dataclass_fields__}
+        return cls(**valid)
 
 
 @dataclass
@@ -82,7 +94,7 @@ class Config:
             "profiles": {
                 name: profile.to_dict()
                 for name, profile in self.profiles.items()
-            }
+            },
         }
 
     @classmethod
@@ -94,7 +106,7 @@ class Config:
         }
         return cls(
             active_profile=data.get("active_profile", "default"),
-            profiles=profiles
+            profiles=profiles,
         )
 
 
@@ -123,7 +135,7 @@ class ConfigManager:
         """Ensure configuration directory exists."""
         self.config_dir.mkdir(parents=True, exist_ok=True)
         # Set restrictive permissions on config directory
-        if os.name != 'nt':  # Not Windows
+        if os.name != "nt":  # Not Windows
             self.config_dir.chmod(0o700)
 
     def load(self) -> Config:
@@ -132,10 +144,10 @@ class ConfigManager:
             return Config()
 
         try:
-            with open(self.config_file, 'r') as f:
+            with open(self.config_file, "r") as f:
                 data = json.load(f)
             return Config.from_dict(data)
-        except (json.JSONDecodeError, KeyError) as e:
+        except (json.JSONDecodeError, KeyError):
             # Return empty config if file is corrupted
             return Config()
 
@@ -143,42 +155,38 @@ class ConfigManager:
         """Save configuration to file."""
         self.ensure_config_dir()
 
-        with open(self.config_file, 'w') as f:
+        with open(self.config_file, "w") as f:
             json.dump(self.config.to_dict(), f, indent=2)
 
         # Set restrictive permissions on config file
-        if os.name != 'nt':  # Not Windows
+        if os.name != "nt":  # Not Windows
             self.config_file.chmod(0o600)
 
-    def get_api_key(self, profile_name: Optional[str] = None) -> Optional[str]:
+    # ------------------------------------------------------------------
+    # Wallet identity (replaces the v0.x get_api_key / set api_key path)
+    # ------------------------------------------------------------------
+
+    def get_wallet(self, profile_name: Optional[str] = None) -> Optional[tuple[str, str, int]]:
         """
-        Get API key with environment variable override.
+        Return (wallet_name, wallet_address, chain_id) for signing, with env overrides.
 
         Priority:
-        1. EM_API_KEY environment variable
-        2. Profile-specific environment variable (EM_API_KEY_<PROFILE>)
-        3. Config file
+        1. EM_WALLET_NAME + EM_WALLET_ADDRESS env vars (with EM_CHAIN_ID optional)
+        2. Profile in config
 
-        Args:
-            profile_name: Profile to get key for (default: active profile)
-
-        Returns:
-            API key or None
+        Returns None if no wallet is configured anywhere.
         """
-        # Check global env var first
-        env_key = os.environ.get("EM_API_KEY")
-        if env_key:
-            return env_key
+        env_name = os.environ.get("EM_WALLET_NAME")
+        env_addr = os.environ.get("EM_WALLET_ADDRESS")
+        if env_name and env_addr:
+            chain_id = int(os.environ.get("EM_CHAIN_ID", str(DEFAULT_CHAIN_ID)))
+            return env_name, env_addr, chain_id
 
-        # Check profile-specific env var
         name = profile_name or self.config.active_profile
-        env_key = os.environ.get(f"EM_API_KEY_{name.upper()}")
-        if env_key:
-            return env_key
-
-        # Fall back to config file
         profile = self.config.profiles.get(name)
-        return profile.api_key if profile else None
+        if not profile:
+            return None
+        return profile.wallet_name, profile.wallet_address, profile.chain_id
 
     def get_api_url(self, profile_name: Optional[str] = None) -> str:
         """
@@ -221,29 +229,28 @@ class ConfigManager:
     def set_profile(
         self,
         name: str,
-        api_key: str,
+        wallet_name: str,
+        wallet_address: str,
+        chain_id: int = DEFAULT_CHAIN_ID,
         api_url: Optional[str] = None,
         executor_id: Optional[str] = None,
-        make_active: bool = True
+        agent_id: Optional[int] = None,
+        make_active: bool = True,
     ) -> Profile:
         """
-        Create or update a profile.
+        Create or update a profile bound to an OWS wallet.
 
-        Args:
-            name: Profile name
-            api_key: API key
-            api_url: API URL (default: production URL)
-            executor_id: Executor ID for worker profiles
-            make_active: Make this the active profile
-
-        Returns:
-            Created/updated profile
+        The private key is NEVER stored — only the wallet name (OWS vault key)
+        and the EVM address used in the ERC-8128 keyid.
         """
         profile = Profile(
             name=name,
-            api_key=api_key,
+            wallet_name=wallet_name,
+            wallet_address=wallet_address,
+            chain_id=chain_id,
             api_url=api_url or DEFAULT_API_URL,
-            executor_id=executor_id
+            executor_id=executor_id,
+            agent_id=agent_id,
         )
 
         self.config.add_profile(profile)
@@ -285,9 +292,9 @@ def get_config_manager() -> ConfigManager:
     return _config_manager
 
 
-def get_api_key() -> Optional[str]:
-    """Convenience function to get API key."""
-    return get_config_manager().get_api_key()
+def get_wallet() -> Optional[tuple[str, str, int]]:
+    """Convenience: (wallet_name, wallet_address, chain_id) or None."""
+    return get_config_manager().get_wallet()
 
 
 def get_api_url() -> str:

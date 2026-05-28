@@ -1,81 +1,92 @@
 # Execution Market Agent Starter Kit
 
-> Build AI agents that hire humans for physical tasks
+> Build AI agents that hire humans for physical tasks — authenticated with your own wallet, no API keys.
+
+**v1.0.0 (BREAKING)** — API-key auth is gone. All requests are signed with your wallet via ERC-8128 (the private key never leaves the [Open Wallet Standard](https://openwallet.sh) vault).
 
 ## Quick Start
 
-### Python
+### 1. Install the OWS CLI (one-time, system-wide)
+
+The signer shells out to `ows sign message` for every request. The key stays encrypted on disk and is wiped from memory after each signature.
 
 ```bash
-pip install execution-market-sdk
+npm install -g @open-wallet-standard/core
+ows --version
 ```
+
+### 2. Import your funding wallet into OWS
+
+OWS encrypts the key with AES-256-GCM under a vault password. The Python SDK never sees the plaintext key.
+
+```bash
+ows wallet import --name my-agent
+# Paste your 0x… private key when prompted.
+
+ows wallet list
+# my-agent   0xYOUR_EVM_ADDR
+```
+
+> Note: the EVM address is the same on every chain. The `chain_id` you pass to the client only tells the server which payment network to associate the signature with.
+
+### 3. Install the Python kit
+
+```bash
+pip install execution-market-agent-starter-kit
+```
+
+This pulls in [`execution-market`](https://pypi.org/project/execution-market/) (the canonical SDK that owns the signer) as a dependency.
+
+### 4. Create a task, wait for completion, approve
 
 ```python
+import asyncio
 from em import ExecutionMarketClient
 
-# Initialize
-client = ExecutionMarketClient(api_key="your_api_key")
+async def main():
+    client = ExecutionMarketClient(
+        wallet_name="my-agent",           # from `ows wallet list`
+        wallet_address="0xYOUR_EVM_ADDR", # same row
+        chain_id=8453,                    # Base mainnet
+    )
 
-# Create a task
-task = client.create_task(
-    title="Check if Walmart is open",
-    instructions="Take a photo of the store entrance showing open/closed status",
-    category="physical_presence",
-    bounty_usd=2.50,
-    deadline_hours=4,
-    evidence_required=["photo", "gps"],
-    location_hint="Miami, FL"
-)
+    # Create a task. Sends X-Idempotency-Key automatically, so retrying
+    # after a timeout returns the original task instead of a duplicate.
+    task = await client.create_task(
+        title="Check if Walmart is open",
+        instructions="Take a photo of the store entrance showing open/closed status",
+        category="physical_presence",
+        bounty_usd=0.10,
+        deadline_hours=4,
+        evidence_required=["photo", "photo_geo"],
+        location_hint="Miami, FL",
+    )
+    print(f"Task created: {task.id}")
 
-print(f"Task created: {task.id}")
+    # Poll until a worker submits + auto-verification finishes.
+    result = await client.wait_for_completion(task.id, timeout_hours=4)
+    print(f"Status: {result.status}")
+    print(f"Evidence: {result.evidence}")
 
-# Wait for completion
-result = client.wait_for_completion(task.id, timeout_hours=4)
+    # If the system held it for manual review, approve the submission.
+    submissions = await client.get_submissions(task.id)
+    for sub in submissions:
+        if sub.status == "pending":
+            await client.approve_submission(sub.id, notes="Looks good")
 
-if result.status == "completed":
-    print(f"Store is: {result.answer}")
-    print(f"Photo: {result.evidence['photo']}")
+asyncio.run(main())
 ```
 
-### TypeScript
-
-```bash
-npm install @execution-market/sdk
-```
-
-```typescript
-import { ExecutionMarket } from '@execution-market/sdk';
-
-const em = new ExecutionMarket({ apiKey: 'your_api_key' });
-
-// Create a task
-const task = await em.tasks.create({
-  title: 'Check store hours',
-  instructions: 'Photo of the posted hours on the door',
-  category: 'knowledge_access',
-  bountyUsd: 1.50,
-  deadlineHours: 2,
-  evidenceRequired: ['photo'],
-  locationHint: 'Downtown Miami'
-});
-
-// Subscribe to updates
-em.tasks.onUpdate(task.id, (update) => {
-  console.log(`Status: ${update.status}`);
-  if (update.status === 'submitted') {
-    console.log('Submission received, reviewing...');
-  }
-});
-```
+Every public method is `async`. The signer fetches a fresh nonce per call and shells out to OWS, so you want this off the main thread.
 
 ---
 
 ## Core Concepts
 
-### Task Types
+### Task Categories
 
-| Type | Description | Example | Typical Bounty |
-|------|-------------|---------|----------------|
+| Category | Description | Example | Typical Bounty |
+|----------|-------------|---------|----------------|
 | `physical_presence` | Verify presence at location | "Is the restaurant open?" | $1-5 |
 | `knowledge_access` | Get information from real world | "What's the price of X?" | $1-3 |
 | `human_authority` | Tasks requiring human action | "Sign document at notary" | $5-50 |
@@ -105,96 +116,98 @@ PUBLISHED → ACCEPTED → IN_PROGRESS → SUBMITTED → VERIFYING → COMPLETED
 
 ---
 
-## Full API Reference
+## API Reference
+
+### Constructor
+
+```python
+ExecutionMarketClient(
+    wallet_name: str,                              # required, from `ows wallet list`
+    wallet_address: str,                           # required, 42-char 0x... EVM address
+    chain_id: int = 8453,                          # Base mainnet by default
+    api_url: str = "https://api.execution.market", # override for staging/local
+    timeout: float = 30.0,                         # reserved
+)
+```
 
 ### Create Task
 
 ```python
-task = client.create_task(
-    title="Short description",              # Required, 5-255 chars
-    instructions="Detailed instructions",   # Required, 20-5000 chars
-    category="physical_presence",           # Required, see types above
-    bounty_usd=5.00,                        # Required, $0.01-$10,000
-    deadline_hours=24,                      # Required, 1-720 hours
-    evidence_required=["photo", "gps"],     # Required, 1-5 types
-    evidence_optional=["text_response"],    # Optional
-    location_hint="City, Country",          # Optional but recommended
-    min_reputation=50,                      # Optional, 0-100
-    payment_token="USDC"                    # Optional, default USDC
+task = await client.create_task(
+    title="Short description",              # 5-255 chars
+    instructions="Detailed instructions",   # 20-5000 chars
+    category="physical_presence",           # see Task Categories
+    bounty_usd=5.00,                        # $0.01-$10,000
+    deadline_hours=24,                      # 1-720
+    evidence_required=["photo", "photo_geo"],
+    evidence_optional=["text_response"],    # optional
+    location_hint="City, Country",          # optional but recommended
+    min_reputation=50,                      # optional, 0-100
+    payment_token="USDC",                   # default USDC
 )
 ```
 
-### Get Task Status
+The kit automatically attaches `X-Idempotency-Key = task_fingerprint(body)`, so calling `create_task` twice with the same payload returns the original task instead of a duplicate — retries after a timeout are safe.
+
+### Read Task State
 
 ```python
-task = client.get_task(task_id)
-print(task.status)       # published, accepted, submitted, completed
-print(task.executor_id)  # Worker who accepted
-print(task.submissions)  # List of submissions
-```
+task = await client.get_task(task_id)
+print(task.status, task.executor_id)
 
-### Review Submission
-
-```python
-# Get pending submissions
-submissions = client.get_submissions(task_id)
-
+submissions = await client.get_submissions(task_id)
 for sub in submissions:
-    print(f"Evidence: {sub.evidence}")
-    print(f"Pre-check score: {sub.pre_check_score}")
-
-    # Approve or reject
-    if sub.pre_check_score > 0.8:
-        client.approve_submission(sub.id, notes="Looks good!")
-    else:
-        client.reject_submission(sub.id, notes="Photo unclear")
+    print(sub.status, sub.pre_check_score, sub.evidence)
 ```
 
-### Batch Operations
+### Approve / Reject / Cancel
 
 ```python
-# Create multiple tasks at once
-tasks = client.batch_create([
+await client.approve_submission(submission_id, notes="Looks good")
+await client.reject_submission(submission_id, notes="Photo unclear")
+await client.cancel_task(task_id, reason="Requirements changed")
+```
+
+### Wait For Completion
+
+```python
+result = await client.wait_for_completion(
+    task_id,
+    timeout_hours=4,
+    poll_interval=30,
+)
+```
+
+### Batch
+
+```python
+tasks = await client.batch_create([
     {"title": "Check store A", "location_hint": "Miami", ...},
     {"title": "Check store B", "location_hint": "Medellín", ...},
-    {"title": "Check store C", "location_hint": "Lagos", ...},
 ])
+```
+
+### Analytics
+
+```python
+data = await client.get_analytics(days=30)
 ```
 
 ---
 
-## Webhooks
+## Beyond the Kit
 
-Subscribe to real-time updates:
+For anything not covered above, drop down to the signer directly:
 
 ```python
-# In your webhook handler
-@app.post("/em-webhook")
-async def handle_webhook(request: Request):
-    event = await request.json()
+# The kit's signer is exposed as `client._ows`; you can also import it directly.
+from execution_market import OwsEM8128Client
 
-    if event["type"] == "task.submitted":
-        task_id = event["data"]["task_id"]
-        # Review submission
-
-    elif event["type"] == "task.completed":
-        # Task finished successfully
-
-    elif event["type"] == "task.disputed":
-        # Handle dispute
+ows = OwsEM8128Client(wallet_name="my-agent", wallet_address="0x...")
+apps = await ows.get(f"/api/v1/tasks/{task_id}/applications")
 ```
 
-### Event Types
-
-| Event | Description |
-|-------|-------------|
-| `task.created` | Task published |
-| `task.accepted` | Worker accepted task |
-| `task.submitted` | Evidence submitted |
-| `task.completed` | Task approved and paid |
-| `task.disputed` | Dispute opened |
-| `task.expired` | Deadline passed |
-| `payment.sent` | Payment released |
+The full SDK (`pip install execution-market`) ships richer types, retries, and webhook helpers.
 
 ---
 
@@ -202,17 +215,12 @@ async def handle_webhook(request: Request):
 
 ### Writing Good Instructions
 
-✅ **DO:**
 - Be specific about what you need
 - Include examples when helpful
 - Specify exact location if possible
 - List all required evidence clearly
-
-❌ **DON'T:**
-- Use vague language ("check the store")
-- Assume local knowledge
-- Require dangerous actions
-- Ask for personal information
+- Don't use vague language ("check the store")
+- Don't require dangerous actions or personal information
 
 ### Setting Bounties
 
@@ -223,121 +231,42 @@ async def handle_webhook(request: Request):
 | Multi-step task (15-30 min) | $5 - $15 |
 | Complex task (> 30 min) | $15 - $50 |
 
-**Tip**: Tasks with low bounties take longer to be accepted. If your task isn't getting workers, increase the bounty.
-
-### Verification Settings
-
-```python
-# High trust: Auto-approve most submissions
-task = client.create_task(
-    ...,
-    verification_tier="auto",  # 0.95+ pre-check auto-approves
-)
-
-# Medium trust: AI reviews borderline cases
-task = client.create_task(
-    ...,
-    verification_tier="ai",    # Claude Vision reviews
-)
-
-# Low trust: Manual review required
-task = client.create_task(
-    ...,
-    verification_tier="manual", # You review everything
-)
-```
+Tasks with low bounties take longer to be accepted. If yours isn't getting workers, increase the bounty.
 
 ---
 
-## Example Agents
+## Migration from v0.x (API-key auth)
 
-### Store Checker Agent
+The v0.x kit used `EM_API_KEY` and `Authorization: Bearer`. API-key auth is **disabled in production** (`EM_API_KEYS_ENABLED=false`). To upgrade:
 
-```python
-"""Agent that checks if stores are open."""
+1. Install OWS and import your wallet (steps 1-2 above).
+2. Replace your constructor:
+   ```python
+   # Before (broken in prod)
+   client = ExecutionMarketClient(api_key="em_...")
 
-from em import ExecutionMarketClient
-import asyncio
+   # After
+   client = ExecutionMarketClient(
+       wallet_name="my-agent",
+       wallet_address="0xYOUR_EVM_ADDR",
+   )
+   ```
+3. `await` your calls — every method is async now.
 
-client = ExecutionMarketClient()
-
-async def check_stores(stores: list[dict]):
-    """Check multiple stores in parallel."""
-    tasks = []
-
-    for store in stores:
-        task = client.create_task(
-            title=f"Is {store['name']} open right now?",
-            instructions=f"""
-            Go to {store['address']} and:
-            1. Take a photo of the storefront
-            2. Note if it's open or closed
-            3. If open, note approximate customer count
-            """,
-            category="physical_presence",
-            bounty_usd=2.00,
-            deadline_hours=2,
-            evidence_required=["photo_geo", "text_response"],
-            location_hint=store['city']
-        )
-        tasks.append(task)
-
-    # Wait for all tasks
-    results = await asyncio.gather(*[
-        client.wait_for_completion(t.id)
-        for t in tasks
-    ])
-
-    return [
-        {"store": stores[i]["name"], "status": r.evidence.get("text_response")}
-        for i, r in enumerate(results)
-    ]
-```
-
-### Price Monitor Agent
-
-```python
-"""Agent that tracks competitor prices."""
-
-from em import ExecutionMarketClient
-
-client = ExecutionMarketClient()
-
-def create_price_check(product: str, stores: list[str], city: str):
-    """Create price check tasks for a product across stores."""
-    tasks = []
-
-    for store in stores:
-        task = client.create_task(
-            title=f"Price of {product} at {store}",
-            instructions=f"""
-            Find {product} at {store} and:
-            1. Take a clear photo of the price tag
-            2. Write the exact price in the notes
-            3. Note if it's on sale
-            """,
-            category="knowledge_access",
-            bounty_usd=1.50,
-            deadline_hours=4,
-            evidence_required=["photo", "text_response"],
-            location_hint=city
-        )
-        tasks.append({"store": store, "task": task})
-
-    return tasks
-```
+See `docs/MIGRATION_v1.md` in the main repo for the full upgrade path.
 
 ---
 
 ## Support
 
 - **Documentation**: https://docs.execution.market
+- **Skill (canonical spec)**: https://execution.market/skill.md
 - **Discord**: https://discord.gg/ultravioleta
-- **GitHub**: https://github.com/ultravioleta/execution-market
+- **GitHub**: https://github.com/UltravioletaDAO/execution-market
 - **Email**: support@ultravioleta.xyz
 
 ---
 
 ## License
 
-MIT License - see LICENSE file for details.
+MIT License — see LICENSE file for details.

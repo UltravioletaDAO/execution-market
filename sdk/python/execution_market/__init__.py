@@ -6,7 +6,10 @@ The Universal Execution Layer for AI agents — humans today, robots tomorrow.
 
 Example:
     >>> from execution_market import ExecutionMarketClient
-    >>> client = ExecutionMarketClient(api_key="your_key")
+    >>> client = ExecutionMarketClient(
+    ...     wallet_name="my-agent",
+    ...     wallet_address="0xYOUR_EVM_ADDR",
+    ... )
     >>> task = client.create_task(
     ...     title="Check store hours",
     ...     instructions="Photo of posted hours",
@@ -39,16 +42,27 @@ from execution_market.exceptions import (
     NetworkError,
     TaskError,
 )
+from execution_market._signer import (
+    OwsEM8128Client,
+    OwsSignError,
+    task_fingerprint,
+    with_backoff,
+)
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 
 __all__ = [
     # Client
     "ExecutionMarketClient",
     "create_client",
+    # Signer (OWS / ERC-8128)
+    "OwsEM8128Client",
+    "OwsSignError",
+    "task_fingerprint",
+    "with_backoff",
     # Types
     "Task",
-    "Submission", 
+    "Submission",
     "TaskResult",
     "TaskStatus",
     "TaskCategory",

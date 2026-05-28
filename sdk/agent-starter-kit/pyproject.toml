@@ -1,0 +1,46 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "execution-market-agent-starter-kit"
+version = "1.0.0"
+description = "Minimal async starter kit for AI agents using Execution Market (OWS / ERC-8128 wallet auth)"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+authors = [
+    { name = "Ultravioleta DAO", email = "hello@ultravioletadao.xyz" }
+]
+keywords = [
+    "ai",
+    "agents",
+    "execution-market",
+    "ows",
+    "erc-8128",
+    "wallet-auth",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "httpx>=0.24.0",
+    "execution-market>=1.0.0",
+]
+
+[project.urls]
+Homepage = "https://execution.market"
+Documentation = "https://docs.execution.market"
+Repository = "https://github.com/UltravioletaDAO/execution-market"
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]
+only-include = ["em.py"]

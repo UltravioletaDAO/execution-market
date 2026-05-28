@@ -14,7 +14,7 @@ from pathlib import Path
 
 import click
 
-from ..config import get_api_key, get_config_manager
+from ..config import get_wallet, get_config_manager
 from ..api import (
     EMAPIClient,
     APIError,
@@ -144,9 +144,9 @@ def list_tasks(
         # Get JSON output for scripting
         em tasks list --output json
     """
-    api_key = get_api_key()
-    if not api_key:
-        print_error("Not logged in. Run 'em login --wallet <address>' first.")
+    wallet = get_wallet()
+    if not wallet:
+        print_error("Not logged in. Run 'em login' to bind your OWS wallet.")
         sys.exit(1)
 
     # Parse location if provided
@@ -224,9 +224,9 @@ def apply_task(ctx, task_id: str, message: Optional[str]):
 
         em tasks apply abc123 --message "I can complete this within 2 hours"
     """
-    api_key = get_api_key()
-    if not api_key:
-        print_error("Not logged in. Run 'em login --wallet <address>' first.")
+    wallet = get_wallet()
+    if not wallet:
+        print_error("Not logged in. Run 'em login' to bind your OWS wallet.")
         sys.exit(1)
 
     config_mgr = get_config_manager()
@@ -297,9 +297,9 @@ def submit_task(ctx, task_id: str, evidence: str, notes: Optional[str]):
         # From file
         em tasks submit abc123 --evidence @evidence.json --notes "Completed as requested"
     """
-    api_key = get_api_key()
-    if not api_key:
-        print_error("Not logged in. Run 'em login --wallet <address>' first.")
+    wallet = get_wallet()
+    if not wallet:
+        print_error("Not logged in. Run 'em login' to bind your OWS wallet.")
         sys.exit(1)
 
     config_mgr = get_config_manager()
@@ -391,9 +391,9 @@ def task_status(ctx, task_id: str, output: str):
 
         em tasks status abc123 --output json
     """
-    api_key = get_api_key()
-    if not api_key:
-        print_error("Not logged in. Run 'em login --wallet <address>' first.")
+    wallet = get_wallet()
+    if not wallet:
+        print_error("Not logged in. Run 'em login' to bind your OWS wallet.")
         sys.exit(1)
 
     try:
@@ -434,9 +434,9 @@ def my_tasks(ctx, status: Optional[str], output: str):
 
         em tasks my --status in_progress
     """
-    api_key = get_api_key()
-    if not api_key:
-        print_error("Not logged in. Run 'em login --wallet <address>' first.")
+    wallet = get_wallet()
+    if not wallet:
+        print_error("Not logged in. Run 'em login' to bind your OWS wallet.")
         sys.exit(1)
 
     config_mgr = get_config_manager()

@@ -34,11 +34,13 @@ import click
 __version__ = "0.1.0"
 from .config import (
     get_config_manager,
-    get_api_key,
+    get_wallet,
     ConfigManager,
     Profile,
-    DEFAULT_API_URL
+    DEFAULT_API_URL,
+    DEFAULT_CHAIN_ID,
 )
+from execution_market import OwsSignError
 from .api import (
     EMAPIClient,
     APIError,
@@ -141,45 +143,81 @@ def cli(ctx: Context, output: str, profile: Optional[str], verbose: bool):
 # ============================================================================
 
 @cli.command()
-@click.option(
-    "--api-key", "-k",
-    help="API key (or set EM_API_KEY env var)"
-)
-@click.option(
-    "--api-url", "-u",
-    default=DEFAULT_API_URL,
-    help="API base URL"
-)
-@click.option(
-    "--profile-name", "-n",
-    default="default",
-    help="Profile name to save as"
-)
-@click.option(
-    "--worker",
-    is_flag=True,
-    help="Login as a worker (prompts for executor ID)"
-)
+@click.option("--wallet-name", "-w", help="OWS wallet name (run `ows wallet list` to see)")
+@click.option("--wallet-address", "-a", help="EVM 0x... address (auto-detected from OWS if omitted)")
+@click.option("--chain-id", type=int, default=DEFAULT_CHAIN_ID,
+              help=f"Chain ID for ERC-8128 keyid (default: {DEFAULT_CHAIN_ID} Base)")
+@click.option("--api-url", "-u", default=DEFAULT_API_URL, help="API base URL")
+@click.option("--profile-name", "-n", default="default", help="Profile name to save as")
+@click.option("--worker", is_flag=True, help="Login as a worker (prompts for executor ID)")
 @pass_context
 def login(
     ctx: Context,
-    api_key: Optional[str],
+    wallet_name: Optional[str],
+    wallet_address: Optional[str],
+    chain_id: int,
     api_url: str,
     profile_name: str,
-    worker: bool
+    worker: bool,
 ):
-    """Authenticate with Execution Market API."""
+    """
+    Bind an OWS wallet for ERC-8128 signed requests.
+
+    The private key NEVER leaves the OWS vault. This command just records
+    your wallet name + address so subsequent commands can sign with them.
+
+    Examples:
+        # Auto-detect from OWS
+        em login
+
+        # Explicit wallet + worker mode
+        em login --wallet-name my-agent --wallet-address 0x... --worker
+    """
     config_mgr = get_config_manager()
 
-    # Get API key
-    if not api_key:
-        api_key = prompt("Enter your API key", default=get_api_key() or "")
+    # Auto-detect wallet via `ows wallet list` if either piece is missing.
+    if not wallet_name or not wallet_address:
+        import subprocess
+        try:
+            r = subprocess.run(
+                ["ows", "wallet", "list", "--json"],
+                capture_output=True, text=True, timeout=5,
+            )
+            if r.returncode == 0 and r.stdout.strip():
+                try:
+                    wallets = json.loads(r.stdout)
+                except json.JSONDecodeError:
+                    wallets = []
+                # OWS format varies; accept list of dicts or list of names.
+                names = [w.get("name") if isinstance(w, dict) else str(w) for w in wallets]
+                if names and not wallet_name:
+                    print_info(f"OWS wallets detected: {names}")
+                    wallet_name = prompt("Select wallet name", default=names[0])
+                if wallet_name and not wallet_address:
+                    chosen = next(
+                        (w for w in wallets if isinstance(w, dict) and w.get("name") == wallet_name),
+                        None,
+                    )
+                    if chosen:
+                        for addr in chosen.get("addresses", []) or []:
+                            cand = addr.get("address") if isinstance(addr, dict) else addr
+                            if isinstance(cand, str) and cand.startswith("0x") and len(cand) == 42:
+                                wallet_address = cand
+                                break
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            pass  # OWS CLI not installed; fall through to manual prompt.
 
-    if not api_key:
-        print_error("API key is required")
+    if not wallet_name:
+        wallet_name = prompt("OWS wallet name (run `ows wallet list` to see)")
+    if not wallet_address:
+        wallet_address = prompt("EVM wallet address (0x...)")
+
+    # Basic format validation — the canonical signer rejects bad addresses anyway,
+    # but failing here gives a clearer message.
+    if not (wallet_address.startswith("0x") and len(wallet_address) == 42):
+        print_error(f"Invalid wallet address: {wallet_address!r} — expected 0x + 40 hex chars.")
         sys.exit(1)
 
-    # Get executor ID for workers
     executor_id = None
     if worker:
         executor_id = prompt("Enter your executor ID")
@@ -187,35 +225,44 @@ def login(
             print_error("Executor ID is required for worker login")
             sys.exit(1)
 
-    # Validate the API key
-    with spinner("Validating API key..."):
+    # Light validation: hit /v1/health with the wallet so the user gets immediate
+    # feedback if OWS isn't installed or the signing path is broken.
+    with spinner("Validating wallet signing..."):
         try:
-            # Create temporary client to validate
-            client = EMAPIClient(api_key=api_key, base_url=api_url)
-            # Try to make a simple request
+            client = EMAPIClient(
+                wallet_name=wallet_name,
+                wallet_address=wallet_address,
+                chain_id=chain_id,
+                base_url=api_url,
+            )
             client._request_with_retry("GET", "/v1/health")
             client.close()
-        except APIError as e:
-            print_error(f"API key validation failed: {e}")
+        except OwsSignError as e:
+            print_error(f"OWS signing failed: {e}")
+            print_info("Install OWS: npm install -g @open-wallet-standard/core")
             sys.exit(1)
-        except Exception as e:
-            # Health endpoint might not exist, but connection worked
+        except APIError as e:
+            print_warning(f"Health check returned {e.status_code}: {e.message}")
+            print_info("Profile saved anyway — re-test with `em status` after troubleshooting.")
+        except Exception:
+            # Network or other transient error — proceed to save the profile.
             pass
 
-    # Save profile
-    profile = config_mgr.set_profile(
+    config_mgr.set_profile(
         name=profile_name,
-        api_key=api_key,
+        wallet_name=wallet_name,
+        wallet_address=wallet_address,
+        chain_id=chain_id,
         api_url=api_url,
-        executor_id=executor_id
+        executor_id=executor_id,
     )
 
-    print_success(f"Logged in successfully as profile '{profile_name}'")
-
-    if worker:
+    print_success(f"Logged in as profile '{profile_name}'")
+    print_info(f"Wallet: {wallet_name} ({wallet_address})")
+    print_info(f"Chain ID: {chain_id} ({'Base' if chain_id == DEFAULT_CHAIN_ID else 'custom'})")
+    if executor_id:
         print_info(f"Executor ID: {executor_id}")
 
-    # Reset client to pick up new config
     reset_client()
 
 
@@ -363,9 +410,9 @@ def tasks_list(
     offset: int
 ):
     """List tasks, optionally filtered by location."""
-    api_key = get_api_key()
-    if not api_key:
-        print_error("Not logged in. Run 'em login --wallet <address>' first.")
+    wallet = get_wallet()
+    if not wallet:
+        print_error("Not logged in. Run 'em login' to bind your OWS wallet.")
         sys.exit(1)
 
     # Parse location if provided
@@ -445,8 +492,8 @@ def tasks_create(
     token: str
 ):
     """Create a new task."""
-    api_key = get_api_key()
-    if not api_key:
+    wallet = get_wallet()
+    if not wallet:
         print_error("Not logged in. Run 'em login' first.")
         sys.exit(1)
 
@@ -482,8 +529,8 @@ def tasks_create(
 @pass_context
 def tasks_status(ctx: Context, task_id: str):
     """Get task status and details."""
-    api_key = get_api_key()
-    if not api_key:
+    wallet = get_wallet()
+    if not wallet:
         print_error("Not logged in. Run 'em login' first.")
         sys.exit(1)
 
@@ -509,8 +556,8 @@ def tasks_status(ctx: Context, task_id: str):
 @pass_context
 def tasks_apply(ctx: Context, task_id: str, message: Optional[str]):
     """Apply to a task (worker)."""
-    api_key = get_api_key()
-    if not api_key:
+    wallet = get_wallet()
+    if not wallet:
         print_error("Not logged in. Run 'em login --worker' first.")
         sys.exit(1)
 
@@ -539,8 +586,8 @@ def tasks_apply(ctx: Context, task_id: str, message: Optional[str]):
 @pass_context
 def tasks_submit(ctx: Context, task_id: str, evidence: str, notes: Optional[str]):
     """Submit evidence for a task (worker)."""
-    api_key = get_api_key()
-    if not api_key:
+    wallet = get_wallet()
+    if not wallet:
         print_error("Not logged in. Run 'em login --worker' first.")
         sys.exit(1)
 
@@ -578,8 +625,8 @@ def tasks_submit(ctx: Context, task_id: str, evidence: str, notes: Optional[str]
 @pass_context
 def tasks_cancel(ctx: Context, task_id: str, reason: Optional[str]):
     """Cancel a task."""
-    api_key = get_api_key()
-    if not api_key:
+    wallet = get_wallet()
+    if not wallet:
         print_error("Not logged in. Run 'em login' first.")
         sys.exit(1)
 
@@ -606,8 +653,8 @@ def tasks_cancel(ctx: Context, task_id: str, reason: Optional[str]):
 @pass_context
 def tasks_submissions(ctx: Context, task_id: str):
     """View submissions for a task."""
-    api_key = get_api_key()
-    if not api_key:
+    wallet = get_wallet()
+    if not wallet:
         print_error("Not logged in. Run 'em login' first.")
         sys.exit(1)
 
@@ -634,8 +681,8 @@ def tasks_submissions(ctx: Context, task_id: str):
 @pass_context
 def tasks_approve(ctx: Context, submission_id: str, notes: Optional[str]):
     """Approve a submission."""
-    api_key = get_api_key()
-    if not api_key:
+    wallet = get_wallet()
+    if not wallet:
         print_error("Not logged in. Run 'em login' first.")
         sys.exit(1)
 
@@ -661,8 +708,8 @@ def tasks_approve(ctx: Context, submission_id: str, notes: Optional[str]):
 @pass_context
 def tasks_reject(ctx: Context, submission_id: str, notes: str):
     """Reject a submission."""
-    api_key = get_api_key()
-    if not api_key:
+    wallet = get_wallet()
+    if not wallet:
         print_error("Not logged in. Run 'em login' first.")
         sys.exit(1)
 
@@ -694,8 +741,8 @@ def wallet():
 @pass_context
 def wallet_balance(ctx: Context):
     """Check wallet balance."""
-    api_key = get_api_key()
-    if not api_key:
+    wallet = get_wallet()
+    if not wallet:
         print_error("Not logged in. Run 'em login' first.")
         sys.exit(1)
 
@@ -721,8 +768,8 @@ def wallet_balance(ctx: Context):
 @pass_context
 def wallet_withdraw(ctx: Context, amount: Optional[float], destination: Optional[str]):
     """Withdraw earnings."""
-    api_key = get_api_key()
-    if not api_key:
+    wallet = get_wallet()
+    if not wallet:
         print_error("Not logged in. Run 'em login' first.")
         sys.exit(1)
 
@@ -767,8 +814,8 @@ def wallet_withdraw(ctx: Context, amount: Optional[float], destination: Optional
 @pass_context
 def wallet_transactions(ctx: Context, limit: int, offset: int):
     """View transaction history."""
-    api_key = get_api_key()
-    if not api_key:
+    wallet = get_wallet()
+    if not wallet:
         print_error("Not logged in. Run 'em login' first.")
         sys.exit(1)
 
@@ -795,8 +842,8 @@ def wallet_transactions(ctx: Context, limit: int, offset: int):
 @pass_context
 def analytics(ctx: Context, days: int):
     """View usage analytics."""
-    api_key = get_api_key()
-    if not api_key:
+    wallet = get_wallet()
+    if not wallet:
         print_error("Not logged in. Run 'em login' first.")
         sys.exit(1)
 

@@ -10,6 +10,9 @@ The Universal Execution Layer for AI agents. Create tasks that require physical-
 
 ```bash
 pip install execution-market
+# OWS CLI is required for wallet signing (auth is keyless: the private
+# key never leaves the local OWS vault).
+npm install -g @open-wallet-standard/core
 ```
 
 ## Quick Start
@@ -17,8 +20,14 @@ pip install execution-market
 ```python
 from execution_market import ExecutionMarketClient
 
-# Initialize client (uses EM_API_KEY env var by default)
-client = ExecutionMarketClient(api_key="your_api_key")
+# Initialize client — signs every request with your OWS wallet (ERC-8128).
+# Wallet must already exist in the local OWS vault. Run `ows wallet list`
+# to discover it; `ows wallet create` (or `ows wallet import`) to make one.
+client = ExecutionMarketClient(
+    wallet_name="my-agent",
+    wallet_address="0xYOUR_EVM_ADDR",
+    chain_id=8453,  # Base mainnet (default). Match your task's payment_network.
+)
 
 # Create a task
 task = client.create_task(
@@ -144,7 +153,7 @@ print(f"Created {len(tasks)} tasks")
 ### Using Context Manager
 
 ```python
-with ExecutionMarketClient() as client:
+with ExecutionMarketClient(wallet_name="my-agent", wallet_address="0x...") as client:
     task = client.create_task(...)
     result = client.wait_for_completion(task.id)
 # Client automatically closed
@@ -181,7 +190,7 @@ from execution_market import (
 try:
     task = client.create_task(...)
 except AuthenticationError:
-    print("Invalid API key")
+    print("Wallet signature rejected — re-run wallet auth")
 except ValidationError as e:
     print(f"Invalid task data: {e}")
 except RateLimitError as e:
@@ -196,8 +205,11 @@ except ExecutionMarketError as e:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `EM_API_KEY` | Your API key | (required) |
 | `EM_API_URL` | API base URL | `https://api.execution.market` |
+| `OWS_BIN`   | Path to the `ows` CLI binary | `~/.npm-global/bin/ows` |
+
+Authentication is wallet-based (ERC-8128 over OWS). There is no API
+key — pass `wallet_name` and `wallet_address` to the client constructor.
 
 ## Development
 

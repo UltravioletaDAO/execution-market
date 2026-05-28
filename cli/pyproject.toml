@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "execution-market-cli"
-version = "0.1.0"
-description = "Command-line interface for Execution Market - Human task execution layer for AI agents"
+version = "1.0.0"
+description = "Command-line interface for Execution Market - wallet-signed (ERC-8128 via OWS), idempotent task lifecycle"
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
@@ -24,7 +24,7 @@ keywords = [
     "ultravioleta"
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
@@ -42,6 +42,8 @@ dependencies = [
     "click>=8.0.0",
     "httpx>=0.24.0",
     "rich>=13.0.0",
+    # Canonical ERC-8128 signer (OWS / wallet auth) + idempotency helper.
+    "execution-market>=1.0.0",
 ]
 
 [project.optional-dependencies]

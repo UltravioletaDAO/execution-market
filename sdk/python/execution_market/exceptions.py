@@ -13,8 +13,12 @@ class ExecutionMarketError(Exception):
 
 class AuthenticationError(ExecutionMarketError):
     """Raised when authentication fails (HTTP 401).
-    
-    This typically means the API key is invalid or expired.
+
+    Wallet signing failed: the ERC-8128 signature was rejected by the
+    server. Typical causes — OWS vault locked, wallet not in the local
+    vault, chain_id mismatch with the task's payment_network, or signing
+    drift (e.g. clock skew). Re-run wallet auth (`ows wallet list`,
+    confirm the wallet exists, retry).
     """
 
     pass

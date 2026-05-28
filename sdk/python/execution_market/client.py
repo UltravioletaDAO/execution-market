@@ -1,17 +1,27 @@
 """
 Execution Market API client for AI agents.
+
+Auth: ERC-8128 wallet signing via the Open Wallet Standard (OWS). The
+private key never leaves the local OWS vault — this client owns an
+`OwsEM8128Client` for signature production (composition pattern) and
+issues HTTP calls with the resulting ERC-8128 headers attached.
+
+API keys are no longer accepted by the backend; only ERC-8128 wallet
+signatures are honored.
 """
 
 from __future__ import annotations
 
+import asyncio
+import json
 import os
 import time
-import uuid
 from datetime import datetime, timezone
 from typing import Any
 
 import httpx
 
+from execution_market._signer import OwsEM8128Client, task_fingerprint, with_backoff
 from execution_market.exceptions import (
     AuthenticationError,
     NetworkError,
@@ -36,8 +46,15 @@ class ExecutionMarketClient:
     The Universal Execution Layer - enabling AI agents to create tasks
     that require physical-world execution by humans or robots.
 
+    Authentication is ERC-8128 wallet signing via OWS; the wallet must
+    already exist in the local OWS vault (see `ows wallet create` or
+    `ows wallet import`).
+
     Example:
-        >>> client = ExecutionMarketClient(api_key="your_key")
+        >>> client = ExecutionMarketClient(
+        ...     wallet_name="my-agent",
+        ...     wallet_address="0xYOUR_EVM_ADDR",
+        ... )
         >>> task = client.create_task(
         ...     title="Check store hours",
         ...     instructions="Photo of posted hours at Whole Foods",
@@ -54,43 +71,94 @@ class ExecutionMarketClient:
 
     def __init__(
         self,
-        api_key: str | None = None,
-        base_url: str | None = None,
+        wallet_name: str,
+        wallet_address: str,
+        chain_id: int = 8453,
+        base_url: str = DEFAULT_BASE_URL,
         timeout: float = 30.0,
     ) -> None:
         """
         Initialize Execution Market client.
 
         Args:
-            api_key: API key. Falls back to EM_API_KEY environment variable.
+            wallet_name: OWS wallet name (see `ows wallet list`).
+            wallet_address: EVM address `0x...` (same on every EVM chain).
+                The keyid sent to the backend is always lowercased.
+            chain_id: EVM chain id of the payment network (default 8453 = Base).
             base_url: API base URL. Falls back to EM_API_URL env var or default.
             timeout: Request timeout in seconds.
 
         Raises:
-            ValueError: If no API key is provided.
+            ValueError: If wallet_name or wallet_address is missing.
         """
-        self.api_key = api_key or os.getenv("EM_API_KEY")
-        if not self.api_key:
+        if not wallet_name or not wallet_address:
             raise ValueError(
-                "API key required. Set EM_API_KEY environment variable or pass api_key."
+                "wallet_name and wallet_address required. "
+                "Run `ows wallet list` to discover both."
             )
 
-        self.base_url = base_url or os.getenv("EM_API_URL", self.DEFAULT_BASE_URL)
+        self.base_url = (base_url or os.getenv("EM_API_URL", self.DEFAULT_BASE_URL)).rstrip("/")
         self.timeout = timeout
+
+        # Composition: own an OwsEM8128Client for signature production. We use
+        # its `_sign_headers` primitive (rather than the high-level post/get
+        # convenience methods) so this class can keep the legacy status-code
+        # dispatch in `_handle_response()` — the convenience methods on the
+        # signer return parsed JSON and would lose HTTP status visibility.
+        self._ows = OwsEM8128Client(
+            wallet_name=wallet_name,
+            wallet_address=wallet_address,
+            chain_id=chain_id,
+            api_url=self.base_url,
+        )
         self._client = httpx.Client(
             base_url=self.base_url,
-            headers={
-                "Authorization": f"Bearer {self.api_key}",
-                "User-Agent": "execution-market-sdk/0.1.0",
-            },
+            headers={"User-Agent": "execution-market-sdk/1.0.0"},
             timeout=timeout,
         )
+
+    # ------------------------------------------------------------------
+    # Internal request helpers
+    # ------------------------------------------------------------------
+
+    def _sign(self, method: str, path: str, body: str | None = None) -> dict[str, str]:
+        """Produce ERC-8128 auth headers for a request (sync wrapper)."""
+        url = f"{self.base_url}{path}"
+        return asyncio.run(self._ows._sign_headers(method, url, body))
+
+    def _signed_get(self, path: str, params: dict[str, Any] | None = None) -> httpx.Response:
+        # Build the path with query string so the signature covers @query.
+        if params:
+            full_path = str(httpx.URL(path, params=params))
+        else:
+            full_path = path
+        headers = self._sign("GET", full_path)
+        return self._client.get(full_path, headers=headers)
+
+    def _signed_post(
+        self,
+        path: str,
+        json_body: dict[str, Any] | None = None,
+        extra_headers: dict[str, str] | None = None,
+    ) -> httpx.Response:
+        body = json.dumps(json_body) if json_body is not None else None
+        headers = self._sign("POST", path, body)
+        headers["Content-Type"] = "application/json"
+        if extra_headers:
+            # extra_headers (e.g. X-Idempotency-Key) are NOT covered by the
+            # ERC-8128 signature — adding them never invalidates it.
+            headers.update(extra_headers)
+        return self._client.post(path, content=body, headers=headers)
 
     def _handle_response(self, response: httpx.Response) -> dict[str, Any]:
         """Handle API response and raise appropriate exceptions."""
         try:
             if response.status_code == 401:
-                raise AuthenticationError("Invalid or expired API key")
+                raise AuthenticationError(
+                    "Wallet signature rejected. Re-run wallet auth: confirm OWS "
+                    "vault is unlocked, the wallet exists (`ows wallet list`), "
+                    "and the chain_id matches your task's payment_network."
+                )
             elif response.status_code == 404:
                 raise NotFoundError(f"Resource not found: {response.url}")
             elif response.status_code == 429:
@@ -158,6 +226,12 @@ class ExecutionMarketClient:
         """
         Create a new task for human execution.
 
+        The `X-Idempotency-Key` header is set to `task_fingerprint(body)` —
+        a deterministic SHA-256 over the fields that define task identity.
+        Retrying the same call after a network timeout produces the SAME
+        key, so the backend dedupes against the original task instead of
+        creating a duplicate. (A random UUID here would defeat dedupe.)
+
         Args:
             title: Short task title (5-255 characters).
             instructions: Detailed instructions for the worker (20-5000 characters).
@@ -176,7 +250,7 @@ class ExecutionMarketClient:
 
         Raises:
             ValidationError: If task data is invalid.
-            AuthenticationError: If API key is invalid.
+            AuthenticationError: If wallet signature is rejected.
         """
         # Normalize enums to strings
         if isinstance(category, TaskCategory):
@@ -205,11 +279,11 @@ class ExecutionMarketClient:
             "metadata": metadata or {},
         }
 
-        idempotency_key = str(uuid.uuid4())
-        response = self._client.post(
+        idempotency_key = task_fingerprint(payload)
+        response = self._signed_post(
             "/tasks",
-            json=payload,
-            headers={"X-Idempotency-Key": idempotency_key},
+            json_body=payload,
+            extra_headers={"X-Idempotency-Key": idempotency_key},
         )
         data = self._handle_response(response)
         return self._parse_task(data)
@@ -227,7 +301,7 @@ class ExecutionMarketClient:
         Raises:
             NotFoundError: If task doesn't exist.
         """
-        response = self._client.get(f"/tasks/{task_id}")
+        response = self._signed_get(f"/tasks/{task_id}")
         data = self._handle_response(response)
         return self._parse_task(data)
 
@@ -252,7 +326,7 @@ class ExecutionMarketClient:
         if status:
             params["status"] = status.value if isinstance(status, TaskStatus) else status
 
-        response = self._client.get("/tasks", params=params)
+        response = self._signed_get("/tasks", params=params)
         data = self._handle_response(response)
         return [self._parse_task(t) for t in data.get("tasks", data)]
 
@@ -266,7 +340,7 @@ class ExecutionMarketClient:
         Returns:
             List of Submission objects.
         """
-        response = self._client.get(f"/tasks/{task_id}/submissions")
+        response = self._signed_get(f"/tasks/{task_id}/submissions")
         data = self._handle_response(response)
         submissions = data.get("submissions", data) if isinstance(data, dict) else data
         return [self._parse_submission(s) for s in submissions]
@@ -286,9 +360,9 @@ class ExecutionMarketClient:
         Returns:
             Response data including payment transaction details.
         """
-        response = self._client.post(
+        response = self._signed_post(
             f"/submissions/{submission_id}/approve",
-            json={"notes": notes},
+            json_body={"notes": notes},
         )
         return self._handle_response(response)
 
@@ -307,9 +381,9 @@ class ExecutionMarketClient:
         Returns:
             Response data.
         """
-        response = self._client.post(
+        response = self._signed_post(
             f"/submissions/{submission_id}/reject",
-            json={"notes": notes},
+            json_body={"notes": notes},
         )
         return self._handle_response(response)
 
@@ -330,9 +404,9 @@ class ExecutionMarketClient:
         Returns:
             Response data.
         """
-        response = self._client.post(
+        response = self._signed_post(
             f"/tasks/{task_id}/cancel",
-            json={"reason": reason},
+            json_body={"reason": reason},
         )
         return self._handle_response(response)
 
@@ -346,6 +420,9 @@ class ExecutionMarketClient:
     ) -> TaskResult:
         """
         Wait for task to complete with polling.
+
+        Each poll is wrapped in `with_backoff` so transient 429s from the
+        rate limiter don't break the loop.
 
         Args:
             task_id: The task ID.
@@ -362,8 +439,11 @@ class ExecutionMarketClient:
         """
         deadline = time.time() + (timeout_hours * 3600)
 
+        async def _get_task_async() -> Task:
+            return self.get_task(task_id)
+
         while time.time() < deadline:
-            task = self.get_task(task_id)
+            task = asyncio.run(with_backoff(_get_task_async))
 
             # Task is already complete
             if task.status == TaskStatus.COMPLETED:
@@ -410,13 +490,21 @@ class ExecutionMarketClient:
         """
         Create multiple tasks at once.
 
+        Each task in the batch gets its own per-task `X-Idempotency-Key`
+        fingerprint, so an individual task in a retried batch dedupes
+        independently of its siblings.
+
         Args:
             tasks: List of task dictionaries with same fields as create_task.
 
         Returns:
             List of created Task objects.
         """
-        response = self._client.post("/tasks/batch", json={"tasks": tasks})
+        per_task_keys = [task_fingerprint(t) for t in tasks]
+        response = self._signed_post(
+            "/tasks/batch",
+            json_body={"tasks": tasks, "idempotency_keys": per_task_keys},
+        )
         data = self._handle_response(response)
         return [self._parse_task(t) for t in data["tasks"]]
 
@@ -427,7 +515,7 @@ class ExecutionMarketClient:
         Returns:
             Balance information including available and escrowed amounts.
         """
-        response = self._client.get("/account/balance")
+        response = self._signed_get("/account/balance")
         return self._handle_response(response)
 
     def get_analytics(self, days: int = 30) -> dict[str, Any]:
@@ -440,7 +528,7 @@ class ExecutionMarketClient:
         Returns:
             Analytics data including completion rates, average times, etc.
         """
-        response = self._client.get("/analytics", params={"days": days})
+        response = self._signed_get("/analytics", params={"days": days})
         return self._handle_response(response)
 
     def close(self) -> None:
@@ -455,8 +543,10 @@ class ExecutionMarketClient:
 
 
 def create_client(
-    api_key: str | None = None,
-    base_url: str | None = None,
+    wallet_name: str,
+    wallet_address: str,
+    chain_id: int = 8453,
+    base_url: str = ExecutionMarketClient.DEFAULT_BASE_URL,
 ) -> ExecutionMarketClient:
     """
     Create an Execution Market client.
@@ -464,10 +554,17 @@ def create_client(
     Convenience function for creating a client instance.
 
     Args:
-        api_key: API key (or use EM_API_KEY env var).
+        wallet_name: OWS wallet name (see `ows wallet list`).
+        wallet_address: EVM address `0x...`.
+        chain_id: EVM chain id of the payment network (default 8453 = Base).
         base_url: API base URL (optional).
 
     Returns:
         Configured ExecutionMarketClient instance.
     """
-    return ExecutionMarketClient(api_key=api_key, base_url=base_url)
+    return ExecutionMarketClient(
+        wallet_name=wallet_name,
+        wallet_address=wallet_address,
+        chain_id=chain_id,
+        base_url=base_url,
+    )
