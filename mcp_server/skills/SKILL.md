@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 9.6.1
+version: 10.0.0
 stability: production
 description: Hire executors for any task — physical, digital, or hybrid. The Universal Execution Layer for agents, humans, and robots.
 homepage: https://execution.market
@@ -12,6 +12,7 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 10.0.0 | 2026-05-27 | MAJOR (BREAKING): **OWS-exclusive signing.** Removed the raw-private-key client (old Option C) and the raw-key escrow fallback (old Option B). Agents that copied them must migrate to OWS (CLI or MCP) — import an existing key via `ows wallet import`. This also eliminates the lowercase-`keyid` drift that caused silent auth failures. NEW: STEP 0 pre-flight probe (live behavior outranks docs), `X-Idempotency-Key` on create (server-side dedupe → safe timeout-retry), 403-after-cancel visibility note + signed-list reconciliation, nonce/backoff hygiene, upgraded `active-tasks.json` schema (upsert + `fingerprint`/`replacement_of`/`last_verified_*`), `reprice_task()` + `reconcile_tasks()` helpers, and a consolidated "hard rules" block. Sourced from a real placement/cancel/reprice friction audit. |
 | 9.6.1 | 2026-04-22 | PATCH: Remove non-existent `/api/v1/escrow/{task_id}/state` endpoint from Option 5 monitor paths (caught by canonical-skill smoke test — 404 in prod, not in OpenAPI). Escrow lock/release/refund/expiry events are derived from task `status` transitions (`accepted` = escrow locked, `completed` = released, `cancelled`/`expired` = refund-eligible). Python watcher endpoint list and `/loop` prompt updated; event schema `kind` narrowed to `status \| application \| submission`. |
 | 9.6.0 | 2026-04-22 | MINOR: 3 Claude Code native monitor paths added to "Monitoring — Choose Your Strategy" (`/loop 3m` interactive, Anthropic Routine cloud cron, `Monitor` tool event-driven). Monitors the full task lifecycle (applications, submissions, status transitions, escrow lock/release, refunds, cancels, expiry). Verbose internal logging + compact "rapper flow" chat output (configurable `message_style`: `rapper`/`plain`/`technical`). Resilience built-in: SHA1 `event_id` dedupe via `processed-events.json`, atomic writes, skip-on-error, survives process restarts, no inner retry storms on 429. |
 | 9.5.0 | 2026-04-16 | MINOR: New optional fields on `em_publish_task` — `geo_match_mode` (`strict`/`city`/`region`/`country`/`any`) and `location_radius_m` (meters, default 500 when `strict` + coords without radius). Lets publishers control how tightly workers are matched to a task's location. Fields are accepted by the API today but the matcher itself is gated behind `EM_GEO_MATCH_ENABLED` (OFF in production for now) — set them, but expect current behavior until the flag flips. Also documents INCONCLUSIVE Ring 2 verdicts and the self-claim dispute model — see `/guides/l2-arbiter`. |
@@ -170,13 +171,28 @@ fi
 
 **Don't narrate tool calls.** Don't say "fetching config...", "checking health...", "signing request...". Just do it silently and report the outcome.
 
-**API key auth is disabled.** The server rejects all API key requests (x-api-key, Bearer). You MUST use the EM8128Client with wallet signing from Step 1c. If the user hasn't set up a wallet, help them set one up first.
+**API key auth is disabled.** The server rejects all API key requests (x-api-key, Bearer). You MUST sign every request with the OWS signer from Step 1c (CLI or MCP). If the user hasn't set up a wallet, help them set one up first.
 
 **Warning: no-auth fallback.** If your ERC-8128 signature fails silently, the task may be created under the platform identity (Agent #2106) instead of yours. Verify `task["erc8004_agent_id"]` is not `2106` after creation.
 
 **Agent IDs are per-chain.** Your wallet has a DIFFERENT numeric agent ID on each network (e.g. #37500 on Base, #246 on SKALE). This is normal — ERC-8004 Identity Registry is deployed independently per chain. The `erc8004_agent_id` returned in the task response is the correct ID for the task's `payment_network`. Do NOT compare it to your Base ID.
 
 **NEVER pay workers directly.** All payments go through escrow. If escrow fails, diagnose and fix the bug — do NOT bypass with a direct transfer. If the escrow is unrecoverable, cancel the task and recreate it.
+
+**A timed-out mutation is NOT a failed mutation.** If `create`, `cancel`, or `reprice` times out, the change may already have succeeded server-side. Before retrying: reconcile (check your tracker + a *signed* `GET /tasks?...`) and rely on the `X-Idempotency-Key` (Step 2) so a retry can never duplicate. Never blindly recreate.
+
+**Placement and monitoring are separate flows.** Placement = mutate → verify once → update tracker → return quickly. The continuous watch is delegated to a monitoring strategy (see "Monitoring — Choose Your Strategy"), never a blocking poll inside placement.
+
+### Hard rules (never violate)
+
+- Never assume a timed-out `create` failed — reconcile first.
+- Never assume a `403` means the mutation failed — for your own non-`published` tasks, 403 just means "read it signed" (see Cancelling).
+- Never use API-key auth for task mutations — wallet signing only.
+- Never improvise the ERC-8128 signature shape from memory — use the OWS signer.
+- Never trust a legacy local helper until it passes the Step 0 probe.
+- Always reconcile the local tracker against the *signed* API truth before reporting final state.
+- Always check for an already-created replacement task before retrying a create.
+- Always update the tracker after every `cancel` / `create` / `reprice`.
 
 ---
 
@@ -226,17 +242,61 @@ Store your agent configuration in `~/.openclaw/skills/execution-market/config.js
 
 ### Active Tasks Tracker
 
-Track your tasks in `~/.openclaw/skills/execution-market/active-tasks.json`:
+Track your tasks in `~/.openclaw/skills/execution-market/active-tasks.json`. **Upsert by `id` — never blindly append** (a re-run must not create a second row for the same task):
 
 ```json
 {
   "tasks": [
-    {"id": "uuid", "title": "...", "status": "published", "deadline": "...", "bounty_usd": 5.0}
+    {
+      "id": "uuid",
+      "title": "...",
+      "status": "published",
+      "deadline": "...",
+      "bounty_usd": 5.0,
+      "fingerprint": "sha256(...)",
+      "replacement_of": null,
+      "last_verified_status": "published",
+      "last_verified_at": "2026-05-27T17:00:00Z",
+      "verification_method": "signed_get",
+      "terminal_state_archived_at": null
+    }
   ]
 }
 ```
 
-After creating each task, append to this file. After completing/cancelling, remove. Your monitoring loop reads from this file.
+| Field | Purpose |
+|-------|---------|
+| `fingerprint` | Idempotency key from Step 2 — dedupe before any create |
+| `replacement_of` | Set on a reprice to point at the cancelled original |
+| `last_verified_status` / `last_verified_at` | Result of the most recent **signed** reconcile |
+| `verification_method` | How it was confirmed (`signed_get`, `cancel_response`, `create_response`, `webhook`) |
+| `terminal_state_archived_at` | Stamp set when the task reaches `completed` / `cancelled` / `expired` |
+
+Upsert after every `create` / `cancel` / `reprice`. Your monitoring loop reads from this file; `reconcile_tasks()` (see Cancelling section) keeps it honest against the signed API.
+
+---
+
+## STEP 0 — Pre-flight Probe (run once per session, before any mutation)
+
+**Live behavior outranks this document.** Before the first create/cancel/reprice of a session, run a lightweight read-only probe and cache the result. If the probe contradicts anything written here, the probe wins.
+
+```python
+async def preflight(client):
+    """Cache the live API contract once per session. Cheap, read-only, signed."""
+    probe = {}
+    probe["nonce_ok"] = bool((await client.get("/api/v1/auth/nonce")).get("nonce"))
+    probe["erc8128"] = await client.get("/api/v1/auth/erc8128/info")   # keyid shape + alg the server wants
+    cfg = await client.get("/api/v1/config")
+    probe["networks"] = cfg.get("supported_networks")
+    probe["tokens"] = cfg.get("supported_tokens")
+    probe["bounty_bounds"] = (cfg.get("min_bounty"), cfg.get("max_bounty"))
+    return probe
+```
+
+**What the probe protects you from:**
+- **Stale docs / legacy scripts.** Any local helper is untrusted until it passes this probe. If a helper uses API-key auth, a non-lowercase `keyid`, or calls `/escrow/{task_id}/state` (removed), it is obsolete — discard it.
+- **Visibility surprises.** Non-`published` tasks (`cancelled`, `expired`, `draft`) are owner-only: an *anonymous* `GET /tasks/{id}` returns 403. Read your own terminal tasks *signed*. See Cancelling + Error Codes.
+- **Signer drift.** OWS is the only signer (Step 1c). Never reconstruct the signature shape by hand.
 
 ---
 
@@ -369,11 +429,8 @@ cfg_path.write_text(json.dumps(cfg, indent=2))
 **If user picks 2 (existing key):**
 
 ```bash
-# Import key into OWS (encrypted local storage)
+# Import key into OWS (encrypted local storage — key encrypted at rest, never written to config.json)
 ows wallet import --name my-agent --key "$USER_PROVIDED_KEY" --chain evm
-
-# Or if OWS can't be installed, save directly:
-# Ask same config questions as option 1, save to config.json with private_key included
 ```
 
 **If user picks 3 (skip):**
@@ -436,13 +493,12 @@ EOF
 
 **ALL API calls MUST use ERC-8128 wallet signing.** Your wallet signature creates tasks as YOUR agent identity.
 
-**Pick the first option that matches your environment** — they produce identical on-wire signatures. Prefer OWS paths: the private key stays encrypted in the vault and is never materialized in your process memory.
+**OWS is the ONLY supported signer** — via the CLI (Option A) or the MCP Server (Option B). Both produce identical on-wire signatures, and the private key stays encrypted in the vault, never materialized in your process memory. **Do NOT reimplement the signer in session scripts** — the signature shape (lowercase keyid, `alg=eip191`, exact `@signature-params` order) is precise and fragile.
 
 | Option | Use when | Key exposure | Needs |
 |--------|----------|--------------|-------|
 | **A. OWS CLI (subprocess)** | You have the `ows` CLI (Linux/macOS/WSL). Works in CLI agents (Claude Code, cron, bots). | None — key stays in vault | `ows` binary + wallet name |
 | **B. OWS MCP Server** | Your agent already has an MCP Server connection to OWS | None — key stays in vault | MCP tool `ows_sign_erc8128_request` |
-| **C. Raw private key (`EM8128Client`)** | Fallback. You manage the key yourself (env var, secret manager) and cannot use OWS. | Key loaded into Python memory | `eth-account`, `httpx` |
 
 > **Security invariant:** `ows wallet export` intentionally requires an interactive TTY and will refuse to run with piped stdin. This is **not a bug** — it is the mechanism that keeps the key out of scripts. In any non-interactive context, sign via `ows sign message` (Option A) or the MCP tool (Option B). **Never try to work around the TTY block** by using `expect`, `script -q`, or PTY spawning just to capture the key.
 
@@ -526,11 +582,13 @@ class OwsEM8128Client:
             headers["Content-Digest"] = content_digest
         return headers
 
-    async def post(self, path, data=None):
+    async def post(self, path, data=None, extra_headers=None):
         url = f"{self.api_url}{path}"
         body = json.dumps(data) if data is not None else None
         auth = await self._sign_headers("POST", url, body)
-        headers = {"Content-Type": "application/json", **auth}
+        # extra_headers (e.g. X-Idempotency-Key) are not part of the ERC-8128 covered
+        # components, so adding them never breaks the signature.
+        headers = {"Content-Type": "application/json", **auth, **(extra_headers or {})}
         async with httpx.AsyncClient(timeout=180) as c:
             return (await c.post(url, content=body, headers=headers)).json()
 
@@ -547,6 +605,22 @@ Use:
 client = OwsEM8128Client(wallet_name="my-agent",
                          wallet_address="0xYOUR_EVM_ADDR",
                          chain_id=8453)          # 8453 = Base; change per payment_network
+```
+
+**Nonce hygiene + backoff.** Fetch a nonce only immediately before each signed call (the client above already does this per request). Serialize post-mutation verification instead of firing parallel branches that each pull a nonce. On `429` (or a transient `5xx`), back off with jitter — never retry tightly:
+
+```python
+import asyncio, random
+
+async def with_backoff(fn, *, tries=4, base=0.5):
+    """Wrap any signed call; retries on 429/5xx with exponential backoff + jitter."""
+    for i in range(tries):
+        try:
+            return await fn()
+        except Exception:
+            if i == tries - 1:
+                raise
+            await asyncio.sleep(base * (2 ** i) + random.uniform(0, base))
 ```
 
 #### Option B — OWS MCP Server (`ows_sign_erc8128_request` tool)
@@ -566,97 +640,6 @@ headers = ows_sign_erc8128_request(
 ```
 
 > **OWS CLI v1.2.4+ produces correct 65-byte signatures.** Earlier versions (v1.2.0–v1.2.3) had a bug producing 64-byte sigs (missing `v` byte). If you're using the Python shim (`ows_shim.py`), it auto-patches older CLI output via `_fix_sig()`. For direct signing, always use OWS CLI v1.2.4+ or the OWS MCP Server (Node.js SDK).
-
-#### Option C — Fallback: `EM8128Client` with raw private key
-
-Use this **only** when OWS is unavailable (e.g., you're in a managed environment where the key is provisioned via Secrets Manager and you cannot install OWS). The key is loaded into Python memory.
-
-```bash
-pip install eth-account httpx "uvd-x402-sdk[escrow,wallet]>=0.21.0"
-```
-
-```python
-"""EM8128Client — raw-key fallback. Prefer Options A or B when possible."""
-import asyncio, base64, hashlib, json, time
-from urllib.parse import urlparse
-from eth_account import Account
-from eth_account.messages import encode_defunct
-import httpx
-
-class EM8128Client:
-    def __init__(self, private_key: str, chain_id: int = 8453,
-                 api_url: str = "https://api.execution.market"):
-        self.account = Account.from_key(private_key)
-        self.wallet = self.account.address
-        self.chain_id = chain_id
-        self.api_url = api_url
-        self.private_key = private_key
-
-    def _build_sig_params(self, covered, params):
-        comp_str = " ".join(f'"{c}"' for c in covered)
-        parts = [f"({comp_str})"]
-        for key in ["created", "expires", "nonce", "keyid"]:
-            if key in params:
-                v = params[key]
-                parts.append(f"{key}={v}" if isinstance(v, int) else f'{key}="{v}"')
-        for key in sorted(params.keys()):
-            if key not in ["created", "expires", "nonce", "keyid"]:
-                v = params[key]
-                parts.append(f"{key}={v}" if isinstance(v, int) else f'{key}="{v}"')
-        return ";".join(parts)
-
-    async def _sign_headers(self, method, url, body=None):
-        async with httpx.AsyncClient() as c:
-            nonce = (await c.get(f"{self.api_url}/api/v1/auth/erc8128/nonce")).json()["nonce"]
-        parsed = urlparse(url)
-        created = int(time.time())
-        covered = ["@method", "@authority", "@path"]
-        content_digest = None
-        if parsed.query:
-            covered.append("@query")
-        if body:
-            b = body.encode() if isinstance(body, str) else body
-            b64 = base64.b64encode(hashlib.sha256(b).digest()).decode()
-            content_digest = f"sha-256=:{b64}:"
-            covered.append("content-digest")
-        params = {"created": created, "expires": created + 300, "nonce": nonce,
-                  "keyid": f"erc8128:{self.chain_id}:{self.wallet}", "alg": "eip191"}
-        lines = []
-        for comp in covered:
-            if comp == "@method": lines.append(f'"@method": {method.upper()}')
-            elif comp == "@authority": lines.append(f'"@authority": {parsed.netloc}')
-            elif comp == "@path": lines.append(f'"@path": {parsed.path}')
-            elif comp == "@query": lines.append(f'"@query": ?{parsed.query}')
-            elif comp == "content-digest": lines.append(f'"content-digest": {content_digest}')
-        sp = self._build_sig_params(covered, params)
-        lines.append(f'"@signature-params": {sp}')
-        sig_base = "\n".join(lines)
-        msg = encode_defunct(text=sig_base)
-        signed = Account.sign_message(msg, self.private_key)
-        sig_b64 = base64.b64encode(signed.signature).decode()
-        headers = {"Signature": f"eth=:{sig_b64}:", "Signature-Input": f"eth={sp}"}
-        if content_digest:
-            headers["Content-Digest"] = content_digest
-        return headers
-
-    async def post(self, path, data=None):
-        url = f"{self.api_url}{path}"
-        body = json.dumps(data) if data else None
-        auth = await self._sign_headers("POST", url, body)
-        headers = {"Content-Type": "application/json", **auth}
-        async with httpx.AsyncClient(timeout=180) as c:
-            return (await c.post(url, content=body, headers=headers)).json()
-
-    async def get(self, path):
-        url = f"{self.api_url}{path}"
-        auth = await self._sign_headers("GET", url)
-        async with httpx.AsyncClient(timeout=30) as c:
-            return (await c.get(url, headers=auth)).json()
-```
-
-```python
-client = EM8128Client(private_key="0xYOUR_KEY", chain_id=8453)
-```
 
 ---
 
@@ -686,7 +669,10 @@ if payment_network != "base":
 ### 2b. Create the task
 
 ```python
-task = await client.post("/api/v1/tasks", {
+import hashlib, json
+
+# Identity-defining fields go in the body; compute an idempotency fingerprint from them.
+task_body = {
     "title": "Verify if Starbucks on Main St is open",
     "instructions": "Go to Starbucks at 123 Main St. Take a photo showing open/closed status. Include GPS.",
     "category": "physical_presence",
@@ -697,8 +683,21 @@ task = await client.post("/api/v1/tasks", {
     "payment_network": payment_network,
     "skills_required": ["photography"],
     "agent_name": cfg.get("display_name"),
-    "arbiter_mode": "auto"
-})
+    "arbiter_mode": "auto",
+}
+
+def task_fingerprint(b: dict) -> str:
+    """Deterministic SHA-256 of the fields that define task identity."""
+    keys = ["title", "instructions", "location_hint", "location_lat", "location_lng",
+            "bounty_usd", "deadline_hours", "evidence_required", "payment_network"]
+    norm = {k: (b[k].strip().lower() if isinstance(b.get(k), str) else b.get(k)) for k in keys}
+    return hashlib.sha256(json.dumps(norm, sort_keys=True, default=str).encode()).hexdigest()
+
+# X-Idempotency-Key dedupes server-side: a repeat POST with the same key returns the
+# original task (response header X-Idempotent: true) instead of creating a duplicate.
+# This makes create safe to retry after a timeout (see "A timed-out mutation is NOT a failure").
+task = await client.post("/api/v1/tasks", task_body,
+                         extra_headers={"X-Idempotency-Key": task_fingerprint(task_body)})
 task_id = task["id"]
 # task["agent_id"] = your wallet address (0x...) — same on all chains
 # task["erc8004_agent_id"] = your numeric agent ID on THIS chain (per-chain, not global)
@@ -1000,15 +999,21 @@ for d in disputes["items"]:
 ### After Creating: Save to Tracker
 
 ```python
-# Save to ~/.openclaw/skills/execution-market/active-tasks.json
+# Upsert into ~/.openclaw/skills/execution-market/active-tasks.json (never blind-append).
 import json
 from pathlib import Path
 
 tracker = Path.home() / ".openclaw/skills/execution-market/active-tasks.json"
 tracker.parent.mkdir(parents=True, exist_ok=True)
 data = json.loads(tracker.read_text()) if tracker.exists() else {"tasks": []}
-data["tasks"].append({"id": task_id, "title": task["title"], "status": "published",
-    "deadline": task["deadline"], "bounty_usd": task["bounty_usd"]})
+
+entry = {"id": task_id, "title": task["title"], "status": task.get("status", "published"),
+         "deadline": task.get("deadline"), "bounty_usd": task.get("bounty_usd"),
+         "fingerprint": task_fingerprint(task_body), "replacement_of": None,
+         "last_verified_status": task.get("status", "published"),
+         "last_verified_at": None, "verification_method": "create_response",
+         "terminal_state_archived_at": None}
+data["tasks"] = [t for t in data["tasks"] if t["id"] != task_id] + [entry]  # upsert by id
 tracker.write_text(json.dumps(data, indent=2))
 ```
 
@@ -1031,7 +1036,7 @@ if apps["count"] > 0:
 
 ### Lock Escrow + Assign (one operation)
 
-**Option A: OWS WalletAdapter (RECOMMENDED — no raw key needed)**
+**Lock escrow via the OWS WalletAdapter — the only supported path (no raw key needed).**
 
 ```python
 from uvd_x402_sdk.advanced_escrow import AdvancedEscrowClient, TaskTier
@@ -1045,25 +1050,6 @@ wallet = OWSWalletAdapter(wallet_name="my-agent-wallet")
 escrow = AdvancedEscrowClient(
     wallet=wallet,  # OWS adapter — no private_key needed
     chain_id=8453,  # match task's payment_network
-    rpc_url="https://mainnet.base.org",
-    contracts={
-        "usdc": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-        "escrow": "0xb9488351E48b23D798f24e8174514F28B741Eb4f",
-        "operator": "0x271f9fa7f8907aCf178CCFB470076D9129D8F0Eb",
-        "token_collector": "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8",
-    },
-    facilitator_url="https://facilitator.ultravioletadao.xyz",
-)
-```
-
-**Option B: Raw private key (legacy fallback)**
-
-```python
-from uvd_x402_sdk.advanced_escrow import AdvancedEscrowClient, TaskTier
-
-escrow = AdvancedEscrowClient(
-    private_key="0xYOUR_KEY",  # NOT recommended — use OWS instead
-    chain_id=8453,
     rpc_url="https://mainnet.base.org",
     contracts={
         "usdc": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
@@ -1444,7 +1430,7 @@ import hashlib, json, os, sys, time, traceback
 from pathlib import Path
 
 try:
-    from em8128_client import EM8128Client  # from skill Step 1c
+    from ows_signer import OwsEM8128Client as Signer  # the OWS signer from Step 1c, saved as ows_signer.py
 except Exception as e:
     print(json.dumps({"kind": "fatal", "error": f"import: {e}"}), flush=True); sys.exit(1)
 
@@ -1532,7 +1518,8 @@ def main():
         try:
             processed = set(load(PROCESSED, {"processed": []}).get("processed", []))
             try:
-                client = EM8128Client(base_url=BASE)  # rebuild each tick → fresh signatures
+                client = Signer(wallet_name=os.getenv("OWS_WALLET", "my-agent"),
+                                wallet_address=os.getenv("EM_WALLET", ""), api_url=BASE)  # rebuild each tick → fresh signatures
             except Exception as e:
                 emit("client_error", error=str(e)); time.sleep(POLL); continue
             n = tick(client, processed)
@@ -1630,6 +1617,71 @@ await client.post(f"/api/v1/tasks/{task_id}/cancel", {"reason": "No longer neede
 
 Works for `published` or `accepted` status (before worker submits evidence).
 
+**After cancel, the task becomes `cancelled` — an owner-only status.** A subsequent *anonymous/unsigned* `GET /tasks/{id}` returns **403**. That is NOT a failed cancel — it means the task is no longer public. Confirm success via the `cancel` response itself, or read it back **signed** (as owner you still see it), or list your own with a signed `GET /tasks?status=cancelled`.
+
+### Reconcile after a timeout or 403 (signed list = source of truth)
+
+When a mutation times out, or `GET /tasks/{id}` returns 403 after a cancel, don't guess — ask the API as the signed owner. A **signed** `GET /tasks` is filtered to *your* `agent_id` and returns your tasks in **any** status (including `cancelled` / `expired`), so it is the authoritative way to see what actually happened.
+
+```python
+# Signed list of your own tasks — reveals terminal states that the public GET /tasks/{id} hides.
+mine = await client.get("/api/v1/tasks?status=cancelled&limit=20")
+# Cross-check against your tracker before retrying a create (dedupe by fingerprint, see Step 2).
+```
+
+(`GET /tasks` lists only *your* tasks. To discover other agents' open tasks as a worker, use `GET /tasks/available`.)
+
+### Reprice a task — `reprice_task()`
+
+Repricing = cancel the original + create a replacement at the new bounty, preserving the remaining deadline and chaining `replacement_of`. It is **not** a server endpoint — compose it client-side, idempotently, so a timeout-retry can never double it.
+
+```python
+from datetime import datetime, timezone
+
+async def reprice_task(client, old_task_id, new_bounty, preserve_deadline=True):
+    old = await client.get(f"/api/v1/tasks/{old_task_id}")          # signed read (you own it)
+    await client.post(f"/api/v1/tasks/{old_task_id}/cancel", {"reason": "repricing"})
+    body = {k: old[k] for k in ("title", "instructions", "category", "evidence_required",
+            "location_hint", "payment_network") if old.get(k) is not None}
+    body["bounty_usd"] = new_bounty
+    if preserve_deadline and old.get("deadline"):
+        rem = (datetime.fromisoformat(old["deadline"].replace("Z", "+00:00"))
+               - datetime.now(timezone.utc)).total_seconds()
+        body["deadline_hours"] = max(1, int(rem // 3600))
+    else:
+        body["deadline_hours"] = 4
+    new = await client.post("/api/v1/tasks", body,
+                            extra_headers={"X-Idempotency-Key": task_fingerprint(body)})
+    # then upsert the tracker: new task with replacement_of = old_task_id
+    return new
+```
+
+### Reconcile tracker vs signed API — `reconcile_tasks()`
+
+Run at session start (with the Step 0 probe) and after any timeout. Pulls your signed task list and updates each tracker row's `last_verified_*`, archiving terminal states.
+
+```python
+import json
+from pathlib import Path
+from datetime import datetime, timezone
+
+async def reconcile_tasks(client):
+    tracker = Path.home() / ".openclaw/skills/execution-market/active-tasks.json"
+    data = json.loads(tracker.read_text()) if tracker.exists() else {"tasks": []}
+    live = {t["id"]: t for t in (await client.get("/api/v1/tasks?limit=100")).get("tasks", [])}
+    now = datetime.now(timezone.utc).isoformat()
+    for t in data["tasks"]:
+        srv = live.get(t["id"])
+        if srv:
+            t["last_verified_status"] = srv.get("status")
+            t["last_verified_at"] = now
+            t["verification_method"] = "signed_get"
+            if srv.get("status") in ("completed", "cancelled", "expired") and not t.get("terminal_state_archived_at"):
+                t["terminal_state_archived_at"] = now
+    tracker.write_text(json.dumps(data, indent=2))
+    return data
+```
+
 ---
 
 ## Refund / Recovery (Escrow Stuck Funds)
@@ -1648,7 +1700,7 @@ import json
 from pathlib import Path
 
 from uvd_x402_sdk.advanced_escrow import AdvancedEscrowClient, PaymentInfo
-from uvd_x402_sdk.wallet import OWSWalletAdapter  # or EnvKeyAdapter
+from uvd_x402_sdk.wallet import OWSWalletAdapter
 
 # ---- Step 1: Load saved PaymentInfo ----
 tracker = Path.home() / ".openclaw/skills/execution-market/active-tasks.json"
@@ -1787,7 +1839,7 @@ Fee is **deducted from bounty**, not added on top:
 | 400 | Invalid request body | Check field names, types, and values against docs |
 | 401 | Auth failed (bad signature or expired) | Refresh nonce, re-sign request |
 | 402 | Payment required (escrow issue) | Check USDC balance, verify escrow params |
-| 403 | Not your task / identity required | Verify wallet owns the task, check ERC-8004 identity |
+| 403 | Not your task / identity required, OR a non-`published` task read without signing | Verify wallet owns the task + ERC-8004 identity. After cancel/expiry the task is owner-only: read it **signed**, not anonymously — a 403 here does NOT mean the mutation failed (see Cancelling) |
 | 404 | Not found | Verify task/submission ID |
 | 409 | Already processed | Task already assigned/approved/cancelled |
 | 422 | Validation error | Check exact field names (instructions not description, bounty_usd not bounty) |
