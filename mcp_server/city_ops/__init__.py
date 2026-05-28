@@ -570,6 +570,17 @@ from .aas_system_integration_flywheel_route_handoff_packet import (
     load_aas_system_integration_flywheel_route_preflight,
     write_aas_system_integration_flywheel_route_handoff_packet,
 )
+from .aas_system_integration_flywheel_route_pickup_board import (
+    build_aas_system_integration_flywheel_route_pickup_board,
+    load_aas_system_integration_flywheel_route_handoff,
+    load_aas_system_integration_flywheel_route_pickup_board,
+    write_aas_system_integration_flywheel_route_pickup_board,
+)
+from .aas_system_integration_flywheel_route_regret_panel import (
+    build_aas_system_integration_flywheel_route_regret_panel,
+    load_aas_system_integration_flywheel_route_regret_panel,
+    write_aas_system_integration_flywheel_route_regret_panel,
+)
 from .phase1_operator_coverage_renderer import (
     build_phase1_operator_coverage_renderer,
     load_phase1_operator_coverage_renderer,
@@ -899,6 +910,13 @@ __all__ = [
     "load_aas_system_integration_flywheel_route_handoff_packet",
     "load_aas_system_integration_flywheel_route_preflight",
     "write_aas_system_integration_flywheel_route_handoff_packet",
+    "build_aas_system_integration_flywheel_route_pickup_board",
+    "load_aas_system_integration_flywheel_route_handoff",
+    "load_aas_system_integration_flywheel_route_pickup_board",
+    "write_aas_system_integration_flywheel_route_pickup_board",
+    "build_aas_system_integration_flywheel_route_regret_panel",
+    "load_aas_system_integration_flywheel_route_regret_panel",
+    "write_aas_system_integration_flywheel_route_regret_panel",
     "build_aas_exponential_value_pathfinder",
     "load_aas_exponential_value_pathfinder",
     "write_aas_exponential_value_pathfinder",
