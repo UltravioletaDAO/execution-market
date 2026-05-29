@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-29 04:00 America/New_York
+> Last updated: 2026-05-29 05:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -9,6 +9,11 @@
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
 
+
+
+## Latest May 29 05:00 pre-dawn synthesis
+
+`CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_29.md` is the current daytime coordination entrypoint. The 5 AM pass re-read `~/clawd/DREAM-PRIORITIES.md`, synced only `projects/execution-market` (`git pull --ff-only` -> already up to date), preserved the pre-existing untracked `scripts/sign_req.mjs`, and kept the session inside Execution Market AAS / City-as-a-Service. The stale cron requests for AutoJob, Frontier Academy, and KK v2 were intentionally skipped because the active priority file blocks those tracks. Tonight's connected stack is now: Docker daemon recovery -> required-image pull retry -> extended required-image timeout -> image-cache path probe -> cache-path resolution plan -> digest-pinned pull timeout observation -> session handoff capsule -> pickup brief. The durable conclusion: Acontext is not ready, but the blocker is now specific; the UI image is digest-resolved and pull-stalled, so the next useful move is exactly one trusted registry-client/export-load cache path, then image inventory. Safe claims remain internal/admin-only: `admin_acontext_image_cache_path_probe_landed`, `admin_acontext_cache_path_resolution_plan_landed`, `admin_acontext_digest_pinned_pull_timeout_observation_landed`, `internal_admin_aas_session_handoff_capsule_landed`, and `internal_admin_aas_session_handoff_pickup_brief_landed`. Daytime should not repeat blind Docker pulls, start Compose, or attempt live parity unless image/cache prerequisites and the read-only gate turn green. Product-decision alternative: create exactly one separate human/operator decision artifact for Retail Reality or Compliance Desk only if Saúl gives a real answer. Do not infer first/all required-image presence, local Acontext API/dashboard health, live Acontext runtime parity, customer copy/delivery/publication, public/catalog/pricing, queue/dispatch, ERC-8004 reputation, Worker Skill DNA, payment/production proof, exact GPS/raw metadata/private-context release, authority claims, dataset/analytics publication, or worker-copyable doctrine.
 
 
 ## Latest May 29 04:00 AAS session handoff pickup brief
