@@ -77,6 +77,11 @@ from .acontext_required_image_pull_retry_observation import (
     load_acontext_required_image_pull_retry_observation,
     write_acontext_required_image_pull_retry_observation,
 )
+from .acontext_required_image_extended_pull_timeout_observation import (
+    build_acontext_required_image_extended_pull_timeout_observation,
+    load_acontext_required_image_extended_pull_timeout_observation,
+    write_acontext_required_image_extended_pull_timeout_observation,
+)
 from .aas_coordination_observability_success_metrics_board import (
     build_aas_coordination_observability_success_metrics_board,
     load_aas_coordination_observability_success_metrics_board,

@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-28 05:00 America/New_York
+> Last updated: 2026-05-28 23:03 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -9,6 +9,11 @@
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
 
+
+
+## Latest May 28 23:03 extended runtime image pull timeout observation
+
+`mcp_server/city_ops/acontext_required_image_extended_pull_timeout_observation.py` now records the next truth-producing runtime prerequisite after the 22:11 required-image pull retry: Docker remained available, GHCR anonymous manifest fetches for `acontext-ui`, `acontext-api`, and `acontext-core` succeeded with `linux/arm64` advertised, but one longer bounded `docker pull --platform linux/arm64 ghcr.io/memodb-io/acontext-ui:latest` still timed out after ~600 seconds and the image remained absent. Persisted fixture: `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_required_image_extended_pull_timeout_observation.json`; implementation notes: `CITY_AS_A_SERVICE_ACONTEXT_REQUIRED_IMAGE_EXTENDED_PULL_TIMEOUT_OBSERVATION_IMPLEMENTATION.md`. Safe claim: `admin_acontext_required_image_extended_pull_timeout_observation_landed`. This deliberately does not start Compose, does not reach API/dashboard, does not rebuild readiness, and does not authorize live write/retrieve parity. Next safe move: stop repeating blind pulls and change the image-cache path — trusted preloaded tar, registry mirror, Docker Desktop networking/cache reset, or verified remote builder/cache export — before any service startup. Still blocked: first required-image presence, all required-image presence, local Acontext services, API/dashboard health, live Acontext runtime parity, customer/public/pricing/dispatch, ERC-8004 reputation, Worker Skill DNA, payment/production proof, exact GPS/raw metadata/private-context release, authority claims, dataset/analytics publication, and worker-copyable doctrine.
 
 
 ## Latest May 28 22:11 runtime image pull retry observation
