@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-29 02:20 America/New_York
+> Last updated: 2026-05-29 03:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -9,6 +9,11 @@
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
 
+
+
+## Latest May 29 03:00 AAS session handoff capsule
+
+`mcp_server/city_ops/aas_session_handoff_capsule.py` now creates a deterministic read-only IRC/session pickup capsule over the existing next-truth selector and coordination observability metrics board, persisted at `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/aas_session_handoff_capsule.json`; implementation notes: `CITY_AS_A_SERVICE_AAS_SESSION_HANDOFF_CAPSULE_IMPLEMENTATION.md`. Safe claim: `internal_admin_aas_session_handoff_capsule_landed`. The capsule preserves the four-ID header (`proof_anchor_id`, `coordination_session_id`, `compact_decision_id`, `review_packet_id`), carries safe and blocked claims together, keeps the selected next track `runtime_truth_prerequisite_activation`, and keeps the selected proof `clear_acontext_sdk_api_dashboard_then_rerun_read_only_preflight`. It is explicitly not an IRC runtime mutation, not raw transcript replay, not a live Acontext write/retrieve or parity proof, not authorization for more route layers, not customer copy/delivery/publication, not public/catalog/pricing, not queue/dispatch, not ERC-8004 reputation or Worker Skill DNA, not payment/production reverification, not exact GPS/raw metadata/private-context release, not authority, and not worker-copyable doctrine. Focused verification: handoff capsule tests `10 passed`; selector + metrics + capsule tests `28 passed`. Next safe move: use this capsule as the first reusable handoff line for future AAS agent/IRC coordination while continuing runtime truth in a separate Acontext prerequisite artifact only after the cache/image path changes.
 
 
 ## Latest May 29 02:20 digest-pinned pull timeout observation
