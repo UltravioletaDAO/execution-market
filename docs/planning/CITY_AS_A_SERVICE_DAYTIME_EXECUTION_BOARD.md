@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-28 23:03 America/New_York
+> Last updated: 2026-05-29 00:05 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -9,6 +9,11 @@
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
 
+
+
+## Latest May 29 00:05 image-cache path probe
+
+`mcp_server/city_ops/acontext_image_cache_path_probe.py` now records the next non-blind-pull runtime prerequisite after the May 28 extended pull timeout: Docker remained available, the first required Acontext image stayed absent, the only observed required image remained `pgvector/pgvector:pg16`, alternate local registry/cache tools (`oras`, `crane`, `skopeo`, `regctl`, `nerdctl`) were absent, and `docker buildx imagetools inspect ghcr.io/memodb-io/acontext-ui:latest` timed out in a bounded 60-second window without metadata. Persisted fixture: `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_image_cache_path_probe.json`; implementation notes: `CITY_AS_A_SERVICE_ACONTEXT_IMAGE_CACHE_PATH_PROBE_IMPLEMENTATION.md`. Safe claim: `admin_acontext_image_cache_path_probe_landed`. This deliberately does not install tooling, configure mirrors, load tarballs, reset Docker Desktop, start Compose, reach API/dashboard, rebuild readiness, or authorize live write/retrieve parity. Next safe move: pick exactly one changed cache path — trusted registry client, preloaded image tar, registry mirror, verified remote builder/cache export, or explicit Docker Desktop networking/cache maintenance — before any further runtime probe. Still blocked: first required-image presence, all required-image presence, local Acontext services, API/dashboard health, live Acontext runtime parity, customer/public/pricing/dispatch, ERC-8004 reputation, Worker Skill DNA, payment/production proof, exact GPS/raw metadata/private-context release, authority claims, dataset/analytics publication, and worker-copyable doctrine.
 
 
 ## Latest May 28 23:03 extended runtime image pull timeout observation
