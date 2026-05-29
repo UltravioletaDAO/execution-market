@@ -87,6 +87,11 @@ from .acontext_image_cache_path_probe import (
     load_acontext_image_cache_path_probe,
     write_acontext_image_cache_path_probe,
 )
+from .acontext_cache_path_resolution_plan import (
+    build_acontext_cache_path_resolution_plan,
+    load_acontext_cache_path_resolution_plan,
+    write_acontext_cache_path_resolution_plan,
+)
 from .aas_coordination_observability_success_metrics_board import (
     build_aas_coordination_observability_success_metrics_board,
     load_aas_coordination_observability_success_metrics_board,

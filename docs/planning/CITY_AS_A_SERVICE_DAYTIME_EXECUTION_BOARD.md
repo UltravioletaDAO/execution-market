@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-29 00:05 America/New_York
+> Last updated: 2026-05-29 01:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -9,6 +9,11 @@
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
 
+
+
+## Latest May 29 01:00 cache-path resolution plan
+
+`mcp_server/city_ops/acontext_cache_path_resolution_plan.py` now records the next internal/admin decision after the 00:05 image-cache path probe. It consumes only `acontext_image_cache_path_probe.json`, keeps the session inside Execution Market AAS / City-as-a-Service, and selects exactly one next changed cache path: `trusted_registry_client_export_load_path`. Persisted fixture: `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_cache_path_resolution_plan.json`; implementation notes: `CITY_AS_A_SERVICE_ACONTEXT_CACHE_PATH_RESOLUTION_PLAN_IMPLEMENTATION.md`. Safe claim: `admin_acontext_cache_path_resolution_plan_landed`. This deliberately does not install or use registry tooling, obtain or load a tarball, configure a mirror, reset Docker Desktop, pull or load images, start Compose, reach API/dashboard, rebuild readiness, or authorize live write/retrieve parity. Next safe move: execute exactly one bounded trusted registry-client/export-load path in a separate artifact, then rerun image inventory and stop unless `ghcr.io/memodb-io/acontext-ui:latest` is present locally. Still blocked: first required-image presence, all required-image presence, local Acontext services, API/dashboard health, live Acontext runtime parity, customer/public/pricing/dispatch, ERC-8004 reputation, Worker Skill DNA, payment/production proof, exact GPS/raw metadata/private-context release, authority claims, dataset/analytics publication, and worker-copyable doctrine.
 
 
 ## Latest May 29 00:05 image-cache path probe
