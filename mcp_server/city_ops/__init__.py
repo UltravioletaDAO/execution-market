@@ -72,6 +72,11 @@ from .acontext_docker_daemon_recovery_observation import (
     load_acontext_docker_daemon_recovery_observation,
     write_acontext_docker_daemon_recovery_observation,
 )
+from .acontext_required_image_pull_retry_observation import (
+    build_acontext_required_image_pull_retry_observation,
+    load_acontext_required_image_pull_retry_observation,
+    write_acontext_required_image_pull_retry_observation,
+)
 from .aas_coordination_observability_success_metrics_board import (
     build_aas_coordination_observability_success_metrics_board,
     load_aas_coordination_observability_success_metrics_board,
