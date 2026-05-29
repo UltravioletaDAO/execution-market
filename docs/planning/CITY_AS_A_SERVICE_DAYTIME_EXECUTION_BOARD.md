@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-29 03:00 America/New_York
+> Last updated: 2026-05-29 04:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -9,6 +9,11 @@
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
 
+
+
+## Latest May 29 04:00 AAS session handoff pickup brief
+
+`mcp_server/city_ops/aas_session_handoff_pickup_brief.py` now creates a deterministic read-only pickup brief over the 03:00 session handoff capsule, persisted at `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/aas_session_handoff_pickup_brief.json`; implementation notes: `CITY_AS_A_SERVICE_AAS_SESSION_HANDOFF_PICKUP_BRIEF_IMPLEMENTATION.md`. Safe claim: `internal_admin_aas_session_handoff_pickup_brief_landed`. The brief converts the 4 AM pattern-recognition prompt into a copyable first handoff block plus four conservative pattern cards: reviewed memory data compounds only after review, IRC coordination scales with four invariant IDs, cross-project intelligence is a filter rather than autopilot, and agent coordination quality is claim-boundary survival. It preserves the selected next track `runtime_truth_prerequisite_activation` and selected proof `clear_acontext_sdk_api_dashboard_then_rerun_read_only_preflight`, while explicitly not authorizing live Acontext parity, runtime session mutation, customer copy/delivery/publication, public/catalog/pricing, queue/dispatch, ERC-8004 reputation, Worker Skill DNA, payment/production reverification, exact GPS/raw metadata/private-context release, authority, or worker-copyable doctrine. Focused verification: pickup brief tests `10 passed`; capsule + pickup brief tests `20 passed`; full city-ops suite `1516 passed`. Next safe move: use the brief as the first block for the next AAS agent/IRC handoff, then either clear Acontext runtime prerequisites and rebuild the read-only gate or stop if blockers remain.
 
 
 ## Latest May 29 03:00 AAS session handoff capsule

@@ -137,6 +137,11 @@ from .aas_session_handoff_capsule import (
     load_aas_session_handoff_capsule,
     write_aas_session_handoff_capsule,
 )
+from .aas_session_handoff_pickup_brief import (
+    build_aas_session_handoff_pickup_brief,
+    load_aas_session_handoff_pickup_brief,
+    write_aas_session_handoff_pickup_brief,
+)
 from .aas_pre_dawn_synthesis_handoff import (
     build_aas_pre_dawn_synthesis_handoff,
     load_aas_pre_dawn_synthesis_handoff,
@@ -974,6 +979,9 @@ __all__ = [
     "build_aas_session_handoff_capsule",
     "load_aas_session_handoff_capsule",
     "write_aas_session_handoff_capsule",
+    "build_aas_session_handoff_pickup_brief",
+    "load_aas_session_handoff_pickup_brief",
+    "write_aas_session_handoff_pickup_brief",
     "build_aas_pre_dawn_synthesis_handoff",
     "load_aas_pre_dawn_synthesis_handoff",
     "write_aas_pre_dawn_synthesis_handoff",
