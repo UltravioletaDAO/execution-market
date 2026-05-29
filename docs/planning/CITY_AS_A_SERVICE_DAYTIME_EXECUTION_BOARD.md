@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-29 01:00 America/New_York
+> Last updated: 2026-05-29 02:20 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -9,6 +9,11 @@
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
 
+
+
+## Latest May 29 02:20 digest-pinned pull timeout observation
+
+`mcp_server/city_ops/acontext_digest_pinned_pull_timeout_observation.py` now records the first bounded execution after the cache-path resolution plan. A direct anonymous GHCR registry API read locked `ghcr.io/memodb-io/acontext-ui:latest` to OCI index digest `sha256:b303d1f1894bbe356e4f70483c06a7bfe9c38bcf46a5fff5de2d8826e87ef436` and linux/arm64 manifest digest `sha256:ef6bdb2b91eefe22673a57e9fe6a936312c0ba91d58ed86332e9dd93b678c6a7` with 10 layers / 75,482,880 bytes, then one bounded digest-pinned Docker pull still timed out after 240 seconds and the image remained absent. Persisted fixture: `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_digest_pinned_pull_timeout_observation.json`; implementation notes: `CITY_AS_A_SERVICE_ACONTEXT_DIGEST_PINNED_PULL_TIMEOUT_OBSERVATION_IMPLEMENTATION.md`. Safe claim: `admin_acontext_digest_pinned_pull_timeout_observation_landed`. This deliberately does not install registry tooling, download blobs directly, load tarballs, configure mirrors, start Compose, reach API/dashboard, rebuild readiness, or authorize live write/retrieve parity. Next safe move: use the locked digest provenance for exactly one changed cache path — trusted registry-client copy/load, trusted preloaded tar, registry mirror, or Docker Desktop cache/network maintenance — then rerun image inventory and stop unless the first required image is locally present. Still blocked: first required-image presence, all required-image presence, local Acontext services, API/dashboard health, live Acontext runtime parity, customer/public/pricing/dispatch, ERC-8004 reputation, Worker Skill DNA, payment/production proof, exact GPS/raw metadata/private-context release, authority claims, dataset/analytics publication, and worker-copyable doctrine.
 
 
 ## Latest May 29 01:00 cache-path resolution plan
