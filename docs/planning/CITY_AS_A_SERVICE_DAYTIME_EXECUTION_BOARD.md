@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-30 04:00 America/New_York
+> Last updated: 2026-05-30 05:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -11,6 +11,10 @@
 
 
 
+
+## Latest May 30 05:00 pre-dawn synthesis
+
+`CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_30.md` is the current daytime coordination entrypoint. The 5 AM pass re-read `~/clawd/DREAM-PRIORITIES.md` first, synced only `projects/execution-market` (`git pull --ff-only` -> already up to date), preserved the pre-existing untracked `scripts/sign_req.mjs`, and stayed inside Execution Market AAS / City-as-a-Service. The stale cron requests for AutoJob, Frontier Academy, and KK v2 were intentionally skipped because the active priority file blocks those tracks. Tonight's connected stack is now: ORAS OCI-layout cache bridge -> remaining required images ORAS export/load -> Compose startup and health observation -> SDK/API contract discovery smoke -> project-admin route mismatch observation. The durable conclusion changed from yesterday: image/cache and Compose blockers are cleared locally, but runtime parity is still blocked by project-secret acquisition. Swagger advertises `POST /admin/v1/project`, while the running API returns `404 page not found` for both `/admin/v1/project` and `/api/v1/admin/v1/project`; project/session/message tables exist, and no secrets/IDs/raw logs were persisted. Safe claims remain internal/admin-only: `admin_acontext_oras_oci_layout_cache_bridge_landed`, `admin_acontext_remaining_images_oras_compose_health_landed`, `admin_acontext_sdk_api_contract_discovery_smoke_landed`, and `admin_acontext_project_admin_route_mismatch_observation_landed`. Daytime should resolve the advertised-route/runtime-route mismatch or identify the supported project-secret creation path, then run one separate redacted create-session -> write-message -> retrieve-message parity smoke. Do not infer Acontext runtime parity, IRC runtime mutation, customer/public/pricing/dispatch readiness, ERC-8004 reputation, Worker Skill DNA, payment/production reverification, exact GPS/raw metadata/private-context release, authority claims, or worker-copyable doctrine.
 
 ## Latest May 30 04:00 Acontext project-admin route mismatch observation
 
