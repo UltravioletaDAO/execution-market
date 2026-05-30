@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-29 07:04 America/New_York
+> Last updated: 2026-05-30 02:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -8,6 +8,13 @@
 > - `CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md`
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
+
+
+
+
+## Latest May 30 02:00 Acontext remaining-images ORAS + Compose health
+
+`mcp_server/city_ops/acontext_remaining_images_oras_compose_health_observation.py` now records the next truth-producing Acontext runtime prerequisite after the ORAS OCI-layout cache bridge, persisted at `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_remaining_images_oras_compose_health.json`; implementation notes: `CITY_AS_A_SERVICE_ACONTEXT_REMAINING_IMAGES_ORAS_COMPOSE_HEALTH_IMPLEMENTATION.md`. Safe claim: `admin_acontext_remaining_images_oras_compose_health_landed`. The artifact records that the proven ORAS OCI-layout export/load path was applied to the remaining required images, all nine required Acontext Compose images are locally present by required tag, `docker compose up -d --no-build` succeeded, API/core health checks returned 200 OK, and the UI root is reachable as a `/dashboard` redirect. It deliberately stops before live Acontext write/retrieve parity: no runtime session manager changes, no cross-project autorouting, no customer/public/pricing/dispatch readiness, no ERC-8004 reputation or Worker Skill DNA, no payment/production reverification, no exact GPS/raw metadata/private-context release, no authority claims, and no worker-copyable doctrine are authorized. Next safe move: perform exactly one bounded SDK/API contract-discovery smoke test against the now-running local Acontext stack, then only claim runtime parity in a separate artifact if a real write and retrieval both succeed.
 
 
 
