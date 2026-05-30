@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-29 06:00 America/New_York
+> Last updated: 2026-05-29 07:04 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -11,6 +11,10 @@
 
 
 
+
+## Latest May 29 07:04 Acontext trusted cache-path probe
+
+`mcp_server/city_ops/acontext_7am_trusted_cache_path_probe.py` now records the bounded Fork A check after the 6 AM final wrap, persisted at `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_7am_trusted_cache_path_probe.json`; implementation notes: `CITY_AS_A_SERVICE_ACONTEXT_7AM_TRUSTED_CACHE_PATH_PROBE_IMPLEMENTATION.md`. Safe claim: `admin_acontext_7am_trusted_cache_path_probe_landed`. The probe checked installed trusted registry/cache tooling and local image inventory, preserved the pinned `ghcr.io/memodb-io/acontext-ui` linux/arm64 digest provenance, found no installed export/load-capable trusted client (`crane`, `oras`, `skopeo`, or `regctl`), treated Docker Buildx/imagetools as metadata-only for this purpose, and stopped with the first required image still absent. It did not repeat blind or digest-pinned Docker pulls, install tooling, download blobs, create/load a tar or OCI layout, start Compose, check API/dashboard health, rebuild readiness, authorize live parity, change IRC runtime session management, enable cross-project autorouting, write customer copy, enable dispatch, emit reputation, reverify payment/production, expose exact GPS/raw metadata, or publish worker doctrine. Next safe move: use a real trusted export/load-capable registry client or trusted preloaded tar with matching digest provenance, then rerun image inventory and stop unless the first required image is locally present. Still blocked: Acontext runtime parity, Compose/API/dashboard health, customer/public/pricing/dispatch readiness, ERC-8004 reputation, Worker Skill DNA, payment/production proof, exact GPS/raw metadata release, authority claims, and worker-copyable doctrine.
 
 ## Latest May 29 06:00 final wrap
 
