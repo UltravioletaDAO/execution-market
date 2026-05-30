@@ -117,6 +117,11 @@ from .acontext_remaining_images_oras_compose_health_observation import (
     load_acontext_remaining_images_oras_compose_health,
     write_acontext_remaining_images_oras_compose_health,
 )
+from .acontext_sdk_api_contract_discovery_smoke import (
+    build_acontext_sdk_api_contract_discovery_smoke,
+    load_acontext_sdk_api_contract_discovery_smoke,
+    write_acontext_sdk_api_contract_discovery_smoke,
+)
 from .aas_coordination_observability_success_metrics_board import (
     build_aas_coordination_observability_success_metrics_board,
     load_aas_coordination_observability_success_metrics_board,
