@@ -127,6 +127,11 @@ from .acontext_project_admin_route_mismatch_observation import (
     load_acontext_project_admin_route_mismatch_observation,
     write_acontext_project_admin_route_mismatch_observation,
 )
+from .acontext_project_secret_path_resolution_decision import (
+    build_acontext_project_secret_path_resolution_decision,
+    load_acontext_project_secret_path_resolution_decision,
+    write_acontext_project_secret_path_resolution_decision,
+)
 from .aas_coordination_observability_success_metrics_board import (
     build_aas_coordination_observability_success_metrics_board,
     load_aas_coordination_observability_success_metrics_board,

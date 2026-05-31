@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-30 05:00 America/New_York
+> Last updated: 2026-05-30 07:01 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -11,6 +11,10 @@
 
 
 
+
+## Latest May 30 07:01 Acontext project-secret path resolution decision
+
+`mcp_server/city_ops/acontext_project_secret_path_resolution_decision.py` now records the next deterministic Acontext blocker decision after the project-admin route mismatch observation, persisted at `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_project_credential_path_resolution_decision.json`; implementation notes: `CITY_AS_A_SERVICE_ACONTEXT_PROJECT_SECRET_PATH_RESOLUTION_DECISION_2026_05_30.md`. Safe claim: `admin_acontext_project_secret_path_resolution_decision_landed`. The artifact consumes only the route mismatch fixture and preserves the runtime truth that Swagger advertises `POST /admin/v1/project`, both known path shapes returned `404`, and no project Bearer secret was acquired or recorded. The fixture filename uses `credential` to stay compatible with the repo's `*secret*.json` commit guardrail; the schema, module, tests, and claim language remain the project-secret path resolution decision. It deliberately does not repeat probes, create a project/session, store or retrieve messages, mutate IRC session management, enable cross-project autorouting, create customer/public/pricing/dispatch readiness, emit reputation, reverify payment/production, expose exact GPS/raw metadata/private context, grant domain/emergency/authority claims, or create worker-copyable doctrine. Next safe move: read-only route mounting/config inspection, or read-only supported non-admin project-secret path discovery, without printing or persisting secrets; only after a scoped secret exists in memory should a separate sanitized write/retrieve parity artifact be attempted.
 
 ## Latest May 30 05:00 pre-dawn synthesis
 
