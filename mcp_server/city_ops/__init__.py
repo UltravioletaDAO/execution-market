@@ -157,6 +157,16 @@ from .acontext_opt_in_runtime_adapter_seam_contract import (
     load_acontext_opt_in_runtime_adapter_seam_contract,
     write_acontext_opt_in_runtime_adapter_seam_contract,
 )
+from .acontext_cleanup_quarantine_harness_gate import (
+    build_acontext_cleanup_quarantine_harness_gate,
+    load_acontext_cleanup_quarantine_harness_gate,
+    write_acontext_cleanup_quarantine_harness_gate,
+)
+from .acontext_multi_fixture_replay_gate import (
+    build_acontext_multi_fixture_replay_gate,
+    load_acontext_multi_fixture_replay_gate,
+    write_acontext_multi_fixture_replay_gate,
+)
 from .aas_coordination_observability_success_metrics_board import (
     build_aas_coordination_observability_success_metrics_board,
     load_aas_coordination_observability_success_metrics_board,
