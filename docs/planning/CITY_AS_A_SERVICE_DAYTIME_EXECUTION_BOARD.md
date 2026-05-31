@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-30 07:01 America/New_York
+> Last updated: 2026-05-31 05:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -11,6 +11,14 @@
 
 
 
+
+## Latest May 31 05:00 pre-dawn synthesis
+
+`CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_31.md` is the current daytime coordination entrypoint. The 5 AM pass re-read `~/clawd/DREAM-PRIORITIES.md` first and obeyed it over the stale cron payload, so AutoJob, Frontier Academy, KK v2, and KarmaCadabra v2 remained untouched. Tonight's Acontext runtime-memory stack is now: redacted internal IRC adapter runner fixture -> fail-closed runtime-memory promotion gate -> disabled opt-in runtime adapter seam contract -> cleanup/quarantine harness gate -> multi-fixture replay gate -> explicit operator activation decision request. Safe latest claims remain internal/admin-only, ending at `admin_acontext_multi_fixture_replay_gate_landed`; the 5 AM decision request records no approval and defaults to hold. Daytime should choose exactly one fork: keep runtime mutation blocked, approve disabled design-only adapter wiring behind a kill switch, or separately choose one AAS product-exposure boundary for human review. Do not infer runtime adapter registration, IRC session-manager mutation, cross-project autorouting, customer copy/delivery/publication, public catalog/pricing, queue/dispatch, ERC-8004 reputation, Worker Skill DNA, payment/production readiness, exact GPS/raw metadata release, private-context release, domain authority, or worker-copyable doctrine.
+
+## Latest May 31 05:00 Acontext operator activation decision request
+
+`CITY_AS_A_SERVICE_ACONTEXT_OPERATOR_ACTIVATION_DECISION_REQUEST_2026_05_31.md` is the explicit daytime decision packet over `acontext_multi_fixture_replay_gate.json`. It names the only candidate (`irc_session_manager_memory_sink`) and the three permissible human choices: hold, approve disabled design-only wiring, or approve exactly one bounded local activation test. The default is `hold_no_runtime_mutation`. If activation is chosen later, a separate approval record must name the source digest, exact option, non-secret human reference, UTC timestamp, kill switch/default-off confirmation, rollback and cleanup/quarantine requirements, sanitized candidate fixture if applicable, and carried-forward blocked claims.
 
 ## Latest May 30 07:01 Acontext project-secret path resolution decision
 
