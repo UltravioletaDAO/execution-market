@@ -152,6 +152,11 @@ from .acontext_runtime_memory_promotion_gate import (
     load_acontext_runtime_memory_promotion_gate,
     write_acontext_runtime_memory_promotion_gate,
 )
+from .acontext_opt_in_runtime_adapter_seam_contract import (
+    build_acontext_opt_in_runtime_adapter_seam_contract,
+    load_acontext_opt_in_runtime_adapter_seam_contract,
+    write_acontext_opt_in_runtime_adapter_seam_contract,
+)
 from .aas_coordination_observability_success_metrics_board import (
     build_aas_coordination_observability_success_metrics_board,
     load_aas_coordination_observability_success_metrics_board,
