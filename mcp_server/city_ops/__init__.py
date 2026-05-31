@@ -147,6 +147,11 @@ from .acontext_internal_irc_session_adapter_runner_fixture import (
     load_acontext_internal_irc_session_adapter_runner_fixture,
     write_acontext_internal_irc_session_adapter_runner_fixture,
 )
+from .acontext_runtime_memory_promotion_gate import (
+    build_acontext_runtime_memory_promotion_gate,
+    load_acontext_runtime_memory_promotion_gate,
+    write_acontext_runtime_memory_promotion_gate,
+)
 from .aas_coordination_observability_success_metrics_board import (
     build_aas_coordination_observability_success_metrics_board,
     load_aas_coordination_observability_success_metrics_board,
