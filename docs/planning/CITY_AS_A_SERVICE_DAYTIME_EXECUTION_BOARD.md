@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-31 06:00 America/New_York
+> Last updated: 2026-05-31 07:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -8,6 +8,12 @@
 > - `CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md`
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
+
+
+
+## Latest May 31 07:00 no-mutation activation/hold runbook
+
+`CITY_AS_A_SERVICE_ACONTEXT_7AM_NO_MUTATION_ACTIVATION_HOLD_RUNBOOK_2026_05_31.md` is the current daytime no-mutation checkpoint for Acontext runtime-memory. It adds no implementation claim and records no approval; it simply makes the next human decision explicit for candidate `irc_session_manager_memory_sink`: hold, approve disabled design-only wiring, or approve one bounded local activation test. Default remains `hold_no_runtime_mutation` unless Saúl explicitly chooses otherwise. The checkpoint references replay source `acontext_multi_fixture_replay_gate.json` (`sha256:bc45e1808e29360bcced6c106b48ec24c94fa8aeb91c35dfcf7aba63dd3b057f`) and preserves the stopped-project firewall: no AutoJob, Frontier Academy, KK v2, or KarmaCadabra v2 work. Do not infer runtime adapter registration/enablement, IRC session-manager mutation, cross-project autorouting, customer/public/pricing/dispatch/reputation/payment/runtime/GPS/raw-metadata/private-context/authority/worker-doctrine readiness, or any product-exposure approval from this runbook.
 
 
 
