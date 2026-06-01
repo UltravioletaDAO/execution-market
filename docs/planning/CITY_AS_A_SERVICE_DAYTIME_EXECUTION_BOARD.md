@@ -11,6 +11,12 @@
 
 
 
+## Latest May 31 23:00 Acontext activation hold status card
+
+`mcp_server/city_ops/acontext_activation_hold_status_card.py` now creates a deterministic internal/admin status card over the May 31 multi-fixture replay gate and no-mutation decision context, persisted at `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_activation_hold_status_card.json`; implementation notes: `CITY_AS_A_SERVICE_ACONTEXT_ACTIVATION_HOLD_STATUS_CARD_IMPLEMENTATION.md`. Safe claim: `admin_acontext_activation_hold_status_card_landed`. The card makes the current no-answer posture executable for candidate `irc_session_manager_memory_sink`: no explicit operator answer exists, no approval record exists, current decision is `hold_no_runtime_mutation`, and the card is not an approval record. It is safe only for internal/admin hold-status display. It does not authorize runtime adapter registration or enablement, IRC/session-manager mutation, cross-project autorouting, customer/public delivery, catalog/pricing, queue/dispatch, ERC-8004 reputation, Worker Skill DNA, payment/production claims, exact GPS/raw metadata release, private-context release, domain/legal/emergency/repair/insurance/SLA authority, worker-copyable doctrine, general Acontext sink readiness, runtime parity, or stopped-project integration. Focused verification: multi-fixture replay gate + activation hold status card tests -> `20 passed`.
+
+
+
 ## Latest May 31 07:00 no-mutation activation/hold runbook
 
 `CITY_AS_A_SERVICE_ACONTEXT_7AM_NO_MUTATION_ACTIVATION_HOLD_RUNBOOK_2026_05_31.md` is the current daytime no-mutation checkpoint for Acontext runtime-memory. It adds no implementation claim and records no approval; it simply makes the next human decision explicit for candidate `irc_session_manager_memory_sink`: hold, approve disabled design-only wiring, or approve one bounded local activation test. Default remains `hold_no_runtime_mutation` unless Saúl explicitly chooses otherwise. The checkpoint references replay source `acontext_multi_fixture_replay_gate.json` (`sha256:bc45e1808e29360bcced6c106b48ec24c94fa8aeb91c35dfcf7aba63dd3b057f`) and preserves the stopped-project firewall: no AutoJob, Frontier Academy, KK v2, or KarmaCadabra v2 work. Do not infer runtime adapter registration/enablement, IRC session-manager mutation, cross-project autorouting, customer/public/pricing/dispatch/reputation/payment/runtime/GPS/raw-metadata/private-context/authority/worker-doctrine readiness, or any product-exposure approval from this runbook.
