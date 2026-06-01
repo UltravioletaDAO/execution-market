@@ -483,6 +483,11 @@ from .retail_reality_pending_approval_status_card import (
     load_retail_reality_pending_approval_status_card,
     write_retail_reality_pending_approval_status_card,
 )
+from .retail_reality_product_exposure_boundary_packet import (
+    build_retail_reality_product_exposure_boundary_packet,
+    load_retail_reality_product_exposure_boundary_packet,
+    write_retail_reality_product_exposure_boundary_packet,
+)
 from .local_data_collection_fixture_review_gate import (
     build_local_data_collection_fixture_review_gate,
     load_local_data_collection_fixture_review_gate,
@@ -884,6 +889,9 @@ __all__ = [
     "build_retail_reality_pending_approval_status_card",
     "load_retail_reality_pending_approval_status_card",
     "write_retail_reality_pending_approval_status_card",
+    "build_retail_reality_product_exposure_boundary_packet",
+    "load_retail_reality_product_exposure_boundary_packet",
+    "write_retail_reality_product_exposure_boundary_packet",
     "build_local_data_collection_fixture_review_gate",
     "load_local_data_collection_fixture_review_gate",
     "write_local_data_collection_fixture_review_gate",
