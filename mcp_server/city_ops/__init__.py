@@ -172,6 +172,12 @@ from .acontext_activation_hold_status_card import (
     load_acontext_activation_hold_status_card,
     write_acontext_activation_hold_status_card,
 )
+from .acontext_operator_activation_answer_schema_gate import (
+    build_acontext_operator_activation_answer_schema_gate,
+    load_acontext_operator_activation_answer_schema_gate,
+    validate_acontext_operator_activation_answer_shape,
+    write_acontext_operator_activation_answer_schema_gate,
+)
 from .aas_coordination_observability_success_metrics_board import (
     build_aas_coordination_observability_success_metrics_board,
     load_aas_coordination_observability_success_metrics_board,

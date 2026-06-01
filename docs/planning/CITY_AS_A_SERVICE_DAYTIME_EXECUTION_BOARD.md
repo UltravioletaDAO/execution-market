@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-05-31 07:00 America/New_York
+> Last updated: 2026-06-01 00:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -8,6 +8,12 @@
 > - `CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md`
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
+
+
+
+## Latest June 1 00:00 Acontext operator activation answer schema gate
+
+`mcp_server/city_ops/acontext_operator_activation_answer_schema_gate.py` now creates a deterministic internal/admin answer-intake schema over the May 31 Acontext activation hold status card, persisted at `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_operator_activation_answer_schema_gate.json`; implementation notes: `CITY_AS_A_SERVICE_ACONTEXT_OPERATOR_ACTIVATION_ANSWER_SCHEMA_GATE_IMPLEMENTATION.md`. Safe claim: `admin_acontext_operator_activation_answer_schema_gate_landed`. The gate records no operator answer and no approval; it simply constrains any future explicit answer to exactly three values: `hold_no_runtime_mutation`, `approve_design_only_wiring_default_off`, or `approve_one_bounded_local_activation_test`. Accepted answer shape still does not authorize runtime mutation; design-only wiring and bounded local activation require a separate approval artifact. It keeps runtime adapter registration/enablement, IRC/session-manager mutation, activation test execution, cross-project autorouting, customer/public/catalog/pricing, queue/dispatch, ERC-8004 reputation, Worker Skill DNA, payment/production claims, exact GPS/raw metadata release, private-context release, authority claims, worker-copyable doctrine, and stopped-project integration blocked. Focused verification: answer schema gate tests -> `13 passed`.
 
 
 
