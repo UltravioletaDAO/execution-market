@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-06-01 04:00 America/New_York
+> Last updated: 2026-06-01 05:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -8,6 +8,12 @@
 > - `CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md`
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
+
+
+
+## Latest June 1 05:00 Acontext operator activation daytime handoff packet
+
+`mcp_server/city_ops/acontext_operator_activation_daytime_handoff_packet.py` now creates a deterministic internal/admin daytime handoff packet over the Acontext operator activation read-only review packet, persisted at `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_operator_activation_daytime_handoff_packet.json`; implementation notes: `CITY_AS_A_SERVICE_ACONTEXT_OPERATOR_ACTIVATION_DAYTIME_HANDOFF_PACKET_IMPLEMENTATION.md`; synthesis entrypoint: `CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_06_01.md`. Safe claim: `admin_acontext_operator_activation_daytime_handoff_packet_landed`. The packet turns the 5 AM synthesis into one current hold state plus three explicit future human answer options: `hold_no_runtime_mutation`, `approve_design_only_wiring_default_off`, or `approve_one_bounded_local_activation_test`. It records no operator answer and no approval, keeps the effective decision at `hold_no_runtime_mutation`, treats the displayed choices as non-authorizing, and requires a separate answer-record artifact before any approval, wiring, or activation test. The stopped-project firewall remains active: no AutoJob, Frontier Academy, KK v2, or KarmaCadabra v2 work. Operator answer recording, approval recording, design-only wiring selection, bounded activation test selection/execution, runtime adapter registration/enablement, IRC/session-manager mutation, cross-project autorouting, customer/public/catalog/pricing exposure, queue/dispatch, ERC-8004 reputation, Worker Skill DNA, payment/production claims, exact GPS/raw metadata release, private-context release, authority claims, worker-copyable doctrine, runtime parity, and stopped-project integration stay blocked. Focused verification: daytime handoff packet tests -> `11 passed`; read-only review + daytime handoff tests -> `22 passed`; full city-ops suite -> `1713 passed`.
 
 
 
