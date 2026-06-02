@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-06-01 06:00 America/New_York
+> Last updated: 2026-06-02 00:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -8,6 +8,13 @@
 > - `CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md`
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
+
+
+
+## Latest June 2 00:00 Acontext operator activation answer-record dry-run validator
+
+`mcp_server/city_ops/acontext_operator_activation_answer_record_dry_run_validator.py` now creates a deterministic internal/admin dry-run validator over the Acontext operator activation daytime handoff packet, persisted at `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/acontext_operator_activation_answer_record_dry_run_validator.json`; implementation notes: `CITY_AS_A_SERVICE_ACONTEXT_OPERATOR_ACTIVATION_ANSWER_RECORD_DRY_RUN_VALIDATOR_IMPLEMENTATION.md`. Safe claim: `admin_acontext_operator_activation_answer_record_dry_run_validator_landed`. The validator checks only hypothetical future answer-record candidates for the three allowed values: `hold_no_runtime_mutation`, `approve_design_only_wiring_default_off`, and `approve_one_bounded_local_activation_test`. It records no real operator answer, records no approval, keeps the effective decision at `hold_no_runtime_mutation`, and emits fail-closed blockers when no explicit answer exists. The stopped-project firewall remains active: no AutoJob, Frontier Academy, KK v2, or KarmaCadabra v2 work. Still blocked: operator answer recording, operator approval recording, treating dry-run validation as approval, design-only wiring selection, bounded local activation test selection/execution, runtime adapter registration/enablement, IRC/session-manager mutation, cross-project autorouting, customer/public/catalog/pricing exposure, queue/dispatch, ERC-8004 reputation, Worker Skill DNA, payment/production claims, exact GPS/raw metadata release, private-context release, authority claims, worker-copyable doctrine, runtime parity, and stopped-project integration. Verification: dry-run validator tests -> `12 passed`; daytime handoff + dry-run validator tests -> `23 passed`; full city-ops suite -> `1744 passed`.
+
 
 
 
