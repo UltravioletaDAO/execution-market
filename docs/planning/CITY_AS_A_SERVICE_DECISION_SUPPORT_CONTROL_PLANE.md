@@ -104,6 +104,18 @@ Operationally, the packet makes the control plane stricter:
 - agent coordination quality remains an internal selection signal until a separate scoring/reputation gate exists;
 - the system keeps exactly one next-proof slot: clear Acontext runtime-memory prerequisites, then run one live write/retrieve parity attempt.
 
+
+## 3.3 2026-06-02 status — no-answer system-integration decision-support plan
+
+The latest low-authority planning handoff is:
+
+- document: `CITY_AS_A_SERVICE_SYSTEM_INTEGRATION_DECISION_SUPPORT_NO_ANSWER_PLAN_2026_06_02.md`
+- safe claim: `internal_admin_aas_system_integration_decision_support_no_answer_plan_landed`
+
+It connects memory/Acontext planning, IRC session-management invariants, cross-project decision support, agent observability, product-fork pause posture, and payment/production context through a declared-vs-verified model. The plan is deliberately no-answer and internal/admin-only: it does not record an operator answer, approve a product family, mutate runtime, register/enable an Acontext adapter, change IRC session manager state, create customer copy, expose public/catalog/pricing routes, launch queue/dispatch, attach ERC-8004 reputation, create Worker Skill DNA, or reverify payment/production.
+
+The current recommended no-answer next proof is a memory-to-Acontext readiness carry-forward card that proves the disabled adapter field set without writing to Acontext.
+
 ## 4. System model
 
 ## 4.1 Source-of-truth split
