@@ -650,6 +650,11 @@ from .aas_product_fork_no_answer_pause_board import (
     load_aas_product_fork_no_answer_pause_board,
     write_aas_product_fork_no_answer_pause_board,
 )
+from .aas_product_exposure_boundary_candidate_review_gate import (
+    build_aas_product_exposure_boundary_candidate_review_gate,
+    load_aas_product_exposure_boundary_candidate_review_gate,
+    write_aas_product_exposure_boundary_candidate_review_gate,
+)
 from .aas_memory_acontext_readiness_carry_forward_card import (
     build_aas_memory_acontext_readiness_carry_forward_card,
     load_aas_memory_acontext_readiness_carry_forward_card,
@@ -1063,6 +1068,9 @@ __all__ = [
     "build_aas_product_fork_no_answer_pause_board",
     "load_aas_product_fork_no_answer_pause_board",
     "write_aas_product_fork_no_answer_pause_board",
+    "build_aas_product_exposure_boundary_candidate_review_gate",
+    "load_aas_product_exposure_boundary_candidate_review_gate",
+    "write_aas_product_exposure_boundary_candidate_review_gate",
     "build_aas_memory_acontext_readiness_carry_forward_card",
     "load_aas_memory_acontext_readiness_carry_forward_card",
     "write_aas_memory_acontext_readiness_carry_forward_card",
