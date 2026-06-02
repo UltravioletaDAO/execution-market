@@ -645,6 +645,11 @@ from .aas_portfolio_next_gate_board import (
     load_aas_portfolio_next_gate_board,
     write_aas_portfolio_next_gate_board,
 )
+from .aas_product_fork_no_answer_pause_board import (
+    build_aas_product_fork_no_answer_pause_board,
+    load_aas_product_fork_no_answer_pause_board,
+    write_aas_product_fork_no_answer_pause_board,
+)
 from .aas_portfolio_operator_authorization_packet import (
     build_aas_portfolio_operator_authorization_packet,
     load_aas_portfolio_operator_authorization_packet,
@@ -1040,6 +1045,9 @@ __all__ = [
     "build_aas_portfolio_next_gate_board",
     "load_aas_portfolio_next_gate_board",
     "write_aas_portfolio_next_gate_board",
+    "build_aas_product_fork_no_answer_pause_board",
+    "load_aas_product_fork_no_answer_pause_board",
+    "write_aas_product_fork_no_answer_pause_board",
     "build_aas_portfolio_operator_authorization_packet",
     "load_aas_portfolio_operator_authorization_packet",
     "write_aas_portfolio_operator_authorization_packet",
