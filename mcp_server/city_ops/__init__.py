@@ -650,6 +650,16 @@ from .aas_product_fork_no_answer_pause_board import (
     load_aas_product_fork_no_answer_pause_board,
     write_aas_product_fork_no_answer_pause_board,
 )
+from .aas_memory_acontext_readiness_carry_forward_card import (
+    build_aas_memory_acontext_readiness_carry_forward_card,
+    load_aas_memory_acontext_readiness_carry_forward_card,
+    write_aas_memory_acontext_readiness_carry_forward_card,
+)
+from .aas_session_manager_no_mutation_adapter_field_map import (
+    build_aas_session_manager_no_mutation_adapter_field_map,
+    load_aas_session_manager_no_mutation_adapter_field_map,
+    write_aas_session_manager_no_mutation_adapter_field_map,
+)
 from .aas_portfolio_operator_authorization_packet import (
     build_aas_portfolio_operator_authorization_packet,
     load_aas_portfolio_operator_authorization_packet,
@@ -1048,6 +1058,12 @@ __all__ = [
     "build_aas_product_fork_no_answer_pause_board",
     "load_aas_product_fork_no_answer_pause_board",
     "write_aas_product_fork_no_answer_pause_board",
+    "build_aas_memory_acontext_readiness_carry_forward_card",
+    "load_aas_memory_acontext_readiness_carry_forward_card",
+    "write_aas_memory_acontext_readiness_carry_forward_card",
+    "build_aas_session_manager_no_mutation_adapter_field_map",
+    "load_aas_session_manager_no_mutation_adapter_field_map",
+    "write_aas_session_manager_no_mutation_adapter_field_map",
     "build_aas_portfolio_operator_authorization_packet",
     "load_aas_portfolio_operator_authorization_packet",
     "write_aas_portfolio_operator_authorization_packet",

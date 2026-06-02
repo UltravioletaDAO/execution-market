@@ -116,6 +116,20 @@ It connects memory/Acontext planning, IRC session-management invariants, cross-p
 
 The current recommended no-answer next proof is a memory-to-Acontext readiness carry-forward card that proves the disabled adapter field set without writing to Acontext.
 
+
+## 3.4 2026-06-02 05:00 status — session-manager no-mutation adapter field map
+
+The latest no-answer implementation handoff is:
+
+- implementation: `mcp_server/city_ops/aas_session_manager_no_mutation_adapter_field_map.py`
+- fixture: `mcp_server/city_ops/fixtures/proof_blocks/redirect_outdated_packet_001/aas_session_manager_no_mutation_adapter_field_map.json`
+- document: `CITY_AS_A_SERVICE_SESSION_MANAGER_NO_MUTATION_ADAPTER_FIELD_MAP_IMPLEMENTATION.md`
+- safe claim: `internal_admin_aas_session_manager_no_mutation_adapter_field_map_landed`
+
+It consumes the memory-to-Acontext readiness carry-forward card and maps only sanitized, reviewed fields into a future disabled/default-off IRC/session-manager adapter shape. It is deliberately no-answer and internal/admin-only: it does not record an operator answer, approve design-only wiring, register or enable an adapter, write session-manager config, mutate runtime, call Acontext, create customer/worker copy, launch queue/dispatch, emit reputation, produce Worker Skill DNA, or reverify payment/production.
+
+The current recommended no-answer next proof is a no-answer observability rubric fixture that scores future agents on boundary preservation, invariant-ID carry-forward, declared-vs-verified honesty, and one-next-proof discipline without creating a dashboard or reputation signal.
+
 ## 4. System model
 
 ## 4.1 Source-of-truth split
