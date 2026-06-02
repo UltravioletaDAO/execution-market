@@ -488,6 +488,11 @@ from .retail_reality_product_exposure_boundary_packet import (
     load_retail_reality_product_exposure_boundary_packet,
     write_retail_reality_product_exposure_boundary_packet,
 )
+from .retail_reality_product_exposure_hold_regression_guard import (
+    build_retail_reality_product_exposure_hold_regression_guard,
+    load_retail_reality_product_exposure_hold_regression_guard,
+    write_retail_reality_product_exposure_hold_regression_guard,
+)
 from .local_data_collection_fixture_review_gate import (
     build_local_data_collection_fixture_review_gate,
     load_local_data_collection_fixture_review_gate,
@@ -892,6 +897,9 @@ __all__ = [
     "build_retail_reality_product_exposure_boundary_packet",
     "load_retail_reality_product_exposure_boundary_packet",
     "write_retail_reality_product_exposure_boundary_packet",
+    "build_retail_reality_product_exposure_hold_regression_guard",
+    "load_retail_reality_product_exposure_hold_regression_guard",
+    "write_retail_reality_product_exposure_hold_regression_guard",
     "build_local_data_collection_fixture_review_gate",
     "load_local_data_collection_fixture_review_gate",
     "write_local_data_collection_fixture_review_gate",
