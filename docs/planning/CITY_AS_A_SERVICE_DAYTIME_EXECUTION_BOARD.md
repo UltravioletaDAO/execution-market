@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-06-03 00:00 America/New_York
+> Last updated: 2026-06-03 03:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -9,6 +9,12 @@
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
 
+
+
+
+## Latest June 3 03:00 AAS system-integration decision-support map
+
+`mcp_server/city_ops/aas_system_integration_decision_support_map.py` now creates a deterministic internal/admin decision-support map over `aas_source_of_truth_index.json`, persisted at `mcp_server/city_ops/fixtures/aas_package_ladder/aas_system_integration_decision_support_map.json`; implementation notes: `CITY_AS_A_SERVICE_AAS_SYSTEM_INTEGRATION_DECISION_SUPPORT_MAP_IMPLEMENTATION.md`. Safe claim: `internal_admin_aas_system_integration_decision_support_map_landed`. The map connects five current strengths as support-only lanes: memory/Acontext readiness, IRC session-management handoff discipline, cross-project source-of-truth filtering, agent observability/success-metric boundary preservation, and payment/production context. Every lane is explicitly unselected, non-authorizing, and default-off. It records no operator answer, no approval, no selected future answer, no answer record, no Retail Reality product exposure, no runtime-memory wiring, no runtime adapter registration/enabling, no IRC/session-manager mutation, no live Acontext write/retrieval, no cross-project autorouting, no customer/public/worker surface, no dashboard/public metric, no catalog/pricing/queue/dispatch, no ERC-8004 reputation, no Worker Skill DNA, no payment/production reverification, no exact GPS/raw metadata/private-context release, no authority claim, no worker doctrine, and no stopped-project integration. Next safe move if no real human/operator answer exists: keep both lanes held, pause proof layering, or append only a read-only final-wrap/handoff; if a real answer exists later, create a separate two-lane operator answer record first.
 
 
 

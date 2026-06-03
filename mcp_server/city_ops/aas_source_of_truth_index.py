@@ -59,8 +59,13 @@ CURRENT_ENTRYPOINT_DOCS = [
     },
     {
         "path": "docs/planning/CITY_AS_A_SERVICE_AAS_SOURCE_OF_TRUTH_INDEX_IMPLEMENTATION.md",
-        "role": "latest_safe_implementation_note",
+        "role": "source_index_implementation_note",
         "extension_policy": "current_source_index_until_real_operator_answer_exists",
+    },
+    {
+        "path": "docs/planning/CITY_AS_A_SERVICE_AAS_SYSTEM_INTEGRATION_DECISION_SUPPORT_MAP_IMPLEMENTATION.md",
+        "role": "latest_safe_decision_support_map_implementation_note",
+        "extension_policy": "current_decision_support_map_until_real_operator_answer_exists",
     },
 ]
 

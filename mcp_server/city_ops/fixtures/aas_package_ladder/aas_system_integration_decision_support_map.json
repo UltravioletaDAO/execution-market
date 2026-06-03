@@ -1703,202 +1703,168 @@
       "source_of_truth_index_releases_private_context",
       "source_of_truth_index_grants_domain_authority_claims",
       "source_of_truth_index_publishes_worker_copyable_doctrine",
-      "source_of_truth_index_integrates_stopped_projects"
+      "source_of_truth_index_integrates_stopped_projects",
+      "decision_support_map_records_operator_answer",
+      "decision_support_map_records_operator_approval",
+      "decision_support_map_selects_future_answer",
+      "decision_support_map_treats_lane_selection_as_approval",
+      "decision_support_map_creates_answer_record",
+      "decision_support_map_approves_product_exposure",
+      "decision_support_map_approves_runtime_memory_wiring",
+      "decision_support_map_registers_or_enables_runtime_adapter",
+      "decision_support_map_mutates_irc_session_manager",
+      "decision_support_map_writes_or_retrieves_live_acontext",
+      "decision_support_map_authorizes_cross_project_autorouting",
+      "decision_support_map_creates_customer_public_worker_surface",
+      "decision_support_map_creates_dashboard_or_public_metric",
+      "decision_support_map_authorizes_catalog_pricing_queue_or_dispatch",
+      "decision_support_map_emits_erc8004_reputation_or_worker_skill_dna",
+      "decision_support_map_reverifies_payment_or_production",
+      "decision_support_map_releases_exact_gps_or_raw_metadata",
+      "decision_support_map_releases_private_context",
+      "decision_support_map_grants_domain_authority_claims",
+      "decision_support_map_publishes_worker_copyable_doctrine",
+      "decision_support_map_integrates_stopped_projects"
     ],
     "safe_to_claim": [
       "internal_admin_aas_no_answer_observability_rubric_fixture_landed",
       "internal_admin_aas_product_exposure_boundary_candidate_review_gate_landed",
       "internal_admin_aas_two_lane_no_cross_promotion_guard_landed",
       "internal_admin_aas_two_lane_operator_answer_schema_landed",
-      "internal_admin_aas_source_of_truth_index_landed"
+      "internal_admin_aas_source_of_truth_index_landed",
+      "internal_admin_aas_system_integration_decision_support_map_landed"
     ]
   },
-  "current_entrypoints": [
-    {
-      "digest_sha256": "9be8331ad9cf9e8732d9acaddd548ae5989bbd0b23671b640a1102145d3d46e8",
-      "exists": true,
-      "extension_policy": "current_entrypoint_update_only_when_new_safe_claim_lands",
-      "path": "docs/planning/CITY_AS_A_SERVICE_DAYTIME_EXECUTION_BOARD.md",
-      "role": "latest_append_only_execution_board"
-    },
-    {
-      "digest_sha256": "2f7efd8037729496dab340052e4b1466c010331f94083a434e0dafae997767d8",
-      "exists": true,
-      "extension_policy": "context_only_after_two_lane_operator_answer_schema_landed",
-      "path": "docs/planning/CITY_AS_A_SERVICE_10PM_AAS_NEXT_STEPS_2026_06_02.md",
-      "role": "latest_next_slice_audit_before_two_lane_schema"
-    },
-    {
-      "digest_sha256": "cb40181f04bccf0758a371c84933f85d343759fc43f11d00e7b568051325158f",
-      "exists": true,
-      "extension_policy": "source_doc_for_guard_boundaries_only",
-      "path": "docs/planning/CITY_AS_A_SERVICE_AAS_TWO_LANE_NO_CROSS_PROMOTION_GUARD_IMPLEMENTATION.md",
-      "role": "current_two_lane_guard_implementation_note"
-    },
-    {
-      "digest_sha256": "35fea842154f3ecf9e6fe76b177490856bdb477b96b7ad48f2fa40945e693d77",
-      "exists": true,
-      "extension_policy": "current_schema_source_until_real_operator_answer_exists",
-      "path": "docs/planning/CITY_AS_A_SERVICE_AAS_TWO_LANE_OPERATOR_ANSWER_SCHEMA_IMPLEMENTATION.md",
-      "role": "current_schema_source_until_real_operator_answer_exists"
-    },
-    {
-      "digest_sha256": "162ba0d1eab7414965971af326be2ac08d66ccea454bc1c65005370739d02a92",
-      "exists": true,
-      "extension_policy": "current_source_index_until_real_operator_answer_exists",
-      "path": "docs/planning/CITY_AS_A_SERVICE_AAS_SOURCE_OF_TRUTH_INDEX_IMPLEMENTATION.md",
-      "role": "source_index_implementation_note"
-    },
-    {
-      "digest_sha256": "984d6def6ac10584bcd7c26d2fc9083733526a43c023b9c5da8367a5170b67d0",
-      "exists": true,
-      "extension_policy": "current_decision_support_map_until_real_operator_answer_exists",
-      "path": "docs/planning/CITY_AS_A_SERVICE_AAS_SYSTEM_INTEGRATION_DECISION_SUPPORT_MAP_IMPLEMENTATION.md",
-      "role": "latest_safe_decision_support_map_implementation_note"
-    }
-  ],
-  "current_no_answer_posture": {
+  "current_no_answer_decision": {
     "effective_decision": "keep_both_lanes_held_internal_admin_only",
+    "lane_selection_is_approval": false,
+    "map_is_answer_record": false,
     "operator_answer_recorded": false,
     "operator_approval_recorded": false,
-    "safe_next_move_without_human_answer": "hold_or_append_read_only_final_wrap_handoff; do not add product, runtime, dispatch, reputation, payment, location, private-context, authority, or stopped-project claims",
-    "selected_decision": null
+    "selected_future_answer": null
   },
-  "historical_context_only": [
+  "decision_support_questions": [
     {
-      "ban": "not_launch_authority_without_fresh_human_answer_and_proof_gate",
-      "digest_sha256": "54d2dea95605181fbf26c96ff561ea8c6ba2c9e4bd68c9c8d95aec52647b1b77",
-      "exists": true,
-      "historical_use": "taxonomy_and_background_only",
-      "path": "docs/planning/MASTER_PLAN_CITY_AS_A_SERVICE.md"
+      "answered_by_this_map": false,
+      "question": "Should the next daytime move record one real two-lane operator answer or keep both lanes held?",
+      "requires_separate_answer_record": true
     },
     {
-      "ban": "not_public_catalog_or_pricing_authority",
-      "digest_sha256": "657a3707d63d7d878b999d1be9b43c1a94840560989c5e67b842d58eb74ecaa2",
-      "exists": true,
-      "historical_use": "service_family_taxonomy_only",
-      "path": "docs/planning/CITY_AS_A_SERVICE_SERVICE_CATALOG.md"
+      "answered_by_this_map": false,
+      "question": "If no real answer exists, should proof layering pause instead of adding more read-only ceremony?",
+      "requires_separate_answer_record": true
     },
     {
-      "ban": "not_current_next_step_driver",
-      "digest_sha256": "c83c4be7c619eab23645bb32efea893f8cd6b15a5c128049cd006c93533fa29e",
-      "exists": true,
-      "historical_use": "older_portfolio_idea_backlog_only",
-      "path": "docs/planning/EXECUTION_MARKET_AAS_NEXT_CONCEPTS_2026_05_21_10PM.md"
-    },
-    {
-      "ban": "not_current_packaging_authority",
-      "digest_sha256": "e10abf5275ac7d70d055762bb6f245eea121d8e931198cea40c494cc81088451",
-      "exists": true,
-      "historical_use": "older_low_authority_packaging_context_only",
-      "path": "docs/planning/EXECUTION_MARKET_AAS_NEXT_LOW_AUTHORITY_PACKAGING_PLAN_2026_05_23_10PM.md"
-    },
-    {
-      "ban": "not_product_exposure_approval",
-      "digest_sha256": "c50fcd9df996f845bd6a898aad38aa3c013db7a994f8534de70562b7dec6150b",
-      "exists": true,
-      "historical_use": "superseded_product_fork_selector_context_only",
-      "path": "docs/planning/CITY_AS_A_SERVICE_AAS_PRODUCT_FORK_NEXT_GATE_SELECTOR_2026_06_01.md"
-    },
-    {
-      "ban": "not_latest_answer_schema_authority",
-      "digest_sha256": "db3121e018b2c793c0e8c2d3e3bd976de83f620e46923dc96493a2b90b2f44f6",
-      "exists": true,
-      "historical_use": "sealed_morning_marker_for_june_2_stack_only",
-      "path": "docs/planning/CITY_AS_A_SERVICE_6AM_FINAL_WRAP_2026_06_02.md"
+      "answered_by_this_map": false,
+      "question": "If runtime memory is later approved, which disabled/default-off wiring gate runs first?",
+      "requires_separate_approval_record": true
     }
   ],
-  "index_id": "execution_market.aas.source_of_truth_index.2026_06_03_0200",
-  "index_status": "read_only_index_no_answer_no_approval",
-  "index_verdict": "source_of_truth_index_landed_no_answer_no_approval_current_entrypoints_marked_historical_docs_demoted_no_runtime_product_reputation_payment_dispatch_or_stopped_project_promotion",
+  "integration_lanes": [
+    {
+      "approval_granted_by_this_map": false,
+      "blocked_promotion": "no_live_acontext_write_or_retrieval_without_separate_operator_answer_and_runtime_parity_gate",
+      "current_use": "carry_forward_sanitized_claim_boundaries_and_next_gate_refs_only",
+      "decision_support_only": true,
+      "lane": "memory_acontext_readiness",
+      "runtime_or_external_promotion_allowed": false,
+      "selected_by_this_map": false,
+      "strength_connected": "intelligent_memory_insights_and_acontext_planning"
+    },
+    {
+      "approval_granted_by_this_map": false,
+      "blocked_promotion": "no_irc_session_manager_mutation_or_adapter_enablement",
+      "current_use": "preserve_sanitized_four_id_handoff_shape_as_review_context_only",
+      "decision_support_only": true,
+      "lane": "irc_session_management",
+      "runtime_or_external_promotion_allowed": false,
+      "selected_by_this_map": false,
+      "strength_connected": "legendary_agent_coordination_and_session_handoff_discipline"
+    },
+    {
+      "approval_granted_by_this_map": false,
+      "blocked_promotion": "no_cross_project_autorouting_or_stopped_project_work",
+      "current_use": "filter_decisions_to_current_aas_entrypoints_only",
+      "decision_support_only": true,
+      "lane": "cross_project_decision_support",
+      "runtime_or_external_promotion_allowed": false,
+      "selected_by_this_map": false,
+      "strength_connected": "source_of_truth_index_demotes_stale_context_and_blocks_stopped_tracks"
+    },
+    {
+      "approval_granted_by_this_map": false,
+      "blocked_promotion": "no_dashboard_public_metric_reputation_or_worker_skill_dna",
+      "current_use": "measure_boundary_preservation_in_internal_admin_handoffs_only",
+      "decision_support_only": true,
+      "lane": "agent_observability_success_metrics",
+      "runtime_or_external_promotion_allowed": false,
+      "selected_by_this_map": false,
+      "strength_connected": "no_answer_observability_rubric_and_success_metric_boundaries"
+    },
+    {
+      "approval_granted_by_this_map": false,
+      "blocked_promotion": "no_payment_or_production_reverification_claim_from_this_map",
+      "current_use": "treat_payment_status_as_historical_context_not_reverified_claim",
+      "decision_support_only": true,
+      "lane": "payment_production_context",
+      "runtime_or_external_promotion_allowed": false,
+      "selected_by_this_map": false,
+      "strength_connected": "production_infrastructure_and_multi_chain_payment_context"
+    }
+  ],
+  "map_id": "execution_market.aas.system_integration_decision_support_map.2026_06_03_0300",
+  "map_status": "read_only_decision_support_no_answer_no_approval_no_runtime_or_external_promotion",
+  "map_verdict": "system_integration_decision_support_map_landed_no_answer_no_approval_all_strengths_connected_as_internal_admin_lanes_only_no_runtime_product_reputation_payment_dispatch_or_stopped_project_promotion",
   "operator_guidance": {
     "first_read": "DREAM-PRIORITIES.md",
-    "if_no_real_answer": "stop_at_hold_or_read_only_final_wrap",
-    "if_real_answer_exists": "create a separate answer record against aas_two_lane_operator_answer_schema.json",
+    "if_no_real_answer": "hold_both_lanes_or_pause_proof_layering",
+    "if_real_answer_exists": "create_separate_two_lane_operator_answer_record_first",
     "not_customer_copy": true,
     "not_dashboard_spec": true,
     "not_worker_instruction": true,
-    "then_read": "docs/planning/CITY_AS_A_SERVICE_DAYTIME_EXECUTION_BOARD.md"
+    "use_this_map_for": "internal_admin_decision_support_only"
   },
   "readiness": {
-    "bounded_activation_test_selected": false,
-    "catalog_visible": false,
-    "current_entrypoints_indexed": true,
-    "customer_visible": false,
+    "decision_support_approves_product_exposure": false,
+    "decision_support_approves_runtime_memory_wiring": false,
+    "decision_support_creates_answer_record": false,
+    "decision_support_creates_customer_copy": false,
+    "decision_support_creates_dashboard_metric": false,
+    "decision_support_creates_worker_instruction": false,
+    "decision_support_emits_erc8004_reputation": false,
+    "decision_support_emits_worker_skill_dna": false,
+    "decision_support_enables_catalog_pricing_queue_or_dispatch": false,
+    "decision_support_enables_cross_project_autorouting": false,
+    "decision_support_enables_runtime_adapter": false,
+    "decision_support_grants_domain_authority_claims": false,
+    "decision_support_integrates_stopped_projects": false,
+    "decision_support_mutates_irc_session_manager": false,
+    "decision_support_publishes_worker_copyable_doctrine": false,
+    "decision_support_records_operator_answer": false,
+    "decision_support_records_operator_approval": false,
+    "decision_support_registers_runtime_adapter": false,
+    "decision_support_releases_exact_gps_or_raw_metadata": false,
+    "decision_support_releases_private_context": false,
+    "decision_support_retrieves_live_acontext": false,
+    "decision_support_reverifies_payment_or_production": false,
+    "decision_support_selects_future_answer": false,
+    "decision_support_writes_live_acontext": false,
     "default_off_non_authorizing": true,
-    "design_only_wiring_selected": false,
-    "dispatch_enabled": false,
-    "domain_authority_claims_allowed": false,
-    "erc8004_reputation_ready": false,
-    "exact_gps_or_raw_metadata_release_allowed": false,
-    "future_answer_record_created": false,
-    "historical_docs_demoted_to_context_only": true,
-    "internal_admin_source_index_landed": true,
-    "irc_session_manager_mutated": false,
-    "live_acontext_write_or_retrieval_enabled": false,
-    "operator_answer_recorded": false,
-    "operator_approval_recorded": false,
-    "payment_or_production_reverified": false,
-    "pricing_enabled": false,
-    "private_context_release_allowed": false,
-    "public_visible": false,
-    "queue_launch_ready": false,
-    "retail_reality_answer_or_hold_record_created": false,
-    "retail_reality_product_exposure_approved": false,
-    "runtime_adapter_enabled": false,
-    "runtime_adapter_registered": false,
-    "runtime_memory_operator_answer_record_created": false,
-    "runtime_memory_wiring_approved": false,
-    "source_index_authorizes_runtime_memory_wiring": false,
-    "source_index_creates_customer_copy": false,
-    "source_index_creates_dashboard_metric": false,
-    "source_index_creates_product_exposure": false,
-    "source_index_creates_worker_instruction": false,
-    "source_index_promotes_historical_docs_to_launch_authority": false,
-    "source_index_records_operator_answer": false,
-    "source_index_records_operator_approval": false,
-    "source_index_selects_future_answer": false,
-    "source_schema_verified": true,
-    "stale_extension_ban_list_present": true,
-    "stopped_project_integration_ready": false,
-    "worker_copyable_doctrine_ready": false,
-    "worker_skill_dna_ready": false,
-    "worker_visible": false
+    "integration_lanes_mapped": true,
+    "internal_admin_decision_support_map_landed": true,
+    "source_index_verified": true
   },
-  "schema": "city_ops.aas_source_of_truth_index.v1",
-  "scope": "internal_admin_aas_planning_source_of_truth_index_only",
-  "source_policy": "consume_latest_two_lane_operator_answer_schema_only",
-  "source_schema": {
-    "digest_sha256": "29a89d56deb14b105d2e6dd7e0972356abf89a99644e063932f8c70cf20977c3",
+  "schema": "city_ops.aas_system_integration_decision_support_map.v1",
+  "scope": "internal_admin_aas_system_integration_decision_support_only",
+  "source_index": {
+    "digest_sha256": "64f14352f8ca36c66cbd6daa3c5b380bd28e462133b247e61fad833397a24642",
     "effective_decision": "keep_both_lanes_held_internal_admin_only",
-    "file": "aas_two_lane_operator_answer_schema.json",
-    "safe_claim": "internal_admin_aas_two_lane_operator_answer_schema_landed",
-    "schema": "city_ops.aas_two_lane_operator_answer_schema.v1",
-    "schema_id": "execution_market.aas.two_lane_operator_answer_schema.2026_06_03_0000",
-    "schema_status": "schema_only_no_operator_answer_no_approval_both_lanes_held"
+    "file": "aas_source_of_truth_index.json",
+    "index_id": "execution_market.aas.source_of_truth_index.2026_06_03_0200",
+    "safe_claim": "internal_admin_aas_source_of_truth_index_landed",
+    "schema": "city_ops.aas_source_of_truth_index.v1"
   },
-  "stale_pattern_extension_ban_list": [
-    {
-      "allowed_use": "historical_context_only",
-      "ban": "do_not_extend_as_active_next_step_source_without_new_human_answer_and_proof_gate",
-      "glob": "docs/planning/CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_05_*.md"
-    },
-    {
-      "allowed_use": "historical_context_only",
-      "ban": "do_not_extend_as_active_next_step_source_without_new_human_answer_and_proof_gate",
-      "glob": "docs/planning/CITY_AS_A_SERVICE_6AM_FINAL_WRAP_2026_05_*.md"
-    },
-    {
-      "allowed_use": "historical_context_only",
-      "ban": "do_not_extend_as_active_next_step_source_without_new_human_answer_and_proof_gate",
-      "glob": "docs/planning/AAS_SINGLE_BOUNDARY_*.md"
-    },
-    {
-      "allowed_use": "historical_context_only",
-      "ban": "do_not_extend_as_active_next_step_source_without_new_human_answer_and_proof_gate",
-      "glob": "docs/planning/CITY_AS_A_SERVICE_SYSTEM_INTEGRATION_FLYWHEEL_*.md"
-    }
-  ],
+  "source_policy": "consume_current_source_of_truth_index_only",
   "still_blocked_claims": [
     "runtime_parity_proven",
     "reuse_behavior_proven",
@@ -3602,7 +3568,28 @@
     "source_of_truth_index_releases_private_context",
     "source_of_truth_index_grants_domain_authority_claims",
     "source_of_truth_index_publishes_worker_copyable_doctrine",
-    "source_of_truth_index_integrates_stopped_projects"
+    "source_of_truth_index_integrates_stopped_projects",
+    "decision_support_map_records_operator_answer",
+    "decision_support_map_records_operator_approval",
+    "decision_support_map_selects_future_answer",
+    "decision_support_map_treats_lane_selection_as_approval",
+    "decision_support_map_creates_answer_record",
+    "decision_support_map_approves_product_exposure",
+    "decision_support_map_approves_runtime_memory_wiring",
+    "decision_support_map_registers_or_enables_runtime_adapter",
+    "decision_support_map_mutates_irc_session_manager",
+    "decision_support_map_writes_or_retrieves_live_acontext",
+    "decision_support_map_authorizes_cross_project_autorouting",
+    "decision_support_map_creates_customer_public_worker_surface",
+    "decision_support_map_creates_dashboard_or_public_metric",
+    "decision_support_map_authorizes_catalog_pricing_queue_or_dispatch",
+    "decision_support_map_emits_erc8004_reputation_or_worker_skill_dna",
+    "decision_support_map_reverifies_payment_or_production",
+    "decision_support_map_releases_exact_gps_or_raw_metadata",
+    "decision_support_map_releases_private_context",
+    "decision_support_map_grants_domain_authority_claims",
+    "decision_support_map_publishes_worker_copyable_doctrine",
+    "decision_support_map_integrates_stopped_projects"
   ],
   "stopped_project_firewall": {
     "autojob_work_allowed": false,
