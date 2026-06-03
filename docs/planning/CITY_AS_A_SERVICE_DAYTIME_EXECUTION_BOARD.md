@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-06-03 04:00 America/New_York
+> Last updated: 2026-06-03 05:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -9,6 +9,11 @@
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
 
+
+
+## Latest June 3 05:00 pre-dawn synthesis
+
+`CITY_AS_A_SERVICE_PRE_DAWN_SYNTHESIS_2026_06_03.md` is the current daytime coordination entrypoint. The 5 AM pass re-read `~/clawd/DREAM-PRIORITIES.md` first and obeyed it over the stale cron payload, so AutoJob, Frontier Academy, KK v2, and KarmaCadabra v2 remained untouched. Tonight's connected stack is now: product-exposure candidate review gate -> product-exposure no-answer hold packet -> two-lane no-cross-promotion guard -> two-lane operator answer schema -> source-of-truth index -> system-integration decision-support map -> 4 AM pattern-synthesis handoff -> pre-dawn synthesis. Safe latest implementation claim remains `internal_admin_aas_four_am_pattern_synthesis_handoff_landed`; synthesis claim: `internal_admin_aas_pre_dawn_synthesis_2026_06_03_landed`. The durable daytime conclusion is that AAS is no longer missing handoff structure; it is waiting for exactly one real human/operator answer or an explicit pause. Recommended default: keep both lanes held and pause proof layering unless Saúl explicitly chooses one of the four schema values (`keep_both_lanes_held`, `create_retail_reality_answer_or_hold_record`, `create_runtime_memory_operator_answer_record`, `pause_aas_proof_layering`). Do not infer operator answer/approval, Retail Reality product exposure, runtime-memory wiring, adapter registration/enabling, IRC/session-manager mutation, live Acontext write/retrieve, customer/public/worker surface, dashboard/public metric, catalog/pricing/queue/dispatch, ERC-8004 reputation, Worker Skill DNA, payment/production readiness, exact GPS/raw metadata/private-context release, authority claims, worker-copyable doctrine, or stopped-project integration. Verification: full city-ops suite -> `1884 passed`.
 
 
 
