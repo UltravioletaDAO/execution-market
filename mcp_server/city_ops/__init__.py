@@ -670,6 +670,11 @@ from .aas_two_lane_operator_answer_schema import (
     load_aas_two_lane_operator_answer_schema,
     write_aas_two_lane_operator_answer_schema,
 )
+from .aas_source_of_truth_index import (
+    build_aas_source_of_truth_index,
+    load_aas_source_of_truth_index,
+    write_aas_source_of_truth_index,
+)
 from .aas_memory_acontext_readiness_carry_forward_card import (
     build_aas_memory_acontext_readiness_carry_forward_card,
     load_aas_memory_acontext_readiness_carry_forward_card,
@@ -1095,6 +1100,9 @@ __all__ = [
     "build_aas_two_lane_operator_answer_schema",
     "load_aas_two_lane_operator_answer_schema",
     "write_aas_two_lane_operator_answer_schema",
+    "build_aas_source_of_truth_index",
+    "load_aas_source_of_truth_index",
+    "write_aas_source_of_truth_index",
     "build_aas_memory_acontext_readiness_carry_forward_card",
     "load_aas_memory_acontext_readiness_carry_forward_card",
     "write_aas_memory_acontext_readiness_carry_forward_card",
