@@ -675,6 +675,11 @@ from .aas_source_of_truth_index import (
     load_aas_source_of_truth_index,
     write_aas_source_of_truth_index,
 )
+from .aas_four_am_pattern_synthesis_handoff import (
+    build_aas_four_am_pattern_synthesis_handoff,
+    load_aas_four_am_pattern_synthesis_handoff,
+    write_aas_four_am_pattern_synthesis_handoff,
+)
 from .aas_memory_acontext_readiness_carry_forward_card import (
     build_aas_memory_acontext_readiness_carry_forward_card,
     load_aas_memory_acontext_readiness_carry_forward_card,
@@ -1103,6 +1108,9 @@ __all__ = [
     "build_aas_source_of_truth_index",
     "load_aas_source_of_truth_index",
     "write_aas_source_of_truth_index",
+    "build_aas_four_am_pattern_synthesis_handoff",
+    "load_aas_four_am_pattern_synthesis_handoff",
+    "write_aas_four_am_pattern_synthesis_handoff",
     "build_aas_memory_acontext_readiness_carry_forward_card",
     "load_aas_memory_acontext_readiness_carry_forward_card",
     "write_aas_memory_acontext_readiness_carry_forward_card",
