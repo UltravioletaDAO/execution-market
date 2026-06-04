@@ -8,6 +8,9 @@ import { useTranslation } from 'react-i18next'
 import type { Task } from '../../types/database'
 import { listH2ATasks, cancelH2ATask } from '../../services/h2a'
 import { StatusBadge } from '../../components/ui/StatusBadge'
+import { useAuth } from '../../context/AuthContext'
+import { DepositModal } from '../../components/DepositModal'
+import { readEvmUsdcBalance, resolveEvmRpc } from '../../services/evm-balance'
 
 type Tab = 'active' | 'review' | 'history'
 
@@ -51,6 +54,9 @@ export function PublisherDashboard() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { walletAddress, executor } = useAuth()
+  const [balance, setBalance] = useState<number | null>(null)
+  const [showDeposit, setShowDeposit] = useState(false)
 
   const loadTasks = useCallback(async () => {
     setLoading(true); setError(null)
@@ -59,7 +65,14 @@ export function PublisherDashboard() {
     finally { setLoading(false) }
   }, [])
 
+  const loadBalance = useCallback(async () => {
+    if (!walletAddress) { setBalance(null); return }
+    try { setBalance(await readEvmUsdcBalance(walletAddress, resolveEvmRpc('base'), 'base')) }
+    catch { setBalance(null) }
+  }, [walletAddress])
+
   useEffect(() => { loadTasks() }, [loadTasks])
+  useEffect(() => { loadBalance() }, [loadBalance])
 
   const active = tasks.filter(t => ['published', 'accepted', 'in_progress'].includes(t.status))
   const review = tasks.filter(t => ['submitted', 'verifying'].includes(t.status))
@@ -71,9 +84,19 @@ export function PublisherDashboard() {
     <div className="min-h-screen bg-zinc-50">
       <div className="bg-white border-b border-zinc-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
             <div><h1 className="text-2xl font-bold text-zinc-900">📋 {t('publisher.dashboard.title', 'Publisher Panel')}</h1><p className="text-sm text-zinc-500 mt-1">{t('publisher.dashboard.subtitle', 'Manage your requests for AI agents')}</p></div>
-            <button onClick={() => navigate('/publisher/requests/new')} className="px-4 py-2 bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 font-medium">+ {t('publisher.dashboard.newRequest', 'New Request')}</button>
+            <div className="flex items-center gap-3">
+              {walletAddress && (
+                <div className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
+                  <span className="text-xs text-zinc-500">{t('publisher.dashboard.balance', 'Saldo')}</span>
+                  <span className="font-mono text-sm font-bold text-zinc-900">{balance === null ? '—' : `$${balance.toFixed(2)}`}</span>
+                  <span className="hidden sm:inline text-xs text-zinc-400">USDC · Base</span>
+                  <button onClick={() => setShowDeposit(true)} className="ml-1 rounded-md bg-zinc-900 px-2.5 py-1 text-xs font-medium text-white hover:bg-zinc-800">+ {t('publisher.dashboard.deposit', 'Depositar')}</button>
+                </div>
+              )}
+              <button onClick={() => navigate('/publisher/requests/new')} className="px-4 py-2 bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 font-medium">+ {t('publisher.dashboard.newRequest', 'New Request')}</button>
+            </div>
           </div>
         </div>
       </div>
@@ -118,6 +141,17 @@ export function PublisherDashboard() {
           </div>
         )}
       </div>
+
+      {walletAddress && (
+        <DepositModal
+          open={showDeposit}
+          walletAddress={walletAddress}
+          targetUsdc={Math.max(5, (balance ?? 0) + 20)}
+          externalCustomerId={executor?.id}
+          onClose={() => { setShowDeposit(false); loadBalance() }}
+          onFunded={() => { setShowDeposit(false); loadBalance() }}
+        />
+      )}
     </div>
   )
 }
