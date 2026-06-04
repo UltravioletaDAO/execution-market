@@ -208,3 +208,38 @@ class TestCheckEvmBalanceGate:
         assert result.onramp is not None
         assert result.onramp["currency"] == "usdc_base"
         assert result.onramp["url"].startswith("https://buy.moonpay.com")
+
+
+class TestH2HTargetExecutorType:
+    """PublishH2ATaskRequest.target_executor_type — H2H enablement (Phase 4/5).
+
+    The mobile wizard sends any|human|agent|robot; only 'human' enables H2H.
+    The validator must accept all four (so mobile is never rejected) and
+    default to 'agent' (historical behavior).
+    """
+
+    _BASE = dict(
+        title="Entregar paquete",
+        instructions="Recoger en X y entregar en Y antes de las 5pm hoy.",
+        category="physical_presence",
+        bounty_usd=10,
+    )
+
+    def test_accepts_all_mobile_values(self):
+        from models import PublishH2ATaskRequest
+
+        for tt in ("any", "human", "agent", "robot"):
+            r = PublishH2ATaskRequest(**self._BASE, target_executor_type=tt)
+            assert r.target_executor_type == tt
+
+    def test_defaults_to_agent(self):
+        from models import PublishH2ATaskRequest
+
+        r = PublishH2ATaskRequest(**self._BASE)
+        assert r.target_executor_type == "agent"
+
+    def test_rejects_invalid(self):
+        from models import PublishH2ATaskRequest
+
+        with pytest.raises(Exception):
+            PublishH2ATaskRequest(**self._BASE, target_executor_type="alien")
