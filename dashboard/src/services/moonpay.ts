@@ -78,7 +78,7 @@ export async function requestMoonPaySignedUrl(
     body: JSON.stringify({
       wallet_address: params.walletAddress,
       base_currency_amount: params.baseCurrencyAmount,
-      currency_code: params.currencyCode ?? 'usdc_sol',
+      currency_code: params.currencyCode ?? 'usdc_base',
       base_currency_code: params.baseCurrencyCode ?? 'usd',
       external_customer_id: params.externalCustomerId,
       redirect_url: params.redirectUrl,

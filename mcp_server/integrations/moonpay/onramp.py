@@ -31,11 +31,23 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 
-# MoonPay's Solana USDC minimum is $20 USD (per D-13 in
-# MASTER_PLAN_SOLANA_MPP_ROBOT_DEMO). Buying less throws "BadRequest"
-# server-side. We round qty_needed UP to this floor so the signed URL
-# is always accepted.
-MIN_BUY_USD_USDC_SOL = Decimal("20")
+# MoonPay's minBuyAmount per crypto code (verified against
+# api.moonpay.com/v3/currencies on 2026-06-04). USDC on EVM chains is $5,
+# which matches the EM $5 min-bounty floor (O6). usdc_sol historically
+# floored at $20 (Solana is feature-gated / "coming soon"); kept as-is so the
+# existing Solana balance-gate path is unchanged. Buying below the floor
+# throws "BadRequest" server-side, so we round qty_needed UP to it.
+_MIN_BUY_USD: dict[str, Decimal] = {
+    "usdc_base": Decimal("5"),
+    "usdc": Decimal("5"),
+    "usdc_sol": Decimal("20"),
+}
+_DEFAULT_MIN_BUY_USD = Decimal("5")
+
+
+def _min_buy_for(currency: str) -> Decimal:
+    """Return MoonPay's buy floor for a crypto code (default $5)."""
+    return _MIN_BUY_USD.get(currency, _DEFAULT_MIN_BUY_USD)
 
 
 def _is_moonpay_enabled() -> bool:
@@ -72,10 +84,11 @@ def build_insufficient_funds_onramp(
         logger.warning("MoonPay client import failed: %s", exc)
         return None
 
+    floor = _min_buy_for(currency)
     if qty_needed <= 0:
-        amount = MIN_BUY_USD_USDC_SOL
+        amount = floor
     else:
-        amount = max(qty_needed, MIN_BUY_USD_USDC_SOL)
+        amount = max(qty_needed, floor)
     # MoonPay rejects > 2 decimal places on USD. quantize handles that.
     amount = amount.quantize(Decimal("0.01"))
 

@@ -1,5 +1,5 @@
 /**
- * useMoonPayOnramp — watch a Solana wallet during an in-progress MoonPay buy.
+ * useMoonPayOnramp — watch a wallet (Base by default, or Solana) during an in-progress MoonPay buy.
  *
  * Phase 4.9 of MASTER_PLAN_SOLANA_MPP_ROBOT_DEMO. Once the agent taps Apple
  * Pay in the headless overlay (Phase 4.8), MoonPay needs anywhere from 5s
@@ -32,6 +32,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { readSolanaUsdcBalance, resolveSolanaRpc } from '../services/solana-balance'
+import { readEvmUsdcBalance, resolveEvmRpc } from '../services/evm-balance'
 
 const DEFAULT_POLL_MS = 1500
 
@@ -70,9 +71,11 @@ export type OnrampPhase =
 export interface UseMoonPayOnrampOptions {
   /** When false, the hook tears down and stops polling. */
   enabled?: boolean
+  /** Chain the deposit lands on. Default 'base' (the trustless EM funding path). */
+  chain?: 'base' | 'solana'
   /** USDC threshold (human units, 6-decimal). When balance >= target, phase → 'arrived'. */
   targetUsdc?: number
-  /** Override the Solana RPC. Defaults to VITE_SOLANA_RPC_URL or public mainnet-beta. */
+  /** Override the RPC. Defaults to VITE_BASE_RPC_URL / VITE_SOLANA_RPC_URL or public. */
   rpcUrl?: string
   /** Polling cadence in ms. Defaults to 1500ms (matches Phase 4.9 spec). */
   pollIntervalMs?: number
@@ -100,6 +103,7 @@ export function useMoonPayOnramp(
 ): UseMoonPayOnrampReturn {
   const {
     enabled = true,
+    chain = 'base',
     targetUsdc,
     rpcUrl,
     pollIntervalMs = DEFAULT_POLL_MS,
@@ -115,20 +119,26 @@ export function useMoonPayOnramp(
   onCompleteRef.current = onComplete
   const completedRef = useRef(false)
 
-  const resolvedRpc = useMemo(() => resolveSolanaRpc(rpcUrl), [rpcUrl])
+  const resolvedRpc = useMemo(
+    () => (chain === 'solana' ? resolveSolanaRpc(rpcUrl) : resolveEvmRpc('base', rpcUrl)),
+    [rpcUrl, chain],
+  )
 
   const fetchBalance = useCallback(async () => {
     if (!walletAddress) return 0
     try {
-      const next = await readSolanaUsdcBalance(walletAddress, resolvedRpc)
+      const next =
+        chain === 'solana'
+          ? await readSolanaUsdcBalance(walletAddress, resolvedRpc)
+          : await readEvmUsdcBalance(walletAddress, resolvedRpc, 'base')
       setBalance(next)
       setError(null)
       return next
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Solana RPC failed'))
+      setError(err instanceof Error ? err : new Error('RPC balance read failed'))
       return 0
     }
-  }, [walletAddress, resolvedRpc])
+  }, [walletAddress, resolvedRpc, chain])
 
   const fetchLatestEvent = useCallback(async () => {
     if (!walletAddress) return null
