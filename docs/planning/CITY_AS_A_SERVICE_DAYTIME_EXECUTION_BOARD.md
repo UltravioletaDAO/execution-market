@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-06-03 23:00 America/New_York
+> Last updated: 2026-06-04 01:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -9,6 +9,19 @@
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
 
+
+
+## Latest June 4 01:00 hold continuity
+
+`CITY_AS_A_SERVICE_1AM_HOLD_CONTINUITY_2026_06_04.md` is the current read-only mid-session handoff. The 1 AM cron payload was stale: it requested AutoJob, Frontier Academy, and KK v2 work, but `/Users/clawdbot/clawd/DREAM-PRIORITIES.md` explicitly stops those tracks for dream sessions, so they were not pulled, analyzed, edited, or used as sources. Execution Market stayed on `feat/operator-route-regret-panel`, was synced with `git pull --ff-only`, and was already up to date at `bb47792f`; the pre-existing untracked `scripts/sign_req.mjs` remains preserved and untouched.
+
+Safe 1 AM claim:
+
+```text
+internal_admin_aas_1am_hold_continuity_landed
+```
+
+Meaning only: the board carries forward the midnight Acontext runtime prerequisite current recheck (`admin_acontext_runtime_prerequisite_current_recheck_landed`) and the current fact that Docker daemon unreachability blocks fresh local Acontext image/container/Compose/API/core/UI/parity claims. It records no operator answer, approval, selected future answer, Retail Reality answer/hold record, product exposure, runtime-memory answer record, Docker repair, Compose startup, live Acontext write/retrieve, runtime adapter registration/enabling, IRC/session-manager mutation, customer/public/worker surface, catalog/pricing/queue/dispatch, ERC-8004 reputation, Worker Skill DNA, payment/production readiness, GPS/raw metadata/private-context release, authority claim, worker-copyable doctrine, or stopped-project integration. If no explicit answer arrives, the safest next move remains `pause_aas_proof_layering` or `keep_both_lanes_held`; if runtime-memory is later explicitly selected, restore Docker daemon reachability and rerun read-only inventory before any separate activation attempt.
 
 
 ## Latest June 3 23:00 dream hold + board refresh
