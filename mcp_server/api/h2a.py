@@ -374,7 +374,7 @@ async def create_h2a_task(
             "publisher_type": "human",
             "human_wallet": wallet,
             "human_user_id": auth.user_id,
-            "target_executor_type": "agent",
+            "target_executor_type": request.target_executor_type,
             "required_capabilities": request.required_capabilities,
             "verification_mode": request.verification_mode or "manual",
         }

@@ -41,6 +41,8 @@ const Leaderboard = lazy(() => import('./pages/Leaderboard').then(m => ({ defaul
 const PublisherDashboard = lazy(() => import('./pages/publisher/Dashboard').then(m => ({ default: m.default })))
 const PublisherCreateRequest = lazy(() => import('./pages/publisher/CreateRequest').then(m => ({ default: m.default })))
 const PublisherReviewSubmission = lazy(() => import('./pages/publisher/ReviewSubmission').then(m => ({ default: m.default })))
+const ServicesHome = lazy(() => import('./pages/services/ServicesHome').then(m => ({ default: m.default })))
+const RequestService = lazy(() => import('./pages/services/RequestService').then(m => ({ default: m.default })))
 const RatingsHistory = lazy(() => import('./pages/RatingsHistory').then(m => ({ default: m.RatingsHistory })))
 const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })))
 const Messages = lazy(() => import('./pages/Messages').then(m => ({ default: m.Messages })))
@@ -203,6 +205,9 @@ function AppRoutes() {
         <Route path="/terms" element={<TermsOfService />} />
         <Route path="/support" element={<SupportPage />} />
         <Route path="/delete-account" element={<DeleteAccount />} />
+        {/* Rappi-style services catalog (humans hire humans, H2H) */}
+        <Route path="/services" element={<ServicesHome />} />
+        <Route path="/services/:serviceKey" element={<RequestService />} />
         {MOONPAY_SPIKE_ENABLED && (
           <Route path="/spike/moonpay" element={<MoonPaySpike />} />
         )}

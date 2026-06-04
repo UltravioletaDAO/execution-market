@@ -824,6 +824,16 @@ class PublishH2ATaskRequest(BaseModel):
     )
     payment_network: str = Field(default="base", max_length=30)
     target_agent_id: Optional[str] = Field(default=None, max_length=255)
+    # 'agent' (default, classic H2A) or 'human' (H2H — the Rappi-style services
+    # catalog: a human publishes a physical task for another human to execute).
+    target_executor_type: str = Field(default="agent", max_length=10)
+
+    @field_validator("target_executor_type")
+    @classmethod
+    def validate_target_executor_type(cls, v: str) -> str:
+        if v not in ("agent", "human"):
+            raise ValueError("target_executor_type must be 'agent' or 'human'")
+        return v
 
     @field_validator("bounty_usd")
     @classmethod

@@ -655,6 +655,8 @@ export interface H2ATaskCreateRequest {
   evidence_required?: string[]
   payment_network?: string
   target_agent_id?: string
+  /** 'agent' (default, classic H2A) or 'human' (H2H — Rappi services catalog). */
+  target_executor_type?: 'agent' | 'human'
 }
 
 /** Response from creating an H2A task */

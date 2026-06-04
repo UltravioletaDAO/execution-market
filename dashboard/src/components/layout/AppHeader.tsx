@@ -36,6 +36,7 @@ export function AppHeader() {
 
   // Primary nav — always visible on desktop
   const primaryLinks = [
+    { label: t('nav.services', 'Servicios'), href: '/services' },
     { label: t('nav.activity', 'Activity'), href: '/activity' },
     ...(isAuthenticated ? [
       { label: t('nav.publisherDashboard', 'Publish Task'), href: '/publisher/dashboard' },
