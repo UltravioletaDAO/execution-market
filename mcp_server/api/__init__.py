@@ -13,6 +13,12 @@ Routes:
 from .routes import router as api_router
 from .auth import verify_api_key, get_api_tier, APIKeyData
 from .middleware import add_api_middleware, SecurityHeadersMiddleware
+from .payshell_middleware import (
+    add_payshell_middleware,
+    PayShellSessionContext,
+    PayShellSessionMiddleware,
+    PAYSHELL_ENABLED,
+)
 from .health import (
     router as health_router,
     HealthChecker,
@@ -50,6 +56,11 @@ __all__ = [
     # Middleware
     "add_api_middleware",
     "SecurityHeadersMiddleware",
+    # pay.sh session middleware (Phase 2.4)
+    "add_payshell_middleware",
+    "PayShellSessionContext",
+    "PayShellSessionMiddleware",
+    "PAYSHELL_ENABLED",
     # Health
     "HealthChecker",
     "HealthStatus",

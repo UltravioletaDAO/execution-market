@@ -82,6 +82,24 @@ except ImportError:
     TaskTier = None  # type: ignore[assignment,misc]
     TransactionResult = None  # type: ignore[assignment,misc]
 
+# --- solana_session backend (pay.sh control-plane client, Phase 2.5) ---
+# Used when EM_PAYMENT_MODE=solana_session AND the request carried pay.sh
+# session-context headers (parsed by PayShellSessionMiddleware into
+# request.state.payshell). All on-chain settlement is delegated to pay.sh —
+# the dispatcher only orchestrates session lifecycle (close-now at approval,
+# idle-close on refund/cancel).
+try:
+    from integrations.solana.pay_shell_client import (
+        get_pay_shell_client,
+        PayShellError,
+    )
+
+    PAYSHELL_CLIENT_AVAILABLE = True
+except ImportError:
+    PAYSHELL_CLIENT_AVAILABLE = False
+    get_pay_shell_client = None  # type: ignore[assignment]
+    PayShellError = Exception  # type: ignore[assignment,misc]
+
 # EM PaymentOperator address (Base Mainnet). Fase 5: Credit card model fee split.
 # StaticFeeCalculator(1300 BPS = 13%) auto-splits at release: worker 87%, operator 13%.
 # Bounty = lock amount = what agent pays. Fee deducted from bounty, not added on top.
@@ -491,7 +509,7 @@ class PaymentDispatcher:
     def __init__(self, mode: Optional[str] = None):
         self.mode = (mode or EM_PAYMENT_MODE).lower()
 
-        if self.mode not in ("fase1", "fase2"):
+        if self.mode not in ("fase1", "fase2", "solana_session"):
             logger.warning(
                 "Unknown EM_PAYMENT_MODE '%s', falling back to 'fase2'",
                 self.mode,
@@ -503,6 +521,13 @@ class PaymentDispatcher:
                 "EM_PAYMENT_MODE='fase1' is for local testing only (ADR-001). "
                 "Production uses fase2 with agent-signed X-Payment-Auth headers.",
             )
+
+        if self.mode == "solana_session" and not PAYSHELL_CLIENT_AVAILABLE:
+            logger.warning(
+                "solana_session mode requested but PayShellClient not available. "
+                "Falling back to fase2 mode."
+            )
+            self.mode = "fase2"
 
         # Validate availability and fall back if needed
         if self.mode == "fase2" and not FASE2_SDK_AVAILABLE:
@@ -643,6 +668,18 @@ class PaymentDispatcher:
             if balance_check_only:
                 return await self._authorize_fase1(
                     task_id, amount_usdc, agent_address, network, token
+                )
+            # Solana: ALWAYS route through solana_session, regardless of dispatcher
+            # mode. The Solana flow has no EVM escrow contract — funds move only
+            # via pay.sh MPP channels. Mismatched mode + network would otherwise
+            # try to call a non-existent operator on Solana and 500.
+            if (network or "").lower() == "solana":
+                return await self._authorize_solana_session(
+                    task_id, amount_usdc, agent_address, token
+                )
+            if self.mode == "solana_session":
+                return await self._authorize_solana_session(
+                    task_id, amount_usdc, agent_address, token
                 )
             if self.mode == "fase2":
                 return await self._authorize_fase2(task_id, amount_usdc, network, token)
@@ -2355,6 +2392,11 @@ class PaymentDispatcher:
             Uniform dict with success, tx_hash, mode, error.
         """
         try:
+            # Solana: always close via pay.sh, regardless of dispatcher mode.
+            if (network or "").lower() == "solana" or self.mode == "solana_session":
+                return await self._release_solana_session(
+                    task_id, worker_address, bounty_amount, token
+                )
             if self.mode == "fase2":
                 return await self._release_fase2(
                     task_id, worker_address, bounty_amount, network, token
@@ -2659,23 +2701,34 @@ class PaymentDispatcher:
         escrow_id: Optional[str] = None,
         reason: Optional[str] = None,
         agent_address: Optional[str] = None,
+        network: Optional[str] = None,
+        channel_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Refund a task payment.
 
         fase2 mode: Gasless refund via facilitator (funds return to agent directly).
         fase1 mode: No funds moved, returns success immediately (testing only).
+        solana_session mode: close-now via pay.sh with no final voucher; pay.sh
+            settles whatever was already accepted and refunds the cap remainder
+            to the payer wallet on-chain.
 
         Args:
             task_id: Task identifier
-            escrow_id: Unused (kept for API compatibility)
+            escrow_id: Unused for fase2/solana (kept for API compatibility)
             reason: Reason for refund (for audit trail)
             agent_address: Unused (kept for API compatibility)
+            network: Payment network — Solana forces solana_session path.
+            channel_id: pay.sh MPP channel id (solana_session only). Required
+                if the task previously opened a channel; persisted in DB by
+                task_channel_binding (Phase 2.6+).
 
         Returns:
             Uniform dict with success, tx_hash, mode, status, error.
         """
         try:
+            if (network or "").lower() == "solana" or self.mode == "solana_session":
+                return await self._refund_solana_session(task_id, channel_id, reason)
             if self.mode == "fase2":
                 return await self._refund_fase2(task_id, reason)
             else:
@@ -2718,6 +2771,276 @@ class PaymentDispatcher:
             "status": "no_funds_moved",
             "error": None,
         }
+
+    # ------------------------------------------------------------------
+    # Phase 2.5 — solana_session mode (pay.sh MPP channels)
+    # ------------------------------------------------------------------
+    #
+    # The solana_session backend does NOT lock funds, sign transactions, or
+    # talk to a facilitator. Settlement happens inside pay.sh, which runs as
+    # a sidecar in the same ECS task (Phase 2.3). Our role here is to:
+    #
+    #   - authorize  → no-op. Channels are opened by the worker's pay.sh
+    #                  proxy when they hit the gated endpoint. We record the
+    #                  intent so analytics + lifecycle binding (Phase 2.6)
+    #                  can correlate task ↔ channel later.
+    #
+    #   - release    → POST /_sessions/{channel_id}/close-now. pay.sh runs
+    #                  settleAndFinalize on-chain. Splits 87/13 are atomic.
+    #
+    #   - refund     → POST /_sessions/{channel_id}/close-now WITHOUT a
+    #                  finalIncrementUusdc. pay.sh settles whatever was
+    #                  already accepted (probably 0) and refunds the cap
+    #                  remainder to the payer.
+    #
+    # Errors from pay.sh are NEVER raised — they're returned in the uniform
+    # dict so callers (em_approve_submission, etc.) can fall back to manual
+    # remediation without crashing the request.
+
+    async def _authorize_solana_session(
+        self,
+        task_id: str,
+        amount_usdc: Decimal,
+        agent_address: Optional[str],
+        token: str,
+    ) -> Dict[str, Any]:
+        """Solana MPP: record intent, defer channel open to pay.sh.
+
+        The channel is opened by the worker (not us) when their pay.sh proxy
+        sees the first gated request. We never sign anything Solana-side —
+        pay.sh is the facilitator for SVM and owns the keypair.
+
+        We DO emit a payment_events row so audit + Golden Flow can verify
+        the task entered the Solana flow. The actual on-chain TX hashes
+        arrive later via SSE (Phase 2.8) and migration 108 (Phase 2.6).
+        """
+        await log_payment_event(
+            task_id=task_id,
+            event_type="solana_session_authorize",
+            status="success",
+            from_address=agent_address,
+            amount_usdc=amount_usdc,
+            network="solana",
+            token=token,
+            metadata={
+                "mode": "solana_session",
+                "note": "channel opens lazily on first voucher tick",
+            },
+        )
+        return {
+            "success": True,
+            "tx_hash": None,
+            "mode": "solana_session",
+            "escrow_status": "channel_pending",
+            "payment_info": None,
+            "payment_info_serialized": None,
+            "error": None,
+        }
+
+    async def _release_solana_session(
+        self,
+        task_id: str,
+        worker_address: str,
+        bounty_amount: Decimal,
+        token: str,
+    ) -> Dict[str, Any]:
+        """Solana MPP release: graceful close + settleAndFinalize via pay.sh.
+
+        Lookup of channel_id is by task_id, performed inside the caller
+        (em_approve_submission) and passed to us via the task metadata —
+        but for the dispatcher path we re-read from DB via the channel
+        binding helper (Phase 2.6). To keep this commit self-contained,
+        we accept channel_id resolution failures gracefully.
+        """
+        channel_id = await self._lookup_channel_id(task_id)
+        if not channel_id:
+            await log_payment_event(
+                task_id=task_id,
+                event_type="solana_session_release",
+                status="error",
+                to_address=worker_address,
+                amount_usdc=bounty_amount,
+                network="solana",
+                token=token,
+                metadata={"mode": "solana_session", "error": "no_channel_bound"},
+            )
+            return {
+                "success": False,
+                "tx_hash": None,
+                "mode": "solana_session",
+                "error": (
+                    f"No pay.sh channel bound to task {task_id}. "
+                    "Worker never opened a session."
+                ),
+            }
+
+        client = get_pay_shell_client()
+        try:
+            result = await client.close_session(channel_id)
+        except PayShellError as e:
+            await log_payment_event(
+                task_id=task_id,
+                event_type="solana_session_release",
+                status="error",
+                to_address=worker_address,
+                amount_usdc=bounty_amount,
+                network="solana",
+                token=token,
+                metadata={
+                    "mode": "solana_session",
+                    "channel_id": channel_id,
+                    "error": str(e),
+                },
+            )
+            return {
+                "success": False,
+                "tx_hash": None,
+                "mode": "solana_session",
+                "channel_id": channel_id,
+                "error": str(e),
+            }
+
+        tx_hash = result.settlement_tx_hash
+        await log_payment_event(
+            task_id=task_id,
+            event_type="solana_session_release",
+            status="success",
+            to_address=worker_address,
+            amount_usdc=result.final_cumulative_usdc,
+            network="solana",
+            token=token,
+            tx_hash=tx_hash,
+            metadata={
+                "mode": "solana_session",
+                "channel_id": channel_id,
+                "final_cumulative_usdc": str(result.final_cumulative_usdc),
+                "refund_usdc": str(result.refund_usdc),
+            },
+        )
+        return {
+            "success": True,
+            "tx_hash": tx_hash,
+            "mode": "solana_session",
+            "channel_id": channel_id,
+            "final_cumulative_usdc": str(result.final_cumulative_usdc),
+            "refund_usdc": str(result.refund_usdc),
+            "error": None,
+        }
+
+    async def _refund_solana_session(
+        self,
+        task_id: str,
+        channel_id: Optional[str],
+        reason: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Solana MPP refund: close-now without a final voucher.
+
+        If channel never opened (e.g. cancelled before worker accepted),
+        nothing to do on-chain — pay.sh has no state to settle.
+        """
+        channel_id = channel_id or await self._lookup_channel_id(task_id)
+        if not channel_id:
+            logger.info(
+                "Solana refund for task %s: no channel bound, nothing on-chain to refund",
+                task_id,
+            )
+            await log_payment_event(
+                task_id=task_id,
+                event_type="solana_session_refund",
+                status="success",
+                network="solana",
+                metadata={
+                    "mode": "solana_session",
+                    "method": "no_channel",
+                    "reason": reason,
+                },
+            )
+            return {
+                "success": True,
+                "tx_hash": None,
+                "mode": "solana_session",
+                "status": "no_channel",
+                "error": None,
+            }
+
+        client = get_pay_shell_client()
+        try:
+            result = await client.close_session(channel_id)
+        except PayShellError as e:
+            await log_payment_event(
+                task_id=task_id,
+                event_type="solana_session_refund",
+                status="error",
+                network="solana",
+                metadata={
+                    "mode": "solana_session",
+                    "channel_id": channel_id,
+                    "error": str(e),
+                    "reason": reason,
+                },
+            )
+            return {
+                "success": False,
+                "tx_hash": None,
+                "mode": "solana_session",
+                "channel_id": channel_id,
+                "status": "error",
+                "error": str(e),
+            }
+
+        await log_payment_event(
+            task_id=task_id,
+            event_type="solana_session_refund",
+            status="success",
+            network="solana",
+            tx_hash=result.settlement_tx_hash,
+            metadata={
+                "mode": "solana_session",
+                "channel_id": channel_id,
+                "final_cumulative_usdc": str(result.final_cumulative_usdc),
+                "refund_usdc": str(result.refund_usdc),
+                "reason": reason,
+            },
+        )
+        return {
+            "success": True,
+            "tx_hash": result.settlement_tx_hash,
+            "mode": "solana_session",
+            "channel_id": channel_id,
+            "refund_usdc": str(result.refund_usdc),
+            "status": "settled",
+            "error": None,
+        }
+
+    async def _lookup_channel_id(self, task_id: str) -> Optional[str]:
+        """Look up pay.sh channel id bound to a task.
+
+        Reads from payment_events (where solana_session_authorize stamps
+        channel_id once the binding is established) until Phase 2.6 lands
+        a dedicated task_channel_bindings table. Returns None if no
+        binding exists — caller handles graceful degradation.
+        """
+        try:
+            from utils.supabase_client import get_supabase
+
+            supabase = get_supabase()
+            resp = (
+                supabase.table("payment_events")
+                .select("metadata")
+                .eq("task_id", task_id)
+                .eq("network", "solana")
+                .order("created_at", desc=True)
+                .limit(20)
+                .execute()
+            )
+            for row in resp.data or []:
+                meta = row.get("metadata") or {}
+                channel_id = meta.get("channel_id")
+                if channel_id:
+                    return channel_id
+        except Exception as e:
+            logger.warning("channel_id lookup failed for task=%s: %s", task_id, e)
+        return None
 
     async def _refund_fase2(
         self,
@@ -3149,8 +3472,17 @@ class PaymentDispatcher:
             "fee_model": EM_FEE_MODEL,
             "fase2_available": FASE2_SDK_AVAILABLE,
             "sdk_available": SDK_AVAILABLE,
+            "payshell_available": PAYSHELL_CLIENT_AVAILABLE,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
+
+        if self.mode == "solana_session":
+            info["solana_session_config"] = {
+                "payshell_url": os.environ.get(
+                    "EM_PAYSHELL_URL", "http://127.0.0.1:7081"
+                ),
+                "facilitator": "delegated_to_payshell",
+            }
 
         if self.mode == "fase2" and self._fase2_clients:
             info["fase2_config"] = {

@@ -160,7 +160,7 @@ from verification.cloudwatch_metrics import run_magika_metrics_loop
 from server import mcp as mcp_server
 from websocket import ws_router, ws_manager
 from a2a import a2a_router
-from api import api_router, add_api_middleware
+from api import api_router, add_api_middleware, add_payshell_middleware
 from api import reputation_router, escrow_router
 from api.admin import router as admin_router
 from api.agent_auth import router as agent_auth_router
@@ -999,6 +999,12 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
 
 # Add API middleware (rate limiting, logging, error handling)
 add_api_middleware(app)
+
+# Add pay.sh session-context middleware (Phase 2.4 — Solana MPP integration).
+# No-op when EM_PAYSHELL_ENABLED=false (default). Installed AFTER add_api_middleware
+# so it sits closer to handlers in the stack — rate limiting + idempotency run first,
+# then we populate request.state.payshell for the dispatcher's solana_session branch.
+add_payshell_middleware(app)
 
 # Initialize x402 SDK (NOW-202)
 x402_sdk: Optional[EMX402SDK] = None

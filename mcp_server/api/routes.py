@@ -27,6 +27,8 @@ from .routers.audit_grid import router as audit_grid_router
 from .routers.worldid import router as worldid_router
 from .routers.veryai import router as veryai_router
 from .routers.clawkey import router as clawkey_router
+from .routers.moonpay import router as moonpay_router
+from .routers.taximetro import router as taximetro_router
 from .routers.ens import router as ens_router
 from .routers.disputes import router as disputes_router
 from .routers.arbiter_public import router as arbiter_public_router
@@ -63,6 +65,18 @@ if _os.environ.get("EM_VERYAI_ENABLED", "false").lower() == "true":
 # blocks core flows, lives behind an explicit flip.
 if _os.environ.get("EM_CLAWKEY_ENABLED", "false").lower() == "true":
     router.include_router(clawkey_router)
+
+# MoonPay Headless Onramp is gated by EM_MOONPAY_ENABLED — when off,
+# /api/v1/moonpay/* returns 404 instead of 503. Same pattern as VeryAI / ClawKey.
+if _os.environ.get("EM_MOONPAY_ENABLED", "false").lower() == "true":
+    router.include_router(moonpay_router)
+
+# Taxímetro SSE relay (Phase 2.8) is gated by EM_PAYSHELL_ENABLED — when off,
+# /api/v1/taximetro/* returns 404 instead of 503. Same pattern as MoonPay.
+# Routes pay.sh /_sessions/{id}/events through the public API so the dashboard
+# / robot UI never needs a path to pay.sh's loopback port (7081).
+if _os.environ.get("EM_PAYSHELL_ENABLED", "false").lower() == "true":
+    router.include_router(taximetro_router)
 
 router.include_router(ens_router)
 router.include_router(disputes_router)

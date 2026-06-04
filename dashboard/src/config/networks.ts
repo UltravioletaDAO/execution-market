@@ -27,17 +27,24 @@ export interface NetworkInfo {
 /**
  * All enabled payment networks.
  * Order determines display order in the UI.
+ *
+ * Solana entry (Phase 2.5.5) is gated by VITE_EM_SOLANA_SESSIONS_ENABLED.
+ * When the flag is off it falls back to live=false so the UI shows it as
+ * "coming soon" rather than offering a network the backend will reject.
  */
+const SOLANA_LIVE = import.meta.env.VITE_EM_SOLANA_SESSIONS_ENABLED === 'true'
+
 export const NETWORKS: NetworkInfo[] = [
-  { key: 'base', name: 'Base', chainId: 8453, logo: '/base.png', live: true },
-  { key: 'ethereum', name: 'Ethereum', chainId: 1, logo: '/ethereum.png', live: true },
-  { key: 'polygon', name: 'Polygon', chainId: 137, logo: '/polygon.png', live: true },
-  { key: 'arbitrum', name: 'Arbitrum', chainId: 42161, logo: '/arbitrum.png', live: true },
-  { key: 'celo', name: 'Celo', chainId: 42220, logo: '/celo.png', live: true },
-  { key: 'monad', name: 'Monad', chainId: 143, logo: '/monad.png', live: true },
-  { key: 'avalanche', name: 'Avalanche', chainId: 43114, logo: '/avalanche.png', live: true },
-  { key: 'optimism', name: 'Optimism', chainId: 10, logo: '/optimism.png', live: true },
-  { key: 'skale', name: 'SKALE', chainId: 1187947933, logo: '/skale.png', live: true },
+  { key: 'base', name: 'Base', chainId: 8453, logo: '/base.png', live: true, networkType: 'evm' },
+  { key: 'ethereum', name: 'Ethereum', chainId: 1, logo: '/ethereum.png', live: true, networkType: 'evm' },
+  { key: 'polygon', name: 'Polygon', chainId: 137, logo: '/polygon.png', live: true, networkType: 'evm' },
+  { key: 'arbitrum', name: 'Arbitrum', chainId: 42161, logo: '/arbitrum.png', live: true, networkType: 'evm' },
+  { key: 'celo', name: 'Celo', chainId: 42220, logo: '/celo.png', live: true, networkType: 'evm' },
+  { key: 'monad', name: 'Monad', chainId: 143, logo: '/monad.png', live: true, networkType: 'evm' },
+  { key: 'avalanche', name: 'Avalanche', chainId: 43114, logo: '/avalanche.png', live: true, networkType: 'evm' },
+  { key: 'optimism', name: 'Optimism', chainId: 10, logo: '/optimism.png', live: true, networkType: 'evm' },
+  { key: 'skale', name: 'SKALE', chainId: 1187947933, logo: '/skale.png', live: true, networkType: 'evm' },
+  { key: 'solana', name: 'Solana', chainId: null, logo: '/solana.png', live: SOLANA_LIVE, networkType: 'svm' },
 ]
 
 /** Quick lookup by network key */
