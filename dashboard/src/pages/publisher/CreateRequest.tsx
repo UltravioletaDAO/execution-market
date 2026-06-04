@@ -9,6 +9,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import type { TaskCategory, H2ATaskCreateRequest, H2ATaskCreateResponse } from '../../types/database'
 import { createH2ATask } from '../../services/h2a'
+import { useAuth } from '../../context/AuthContext'
+import { DepositModal } from '../../components/DepositModal'
 
 type WizardStep = 'details' | 'agent' | 'budget' | 'preview'
 
@@ -68,6 +70,8 @@ export function CreateRequest() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<H2ATaskCreateResponse | null>(null)
+  const [showDeposit, setShowDeposit] = useState(false)
+  const { walletAddress, executor } = useAuth()
 
   const [form, setForm] = useState<FormData>({
     title: '', instructions: '', category: 'data_processing', bounty_usd: 5, deadline_hours: 24,
@@ -258,8 +262,27 @@ export function CreateRequest() {
                   <div className="flex justify-between font-bold border-t border-blue-200 pt-1"><span>{t('publisher.create.total', 'Total')}:</span><span>${total.toFixed(2)} USDC</span></div>
                 </div>
                 <p className="text-xs text-blue-700 mt-2">⚡ {t('publisher.create.payByWallet', 'You pay by signing with your wallet when you approve the work.')}</p>
+                {walletAddress && (
+                  <button
+                    type="button"
+                    onClick={() => setShowDeposit(true)}
+                    className="mt-3 w-full rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+                  >
+                    💳 {t('publisher.create.fundWallet', 'Fondear wallet con tarjeta (MoonPay → USDC en Base)')}
+                  </button>
+                )}
               </div>
               {error && <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm">❌ {error}</div>}
+              {walletAddress && (
+                <DepositModal
+                  open={showDeposit}
+                  walletAddress={walletAddress}
+                  targetUsdc={total}
+                  externalCustomerId={executor?.id}
+                  onClose={() => setShowDeposit(false)}
+                  onFunded={() => setShowDeposit(false)}
+                />
+              )}
             </div>
           )}
 
