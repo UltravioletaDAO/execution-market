@@ -1715,7 +1715,7 @@
   },
   "current_entrypoints": [
     {
-      "digest_sha256": "12853ab5300d18c48d152215dcb5427dcd42f68ba5e0dd743bbc08776e1938c8",
+      "digest_sha256": "2638353bac7ce741f90ca3c2bc32aac535b2cdd51dd2559b753779516c1eee85",
       "exists": true,
       "extension_policy": "current_entrypoint_update_only_when_new_safe_claim_lands",
       "path": "docs/planning/CITY_AS_A_SERVICE_DAYTIME_EXECUTION_BOARD.md",
@@ -1774,7 +1774,7 @@
     },
     {
       "ban": "not_public_catalog_or_pricing_authority",
-      "digest_sha256": "657a3707d63d7d878b999d1be9b43c1a94840560989c5e67b842d58eb74ecaa2",
+      "digest_sha256": "13b586ec357f03b3b1475442da7029214816c00a92b6ea38c2d0e6ab3f802375",
       "exists": true,
       "historical_use": "service_family_taxonomy_only",
       "path": "docs/planning/CITY_AS_A_SERVICE_SERVICE_CATALOG.md"
