@@ -95,3 +95,80 @@ async def check_solana_balance_gate(
         shortfall=shortfall,
         onramp=onramp,
     )
+
+
+# ---------------------------------------------------------------------------
+# EVM gate (Base by default) — trustless funding path for the human-hires-human
+# loop. Unlike Solana (Fase 1, no escrow), Base lands USDC where the publisher
+# then signs an EIP-3009 escrow pre-auth (ADR-001). The gate only decides
+# whether an on-ramp handoff is needed before that signature.
+# ---------------------------------------------------------------------------
+
+# MoonPay crypto currency codes for USDC per EVM network (verified against
+# api.moonpay.com/v3/currencies on 2026-06-04). Note ethereum=usdc and
+# avalanche=usdc_cchain are NOT usdc_<network>, hence an explicit map.
+_EVM_MOONPAY_USDC_CODE = {
+    "base": "usdc_base",
+    "ethereum": "usdc",
+    "polygon": "usdc_polygon",
+    "arbitrum": "usdc_arbitrum",
+    "optimism": "usdc_optimism",
+    "avalanche": "usdc_cchain",
+}
+
+
+async def check_evm_balance_gate(
+    wallet: str,
+    required_usdc: Decimal,
+    *,
+    network: str = "base",
+    external_customer_id: Optional[str] = None,
+) -> BalanceGateResult:
+    """EVM twin of check_solana_balance_gate (default Base).
+
+    Probes the wallet's USDC balance on `network` and, if short, builds a
+    MoonPay on-ramp payload pinned to that chain's currency code (usdc_base,
+    usdc_polygon, ...). `wallet` is the 0x address the publisher will sign the
+    escrow pre-auth from; `required_usdc` is bounty + platform fee.
+    """
+    from integrations.evm.balance import get_evm_usdc_balance
+
+    balance = await get_evm_usdc_balance(wallet, network)
+    if balance >= required_usdc:
+        return BalanceGateResult(
+            sufficient=True,
+            balance=balance,
+            shortfall=Decimal("0"),
+            onramp=None,
+        )
+
+    shortfall = required_usdc - balance
+
+    from integrations.moonpay.onramp import build_insufficient_funds_onramp
+
+    currency = _EVM_MOONPAY_USDC_CODE.get(network, "usdc_base")
+    onramp = build_insufficient_funds_onramp(
+        wallet=wallet,
+        qty_needed=shortfall,
+        currency=currency,
+        external_customer_id=external_customer_id,
+    )
+
+    masked = (wallet[:6] + "..." + wallet[-4:]) if len(wallet) > 10 else "***"
+    logger.info(
+        "EVM balance gate blocked: wallet=%s network=%s balance=%s required=%s "
+        "shortfall=%s onramp_available=%s",
+        masked,
+        network,
+        balance,
+        required_usdc,
+        shortfall,
+        bool(onramp),
+    )
+
+    return BalanceGateResult(
+        sufficient=False,
+        balance=balance,
+        shortfall=shortfall,
+        onramp=onramp,
+    )

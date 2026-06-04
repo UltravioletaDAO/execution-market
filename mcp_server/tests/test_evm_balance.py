@@ -154,3 +154,57 @@ class TestOnrampMinBuy:
         assert result is not None
         assert Decimal(result["qty_needed"]) == Decimal("5.00")
         assert result["currency"] == "usdc_base"
+
+
+class TestCheckEvmBalanceGate:
+    """check_evm_balance_gate — the Base funding gate for publish/assign."""
+
+    @pytest.mark.asyncio
+    async def test_sufficient_passes(self, monkeypatch):
+        from integrations.moonpay import balance_gate as gate_mod
+
+        async def fake_balance(wallet, network):
+            return Decimal("100")
+
+        monkeypatch.setattr(
+            "integrations.evm.balance.get_evm_usdc_balance", fake_balance
+        )
+        result = await gate_mod.check_evm_balance_gate(
+            "0x1111111111111111111111111111111111111111",
+            Decimal("10"),
+            network="base",
+        )
+        assert result.sufficient is True
+        assert result.onramp is None
+        assert result.shortfall == Decimal("0")
+
+    @pytest.mark.asyncio
+    async def test_insufficient_returns_base_onramp(self, monkeypatch):
+        monkeypatch.setenv("EM_MOONPAY_ENABLED", "true")
+        monkeypatch.setenv("MOONPAY_SECRET_KEY", "sk_test_unit")
+        monkeypatch.setenv("MOONPAY_PUBLIC_KEY", "pk_test_unit")
+        monkeypatch.setenv("MOONPAY_WIDGET_BASE_URL", "https://buy.moonpay.com")
+        import importlib
+        import sys
+
+        import integrations.moonpay.client  # noqa: F401
+
+        importlib.reload(sys.modules["integrations.moonpay.client"])
+        from integrations.moonpay import balance_gate as gate_mod
+
+        async def fake_balance(wallet, network):
+            return Decimal("1")
+
+        monkeypatch.setattr(
+            "integrations.evm.balance.get_evm_usdc_balance", fake_balance
+        )
+        result = await gate_mod.check_evm_balance_gate(
+            "0x1111111111111111111111111111111111111111",
+            Decimal("10"),
+            network="base",
+        )
+        assert result.sufficient is False
+        assert result.shortfall == Decimal("9")
+        assert result.onramp is not None
+        assert result.onramp["currency"] == "usdc_base"
+        assert result.onramp["url"].startswith("https://buy.moonpay.com")
