@@ -27,6 +27,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 from typing import AsyncIterator, Optional
 
 from fastapi import APIRouter, HTTPException, Query, Request
@@ -50,6 +51,16 @@ PAYSHELL_ENABLED: bool = os.environ.get("EM_PAYSHELL_ENABLED", "false").lower() 
 # initial flush bounded so a client reconnecting after hours doesn't pull
 # a multi-megabyte page on the first chunk.
 MAX_REPLAY_EVENTS = int(os.environ.get("EM_TAXIMETRO_REPLAY_LIMIT", "200"))
+
+# Solana pubkey (base58, 32-44 chars). Enforced at this boundary AND inside
+# PayShellClient so a hostile channel_id cannot inject upstream path segments
+# (e.g. "..%2F_admin") into pay.sh control-plane URLs. (Security review 2026-06-04.)
+_CHANNEL_ID_RE = re.compile(r"[1-9A-HJ-NP-Za-km-z]{32,44}")
+
+
+def _validate_channel_id(channel_id: str) -> None:
+    if not channel_id or not _CHANNEL_ID_RE.fullmatch(channel_id):
+        raise HTTPException(status_code=400, detail="invalid channel_id")
 
 
 # ---------------------------------------------------------------------------
@@ -191,6 +202,16 @@ async def _persist_event(channel_id: str, event_type: str, data: dict) -> None:
 
 # ---------------------------------------------------------------------------
 # Routes
+#
+# SECURITY (tracked in docs/planning/BACKLOG.md, P1 — pre-requisite before
+# EM_PAYSHELL_ENABLED ships to prod): these endpoints currently authorize NO
+# caller and perform NO channel-ownership check. Any client that knows a
+# channel_id can read its voucher stream + history (IDOR). The router is
+# feature-gated OFF by default (returns 404), so it is NOT exploitable in
+# production today. Before enabling the flag, add caller auth (ERC-8128
+# wallet signing — the EM standard) and enforce that the caller is the
+# payer/payee bound to the channel, or owns the task_id resolved from
+# task_channel_bindings. Do NOT set EM_PAYSHELL_ENABLED=true until then.
 # ---------------------------------------------------------------------------
 
 
@@ -223,8 +244,7 @@ async def taximetro_stream(
     browsers use for last-event-id replay anyway. We don't set `id:`
     today; clients should de-dupe by tx_hash on settlement events.
     """
-    if not channel_id or len(channel_id) < 32:
-        raise HTTPException(status_code=400, detail="invalid channel_id")
+    _validate_channel_id(channel_id)
 
     effective_limit = min(replay_limit or MAX_REPLAY_EVENTS, MAX_REPLAY_EVENTS)
 
@@ -271,6 +291,7 @@ async def taximetro_history(
     Not an SSE endpoint — just a one-shot fetch from the DB mirror.
     Returns events in chronological order (oldest first).
     """
+    _validate_channel_id(channel_id)
     try:
         from utils.supabase_client import get_supabase
 

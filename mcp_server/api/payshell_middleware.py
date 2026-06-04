@@ -12,11 +12,16 @@ Headers emitted by pay.sh (matches solana-foundation/pay control-plane spec):
     x-payshell-payer:             <base58 payer pubkey>
     x-payshell-status:            open | draining | settled | expired | errored
 
-We do NOT verify the headers — pay.sh already verified the voucher signature
-and timing on the wire, and the headers are stamped INSIDE pay.sh's process
-(an attacker cannot forge them unless they have already breached the
-sidecar). Route handlers treat `request.state.payshell` as authoritative
-context, not as untrusted input.
+SECURITY — these headers are SPOOFABLE and `request.state.payshell` is
+UNTRUSTED. The "only pay.sh can stamp them" assumption holds ONLY if external
+clients cannot reach the backend with their own `x-payshell-*` headers. Since
+the relay terminates on the public API (mcp.execution.market), a client could
+forge them unless the edge strips them. Before enabling EM_PAYSHELL_ENABLED in
+prod you MUST either (a) strip inbound `x-payshell-*` headers at the ALB/edge
+for non-sidecar traffic, and/or (b) have pay.sh sign the headers with a shared
+HMAC key and verify that signature here. Until then, NEVER use
+`request.state.payshell` for authorization decisions — treat it as best-effort
+metadata only. (Security review 2026-06-04; tracked in BACKLOG.md.)
 
 Master switch: `EM_PAYSHELL_ENABLED` (env var, default `false`).
   - When `false`, the middleware short-circuits and `request.state.payshell`

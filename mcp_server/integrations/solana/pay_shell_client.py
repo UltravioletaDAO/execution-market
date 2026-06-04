@@ -23,6 +23,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 from contextlib import asynccontextmanager
 from decimal import Decimal
 from typing import AsyncIterator, Optional
@@ -39,6 +40,21 @@ logger = logging.getLogger(__name__)
 
 PAYSHELL_URL = os.environ.get("EM_PAYSHELL_URL", "http://127.0.0.1:7081")
 PAYSHELL_TIMEOUT_SECONDS = float(os.environ.get("EM_PAYSHELL_TIMEOUT", "30"))
+
+
+# pay.sh channel IDs are Solana pubkeys (base58, 32-44 chars). Validate the
+# format before interpolating into control-plane URLs so a hostile channel_id
+# cannot inject path segments (e.g. "..%2F_admin") into the upstream request.
+# Defense-in-depth: the taximetro route boundary validates too, but every
+# PayShellClient caller is protected here. (Security review 2026-06-04.)
+_CHANNEL_ID_RE = re.compile(r"[1-9A-HJ-NP-Za-km-z]{32,44}")
+
+
+def _require_valid_channel_id(channel_id: str) -> str:
+    """Raise PayShellError unless channel_id is a well-formed base58 pubkey."""
+    if not isinstance(channel_id, str) or not _CHANNEL_ID_RE.fullmatch(channel_id):
+        raise PayShellError(f"invalid channel_id format: {channel_id!r}")
+    return channel_id
 
 
 # ---------------------------------------------------------------------------
@@ -115,6 +131,7 @@ class PayShellClient:
     # ---- Session metadata -------------------------------------------------
 
     async def get_session(self, channel_id: str) -> SessionMetadata:
+        _require_valid_channel_id(channel_id)
         resp = await self._client.get(f"/_sessions/{channel_id}")
         if resp.status_code == 404:
             raise PayShellError(f"session {channel_id} not found")
@@ -142,6 +159,7 @@ class PayShellClient:
         The on-chain TX hash may take 1-3s to confirm — the SSE event
         stream (subscribe_events) emits `settlement_complete` when finalized.
         """
+        _require_valid_channel_id(channel_id)
         payload: dict = {}
         if final_increment_uusdc is not None:
             payload["finalIncrementUusdc"] = final_increment_uusdc
@@ -177,6 +195,7 @@ class PayShellClient:
                 async for event in stream:
                     ...
         """
+        _require_valid_channel_id(channel_id)
         # httpx 0.27 stream() is itself an async context manager — we wrap it
         # so callers don't need to know about httpx specifics.
         async with self._client.stream(
