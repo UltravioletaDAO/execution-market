@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-06-04 01:00 America/New_York
+> Last updated: 2026-06-04 02:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -9,6 +9,24 @@
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
 
+
+
+## Latest June 4 02:00 catalog governance + decision-aid sharpening
+
+The 2 AM pass again obeyed `/Users/clawdbot/clawd/DREAM-PRIORITIES.md` over the stale cron payload, so no AutoJob, Frontier Academy, KK v2, or KarmaCadabra v2 work was performed. Execution Market was synced with `git pull --ff-only` and was already up to date on `feat/operator-route-regret-panel`.
+
+No new no-answer proof wrapper, answer record, approval record, runtime mutation, product exposure, or customer/public/worker surface was added. Instead, the existing internal/admin support artifacts were sharpened:
+
+- `CITY_AS_A_SERVICE_OPERATOR_DECISION_AID_2026_06_03.md` now reflects the June 4 Docker/Acontext blocker and includes exact copy/paste answer shapes for the four allowed two-lane values.
+- `CITY_AS_A_SERVICE_SERVICE_CATALOG.md` now carries a June 4 governance note and a governed catalog map that separates commercial offer families from their required gates.
+
+Safe 2 AM claim:
+
+```text
+internal_admin_aas_catalog_governance_and_decision_aid_refresh_landed
+```
+
+Meaning only: the internal AAS catalog/decision support now makes the next operator choice easier without selecting an answer or authorizing launch. The recommended default remains `pause_aas_proof_layering` or `keep_both_lanes_held` unless Saúl explicitly chooses one allowed two-lane value. Still blocked: operator answer/approval, Retail Reality answer/hold record, runtime-memory answer record, Docker repair, current Acontext inventory/parity, runtime adapter registration/enabling, IRC/session-manager mutation, public/customer/worker surface, catalog/pricing/queue/dispatch, reputation/Worker Skill DNA, payment/production readiness, GPS/raw metadata/private-context release, authority/worker-doctrine claims, and stopped-project integration.
 
 
 ## Latest June 4 01:00 hold continuity

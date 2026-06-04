@@ -1,6 +1,6 @@
 # City as a Service — Service Catalog
 
-> Last updated: 2026-05-08
+> Last updated: 2026-06-04
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_GO_TO_MARKET.md`
@@ -27,6 +27,8 @@ The goal is not a broad catalog.
 The goal is a narrow, implementation-useful menu that an operator can actually sell, scope, and dispatch.
 
 May 8 packaging note: the narrow Phase 1 launch pack now lives in `CITY_AS_A_SERVICE_PHASE_1_OFFER_CARDS.md`. Treat that card pack as the internal sell/scoping guardrail for the first three offers before writing any customer-facing copy.
+
+June 4 governance note: this file is still an internal/admin commercial packaging draft. It is **not** a public catalog, customer-facing promise, dispatch authorization, pricing approval, worker instruction set, or product-exposure approval. The active AAS board still requires exactly one explicit operator answer before any Retail Reality/product-exposure lane, runtime-memory lane, catalog/pricing/queue/dispatch lane, or customer/public/worker surface can advance.
 
 ## 2. Packaging principles
 
@@ -624,7 +626,24 @@ This catalog should feed:
 - pilot sequencing in `CITY_AS_A_SERVICE_PILOT_BLUEPRINT.md`
 - offer-level conversion and repeat metrics in `CITY_AS_A_SERVICE_OBSERVABILITY_AND_SUCCESS_METRICS.md`
 
-## 14. Summary
+## 14. June 4 governed catalog map
+
+The catalog is commercially useful only if each offer family carries its current gate. This map keeps the sales/product plan aligned with the proof ladder without turning internal packaging into launch authority.
+
+| Offer family | Commercial role | Current internal status | Next gate before external use | Still blocked |
+| --- | --- | --- | --- | --- |
+| Counter Reality Check | Phase 1 municipal ambiguity reducer | Packaging draft exists; operator-review framing is the safest current wedge. | Separate operator answer plus reviewed customer-output/sample-publication approval before customer copy. | Public catalog, live queue/dispatch, pricing claims, authority claims. |
+| Packet Submission Attempt / Document Handoff | Phase 1 evidence-backed filing attempt | Internal package/read surfaces exist historically for low-authority review. | Separate answer/hold record if this is chosen as the product-exposure lane. | Legal sufficiency, notarization/custody claims, worker-copyable doctrine, public delivery. |
+| Posting Compliance Check | Phase 1 field-evidence task | Catalog definition exists; needs offer-card/customer-output review before exposure. | Human-reviewed sample output and schema gate. | Legal compliance guarantee, exact GPS/raw metadata release, public surface. |
+| Exterior Compliance Sweep / Local Data Collection | Phase 2 adjacent field-intelligence expansion | Internal sample/package/read-surface pattern exists for local-data style outputs. | Keep as internal package until one Phase 1 lane is approved or explicitly held. | Product launch, autonomous dispatch, SLA/repair/insurance authority. |
+| Queue Wait + Handoff | Phase 2 time-friction offer | Catalog concept only; should not launch before queue-budget and fallback copy are reviewed. | Operator-reviewed wait-budget rules and blocked-condition examples. | Unlimited wait, cutoff guarantee, live dispatch. |
+| Rejection Diagnosis / Office Redirect / Permit Follow-Through | Phase 3 chained workflow offers | Strategically important but dependent on repeat evidence memory. | Runtime-memory/product-exposure decision first; then separate bundle review. | Cross-lane promotion, autonomous follow-on spawning, legal interpretation. |
+| Retail Reality / Product Exposure | Adjacent AAS package lane | Explicitly held pending the two-lane operator answer schema. | `create_retail_reality_answer_or_hold_record` if Saúl chooses it. | Customer/public exposure, catalog placement, dispatch, pricing. |
+| Runtime-memory / Acontext carry-forward | Operational memory multiplier | Held; Docker daemon currently unreachable for fresh local Acontext reverification. | `create_runtime_memory_operator_answer_record` first; then restore Docker and rerun read-only inventory. | Runtime adapter enablement, IRC/session-manager mutation, live Acontext write/retrieve. |
+
+Use this map as a planning filter: if an offer cannot state its gate, it is not ready to sell. If it can state its gate, the next step is an operator answer or reviewed internal record, not customer exposure by implication.
+
+## 15. Summary
 
 This document adds the missing commercial packaging layer for City as a Service.
 It turns the wedge into a sellable menu with:

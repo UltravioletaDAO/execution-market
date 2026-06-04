@@ -6,7 +6,7 @@
 
 ## Governing state
 
-The 6 AM final wrap concluded that AAS has enough read-only coordination structure. The next useful move is exactly one explicit human/operator answer or an explicit pause.
+The 6 AM final wrap concluded that AAS has enough read-only coordination structure. The June 4 midnight/1 AM passes confirmed the same state after current-runtime recheck: Docker daemon unreachability blocks fresh local Acontext inventory/parity claims, and no explicit operator answer exists. The next useful move is still exactly one explicit human/operator answer or an explicit pause.
 
 Allowed values remain exactly:
 
@@ -31,6 +31,36 @@ None is selected by this document.
 ## Recommended default if no answer exists
 
 Pick `pause_aas_proof_layering`, or equivalently keep both lanes held while explicitly pausing new no-answer proof layers. This avoids turning coordination quality into false progress.
+
+## Copy/paste answer shapes
+
+If Saúl wants to decide quickly, the answer should be one of these exact values plus an optional short reason:
+
+```text
+pause_aas_proof_layering
+```
+
+Use when the desired outcome is: stop adding no-answer wrappers until a real product/runtime choice exists.
+
+```text
+keep_both_lanes_held
+```
+
+Use when the desired outcome is: preserve product-exposure and runtime-memory holds without formally pausing all AAS planning.
+
+```text
+create_retail_reality_answer_or_hold_record
+```
+
+Use when the desired outcome is: handle the product-exposure/Retail Reality lane first, either approving a bounded review artifact or explicitly holding it.
+
+```text
+create_runtime_memory_operator_answer_record
+```
+
+Use when the desired outcome is: handle the runtime-memory/Acontext lane first. Because Docker is currently unreachable, this still does not authorize runtime mutation; it only authorizes creating the separate answer record.
+
+Anything else should be treated as non-actionable for this specific AAS two-lane schema.
 
 ## Non-authorization statement
 
