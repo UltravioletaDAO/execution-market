@@ -1,6 +1,7 @@
 import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../providers/AuthProvider";
 import { ConnectWalletButton } from "../../components/ConnectWalletButton";
@@ -70,6 +71,13 @@ export default function PublishTaskScreen() {
   const [network, setNetwork] = useState("base");
   const [published, setPublished] = useState(false);
   const [publishedTaskId, setPublishedTaskId] = useState<string | null>(null);
+
+  // Preset from the services catalog (H2H): category + human target.
+  const params = useLocalSearchParams<{ presetCategory?: string; presetTarget?: string }>();
+  useEffect(() => {
+    if (params.presetCategory) setCategory(params.presetCategory);
+    if (params.presetTarget === "human") setTargetType("human");
+  }, [params.presetCategory, params.presetTarget]);
 
   const fee = parseFloat(bounty || "0") * 0.13;
   const total = parseFloat(bounty || "0") + fee;

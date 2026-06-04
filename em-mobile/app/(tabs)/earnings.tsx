@@ -7,7 +7,7 @@ import { useAuth } from "../../providers/AuthProvider";
 import { ConnectWalletButton } from "../../components/ConnectWalletButton";
 import { useEarningsSummary, usePaymentHistory, CompletedTaskEarning } from "../../hooks/api/useEarnings";
 import { getExplorerTxUrl } from "../../constants/networks";
-import { router } from "expo-router";
+import { router, type Href } from "expo-router";
 
 const CHAIN_IMAGES: Record<string, number> = {
   base: require("../../assets/images/chains/base.png"),
@@ -207,8 +207,22 @@ export default function EarningsScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-black">
-      <View className="px-4 pt-4 pb-2">
+      <View className="px-4 pt-4 pb-2 flex-row items-center justify-between">
         <Text className="text-white text-2xl font-bold">{t("earnings.title")}</Text>
+        <View className="flex-row gap-2">
+          <Pressable
+            onPress={() => router.push("/services" as Href)}
+            className="bg-surface border border-gray-800 rounded-xl px-3 py-2"
+          >
+            <Text className="text-white text-xs font-medium">🛍️ {t("earnings.services", "Servicios")}</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => router.push("/deposit" as Href)}
+            className="bg-white rounded-xl px-3 py-2"
+          >
+            <Text className="text-black text-xs font-bold">💳 {t("earnings.deposit", "Depositar")}</Text>
+          </Pressable>
+        </View>
       </View>
 
       <ScrollView

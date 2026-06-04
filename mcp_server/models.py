@@ -831,8 +831,12 @@ class PublishH2ATaskRequest(BaseModel):
     @field_validator("target_executor_type")
     @classmethod
     def validate_target_executor_type(cls, v: str) -> str:
-        if v not in ("agent", "human"):
-            raise ValueError("target_executor_type must be 'agent' or 'human'")
+        # The mobile publish wizard sends any|human|agent|robot; the web
+        # services catalog sends human. Only 'human' enables H2H — create_h2a_task
+        # maps everything else to 'agent' (the historical default). Accept all
+        # four so the existing mobile flow is never rejected.
+        if v not in ("any", "human", "agent", "robot"):
+            raise ValueError("target_executor_type must be any|human|agent|robot")
         return v
 
     @field_validator("bounty_usd")
