@@ -77,6 +77,11 @@ CURRENT_ENTRYPOINT_DOCS = [
         "role": "latest_pattern_recognition_multiplier_ladder",
         "extension_policy": "current_read_only_pattern_ladder_until_real_operator_answer_exists",
     },
+    {
+        "path": "docs/planning/CITY_AS_A_SERVICE_5AM_PRE_DAWN_SYNTHESIS_HANDOFF_2026_06_05.md",
+        "role": "latest_pre_dawn_synthesis_handoff",
+        "extension_policy": "current_read_only_daytime_handoff_until_real_operator_answer_exists",
+    },
 ]
 
 HISTORICAL_CONTEXT_DOCS = [

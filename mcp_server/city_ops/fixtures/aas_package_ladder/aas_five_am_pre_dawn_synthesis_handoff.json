@@ -1826,7 +1826,25 @@
       "pattern_recognition_ladder_releases_private_context",
       "pattern_recognition_ladder_grants_domain_authority_claims",
       "pattern_recognition_ladder_publishes_worker_copyable_doctrine",
-      "pattern_recognition_ladder_integrates_stopped_projects"
+      "pattern_recognition_ladder_integrates_stopped_projects",
+      "five_am_synthesis_records_operator_answer",
+      "five_am_synthesis_records_operator_approval",
+      "five_am_synthesis_selects_future_answer",
+      "five_am_synthesis_creates_answer_receipt",
+      "five_am_synthesis_treats_recommendation_as_approval",
+      "five_am_synthesis_repairs_docker_or_starts_acontext",
+      "five_am_synthesis_writes_or_retrieves_live_acontext",
+      "five_am_synthesis_mutates_irc_session_manager",
+      "five_am_synthesis_enables_cross_project_autorouting",
+      "five_am_synthesis_creates_public_customer_worker_surface",
+      "five_am_synthesis_authorizes_catalog_pricing_queue_or_dispatch",
+      "five_am_synthesis_emits_erc8004_reputation_or_worker_skill_dna",
+      "five_am_synthesis_reverifies_payment_or_production",
+      "five_am_synthesis_releases_exact_gps_or_raw_metadata",
+      "five_am_synthesis_releases_private_context",
+      "five_am_synthesis_grants_domain_authority_claims",
+      "five_am_synthesis_publishes_worker_copyable_doctrine",
+      "five_am_synthesis_integrates_stopped_projects"
     ],
     "safe_to_claim": [
       "internal_admin_aas_no_answer_observability_rubric_fixture_landed",
@@ -1858,10 +1876,40 @@
       "admin_aas_coordination_observability_success_metrics_board_landed",
       "admin_aas_coordination_multiplier_pattern_map_landed",
       "admin_aas_intelligence_flow_compounder_landed",
-      "internal_admin_aas_4am_pattern_recognition_multiplier_ladder_landed"
+      "internal_admin_aas_4am_pattern_recognition_multiplier_ladder_landed",
+      "internal_admin_aas_5am_pre_dawn_synthesis_handoff_landed"
     ]
   },
+  "daytime_recommendations": [
+    {
+      "action": "Daytime operator can either explicitly pause or provide exactly one allowed answer value.",
+      "priority": "P0",
+      "recommendation": "pause_aas_proof_layering",
+      "why": "No explicit operator answer exists; more no-answer proof layers risk implying movement."
+    },
+    {
+      "action": "Validate the separate answer artifact against aas_operator_answer_receipt_gate.json first.",
+      "priority": "P1",
+      "recommendation": "if_product_lane_selected_create_retail_reality_answer_or_hold_record",
+      "why": "Product/public/customer/worker movement needs a separate receipt before exposure."
+    },
+    {
+      "action": "Repair reachability outside this handoff, then perform read-only inventory before any live write/retrieve.",
+      "priority": "P1",
+      "recommendation": "if_runtime_memory_lane_selected_restore_docker_then_rerun_read_only_inventory",
+      "why": "Acontext runtime claims remain blocked until current Docker/API/core/UI truth is rechecked."
+    },
+    {
+      "action": "Continue not pulling or editing AutoJob, Frontier Academy, KK v2, or KarmaCadabra v2 in dreams.",
+      "priority": "P2",
+      "recommendation": "keep_stopped_project_firewall_visible",
+      "why": "The stale cron payload keeps requesting stopped projects; preserving the firewall is part of AAS quality control."
+    }
+  ],
   "derived_from": {
+    "consumes_only": [
+      "aas_four_am_pattern_recognition_multiplier_ladder.json"
+    ],
     "forbidden_inputs": [
       "raw_transcripts",
       "unreviewed_memory",
@@ -1877,93 +1925,88 @@
     ],
     "read_only": true,
     "source_artifacts": [
-      "aas_operator_answer_receipt_gate.json",
-      "aas_intelligence_flow_compounder.json"
+      "aas_four_am_pattern_recognition_multiplier_ladder.json"
     ]
   },
-  "ladder_id": "execution_market.aas.pattern_recognition_multiplier_ladder.2026_06_05_0400",
-  "ladder_status": "read_only_pattern_recognition_no_answer_no_runtime_or_external_promotion",
-  "ladder_verdict": "pattern_recognition_multiplier_ladder_landed_internal_only",
-  "multiplier_edges": [
+  "handoff_cards": [
     {
-      "boundary": "does not create that answer",
-      "from": "operator_answer_receipt_gate",
-      "multiplier": "future explicit answers can be checked against a stable contract instead of interpreted from prose",
-      "to": "pattern_ladder"
+      "card": "current_truth",
+      "source_safe_claim": "internal_admin_aas_4am_pattern_recognition_multiplier_ladder_landed",
+      "summary": "The 4 AM pattern ladder landed as internal/admin read-only decision support; no operator answer exists."
     },
     {
-      "boundary": "does not activate stopped projects or customer surfaces",
-      "from": "intelligence_flow_compounder",
-      "multiplier": "cross-project insights become quarantine and prioritization rules rather than autorouting",
-      "to": "pattern_ladder"
+      "allowed_values": [
+        {
+          "gate": "stop_no_movement_pause_proof_layering",
+          "if_sa\u00fal_gives_no_answer": "pause_aas_proof_layering"
+        },
+        {
+          "gate": "create_retail_reality_answer_or_hold_record_before_any_public_or_dispatch_step",
+          "if_sa\u00fal_wants_product_lane": "create_retail_reality_answer_or_hold_record"
+        },
+        {
+          "gate": "create_runtime_memory_operator_answer_record_then_restore_docker_and_rerun_read_only_inventory",
+          "if_sa\u00fal_wants_runtime_memory_lane": "create_runtime_memory_operator_answer_record"
+        },
+        {
+          "gate": "stop_no_movement_keep_both_lanes_held",
+          "if_sa\u00fal_wants_hold": "keep_both_lanes_held"
+        }
+      ],
+      "card": "next_gate",
+      "summary": "Stop at pause_aas_proof_layering or keep_both_lanes_held unless Sa\u00fal gives one explicit allowed value."
     },
     {
-      "boundary": "does not write live Acontext or mutate session managers",
-      "from": "memory_and_irc_handoff_shape",
-      "multiplier": "agents can resume with invariant IDs and blocked-claim context without exposing raw transcripts or private state",
-      "to": "future_agent_runs"
+      "blocked_claim_count": 670,
+      "card": "blocked_surface",
+      "summary": "No public/customer/worker route, queue, dispatch, reputation, Worker Skill DNA, payment, production, GPS/raw metadata, or private-context claim is authorized."
     }
   ],
-  "next_required_gates": [
+  "handoff_id": "execution_market.aas.pre_dawn_synthesis_handoff.2026_06_05_0500",
+  "handoff_status": "read_only_synthesis_no_answer_no_runtime_or_external_promotion",
+  "handoff_verdict": "five_am_pre_dawn_synthesis_landed_internal_only",
+  "integration_synthesis": [
     {
-      "gate": "stop_no_movement_pause_proof_layering",
-      "if_sa\u00fal_gives_no_answer": "pause_aas_proof_layering"
+      "blocked_until": "explicit runtime-memory operator answer plus restored Docker reachability and read-only inventory",
+      "connection": "Memory compounds when each handoff carries source ref, digest, safe claim, blocked claims, and next gate instead of raw context replay.",
+      "daytime_use": "prepare a clean answer-receipt packet and Docker/Acontext prerequisite checklist; do not write live memory yet",
+      "system": "memory_to_acontext"
     },
     {
-      "gate": "create_retail_reality_answer_or_hold_record_before_any_public_or_dispatch_step",
-      "if_sa\u00fal_wants_product_lane": "create_retail_reality_answer_or_hold_record"
+      "blocked_until": "separate runtime adapter contract and explicit operator answer before mutation",
+      "connection": "IRC/session insights scale as packet discipline: four IDs, no raw transcript ingestion, no private context, and fail-closed routing when answer state is missing.",
+      "daytime_use": "standardize handoff packets around source ref, safe claim, blocked claims, and next gate",
+      "system": "irc_and_session_coordination"
     },
     {
-      "gate": "create_runtime_memory_operator_answer_record_then_restore_docker_and_rerun_read_only_inventory",
-      "if_sa\u00fal_wants_runtime_memory_lane": "create_runtime_memory_operator_answer_record"
+      "blocked_until": "one explicit operator answer receipt validates a product/runtime lane",
+      "connection": "The highest-value cross-project flow tonight is negative routing: stopped projects provide firewall signals, not active implementation sources.",
+      "daytime_use": "treat stopped projects as routing/firewall signals, not implementation sources",
+      "system": "cross_project_intelligence"
     },
     {
-      "gate": "stop_no_movement_keep_both_lanes_held",
-      "if_sa\u00fal_wants_hold": "keep_both_lanes_held"
+      "blocked_until": "internal metric gate with no public/customer/worker visibility",
+      "connection": "The coordination pattern that scales best is one-next-proof discipline; every agent should improve a gate or stop, not invent approval from momentum.",
+      "daytime_use": "score agents by boundary survival and one-next-proof discipline",
+      "system": "agent_coordination"
     }
   ],
-  "operator_instruction": "Use this as the 4 AM pattern handoff: extract useful coordination connections, then stop at the operator answer receipt gate. Patterns are not approval. Do not mutate runtime memory, IRC/session managers, customer/public/worker surfaces, queue/dispatch, payment/reputation, GPS/raw metadata, private context, worker doctrine, or stopped projects.",
-  "pattern_recognition_cards": [
-    {
-      "blocked_until": "explicit runtime-memory operator answer plus Docker/Acontext prerequisite proof",
-      "insight": "Memory compounds when each handoff carries source ref, digest, safe claim, blocked claims, and next gate instead of raw context replay.",
-      "pattern": "memory_system_data",
-      "safe_use": "planning and boundary preservation only"
-    },
-    {
-      "blocked_until": "separate session adapter contract plus explicit operator answer before runtime mutation",
-      "insight": "IRC/session insights scale as packet discipline: four IDs, no raw transcript ingestion, no private context, and fail-closed routing when answer state is missing.",
-      "pattern": "irc_coordination",
-      "safe_use": "handoff format and future adapter contract language only"
-    },
-    {
-      "blocked_until": "one explicit validated operator receipt before product/runtime fork movement",
-      "insight": "The highest-value cross-project flow tonight is negative routing: stopped projects provide firewall signals, not active implementation sources.",
-      "pattern": "cross_project_intelligence_flows",
-      "safe_use": "decision-support prioritization inside Execution Market AAS only"
-    },
-    {
-      "blocked_until": "separate internal metric gate with no public/customer/worker visibility",
-      "insight": "The coordination pattern that scales best is one-next-proof discipline; every agent should improve a gate or stop, not invent approval from momentum.",
-      "pattern": "agent_coordination_scaling",
-      "safe_use": "internal/admin agent success scoring"
-    }
-  ],
+  "operator_instruction": "Use this as the June 5 daytime handoff: preserve the stopped-project firewall, keep AAS in no-answer hold unless one explicit allowed operator value exists, and treat all integration ideas as internal/admin decision support until a separate answer receipt validates movement.",
   "readiness": {
     "catalog_visible": false,
-    "cross_project_intelligence_mapped_as_firewall_only": true,
     "customer_visible": false,
+    "daytime_recommendations_documented": true,
     "delivery_path_authorized": false,
     "dispatch_enabled": false,
     "domain_authority_claims_allowed": false,
     "erc8004_reputation_ready": false,
     "exact_gps_or_raw_metadata_release_allowed": false,
+    "five_am_handoff_landed": true,
     "future_answer_receipt_created": false,
-    "irc_coordination_mapped_as_handoff_shape_only": true,
     "irc_session_manager_mutated": false,
     "live_acontext_write_or_retrieval_enabled": false,
-    "memory_patterns_mapped_as_planning_only": true,
-    "next_operator_gate_preserved": true,
+    "night_insights_synthesized": true,
+    "operator_answer_gate_preserved": true,
     "operator_answer_recorded": false,
     "operator_approval_recorded": false,
     "pattern_ladder_approves_product_exposure": false,
@@ -1975,7 +2018,6 @@
     "pattern_ladder_enables_cross_project_autorouting": false,
     "pattern_ladder_exposes_gps_or_raw_metadata": false,
     "pattern_ladder_grants_authority_claims": false,
-    "pattern_ladder_landed": true,
     "pattern_ladder_launches_queue_or_dispatch": false,
     "pattern_ladder_mutates_irc_session_manager": false,
     "pattern_ladder_publishes_worker_doctrine": false,
@@ -2000,43 +2042,54 @@
     "runtime_memory_operator_answer_record_created": false,
     "runtime_memory_wiring_approved": false,
     "runtime_path_authorized": false,
-    "scalable_coordination_rules_documented": true,
-    "source_answer_gate_consumed": true,
-    "source_intelligence_compounder_consumed": true,
+    "source_pattern_ladder_consumed": true,
+    "stopped_project_firewall_preserved": true,
     "stopped_project_integration_ready": false,
+    "synthesis_approves_product_exposure": false,
+    "synthesis_approves_runtime_memory": false,
+    "synthesis_creates_answer_receipt": false,
+    "synthesis_creates_customer_copy": false,
+    "synthesis_creates_worker_instruction": false,
+    "synthesis_emits_reputation_or_worker_skill_dna": false,
+    "synthesis_enables_cross_project_autorouting": false,
+    "synthesis_exposes_gps_or_raw_metadata": false,
+    "synthesis_grants_authority_claims": false,
+    "synthesis_launches_queue_or_dispatch": false,
+    "synthesis_mutates_irc_session_manager": false,
+    "synthesis_publishes_worker_doctrine": false,
+    "synthesis_records_operator_answer": false,
+    "synthesis_records_operator_approval": false,
+    "synthesis_releases_private_context": false,
+    "synthesis_repairs_docker": false,
+    "synthesis_retrieves_live_acontext": false,
+    "synthesis_reverifies_payment_or_production": false,
+    "synthesis_selects_future_answer": false,
+    "synthesis_uses_stopped_projects_as_active_sources": false,
+    "synthesis_writes_live_acontext": false,
     "worker_copyable_doctrine_ready": false,
     "worker_skill_dna_ready": false,
     "worker_visible": false
   },
-  "scaling_rules": [
-    {
-      "description": "Every handoff must name source ref, safe claim, do-not-claim-yet set, and next required gate before any brainstorm.",
-      "rule": "carry_four_fields_first"
-    },
-    {
-      "description": "When DREAM-PRIORITIES stops a project, preserving that stop is a successful intelligence flow, not a missed task.",
-      "rule": "negative_routing_is_value"
-    },
-    {
-      "description": "A compelling cross-project connection can become a planning card only; movement still requires the answer receipt gate.",
-      "rule": "patterns_are_not_permissions"
-    },
-    {
-      "description": "If no new truth is available, choose pause_aas_proof_layering or keep_both_lanes_held instead of adding launch-shaped artifacts.",
-      "rule": "truth_beats_momentum"
-    }
-  ],
-  "schema": "city_ops.aas_four_am_pattern_recognition_multiplier_ladder.v1",
-  "source_intelligence_flow_compounder": {
-    "digest_sha256": "49ab52ee71514089d78637052ce3b42f3c4825b89966b5537effcdf990319f5c",
-    "file": "aas_intelligence_flow_compounder.json",
-    "safe_claim": "admin_aas_intelligence_flow_compounder_landed",
-    "source_role": "reviewed_cross_project_intelligence_filter"
+  "schema": "city_ops.aas_five_am_pre_dawn_synthesis_handoff.v1",
+  "scope_guard": {
+    "active_focus": "Execution Market AAS / City-as-a-Service only",
+    "autojob_pull_skipped_because_stop_list_wins": true,
+    "frontier_expansion_skipped_because_stop_list_wins": true,
+    "governing_file": "~/clawd/DREAM-PRIORITIES.md",
+    "karmacadabra_v2_work_skipped_because_stop_list_wins": true,
+    "kk_v2_work_skipped_because_stop_list_wins": true,
+    "one_allowed_repo_family": "projects/execution-market",
+    "stale_cron_tracks_skipped": [
+      "AutoJob",
+      "Frontier Academy",
+      "KK v2",
+      "KarmaCadabra v2"
+    ]
   },
-  "source_operator_answer_gate": {
-    "digest_sha256": "b79ef7e54a9ef185794e8e3a46b3939559499bc9a9afe34d508488323d3f3db5",
-    "file": "aas_operator_answer_receipt_gate.json",
-    "safe_claim": "internal_admin_aas_operator_answer_receipt_gate_landed",
-    "source_role": "current_future_answer_contract"
+  "source_pattern_ladder": {
+    "digest_sha256": "837322fa25e419401a8aca367178edcdbe8010695b38f453dbf088d221f7a684",
+    "file": "aas_four_am_pattern_recognition_multiplier_ladder.json",
+    "safe_claim": "internal_admin_aas_4am_pattern_recognition_multiplier_ladder_landed",
+    "source_role": "current_4am_pattern_recognition_multiplier_ladder"
   }
 }
