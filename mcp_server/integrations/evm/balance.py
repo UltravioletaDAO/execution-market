@@ -32,12 +32,20 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 from decimal import Decimal
 from typing import Optional
 
 import httpx
 
 logger = logging.getLogger(__name__)
+
+# A syntactically valid EVM address: 0x followed by exactly 40 hex chars.
+# We do NOT enforce EIP-55 checksum casing — balanceOf is case-insensitive and
+# the address is lower-cased before encoding. This is purely a shape guard so a
+# non-address value (e.g. an API-key agent_id) never reaches eth_call as
+# malformed calldata that silently returns balance 0.
+_EVM_ADDRESS_RE = re.compile(r"^0x[0-9a-fA-F]{40}$")
 
 # ERC-20 balanceOf(address) selector: keccak256("balanceOf(address)")[:4].
 _BALANCE_OF_SELECTOR = "0x70a08231"
@@ -82,6 +90,17 @@ _EVM_NETWORKS: dict[str, dict[str, str]] = {
 }
 
 
+def is_valid_evm_address(wallet: object) -> bool:
+    """Return True iff ``wallet`` is a syntactically valid 0x EVM address.
+
+    Shape only: ``0x`` + 40 hex chars (case-insensitive). Used by the balance
+    gate to reject non-address values (API-key ``agent_id``, empty strings)
+    BEFORE they reach ``balanceOf`` encoding — otherwise malformed calldata
+    yields a balance of 0 and a misleading "needs on-ramp" 402.
+    """
+    return isinstance(wallet, str) and bool(_EVM_ADDRESS_RE.match(wallet))
+
+
 def _resolve_rpc_url(network: str, override: Optional[str]) -> Optional[str]:
     """Pick the RPC for a network: explicit override > env > public default."""
     if override:
@@ -119,7 +138,12 @@ async def get_evm_usdc_balance(
     Production callers should let the function manage its own short-lived
     AsyncClient.
     """
-    if not isinstance(wallet, str) or len(wallet.strip()) == 0:
+    if not is_valid_evm_address(wallet):
+        logger.warning(
+            "get_evm_usdc_balance: invalid EVM address shape on %s — refusing "
+            "to encode balanceOf",
+            network,
+        )
         return Decimal("0")
 
     cfg = _EVM_NETWORKS.get(network)

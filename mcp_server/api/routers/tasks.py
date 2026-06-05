@@ -667,8 +667,10 @@ async def create_task(
         # Only active when MoonPay is enabled (loop is live). OFF by default, so
         # the crypto-native agent flow and the test suite are unaffected. Base has
         # escrow: the publisher signs an EIP-3009 pre-auth (ADR-001) and must hold
-        # USDC for bounty + fee. If short, return 402 + a chain-pinned MoonPay
-        # on-ramp link so the frontend can offer one-tap top-up, then retry.
+        # the amount the escrow actually locks. In the default credit_card model
+        # that is the bounty (the 13% fee is deducted on-chain from the locked
+        # bounty, NOT added on top — see publisher_hold_amount). If short, return
+        # 402 + a chain-pinned MoonPay on-ramp link for one-tap top-up.
         _evm_onramp_nets = {
             "base",
             "ethereum",
@@ -683,12 +685,28 @@ async def create_task(
             "EM_MOONPAY_ENABLED", "false"
         ).lower() in ("1", "true", "yes"):
             from integrations.moonpay.balance_gate import check_evm_balance_gate
+            from integrations.evm.balance import is_valid_evm_address
+            from integrations.x402.payment_dispatcher import publisher_hold_amount
 
             _net = (request.payment_network or "base").lower()
             evm_wallet = getattr(auth, "wallet_address", None) or auth.agent_id
+            # Task 1.3: the gate reads an on-chain balance, which is only
+            # meaningful for a real wallet. API-key callers can fall back to a
+            # non-address agent_id; reject those clearly instead of reading a
+            # bogus balance 0 and returning a misleading on-ramp 402.
+            if not is_valid_evm_address(evm_wallet):
+                raise HTTPException(
+                    status_code=403,
+                    detail=(
+                        "Wallet authentication is required for the EVM on-ramp "
+                        "balance check. Authenticate with a wallet (ERC-8128) so "
+                        "the publisher's USDC balance can be verified."
+                    ),
+                )
+            evm_required = publisher_hold_amount(bounty)
             gate = await check_evm_balance_gate(
                 wallet=evm_wallet,
-                required_usdc=total_required,
+                required_usdc=evm_required,
                 network=_net,
             )
             if not gate.sufficient:
@@ -696,11 +714,12 @@ async def create_task(
                     "error": "INSUFFICIENT_FUNDS",
                     "message": (
                         f"{_net.capitalize()} wallet has {gate.balance} USDC; task "
-                        f"requires {total_required} USDC (bounty {bounty} + "
-                        f"{platform_fee_pct * 100}% fee). Top up via MoonPay or "
-                        f"transfer USDC to {evm_wallet} and retry."
+                        f"requires {evm_required} USDC to fund the escrow (bounty "
+                        f"{bounty}; the {platform_fee_pct * 100}% fee is taken "
+                        f"on-chain at release). Top up via MoonPay or transfer "
+                        f"USDC to {evm_wallet} and retry."
                     ),
-                    "required_usdc": str(total_required),
+                    "required_usdc": str(evm_required),
                     "balance_usdc": str(gate.balance),
                     "shortfall_usdc": str(gate.shortfall),
                     "wallet_address": evm_wallet,
@@ -1757,7 +1776,8 @@ async def get_available_tasks(
         )
 
         # Strip PII / internal fields from public worker-facing response
-        _pii_fields = {"executor_id", "human_wallet"}
+        # (F-09: human_user_id is the H2H publisher's account id — also PII).
+        _pii_fields = {"executor_id", "human_wallet", "human_user_id"}
         tasks = [
             {k: v for k, v in t.items() if k not in _pii_fields} for t in tasks_raw
         ]
@@ -3347,9 +3367,16 @@ async def assign_task_to_worker(
                     body["onramp"] = gate.onramp
                 return JSONResponse(status_code=402, content=body)
 
-        # ── EVM balance gate (Base, Phase 2) — escrow lock happens here, so the
-        # publisher MUST hold USDC now. Only active when MoonPay is enabled; OFF
-        # by default so the crypto-native flow and tests are unaffected.
+        # ── EVM balance gate (Base, Phase 2) — only when the lock happens HERE.
+        # Skip it when funds are already on-chain, otherwise an already-funded
+        # assignment is wrongly rejected (F-02):
+        #   1. request.escrow_tx present + valid 0x..64 hash → the agent already
+        #      locked escrow via AdvancedEscrowClient.authorize() (SDK-locked
+        #      path below); its USDC left the wallet INTO escrow, so a balance
+        #      read would under-count.
+        #   2. an existing escrow row for the task is already locked/deposited.
+        # Only active when MoonPay is enabled; OFF by default so the
+        # crypto-native flow and tests are unaffected.
         _evm_onramp_nets = {
             "base",
             "ethereum",
@@ -3364,38 +3391,91 @@ async def assign_task_to_worker(
             and os.environ.get("EM_MOONPAY_ENABLED", "false").lower()
             in ("1", "true", "yes")
         ):
-            from integrations.moonpay.balance_gate import check_evm_balance_gate
+            import re as _tx_re
 
-            _net = (pre_task.get("payment_network") or "base").lower()
-            bounty_pre = Decimal(str(pre_task.get("bounty_usd", 0)))
-            fee_pct_pre = await get_platform_fee_percent()
-            total_required_pre = (bounty_pre * (1 + fee_pct_pre)).quantize(
-                Decimal("0.01")
+            # F-02 skip #1: agent supplied a valid escrow lock tx hash.
+            _escrow_tx_present = bool(
+                request.escrow_tx
+                and _tx_re.match(r"^0x[0-9a-fA-F]{64}$", request.escrow_tx)
             )
-            evm_wallet = getattr(auth, "wallet_address", None) or auth.agent_id
-            gate = await check_evm_balance_gate(
-                wallet=evm_wallet,
-                required_usdc=total_required_pre,
-                network=_net,
-            )
-            if not gate.sufficient:
-                body = {
-                    "error": "INSUFFICIENT_FUNDS",
-                    "message": (
-                        f"{_net.capitalize()} wallet has {gate.balance} USDC; "
-                        f"assignment requires {total_required_pre} USDC (bounty "
-                        f"{bounty_pre} + {fee_pct_pre * 100}% fee). Top up via "
-                        f"MoonPay or transfer USDC to {evm_wallet} and retry."
-                    ),
-                    "required_usdc": str(total_required_pre),
-                    "balance_usdc": str(gate.balance),
-                    "shortfall_usdc": str(gate.shortfall),
-                    "wallet_address": evm_wallet,
-                    "network": _net,
-                }
-                if gate.onramp is not None:
-                    body["onramp"] = gate.onramp
-                return JSONResponse(status_code=402, content=body)
+
+            # F-02 skip #2: an escrow row for this task is already locked.
+            _escrow_already_locked = False
+            if not _escrow_tx_present:
+                try:
+                    _client = db.get_client()
+                    _esc = (
+                        _client.table("escrows")
+                        .select("status")
+                        .eq("task_id", task_id)
+                        .limit(1)
+                        .execute()
+                    )
+                    if _esc.data:
+                        _st = _normalize_status(_esc.data[0].get("status") or "none")
+                        _escrow_already_locked = _st in REFUNDABLE_ESCROW_STATUSES
+                except Exception as _esc_err:
+                    # Non-blocking: if the lookup fails, fall through to the gate
+                    # (fail-safe — better to re-check balance than skip wrongly).
+                    logger.warning(
+                        "Escrow pre-check failed for task %s: %s", task_id, _esc_err
+                    )
+
+            if _escrow_tx_present or _escrow_already_locked:
+                logger.info(
+                    "Skipping assign-time EVM balance gate for task %s "
+                    "(escrow_tx=%s, already_locked=%s)",
+                    task_id,
+                    _escrow_tx_present,
+                    _escrow_already_locked,
+                )
+            else:
+                from integrations.moonpay.balance_gate import check_evm_balance_gate
+                from integrations.evm.balance import is_valid_evm_address
+                from integrations.x402.payment_dispatcher import publisher_hold_amount
+
+                _net = (pre_task.get("payment_network") or "base").lower()
+                bounty_pre = Decimal(str(pre_task.get("bounty_usd", 0)))
+                evm_wallet = getattr(auth, "wallet_address", None) or auth.agent_id
+                # Task 1.3: only a real wallet has a meaningful on-chain balance.
+                if not is_valid_evm_address(evm_wallet):
+                    raise HTTPException(
+                        status_code=403,
+                        detail=(
+                            "Wallet authentication is required for the EVM "
+                            "on-ramp balance check at assignment. Authenticate "
+                            "with a wallet (ERC-8128) or lock escrow first and "
+                            "pass escrow_tx."
+                        ),
+                    )
+                # F-01: gate against what the escrow actually locks for the
+                # active fee model (bounty in the default credit_card model),
+                # not bounty + fee.
+                evm_required_pre = publisher_hold_amount(bounty_pre)
+                gate = await check_evm_balance_gate(
+                    wallet=evm_wallet,
+                    required_usdc=evm_required_pre,
+                    network=_net,
+                )
+                if not gate.sufficient:
+                    body = {
+                        "error": "INSUFFICIENT_FUNDS",
+                        "message": (
+                            f"{_net.capitalize()} wallet has {gate.balance} USDC; "
+                            f"assignment requires {evm_required_pre} USDC to fund "
+                            f"the escrow (bounty {bounty_pre}; the platform fee is "
+                            f"taken on-chain at release). Top up via MoonPay or "
+                            f"transfer USDC to {evm_wallet} and retry."
+                        ),
+                        "required_usdc": str(evm_required_pre),
+                        "balance_usdc": str(gate.balance),
+                        "shortfall_usdc": str(gate.shortfall),
+                        "wallet_address": evm_wallet,
+                        "network": _net,
+                    }
+                    if gate.onramp is not None:
+                        body["onramp"] = gate.onramp
+                    return JSONResponse(status_code=402, content=body)
 
         result = await db.assign_task(
             task_id=task_id,

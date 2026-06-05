@@ -129,7 +129,10 @@ async def check_evm_balance_gate(
     Probes the wallet's USDC balance on `network` and, if short, builds a
     MoonPay on-ramp payload pinned to that chain's currency code (usdc_base,
     usdc_polygon, ...). `wallet` is the 0x address the publisher will sign the
-    escrow pre-auth from; `required_usdc` is bounty + platform fee.
+    escrow pre-auth from; `required_usdc` is the amount the escrow actually
+    locks for the active fee model (the bounty in the default credit_card
+    model — the fee is taken on-chain at release, not pre-funded). Callers
+    compute it via ``payment_dispatcher.publisher_hold_amount``.
     """
     from integrations.evm.balance import get_evm_usdc_balance
 

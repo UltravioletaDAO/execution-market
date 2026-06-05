@@ -144,6 +144,41 @@ def compute_lock_amount(bounty: Decimal, fee_bps: int = FASE5_FEE_BPS) -> Decima
 # "agent_absorbs": lock amount = bounty / 0.87. Agent pays extra so worker gets ~100% of bounty.
 EM_FEE_MODEL = os.environ.get("EM_FEE_MODEL", "credit_card")
 
+
+def publisher_hold_amount(
+    bounty: Decimal, *, fee_model: Optional[str] = None
+) -> Decimal:
+    """USDC a publisher's wallet must hold to fund a task's escrow.
+
+    This MUST equal what the escrow path actually locks (see
+    ``authorize_escrow_for_worker`` / ``_authorize_fase2``), otherwise the
+    balance gate over- or under-asks:
+
+      * ``credit_card`` (default): the bounty IS the lock amount — the 13% fee
+        is deducted on-chain from the locked bounty, NOT added on top. So the
+        publisher only needs ``bounty``.
+      * ``agent_absorbs``: the agent pays extra so the worker nets the full
+        bounty after the on-chain fee, so the lock (and required hold) is
+        ``compute_lock_amount(bounty)`` = ceil(bounty / (1 - fee_bps)).
+
+    The fee is NOT pre-funded separately in either mode — there is no
+    ``bounty + fee`` settlement path today. If one is ever added, name that
+    mode here and assert it in tests (Task 1.1).
+
+    Args:
+        bounty: The task bounty in USDC (human-readable, 6 decimals).
+        fee_model: Override the active ``EM_FEE_MODEL`` (mainly for tests).
+
+    Returns:
+        The amount the publisher must hold, quantized to 6 USDC decimals.
+    """
+    model = (fee_model or EM_FEE_MODEL).lower()
+    if model == "agent_absorbs":
+        return compute_lock_amount(bounty)
+    # credit_card (default): bounty IS the lock amount; fee comes out on-chain.
+    return bounty.quantize(Decimal("0.000001"))
+
+
 # Escrow timing: when are funds locked?
 # "lock_on_assignment" (default): agent pre-signs at creation, lock executes at assignment
 # "lock_on_creation": agent signs and escrow locks immediately at task creation
