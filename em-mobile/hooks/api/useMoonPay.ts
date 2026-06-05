@@ -19,6 +19,22 @@ interface SignUrlResponse {
   wallet_address: string;
 }
 
+/**
+ * When EM_MOONPAY_ENABLED is unset/false the backend does not register the
+ * /api/v1/moonpay/* routes, so sign-url returns 404 (detail "Not Found"). A
+ * configured-but-down onramp returns 503. Detect both so the deposit screen can
+ * show "onramp unavailable" instead of a raw API error.
+ */
+export function isMoonPayDisabledError(e: unknown): boolean {
+  const msg = (e instanceof Error ? e.message : String(e ?? "")).toLowerCase();
+  return (
+    msg.includes("not found") ||
+    msg.includes("moonpay") ||
+    msg.includes("disabled") ||
+    msg.includes("not configured")
+  );
+}
+
 export function useSignMoonPayUrl() {
   return useMutation({
     mutationFn: (params: SignUrlParams) =>

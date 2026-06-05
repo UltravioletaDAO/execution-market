@@ -1,10 +1,11 @@
-import { View, Text, Pressable, TextInput, ActivityIndicator, Alert, Linking, ScrollView } from "react-native";
+import { View, Text, Pressable, TextInput, ActivityIndicator, Alert, Linking, ScrollView, AppState } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../providers/AuthProvider";
-import { useSignMoonPayUrl } from "../hooks/api/useMoonPay";
+import { useSignMoonPayUrl, isMoonPayDisabledError } from "../hooks/api/useMoonPay";
 
 /**
  * Deposit screen — fiat → USDC on Base via MoonPay (mobile onramp).
@@ -22,7 +23,29 @@ export default function DepositScreen() {
   const { t } = useTranslation();
   const { wallet, executor, isAuthenticated } = useAuth();
   const sign = useSignMoonPayUrl();
+  const queryClient = useQueryClient();
   const [amount, setAmount] = useState("20");
+  // True once the user has been sent to MoonPay; drives the refresh-on-return UX.
+  const [returnedFromMoonPay, setReturnedFromMoonPay] = useState(false);
+  const launchedRef = useRef(false);
+
+  // Pull fresh balances/earnings whenever the user comes back to the app after
+  // completing (or abandoning) the MoonPay flow in the system browser.
+  function refreshBalance() {
+    queryClient.invalidateQueries({ queryKey: ["earnings"] });
+    queryClient.invalidateQueries({ queryKey: ["tasks"] });
+  }
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active" && launchedRef.current) {
+        setReturnedFromMoonPay(true);
+        refreshBalance();
+      }
+    });
+    return () => subscription.remove();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleDeposit() {
     const amt = Math.max(5, parseFloat(amount) || 0);
@@ -39,11 +62,19 @@ export default function DepositScreen() {
       });
       const ok = await Linking.canOpenURL(res.url);
       if (ok) {
+        launchedRef.current = true;
         await Linking.openURL(res.url);
       } else {
         Alert.alert(t("common.error", "Error"), t("deposit.cannotOpen", "No se pudo abrir MoonPay."));
       }
     } catch (e) {
+      if (isMoonPayDisabledError(e)) {
+        Alert.alert(
+          t("common.error", "Error"),
+          t("deposit.unavailable", "Los depósitos con tarjeta no están disponibles en este momento."),
+        );
+        return;
+      }
       Alert.alert(
         t("common.error", "Error"),
         (e as Error).message || t("deposit.failed", "No se pudo iniciar el depósito."),
@@ -111,6 +142,20 @@ export default function DepositScreen() {
         <Text className="text-gray-500 text-xs text-center mt-4">
           {t("deposit.note", "Se abrirá MoonPay para completar el pago. Tu USDC llegará a tu wallet en Base.")}
         </Text>
+
+        {returnedFromMoonPay && (
+          <View className="bg-surface border border-gray-800 rounded-2xl p-4 mt-6">
+            <Text className="text-white text-sm font-medium text-center">
+              {t("deposit.returned", "¿Completaste el pago? Tu USDC puede tardar unos minutos en llegar.")}
+            </Text>
+            <Pressable
+              onPress={refreshBalance}
+              className="bg-white rounded-xl py-3 items-center mt-3"
+            >
+              <Text className="text-black font-bold">{t("deposit.refresh", "Actualizar saldo")}</Text>
+            </Pressable>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

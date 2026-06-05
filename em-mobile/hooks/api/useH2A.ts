@@ -11,9 +11,21 @@ interface CreateH2ATaskParams {
   evidence_required: string[];
   evidence_optional?: string[];
   target_executor_type?: "any" | "human" | "agent" | "robot";
+  payment_network?: string;
   auto_verify?: boolean;
   capabilities_required?: string[];
   token?: string;
+}
+
+/** Shape returned by POST /api/v1/h2a/tasks (H2ATaskResponse on the backend). */
+export interface CreateH2ATaskResponse {
+  task_id: string;
+  status: string;
+  bounty_usd: number;
+  fee_usd: number;
+  total_required_usd: number;
+  deadline: string;
+  publisher_type: "human";
 }
 
 export function useCreateH2ATask() {
@@ -21,7 +33,7 @@ export function useCreateH2ATask() {
 
   return useMutation({
     mutationFn: async ({ token, ...params }: CreateH2ATaskParams) => {
-      return apiClient<Task>("/api/v1/h2a/tasks", {
+      return apiClient<CreateH2ATaskResponse>("/api/v1/h2a/tasks", {
         method: "POST",
         body: params,
         token,

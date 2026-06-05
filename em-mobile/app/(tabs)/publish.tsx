@@ -65,7 +65,7 @@ export default function PublishTaskScreen() {
   const [instructions, setInstructions] = useState("");
   const [category, setCategory] = useState<string | null>(null);
   const [targetType, setTargetType] = useState<ExecutorTarget>("any");
-  const [bounty, setBounty] = useState("0.10");
+  const [bounty, setBounty] = useState("5");
   const [deadlineHours, setDeadlineHours] = useState(24);
   const [selectedEvidence, setSelectedEvidence] = useState<string[]>(["text_response"]);
   const [network, setNetwork] = useState("base");
@@ -76,11 +76,30 @@ export default function PublishTaskScreen() {
   const params = useLocalSearchParams<{ presetCategory?: string; presetTarget?: string }>();
   useEffect(() => {
     if (params.presetCategory) setCategory(params.presetCategory);
-    if (params.presetTarget === "human") setTargetType("human");
+    if (params.presetTarget === "human") {
+      setTargetType("human");
+      // H2H tasks are physical — default to visual evidence, not text-only.
+      setSelectedEvidence(["screenshot", "text_response"]);
+    }
   }, [params.presetCategory, params.presetTarget]);
+
+  // H2H (human executor) enforces a $5 floor, matching backend/web.
+  const isH2H = targetType === "human";
+  const MIN_BOUNTY = isH2H ? 5 : 0;
+
+  // H2H payouts are Base-only (web hardcodes payment_network: 'base'). Pin the
+  // network so the selected chain always matches what is actually sent.
+  useEffect(() => {
+    if (isH2H && network !== "base") setNetwork("base");
+  }, [isH2H, network]);
 
   const fee = parseFloat(bounty || "0") * 0.13;
   const total = parseFloat(bounty || "0") + fee;
+
+  // Gate the "Next" button: step 1 needs the basics; step 3 enforces the H2H floor.
+  const nextDisabled =
+    (step === 1 && (!title.trim() || !instructions.trim() || !category)) ||
+    (step === 3 && parseFloat(bounty || "0") < MIN_BOUNTY);
 
   if (!isAuthenticated) {
     return (
@@ -155,6 +174,13 @@ export default function PublishTaskScreen() {
       Alert.alert(t("common.error"), t("publish.invalidAmount"));
       return;
     }
+    if (bountyNum < MIN_BOUNTY) {
+      Alert.alert(
+        t("common.error"),
+        t("publish.minBounty", { min: MIN_BOUNTY, defaultValue: `Minimum bounty is $${MIN_BOUNTY} USDC.` }),
+      );
+      return;
+    }
     try {
       const result = await createTask.mutateAsync({
         title: title.trim(),
@@ -164,8 +190,9 @@ export default function PublishTaskScreen() {
         deadline_hours: deadlineHours,
         evidence_required: selectedEvidence,
         target_executor_type: targetType,
+        payment_network: network,
       });
-      setPublishedTaskId((result as any)?.id || null);
+      setPublishedTaskId(result?.task_id || null);
       setPublished(true);
     } catch (e) {
       Alert.alert(t("common.error"), (e as Error).message || t("publish.publishError"));
@@ -294,17 +321,39 @@ export default function PublishTaskScreen() {
         {step === 3 && (
           <View>
             <Text className="text-gray-400 text-sm mb-2">{t("publish.bounty")} *</Text>
-            <View className="bg-surface rounded-xl px-4 py-3 flex-row items-center mb-4">
+            <View className="bg-surface rounded-xl px-4 py-3 flex-row items-center mb-2">
               <Text className="text-white text-2xl font-bold mr-1">$</Text>
               <TextInput
                 className="text-white text-2xl font-bold flex-1"
                 value={bounty}
                 onChangeText={setBounty}
                 keyboardType="decimal-pad"
-                placeholder="0.10"
+                placeholder={isH2H ? "5" : "0.10"}
                 placeholderTextColor="#666"
               />
               <Text className="text-gray-400">USDC</Text>
+            </View>
+
+            {isH2H && (
+              <Text className="text-gray-500 text-xs mb-2">
+                {t("publish.minBounty", { min: MIN_BOUNTY, defaultValue: `Minimum bounty is $${MIN_BOUNTY} USDC.` })}
+              </Text>
+            )}
+
+            {/* Fee/total preview — mirrors the web service request breakdown. */}
+            <View className="bg-surface rounded-xl px-4 py-3 mb-4">
+              <View className="flex-row justify-between mb-1">
+                <Text className="text-gray-400 text-sm">{t("publish.reward")}</Text>
+                <Text className="text-white text-sm">${parseFloat(bounty || "0").toFixed(2)} USDC</Text>
+              </View>
+              <View className="flex-row justify-between mb-1">
+                <Text className="text-gray-400 text-sm">{t("publish.platformFee")} (13%)</Text>
+                <Text className="text-white text-sm">${fee.toFixed(2)} USDC</Text>
+              </View>
+              <View className="flex-row justify-between pt-1 border-t border-gray-800">
+                <Text className="text-white font-bold text-sm">{t("publish.total")}</Text>
+                <Text className="text-white font-bold text-sm">${total.toFixed(2)} USDC</Text>
+              </View>
             </View>
 
             <Text className="text-gray-400 text-sm mb-2">{t("publish.deadline")}</Text>
@@ -359,12 +408,16 @@ export default function PublishTaskScreen() {
             <Text className="text-gray-400 text-sm mb-2">{t("publish.paymentNetwork")}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View className="flex-row gap-2 mb-4">
-                {NETWORKS.map((net) => (
+                {NETWORKS.map((net) => {
+                  // H2H is Base-only; show other chains as disabled rather than inert.
+                  const disabled = isH2H && net.key !== "base";
+                  return (
                   <Pressable
                     key={net.key}
+                    disabled={disabled}
                     className={`rounded-full px-4 py-2 flex-row items-center ${
                       network === net.key ? "bg-white" : "bg-surface"
-                    }`}
+                    } ${disabled ? "opacity-40" : ""}`}
                     onPress={() => setNetwork(net.key)}
                   >
                     {CHAIN_IMAGES[net.key] && (
@@ -381,7 +434,8 @@ export default function PublishTaskScreen() {
                       {net.name}
                     </Text>
                   </Pressable>
-                ))}
+                  );
+                })}
               </View>
             </ScrollView>
           </View>
@@ -466,17 +520,13 @@ export default function PublishTaskScreen() {
           {step < 4 ? (
             <Pressable
               className={`flex-1 rounded-2xl py-4 items-center ${
-                (step === 1 && (!title.trim() || !instructions.trim() || !category))
-                  ? "bg-gray-700"
-                  : "bg-white"
+                nextDisabled ? "bg-gray-700" : "bg-white"
               }`}
               onPress={() => setStep((step + 1) as Step)}
-              disabled={step === 1 && (!title.trim() || !instructions.trim() || !category)}
+              disabled={nextDisabled}
             >
               <Text className={`font-bold ${
-                (step === 1 && (!title.trim() || !instructions.trim() || !category))
-                  ? "text-gray-500"
-                  : "text-black"
+                nextDisabled ? "text-gray-500" : "text-black"
               }`}>
                 {t("common.next")}
               </Text>
