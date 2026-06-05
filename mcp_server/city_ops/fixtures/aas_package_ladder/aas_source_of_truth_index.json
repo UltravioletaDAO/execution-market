@@ -1715,7 +1715,7 @@
   },
   "current_entrypoints": [
     {
-      "digest_sha256": "0ae05f068dc2d343f5eb6c9c6cec508438b9575b2a42637e0715d29facca8361",
+      "digest_sha256": "677c222341d99f0c9773c7f53b566028194331cf44b27146bab91b8b76e362d7",
       "exists": true,
       "extension_policy": "current_entrypoint_update_only_when_new_safe_claim_lands",
       "path": "docs/planning/CITY_AS_A_SERVICE_DAYTIME_EXECUTION_BOARD.md",
@@ -1762,6 +1762,13 @@
       "extension_policy": "current_read_only_meter_until_real_operator_answer_exists",
       "path": "docs/planning/CITY_AS_A_SERVICE_3AM_SYSTEM_INTEGRATION_DECISION_METER_2026_06_05.md",
       "role": "latest_system_integration_decision_meter"
+    },
+    {
+      "digest_sha256": "9b37749ad8aaf1837514f1f1170af0334ce2f1e1bc7b2660e761aa6b81f74938",
+      "exists": true,
+      "extension_policy": "current_read_only_pattern_ladder_until_real_operator_answer_exists",
+      "path": "docs/planning/CITY_AS_A_SERVICE_4AM_PATTERN_RECOGNITION_MULTIPLIER_LADDER_2026_06_05.md",
+      "role": "latest_pattern_recognition_multiplier_ladder"
     }
   ],
   "current_no_answer_posture": {
