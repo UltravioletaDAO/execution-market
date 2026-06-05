@@ -21,7 +21,6 @@ import hashlib
 import hmac
 import importlib
 import json
-import os
 import sys
 import time
 from unittest.mock import MagicMock, patch
@@ -60,9 +59,12 @@ def router_module():
 
 
 @pytest.fixture
-def test_client():
+def test_client(monkeypatch):
     """Build a TestClient with EM_MOONPAY_ENABLED=true so the router mounts."""
-    os.environ["EM_MOONPAY_ENABLED"] = "true"
+    # monkeypatch.setenv so the flag is REVERTED after the test — a leaked
+    # EM_MOONPAY_ENABLED=true makes create_task's EVM balance gate fire in
+    # unrelated downstream tests. (Test-contamination fix 2026-06-04.)
+    monkeypatch.setenv("EM_MOONPAY_ENABLED", "true")
 
     import api.routes as routes_mod
     import integrations.moonpay.client as client_mod
@@ -348,7 +350,7 @@ class TestWebhookEndpoint:
 
     def test_503_when_webhook_secret_unset(self, monkeypatch):
         """Endpoint surfaces 503 (not 500) when webhook secret is missing."""
-        os.environ["EM_MOONPAY_ENABLED"] = "true"
+        monkeypatch.setenv("EM_MOONPAY_ENABLED", "true")
         monkeypatch.delenv("MOONPAY_WEBHOOK_SECRET", raising=False)
 
         # Force a fresh import chain so the missing secret is observed.

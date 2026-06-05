@@ -7,7 +7,7 @@ layer is mocked via an injected client; no live RPC is hit.
 from __future__ import annotations
 
 from decimal import Decimal
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -133,17 +133,7 @@ class TestEncodeBalanceOf:
 class TestOnrampMinBuy:
     """build_insufficient_funds_onramp floors per-currency (Base=$5, Sol=$20)."""
 
-    def test_base_floor_is_five(self, monkeypatch):
-        monkeypatch.setenv("EM_MOONPAY_ENABLED", "true")
-        monkeypatch.setenv("MOONPAY_SECRET_KEY", "sk_test_unit")
-        monkeypatch.setenv("MOONPAY_PUBLIC_KEY", "pk_test_unit")
-        monkeypatch.setenv("MOONPAY_WIDGET_BASE_URL", "https://buy.moonpay.com")
-        import importlib
-        import sys
-
-        import integrations.moonpay.client  # noqa: F401
-
-        importlib.reload(sys.modules["integrations.moonpay.client"])
+    def test_base_floor_is_five(self, _moonpay_enabled):
         from integrations.moonpay.onramp import build_insufficient_funds_onramp
 
         result = build_insufficient_funds_onramp(
@@ -156,53 +146,65 @@ class TestOnrampMinBuy:
         assert result["currency"] == "usdc_base"
 
 
+@pytest.fixture
+def _moonpay_enabled(monkeypatch):
+    """Enable MoonPay with deterministic test keys.
+
+    Sets the module globals via monkeypatch on the imported module OBJECT (not a
+    dotted string path) and reverts after the test. Using the object avoids
+    monkeypatch's string-path resolution, which fails ("no attribute 'client'")
+    after another test reloads integrations.moonpay.client earlier in the suite.
+    No importlib.reload here — a reload is a global, non-reverted mutation that
+    leaks across the suite. _is_moonpay_enabled() reads the env live, so setenv
+    suffices.
+    """
+    import integrations.moonpay.client as mp_client
+
+    monkeypatch.setenv("EM_MOONPAY_ENABLED", "true")
+    monkeypatch.setattr(mp_client, "MOONPAY_SECRET_KEY", "sk_test_secret_evm_gate")
+    monkeypatch.setattr(mp_client, "MOONPAY_PUBLIC_KEY", "pk_test_public_evm_gate")
+    monkeypatch.setattr(mp_client, "MOONPAY_WIDGET_BASE_URL", "https://buy.moonpay.com")
+    yield
+
+
 class TestCheckEvmBalanceGate:
-    """check_evm_balance_gate — the Base funding gate for publish/assign."""
+    """check_evm_balance_gate — the Base funding gate for publish/assign.
+
+    Mocks get_evm_usdc_balance via unittest.mock.patch (the same pattern the
+    Solana balance-gate tests use). A plain monkeypatch.setattr proved
+    order-fragile under the full suite in CI; `patch` is robust.
+    """
 
     @pytest.mark.asyncio
-    async def test_sufficient_passes(self, monkeypatch):
+    async def test_sufficient_passes(self):
         from integrations.moonpay import balance_gate as gate_mod
 
-        async def fake_balance(wallet, network):
-            return Decimal("100")
-
-        monkeypatch.setattr(
-            "integrations.evm.balance.get_evm_usdc_balance", fake_balance
-        )
-        result = await gate_mod.check_evm_balance_gate(
-            "0x1111111111111111111111111111111111111111",
-            Decimal("10"),
-            network="base",
-        )
+        with patch(
+            "integrations.evm.balance.get_evm_usdc_balance",
+            new=AsyncMock(return_value=Decimal("100")),
+        ):
+            result = await gate_mod.check_evm_balance_gate(
+                "0x1111111111111111111111111111111111111111",
+                Decimal("10"),
+                network="base",
+            )
         assert result.sufficient is True
         assert result.onramp is None
         assert result.shortfall == Decimal("0")
 
     @pytest.mark.asyncio
-    async def test_insufficient_returns_base_onramp(self, monkeypatch):
-        monkeypatch.setenv("EM_MOONPAY_ENABLED", "true")
-        monkeypatch.setenv("MOONPAY_SECRET_KEY", "sk_test_unit")
-        monkeypatch.setenv("MOONPAY_PUBLIC_KEY", "pk_test_unit")
-        monkeypatch.setenv("MOONPAY_WIDGET_BASE_URL", "https://buy.moonpay.com")
-        import importlib
-        import sys
-
-        import integrations.moonpay.client  # noqa: F401
-
-        importlib.reload(sys.modules["integrations.moonpay.client"])
+    async def test_insufficient_returns_base_onramp(self, _moonpay_enabled):
         from integrations.moonpay import balance_gate as gate_mod
 
-        async def fake_balance(wallet, network):
-            return Decimal("1")
-
-        monkeypatch.setattr(
-            "integrations.evm.balance.get_evm_usdc_balance", fake_balance
-        )
-        result = await gate_mod.check_evm_balance_gate(
-            "0x1111111111111111111111111111111111111111",
-            Decimal("10"),
-            network="base",
-        )
+        with patch(
+            "integrations.evm.balance.get_evm_usdc_balance",
+            new=AsyncMock(return_value=Decimal("1")),
+        ):
+            result = await gate_mod.check_evm_balance_gate(
+                "0x1111111111111111111111111111111111111111",
+                Decimal("10"),
+                network="base",
+            )
         assert result.sufficient is False
         assert result.shortfall == Decimal("9")
         assert result.onramp is not None

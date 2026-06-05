@@ -13,7 +13,6 @@ import base64
 import hashlib
 import hmac
 import importlib
-import os
 from urllib.parse import parse_qs, quote_plus, urlsplit
 
 import pytest
@@ -201,9 +200,13 @@ class TestSignUrlHelper:
 
 
 @pytest.fixture
-def test_client():
+def test_client(monkeypatch):
     """Build a TestClient with EM_MOONPAY_ENABLED=true so the router mounts."""
-    os.environ["EM_MOONPAY_ENABLED"] = "true"
+    # monkeypatch.setenv (not os.environ[...]=) so the flag is REVERTED after the
+    # test. A leaked EM_MOONPAY_ENABLED=true makes create_task's EVM balance gate
+    # fire in unrelated downstream tests (geo matching, caching), breaking them
+    # with a 402. (Test-contamination fix 2026-06-04.)
+    monkeypatch.setenv("EM_MOONPAY_ENABLED", "true")
 
     # Reload routes so the moonpay router gets included.
     import api.routes as routes_mod
@@ -291,7 +294,7 @@ class TestSignUrlEndpoint:
 
     def test_503_when_secret_unset(self, monkeypatch):
         """If the secret is missing, the endpoint must surface 503, not 500."""
-        os.environ["EM_MOONPAY_ENABLED"] = "true"
+        monkeypatch.setenv("EM_MOONPAY_ENABLED", "true")
         monkeypatch.delenv("MOONPAY_SECRET_KEY", raising=False)
 
         import api.routes as routes_mod

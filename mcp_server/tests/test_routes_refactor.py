@@ -123,6 +123,24 @@ EXPECTED_ROUTES = {
 }
 
 
+# Feature-gated routers register only when their env flag is on
+# (EM_MOONPAY_ENABLED, EM_PAYSHELL_ENABLED, EM_CLAWKEY_ENABLED, EM_VERYAI_ENABLED).
+# Whether they appear in `api.routes.router` depends on which flags were set
+# when that module was first imported — global module state, so it's
+# order-dependent under the full suite. The inventory tests exclude them by
+# prefix so they stay deterministic regardless of flag state.
+GATED_PREFIXES = (
+    "/api/v1/moonpay/",
+    "/api/v1/taximetro/",
+    "/api/v1/clawkey/",
+    "/api/v1/veryai/",
+)
+
+
+def _ungated(paths: set) -> set:
+    return {p for p in paths if not any(p.startswith(g) for g in GATED_PREFIXES)}
+
+
 class TestRouteInventory:
     """Verify all endpoint paths are registered after the split."""
 
@@ -136,14 +154,14 @@ class TestRouteInventory:
     def test_no_unexpected_routes_added(self):
         from api.routes import router
 
-        actual = {r.path for r in router.routes if hasattr(r, "path")}
+        actual = _ungated({r.path for r in router.routes if hasattr(r, "path")})
         extra = actual - EXPECTED_ROUTES
         assert not extra, f"Unexpected routes appeared: {extra}"
 
     def test_route_count_stable(self):
         from api.routes import router
 
-        actual = {r.path for r in router.routes if hasattr(r, "path")}
+        actual = _ungated({r.path for r in router.routes if hasattr(r, "path")})
         assert len(actual) == len(EXPECTED_ROUTES)
 
 
