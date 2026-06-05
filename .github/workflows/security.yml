@@ -20,6 +20,7 @@ jobs:
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
+      mobile: ${{ steps.filter.outputs.mobile }}
       e2e: ${{ steps.filter.outputs.e2e }}
       infra: ${{ steps.filter.outputs.infra }}
     steps:
@@ -32,6 +33,8 @@ jobs:
               - 'mcp_server/**'
             frontend:
               - 'dashboard/**'
+            mobile:
+              - 'em-mobile/**'
             e2e:
               - 'e2e/**'
             infra:
@@ -155,25 +158,151 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run npm audit
+      - name: Run npm audit (production HIGH gate with documented allow-list)
+        # F-07 (MASTER_PLAN_ONRAMP_H2H_POST_AUDIT_2026-06-05, Task 5.1): the gate
+        # is `npm audit --audit-level=high --omit=dev` on PRODUCTION deps. We do
+        # NOT downgrade the severity globally. Instead, the allow-list below
+        # ignores ONLY specific advisories that have no published fix; any other
+        # HIGH/CRITICAL prod advisory fails this job.
+        #
+        # --omit=dev keeps the previous (correct) decision to audit production
+        # deps only. The 2 critical advisories are in vitest + @vitest/coverage-v8,
+        # a dev-only test runner that never ships in the production bundle; its
+        # only fix is a breaking 1->4 major bump that would break Test Frontend.
+        #
+        # ALLOW-LIST (HIGH, no fix available — range=* / no patched release):
+        #   - bigint-buffer            GHSA-3gc7-fjrx-p6mg (advisory 1103747),
+        #                              range <=1.1.5 == all versions, no fix.
+        #   - @solana/buffer-layout-utils, @solana/spl-token,
+        #     @dynamic-labs/solana-core  flagged HIGH ONLY as the dependency
+        #     chain that carries bigint-buffer. They come transitively from
+        #     @dynamic-labs/ethereum (wallet auth SDK) and cannot be removed
+        #     without breaking Dynamic auth. Chain:
+        #     @dynamic-labs/ethereum -> waas -> solana-core -> @solana/spl-token
+        #       -> @solana/buffer-layout-utils -> bigint-buffer@1.1.5
+        # Every other HIGH/CRITICAL (axios prototype-pollution, protobufjs, etc.)
+        # is fixed via dashboard/package.json `overrides` (axios>=1.16.0 -> 1.17.0,
+        # protobufjs>=8.2.0 -> 8.6.0, ...). Re-verify locally with:
+        #   npm audit --audit-level=high --omit=dev
         run: |
+          # Capture the full audit report for the artifact (does not gate).
           npm audit --json > npm-audit-report.json || true
-          # Note: --audit-level=critical instead of high because bigint-buffer (GHSA-3gc7-fjrx-p6mg,
-          # advisory 1103747) has range=* (all versions vulnerable, no fix published) and is a
-          # transitive dep of @dynamic-labs/ethereum (wallet auth SDK). Cannot be removed without
-          # breaking Dynamic auth. All other HIGH/CRITICAL vulns are fixed via package.json overrides.
-          # --omit=dev: audit PRODUCTION deps only. The 2 critical advisories (published 2026-06)
-          # are in vitest + @vitest/coverage-v8 — a test runner (dev-only). Its only fix is 4.1.8,
-          # a breaking 1->4 major bump that would break Test Frontend, and a test runner never ships
-          # in the production bundle, so it is not a production security risk. Prod deps have 0
-          # critical (verified 2026-06-04: `npm audit --audit-level=critical --omit=dev` exits 0).
-          npm audit --audit-level=critical --omit=dev
+          # Production-only JSON used by the allow-list gate below.
+          npm audit --json --omit=dev > npm-audit-prod-report.json || true
+          node -e '
+            const allow = new Set([
+              "bigint-buffer",
+              "@solana/buffer-layout-utils",
+              "@solana/spl-token",
+              "@dynamic-labs/solana-core",
+            ]);
+            const j = JSON.parse(require("fs").readFileSync("npm-audit-prod-report.json", "utf8"));
+            const bad = Object.entries(j.vulnerabilities || {})
+              .filter(([n, i]) => ["high", "critical"].includes(i.severity) && !allow.has(n))
+              .map(([n, i]) => `${n} (${i.severity})`);
+            if (bad.length) {
+              console.error("::error::Unallowed HIGH/CRITICAL production npm advisories: " + bad.join(", "));
+              console.error("Fix via dashboard/package.json overrides, or add to the documented allow-list if no fix exists.");
+              process.exit(1);
+            }
+            console.log("[OK] Only the documented bigint-buffer-chain HIGH advisories remain in production deps.");
+          '
 
       - name: Upload npm audit report
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: npm-audit-report
           path: dashboard/npm-audit-report.json
+          retention-days: 30
+
+  npm-audit-mobile:
+    # F-06 (MASTER_PLAN_ONRAMP_H2H_POST_AUDIT_2026-06-05, Task 5.2): the Security
+    # workflow previously watched dashboard/** but ignored em-mobile/**. This job
+    # adds the missing mobile coverage, mirroring the dashboard npm-audit job:
+    # same production gate command (`npm audit --audit-level=high --omit=dev`),
+    # same documented per-advisory allow-list mechanism, same artifact upload.
+    #
+    # IMPORTANT — currently NON-BLOCKING (continue-on-error: true). em-mobile has
+    # ~14 HIGH + 1 CRITICAL production advisories (axios, protobufjs, defu, lodash,
+    # picomatch, socket.io-parser, undici, @xmldom/xmldom, node-forge, fast-uri,
+    # and the @dynamic-labs-wallet/* MPC chain). The dashboard fixes these via an
+    # `overrides` block, but em-mobile/package.json has NO overrides block yet.
+    # Adding those overrides is the correct fix and is tracked as F-06 follow-up;
+    # it is intentionally out of scope for this CI-only change. Until that lands,
+    # this job RUNS the real gate so the results are visible in CI and uploaded as
+    # an artifact, but does not fail the pipeline. Flip `continue-on-error` to
+    # false (and trim the allow-list to bigint-buffer-style no-fix advisories only)
+    # once em-mobile gains an overrides block.
+    name: NPM Security Audit (mobile)
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.mobile == 'true'
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: em-mobile
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f  # v6.3.0
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: em-mobile/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit (production HIGH gate with documented allow-list)
+        # Same gate as the dashboard job. The allow-list below intentionally
+        # documents the CURRENT known production HIGH/CRITICAL advisories so this
+        # job reports cleanly while the overrides fix is pending (see job comment).
+        # This is NOT a global severity downgrade: a NEW advisory in a package not
+        # listed here still surfaces (and will fail once continue-on-error is off).
+        # TODO(F-06): once em-mobile/package.json gains overrides, remove the fixed
+        # entries from this allow-list, keeping only no-fix advisories.
+        run: |
+          # Capture the full audit report for the artifact (does not gate).
+          npm audit --json > npm-audit-report.json || true
+          # Production-only JSON used by the allow-list gate below.
+          npm audit --json --omit=dev > npm-audit-prod-report.json || true
+          node -e '
+            // Known-unfixed-within-scope advisories (pending em-mobile overrides, F-06).
+            const allow = new Set([
+              "axios",
+              "protobufjs",
+              "defu",
+              "lodash",
+              "picomatch",
+              "socket.io-parser",
+              "undici",
+              "@xmldom/xmldom",
+              "node-forge",
+              "fast-uri",
+              "@dynamic-labs-wallet/browser",
+              "@dynamic-labs-wallet/browser-wallet-client",
+              "@dynamic-labs-wallet/core",
+              "@dynamic-labs-wallet/forward-mpc-client",
+              "@dynamic-labs-wallet/forward-mpc-shared",
+            ]);
+            const j = JSON.parse(require("fs").readFileSync("npm-audit-prod-report.json", "utf8"));
+            const bad = Object.entries(j.vulnerabilities || {})
+              .filter(([n, i]) => ["high", "critical"].includes(i.severity) && !allow.has(n))
+              .map(([n, i]) => `${n} (${i.severity})`);
+            if (bad.length) {
+              console.error("::error::Unallowed HIGH/CRITICAL production npm advisories (mobile): " + bad.join(", "));
+              console.error("Fix via em-mobile/package.json overrides, or add to the documented allow-list if no fix exists.");
+              process.exit(1);
+            }
+            console.log("[OK] Only documented (pending-override) HIGH/CRITICAL advisories remain in mobile production deps.");
+          '
+
+      - name: Upload npm audit report (mobile)
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: npm-audit-report-mobile
+          path: em-mobile/npm-audit-report.json
           retention-days: 30
 
   container-scan:
@@ -409,7 +538,7 @@ jobs:
   security-summary:
     name: Security Summary
     runs-on: ubuntu-latest
-    needs: [detect-changes, codeql, python-security, npm-audit, container-scan, secret-scan, sast-semgrep, bundle-secrets-guard]
+    needs: [detect-changes, codeql, python-security, npm-audit, npm-audit-mobile, container-scan, secret-scan, sast-semgrep, bundle-secrets-guard]
     if: always()
     steps:
       - name: Summary
@@ -420,7 +549,8 @@ jobs:
           echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| CodeQL | ${{ needs.codeql.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Python Security | ${{ needs.python-security.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| NPM Audit | ${{ needs.npm-audit.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| NPM Audit (dashboard) | ${{ needs.npm-audit.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| NPM Audit (mobile) | ${{ needs.npm-audit-mobile.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Container Scan | ${{ needs.container-scan.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Secret Scan | ${{ needs.secret-scan.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Semgrep SAST | ${{ needs.sast-semgrep.result }} |" >> $GITHUB_STEP_SUMMARY
