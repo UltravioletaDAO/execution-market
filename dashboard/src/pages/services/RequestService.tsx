@@ -27,7 +27,7 @@ export function RequestService() {
   const { serviceKey } = useParams()
   const navigate = useNavigate()
   const svc = getService(serviceKey || '')
-  const { walletAddress, executor } = useAuth()
+  const { walletAddress, executor, isAuthenticated, openAuthModal } = useAuth()
 
   const [instructions, setInstructions] = useState('')
   const [bounty, setBounty] = useState(10)
@@ -218,20 +218,36 @@ export function RequestService() {
 
         {error && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">❌ {error}</div>}
 
-        <button
-          onClick={handleSubmit}
-          disabled={!canSubmit}
-          className="w-full rounded-lg bg-zinc-900 px-6 py-3 font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
-        >
-          {submitting ? 'Publicando…' : '🚀 Publicar servicio'}
-        </button>
+        {isAuthenticated ? (
+          <button
+            onClick={handleSubmit}
+            disabled={!canSubmit}
+            className="w-full rounded-lg bg-zinc-900 px-6 py-3 font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+          >
+            {submitting ? 'Publicando…' : '🚀 Publicar servicio'}
+          </button>
+        ) : (
+          <div className="rounded-lg border border-zinc-200 bg-white p-4 text-center">
+            <p className="mb-3 text-sm text-zinc-600">
+              Inicia sesión para publicar tu servicio y pagar de forma segura.
+            </p>
+            <button
+              onClick={openAuthModal}
+              className="w-full rounded-lg bg-zinc-900 px-6 py-3 font-medium text-white hover:bg-zinc-800"
+            >
+              Iniciar sesión para publicar
+            </button>
+          </div>
+        )}
       </div>
 
       {walletAddress && (
         <DepositModal
           open={showDeposit}
           walletAddress={walletAddress}
-          targetUsdc={total}
+          depositAmountUsdc={Math.max(5, total - (balance ?? 0))}
+          targetBalanceUsdc={total}
+          currentBalanceUsdc={balance ?? 0}
           externalCustomerId={executor?.id}
           onClose={() => {
             setShowDeposit(false)

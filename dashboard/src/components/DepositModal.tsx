@@ -1,9 +1,16 @@
 /**
  * DepositModal — the reusable on-ramp loop for the human-hires-human flow.
  *
- * Flow: request a signed MoonPay Widget URL for USDC on Base → open the
- * headless overlay → watch the wallet's Base USDC balance
- * (useMoonPayOnramp, chain:'base') → fire onFunded when balance >= targetUsdc.
+ * Flow: request a signed MoonPay Widget URL for USDC on Base (buying exactly
+ * depositAmountUsdc) → open the headless overlay → watch the wallet's Base
+ * USDC balance (useMoonPayOnramp, chain:'base') → fire onFunded when balance
+ * reaches targetBalanceUsdc.
+ *
+ * IMPORTANT: "amount to buy" and "balance to reach" are two different numbers
+ * (F-03). depositAmountUsdc is what MoonPay charges the card; targetBalanceUsdc
+ * is the wallet balance the watcher waits for. A "Depositar +$20" button buys
+ * 20 while targeting currentBalance+20; task funding buys max(5, shortfall)
+ * while targeting the full required balance.
  *
  * Reused by the publisher Dashboard ("Depositar"), CreateRequest (fund CTA),
  * the services catalog, and the approval flow (fund-before-sign). EM never
@@ -25,12 +32,16 @@ import { useMoonPayOnramp } from '../hooks/useMoonPayOnramp'
 interface Props {
   open: boolean
   walletAddress: string
-  /** USDC the wallet should reach (bounty + fee). Floored to MoonPay's $5 min. */
-  targetUsdc: number
+  /** Wallet USDC balance the watcher waits for before firing onFunded. */
+  targetBalanceUsdc: number
+  /** USDC to buy on MoonPay (card charge). Floored to MoonPay's $5 min. */
+  depositAmountUsdc: number
+  /** Current wallet balance, for display before the live watcher reads it. */
+  currentBalanceUsdc?: number
   /** EM executor.id for MoonPay Customer Connection reuse (optional). */
   externalCustomerId?: string
   onClose: () => void
-  /** Fired once the wallet balance reaches targetUsdc. */
+  /** Fired once the wallet balance reaches targetBalanceUsdc. */
   onFunded?: (balance: number) => void
 }
 
@@ -39,7 +50,9 @@ type Stage = 'idle' | 'requesting' | 'overlay' | 'watching' | 'funded' | 'error'
 export function DepositModal({
   open,
   walletAddress,
-  targetUsdc,
+  targetBalanceUsdc,
+  depositAmountUsdc,
+  currentBalanceUsdc,
   externalCustomerId,
   onClose,
   onFunded,
@@ -50,11 +63,12 @@ export function DepositModal({
   const requestedRef = useRef(false)
 
   // Watch the Base balance while the overlay is up. The hook is observation
-  // only — it never decides the deposit succeeded on its own.
+  // only — it never decides the deposit succeeded on its own. It watches the
+  // *target balance*, not the amount being bought (F-03).
   const { balance, phase } = useMoonPayOnramp(walletAddress, {
     enabled: open && (stage === 'overlay' || stage === 'watching'),
     chain: 'base',
-    targetUsdc,
+    targetUsdc: targetBalanceUsdc,
     onComplete: (r) => {
       if (r.phase === 'arrived') {
         setStage('funded')
@@ -62,6 +76,11 @@ export function DepositModal({
       }
     },
   })
+
+  // The watcher's balance is 0 until it polls (overlay/watching stage). Until
+  // then, show the caller-provided current balance so the user sees a real
+  // number, not $0.00.
+  const displayBalance = balance > 0 ? balance : (currentBalanceUsdc ?? 0)
 
   // Request the signed Widget URL once, when the modal opens.
   useEffect(() => {
@@ -77,7 +96,7 @@ export function DepositModal({
     setStage('requesting')
     requestMoonPaySignedUrl({
       walletAddress,
-      baseCurrencyAmount: Math.max(5, Number(targetUsdc.toFixed(2))),
+      baseCurrencyAmount: Math.max(5, Number(depositAmountUsdc.toFixed(2))),
       currencyCode: 'usdc_base',
       externalCustomerId,
       theme: 'dark',
@@ -94,7 +113,7 @@ export function DepositModal({
         )
         setStage('error')
       })
-  }, [open, walletAddress, targetUsdc, externalCustomerId])
+  }, [open, walletAddress, depositAmountUsdc, externalCustomerId])
 
   if (!open) return null
 
@@ -123,13 +142,19 @@ export function DepositModal({
             <div className="flex justify-between">
               <span className="text-zinc-500">Necesitas</span>
               <span className="font-medium text-zinc-900">
-                ${targetUsdc.toFixed(2)} USDC
+                ${targetBalanceUsdc.toFixed(2)} USDC
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-zinc-500">Comprarás</span>
+              <span className="font-medium text-zinc-900">
+                ${Math.max(5, Number(depositAmountUsdc.toFixed(2))).toFixed(2)} USDC
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-zinc-500">Saldo actual</span>
               <span className="font-medium text-zinc-900">
-                ${balance.toFixed(2)} USDC
+                ${displayBalance.toFixed(2)} USDC
               </span>
             </div>
             <div className="flex justify-between">

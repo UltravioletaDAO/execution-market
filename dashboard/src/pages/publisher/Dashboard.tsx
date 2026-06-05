@@ -146,7 +146,9 @@ export function PublisherDashboard() {
         <DepositModal
           open={showDeposit}
           walletAddress={walletAddress}
-          targetUsdc={Math.max(5, (balance ?? 0) + 20)}
+          depositAmountUsdc={20}
+          targetBalanceUsdc={(balance ?? 0) + 20}
+          currentBalanceUsdc={balance ?? 0}
           externalCustomerId={executor?.id}
           onClose={() => { setShowDeposit(false); loadBalance() }}
           onFunded={() => { setShowDeposit(false); loadBalance() }}

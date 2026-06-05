@@ -118,6 +118,11 @@ export function useMoonPayOnramp(
   const onCompleteRef = useRef(onComplete)
   onCompleteRef.current = onComplete
   const completedRef = useRef(false)
+  // Mirror the latest webhook event for the polling/complete closures without
+  // making it an effect dependency. Depending on `lastEvent` would tear down
+  // and restart the channel on every Realtime row, which can cancel the watch
+  // before the terminal event lands (F-14).
+  const lastEventRef = useRef<MoonPayTransactionRow | null>(null)
 
   const resolvedRpc = useMemo(
     () => (chain === 'solana' ? resolveSolanaRpc(rpcUrl) : resolveEvmRpc('base', rpcUrl)),
@@ -152,6 +157,7 @@ export function useMoonPayOnramp(
         .maybeSingle()
       if (dbErr) throw dbErr
       const row = (data as MoonPayTransactionRow | null) ?? null
+      lastEventRef.current = row
       setLastEvent(row)
       return row
     } catch (err) {
@@ -187,7 +193,7 @@ export function useMoonPayOnramp(
       const next = await fetchBalance()
       if (cancelled || completedRef.current) return
       if (typeof targetUsdc === 'number' && next >= targetUsdc) {
-        complete('arrived', next, lastEvent)
+        complete('arrived', next, lastEventRef.current)
       }
     }
 
@@ -208,6 +214,7 @@ export function useMoonPayOnramp(
         (payload: { new?: MoonPayTransactionRow; old?: MoonPayTransactionRow }) => {
           const row = (payload.new ?? payload.old) as MoonPayTransactionRow | undefined
           if (!row || cancelled || completedRef.current) return
+          lastEventRef.current = row
           setLastEvent(row)
           if (isTerminal(row.status)) {
             void fetchBalance().then((latest) => {
@@ -229,7 +236,7 @@ export function useMoonPayOnramp(
       void supabase.removeChannel(channel)
       if (!completedRef.current) setPhase('cancelled')
     }
-  }, [enabled, walletAddress, pollIntervalMs, targetUsdc, fetchBalance, fetchLatestEvent, lastEvent])
+  }, [enabled, walletAddress, pollIntervalMs, targetUsdc, fetchBalance, fetchLatestEvent])
 
   return { balance, lastEvent, phase, error, refresh }
 }

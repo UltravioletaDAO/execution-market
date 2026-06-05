@@ -95,6 +95,18 @@ export function MoonPayFrame({ onramp, onEvent, onError, onClose }: Props) {
   const [phase, setPhase] = useState<Phase>('loading')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
+  // Hold the handler props in refs so the open effect can depend only on the
+  // onramp payload. Callers pass inline arrows that change identity on every
+  // render (balance ticks, stage changes); if those were effect deps the
+  // widget would tear down (close) and reopen mid-buy (F-04). transaction.*
+  // events never close the overlay — only onCloseOverlay does.
+  const onEventRef = useRef(onEvent)
+  onEventRef.current = onEvent
+  const onErrorRef = useRef(onError)
+  onErrorRef.current = onError
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
+
   useEffect(() => {
     let cancelled = false
 
@@ -105,7 +117,7 @@ export function MoonPayFrame({ onramp, onEvent, onError, onClose }: Props) {
         const opened = window.open(onramp.url, '_blank', 'noopener,noreferrer')
         if (cancelled) return
         if (opened) {
-          onEvent?.('fallback.newTab', { url: onramp.url })
+          onEventRef.current?.('fallback.newTab', { url: onramp.url })
           setPhase('fallback')
         } else {
           // Popup blocker swallowed it — surface as an error so the
@@ -113,7 +125,7 @@ export function MoonPayFrame({ onramp, onEvent, onError, onClose }: Props) {
           const err = new Error('popup blocked')
           setErrorMsg(err.message)
           setPhase('error')
-          onError?.(err)
+          onErrorRef.current?.(err)
         }
         return
       }
@@ -135,16 +147,16 @@ export function MoonPayFrame({ onramp, onEvent, onError, onClose }: Props) {
           params,
           handlers: {
             onTransactionCreated: (payload) =>
-              onEvent?.('transaction.created', payload),
+              onEventRef.current?.('transaction.created', payload),
             onTransactionCompleted: (payload) =>
-              onEvent?.('transaction.completed', payload),
+              onEventRef.current?.('transaction.completed', payload),
             onTransactionFailed: (payload) =>
-              onEvent?.('transaction.failed', payload),
+              onEventRef.current?.('transaction.failed', payload),
             onCloseOverlay: () => {
               if (cancelled) return
-              onEvent?.('overlay.closed', null)
+              onEventRef.current?.('overlay.closed', null)
               setPhase('closed')
-              onClose?.()
+              onCloseRef.current?.()
             },
           },
         })
@@ -170,7 +182,7 @@ export function MoonPayFrame({ onramp, onEvent, onError, onClose }: Props) {
         const msg = err instanceof Error ? err.message : String(err)
         setErrorMsg(msg)
         setPhase('error')
-        onError?.(err)
+        onErrorRef.current?.(err)
       }
     }
 
@@ -184,7 +196,7 @@ export function MoonPayFrame({ onramp, onEvent, onError, onClose }: Props) {
       }
       widgetRef.current = null
     }
-  }, [onramp.url, onramp.signature, onEvent, onError, onClose])
+  }, [onramp.url, onramp.signature])
 
   return (
     <div className="rounded-md border border-zinc-200 bg-white p-4">

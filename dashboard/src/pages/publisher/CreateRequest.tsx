@@ -277,7 +277,8 @@ export function CreateRequest() {
                 <DepositModal
                   open={showDeposit}
                   walletAddress={walletAddress}
-                  targetUsdc={total}
+                  depositAmountUsdc={Math.max(5, total)}
+                  targetBalanceUsdc={total}
                   externalCustomerId={executor?.id}
                   onClose={() => setShowDeposit(false)}
                   onFunded={() => setShowDeposit(false)}
