@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-06-05 00:00 America/New_York
+> Last updated: 2026-06-05 01:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -9,6 +9,22 @@
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
 
+
+
+
+## Latest June 5 01:00 stale cron firewall pause note
+
+`CITY_AS_A_SERVICE_1AM_STALE_CRON_FIREWALL_PAUSE_NOTE_2026_06_05.md` is the current 1 AM internal/admin continuity note. It obeyed `/Users/clawdbot/clawd/DREAM-PRIORITIES.md` over the stale cron payload, so AutoJob, Frontier Academy, KK v2, and KarmaCadabra v2 were not pulled, analyzed, edited, expanded, tested, committed, or used as active AAS sources. Execution Market was synced with `git pull --ff-only` and was already up to date on `feat/operator-route-regret-panel`; the pre-existing untracked `scripts/sign_req.mjs` remains preserved and untouched.
+
+This pass intentionally did not add an operator answer, approval record, Retail Reality answer/hold record, runtime-memory answer record, product exposure, public/customer/worker surface, buyer copy, worker instruction, queue, dispatch, reputation, payment, live Acontext/runtime parity, Docker repair, private-context release, exact GPS/raw metadata release, authority claim, worker doctrine, or stopped-project integration. It only records how the 1 AM stale cron payload was safely handled under the current AAS priority firewall.
+
+Safe 1 AM claim:
+
+```text
+internal_admin_aas_1am_stale_cron_firewall_pause_note_landed
+```
+
+Meaning only: the stopped-project firewall held, the allowed Execution Market repo was current, and the no-answer AAS posture remains `pause_aas_proof_layering` / `keep_both_lanes_held`. This is not Saúl's operator answer and does not authorize any next movement. The current operator entrypoint remains `CITY_AS_A_SERVICE_OPERATOR_COCKPIT_USAGE_PROTOCOL_2026_06_05.md`.
 
 
 
