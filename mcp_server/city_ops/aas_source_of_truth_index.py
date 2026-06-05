@@ -82,6 +82,11 @@ CURRENT_ENTRYPOINT_DOCS = [
         "role": "latest_pre_dawn_synthesis_handoff",
         "extension_policy": "current_read_only_daytime_handoff_until_real_operator_answer_exists",
     },
+    {
+        "path": "docs/planning/CITY_AS_A_SERVICE_6AM_FINAL_WRAP_2026_06_05.md",
+        "role": "latest_final_morning_wrap",
+        "extension_policy": "current_read_only_morning_handoff_until_real_operator_answer_exists",
+    },
 ]
 
 HISTORICAL_CONTEXT_DOCS = [
