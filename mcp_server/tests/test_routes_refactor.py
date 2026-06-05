@@ -396,3 +396,77 @@ class TestSubRouterConfig:
         assert "/api/v1/config" in paths
         assert "/api/v1/analytics" in paths
         assert "/api/v1/public/metrics" in paths
+
+
+# ---------------------------------------------------------------------------
+# 6. Gated router inventory (Task 5.5 / F-16)
+# ---------------------------------------------------------------------------
+#
+# The ungated inventory above excludes feature-gated prefixes (MoonPay,
+# Taximetro, ClawKey, VeryAI) because whether they appear in `api.routes.router`
+# depends on env-flag state at the module's FIRST import — global, order-
+# dependent state under the full suite. Excluding them keeps the ungated tests
+# deterministic, but it also means a deleted/renamed gated route slips through
+# CI. These tests close that gap WITHOUT an `importlib.reload` (a reload is a
+# global, non-reverted mutation that has leaked across the suite and broken CI).
+#
+# Strategy: import `api.routes`, take the SAME gated sub-router OBJECTS it wires
+# in (`moonpay_router`, `clawkey_router`), and rebuild a throwaway aggregate with
+# the flags ON to assert the gated paths surface. This tests the real router
+# objects (so a path rename/deletion fails) and the include contract, while
+# touching only a local APIRouter — nothing global. Env flags are still toggled
+# with monkeypatch (auto-reverted) to pin intent.
+
+# Gated paths that MUST appear when each flag is ON. Renaming/removing any of
+# these in the sub-router fails this test (the drift the audit's F-16 flagged).
+EXPECTED_MOONPAY_ROUTES = {
+    "/api/v1/moonpay/sign-url",
+    "/api/v1/moonpay/session",
+    "/api/v1/moonpay/webhook",
+    "/api/v1/moonpay/health",
+}
+EXPECTED_CLAWKEY_ROUTES = {
+    "/api/v1/clawkey/status/{executor_id}",
+    "/api/v1/clawkey/refresh/{executor_id}",
+}
+
+
+class TestGatedRouterInventory:
+    """When the feature flags are ON, the gated MoonPay/ClawKey routes must be
+    reachable through the api.routes wiring (router-drift guard)."""
+
+    def test_moonpay_and_clawkey_routes_present_when_enabled(self, monkeypatch):
+        from fastapi import APIRouter
+        import api.routes as routes
+
+        monkeypatch.setenv("EM_MOONPAY_ENABLED", "true")
+        monkeypatch.setenv("EM_CLAWKEY_ENABLED", "true")
+
+        # Rebuild the aggregate from the REAL gated sub-router objects that
+        # api.routes imported. Mirrors the include logic in api/routes.py but
+        # against a local router so no global module state is mutated.
+        aggregate = APIRouter()
+        aggregate.include_router(routes.moonpay_router)
+        aggregate.include_router(routes.clawkey_router)
+
+        paths = {r.path for r in aggregate.routes if hasattr(r, "path")}
+
+        missing_moonpay = EXPECTED_MOONPAY_ROUTES - paths
+        assert not missing_moonpay, (
+            f"MoonPay gated routes missing (router drift): {missing_moonpay}"
+        )
+        missing_clawkey = EXPECTED_CLAWKEY_ROUTES - paths
+        assert not missing_clawkey, (
+            f"ClawKey gated routes missing (router drift): {missing_clawkey}"
+        )
+
+    def test_gated_routes_excluded_from_ungated_inventory(self):
+        """Sanity: the gated prefixes are NOT counted in the ungated inventory,
+        so the deterministic inventory tests above stay flag-independent."""
+        for path in EXPECTED_MOONPAY_ROUTES | EXPECTED_CLAWKEY_ROUTES:
+            assert any(path.startswith(g) for g in GATED_PREFIXES), (
+                f"{path} should match a GATED_PREFIXES entry"
+            )
+            assert path not in EXPECTED_ROUTES, (
+                f"{path} is gated and must not be in the ungated EXPECTED_ROUTES"
+            )
