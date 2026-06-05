@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-06-05 02:00 America/New_York
+> Last updated: 2026-06-05 03:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -9,6 +9,22 @@
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
 
+
+
+
+## Latest June 5 03:00 system integration decision meter
+
+`CITY_AS_A_SERVICE_3AM_SYSTEM_INTEGRATION_DECISION_METER_2026_06_05.md` is the current internal/admin system-integration meter. It obeyed `/Users/clawdbot/clawd/DREAM-PRIORITIES.md` over the stale cron payload, so AutoJob, Frontier Academy, KK v2, and KarmaCadabra v2 were not pulled, analyzed, edited, expanded, tested, committed, or used as active sources. Execution Market was synced with `git pull --ff-only` and was already up to date on `feat/operator-route-regret-panel`; the pre-existing untracked `scripts/sign_req.mjs` remains preserved and untouched.
+
+The meter connects the active strengths requested by the 3 AM prompt without promoting them beyond proof: latest AAS code changes, historical multi-chain payment context, sanitized memory/Acontext planning, historical production strength, and agent coordination discipline. It converts those strengths into four non-authorizing lanes: Memory ↔ Acontext planning, IRC/session-management handoff shape, cross-project decision support/firewalling, and agent observability/success metrics.
+
+Safe 3 AM claim:
+
+```text
+internal_admin_aas_3am_system_integration_decision_meter_landed
+```
+
+Meaning only: a read-only internal/admin meter now connects current AAS strengths into decision-support lanes. It records no operator answer, approval, Retail Reality answer/hold record, runtime-memory answer record, product exposure, Docker repair, live Acontext write/retrieve, IRC/session-manager mutation, public/customer/worker surface, catalog/pricing/queue/dispatch, reputation, Worker Skill DNA, payment/production reverification, GPS/raw metadata/private-context release, authority claim, worker doctrine, or stopped-project integration. Recommended posture remains `pause_aas_proof_layering`; safe alternative remains `keep_both_lanes_held`.
 
 
 

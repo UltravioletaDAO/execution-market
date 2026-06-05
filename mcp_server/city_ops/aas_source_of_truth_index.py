@@ -67,6 +67,11 @@ CURRENT_ENTRYPOINT_DOCS = [
         "role": "latest_safe_decision_support_map_implementation_note",
         "extension_policy": "current_decision_support_map_until_real_operator_answer_exists",
     },
+    {
+        "path": "docs/planning/CITY_AS_A_SERVICE_3AM_SYSTEM_INTEGRATION_DECISION_METER_2026_06_05.md",
+        "role": "latest_system_integration_decision_meter",
+        "extension_policy": "current_read_only_meter_until_real_operator_answer_exists",
+    },
 ]
 
 HISTORICAL_CONTEXT_DOCS = [
