@@ -11,6 +11,26 @@
 
 
 
+## Latest June 4 23:00 operator cockpit read surface
+
+`mcp_server/city_ops/aas_operator_cockpit_read_surface.py` now creates a deterministic internal/admin read-only cockpit over `aas_four_am_pattern_synthesis_handoff.json`, persisted at `mcp_server/city_ops/fixtures/aas_package_ladder/aas_operator_cockpit_read_surface.json`; implementation notes: `CITY_AS_A_SERVICE_AAS_OPERATOR_COCKPIT_READ_SURFACE_IMPLEMENTATION.md`. Safe claim: `internal_admin_aas_operator_cockpit_read_surface_landed`.
+
+The 23:00 kickoff re-read `/Users/clawdbot/clawd/DREAM-PRIORITIES.md` first and obeyed it over the stale cron payload. The mandatory all-repo sync script ran; some unrelated repos reported pull failures, while Execution Market was already up to date on `feat/operator-route-regret-panel` at `e2a568c6`. AutoJob, Frontier Academy, KK v2, and KarmaCadabra v2 were not analyzed, edited, expanded, or used as sources. The pre-existing untracked `scripts/sign_req.mjs` remains preserved and untouched.
+
+A bounded read-only runtime check still found Docker context `desktop-linux`, Docker daemon unreachability at `unix:///Users/clawdbot/.docker/run/docker.sock`, and local Acontext endpoints on 3000/8080/5173 unreachable. No Docker repair, Docker pull, ORAS copy, Compose startup, live Acontext write/retrieve, runtime adapter registration, IRC/session-manager mutation, answer record, approval record, product exposure, public dashboard, customer/public/worker surface, or dispatch/reputation/payment claim was added.
+
+The cockpit is intentionally display-only. It renders five panes from existing artifacts: source truth, allowed answer values, runtime blocker, product-exposure blocker, and recommended no-answer posture. It displays exactly the four allowed future values — `keep_both_lanes_held`, `create_retail_reality_answer_or_hold_record`, `create_runtime_memory_operator_answer_record`, and `pause_aas_proof_layering` — but selects none and requires a separate answer record for any future choice.
+
+Safe 23:00 claim:
+
+```text
+internal_admin_aas_operator_cockpit_read_surface_landed
+```
+
+Meaning only: a tested, deterministic internal/admin cockpit-shaped read surface now orients an operator around current AAS truth without authorizing product, runtime, public, worker, dispatch, reputation, payment, private-context, location, authority, or stopped-project movement. Recommended no-answer posture remains `pause_aas_proof_layering` or `keep_both_lanes_held`. Verification: `git diff --check`; focused cockpit tests -> `11 passed`; full city-ops suite -> `1907 passed`.
+
+
+
 ## Latest June 4 06:00 final wrap
 
 `CITY_AS_A_SERVICE_6AM_FINAL_WRAP_2026_06_04.md` is the sealed morning coordination marker. It obeyed `/Users/clawdbot/clawd/DREAM-PRIORITIES.md` over the stale cron payload, so AutoJob, Frontier Academy, KK v2, and KarmaCadabra v2 were not pulled, analyzed, edited, expanded, tested, committed, or used as sources in the 6 AM pass. Execution Market was synced with `git pull --ff-only` and was already up to date on `feat/operator-route-regret-panel` at `c17c4563`; the pre-existing untracked `scripts/sign_req.mjs` remains preserved and untouched.
