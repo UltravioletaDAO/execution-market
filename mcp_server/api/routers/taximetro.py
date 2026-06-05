@@ -30,8 +30,10 @@ import os
 import re
 from typing import AsyncIterator, Optional
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
+
+from ..auth import AgentAuth, verify_agent_auth_write
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +63,123 @@ _CHANNEL_ID_RE = re.compile(r"[1-9A-HJ-NP-Za-km-z]{32,44}")
 def _validate_channel_id(channel_id: str) -> None:
     if not channel_id or not _CHANNEL_ID_RE.fullmatch(channel_id):
         raise HTTPException(status_code=400, detail="invalid channel_id")
+
+
+def _wallets_match(a: Optional[str], b: Optional[str]) -> bool:
+    """Case-insensitive compare of two wallet identifiers (None-safe)."""
+    if not a or not b:
+        return False
+    return a.lower() == b.lower()
+
+
+async def _authorize_channel_access(channel_id: str, auth: AgentAuth) -> None:
+    """Enforce that ``auth`` owns the task/channel behind ``channel_id`` (F-10).
+
+    The taximetro relays a payment voucher stream — exposing it to any caller
+    that merely knows a base58 channel_id is an IDOR (the channel_id appears in
+    on-chain data and SSE URLs). We resolve the channel to its task via
+    task_channel_bindings (migration 108) and authorize the caller as either:
+
+      - the **publisher** — ``task.agent_id`` matches the caller's agent_id or
+        wallet (the canonical task-ownership check, mirroring routers/tasks.py),
+        or ``task.human_wallet`` matches the caller's wallet (H2H publisher); or
+      - the **assigned worker** — ``task.executor_id`` resolves to an executor
+        whose ``wallet_address`` equals the caller's wallet; or
+      - a wallet that equals the channel's recorded ``payer``/``payee`` (covers
+        a chain-native signer whose address is the on-chain counterparty).
+
+    Fails CLOSED: if the binding, the task, or ownership cannot be established,
+    raise 403. A missing binding means the caller cannot prove ownership — we
+    do not leak the stream on the benefit of the doubt.
+    """
+    from services.task_channel_binding import _lookup_binding
+
+    binding = _lookup_binding(channel_id)
+    if not binding:
+        logger.warning(
+            "SECURITY_AUDIT action=taximetro.access_denied reason=no_binding "
+            "channel=%s agent=%s",
+            channel_id,
+            auth.agent_id,
+        )
+        raise HTTPException(status_code=403, detail="not authorized for this channel")
+
+    caller_wallet = getattr(auth, "wallet_address", None)
+
+    # Channel counterparty match (payer/payee are base58; a Solana-native
+    # caller authenticating with that same address is the counterparty).
+    if _wallets_match(caller_wallet, binding.get("payer")) or _wallets_match(
+        caller_wallet, binding.get("payee")
+    ):
+        return
+
+    task_id = binding.get("task_id")
+    if task_id:
+        try:
+            from supabase_client import get_task
+
+            task = await get_task(task_id)
+        except Exception as e:
+            logger.warning(
+                "taximetro ownership task lookup failed channel=%s task=%s: %s",
+                channel_id,
+                task_id,
+                e,
+            )
+            task = None
+
+        if task:
+            # Publisher: agent_id matches caller agent_id or wallet (mirrors
+            # routers/tasks.py), or human_wallet matches caller wallet (H2H).
+            task_agent = task.get("agent_id")
+            if (
+                _wallets_match(task_agent, auth.agent_id)
+                or _wallets_match(task_agent, caller_wallet)
+                or _wallets_match(task.get("human_wallet"), caller_wallet)
+            ):
+                return
+
+            # Assigned worker: executor_id -> executors.wallet_address.
+            executor_id = task.get("executor_id")
+            if (
+                executor_id
+                and caller_wallet
+                and _executor_owns(executor_id, caller_wallet)
+            ):
+                return
+
+    logger.warning(
+        "SECURITY_AUDIT action=taximetro.access_denied reason=not_owner "
+        "channel=%s task=%s agent=%s",
+        channel_id,
+        task_id,
+        auth.agent_id,
+    )
+    raise HTTPException(status_code=403, detail="not authorized for this channel")
+
+
+def _executor_owns(executor_id: str, caller_wallet: str) -> bool:
+    """True if ``executor_id`` resolves to an executor with ``caller_wallet``."""
+    try:
+        from utils.supabase_client import get_supabase
+
+        resp = (
+            get_supabase()
+            .table("executors")
+            .select("wallet_address")
+            .eq("id", executor_id)
+            .limit(1)
+            .execute()
+        )
+        rows = resp.data or []
+        if not rows:
+            return False
+        return _wallets_match(rows[0].get("wallet_address"), caller_wallet)
+    except Exception as e:
+        logger.warning(
+            "taximetro executor lookup failed executor=%s: %s", executor_id, e
+        )
+        return False
 
 
 # ---------------------------------------------------------------------------
@@ -203,15 +322,17 @@ async def _persist_event(channel_id: str, event_type: str, data: dict) -> None:
 # ---------------------------------------------------------------------------
 # Routes
 #
-# SECURITY (tracked in docs/planning/BACKLOG.md, P1 — pre-requisite before
-# EM_PAYSHELL_ENABLED ships to prod): these endpoints currently authorize NO
-# caller and perform NO channel-ownership check. Any client that knows a
-# channel_id can read its voucher stream + history (IDOR). The router is
-# feature-gated OFF by default (returns 404), so it is NOT exploitable in
-# production today. Before enabling the flag, add caller auth (ERC-8128
-# wallet signing — the EM standard) and enforce that the caller is the
-# payer/payee bound to the channel, or owns the task_id resolved from
-# task_channel_bindings. Do NOT set EM_PAYSHELL_ENABLED=true until then.
+# SECURITY (F-10, MASTER_PLAN_ONRAMP_H2H_POST_AUDIT_2026-06-05 Task 4.3):
+# /stream and /history now require caller auth (verify_agent_auth_write —
+# ERC-8128 wallet signing, the EM standard; fails closed on missing creds)
+# AND a channel-ownership check (_authorize_channel_access) that resolves the
+# channel to its task via task_channel_bindings and authorizes only the
+# payer/payee, the task publisher, or the assigned worker. This closes the
+# IDOR where any client knowing a base58 channel_id could read the voucher
+# stream. The router stays feature-gated OFF by default (EM_PAYSHELL_ENABLED,
+# returns 404) — the documented pre-flag blocker is now resolved, but the
+# flag should still only flip on after the rest of the go/no-go checklist is
+# green. /health stays unauthenticated (no per-channel data).
 # ---------------------------------------------------------------------------
 
 
@@ -229,6 +350,7 @@ async def taximetro_stream(
         le=1000,
         description="Override max replay events (capped at EM_TAXIMETRO_REPLAY_LIMIT).",
     ),
+    auth: AgentAuth = Depends(verify_agent_auth_write),
 ):
     """SSE stream of pay.sh MPP session events for a single channel.
 
@@ -245,6 +367,7 @@ async def taximetro_stream(
     today; clients should de-dupe by tx_hash on settlement events.
     """
     _validate_channel_id(channel_id)
+    await _authorize_channel_access(channel_id, auth)
 
     effective_limit = min(replay_limit or MAX_REPLAY_EVENTS, MAX_REPLAY_EVENTS)
 
@@ -285,6 +408,7 @@ async def taximetro_stream(
 async def taximetro_history(
     channel_id: str,
     limit: int = Query(default=50, ge=1, le=1000),
+    auth: AgentAuth = Depends(verify_agent_auth_write),
 ):
     """JSON dump of recent events for a channel. Used by tests + admin UI.
 
@@ -292,6 +416,7 @@ async def taximetro_history(
     Returns events in chronological order (oldest first).
     """
     _validate_channel_id(channel_id)
+    await _authorize_channel_access(channel_id, auth)
     try:
         from utils.supabase_client import get_supabase
 

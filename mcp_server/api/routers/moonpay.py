@@ -24,14 +24,36 @@ MoonPay does not enter a retry storm. The dashboard hook useMoonPayOnramp
 from __future__ import annotations
 
 import logging
+import os
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Header, HTTPException, Request
 from pydantic import BaseModel, Field, field_validator
 
+from utils.net import get_client_ip
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/moonpay", tags=["MoonPay"])
+
+
+# ---------------------------------------------------------------------------
+# Fraud velocity caps (F-05) — enforced BEFORE signing a Widget URL.
+#
+# A signed URL is bearer-like: anyone holding it can debit our MoonPay
+# account (threat "onramp link abuse" / R3 chargeback rings in
+# docs/runbooks/onramp-fraud.md). We cap onramp velocity across the three
+# dimensions the runbook requires — per user (external_customer_id), per
+# wallet, per IP — counting attempts in a rolling 24h window from the
+# moonpay_onramp_attempts ledger (migration 110). Defaults match the runbook
+# (~3 onramps/24h, ~$200/24h per user); all are env-overridable.
+# ---------------------------------------------------------------------------
+_VELOCITY_WINDOW_HOURS = int(os.environ.get("EM_MOONPAY_VELOCITY_WINDOW_HOURS", "24"))
+_MAX_ONRAMPS_PER_USER = int(os.environ.get("EM_MOONPAY_MAX_ONRAMPS_PER_USER", "3"))
+_MAX_USD_PER_USER = float(os.environ.get("EM_MOONPAY_MAX_USD_PER_USER", "200"))
+_MAX_ONRAMPS_PER_WALLET = int(os.environ.get("EM_MOONPAY_MAX_ONRAMPS_PER_WALLET", "3"))
+_MAX_ONRAMPS_PER_IP = int(os.environ.get("EM_MOONPAY_MAX_ONRAMPS_PER_IP", "5"))
 
 
 # ---------------------------------------------------------------------------
@@ -163,6 +185,181 @@ def _resolve_device_ip(request: Request, override: Optional[str]) -> str:
     return request.client.host if request.client else "0.0.0.0"
 
 
+def _window_cutoff_iso() -> str:
+    """ISO timestamp for the start of the rolling velocity window."""
+    return (
+        datetime.now(timezone.utc) - timedelta(hours=_VELOCITY_WINDOW_HOURS)
+    ).isoformat()
+
+
+def _count_attempts(db, column: str, value: str, cutoff: str) -> int:
+    """Count sign-url attempts for one dimension in the rolling window.
+
+    Returns the count, or 0 if the query fails. NOTE: failing open here is a
+    deliberate availability tradeoff — a transient DB blip should not block a
+    legitimate funder. The cap is a velocity speed-bump layered on top of
+    MoonPay's own card-fraud/3DS controls (it is the merchant of record), not
+    the only line of defense. Failures are logged so a sustained outage that
+    silently disables the cap is visible.
+    """
+    try:
+        resp = (
+            db.get_client()
+            .table("moonpay_onramp_attempts")
+            .select("id", count="exact")
+            .eq(column, value)
+            .gte("created_at", cutoff)
+            .execute()
+        )
+        return resp.count or 0
+    except Exception as exc:
+        logger.error(
+            "MoonPay velocity count failed (%s) — failing open: %s", column, exc
+        )
+        return 0
+
+
+def _sum_user_usd(db, external_customer_id: str, cutoff: str) -> float:
+    """Sum fiat requested by one user in the rolling window. 0.0 on failure."""
+    try:
+        resp = (
+            db.get_client()
+            .table("moonpay_onramp_attempts")
+            .select("base_amount")
+            .eq("external_customer_id", external_customer_id)
+            .gte("created_at", cutoff)
+            .execute()
+        )
+        total = 0.0
+        for row in resp.data or []:
+            try:
+                total += float(row.get("base_amount") or 0)
+            except (TypeError, ValueError):
+                continue
+        return total
+    except Exception as exc:
+        logger.error("MoonPay velocity USD sum failed — failing open: %s", exc)
+        return 0.0
+
+
+def _enforce_velocity_caps(body: SignUrlRequest, request_ip: str) -> None:
+    """Reject the sign-url request with 429 if any velocity cap is hit.
+
+    Checked BEFORE signing so a denied attempt never produces a usable URL.
+    Dimensions (per docs/runbooks/onramp-fraud.md):
+      - per user (external_customer_id): max count AND max USD / window
+      - per wallet: max count / window
+      - per IP: max count / window (catches account farming)
+
+    The denied reason is logged (LOW-severity probing signal per the runbook's
+    Sentry table) but NOT echoed in full to the client — we return a generic
+    429 so a probe can't map the exact cap that tripped.
+    """
+    try:
+        import supabase_client as db
+    except Exception as exc:  # pragma: no cover - import guard
+        logger.error(
+            "MoonPay velocity gate: supabase_client unavailable — failing open: %s",
+            exc,
+        )
+        return
+
+    cutoff = _window_cutoff_iso()
+    wallet = body.wallet_address
+    masked = wallet[:6] + "..." + wallet[-4:] if len(wallet) > 10 else "***"
+
+    # Per-user dimensions (only when the caller supplied an identity).
+    if body.external_customer_id:
+        user_count = _count_attempts(
+            db, "external_customer_id", body.external_customer_id, cutoff
+        )
+        if user_count >= _MAX_ONRAMPS_PER_USER:
+            logger.warning(
+                "SECURITY_AUDIT action=moonpay.velocity_denied reason=user_count "
+                "ext_customer=%s count=%s limit=%s window_h=%s",
+                body.external_customer_id,
+                user_count,
+                _MAX_ONRAMPS_PER_USER,
+                _VELOCITY_WINDOW_HOURS,
+            )
+            raise HTTPException(
+                status_code=429,
+                detail="Onramp velocity limit reached. Try again later.",
+            )
+
+        user_usd = _sum_user_usd(db, body.external_customer_id, cutoff)
+        if user_usd + body.base_currency_amount > _MAX_USD_PER_USER:
+            logger.warning(
+                "SECURITY_AUDIT action=moonpay.velocity_denied reason=user_usd "
+                "ext_customer=%s spent=%.2f requested=%.2f limit=%.2f window_h=%s",
+                body.external_customer_id,
+                user_usd,
+                body.base_currency_amount,
+                _MAX_USD_PER_USER,
+                _VELOCITY_WINDOW_HOURS,
+            )
+            raise HTTPException(
+                status_code=429,
+                detail="Onramp amount limit reached. Try again later.",
+            )
+
+    # Per-wallet dimension (applies even to anonymous callers).
+    wallet_count = _count_attempts(db, "wallet_address", wallet, cutoff)
+    if wallet_count >= _MAX_ONRAMPS_PER_WALLET:
+        logger.warning(
+            "SECURITY_AUDIT action=moonpay.velocity_denied reason=wallet_count "
+            "wallet=%s count=%s limit=%s window_h=%s",
+            masked,
+            wallet_count,
+            _MAX_ONRAMPS_PER_WALLET,
+            _VELOCITY_WINDOW_HOURS,
+        )
+        raise HTTPException(
+            status_code=429,
+            detail="Onramp velocity limit reached. Try again later.",
+        )
+
+    # Per-IP dimension (account farming).
+    ip_count = _count_attempts(db, "request_ip", request_ip, cutoff)
+    if ip_count >= _MAX_ONRAMPS_PER_IP:
+        logger.warning(
+            "SECURITY_AUDIT action=moonpay.velocity_denied reason=ip_count "
+            "ip=%s count=%s limit=%s window_h=%s",
+            request_ip,
+            ip_count,
+            _MAX_ONRAMPS_PER_IP,
+            _VELOCITY_WINDOW_HOURS,
+        )
+        raise HTTPException(
+            status_code=429,
+            detail="Onramp velocity limit reached. Try again later.",
+        )
+
+
+def _record_attempt(body: SignUrlRequest, request_ip: str) -> None:
+    """Append the issued attempt to moonpay_onramp_attempts. Never raises.
+
+    Called only after caps passed and signing succeeded, so the ledger
+    reflects URLs actually issued. Best-effort: a failed insert is logged but
+    does not fail the request (the URL is already signed by then).
+    """
+    try:
+        import supabase_client as db
+
+        db.get_client().table("moonpay_onramp_attempts").insert(
+            {
+                "external_customer_id": body.external_customer_id,
+                "wallet_address": body.wallet_address,
+                "request_ip": request_ip,
+                "base_amount": body.base_currency_amount,
+                "base_currency_code": body.base_currency_code,
+                "crypto_currency_code": body.currency_code,
+            }
+        ).execute()
+    except Exception as exc:
+        logger.error("MoonPay attempt ledger insert failed: %s", exc)
+
+
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
@@ -180,8 +377,13 @@ def _resolve_device_ip(request: Request, override: Optional[str]) -> str:
         "bearer-like: do NOT log it or expose it outside the user's session."
     ),
 )
-async def sign_url_endpoint(body: SignUrlRequest) -> SignUrlResponse:
+async def sign_url_endpoint(body: SignUrlRequest, request: Request) -> SignUrlResponse:
     from integrations.moonpay.client import sign_url
+
+    # Fraud velocity caps (F-05): reject over-limit callers with 429 BEFORE
+    # signing, so a denied attempt never yields a usable bearer-like URL.
+    request_ip = get_client_ip(request)
+    _enforce_velocity_caps(body, request_ip)
 
     params: dict = {
         "currencyCode": body.currency_code,
@@ -225,6 +427,9 @@ async def sign_url_endpoint(body: SignUrlRequest) -> SignUrlResponse:
         body.currency_code,
         "yes" if body.external_customer_id else "no",
     )
+
+    # Record the issued attempt for the velocity ledger (best-effort).
+    _record_attempt(body, request_ip)
 
     return SignUrlResponse(
         url=result.url,

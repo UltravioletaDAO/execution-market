@@ -282,6 +282,63 @@ async def _get_h2a_bounty_limits() -> tuple[Decimal, Decimal]:
     return min_bounty, max_bounty
 
 
+async def _onramp_hold_active(human_wallet: str) -> tuple[bool, Optional[str]]:
+    """Return (blocked, reason) if a recent card-funded onramp is still in hold.
+
+    Chargeback / self-collusion mitigation (F-04): if the publisher funded their
+    wallet via MoonPay card within the configured hold window, payout to the
+    worker is blocked until the window elapses (card payments can be reversed
+    after settlement). This is gated entirely behind ``EM_MOONPAY_ENABLED`` so
+    the default crypto-native flow and the test suite are unaffected.
+
+    The hold window is ``EM_ONRAMP_PAYOUT_HOLD_HOURS`` (default 0 = disabled).
+    A value of 0 means no hold even when MoonPay is enabled, which keeps the
+    bypass explicit and configurable for sandbox/demo.
+
+    Source: ``moonpay_transactions`` mirror (migration 109), matched on the
+    destination ``wallet_address``. The mirror is best-effort, so this fails
+    OPEN — a query error never blocks a legitimate payout.
+    """
+    if os.environ.get("EM_MOONPAY_ENABLED", "false").lower() not in (
+        "1",
+        "true",
+        "yes",
+    ):
+        return False, None
+
+    try:
+        hold_hours = float(os.environ.get("EM_ONRAMP_PAYOUT_HOLD_HOURS", "0"))
+    except (TypeError, ValueError):
+        hold_hours = 0.0
+    if hold_hours <= 0 or not human_wallet:
+        return False, None
+
+    try:
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=hold_hours)
+        client = db.get_client()
+        result = (
+            client.table("moonpay_transactions")
+            .select("created_at, status")
+            .ilike("wallet_address", human_wallet)
+            .eq("status", "completed")
+            .gte("created_at", cutoff.isoformat())
+            .limit(1)
+            .execute()
+        )
+        if result.data:
+            return True, (
+                f"Payout held: a card-funded onramp completed within the last "
+                f"{hold_hours:g}h. Funds are released after the hold window to "
+                f"mitigate chargeback risk."
+            )
+    except Exception as e:
+        # Fail open — the mirror is non-authoritative and must never wedge payouts.
+        logger.warning("Onramp hold check failed (allowing payout): %s", e)
+        return False, None
+
+    return False, None
+
+
 # ---------------------------------------------------------------------------
 # Router
 # ---------------------------------------------------------------------------
@@ -692,6 +749,33 @@ async def approve_h2a_submission(
                     detail="Payment signatures required for approval "
                     "(settlement_auth_worker and settlement_auth_fee)",
                 )
+
+            # Anti-self-collusion (F-04): the worker being paid must not be the
+            # publisher paying. Same guard style as SC-010 in payment_dispatcher
+            # (worker != treasury/operator/payer). Blocks a publisher from
+            # funding a task and approving their own wallet as the worker.
+            human_wallet = (task.get("human_wallet") or "").lower()
+            worker_wallet = (agent_wallet or "").lower()
+            if human_wallet and worker_wallet and human_wallet == worker_wallet:
+                logger.error(
+                    "H2A approval rejected: worker wallet == publisher wallet "
+                    "(self-collusion) task=%s",
+                    task_id,
+                )
+                raise HTTPException(
+                    status_code=403,
+                    detail="Worker wallet cannot equal the publisher wallet "
+                    "(self-payment is not allowed).",
+                )
+
+            # Post-onramp hold period (F-04): block payout while a recent
+            # card-funded onramp is still reversible. No-op unless MoonPay is
+            # enabled AND EM_ONRAMP_PAYOUT_HOLD_HOURS > 0.
+            _hold_blocked, _hold_reason = await _onramp_hold_active(
+                task.get("human_wallet") or ""
+            )
+            if _hold_blocked:
+                raise HTTPException(status_code=403, detail=_hold_reason)
 
             # Settlement via Facilitator
             worker_tx = None

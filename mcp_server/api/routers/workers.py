@@ -527,6 +527,35 @@ async def apply_to_task(
     if not _wid_allowed:
         raise HTTPException(status_code=403, detail=_wid_error)
 
+    # ---- H2H executor-type enforcement (F-08) -------------------------------
+    # When a task targets human executors (services catalog / Rappi-style H2H),
+    # reject non-human executors on the REST apply path. The MCP accept path
+    # (agent_executor_tools.py) already blocks agents from human tasks; this
+    # mirrors that guard so the REST surface cannot be used to bypass it.
+    if (task_data or {}).get("target_executor_type") == "human":
+        _exec_type_row = (
+            db.get_client()
+            .table("executors")
+            .select("executor_type")
+            .eq("id", executor_id)
+            .limit(1)
+            .execute()
+        )
+        _applicant_type = (
+            _exec_type_row.data[0].get("executor_type") if _exec_type_row.data else None
+        )
+        if _applicant_type and _applicant_type != "human":
+            logger.warning(
+                "H2H apply rejected: executor=%s type=%s task=%s target=human",
+                executor_id[:8],
+                _applicant_type,
+                task_id,
+            )
+            raise HTTPException(
+                status_code=403,
+                detail="This task is only for human executors",
+            )
+
     try:
         result = await db.apply_to_task(
             task_id=task_id,
