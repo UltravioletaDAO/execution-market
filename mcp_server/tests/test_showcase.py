@@ -161,11 +161,24 @@ ROW_NO_IMAGE = {
 
 
 def _make_app():
-    from api.routers.showcase import _clear_cache, router
+    import api.routers.showcase as showcase_mod
 
-    _clear_cache()
+    # Reset the in-process response cache to a FRESH instance. The CI test
+    # collection order (filesystem-dependent, differs from local dev) can leave
+    # the module-global cache in a state where the second identical request
+    # misses — breaking test_identical_request_hits_cache. Rebinding the global
+    # makes every showcase test robust to whatever earlier tests left behind;
+    # the router handlers read the module global at request time, so they pick
+    # up the fresh cache. (CI order-contamination fix 2026-06-05.)
+    try:
+        from cachetools import TTLCache
+
+        showcase_mod._RESPONSE_CACHE = TTLCache(maxsize=128, ttl=60)
+    except ImportError:
+        pass
+    showcase_mod._clear_cache()
     app = FastAPI()
-    app.include_router(router)
+    app.include_router(showcase_mod.router)
     return app
 
 
