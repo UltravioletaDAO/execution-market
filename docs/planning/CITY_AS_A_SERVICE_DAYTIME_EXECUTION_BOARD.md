@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-06-04 06:00 America/New_York
+> Last updated: 2026-06-05 00:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -9,6 +9,22 @@
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
 
+
+
+
+## Latest June 5 00:00 operator cockpit usage protocol
+
+`CITY_AS_A_SERVICE_OPERATOR_COCKPIT_USAGE_PROTOCOL_2026_06_05.md` is the current internal/admin usage runbook for the AAS operator cockpit. It obeyed `/Users/clawdbot/clawd/DREAM-PRIORITIES.md` over the stale cron payload, so AutoJob, Frontier Academy, KK v2, and KarmaCadabra v2 were not pulled, analyzed, edited, expanded, tested, committed, or used as active sources. Execution Market was synced with `git pull --ff-only` and was already up to date on `feat/operator-route-regret-panel` at `a91dab3b`; the pre-existing untracked `scripts/sign_req.mjs` remains preserved and untouched.
+
+This pass intentionally did not add a new runtime proof, no-answer implementation wrapper, answer record, approval record, product exposure, public/customer/worker surface, buyer copy, worker instruction, dispatch/reputation/payment path, exact GPS/raw metadata/private-context release, authority claim, or stopped-project integration. The protocol only explains how to use the existing cockpit without converting display text into approval.
+
+Safe 00:00 claim:
+
+```text
+internal_admin_aas_operator_cockpit_usage_protocol_landed
+```
+
+Meaning only: a read-only internal usage protocol now tells an operator to start from the cockpit, check whether a real answer exists, stop at `pause_aas_proof_layering` / `keep_both_lanes_held` if no answer exists, and create exactly one separate answer artifact before any product or runtime movement if Saúl explicitly chooses one of the four allowed values. Recommended default remains `pause_aas_proof_layering`; alternative safe hold remains `keep_both_lanes_held`.
 
 
 ## Latest June 4 23:00 operator cockpit read surface
