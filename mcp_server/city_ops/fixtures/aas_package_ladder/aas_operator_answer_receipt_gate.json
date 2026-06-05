@@ -1,42 +1,42 @@
 {
-  "answer_panel": {
-    "allowed_future_decisions": [
-      {
-        "approval_granted_by_this_cockpit": false,
-        "decision": "keep_both_lanes_held",
-        "displayed_by_this_cockpit": true,
-        "requires_separate_answer_record": true,
-        "selected_by_this_cockpit": false
-      },
-      {
-        "approval_granted_by_this_cockpit": false,
-        "decision": "create_retail_reality_answer_or_hold_record",
-        "displayed_by_this_cockpit": true,
-        "requires_separate_answer_record": true,
-        "selected_by_this_cockpit": false
-      },
-      {
-        "approval_granted_by_this_cockpit": false,
-        "decision": "create_runtime_memory_operator_answer_record",
-        "displayed_by_this_cockpit": true,
-        "requires_separate_answer_record": true,
-        "selected_by_this_cockpit": false
-      },
-      {
-        "approval_granted_by_this_cockpit": false,
-        "decision": "pause_aas_proof_layering",
-        "displayed_by_this_cockpit": true,
-        "requires_separate_answer_record": true,
-        "selected_by_this_cockpit": false
-      }
-    ],
-    "default_if_no_human_answer": "keep_both_lanes_held_internal_admin_only",
-    "display_text_is_not_answer": true,
-    "recommended_no_answer_values": [
-      "pause_aas_proof_layering",
-      "keep_both_lanes_held"
-    ]
-  },
+  "allowed_operator_answer_values": [
+    {
+      "accepted_by_future_receipt": true,
+      "approval_granted_by_this_gate": false,
+      "delivery_path_authorized_by_this_gate": false,
+      "next_required_gate_if_explicitly_chosen": "stop_no_movement_keep_both_lanes_held",
+      "runtime_path_authorized_by_this_gate": false,
+      "selected_by_this_gate": false,
+      "value": "keep_both_lanes_held"
+    },
+    {
+      "accepted_by_future_receipt": true,
+      "approval_granted_by_this_gate": false,
+      "delivery_path_authorized_by_this_gate": false,
+      "next_required_gate_if_explicitly_chosen": "create_retail_reality_answer_or_hold_record_before_any_public_or_dispatch_step",
+      "runtime_path_authorized_by_this_gate": false,
+      "selected_by_this_gate": false,
+      "value": "create_retail_reality_answer_or_hold_record"
+    },
+    {
+      "accepted_by_future_receipt": true,
+      "approval_granted_by_this_gate": false,
+      "delivery_path_authorized_by_this_gate": false,
+      "next_required_gate_if_explicitly_chosen": "create_runtime_memory_operator_answer_record_then_restore_docker_and_rerun_read_only_inventory",
+      "runtime_path_authorized_by_this_gate": false,
+      "selected_by_this_gate": false,
+      "value": "create_runtime_memory_operator_answer_record"
+    },
+    {
+      "accepted_by_future_receipt": true,
+      "approval_granted_by_this_gate": false,
+      "delivery_path_authorized_by_this_gate": false,
+      "next_required_gate_if_explicitly_chosen": "stop_no_movement_pause_proof_layering",
+      "runtime_path_authorized_by_this_gate": false,
+      "selected_by_this_gate": false,
+      "value": "pause_aas_proof_layering"
+    }
+  ],
   "claim_boundaries": {
     "do_not_claim_yet": [
       "runtime_parity_proven",
@@ -1805,7 +1805,30 @@
       "operator_cockpit_releases_private_context",
       "operator_cockpit_grants_domain_authority_claims",
       "operator_cockpit_publishes_worker_copyable_doctrine",
-      "operator_cockpit_integrates_stopped_projects"
+      "operator_cockpit_integrates_stopped_projects",
+      "answer_receipt_gate_records_operator_answer",
+      "answer_receipt_gate_records_operator_approval",
+      "answer_receipt_gate_creates_future_answer_receipt",
+      "answer_receipt_gate_treats_cockpit_display_as_answer",
+      "answer_receipt_gate_accepts_missing_explicit_operator_reference",
+      "answer_receipt_gate_accepts_unapproved_public_delivery",
+      "answer_receipt_gate_accepts_unverified_runtime_path",
+      "answer_receipt_gate_creates_retail_reality_answer_or_hold_record",
+      "answer_receipt_gate_creates_runtime_memory_operator_answer_record",
+      "answer_receipt_gate_approves_product_exposure",
+      "answer_receipt_gate_approves_runtime_memory_wiring",
+      "answer_receipt_gate_registers_or_enables_runtime_adapter",
+      "answer_receipt_gate_mutates_irc_session_manager",
+      "answer_receipt_gate_writes_or_retrieves_live_acontext",
+      "answer_receipt_gate_creates_customer_public_worker_surface",
+      "answer_receipt_gate_authorizes_catalog_pricing_queue_or_dispatch",
+      "answer_receipt_gate_emits_erc8004_reputation_or_worker_skill_dna",
+      "answer_receipt_gate_reverifies_payment_or_production",
+      "answer_receipt_gate_releases_exact_gps_or_raw_metadata",
+      "answer_receipt_gate_releases_private_context",
+      "answer_receipt_gate_grants_domain_authority_claims",
+      "answer_receipt_gate_publishes_worker_copyable_doctrine",
+      "answer_receipt_gate_integrates_stopped_projects"
     ],
     "safe_to_claim": [
       "internal_admin_aas_no_answer_observability_rubric_fixture_landed",
@@ -1815,155 +1838,202 @@
       "internal_admin_aas_source_of_truth_index_landed",
       "internal_admin_aas_system_integration_decision_support_map_landed",
       "internal_admin_aas_four_am_pattern_synthesis_handoff_landed",
-      "internal_admin_aas_operator_cockpit_read_surface_landed"
+      "internal_admin_aas_operator_cockpit_read_surface_landed",
+      "internal_admin_aas_operator_answer_receipt_gate_landed"
     ]
   },
-  "cockpit_id": "execution_market.aas.operator_cockpit_read_surface.2026_06_04_2300",
-  "cockpit_panes": [
+  "current_values": {
+    "cockpit_display_is_answer": false,
+    "effective_decision": "keep_both_lanes_held_internal_admin_only",
+    "future_answer_receipt_created": false,
+    "gate_is_answer_receipt": false,
+    "operator_answer_recorded": false,
+    "operator_approval_recorded": false,
+    "selected_operator_answer_value": null
+  },
+  "future_receipt_required_fields": [
     {
-      "approval_granted_by_this_cockpit": false,
-      "displays": [
-        "source_handoff_digest",
-        "safe_claims",
-        "blocked_claims",
-        "stopped_project_firewall"
-      ],
-      "internal_admin_read_only": true,
-      "operator_use": "orient_before_any_future_answer_record",
-      "pane": "source_truth",
-      "runtime_or_external_promotion_allowed": false,
-      "selected_by_this_cockpit": false,
-      "title": "Current AAS truth starts here"
+      "expected_value_or_constraint": "execution_market.aas.operator_answer.<date>.<short_label>",
+      "field": "answer_receipt_id",
+      "required_in_future_receipt": true,
+      "satisfied_by_this_gate": false
     },
     {
-      "approval_granted_by_this_cockpit": false,
-      "displays": [
+      "expected_value_or_constraint": "city_ops.aas_operator_answer_receipt.v1",
+      "field": "receipt_schema",
+      "required_in_future_receipt": true,
+      "satisfied_by_this_gate": false
+    },
+    {
+      "expected_value_or_constraint": "mcp_server/city_ops/fixtures/aas_package_ladder/aas_operator_cockpit_read_surface.json",
+      "field": "source_cockpit_ref",
+      "required_in_future_receipt": true,
+      "satisfied_by_this_gate": false
+    },
+    {
+      "expected_value_or_constraint": "c64d773b6dec5efa6d0cb878456406e33b772ecbfb3f5a836524bc05bc066a37",
+      "field": "source_cockpit_digest_sha256",
+      "required_in_future_receipt": true,
+      "satisfied_by_this_gate": false
+    },
+    {
+      "expected_value_or_constraint": [
         "keep_both_lanes_held",
         "create_retail_reality_answer_or_hold_record",
         "create_runtime_memory_operator_answer_record",
         "pause_aas_proof_layering"
       ],
-      "internal_admin_read_only": true,
-      "operator_use": "copy_one_value_into_a_separate_answer_record_if_explicitly_chosen",
-      "pane": "allowed_answer_values",
-      "runtime_or_external_promotion_allowed": false,
-      "selected_by_this_cockpit": false,
-      "title": "Exactly four allowed future values"
+      "field": "operator_answer_value",
+      "required_in_future_receipt": true,
+      "satisfied_by_this_gate": false
     },
     {
-      "approval_granted_by_this_cockpit": false,
-      "displays": [
-        "docker_daemon_unreachable_on_user_socket",
-        "local_acontext_api_core_ui_unverified",
-        "historical_fixtures_are_not_current_runtime_truth"
-      ],
-      "internal_admin_read_only": true,
-      "operator_use": "prevent_runtime_memory_claims_until_rechecked_after_docker_recovery",
-      "pane": "runtime_blocker",
-      "runtime_or_external_promotion_allowed": false,
-      "selected_by_this_cockpit": false,
-      "title": "Acontext/runtime current blocker"
+      "expected_value_or_constraint": true,
+      "field": "operator_answer_recorded",
+      "required_in_future_receipt": true,
+      "satisfied_by_this_gate": false
     },
     {
-      "approval_granted_by_this_cockpit": false,
-      "displays": [
-        "no_retail_reality_answer_or_hold_record",
-        "no_customer_public_worker_surface",
-        "no_catalog_pricing_queue_or_dispatch_authority"
-      ],
-      "internal_admin_read_only": true,
-      "operator_use": "prevent_catalog_or_customer_copy_from_internal_planning_docs",
-      "pane": "product_exposure_blocker",
-      "runtime_or_external_promotion_allowed": false,
-      "selected_by_this_cockpit": false,
-      "title": "Retail Reality / product exposure blocker"
+      "expected_value_or_constraint": "boolean; true only with explicit approval evidence",
+      "field": "operator_approval_recorded",
+      "required_in_future_receipt": true,
+      "satisfied_by_this_gate": false
     },
     {
-      "approval_granted_by_this_cockpit": false,
-      "displays": [
-        "pause_aas_proof_layering",
-        "keep_both_lanes_held"
-      ],
-      "internal_admin_read_only": true,
-      "operator_use": "stop_accidental_no_answer_ceremony_and_keep_both_lanes_held",
-      "pane": "recommended_no_answer_posture",
-      "runtime_or_external_promotion_allowed": false,
-      "selected_by_this_cockpit": false,
-      "title": "Safe default with no explicit answer"
+      "expected_value_or_constraint": "non_empty_reference_to_human_or_operator_answer",
+      "field": "explicit_operator_reference",
+      "required_in_future_receipt": true,
+      "satisfied_by_this_gate": false
+    },
+    {
+      "expected_value_or_constraint": "required_non_empty_when_operator_approval_recorded_true",
+      "field": "approval_evidence_ref",
+      "required_in_future_receipt": true,
+      "satisfied_by_this_gate": false
+    },
+    {
+      "expected_value_or_constraint": "list; must be empty unless separately approved",
+      "field": "approved_sections",
+      "required_in_future_receipt": true,
+      "satisfied_by_this_gate": false
+    },
+    {
+      "expected_value_or_constraint": "list; preserve held claims and blocked surfaces",
+      "field": "held_sections",
+      "required_in_future_receipt": true,
+      "satisfied_by_this_gate": false
+    },
+    {
+      "expected_value_or_constraint": "boolean; true only after separate redaction proof",
+      "field": "redactions_passed",
+      "required_in_future_receipt": true,
+      "satisfied_by_this_gate": false
+    },
+    {
+      "expected_value_or_constraint": false,
+      "field": "delivery_path_authorized",
+      "required_in_future_receipt": true,
+      "satisfied_by_this_gate": false
+    },
+    {
+      "expected_value_or_constraint": false,
+      "field": "runtime_path_authorized",
+      "required_in_future_receipt": true,
+      "satisfied_by_this_gate": false
+    },
+    {
+      "expected_value_or_constraint": true,
+      "field": "blocked_claims_preserved",
+      "required_in_future_receipt": true,
+      "satisfied_by_this_gate": false
+    },
+    {
+      "expected_value_or_constraint": {
+        "create_retail_reality_answer_or_hold_record": "create_retail_reality_answer_or_hold_record_before_any_public_or_dispatch_step",
+        "create_runtime_memory_operator_answer_record": "create_runtime_memory_operator_answer_record_then_restore_docker_and_rerun_read_only_inventory",
+        "keep_both_lanes_held": "stop_no_movement_keep_both_lanes_held",
+        "pause_aas_proof_layering": "stop_no_movement_pause_proof_layering"
+      },
+      "field": "next_required_gate",
+      "required_in_future_receipt": true,
+      "satisfied_by_this_gate": false
     }
   ],
-  "cockpit_status": "read_only_operator_cockpit_no_answer_no_approval_no_runtime_or_external_promotion",
-  "cockpit_verdict": "operator_cockpit_read_surface_landed_no_answer_no_approval_display_only_existing_artifacts_rendered_as_internal_admin_orientation_no_runtime_product_reputation_payment_dispatch_public_dashboard_or_stopped_project_promotion",
-  "current_no_answer_decision": {
-    "cockpit_display_is_approval": false,
-    "cockpit_is_answer_record": false,
-    "effective_decision": "keep_both_lanes_held_internal_admin_only",
-    "operator_answer_recorded": false,
-    "operator_approval_recorded": false,
-    "selected_future_answer": null
-  },
+  "future_receipt_schema": "city_ops.aas_operator_answer_receipt.v1",
+  "gate_id": "execution_market.aas.operator_answer_receipt_gate.2026_06_05_0200",
+  "gate_status": "schema_gate_only_no_answer_no_approval_no_runtime_or_external_promotion",
+  "gate_verdict": "answer_receipt_gate_landed_schema_only_no_answer_no_approval_no_runtime_product_delivery_reputation_payment_dispatch_public_surface_or_stopped_project_promotion",
   "operator_guidance": {
+    "do_not_fill_receipt_from_this_gate": true,
+    "do_not_treat_cockpit_display_as_answer": true,
     "first_read": "DREAM-PRIORITIES.md",
-    "if_no_real_answer": "pause_proof_layering_or_keep_both_lanes_held",
-    "if_real_answer_exists": "create_separate_two_lane_operator_answer_record_first",
+    "if_no_real_answer": "stop_at_pause_aas_proof_layering_or_keep_both_lanes_held",
     "not_customer_copy": true,
     "not_public_dashboard": true,
     "not_runtime_adapter": true,
     "not_worker_instruction": true,
-    "use_this_cockpit_for": "internal_admin_read_only_orientation_only"
+    "use_this_gate_for": "validate_a_future_explicit_answer_receipt_before_any_movement"
   },
   "readiness": {
-    "answer_panel_displayed_without_selection": true,
-    "cockpit_approves_product_exposure": false,
-    "cockpit_approves_runtime_memory_wiring": false,
-    "cockpit_creates_answer_record": false,
-    "cockpit_creates_customer_copy": false,
-    "cockpit_creates_public_dashboard": false,
-    "cockpit_creates_worker_instruction": false,
-    "cockpit_emits_erc8004_reputation": false,
-    "cockpit_emits_worker_skill_dna": false,
-    "cockpit_enables_catalog_pricing_queue_or_dispatch": false,
-    "cockpit_enables_cross_project_autorouting": false,
-    "cockpit_enables_runtime_adapter": false,
-    "cockpit_grants_domain_authority_claims": false,
-    "cockpit_integrates_stopped_projects": false,
-    "cockpit_mutates_irc_session_manager": false,
-    "cockpit_panes_renderable_from_existing_artifacts": true,
-    "cockpit_publishes_worker_copyable_doctrine": false,
-    "cockpit_records_operator_answer": false,
-    "cockpit_records_operator_approval": false,
-    "cockpit_registers_runtime_adapter": false,
-    "cockpit_releases_exact_gps_or_raw_metadata": false,
-    "cockpit_releases_private_context": false,
-    "cockpit_retrieves_live_acontext": false,
-    "cockpit_reverifies_payment_or_production": false,
-    "cockpit_selects_future_answer": false,
-    "cockpit_treats_display_as_approval": false,
-    "cockpit_writes_live_acontext": false,
+    "catalog_visible": false,
+    "customer_visible": false,
     "default_off_non_authorizing": true,
-    "internal_admin_operator_cockpit_read_surface_landed": true,
-    "source_handoff_verified": true
+    "delivery_path_authorized": false,
+    "dispatch_enabled": false,
+    "domain_authority_claims_allowed": false,
+    "erc8004_reputation_ready": false,
+    "exact_gps_or_raw_metadata_release_allowed": false,
+    "future_answer_receipt_created": false,
+    "future_receipt_shape_constrained": true,
+    "internal_admin_answer_receipt_gate_landed": true,
+    "irc_session_manager_mutated": false,
+    "live_acontext_write_or_retrieval_enabled": false,
+    "operator_answer_recorded": false,
+    "operator_approval_recorded": false,
+    "payment_or_production_reverified": false,
+    "pricing_enabled": false,
+    "private_context_release_allowed": false,
+    "product_exposure_approved": false,
+    "public_visible": false,
+    "queue_launch_ready": false,
+    "retail_reality_answer_or_hold_record_created": false,
+    "runtime_adapter_enabled": false,
+    "runtime_adapter_registered": false,
+    "runtime_memory_operator_answer_record_created": false,
+    "runtime_memory_wiring_approved": false,
+    "runtime_path_authorized": false,
+    "source_cockpit_verified": true,
+    "stopped_project_integration_ready": false,
+    "worker_copyable_doctrine_ready": false,
+    "worker_skill_dna_ready": false,
+    "worker_visible": false
   },
-  "runtime_blocker_snapshot": {
-    "docker_context_observed": "desktop-linux",
-    "docker_daemon_reachable": false,
-    "local_acontext_3000_reachable": false,
-    "local_acontext_5173_reachable": false,
-    "local_acontext_8080_reachable": false,
-    "snapshot_claims_runtime_parity": false,
-    "snapshot_is_runtime_repair": false
+  "receipt_validation_policy": {
+    "allows_cockpit_display_as_answer": false,
+    "allows_public_delivery_authorization": false,
+    "allows_runtime_path_authorization": false,
+    "approval_true_requires_approval_evidence_ref": true,
+    "no_movement_values": [
+      "keep_both_lanes_held",
+      "pause_aas_proof_layering"
+    ],
+    "product_value_next_gate": "create_retail_reality_answer_or_hold_record_before_any_public_or_dispatch_step",
+    "requires_blocked_claims_preserved": true,
+    "requires_explicit_operator_reference": true,
+    "requires_source_cockpit_digest_match": true,
+    "runtime_value_next_gate": "create_runtime_memory_operator_answer_record_then_restore_docker_and_rerun_read_only_inventory"
   },
-  "schema": "city_ops.aas_operator_cockpit_read_surface.v1",
-  "scope": "internal_admin_read_only_aas_operator_cockpit",
-  "source_handoff": {
-    "digest_sha256": "97567fa47855acaec1094d9d47091d3f023cee21fca23e3d42500d6115d5e411",
-    "effective_decision": "keep_both_lanes_held_internal_admin_only",
-    "file": "aas_four_am_pattern_synthesis_handoff.json",
-    "handoff_id": "execution_market.aas.four_am_pattern_synthesis_handoff.2026_06_03_0400",
-    "safe_claim": "internal_admin_aas_four_am_pattern_synthesis_handoff_landed",
-    "schema": "city_ops.aas_four_am_pattern_synthesis_handoff.v1"
+  "schema": "city_ops.aas_operator_answer_receipt_gate.v1",
+  "scope": "internal_admin_schema_gate_for_future_explicit_aas_operator_answer_receipt",
+  "source_cockpit": {
+    "cockpit_id": "execution_market.aas.operator_cockpit_read_surface.2026_06_04_2300",
+    "default_if_no_human_answer": "keep_both_lanes_held_internal_admin_only",
+    "digest_sha256": "c64d773b6dec5efa6d0cb878456406e33b772ecbfb3f5a836524bc05bc066a37",
+    "file": "aas_operator_cockpit_read_surface.json",
+    "ref": "mcp_server/city_ops/fixtures/aas_package_ladder/aas_operator_cockpit_read_surface.json",
+    "safe_claim": "internal_admin_aas_operator_cockpit_read_surface_landed",
+    "schema": "city_ops.aas_operator_cockpit_read_surface.v1"
   },
-  "source_policy": "consume_current_4am_pattern_synthesis_handoff_only",
   "still_blocked_claims": [
     "runtime_parity_proven",
     "reuse_behavior_proven",
@@ -3731,7 +3801,30 @@
     "operator_cockpit_releases_private_context",
     "operator_cockpit_grants_domain_authority_claims",
     "operator_cockpit_publishes_worker_copyable_doctrine",
-    "operator_cockpit_integrates_stopped_projects"
+    "operator_cockpit_integrates_stopped_projects",
+    "answer_receipt_gate_records_operator_answer",
+    "answer_receipt_gate_records_operator_approval",
+    "answer_receipt_gate_creates_future_answer_receipt",
+    "answer_receipt_gate_treats_cockpit_display_as_answer",
+    "answer_receipt_gate_accepts_missing_explicit_operator_reference",
+    "answer_receipt_gate_accepts_unapproved_public_delivery",
+    "answer_receipt_gate_accepts_unverified_runtime_path",
+    "answer_receipt_gate_creates_retail_reality_answer_or_hold_record",
+    "answer_receipt_gate_creates_runtime_memory_operator_answer_record",
+    "answer_receipt_gate_approves_product_exposure",
+    "answer_receipt_gate_approves_runtime_memory_wiring",
+    "answer_receipt_gate_registers_or_enables_runtime_adapter",
+    "answer_receipt_gate_mutates_irc_session_manager",
+    "answer_receipt_gate_writes_or_retrieves_live_acontext",
+    "answer_receipt_gate_creates_customer_public_worker_surface",
+    "answer_receipt_gate_authorizes_catalog_pricing_queue_or_dispatch",
+    "answer_receipt_gate_emits_erc8004_reputation_or_worker_skill_dna",
+    "answer_receipt_gate_reverifies_payment_or_production",
+    "answer_receipt_gate_releases_exact_gps_or_raw_metadata",
+    "answer_receipt_gate_releases_private_context",
+    "answer_receipt_gate_grants_domain_authority_claims",
+    "answer_receipt_gate_publishes_worker_copyable_doctrine",
+    "answer_receipt_gate_integrates_stopped_projects"
   ],
   "stopped_project_firewall": {
     "autojob_work_allowed": false,

@@ -1715,7 +1715,7 @@
   },
   "current_entrypoints": [
     {
-      "digest_sha256": "b88d120922106ba0ffc81dde2cc4689ec7df6eccf965f7aafdb50e0d03c31c30",
+      "digest_sha256": "9c36c4f2eb09d3cf29b946dc5232931862ea90bf274ee8a291d7c64eb21a1371",
       "exists": true,
       "extension_policy": "current_entrypoint_update_only_when_new_safe_claim_lands",
       "path": "docs/planning/CITY_AS_A_SERVICE_DAYTIME_EXECUTION_BOARD.md",
