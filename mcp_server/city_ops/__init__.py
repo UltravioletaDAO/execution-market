@@ -213,6 +213,11 @@ from .aas_strength_connection_control_packet import (
     load_aas_strength_connection_control_packet,
     write_aas_strength_connection_control_packet,
 )
+from .aas_strength_roadmap_connection_board import (
+    build_aas_strength_roadmap_connection_board,
+    load_aas_strength_roadmap_connection_board,
+    write_aas_strength_roadmap_connection_board,
+)
 from .aas_exponential_value_pathfinder import (
     build_aas_exponential_value_pathfinder,
     load_aas_exponential_value_pathfinder,
