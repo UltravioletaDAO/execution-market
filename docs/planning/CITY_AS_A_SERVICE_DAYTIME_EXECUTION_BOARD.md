@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-06-05 23:00 America/New_York
+> Last updated: 2026-06-06 04:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -8,6 +8,31 @@
 > - `CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md`
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
+
+
+
+
+## Latest June 6 04:00 Field Asset Ops visible-state fixture outline
+
+`CITY_AS_A_SERVICE_AAS_FIELD_ASSET_VISIBLE_STATE_FIXTURE_OUTLINE_IMPLEMENTATION.md` is the current internal/admin AAS Field Asset Ops concept slice. It obeyed `/Users/clawdbot/clawd/DREAM-PRIORITIES.md` over the stale cron payload, so AutoJob, Frontier Academy, KK v2, and KarmaCadabra v2 were not pulled, analyzed, edited, expanded, tested, committed, or used as active sources. Execution Market was synced with `git pull --ff-only`; branch `feat/operator-route-regret-panel` was already up to date and the pre-existing untracked `scripts/sign_req.mjs` remains preserved and untouched.
+
+Implementation landed as `mcp_server/city_ops/aas_field_asset_visible_state_fixture_outline.py`, persisted at `mcp_server/city_ops/fixtures/aas_package_ladder/aas_field_asset_visible_state_fixture_outline.json`, with tests in `mcp_server/tests/city_ops/test_aas_field_asset_visible_state_fixture_outline.py`. It consumes `aas_concept_gap_implementation_roadmap.json` by digest and expands only the rank-4 Field Asset Ops roadmap action: `visible_asset_state_fixture_outline_no_repair_or_sla_language`.
+
+Safe 04:00 claim:
+
+```text
+internal_admin_aas_field_asset_visible_state_fixture_outline_landed
+```
+
+Meaning only: a deterministic internal/admin visible-state fixture outline now records safe observation vocabulary for Field Asset Ops — visible presence/absence, apparent access/obstruction, apparent surface condition, visible indicator state without functionality certification, redaction-gated photo/screenshot placeholders, and explicit unknowns. It records no operator answer, approval, answer receipt, customer/public/worker copy, field access authorization, inspection, repair, remediation, warranty, safety, SLA, catalog/pricing/quote/route/queue/dispatch, reputation, Worker Skill DNA, payment/production reverification, live Acontext/IRC mutation, exact GPS/raw metadata/private-context/PII release, property access/appraisal/maintenance authority, worker doctrine, or stopped-project integration.
+
+Next required gate remains:
+
+```text
+separate_explicit_operator_answer_receipt_then_field_asset_ops_customer_or_dispatch_gate
+```
+
+Recommended posture remains `concept_outline_only` unless Saúl later provides one explicit allowed operator answer value.
 
 
 

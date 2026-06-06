@@ -218,6 +218,11 @@ from .aas_strength_roadmap_connection_board import (
     load_aas_strength_roadmap_connection_board,
     write_aas_strength_roadmap_connection_board,
 )
+from .aas_field_asset_visible_state_fixture_outline import (
+    build_aas_field_asset_visible_state_fixture_outline,
+    load_aas_field_asset_visible_state_fixture_outline,
+    write_aas_field_asset_visible_state_fixture_outline,
+)
 from .aas_exponential_value_pathfinder import (
     build_aas_exponential_value_pathfinder,
     load_aas_exponential_value_pathfinder,

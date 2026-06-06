@@ -1871,7 +1871,7 @@
       "satisfied_by_this_gate": false
     },
     {
-      "expected_value_or_constraint": "d176f4595e871336fd29d29e87c1db72d5e88cf2d754f08a3475b7abc113a717",
+      "expected_value_or_constraint": "147eb73cdb66be68057e2c43446fdb35c3487bc57532d96d39ff05bc579d3674",
       "field": "source_cockpit_digest_sha256",
       "required_in_future_receipt": true,
       "satisfied_by_this_gate": false
@@ -2028,7 +2028,7 @@
   "source_cockpit": {
     "cockpit_id": "execution_market.aas.operator_cockpit_read_surface.2026_06_04_2300",
     "default_if_no_human_answer": "keep_both_lanes_held_internal_admin_only",
-    "digest_sha256": "d176f4595e871336fd29d29e87c1db72d5e88cf2d754f08a3475b7abc113a717",
+    "digest_sha256": "147eb73cdb66be68057e2c43446fdb35c3487bc57532d96d39ff05bc579d3674",
     "file": "aas_operator_cockpit_read_surface.json",
     "ref": "mcp_server/city_ops/fixtures/aas_package_ladder/aas_operator_cockpit_read_surface.json",
     "safe_claim": "internal_admin_aas_operator_cockpit_read_surface_landed",
