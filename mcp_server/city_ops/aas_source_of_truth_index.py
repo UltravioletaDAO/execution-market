@@ -98,6 +98,11 @@ CURRENT_ENTRYPOINT_DOCS = [
         "extension_policy": "current_internal_admin_planning_sequence_no_answer_or_product_promotion",
     },
     {
+        "path": "docs/planning/CITY_AS_A_SERVICE_RETAIL_REALITY_ANSWER_PREREQUISITE_CHECKLIST_IMPLEMENTATION.md",
+        "role": "latest_retail_reality_answer_prerequisite_checklist",
+        "extension_policy": "current_internal_admin_prerequisite_checklist_no_answer_or_product_promotion",
+    },
+    {
         "path": "docs/planning/CITY_AS_A_SERVICE_AAS_DOCUMENT_HANDOFF_REDACTION_DELIVERY_GAP_NOTE_IMPLEMENTATION.md",
         "role": "latest_document_handoff_redaction_delivery_gap_note",
         "extension_policy": "current_internal_admin_maintenance_note_no_answer_or_delivery_promotion",

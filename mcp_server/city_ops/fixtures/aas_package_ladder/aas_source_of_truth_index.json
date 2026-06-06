@@ -1799,6 +1799,13 @@
       "role": "latest_source_backed_aas_concept_gap_implementation_roadmap"
     },
     {
+      "digest_sha256": "bc28805cca605f2f50897ab4ef3bed2792f2be92a417f77ff443a70214dd0877",
+      "exists": true,
+      "extension_policy": "current_internal_admin_prerequisite_checklist_no_answer_or_product_promotion",
+      "path": "docs/planning/CITY_AS_A_SERVICE_RETAIL_REALITY_ANSWER_PREREQUISITE_CHECKLIST_IMPLEMENTATION.md",
+      "role": "latest_retail_reality_answer_prerequisite_checklist"
+    },
+    {
       "digest_sha256": "bc41d09c258dc06616ed4e24531ec5f2a6ac1764cca666ffef70848456f11e36",
       "exists": true,
       "extension_policy": "current_internal_admin_maintenance_note_no_answer_or_delivery_promotion",
@@ -1806,7 +1813,7 @@
       "role": "latest_document_handoff_redaction_delivery_gap_note"
     },
     {
-      "digest_sha256": "820df9b353a4b0db8ffc040ee5720d321e42821d973cd0c438cc8c7e7a455552",
+      "digest_sha256": "6a8095e1fdf1e154fd87c1deffdbf7981b60f54f0bb3dae6b72bea60b6e7cbf0",
       "exists": true,
       "extension_policy": "current_internal_admin_hold_gap_review_no_answer_or_customer_copy_promotion",
       "path": "docs/planning/CITY_AS_A_SERVICE_AAS_COMPLIANCE_DESK_DELIVERY_PATH_HOLD_GAP_REVIEW_IMPLEMENTATION.md",
