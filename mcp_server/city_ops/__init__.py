@@ -223,6 +223,11 @@ from .aas_field_asset_visible_state_fixture_outline import (
     load_aas_field_asset_visible_state_fixture_outline,
     write_aas_field_asset_visible_state_fixture_outline,
 )
+from .aas_event_readiness_observation_outline import (
+    build_aas_event_readiness_observation_outline,
+    load_aas_event_readiness_observation_outline,
+    write_aas_event_readiness_observation_outline,
+)
 from .aas_exponential_value_pathfinder import (
     build_aas_exponential_value_pathfinder,
     load_aas_exponential_value_pathfinder,

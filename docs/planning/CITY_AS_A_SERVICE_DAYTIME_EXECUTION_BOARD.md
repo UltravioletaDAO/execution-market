@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-06-06 06:00 America/New_York
+> Last updated: 2026-06-06 07:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -9,6 +9,30 @@
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
 
+
+
+
+## Latest June 6 07:00 Event Readiness observation outline
+
+`CITY_AS_A_SERVICE_AAS_EVENT_READINESS_OBSERVATION_OUTLINE_IMPLEMENTATION.md` is the current internal/admin AAS Event Readiness concept slice. It obeyed `/Users/clawdbot/clawd/DREAM-PRIORITIES.md`, so AutoJob, Frontier Academy, KK v2, and KarmaCadabra v2 were not pulled, analyzed, edited, expanded, tested, committed, or used as active sources. Execution Market was synced with `git fetch` and `git pull --ff-only`; branch `feat/operator-route-regret-panel` was already up to date and the pre-existing untracked `scripts/sign_req.mjs` remains preserved and untouched.
+
+Implementation landed as `mcp_server/city_ops/aas_event_readiness_observation_outline.py`, persisted at `mcp_server/city_ops/fixtures/aas_package_ladder/aas_event_readiness_observation_outline.json`, with tests in `mcp_server/tests/city_ops/test_aas_event_readiness_observation_outline.py`. It consumes `aas_concept_gap_implementation_roadmap.json` by digest and expands only the rank-5 Event Readiness roadmap action: `observed_pre_event_blocker_outline_no_permit_security_or_outcome_claim`.
+
+Safe 07:00 claim:
+
+```text
+internal_admin_aas_event_readiness_observation_outline_landed
+```
+
+Meaning only: a deterministic internal/admin observation outline now records safe visible-state vocabulary for Event Readiness — event identifier placeholder without private location, scheduled window placeholder without contact/private context, visible setup presence or absence, apparent staging or wayfinding state, apparent access/obstruction without access authority, visible vendor/equipment presence without performance claim, redaction-gated photo/screenshot placeholders, and explicit unknowns. It records no operator answer, approval, answer receipt, customer/public/worker copy, event-site access authorization, permit/security/vendor/venue/crowd-control decision, capacity/safety/attendance/outcome/SLA certification, catalog/pricing/quote/route/queue/dispatch, reputation, Worker Skill DNA, payment/production reverification, live Acontext/IRC mutation, exact GPS/raw metadata/private-context/PII release, worker doctrine, authority claims, or stopped-project integration.
+
+Next required gate remains:
+
+```text
+separate_explicit_operator_answer_receipt_then_event_readiness_customer_or_dispatch_gate
+```
+
+Recommended posture remains `concept_outline_only` unless Saúl later provides one explicit allowed operator answer value.
 
 
 

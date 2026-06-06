@@ -132,6 +132,11 @@ CURRENT_ENTRYPOINT_DOCS = [
         "role": "latest_field_asset_visible_state_fixture_outline",
         "extension_policy": "current_internal_admin_visible_state_outline_no_access_or_dispatch_promotion",
     },
+    {
+        "path": "docs/planning/CITY_AS_A_SERVICE_AAS_EVENT_READINESS_OBSERVATION_OUTLINE_IMPLEMENTATION.md",
+        "role": "latest_event_readiness_observation_outline",
+        "extension_policy": "current_internal_admin_observation_outline_no_permit_security_outcome_or_dispatch_promotion",
+    },
 ]
 
 HISTORICAL_CONTEXT_DOCS = [
