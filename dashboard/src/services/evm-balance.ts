@@ -55,6 +55,45 @@ function encodeBalanceOf(wallet: string): string {
   return BALANCE_OF_SELECTOR + addr.padStart(64, '0')
 }
 
+// EM balances Lambda (Function URL). Holds the private QuikNode RPCs in Secrets
+// Manager so the browser never hits a public RPC directly — that direct path is
+// what rate-limits and surfaces "RPC error" / Get-Node failures in the UI. See
+// infrastructure/terraform/lambda/em_balances.py + hooks/useOnchainBalance.ts.
+const BALANCES_LAMBDA_URL = (
+  import.meta.env.VITE_BALANCES_LAMBDA_URL as string | undefined
+)?.replace(/\/$/, '')
+
+interface LambdaBalances {
+  balances?: Record<string, { balance: number; error: string | null }>
+}
+
+/**
+ * Read one chain's USDC balance via the balances Lambda. Returns null (not throw)
+ * when the Lambda is unconfigured or the chain errored, so the caller can fall
+ * back to a direct eth_call. The Lambda caches per wallet for ~60s — fine for a
+ * displayed balance, and the onramp watcher has a Supabase Realtime backstop for
+ * fast "funds arrived" detection.
+ */
+async function readViaBalancesLambda(
+  wallet: string,
+  network: string,
+): Promise<number | null> {
+  if (!BALANCES_LAMBDA_URL) return null
+  try {
+    const res = await fetch(`${BALANCES_LAMBDA_URL}?wallet=${wallet}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    })
+    if (!res.ok) return null
+    const data = (await res.json()) as LambdaBalances
+    const entry = data.balances?.[network]
+    if (!entry || entry.error !== null) return null
+    return entry.balance
+  } catch {
+    return null
+  }
+}
+
 /**
  * Read a wallet's USDC balance on an EVM network (default Base) via a single
  * `eth_call`. Returns the human-readable amount (6-decimal). Throws on RPC
@@ -67,6 +106,12 @@ export async function readEvmUsdcBalance(
 ): Promise<number> {
   const cfg = EVM_USDC[network]
   if (!cfg) throw new Error(`unsupported EVM network: ${network}`)
+
+  // Prefer the balances Lambda (private RPCs, no browser rate-limits). Only when
+  // it's unconfigured (local dev) or returns an error do we fall back to a direct
+  // eth_call against the resolved RPC below.
+  const viaLambda = await readViaBalancesLambda(wallet, network)
+  if (viaLambda !== null) return viaLambda
 
   const url = resolveEvmRpc(network, rpcUrl)
   const resp = await fetch(url, {

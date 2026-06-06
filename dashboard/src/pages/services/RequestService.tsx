@@ -2,9 +2,11 @@
  * RequestService — consumer "pedir un servicio" form for a single category.
  *
  * Publishes an H2A task with target_executor_type='human' (H2H) via
- * createH2ATask, so a nearby human worker can pick it up. Enforces the O6 $5
- * minimum and offers DepositModal top-up if the wallet is short. Reuses the
- * existing publisher dashboard for status tracking (Task 4.3).
+ * createH2ATask, so a nearby human worker can pick it up. The bounty minimum is
+ * $0.01 (the backend H2A limit, feature.h2a_min_bounty); the $5 floor lives only
+ * on the MoonPay top-up (DepositModal) because MoonPay imposes it on card buys —
+ * the two minimums are independent. Reuses the existing publisher dashboard for
+ * status tracking (Task 4.3).
  */
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
@@ -67,7 +69,7 @@ export function RequestService() {
     )
   }
 
-  const canSubmit = instructions.length >= 20 && bounty >= 5 && !submitting
+  const canSubmit = instructions.length >= 20 && bounty >= 0.01 && !submitting
   const needsFunds = balance !== null && balance < total
 
   const handleSubmit = async () => {
@@ -162,9 +164,9 @@ export function RequestService() {
             <input
               type="number"
               value={bounty}
-              onChange={(e) => setBounty(Math.max(5, +e.target.value))}
-              step="1"
-              min="5"
+              onChange={(e) => setBounty(Math.max(0.01, +e.target.value))}
+              step="0.01"
+              min="0.01"
               max="500"
               className="w-full rounded-lg border border-zinc-300 py-2 pl-7 pr-16"
             />
@@ -172,12 +174,12 @@ export function RequestService() {
           </div>
           <div className="mt-2 rounded-lg bg-white border border-zinc-200 p-3 text-sm">
             <div className="flex justify-between">
-              <span className="text-zinc-500">Pago al ejecutor</span>
-              <span>${bounty.toFixed(2)}</span>
+              <span className="text-zinc-700">Pago al ejecutor</span>
+              <span className="font-medium text-zinc-900">${bounty.toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-zinc-500">Comisión (13%)</span>
-              <span>${fee.toFixed(2)}</span>
+              <span className="text-zinc-700">Comisión (13%)</span>
+              <span className="font-medium text-zinc-900">${fee.toFixed(2)}</span>
             </div>
             <div className="mt-1 flex justify-between border-t border-zinc-200 pt-1 font-bold">
               <span>Total al aprobar</span>

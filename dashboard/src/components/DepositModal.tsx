@@ -106,11 +106,15 @@ export function DepositModal({
         setStage('overlay')
       })
       .catch((e) => {
-        setError(
+        // 404/403 = backend MoonPay flag is OFF (router not mounted). Show a
+        // human message instead of the raw "Not Found" from FastAPI.
+        const msg =
           e instanceof MoonPayError
-            ? e.message
-            : 'No se pudo iniciar el depósito. Intenta de nuevo.',
-        )
+            ? e.status === 404 || e.status === 403
+              ? 'Los depósitos con tarjeta no están disponibles por ahora.'
+              : e.message
+            : 'No se pudo iniciar el depósito. Intenta de nuevo.'
+        setError(msg)
         setStage('error')
       })
   }, [open, walletAddress, depositAmountUsdc, externalCustomerId])
