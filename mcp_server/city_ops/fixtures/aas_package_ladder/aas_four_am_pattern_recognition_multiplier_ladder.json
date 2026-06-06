@@ -2034,7 +2034,7 @@
     "source_role": "reviewed_cross_project_intelligence_filter"
   },
   "source_operator_answer_gate": {
-    "digest_sha256": "6da9be61409f9158ebd2f4656585392c129fadad195b939a69983aed5eecc236",
+    "digest_sha256": "776f382edf8dfc23f0b58d536fae4f2c9dd9e2211b3adc8b3469da8e50943b7a",
     "file": "aas_operator_answer_receipt_gate.json",
     "safe_claim": "internal_admin_aas_operator_answer_receipt_gate_landed",
     "source_role": "current_future_answer_contract"

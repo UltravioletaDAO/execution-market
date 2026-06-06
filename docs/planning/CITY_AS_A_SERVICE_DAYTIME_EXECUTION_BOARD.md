@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-06-05 06:00 America/New_York
+> Last updated: 2026-06-05 23:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -9,6 +9,22 @@
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
 
+
+
+
+## Latest June 5 23:00 concept gap implementation roadmap
+
+`CITY_AS_A_SERVICE_AAS_CONCEPT_GAP_IMPLEMENTATION_ROADMAP_2026_06_05.md` is the current internal/admin AAS implementation planning sequence. It obeyed `/Users/clawdbot/clawd/DREAM-PRIORITIES.md` over the stale cron payload, so AutoJob, Frontier Academy, KK v2, and KarmaCadabra v2 were not analyzed, edited, expanded, tested, committed, or used as active sources. The mandatory all-repo sync ran first; unrelated repos reported some pull failures/auto-stashes, while Execution Market was usable on `feat/operator-route-regret-panel` and the pre-existing untracked `scripts/sign_req.mjs` remains preserved and untouched.
+
+Implementation landed as `mcp_server/city_ops/aas_concept_gap_implementation_roadmap.py`, persisted at `mcp_server/city_ops/fixtures/aas_package_ladder/aas_concept_gap_implementation_roadmap.json`, with tests in `mcp_server/tests/city_ops/test_aas_concept_gap_implementation_roadmap.py`. It consumes `aas_concept_gap_matrix.json` by digest and turns the source-backed gap rows into a conservative planning sequence: Retail Reality -> Document Handoff -> Compliance Desk -> Field Asset Ops -> Event Readiness -> Incident Verification -> Local Data Collection -> Property Ops -> Runtime Memory / Acontext. Ranks are planning order only, not approval, launch, quote, dispatch, or product priority.
+
+Safe 23:00 claim:
+
+```text
+internal_admin_aas_concept_gap_implementation_roadmap_landed
+```
+
+Meaning only: a deterministic internal/admin roadmap now orders AAS concept-gap planning rows while preserving the existing no-answer, no-approval, no-answer-receipt, no-product, no-runtime, no-private-context, no-authority, no-worker-doctrine, and stopped-project firewall. Recommended posture remains `pause_aas_proof_layering`; safe alternative remains `keep_both_lanes_held`.
 
 
 

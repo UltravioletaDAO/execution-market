@@ -1715,7 +1715,7 @@
   },
   "current_entrypoints": [
     {
-      "digest_sha256": "7c059def6f3eff9cf586c6569ebb895353b384995c5ef5de60ee31e7e5337e6f",
+      "digest_sha256": "28577d1502b64c9437bca4f85d7d004c9f1a4a8622ed78d923138a00c1709b71",
       "exists": true,
       "extension_policy": "current_entrypoint_update_only_when_new_safe_claim_lands",
       "path": "docs/planning/CITY_AS_A_SERVICE_DAYTIME_EXECUTION_BOARD.md",
@@ -1783,6 +1783,20 @@
       "extension_policy": "current_read_only_morning_handoff_until_real_operator_answer_exists",
       "path": "docs/planning/CITY_AS_A_SERVICE_6AM_FINAL_WRAP_2026_06_05.md",
       "role": "latest_final_morning_wrap"
+    },
+    {
+      "digest_sha256": "3de3e83cd8a2a3ac867f6f65892938a6a05833dc7b7668e95732c21db6f59105",
+      "exists": true,
+      "extension_policy": "current_internal_admin_planning_matrix_no_answer_or_product_promotion",
+      "path": "docs/planning/CITY_AS_A_SERVICE_AAS_CONCEPT_GAP_MATRIX_2026_06_05.md",
+      "role": "latest_source_backed_aas_concept_gap_matrix"
+    },
+    {
+      "digest_sha256": "78bd6a3146716b924ec7c8ac5bb15e4290a74ee7b62993b2f021c9ded821b59a",
+      "exists": true,
+      "extension_policy": "current_internal_admin_planning_sequence_no_answer_or_product_promotion",
+      "path": "docs/planning/CITY_AS_A_SERVICE_AAS_CONCEPT_GAP_IMPLEMENTATION_ROADMAP_2026_06_05.md",
+      "role": "latest_source_backed_aas_concept_gap_implementation_roadmap"
     }
   ],
   "current_no_answer_posture": {

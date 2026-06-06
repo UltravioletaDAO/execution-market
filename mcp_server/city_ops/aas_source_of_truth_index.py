@@ -87,6 +87,16 @@ CURRENT_ENTRYPOINT_DOCS = [
         "role": "latest_final_morning_wrap",
         "extension_policy": "current_read_only_morning_handoff_until_real_operator_answer_exists",
     },
+    {
+        "path": "docs/planning/CITY_AS_A_SERVICE_AAS_CONCEPT_GAP_MATRIX_2026_06_05.md",
+        "role": "latest_source_backed_aas_concept_gap_matrix",
+        "extension_policy": "current_internal_admin_planning_matrix_no_answer_or_product_promotion",
+    },
+    {
+        "path": "docs/planning/CITY_AS_A_SERVICE_AAS_CONCEPT_GAP_IMPLEMENTATION_ROADMAP_2026_06_05.md",
+        "role": "latest_source_backed_aas_concept_gap_implementation_roadmap",
+        "extension_policy": "current_internal_admin_planning_sequence_no_answer_or_product_promotion",
+    },
 ]
 
 HISTORICAL_CONTEXT_DOCS = [
