@@ -12,6 +12,30 @@
 
 
 
+## Latest June 6 01:00 Compliance Desk delivery-path hold gap review
+
+`CITY_AS_A_SERVICE_AAS_COMPLIANCE_DESK_DELIVERY_PATH_HOLD_GAP_REVIEW_IMPLEMENTATION.md` is the current internal/admin AAS Compliance Desk maintenance slice. It obeyed `/Users/clawdbot/clawd/DREAM-PRIORITIES.md` over the stale cron payload, so AutoJob, Frontier Academy, KK v2, and KarmaCadabra v2 were not pulled, analyzed, edited, expanded, tested, committed, or used as active sources. Execution Market was synced with `git pull --ff-only`; branch `feat/operator-route-regret-panel` was already up to date and the pre-existing untracked `scripts/sign_req.mjs` remains preserved and untouched.
+
+Implementation landed as `mcp_server/city_ops/aas_compliance_desk_delivery_path_hold_gap_review.py`, persisted at `mcp_server/city_ops/fixtures/aas_package_ladder/aas_compliance_desk_delivery_path_hold_gap_review.json`, with tests in `mcp_server/tests/city_ops/test_aas_compliance_desk_delivery_path_hold_gap_review.py`. It consumes `aas_concept_gap_implementation_roadmap.json` by digest and expands only the rank-3 Compliance Desk maintenance action: `delivery_path_hold_gap_review_without_customer_copy`.
+
+Safe 01:00 claim:
+
+```text
+internal_admin_aas_compliance_desk_delivery_path_hold_gap_review_landed
+```
+
+Meaning only: a deterministic internal/admin hold-gap review now records that Compliance Desk delivery path, publication route, customer format, legal/regulator review scope, and acceptance/sufficiency criteria remain held. It records no operator answer, approval, answer receipt, customer/public/worker copy, recipient/channel/delivery authorization, publication route, catalog/pricing/quote/queue/dispatch, legal/regulator/official-inspection/sufficiency/acceptance authority, reputation, Worker Skill DNA, payment/production reverification, live Acontext/IRC mutation, GPS/raw metadata/private-context/PII release, worker doctrine, or stopped-project integration.
+
+Next required gate remains:
+
+```text
+separate_explicit_operator_answer_receipt_then_compliance_desk_delivery_publication_gate
+```
+
+Recommended posture remains `maintenance_only_no_delivery_path` unless Saúl later provides one explicit allowed operator answer value.
+
+
+
 ## Latest June 5 23:00 concept gap implementation roadmap
 
 `CITY_AS_A_SERVICE_AAS_CONCEPT_GAP_IMPLEMENTATION_ROADMAP_2026_06_05.md` is the current internal/admin AAS implementation planning sequence. It obeyed `/Users/clawdbot/clawd/DREAM-PRIORITIES.md` over the stale cron payload, so AutoJob, Frontier Academy, KK v2, and KarmaCadabra v2 were not analyzed, edited, expanded, tested, committed, or used as active sources. The mandatory all-repo sync ran first; unrelated repos reported some pull failures/auto-stashes, while Execution Market was usable on `feat/operator-route-regret-panel` and the pre-existing untracked `scripts/sign_req.mjs` remains preserved and untouched.

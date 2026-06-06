@@ -1715,7 +1715,7 @@
   },
   "current_entrypoints": [
     {
-      "digest_sha256": "28577d1502b64c9437bca4f85d7d004c9f1a4a8622ed78d923138a00c1709b71",
+      "digest_sha256": "bf8050b60a504af89df2c2f2390ff8167e3df287d94bdde5c885d4507bd5af24",
       "exists": true,
       "extension_policy": "current_entrypoint_update_only_when_new_safe_claim_lands",
       "path": "docs/planning/CITY_AS_A_SERVICE_DAYTIME_EXECUTION_BOARD.md",
@@ -1797,6 +1797,20 @@
       "extension_policy": "current_internal_admin_planning_sequence_no_answer_or_product_promotion",
       "path": "docs/planning/CITY_AS_A_SERVICE_AAS_CONCEPT_GAP_IMPLEMENTATION_ROADMAP_2026_06_05.md",
       "role": "latest_source_backed_aas_concept_gap_implementation_roadmap"
+    },
+    {
+      "digest_sha256": "bc41d09c258dc06616ed4e24531ec5f2a6ac1764cca666ffef70848456f11e36",
+      "exists": true,
+      "extension_policy": "current_internal_admin_maintenance_note_no_answer_or_delivery_promotion",
+      "path": "docs/planning/CITY_AS_A_SERVICE_AAS_DOCUMENT_HANDOFF_REDACTION_DELIVERY_GAP_NOTE_IMPLEMENTATION.md",
+      "role": "latest_document_handoff_redaction_delivery_gap_note"
+    },
+    {
+      "digest_sha256": "820df9b353a4b0db8ffc040ee5720d321e42821d973cd0c438cc8c7e7a455552",
+      "exists": true,
+      "extension_policy": "current_internal_admin_hold_gap_review_no_answer_or_customer_copy_promotion",
+      "path": "docs/planning/CITY_AS_A_SERVICE_AAS_COMPLIANCE_DESK_DELIVERY_PATH_HOLD_GAP_REVIEW_IMPLEMENTATION.md",
+      "role": "latest_compliance_desk_delivery_path_hold_gap_review"
     }
   ],
   "current_no_answer_posture": {

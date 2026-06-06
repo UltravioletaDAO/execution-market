@@ -97,6 +97,16 @@ CURRENT_ENTRYPOINT_DOCS = [
         "role": "latest_source_backed_aas_concept_gap_implementation_roadmap",
         "extension_policy": "current_internal_admin_planning_sequence_no_answer_or_product_promotion",
     },
+    {
+        "path": "docs/planning/CITY_AS_A_SERVICE_AAS_DOCUMENT_HANDOFF_REDACTION_DELIVERY_GAP_NOTE_IMPLEMENTATION.md",
+        "role": "latest_document_handoff_redaction_delivery_gap_note",
+        "extension_policy": "current_internal_admin_maintenance_note_no_answer_or_delivery_promotion",
+    },
+    {
+        "path": "docs/planning/CITY_AS_A_SERVICE_AAS_COMPLIANCE_DESK_DELIVERY_PATH_HOLD_GAP_REVIEW_IMPLEMENTATION.md",
+        "role": "latest_compliance_desk_delivery_path_hold_gap_review",
+        "extension_policy": "current_internal_admin_hold_gap_review_no_answer_or_customer_copy_promotion",
+    },
 ]
 
 HISTORICAL_CONTEXT_DOCS = [
