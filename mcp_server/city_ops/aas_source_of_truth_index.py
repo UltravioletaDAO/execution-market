@@ -43,6 +43,16 @@ CURRENT_ENTRYPOINT_DOCS = [
         "extension_policy": "current_entrypoint_update_only_when_new_safe_claim_lands",
     },
     {
+        "path": "docs/planning/CITY_AS_A_SERVICE_6AM_FINAL_WRAP_2026_06_06.md",
+        "role": "latest_final_morning_wrap",
+        "extension_policy": "current_read_only_morning_handoff_until_real_operator_answer_exists",
+    },
+    {
+        "path": "docs/planning/CITY_AS_A_SERVICE_5AM_PRE_DAWN_SYNTHESIS_HANDOFF_2026_06_06.md",
+        "role": "latest_pre_dawn_synthesis_handoff",
+        "extension_policy": "current_read_only_daytime_handoff_until_real_operator_answer_exists",
+    },
+    {
         "path": "docs/planning/CITY_AS_A_SERVICE_10PM_AAS_NEXT_STEPS_2026_06_02.md",
         "role": "latest_next_slice_audit_before_two_lane_schema",
         "extension_policy": "context_only_after_two_lane_operator_answer_schema_landed",
@@ -111,6 +121,16 @@ CURRENT_ENTRYPOINT_DOCS = [
         "path": "docs/planning/CITY_AS_A_SERVICE_AAS_COMPLIANCE_DESK_DELIVERY_PATH_HOLD_GAP_REVIEW_IMPLEMENTATION.md",
         "role": "latest_compliance_desk_delivery_path_hold_gap_review",
         "extension_policy": "current_internal_admin_hold_gap_review_no_answer_or_customer_copy_promotion",
+    },
+    {
+        "path": "docs/planning/CITY_AS_A_SERVICE_AAS_STRENGTH_ROADMAP_CONNECTION_BOARD_IMPLEMENTATION.md",
+        "role": "latest_strength_roadmap_connection_board",
+        "extension_policy": "current_internal_admin_connection_board_no_answer_or_product_promotion",
+    },
+    {
+        "path": "docs/planning/CITY_AS_A_SERVICE_AAS_FIELD_ASSET_VISIBLE_STATE_FIXTURE_OUTLINE_IMPLEMENTATION.md",
+        "role": "latest_field_asset_visible_state_fixture_outline",
+        "extension_policy": "current_internal_admin_visible_state_outline_no_access_or_dispatch_promotion",
     },
 ]
 

@@ -1715,11 +1715,25 @@
   },
   "current_entrypoints": [
     {
-      "digest_sha256": "00bde1483c4a27d1d56665b45bc4b6aed41363601faa4c4ee9e9310f436ca2c1",
+      "digest_sha256": "68b14e3fc2d703a62523f1675259933964cfdd7d0b68a7572719a3bd50f9cabd",
       "exists": true,
       "extension_policy": "current_entrypoint_update_only_when_new_safe_claim_lands",
       "path": "docs/planning/CITY_AS_A_SERVICE_DAYTIME_EXECUTION_BOARD.md",
       "role": "latest_append_only_execution_board"
+    },
+    {
+      "digest_sha256": "208d994f793b5b802e31bc0d6a1d4d97866dec6610a272851bde956126e676a2",
+      "exists": true,
+      "extension_policy": "current_read_only_morning_handoff_until_real_operator_answer_exists",
+      "path": "docs/planning/CITY_AS_A_SERVICE_6AM_FINAL_WRAP_2026_06_06.md",
+      "role": "latest_final_morning_wrap"
+    },
+    {
+      "digest_sha256": "39323fbf7890589369c3b6af92664495864a17bc27d583feff903db35baa5fc1",
+      "exists": true,
+      "extension_policy": "current_read_only_daytime_handoff_until_real_operator_answer_exists",
+      "path": "docs/planning/CITY_AS_A_SERVICE_5AM_PRE_DAWN_SYNTHESIS_HANDOFF_2026_06_06.md",
+      "role": "latest_pre_dawn_synthesis_handoff"
     },
     {
       "digest_sha256": "2f7efd8037729496dab340052e4b1466c010331f94083a434e0dafae997767d8",
@@ -1818,6 +1832,20 @@
       "extension_policy": "current_internal_admin_hold_gap_review_no_answer_or_customer_copy_promotion",
       "path": "docs/planning/CITY_AS_A_SERVICE_AAS_COMPLIANCE_DESK_DELIVERY_PATH_HOLD_GAP_REVIEW_IMPLEMENTATION.md",
       "role": "latest_compliance_desk_delivery_path_hold_gap_review"
+    },
+    {
+      "digest_sha256": "7a22de35dcd103fa51ff47199ceaec0c92c6a12227cde58444c2c3297a72c0fa",
+      "exists": true,
+      "extension_policy": "current_internal_admin_connection_board_no_answer_or_product_promotion",
+      "path": "docs/planning/CITY_AS_A_SERVICE_AAS_STRENGTH_ROADMAP_CONNECTION_BOARD_IMPLEMENTATION.md",
+      "role": "latest_strength_roadmap_connection_board"
+    },
+    {
+      "digest_sha256": "9f0322322c2976d5e791eff60bdeb3080e744b6c43f6ce2233ab421a88da90b5",
+      "exists": true,
+      "extension_policy": "current_internal_admin_visible_state_outline_no_access_or_dispatch_promotion",
+      "path": "docs/planning/CITY_AS_A_SERVICE_AAS_FIELD_ASSET_VISIBLE_STATE_FIXTURE_OUTLINE_IMPLEMENTATION.md",
+      "role": "latest_field_asset_visible_state_fixture_outline"
     }
   ],
   "current_no_answer_posture": {
