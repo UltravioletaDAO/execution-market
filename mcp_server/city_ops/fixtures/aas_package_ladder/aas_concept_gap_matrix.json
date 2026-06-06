@@ -1,0 +1,188 @@
+{
+  "claim_boundaries": {
+    "do_not_claim_yet": [
+      "concept_gap_matrix_records_operator_answer",
+      "concept_gap_matrix_records_operator_approval",
+      "concept_gap_matrix_creates_answer_receipt",
+      "concept_gap_matrix_selects_future_answer",
+      "concept_gap_matrix_treats_gap_rank_as_approval",
+      "concept_gap_matrix_approves_product_exposure",
+      "concept_gap_matrix_creates_customer_public_or_worker_surface",
+      "concept_gap_matrix_authorizes_catalog_pricing_quote_queue_or_dispatch",
+      "concept_gap_matrix_emits_erc8004_reputation_or_worker_skill_dna",
+      "concept_gap_matrix_reverifies_payment_or_production",
+      "concept_gap_matrix_mutates_runtime_acontext_or_irc_session_manager",
+      "concept_gap_matrix_releases_exact_gps_raw_metadata_or_private_context",
+      "concept_gap_matrix_grants_legal_regulator_notarial_custody_emergency_safety_repair_insurance_sla_official_report_or_fault_liability_authority",
+      "concept_gap_matrix_publishes_worker_copyable_doctrine",
+      "concept_gap_matrix_integrates_or_expands_stopped_projects",
+      "retail_reality_customer_exposure_approved_by_matrix",
+      "local_data_collection_dataset_or_representativeness_claim_approved_by_matrix",
+      "field_asset_ops_repair_diagnosis_or_sla_claim_approved_by_matrix",
+      "event_readiness_safety_permit_security_vendor_or_outcome_claim_approved_by_matrix",
+      "property_ops_appraisal_code_legal_access_insurance_or_remediation_claim_approved_by_matrix",
+      "document_handoff_legal_notarial_custody_or_acceptance_claim_approved_by_matrix",
+      "compliance_desk_regulator_legal_sufficiency_or_publication_claim_approved_by_matrix",
+      "incident_verification_emergency_official_report_fault_liability_or_repair_claim_approved_by_matrix",
+      "system_integration_runtime_memory_write_retrieve_or_parity_claim_approved_by_matrix"
+    ],
+    "safe_to_claim": [
+      "internal_admin_aas_concept_gap_matrix_landed"
+    ]
+  },
+  "concept_gap_rows": [
+    {
+      "aas_family": "retail_reality",
+      "implementation_concept_expansion": "stale-hours refresh replay shape with source digest, observed-window limits, and no inventory guarantee",
+      "next_allowed_without_human_answer": "none_beyond_matrix_or_source_digest_maintenance",
+      "priority_if_human_answer_arrives": 1,
+      "small_safe_internal_admin_gap": "draft a hold-vs-answer checklist only after an explicit operator answer; otherwise keep the existing packet held",
+      "source_backed_current_state": "closest product-family review candidate; selected boundary is internal/admin and still pending"
+    },
+    {
+      "aas_family": "local_data_collection",
+      "implementation_concept_expansion": "measurement packet fields for count/method/source-type/uncertainty without dataset publication",
+      "next_allowed_without_human_answer": "planning_only_no_fixture_promotion",
+      "priority_if_human_answer_arrives": 5,
+      "small_safe_internal_admin_gap": "plan a one-location measurement uncertainty rubric that keeps representativeness blocked",
+      "source_backed_current_state": "useful held family; needs selected-boundary request before any approval record"
+    },
+    {
+      "aas_family": "field_asset_ops",
+      "implementation_concept_expansion": "observed-state checklist separating visibility/functionality/obstruction from warranty/SLA/safety claims",
+      "next_allowed_without_human_answer": "concept_outline_only",
+      "priority_if_human_answer_arrives": 3,
+      "small_safe_internal_admin_gap": "define a future fixture-spec outline for visible asset state vs obstruction, not repair diagnosis",
+      "source_backed_current_state": "concept-map lane with no active package rung in the current no-answer stack"
+    },
+    {
+      "aas_family": "event_readiness",
+      "implementation_concept_expansion": "pre-event snapshot schema separating observed setup state from permit/security/outcome authority",
+      "next_allowed_without_human_answer": "concept_outline_only",
+      "priority_if_human_answer_arrives": 4,
+      "small_safe_internal_admin_gap": "keep a future venue-readiness fixture outline limited to observed checklist blockers",
+      "source_backed_current_state": "concept-map lane; time pressure creates safety/permit/vendor-overclaim risk"
+    },
+    {
+      "aas_family": "property_ops",
+      "implementation_concept_expansion": "single-site visible-condition vocabulary that excludes appraisal/code/legal/insurance/remediation claims",
+      "next_allowed_without_human_answer": "blocked_claim_quarantine_only",
+      "priority_if_human_answer_arrives": 6,
+      "small_safe_internal_admin_gap": "only maintain a blocked-claim quarantine map until safer lanes have more proof",
+      "source_backed_current_state": "concept-map lane intentionally lower priority because legal/appraisal/access risks are high"
+    },
+    {
+      "aas_family": "document_handoff",
+      "implementation_concept_expansion": "handoff proof packet discipline around custody limits, redaction gates, and no legal/notarial authority",
+      "next_allowed_without_human_answer": "maintenance_only_no_new_approval_artifact",
+      "priority_if_human_answer_arrives": 2,
+      "small_safe_internal_admin_gap": "maintain redaction and delivery-path gap notes; do not create approval record without an explicit answer",
+      "source_backed_current_state": "pending approval-request/read-surface family; no human approval record exists"
+    },
+    {
+      "aas_family": "compliance_desk",
+      "implementation_concept_expansion": "visible-notice compliance snapshot packaging with regulator/legal acceptance explicitly blocked",
+      "next_allowed_without_human_answer": "maintenance_only_no_delivery_path",
+      "priority_if_human_answer_arrives": 2,
+      "small_safe_internal_admin_gap": "preserve delivery-path hold gap; no customer copy/publication route without separate human authorization",
+      "source_backed_current_state": "one internal label has prior approval posture, but delivery path remains absent"
+    },
+    {
+      "aas_family": "incident_verification",
+      "implementation_concept_expansion": "incident state snapshot language split into observation, uncertainty, and non-authority disclaimers",
+      "next_allowed_without_human_answer": "maintenance_only_no_approval_record",
+      "priority_if_human_answer_arrives": 4,
+      "small_safe_internal_admin_gap": "keep validator and authority exclusions intact; no approval, report, repair, insurance, or fault claim",
+      "source_backed_current_state": "strong validator exists for a future human record; incident-authority risk remains high"
+    },
+    {
+      "aas_family": "system_integration_runtime_memory",
+      "implementation_concept_expansion": "future answer-receipt-driven runtime checklist: read-only inventory before any live write/retrieve parity attempt",
+      "next_allowed_without_human_answer": "pause_aas_proof_layering",
+      "priority_if_human_answer_arrives": 7,
+      "small_safe_internal_admin_gap": "use as a prerequisite checklist only; no Docker/Acontext/runtime/IRC mutation in this matrix",
+      "source_backed_current_state": "support/control lane; route regret panel says stop adding route layers without new truth"
+    }
+  ],
+  "cross_concept_rules": [
+    "Do not add another no-answer or approval wrapper from this matrix.",
+    "If no explicit human/operator answer exists, use this as a planning index only.",
+    "If an explicit answer arrives later, create exactly one separate answer receipt before any product or runtime movement.",
+    "Treat Field Asset Ops, Event Readiness, and Property Ops as concept-outline lanes until safer families have more proof.",
+    "Keep exact GPS/raw metadata, private context, authority claims, public/customer/worker copy, pricing, dispatch, reputation, payment, runtime, and worker doctrine blocked."
+  ],
+  "current_operator_state": {
+    "answer_receipt_created": false,
+    "explicit_operator_answer_available": false,
+    "operator_approval_recorded": false,
+    "reason": "June 5 final wrap says the useful next unit is an answer receipt only after a real explicit operator answer; this matrix is planning only.",
+    "recommended_no_human_posture": "pause_aas_proof_layering_or_keep_both_lanes_held"
+  },
+  "governing_priority": {
+    "allowed_lane": "Execution Market AAS / City-as-a-Service and AAS concepts",
+    "source": "/Users/clawdbot/clawd/DREAM-PRIORITIES.md",
+    "stopped_project_firewall": {
+      "autojob_work_allowed": false,
+      "frontier_academy_work_allowed": false,
+      "karmacadabra_v2_work_allowed": false,
+      "kk_v2_work_allowed": false
+    }
+  },
+  "matrix_digest_sha256": "346b5bf102c1bb30fb4be7a684c705d9b0fa52df8b8e54391384540f15790181",
+  "matrix_id": "execution_market.aas.concept_gap_matrix.2026_06_05_2200",
+  "matrix_status": "internal_admin_source_backed_planning_no_answer_no_approval_no_product_or_runtime_promotion",
+  "readiness": {
+    "matrix_approves_product_exposure": false,
+    "matrix_creates_answer_receipt": false,
+    "matrix_creates_customer_copy": false,
+    "matrix_creates_public_catalog_or_route": false,
+    "matrix_creates_worker_instruction": false,
+    "matrix_emits_reputation_or_worker_skill_dna": false,
+    "matrix_exposes_exact_gps_or_raw_metadata": false,
+    "matrix_grants_domain_authority": false,
+    "matrix_launches_queue_or_dispatch": false,
+    "matrix_mutates_irc_session_manager": false,
+    "matrix_mutates_runtime_or_acontext": false,
+    "matrix_publishes_worker_copyable_doctrine": false,
+    "matrix_records_operator_answer": false,
+    "matrix_records_operator_approval": false,
+    "matrix_releases_private_context": false,
+    "matrix_reverifies_payment_or_production": false,
+    "matrix_selects_future_answer": false,
+    "matrix_sets_pricing_or_customer_quote": false,
+    "matrix_uses_stopped_projects_as_sources": false
+  },
+  "schema": "city_ops.aas_concept_gap_matrix.v1",
+  "source_documents": [
+    {
+      "digest_sha256": "ebb6ff4da410e817c92fa8df72c6d16c1c7bed4683302406864a40f487bbc3b6",
+      "file": "EXECUTION_MARKET_AAS_CONCEPT_MAP_2026_05_08.md",
+      "role": "baseline_adjacent_aas_taxonomy_and_first_concierge_offers",
+      "source_use": "reviewed_planning_source_digest_only_no_private_context_no_runtime_probe"
+    },
+    {
+      "digest_sha256": "e10abf5275ac7d70d055762bb6f245eea121d8e931198cea40c494cc81088451",
+      "file": "EXECUTION_MARKET_AAS_NEXT_LOW_AUTHORITY_PACKAGING_PLAN_2026_05_23_10PM.md",
+      "role": "ranked_low_authority_packaging_plan_for_adjacent_aas_lanes",
+      "source_use": "reviewed_planning_source_digest_only_no_private_context_no_runtime_probe"
+    },
+    {
+      "digest_sha256": "c50fcd9df996f845bd6a898aad38aa3c013db7a994f8534de70562b7dec6150b",
+      "file": "CITY_AS_A_SERVICE_AAS_PRODUCT_FORK_NEXT_GATE_SELECTOR_2026_06_01.md",
+      "role": "current_product_family_next_gate_selector_and_no_human_pause_rule",
+      "source_use": "reviewed_planning_source_digest_only_no_private_context_no_runtime_probe"
+    },
+    {
+      "digest_sha256": "447bfbf1f5719407c0710aed16db84307716d2e84470e120cc5de35188fa15eb",
+      "file": "CITY_AS_A_SERVICE_SYSTEM_INTEGRATION_FLYWHEEL_ROUTE_REGRET_PANEL_IMPLEMENTATION.md",
+      "role": "stop_marker_for_more_route_layers_without_runtime_or_operator_truth",
+      "source_use": "reviewed_planning_source_digest_only_no_private_context_no_runtime_probe"
+    },
+    {
+      "digest_sha256": "efddf7715c25456d1f2455133c2885c4e73952ad9264008df9e7405b5bda5839",
+      "file": "CITY_AS_A_SERVICE_6AM_FINAL_WRAP_2026_06_05.md",
+      "role": "latest_final_wrap_recommending_pause_aas_proof_layering",
+      "source_use": "reviewed_planning_source_digest_only_no_private_context_no_runtime_probe"
+    }
+  ]
+}
