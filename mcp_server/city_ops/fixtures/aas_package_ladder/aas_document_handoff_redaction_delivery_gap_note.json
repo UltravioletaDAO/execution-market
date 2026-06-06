@@ -1,0 +1,163 @@
+{
+  "claim_boundaries": {
+    "do_not_claim_yet": [
+      "concept_gap_matrix_records_operator_answer",
+      "concept_gap_matrix_records_operator_approval",
+      "concept_gap_matrix_creates_answer_receipt",
+      "concept_gap_matrix_selects_future_answer",
+      "concept_gap_matrix_treats_gap_rank_as_approval",
+      "concept_gap_matrix_approves_product_exposure",
+      "concept_gap_matrix_creates_customer_public_or_worker_surface",
+      "concept_gap_matrix_authorizes_catalog_pricing_quote_queue_or_dispatch",
+      "concept_gap_matrix_emits_erc8004_reputation_or_worker_skill_dna",
+      "concept_gap_matrix_reverifies_payment_or_production",
+      "concept_gap_matrix_mutates_runtime_acontext_or_irc_session_manager",
+      "concept_gap_matrix_releases_exact_gps_raw_metadata_or_private_context",
+      "concept_gap_matrix_grants_legal_regulator_notarial_custody_emergency_safety_repair_insurance_sla_official_report_or_fault_liability_authority",
+      "concept_gap_matrix_publishes_worker_copyable_doctrine",
+      "concept_gap_matrix_integrates_or_expands_stopped_projects",
+      "retail_reality_customer_exposure_approved_by_matrix",
+      "local_data_collection_dataset_or_representativeness_claim_approved_by_matrix",
+      "field_asset_ops_repair_diagnosis_or_sla_claim_approved_by_matrix",
+      "event_readiness_safety_permit_security_vendor_or_outcome_claim_approved_by_matrix",
+      "property_ops_appraisal_code_legal_access_insurance_or_remediation_claim_approved_by_matrix",
+      "document_handoff_legal_notarial_custody_or_acceptance_claim_approved_by_matrix",
+      "compliance_desk_regulator_legal_sufficiency_or_publication_claim_approved_by_matrix",
+      "incident_verification_emergency_official_report_fault_liability_or_repair_claim_approved_by_matrix",
+      "system_integration_runtime_memory_write_retrieve_or_parity_claim_approved_by_matrix",
+      "concept_gap_roadmap_records_operator_answer",
+      "concept_gap_roadmap_records_operator_approval",
+      "concept_gap_roadmap_creates_answer_receipt",
+      "concept_gap_roadmap_selects_future_answer",
+      "concept_gap_roadmap_treats_sequence_rank_as_approval",
+      "concept_gap_roadmap_approves_product_exposure",
+      "concept_gap_roadmap_creates_customer_public_or_worker_surface",
+      "concept_gap_roadmap_authorizes_catalog_pricing_quote_route_queue_or_dispatch",
+      "concept_gap_roadmap_creates_worker_instruction",
+      "concept_gap_roadmap_emits_erc8004_reputation_or_worker_skill_dna",
+      "concept_gap_roadmap_reverifies_payment_or_production",
+      "concept_gap_roadmap_mutates_runtime_acontext_or_irc_session_manager",
+      "concept_gap_roadmap_releases_exact_gps_raw_metadata_or_private_context",
+      "concept_gap_roadmap_grants_legal_regulator_notarial_custody_emergency_safety_repair_insurance_sla_official_report_or_fault_liability_authority",
+      "concept_gap_roadmap_publishes_worker_copyable_doctrine",
+      "concept_gap_roadmap_integrates_or_expands_stopped_projects",
+      "document_handoff_gap_note_records_operator_answer",
+      "document_handoff_gap_note_records_operator_approval",
+      "document_handoff_gap_note_creates_answer_receipt",
+      "document_handoff_gap_note_selects_future_answer",
+      "document_handoff_gap_note_treats_maintenance_as_approval",
+      "document_handoff_gap_note_approves_product_exposure",
+      "document_handoff_gap_note_creates_customer_public_or_worker_copy",
+      "document_handoff_gap_note_authorizes_recipient_channel_delivery_or_acceptance",
+      "document_handoff_gap_note_creates_catalog_pricing_quote_route_queue_or_dispatch",
+      "document_handoff_gap_note_creates_worker_instruction",
+      "document_handoff_gap_note_emits_erc8004_reputation_or_worker_skill_dna",
+      "document_handoff_gap_note_reverifies_payment_or_production",
+      "document_handoff_gap_note_mutates_runtime_acontext_or_irc_session_manager",
+      "document_handoff_gap_note_releases_exact_gps_raw_metadata_private_context_or_pii",
+      "document_handoff_gap_note_grants_legal_notarial_custody_regulatory_or_acceptance_authority",
+      "document_handoff_gap_note_publishes_worker_copyable_doctrine",
+      "document_handoff_gap_note_integrates_or_expands_stopped_projects"
+    ],
+    "safe_to_claim": [
+      "internal_admin_aas_concept_gap_implementation_roadmap_landed",
+      "internal_admin_aas_document_handoff_redaction_delivery_gap_note_landed"
+    ]
+  },
+  "current_operator_state": {
+    "answer_receipt_created": false,
+    "explicit_operator_answer_available": false,
+    "operator_approval_recorded": false,
+    "recommended_no_human_posture": "maintenance_only_no_new_approval_artifact",
+    "selected_decision": null
+  },
+  "document_handoff_gap_note": {
+    "aas_family": "document_handoff",
+    "allowed_use": "internal_admin_redaction_delivery_path_gap_note_maintenance_only",
+    "delivery_path_unknowns": [
+      "authorized_recipient_or_review_role_not_selected",
+      "authorized_delivery_channel_not_selected",
+      "acceptance_criteria_not_recorded",
+      "custody_chain_not_authorized",
+      "legal_notarial_or_regulatory_sufficiency_not_authorized",
+      "customer_facing_format_not_approved"
+    ],
+    "forbidden_language": [
+      "legally accepted",
+      "notarized",
+      "chain of custody proven",
+      "customer ready",
+      "deliver to recipient",
+      "dispatch worker",
+      "public catalog ready"
+    ],
+    "implementation_concept_expansion": "handoff proof packet discipline around custody limits, redaction gates, and no legal/notarial authority",
+    "maintenance_mode": "maintenance_only_no_new_approval_artifact",
+    "next_gate_before_any_delivery_or_runtime_movement": "separate_explicit_operator_answer_receipt_then_document_handoff_delivery_publication_gate",
+    "redaction_gap_checks": [
+      "remove_or_mask_private_person_identifiers_before_any_operator_review_packet",
+      "exclude_exact_locations_coordinates_raw_metadata_and_private_context_from_gap_note",
+      "exclude_signatures_payment_details_account_numbers_tokens_keys_and_credentials",
+      "reference_source_documents_by_non_secret_digest_or_label_not_raw_sensitive_content",
+      "keep excerpts bounded_to_visible_document_facts_only_if_a_future_answer_authorizes_them"
+    ],
+    "roadmap_next_planning_slice": "redaction_and_delivery_path_gap_note_maintenance_only",
+    "safe_internal_language": [
+      "observed visible document fields only",
+      "redaction pending operator review",
+      "delivery path not authorized",
+      "custody and legal effect not claimed",
+      "future receipt required before customer or worker use"
+    ],
+    "source_backed_current_state": "pending approval-request/read-surface family; no human approval record exists",
+    "still_blocked": true
+  },
+  "gap_note_digest_sha256": "e331d0f2ebb2de006714227fe877e0c5de771d2997372b8494ff15fc7a66d313",
+  "gap_note_id": "execution_market.aas.document_handoff_redaction_delivery_gap_note.2026_06_06_0000",
+  "gap_note_status": "internal_admin_gap_note_no_answer_no_approval_no_delivery_or_authority_promotion",
+  "governing_priority": {
+    "allowed_lane": "Execution Market AAS / City-as-a-Service Document Handoff planning",
+    "source": "/Users/clawdbot/clawd/DREAM-PRIORITIES.md",
+    "stopped_project_firewall": {
+      "autojob_work_allowed": false,
+      "frontier_academy_work_allowed": false,
+      "karmacadabra_v2_work_allowed": false,
+      "kk_v2_work_allowed": false
+    }
+  },
+  "readiness": {
+    "gap_note_approves_product_exposure": false,
+    "gap_note_authorizes_delivery_path_or_recipient": false,
+    "gap_note_creates_answer_receipt": false,
+    "gap_note_creates_customer_public_or_worker_copy": false,
+    "gap_note_creates_public_catalog_pricing_quote_or_route": false,
+    "gap_note_emits_reputation_or_worker_skill_dna": false,
+    "gap_note_exposes_exact_gps_raw_metadata_private_context_or_pii": false,
+    "gap_note_grants_legal_notarial_custody_or_acceptance_authority": false,
+    "gap_note_integrates_or_expands_stopped_projects": false,
+    "gap_note_launches_queue_dispatch_or_worker_instruction": false,
+    "gap_note_mutates_runtime_acontext_or_irc": false,
+    "gap_note_publishes_worker_copyable_doctrine": false,
+    "gap_note_records_operator_answer": false,
+    "gap_note_records_operator_approval": false,
+    "gap_note_reverifies_payment_or_production": false,
+    "gap_note_selects_future_answer": false
+  },
+  "schema": "city_ops.aas_document_handoff_redaction_delivery_gap_note.v1",
+  "sequence_rules": [
+    "Treat this note as maintenance only, never as approval or customer copy.",
+    "Do not include raw PII, exact GPS, raw metadata, private context, signatures, payment data, or secrets.",
+    "Do not authorize recipient, delivery channel, acceptance, custody, legal effect, notarial effect, or customer format from this note.",
+    "Create a separate explicit answer receipt before any Document Handoff delivery/publication gate.",
+    "Keep AutoJob, Frontier Academy, KK v2, and KarmaCadabra v2 out of the active dream workstream."
+  ],
+  "source_roadmap": {
+    "consumed_row_family": "document_handoff",
+    "consumed_row_rank": 2,
+    "digest_sha256": "79ee0a38805e37e4021d2ccc442ec1f5ad420a1242623e652f95c3872ea72cd1",
+    "file": "aas_concept_gap_implementation_roadmap.json",
+    "roadmap_id": "execution_market.aas.concept_gap_implementation_roadmap.2026_06_05_2300",
+    "safe_claim": "internal_admin_aas_concept_gap_implementation_roadmap_landed",
+    "schema": "city_ops.aas_concept_gap_implementation_roadmap.v1"
+  }
+}
