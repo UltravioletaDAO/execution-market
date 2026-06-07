@@ -1715,7 +1715,7 @@
   },
   "current_entrypoints": [
     {
-      "digest_sha256": "41f2cc2b32cf05466e61f71617fdc3971ec49e30c50f2640e5cb7250c5292802",
+      "digest_sha256": "850279a69dff62781c3231084b5532565f3fd625dba4d3790f2efc2ae600e1d5",
       "exists": true,
       "extension_policy": "current_entrypoint_update_only_when_new_safe_claim_lands",
       "path": "docs/planning/CITY_AS_A_SERVICE_DAYTIME_EXECUTION_BOARD.md",
@@ -1860,6 +1860,13 @@
       "extension_policy": "current_internal_admin_maintenance_no_emergency_official_fault_repair_or_dispatch_promotion",
       "path": "docs/planning/CITY_AS_A_SERVICE_AAS_INCIDENT_VERIFICATION_OBSERVATION_UNCERTAINTY_MAINTENANCE_IMPLEMENTATION.md",
       "role": "latest_incident_verification_observation_uncertainty_maintenance"
+    },
+    {
+      "digest_sha256": "d65f20b450a04fcdb8f2695aa83113f9675b34cbff5261427d87b60e185bf7e8",
+      "exists": true,
+      "extension_policy": "current_internal_admin_rubric_no_dataset_measurement_certification_or_dispatch_promotion",
+      "path": "docs/planning/CITY_AS_A_SERVICE_AAS_LOCAL_DATA_COLLECTION_MEASUREMENT_UNCERTAINTY_RUBRIC_IMPLEMENTATION.md",
+      "role": "latest_local_data_collection_measurement_uncertainty_rubric"
     }
   ],
   "current_no_answer_posture": {

@@ -12,6 +12,30 @@
 
 
 
+## Latest June 6 23:00 Local Data Collection measurement-uncertainty rubric
+
+`CITY_AS_A_SERVICE_AAS_LOCAL_DATA_COLLECTION_MEASUREMENT_UNCERTAINTY_RUBRIC_IMPLEMENTATION.md` is the current internal/admin AAS Local Data Collection roadmap slice. It obeyed `/Users/clawdbot/clawd/DREAM-PRIORITIES.md`, so AutoJob, Frontier Academy, KK v2, and KarmaCadabra v2 were not analyzed, edited, expanded, tested, committed, or used as active sources. Incident Verification was already landed at 22:00, so this pass did not duplicate it.
+
+Implementation landed as `mcp_server/city_ops/aas_local_data_collection_measurement_uncertainty_rubric.py`, persisted at `mcp_server/city_ops/fixtures/aas_package_ladder/aas_local_data_collection_measurement_uncertainty_rubric.json`, with tests in `mcp_server/tests/city_ops/test_aas_local_data_collection_measurement_uncertainty_rubric.py`. It consumes `aas_concept_gap_implementation_roadmap.json` by digest and expands only the rank-7 Local Data Collection roadmap action: `measurement_uncertainty_rubric_outline_no_dataset_publication`.
+
+Safe 23:00 claim:
+
+```text
+internal_admin_aas_local_data_collection_measurement_uncertainty_rubric_landed
+```
+
+Meaning only: a deterministic internal/admin planning artifact now records safe Local Data Collection measurement-uncertainty vocabulary — measurement subject placeholder without private location/parties, collection window placeholder without private context, unit/precision band, instrument/source type placeholder after redaction review, sample-count placeholder without dataset publication, missingness/coverage gap statement, uncertainty/confidence caveat, redaction-gated evidence placeholders, and explicit unknowns. It records no operator answer, approval, answer receipt, customer/public/worker copy, collection/site access authorization, sensor deployment/survey/sampling authorization, measurement certification, dataset/report/dashboard/benchmark publication, catalog/pricing/quote/route/queue/dispatch, reputation, Worker Skill DNA, payment/production reverification, live Acontext/IRC mutation, exact GPS/raw metadata/private-context/PII release, worker doctrine, authority claims, or stopped-project integration.
+
+Next required gate remains:
+
+```text
+separate_explicit_operator_answer_receipt_then_local_data_collection_customer_or_dispatch_gate
+```
+
+Recommended posture remains `planning_only_no_fixture_promotion` unless Saúl later provides one explicit allowed operator answer value.
+
+
+
 ## Latest June 6 22:00 Incident Verification observation/uncertainty maintenance
 
 `CITY_AS_A_SERVICE_AAS_INCIDENT_VERIFICATION_OBSERVATION_UNCERTAINTY_MAINTENANCE_IMPLEMENTATION.md` is the current internal/admin AAS Incident Verification roadmap slice. It obeyed `/Users/clawdbot/clawd/DREAM-PRIORITIES.md`, so AutoJob, Frontier Academy, KK v2, and KarmaCadabra v2 were not pulled, analyzed, edited, expanded, tested, committed, or used as active sources. Event Readiness was already landed at 07:00 in commit `fb100ce7`, so this pass did not duplicate it.

@@ -142,6 +142,11 @@ CURRENT_ENTRYPOINT_DOCS = [
         "role": "latest_incident_verification_observation_uncertainty_maintenance",
         "extension_policy": "current_internal_admin_maintenance_no_emergency_official_fault_repair_or_dispatch_promotion",
     },
+    {
+        "path": "docs/planning/CITY_AS_A_SERVICE_AAS_LOCAL_DATA_COLLECTION_MEASUREMENT_UNCERTAINTY_RUBRIC_IMPLEMENTATION.md",
+        "role": "latest_local_data_collection_measurement_uncertainty_rubric",
+        "extension_policy": "current_internal_admin_rubric_no_dataset_measurement_certification_or_dispatch_promotion",
+    },
 ]
 
 HISTORICAL_CONTEXT_DOCS = [
