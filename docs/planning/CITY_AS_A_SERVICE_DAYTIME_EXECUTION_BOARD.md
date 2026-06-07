@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-06-06 07:00 America/New_York
+> Last updated: 2026-06-06 22:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -9,6 +9,30 @@
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
 
+
+
+
+## Latest June 6 22:00 Incident Verification observation/uncertainty maintenance
+
+`CITY_AS_A_SERVICE_AAS_INCIDENT_VERIFICATION_OBSERVATION_UNCERTAINTY_MAINTENANCE_IMPLEMENTATION.md` is the current internal/admin AAS Incident Verification roadmap slice. It obeyed `/Users/clawdbot/clawd/DREAM-PRIORITIES.md`, so AutoJob, Frontier Academy, KK v2, and KarmaCadabra v2 were not pulled, analyzed, edited, expanded, tested, committed, or used as active sources. Event Readiness was already landed at 07:00 in commit `fb100ce7`, so this pass did not duplicate it.
+
+Implementation landed as `mcp_server/city_ops/aas_incident_verification_observation_uncertainty_maintenance.py`, persisted at `mcp_server/city_ops/fixtures/aas_package_ladder/aas_incident_verification_observation_uncertainty_maintenance.json`, with tests in `mcp_server/tests/city_ops/test_aas_incident_verification_observation_uncertainty_maintenance.py`. It consumes `aas_concept_gap_implementation_roadmap.json` by digest and expands only the rank-6 Incident Verification roadmap action: `observation_uncertainty_language_maintenance_only`.
+
+Safe 22:00 claim:
+
+```text
+internal_admin_aas_incident_verification_observation_uncertainty_maintenance_landed
+```
+
+Meaning only: a deterministic internal/admin maintenance artifact now records safe Incident Verification observation/uncertainty vocabulary — incident identifier placeholder without private location/parties, observation window placeholder without private context, visible condition/state without cause assignment, source-type placeholders after redaction review, required uncertainty/ambiguity statement, non-authority disclaimer for emergency/safety/fault/liability, redaction-gated photo/screenshot/text placeholders, and explicit unknowns. It records no operator answer, approval, answer receipt, customer/public/worker copy, incident-site access authorization, emergency/safety decision, official report, fault/liability/insurance claim, repair/remediation/completion claim, catalog/pricing/quote/route/queue/dispatch, reputation, Worker Skill DNA, payment/production reverification, live Acontext/IRC mutation, exact GPS/raw metadata/private-context/PII release, worker doctrine, authority claims, or stopped-project integration.
+
+Next required gate remains:
+
+```text
+separate_explicit_operator_answer_receipt_then_incident_verification_customer_or_dispatch_gate
+```
+
+Recommended posture remains `maintenance_only_no_approval_record` unless Saúl later provides one explicit allowed operator answer value.
 
 
 

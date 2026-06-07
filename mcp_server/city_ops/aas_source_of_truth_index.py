@@ -137,6 +137,11 @@ CURRENT_ENTRYPOINT_DOCS = [
         "role": "latest_event_readiness_observation_outline",
         "extension_policy": "current_internal_admin_observation_outline_no_permit_security_outcome_or_dispatch_promotion",
     },
+    {
+        "path": "docs/planning/CITY_AS_A_SERVICE_AAS_INCIDENT_VERIFICATION_OBSERVATION_UNCERTAINTY_MAINTENANCE_IMPLEMENTATION.md",
+        "role": "latest_incident_verification_observation_uncertainty_maintenance",
+        "extension_policy": "current_internal_admin_maintenance_no_emergency_official_fault_repair_or_dispatch_promotion",
+    },
 ]
 
 HISTORICAL_CONTEXT_DOCS = [

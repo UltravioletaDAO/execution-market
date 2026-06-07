@@ -1715,7 +1715,7 @@
   },
   "current_entrypoints": [
     {
-      "digest_sha256": "94cd090087521c0c72dd5607e58a607bb03cefa71c909361b9a1524dd731ab32",
+      "digest_sha256": "41f2cc2b32cf05466e61f71617fdc3971ec49e30c50f2640e5cb7250c5292802",
       "exists": true,
       "extension_policy": "current_entrypoint_update_only_when_new_safe_claim_lands",
       "path": "docs/planning/CITY_AS_A_SERVICE_DAYTIME_EXECUTION_BOARD.md",
@@ -1853,6 +1853,13 @@
       "extension_policy": "current_internal_admin_observation_outline_no_permit_security_outcome_or_dispatch_promotion",
       "path": "docs/planning/CITY_AS_A_SERVICE_AAS_EVENT_READINESS_OBSERVATION_OUTLINE_IMPLEMENTATION.md",
       "role": "latest_event_readiness_observation_outline"
+    },
+    {
+      "digest_sha256": "b16a097bafd3680285fb9d013d251652921f1617bf40cb25fe6191e6e4f42b4b",
+      "exists": true,
+      "extension_policy": "current_internal_admin_maintenance_no_emergency_official_fault_repair_or_dispatch_promotion",
+      "path": "docs/planning/CITY_AS_A_SERVICE_AAS_INCIDENT_VERIFICATION_OBSERVATION_UNCERTAINTY_MAINTENANCE_IMPLEMENTATION.md",
+      "role": "latest_incident_verification_observation_uncertainty_maintenance"
     }
   ],
   "current_no_answer_posture": {
