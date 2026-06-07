@@ -2087,7 +2087,7 @@
     ]
   },
   "source_pattern_ladder": {
-    "digest_sha256": "0fb625c586c00c9edb55dd138edd4b0451b638b99b6651bf0b27c2e85f2c8837",
+    "digest_sha256": "b8fb9ad1a4bdcd063ab73792e22e2f05cd2772b41342760e3709347233e1724d",
     "file": "aas_four_am_pattern_recognition_multiplier_ladder.json",
     "safe_claim": "internal_admin_aas_4am_pattern_recognition_multiplier_ladder_landed",
     "source_role": "current_4am_pattern_recognition_multiplier_ladder"
