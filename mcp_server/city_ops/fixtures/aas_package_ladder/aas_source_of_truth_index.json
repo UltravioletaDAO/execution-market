@@ -1715,7 +1715,7 @@
   },
   "current_entrypoints": [
     {
-      "digest_sha256": "850279a69dff62781c3231084b5532565f3fd625dba4d3790f2efc2ae600e1d5",
+      "digest_sha256": "dcc45f2a92cfa157fb545eb4024b9163b94337c2b22993bc2f6e764e0f231de4",
       "exists": true,
       "extension_policy": "current_entrypoint_update_only_when_new_safe_claim_lands",
       "path": "docs/planning/CITY_AS_A_SERVICE_DAYTIME_EXECUTION_BOARD.md",
@@ -1867,6 +1867,13 @@
       "extension_policy": "current_internal_admin_rubric_no_dataset_measurement_certification_or_dispatch_promotion",
       "path": "docs/planning/CITY_AS_A_SERVICE_AAS_LOCAL_DATA_COLLECTION_MEASUREMENT_UNCERTAINTY_RUBRIC_IMPLEMENTATION.md",
       "role": "latest_local_data_collection_measurement_uncertainty_rubric"
+    },
+    {
+      "digest_sha256": "09e1ca28efc338616e3e32d2da2a58c01578194464e29bc2985682e33b9da9f7",
+      "exists": true,
+      "extension_policy": "current_internal_admin_vocabulary_no_property_access_authority_or_dispatch_promotion",
+      "path": "docs/planning/CITY_AS_A_SERVICE_AAS_PROPERTY_OPS_BLOCKED_CLAIM_QUARANTINE_VOCABULARY_IMPLEMENTATION.md",
+      "role": "latest_property_ops_blocked_claim_quarantine_vocabulary"
     }
   ],
   "current_no_answer_posture": {

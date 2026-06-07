@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-06-06 22:00 America/New_York
+> Last updated: 2026-06-07 00:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -9,6 +9,30 @@
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
 
+
+
+
+## Latest June 7 00:00 Property Ops blocked-claim quarantine vocabulary
+
+`CITY_AS_A_SERVICE_AAS_PROPERTY_OPS_BLOCKED_CLAIM_QUARANTINE_VOCABULARY_IMPLEMENTATION.md` is the current internal/admin AAS Property Ops roadmap slice. It obeyed `/Users/clawdbot/clawd/DREAM-PRIORITIES.md`, so AutoJob, Frontier Academy, KK v2, and KarmaCadabra v2 were not analyzed, edited, expanded, tested, committed, or used as active sources. Local Data Collection was already landed at 23:00 on June 6, so this pass did not duplicate it.
+
+Implementation landed as `mcp_server/city_ops/aas_property_ops_blocked_claim_quarantine_vocabulary.py`, persisted at `mcp_server/city_ops/fixtures/aas_package_ladder/aas_property_ops_blocked_claim_quarantine_vocabulary.json`, with tests in `mcp_server/tests/city_ops/test_aas_property_ops_blocked_claim_quarantine_vocabulary.py`. It consumes `aas_concept_gap_implementation_roadmap.json` by digest and expands only the rank-8 Property Ops roadmap action: `blocked_claim_quarantine_vocabulary_only`.
+
+Safe 00:00 claim:
+
+```text
+internal_admin_aas_property_ops_blocked_claim_quarantine_vocabulary_landed
+```
+
+Meaning only: a deterministic internal/admin planning artifact now records safe Property Ops blocked-claim quarantine vocabulary — property identifier placeholder without private location/parties, visible condition placeholder without access or entry authorization, apparent occupancy/use signal without tenancy or legal claim, visible maintenance signal without repair/remediation commitment, apparent access/obstruction signal without right-of-entry claim, redaction-gated evidence placeholders, explicit quarantine for code/compliance/appraisal/insurance/legal claims, and unresolved Property Ops unknowns. It records no operator answer, approval, answer receipt, customer/public/worker copy, property access/site entry/customer-use authorization, inspection/appraisal/code/legal/insurance/safety authority, repair/remediation/maintenance/outcome commitment, catalog/pricing/quote/route/queue/dispatch, reputation, Worker Skill DNA, payment/production reverification, live Acontext/IRC mutation, exact GPS/raw metadata/private-context/PII release, worker doctrine, authority claims, or stopped-project integration.
+
+Next required gate remains:
+
+```text
+separate_explicit_operator_answer_receipt_then_property_ops_customer_or_dispatch_gate
+```
+
+Recommended posture remains `blocked_claim_quarantine_only` unless Saúl later provides one explicit allowed operator answer value.
 
 
 

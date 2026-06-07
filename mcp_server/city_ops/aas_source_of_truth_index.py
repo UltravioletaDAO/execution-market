@@ -147,6 +147,11 @@ CURRENT_ENTRYPOINT_DOCS = [
         "role": "latest_local_data_collection_measurement_uncertainty_rubric",
         "extension_policy": "current_internal_admin_rubric_no_dataset_measurement_certification_or_dispatch_promotion",
     },
+    {
+        "path": "docs/planning/CITY_AS_A_SERVICE_AAS_PROPERTY_OPS_BLOCKED_CLAIM_QUARANTINE_VOCABULARY_IMPLEMENTATION.md",
+        "role": "latest_property_ops_blocked_claim_quarantine_vocabulary",
+        "extension_policy": "current_internal_admin_vocabulary_no_property_access_authority_or_dispatch_promotion",
+    },
 ]
 
 HISTORICAL_CONTEXT_DOCS = [
