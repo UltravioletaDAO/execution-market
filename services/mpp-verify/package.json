@@ -1,0 +1,24 @@
+{
+  "name": "@em/mpp-verify",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Plan B safety net: direct @solana/mpp SDK verification scripts (D-15). Independent of pay.sh — used to isolate whether a session bug lives in pay.sh config or in the SDK itself.",
+  "type": "module",
+  "scripts": {
+    "verify:session": "tsx scripts/verify-session.ts",
+    "verify:health": "tsx scripts/verify-health.ts"
+  },
+  "dependencies": {
+    "@solana/mpp": "0.5.2",
+    "@solana/kit": "6.5.0",
+    "@solana/web3.js": "^1.95.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0",
+    "@types/node": "^20.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
