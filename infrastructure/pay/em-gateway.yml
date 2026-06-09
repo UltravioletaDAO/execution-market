@@ -1,0 +1,144 @@
+# Phase 2.1 — Execution Market gateway config for pay.sh proxy (PRODUCTIVE).
+#
+# Extends Phase 1.4 hello-world with the productive endpoints required by the
+# Universal Execution Layer + robot demo (master plan §Phase 2).
+#
+# Spec: adapted from solana-foundation/pay/pdb/proxy/google-gemini.yml
+# Docs: docs/runbooks/surfpool-payshell-dev-env.md
+#       docs/runbooks/payshell-ops.md
+#
+# Render:  pay config render --config infrastructure/pay/em-gateway.yml --env=surfpool
+# Check:   pay config check  infrastructure/pay/em-gateway.yml
+#
+# CRITICAL — INC-2026-03-30 zero-tolerance: NEVER inline any key in this file.
+#   All `_path` and `${WALLET}` fields resolve at runtime from .env.local
+#   (dev/sandbox) or AWS Secrets Manager (production, via task definition
+#   env injection — see infrastructure/terraform/payshell.tf).
+
+version: "1"
+name: em-gateway
+
+# ---------------------------------------------------------------------------
+# Upstream — EM backend (FastAPI / FastMCP, mcp_server/).
+# ---------------------------------------------------------------------------
+# Phase 2 deploys pay.sh as a sidecar inside the same ECS task as the Python
+# backend, so they share localhost. Dev: em-stub on 8090 (Phase 1.6).
+upstream:
+  url: "${EM_UPSTREAM_URL:-http://127.0.0.1:8080}"
+  # Forward original client IP + auth headers untouched.
+  preserve_headers:
+    - authorization
+    - x-payment-auth
+    - x-em-client
+    - x-erc8004-agent-id
+    - x-erc8128-signature
+    - x-forwarded-for
+
+# ---------------------------------------------------------------------------
+# Solana RPC. Surfpool localnet by default; production overrides via env.
+# ---------------------------------------------------------------------------
+solana:
+  rpc_url: "${SOLANA_RPC_URL:-http://127.0.0.1:8899}"
+  ws_url:  "${SOLANA_WS_URL:-ws://127.0.0.1:8900}"
+  mpp_program_id: "${MPP_PROGRAM_ID:-}"  # blank until Ludo publishes mainnet program
+
+# Facilitator keypair. NEVER inline a key (INC-2026-03-30).
+# Dev: dropped by surfpool-fund.ts into .secrets/ (gitignored).
+# Prod: ECS task fetches from Secrets Manager arn em/payshell/facilitator
+#       and writes to /tmp/facilitator-keypair.json at boot.
+facilitator:
+  keypair_path: "${FACILITATOR_KEYPAIR_PATH:-.secrets/surfpool-keys/treasury.json}"
+
+# ---------------------------------------------------------------------------
+# Listener.
+# ---------------------------------------------------------------------------
+server:
+  bind: "0.0.0.0:7081"
+  events_sse_path: "/_sessions/{id}/events"
+  control_prefix: "/_sessions"
+  # Drain protocol for graceful shutdown (Phase 2.10 runbook).
+  shutdown_drain_seconds: 30
+
+# ---------------------------------------------------------------------------
+# Default session settings. Per-endpoint overrides allowed.
+# ---------------------------------------------------------------------------
+# cap_usdc=20 matches MoonPay headless onramp minimum (D-13). Voucher delta
+# 1 µUSDC = ~1c granularity, taxímetro-friendly. idle_close_ms=15000 keeps
+# zombie sessions from blocking treasury allocation if the worker disconnects.
+defaults:
+  token: usdc
+  cap_usdc: "20.00"
+  voucher_delta_uusdc: 1
+  idle_close_ms: 15000
+  fee_sponsorship: true   # server co-signs open/voucher (D-12)
+
+# ---------------------------------------------------------------------------
+# Splits — declarative 87/13 (canonical fee model per CLAUDE.md).
+# Atomic on settlement (single TX on-chain). 16 destinatarios soportados.
+# Placeholders resolved at runtime from env vars passed into pay.sh.
+# ---------------------------------------------------------------------------
+splits:
+  - to: "${WORKER_WALLET}"
+    bps: 8700
+  - to: "${TREASURY_WALLET}"
+    bps: 1300
+
+# ---------------------------------------------------------------------------
+# Productive gated endpoints — EM REST API surface that participates in MPP
+# sessions. Each entry can override cap / splits / idle for its endpoint.
+#
+# Notes:
+#   - `accept_methods` lets a single declaration cover GET+POST when the
+#     dashboard preflights with OPTIONS (pay.sh handles CORS at proxy layer).
+#   - `cap_usdc` per-endpoint overrides the global default. Publish endpoints
+#     use the task's bounty as actual cap (server-injected via control plane,
+#     see services/em-stub or routers/tasks.py — pay.sh accepts a
+#     `X-Payshell-Cap-Override` header signed by the facilitator).
+# ---------------------------------------------------------------------------
+gated_endpoints:
+  # Phase 1.6 hello-world — kept for smoke tests.
+  - path: "/hello"
+    method: GET
+    cap_usdc: "0.10"
+    description: "Hello-world ping. Cheap, used by /scripts/dev/session-helloworld.sh."
+
+  # Task lifecycle — publish + assign + scan + approve.
+  - path: "/api/v1/tasks"
+    method: POST
+    cap_usdc: "20.00"
+    description: "Publish task. cap=bounty; opens MPP channel on assign (lock_on_assignment)."
+
+  - path: "/api/v1/tasks/{task_id}/assign"
+    method: POST
+    cap_usdc: "20.00"
+    description: "Assign task to worker. Triggers MPP channel open + lock on-chain."
+
+  - path: "/api/v1/tasks/{task_id}/scan"
+    method: POST
+    cap_usdc: "0.01"   # cheap barcode verify — does not gate the channel cap
+    description: "Robot/worker scans barcode on physical pickup. Voucher tick anchor."
+
+  - path: "/api/v1/tasks/{task_id}/approve"
+    method: POST
+    cap_usdc: "20.00"
+    description: "Publisher approves submission. Triggers close + settleAndFinalize."
+
+# ---------------------------------------------------------------------------
+# Observability.
+# ---------------------------------------------------------------------------
+logging:
+  level: info
+  format: json
+  # Never log voucher payloads or signatures — they're equivalent to bearer
+  # tokens. Drop fields by name (pay.sh respects this list).
+  drop_fields:
+    - voucher.signature
+    - voucher.raw_bytes
+    - facilitator.keypair
+
+metrics:
+  prometheus_bind: "0.0.0.0:9091"
+  # Phase 2 SLO targets — alarms in monitoring.tf reference these.
+  slo:
+    voucher_accept_p99_ms: 80
+    settle_p99_ms: 4000
