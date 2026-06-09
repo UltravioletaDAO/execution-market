@@ -6,11 +6,14 @@
   "scripts": {
     "start": "tsx src/server.ts",
     "build": "tsc",
-    "start:built": "node dist/server.js"
+    "start:built": "node dist/server.js",
+    "test": "tsx --test src/spending-policy.test.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@open-wallet-standard/core": "^1.2.0",
+    "@solana/web3.js": "^1.95.0",
+    "bs58": "^6.0.0",
     "uvd-x402-sdk": "^2.36.0",
     "zod": "^3.25.0"
   },

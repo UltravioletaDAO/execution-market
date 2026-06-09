@@ -22,6 +22,13 @@ import { OWSWalletAdapter } from "uvd-x402-sdk";
 import type { OWSWallet } from "uvd-x402-sdk";
 import type { EIP3009Authorization } from "uvd-x402-sdk";
 
+import { registerEmRobotSkill } from "./skills/em-robot-skill/index.js";
+import {
+  evaluateSpend,
+  recordSpend,
+  extractUsdcTransferFromTypedData,
+} from "./spending-policy.js";
+
 // ---------------------------------------------------------------------------
 // OWS → SDK Bridge
 // ---------------------------------------------------------------------------
@@ -374,12 +381,43 @@ server.registerTool(
   },
   async ({ wallet, typed_data, passphrase }) => {
     try {
+      // L-82: ows_sign_typed_data can sign a raw TransferWithAuthorization /
+      // ReceiveWithAuthorization, bypassing the EIP-3009 tool's policy. Parse
+      // the typed data and, when it IS a USDC transfer authorization, enforce
+      // the same spending policy before signing. Non-transfer EIP-712 messages
+      // (permits, ERC-8128 auth, etc.) are unaffected.
+      let parsedTypedData: unknown;
+      try {
+        parsedTypedData = JSON.parse(typed_data);
+      } catch {
+        parsedTypedData = undefined;
+      }
+      const transfer = extractUsdcTransferFromTypedData(parsedTypedData);
+      if (transfer) {
+        const decision = evaluateSpend(transfer.amountUsdc, transfer.to);
+        if (!decision.allowed) {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: `Spending policy rejected this transfer authorization: ${decision.reason}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+      }
+
       const result = ows.signTypedData(
         wallet,
         "evm",
         typed_data,
         passphrase ?? undefined
       );
+
+      if (transfer) {
+        recordSpend(transfer.amountUsdc);
+      }
 
       // Extract v, r, s — with OWS CLI 64-byte bug workaround
       let sigHex = result.signature.startsWith("0x")
@@ -703,6 +741,23 @@ server.registerTool(
     try {
       const chain = network ?? "base";
 
+      // L-82: enforce the spending policy BEFORE producing any signature. An
+      // over-limit / disallowed-recipient authorization is rejected here, so a
+      // confused or compromised agent cannot drain the wallet with one signed
+      // EIP-3009 auth.
+      const decision = evaluateSpend(amount_usdc, to);
+      if (!decision.allowed) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Spending policy rejected this authorization: ${decision.reason}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+
       // Create the SDK adapter via the OWS bridge
       const owsBridge = createOWSWalletBridge(wallet, passphrase ?? undefined);
       let adapter: OWSWalletAdapter;
@@ -732,6 +787,9 @@ server.registerTool(
         network: chain,
         ...(valid_before !== undefined ? { validBefore: valid_before } : {}),
       });
+
+      // Count this committed authorization against the rolling daily cap.
+      recordSpend(amount_usdc);
 
       return {
         content: [
@@ -1150,13 +1208,29 @@ server.registerTool(
 );
 
 // ---------------------------------------------------------------------------
+// Skill: em-robot-skill (Phase 3 — Solana MPP robot demo)
+// ---------------------------------------------------------------------------
+//
+// Adds 5 robot-specific tools:
+//   - robot_accept_task
+//   - robot_scan_barcode
+//   - robot_open_payshell_session
+//   - robot_sign_voucher_tick
+//   - robot_close_payshell_session
+//
+// All require an OWS wallet with a `solana:` account. See
+// `skills/em-robot-skill/skill.md` for the manifest and `README.md` for usage.
+//
+registerEmRobotSkill(server);
+
+// ---------------------------------------------------------------------------
 // Boot
 // ---------------------------------------------------------------------------
 
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("[ows-mcp-server] Running on stdio — 10 tools available");
+  console.error("[ows-mcp-server] Running on stdio — 15 tools available (10 core + 5 em-robot-skill)");
   console.error("[ows-mcp-server] Wallet vault: ~/.ows/wallets/");
 }
 
