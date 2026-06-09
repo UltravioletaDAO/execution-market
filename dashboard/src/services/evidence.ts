@@ -9,7 +9,6 @@
  */
 
 import { supabase } from '../lib/supabase'
-import { buildAuthHeaders } from '../lib/auth'
 
 const EVIDENCE_API_URL = import.meta.env.VITE_EVIDENCE_API_URL || ''
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || ''
@@ -87,12 +86,7 @@ async function getPresignedUrl(params: {
   })
   if (params.checksum) qs.set('checksum', params.checksum)
 
-  // FIX-P1-01/P1-02: attach the Supabase Bearer JWT so the presign endpoint can
-  // bind the request to the verified worker identity (it now fails closed).
-  const headers = await buildAuthHeaders()
-  const res = await fetch(`${EVIDENCE_API_URL}/presign-upload?${qs.toString()}`, {
-    headers,
-  })
+  const res = await fetch(`${EVIDENCE_API_URL}/presign-upload?${qs.toString()}`)
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }))
     throw new Error(err.error || `Presigned URL request failed: ${res.status}`)

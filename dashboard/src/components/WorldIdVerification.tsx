@@ -21,7 +21,6 @@ import {
 import { orbLegacy, type RpContext, type ResponseItemV3, type ResponseItemV4 } from '@worldcoin/idkit-core'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
-import { buildAuthHeaders } from '../lib/auth'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://api.execution.market'
 
@@ -122,11 +121,9 @@ export function WorldIdVerification({ onVerified, className = '' }: WorldIdVerif
       }
       payload.proof = typeof response.proof === 'string' ? response.proof : JSON.stringify(response.proof)
 
-      // FIX-P1-07: attach the Supabase Bearer JWT so the backend can derive the
-      // executor identity from the verified session instead of the body value.
       const resp = await fetch(`${API_BASE}/api/v1/world-id/verify`, {
         method: 'POST',
-        headers: await buildAuthHeaders({ 'Content-Type': 'application/json' }),
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
 

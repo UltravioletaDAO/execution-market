@@ -16,14 +16,7 @@ import boto3
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 
-from ..auth import (
-    verify_worker_auth,
-    WorkerAuth,
-    _enforce_worker_identity,
-    verify_agent_auth_read,
-    AgentAuth,
-)
-from ..admin import verify_admin_key
+from ..auth import verify_worker_auth, WorkerAuth, _enforce_worker_identity
 from ._helpers import logger
 
 router = APIRouter(prefix="/api/v1/evidence", tags=["Evidence"])
@@ -100,27 +93,6 @@ class PresignDownloadResponse(BaseModel):
     authorizer_jwt: Optional[str] = None
 
 
-def _agent_matches_task(agent_auth: Optional["AgentAuth"], task: dict) -> bool:
-    """True iff agent_auth is a real (non-anonymous) ERC-8128 principal that owns the task.
-
-    A task's publishing principal is stored in tasks.agent_id (wallet address OR
-    numeric ERC-8004 id). We only trust a *signed* identity here — the anonymous
-    Agent #2106 fallback (auth_method="anonymous") must NOT match anything.
-    """
-    if agent_auth is None or agent_auth.auth_method != "erc8128":
-        return False
-    task_agent = str(task.get("agent_id") or "").lower()
-    if not task_agent:
-        return False
-    wallet = (agent_auth.wallet_address or "").lower()
-    erc_id = str(agent_auth.erc8004_agent_id or "")
-    if wallet and wallet == task_agent:
-        return True
-    if erc_id and erc_id == task_agent:
-        return True
-    return False
-
-
 @router.get(
     "/presign-upload",
     response_model=PresignUploadResponse,
@@ -141,54 +113,32 @@ async def presign_upload(
     worker_auth: Optional[WorkerAuth] = Depends(verify_worker_auth),
 ) -> PresignUploadResponse:
     """Generate a presigned S3 PUT URL for evidence upload."""
-    # FIX-P1-02: require an authenticated principal (worker JWT for the executor,
-    # OR the publishing agent, OR admin) before issuing an upload URL. Blocks
-    # unauthenticated upload-URL minting into a victim's submission path.
+    # Enforce: caller must be the executor they claim to be
     executor_id = _enforce_worker_identity(
         worker_auth, executor_id, raw_request.url.path
     )
 
+    # Verify caller is the task's assigned executor
     try:
         import supabase_client as db
 
         task = await db.get_task(task_id)
+        if task and task.get("executor_id") and task["executor_id"] != executor_id:
+            logger.warning(
+                "SECURITY_AUDIT action=evidence.upload_denied "
+                "task=%s claimed_executor=%s actual_executor=%s",
+                task_id,
+                executor_id[:8],
+                str(task["executor_id"])[:8],
+            )
+            raise HTTPException(
+                status_code=403,
+                detail="You are not the assigned executor for this task",
+            )
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error("evidence.upload: task lookup failed (deny): %s", e)
-        raise HTTPException(503, "Could not verify upload access")
-    if not task:
-        raise HTTPException(404, "Task not found")
-
-    # Probe agent + admin principals (defensive, non-fatal on bad creds).
-    is_admin = False
-    try:
-        await verify_admin_key(
-            authorization=raw_request.headers.get("authorization"),
-            x_admin_key=raw_request.headers.get("x-admin-key"),
-            x_admin_actor=raw_request.headers.get("x-admin-actor"),
-        )
-        is_admin = True
-    except HTTPException:
-        is_admin = False
-    agent_auth: Optional[AgentAuth] = None
-    try:
-        agent_auth = await verify_agent_auth_read(raw_request)
-    except HTTPException:
-        agent_auth = None
-
-    is_assigned_executor = bool(
-        worker_auth
-        and task.get("executor_id")
-        and task["executor_id"] == worker_auth.executor_id
-    )
-    is_owner_agent = _agent_matches_task(agent_auth, task)
-
-    if not (is_admin or is_assigned_executor or is_owner_agent):
-        logger.warning(
-            "SECURITY_AUDIT action=evidence.upload_denied task=%s claimed_executor=%s",
-            task_id,
-            str(executor_id)[:8],
-        )
-        raise HTTPException(403, "Not authorized to upload evidence for this task")
+        logger.warning("Could not verify task executor for presign-upload: %s", e)
 
     if not EVIDENCE_BUCKET:
         raise HTTPException(503, "Evidence storage not configured")
@@ -273,8 +223,6 @@ async def presign_upload(
     response_model=PresignDownloadResponse,
     responses={
         400: {"description": "Invalid parameters"},
-        401: {"description": "Authentication required"},
-        403: {"description": "Not authorized for this evidence"},
         503: {"description": "Evidence storage not configured"},
     },
 )
@@ -285,105 +233,47 @@ async def presign_download(
 ) -> PresignDownloadResponse:
     """Generate a presigned S3 GET URL for evidence download.
 
-    DENY BY DEFAULT (FIX-P1-02). Access control is unconditional: the caller
-    must be the task's assigned executor (worker JWT), the task's publishing
-    agent (ERC-8128 signature), or an admin (X-Admin-Key). Otherwise 401/403.
+    Access control: assigned executor, task's publishing agent, or admin.
     """
-    if not EVIDENCE_BUCKET:
-        raise HTTPException(503, "Evidence storage not configured")
+    # Extract task_id from key pattern: tasks/{task_id}/submissions/...
+    _key_task_id = None
+    _key_parts = key.strip().lstrip("/").split("/")
+    if len(_key_parts) >= 2 and _key_parts[0] == "tasks":
+        _key_task_id = _key_parts[1]
 
-    # --- Sanitize + parse task_id from the key (fail closed on bad shape) ---
-    key = key.strip().lstrip("/")
-    if not key or ".." in key:
-        raise HTTPException(400, "Invalid key")
-    parts = key.split("/")
-    if len(parts) < 2 or parts[0] != "tasks" or not parts[1]:
-        # Unparseable / non-tasks key → DENY (never "skip the check").
-        logger.warning(
-            "SECURITY_AUDIT action=evidence.download_denied reason=bad_key_shape"
-        )
-        raise HTTPException(403, "You do not have access to this evidence")
-    task_id = parts[1]
-
-    # --- Probe each principal source defensively (never sign on probe errors) ---
-    # 1) Admin (X-Admin-Key / Bearer admin key). verify_admin_key RAISES on
-    #    bad/missing key, so only an affirmative result counts as admin.
-    is_admin = False
-    try:
-        await verify_admin_key(
-            authorization=raw_request.headers.get("authorization"),
-            x_admin_key=raw_request.headers.get("x-admin-key"),
-            x_admin_actor=raw_request.headers.get("x-admin-actor"),
-        )
-        is_admin = True
-    except HTTPException:
-        is_admin = False  # not an admin — fall through to other principals
-
-    # 2) Agent ERC-8128 signature (publishing agent). read variant is
-    #    non-raising for *anonymous* but RAISES on a *bad* signature.
-    agent_auth: Optional[AgentAuth] = None
-    try:
-        agent_auth = await verify_agent_auth_read(raw_request)
-    except HTTPException:
-        agent_auth = None  # malformed signature → treat as no agent principal
-
-    # 3) Worker JWT already resolved via Depends(verify_worker_auth) above.
-
-    # --- Did the caller present ANY principal at all? ---
-    has_principal = (
-        is_admin
-        or worker_auth is not None
-        or (agent_auth is not None and agent_auth.auth_method == "erc8128")
-    )
-    if not has_principal:
-        logger.warning(
-            "SECURITY_AUDIT action=evidence.download_unauth task=%s", task_id
-        )
-        raise HTTPException(
-            status_code=401,
-            detail="Authentication required to download evidence",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    # --- Resolve the task and decide entitlement. Fail CLOSED on DB error. ---
-    if is_admin:
-        is_authorized = True
-        actor_id = "admin"
-    else:
+    if _key_task_id and worker_auth:
         try:
             import supabase_client as db
 
-            task = await db.get_task(task_id)
+            task = await db.get_task(_key_task_id)
+            if task:
+                is_executor = task.get("executor_id") == worker_auth.executor_id
+                # Agent auth is handled separately via verify_agent_auth;
+                # worker_auth only covers worker-side JWT callers.
+                if not is_executor:
+                    logger.warning(
+                        "SECURITY_AUDIT action=evidence.download_denied "
+                        "task=%s executor=%s",
+                        _key_task_id,
+                        worker_auth.executor_id[:8],
+                    )
+                    raise HTTPException(
+                        status_code=403,
+                        detail="You do not have access to this evidence",
+                    )
+        except HTTPException:
+            raise
         except Exception as e:
-            logger.error(
-                "evidence.download: task lookup failed (deny) task=%s err=%s",
-                task_id,
-                e,
-            )
-            raise HTTPException(503, "Could not verify evidence access")
-        if not task:
-            raise HTTPException(403, "You do not have access to this evidence")
+            logger.warning("Could not verify evidence download access: %s", e)
 
-        is_executor = bool(
-            worker_auth and task.get("executor_id") == worker_auth.executor_id
-        )
-        is_owner_agent = _agent_matches_task(agent_auth, task)
-        is_authorized = is_executor or is_owner_agent
-        actor_id = (
-            worker_auth.executor_id
-            if is_executor
-            else (agent_auth.agent_id if is_owner_agent else "unknown")
-        )
+    if not EVIDENCE_BUCKET:
+        raise HTTPException(503, "Evidence storage not configured")
 
-    if not is_authorized:
-        logger.warning(
-            "SECURITY_AUDIT action=evidence.download_denied task=%s actor=%s",
-            task_id,
-            actor_id[:8],
-        )
-        raise HTTPException(403, "You do not have access to this evidence")
+    # Sanitize key
+    key = key.strip().lstrip("/")
+    if not key or ".." in key:
+        raise HTTPException(400, "Invalid key")
 
-    # --- Authorized: sign the URL ---
     s3 = _get_s3()
     download_url = s3.generate_presigned_url(
         ClientMethod="get_object",
@@ -395,13 +285,16 @@ async def presign_download(
         f"{EVIDENCE_PUBLIC_BASE_URL}/{key}" if EVIDENCE_PUBLIC_BASE_URL else None
     )
 
-    # Mint the Lambda authorizer JWT with the REAL actor (never task_id).
+    # Phase 0 GR-0.4: mint authorizer JWT for the Lambda (Track D1).
     authorizer_jwt: Optional[str] = None
     try:
         from integrations.evidence.jwt_helper import mint_evidence_jwt
 
+        actor_id = (
+            worker_auth.executor_id if worker_auth else (_key_task_id or "unknown")
+        )
         authorizer_jwt = mint_evidence_jwt(
-            task_id=task_id,
+            task_id=_key_task_id or "unknown",
             submission_id=key,
             actor_id=actor_id,
         )

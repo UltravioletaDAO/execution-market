@@ -246,21 +246,8 @@ async def verify_world_id_proof(
         if resp.status_code == 200:
             data = resp.json()
             if data.get("success"):
-                # v4 response uses "nullifier" (not "nullifier_hash").
-                # SECURITY (FIX-P1-06): take the nullifier ONLY from the API
-                # response. NEVER fall back to the client-supplied value —
-                # that is the attacker-controlled field and using it defeats
-                # the anti-sybil 1-human-1-account invariant.
-                resp_nullifier = data.get("nullifier")
-                if not resp_nullifier:
-                    logger.error(
-                        "World ID Cloud API returned success without a nullifier "
-                        "— rejecting verification (FIX-P1-06)"
-                    )
-                    return VerificationResult(
-                        success=False,
-                        error="World ID response missing verified nullifier",
-                    )
+                # v4 response uses "nullifier" (not "nullifier_hash")
+                resp_nullifier = data.get("nullifier", nullifier_hash)
 
                 # CRY-002: Trust the API response for verification_level, NOT the client input.
                 # The Cloud API returns the actual credential tier that was verified.

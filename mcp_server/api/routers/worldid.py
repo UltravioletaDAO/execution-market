@@ -7,7 +7,6 @@ Stores verified proof data and enforces nullifier uniqueness (anti-sybil).
 
 import asyncio
 import logging
-import os
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -16,19 +15,11 @@ from pydantic import BaseModel, ConfigDict, Field
 
 import supabase_client as db
 
-from ..auth import verify_worker_auth, WorkerAuth
+from ..auth import verify_worker_auth, WorkerAuth, _enforce_worker_identity
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/world-id", tags=["World ID"])
-
-# Local, endpoint-specific auth enforcement for World ID verification (FIX-P1-07).
-# Independent of the global EM_REQUIRE_WORKER_AUTH so this identity-critical
-# write is hardened by default even when the global worker-auth flag is off.
-# Set EM_WORLDID_REQUIRE_AUTH=false ONLY for a controlled rollback (see runbook).
-_WORLDID_REQUIRE_AUTH = (
-    os.environ.get("EM_WORLDID_REQUIRE_AUTH", "true").lower() == "true"
-)
 
 
 # ---------------------------------------------------------------------------
@@ -208,44 +199,10 @@ async def verify_world_id(
     worker_auth: Optional[WorkerAuth] = Depends(verify_worker_auth),
 ) -> VerifyWorldIdResponse:
     """Verify World ID proof and store verification."""
-    # SECURITY (FIX-P1-07): World ID verification is identity-critical and must
-    # NOT trust a body-supplied executor_id. Require an authenticated worker and
-    # derive the executor_id exclusively from the verified identity. The body
-    # field request.executor_id is now advisory only and is ignored.
-    if _WORLDID_REQUIRE_AUTH and worker_auth is None:
-        logger.warning(
-            "SECURITY_AUDIT action=worldid.verify.unauthenticated path=%s "
-            "body_executor=%s (rejected)",
-            raw_request.url.path,
-            (request.executor_id or "none")[:8],
-        )
-        raise HTTPException(
-            status_code=401,
-            detail="Authentication required to verify World ID (Bearer <supabase_jwt>)",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    if worker_auth is not None:
-        # Authoritative identity from the verified JWT — never the body value.
-        if request.executor_id and request.executor_id != worker_auth.executor_id:
-            logger.warning(
-                "SECURITY_AUDIT action=worldid.verify.executor_mismatch "
-                "jwt_executor=%s body_executor=%s path=%s (using jwt value)",
-                worker_auth.executor_id[:8],
-                request.executor_id[:8],
-                raw_request.url.path,
-            )
-        executor_id = worker_auth.executor_id
-    else:
-        # Only reachable when _WORLDID_REQUIRE_AUTH is explicitly disabled
-        # (controlled rollback). Fall back to the body value with a loud audit log.
-        logger.warning(
-            "SECURITY_AUDIT action=worldid.verify.body_fallback executor_id=%s "
-            "path=%s (EM_WORLDID_REQUIRE_AUTH=false)",
-            (request.executor_id or "none")[:8],
-            raw_request.url.path,
-        )
-        executor_id = request.executor_id
+    # Enforce identity: caller must be the executor they claim
+    executor_id = _enforce_worker_identity(
+        worker_auth, request.executor_id, raw_request.url.path
+    )
 
     # 1. Check if executor is already verified
     client = db.get_client()
@@ -265,13 +222,34 @@ async def verify_world_id(
             message=f"Already verified at {level} level",
         )
 
-    # 2. Verify proof via Cloud API FIRST (FIX-P1-06).
-    # The uniqueness check and storage MUST use the cryptographically-bound
-    # nullifier returned by World, NEVER the client-supplied request value.
+    # 2. Check nullifier uniqueness (anti-sybil)
+    nullifier_check = (
+        client.table("world_id_verifications")
+        .select("id, executor_id")
+        .eq("nullifier_hash", request.nullifier_hash)
+        .limit(1)
+        .execute()
+    )
+
+    if nullifier_check.data:
+        logger.warning(
+            "SYBIL_ATTEMPT: nullifier %s...%s already used by executor %s, "
+            "attempted reuse by executor %s",
+            request.nullifier_hash[:10],
+            request.nullifier_hash[-6:],
+            nullifier_check.data[0].get("executor_id", "?")[:8],
+            executor_id[:8],
+        )
+        raise HTTPException(
+            status_code=409,
+            detail="This World ID has already been used to verify another account",
+        )
+
+    # 3. Verify proof via Cloud API
     from integrations.worldid.client import verify_world_id_proof
 
     result = await verify_world_id_proof(
-        nullifier_hash=request.nullifier_hash,  # used only by the v2 legacy path
+        nullifier_hash=request.nullifier_hash,
         verification_level=request.verification_level,
         protocol_version=request.protocol_version,
         nonce=request.nonce,
@@ -288,50 +266,13 @@ async def verify_world_id(
             detail=result.error or "World ID proof verification failed",
         )
 
-    # SECURITY (FIX-P1-06/P1-07): trust the Cloud-API-returned nullifier, never
-    # the body. client.py already rejects an empty API nullifier, but never
-    # proceed without a verified one.
-    nullifier_hash = result.nullifier_hash
-    if not nullifier_hash:
-        logger.error(
-            "World ID Cloud API returned success with no nullifier (executor=%s)",
-            executor_id[:8],
-        )
-        raise HTTPException(
-            status_code=502,
-            detail="World ID verification returned no nullifier",
-        )
-
-    # 3. Check nullifier uniqueness (anti-sybil) using the VERIFIED nullifier.
-    nullifier_check = (
-        client.table("world_id_verifications")
-        .select("id, executor_id")
-        .eq("nullifier_hash", nullifier_hash)
-        .limit(1)
-        .execute()
-    )
-
-    if nullifier_check.data:
-        logger.warning(
-            "SYBIL_ATTEMPT: nullifier %s...%s already used by executor %s, "
-            "attempted reuse by executor %s",
-            nullifier_hash[:10],
-            nullifier_hash[-6:],
-            str(nullifier_check.data[0].get("executor_id", "?"))[:8],
-            executor_id[:8],
-        )
-        raise HTTPException(
-            status_code=409,
-            detail="This World ID has already been used to verify another account",
-        )
-
     # 4. Store verification record
     now = datetime.now(timezone.utc).isoformat()
     try:
         client.table("world_id_verifications").insert(
             {
                 "executor_id": executor_id,
-                "nullifier_hash": nullifier_hash,
+                "nullifier_hash": request.nullifier_hash,
                 "merkle_root": request.merkle_root,
                 "verification_level": result.verification_level
                 or request.verification_level,
@@ -387,8 +328,8 @@ async def verify_world_id(
         "World ID verified: executor=%s, level=%s, nullifier=%s...%s",
         executor_id[:8],
         level,
-        nullifier_hash[:10],
-        nullifier_hash[-6:],
+        request.nullifier_hash[:10],
+        request.nullifier_hash[-6:],
     )
 
     return VerifyWorldIdResponse(

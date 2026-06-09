@@ -21,9 +21,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List
 
-from mcp.server.fastmcp import Context, FastMCP
-
-from tools.mcp_identity import MCPAuthError, require_executor_wallet
+from mcp.server.fastmcp import FastMCP
 
 logger = logging.getLogger(__name__)
 
@@ -270,29 +268,6 @@ def register_worker_tools(
         ResponseFormat,
     )
 
-    async def _bind_executor_to_wallet(ctx, executor_id: str) -> Optional[str]:
-        """FIX-P0-01: bind a worker tool to the verified signing wallet.
-
-        Returns an error string if the verified wallet does not own the
-        executor (or no wallet is verified under enforcement). Returns ``None``
-        when the binding passes — or when enforcement is off and no wallet was
-        verified (staged rollout falls back to legacy body identity).
-        """
-        try:
-            verified_wallet = require_executor_wallet(ctx)
-        except MCPAuthError as e:
-            return f"Error: {e}"
-        if not verified_wallet:
-            # Enforcement off and no signed request → legacy behavior.
-            return None
-        executor = await db_module.get_executor_stats(executor_id)
-        executor_wallet = ((executor or {}).get("wallet_address") or "").lower()
-        if not executor or executor_wallet != verified_wallet:
-            return (
-                "Error: Not authorized — executor does not belong to the signing wallet"
-            )
-        return None
-
     @mcp.tool(
         name="em_apply_to_task",
         annotations={
@@ -303,9 +278,7 @@ def register_worker_tools(
             "openWorldHint": True,
         },
     )
-    async def em_apply_to_task(
-        params: ApplyToTaskInput, ctx: Optional[Context] = None
-    ) -> str:
+    async def em_apply_to_task(params: ApplyToTaskInput) -> str:
         """
         Apply to work on a published task.
 
@@ -333,11 +306,6 @@ def register_worker_tools(
             Worker's application goes into 'pending' status.
         """
         try:
-            # FIX-P0-01: bind executor_id to the verified signing wallet.
-            _bind_err = await _bind_executor_to_wallet(ctx, params.executor_id)
-            if _bind_err:
-                return _bind_err
-
             # Self-application guard: agent cannot apply to its own task
             # Handles both wallet-address agent_ids and numeric ERC-8004 agent_ids
             task_check = None
@@ -437,9 +405,7 @@ and assign the task to a worker.
             "openWorldHint": True,
         },
     )
-    async def em_submit_work(
-        params: SubmitWorkInput, ctx: Optional[Context] = None
-    ) -> str:
+    async def em_submit_work(params: SubmitWorkInput) -> str:
         """
         Submit completed work with evidence for an assigned task.
 
@@ -476,11 +442,6 @@ and assign the task to a worker.
                 {"text_response": "Store is open, 5 people in line", "photo": "ipfs://..."}
         """
         try:
-            # FIX-P0-01: bind executor_id to the verified signing wallet.
-            _bind_err = await _bind_executor_to_wallet(ctx, params.executor_id)
-            if _bind_err:
-                return _bind_err
-
             # Get task first to validate evidence schema
             task = await db_module.get_task(params.task_id)
             if not task:
@@ -703,9 +664,7 @@ Your evidence has been submitted. The agent will review and either:
             "openWorldHint": True,
         },
     )
-    async def em_withdraw_earnings(
-        params: WithdrawEarningsInput, ctx: Optional[Context] = None
-    ) -> str:
+    async def em_withdraw_earnings(params: WithdrawEarningsInput) -> str:
         """
         Withdraw your available earnings to your wallet.
 
@@ -736,23 +695,6 @@ Your evidence has been submitted. The agent will review and either:
             - USDC contract: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
         """
         try:
-            # FIX-P0-01: bind executor_id to the verified signing wallet, and —
-            # for this money-moving tool — reject any destination_address that is
-            # not the verified wallet (prevents payout redirection).
-            _bind_err = await _bind_executor_to_wallet(ctx, params.executor_id)
-            if _bind_err:
-                return _bind_err
-            verified_wallet = require_executor_wallet(ctx)
-            if (
-                verified_wallet
-                and params.destination_address
-                and params.destination_address.lower() != verified_wallet
-            ):
-                return (
-                    "Error: Not authorized — withdrawal destination must be the "
-                    "verified signing wallet"
-                )
-
             # Get earnings summary
             earnings = await db_module.get_executor_earnings(params.executor_id)
 
