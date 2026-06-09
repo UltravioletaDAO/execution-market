@@ -1,0 +1,54 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+wheels/
+
+# Virtual environments
+.env
+.env.local
+.env.*.local
+venv/
+.venv/
+env/
+ENV/
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+.tox/
+
+# Type checkers / linters
+.mypy_cache/
+.ruff_cache/
+.dmypy.json
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# K1 / robot-local artifacts
+*.log
+*.bag
+captures/
+keystores/
+*.keystore.json
+
+# Secrets — NEVER commit
+*.pem
+*.key
+.secrets/
