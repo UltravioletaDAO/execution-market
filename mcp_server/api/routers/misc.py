@@ -854,9 +854,28 @@ async def agent_info():
     Dynamic agent info endpoint — combines static agent-card.json metadata
     with live platform statistics from the database.
     """
-    from config.platform_config import get_platform_config
+    from config.platform_config import PlatformConfig
 
-    config = get_platform_config()
+    # Live payment config — best-effort. PlatformConfig.get() already falls back
+    # to static defaults when Supabase is unavailable; the try/except additionally
+    # guards the import path so this metadata endpoint never 500s on a config error.
+    enabled_networks = [
+        "base",
+        "ethereum",
+        "polygon",
+        "arbitrum",
+        "celo",
+        "monad",
+        "avalanche",
+        "optimism",
+        "skale",
+    ]
+    fee_percent = 13
+    try:
+        enabled_networks = await PlatformConfig.get_supported_networks()
+        fee_percent = int(await PlatformConfig.get_fee_pct() * 100)
+    except Exception as exc:
+        logger.warning("agent_info: config read failed, using defaults: %s", exc)
 
     # Live stats from DB
     stats = {
@@ -866,19 +885,20 @@ async def agent_info():
         "total_volume_usd": 0.0,
     }
     try:
+        client = db.get_client()
         result = (
-            db.client.table("tasks")
+            client.table("tasks")
             .select("id", count="exact")
             .eq("status", "completed")
             .execute()
         )
         stats["tasks_completed"] = result.count or 0
 
-        result = db.client.table("tasks").select("id", count="exact").execute()
+        result = client.table("tasks").select("id", count="exact").execute()
         stats["tasks_published"] = result.count or 0
 
         result = (
-            db.client.table("executors")
+            client.table("executors")
             .select("id", count="exact")
             .eq("status", "active")
             .execute()
@@ -886,22 +906,6 @@ async def agent_info():
         stats["active_workers"] = result.count or 0
     except Exception:
         pass  # Stats are best-effort, endpoint still returns metadata
-
-    # Enabled networks from config
-    enabled_networks = config.get("payments", {}).get(
-        "enabled_networks",
-        [
-            "base",
-            "ethereum",
-            "polygon",
-            "arbitrum",
-            "celo",
-            "monad",
-            "avalanche",
-            "optimism",
-            "skale",
-        ],
-    )
 
     return {
         "name": "Execution Market",
@@ -927,7 +931,7 @@ async def agent_info():
             "tokens": ["USDC", "EURC", "PYUSD", "AUSD", "USDT"],
             "protocol": "x402",
             "gasless": True,
-            "fee_percent": config.get("payments", {}).get("platform_fee_percent", 13),
+            "fee_percent": fee_percent,
             "minimum_bounty_usd": 0.01,
         },
         "stats": stats,
