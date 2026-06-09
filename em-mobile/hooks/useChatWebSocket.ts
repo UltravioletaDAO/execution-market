@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState, type AppStateStatus } from "react-native";
 import { supabase } from "../lib/supabase";
+import { openAuthenticatedWebSocket } from "../lib/wsAuth";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "https://api.execution.market";
 const WS_URL = API_URL.replace(/^http/, "ws");
@@ -75,10 +76,13 @@ export function useChatWebSocket(taskId: string) {
       return;
     }
 
-    const url = `${WS_URL}/ws/chat/${taskId}?token=${encodeURIComponent(token)}`;
+    // L-72: the bearer token is sent in the WebSocket subprotocol handshake
+    // header (see lib/wsAuth.ts), never in the URL/query string, so it cannot
+    // leak into ALB / proxy access logs.
+    const url = `${WS_URL}/ws/chat/${taskId}`;
 
     try {
-      const ws = new WebSocket(url);
+      const ws = openAuthenticatedWebSocket(url, token);
       wsRef.current = ws;
 
       ws.onopen = () => {
