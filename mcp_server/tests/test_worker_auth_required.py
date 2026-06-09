@@ -81,7 +81,9 @@ async def test_resolve_worker_identity_jwt_mismatch_403():
 async def test_resolve_worker_identity_anon_no_sig_raises_401():
     # No worker_auth and no signature headers → 401 (fail-closed).
     with pytest.raises(HTTPException) as exc:
-        await resolve_worker_identity(_request(headers={}), None, EXEC_A, task_id=TASK_ID)
+        await resolve_worker_identity(
+            _request(headers={}), None, EXEC_A, task_id=TASK_ID
+        )
     assert exc.value.status_code == 401
 
 

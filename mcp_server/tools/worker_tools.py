@@ -289,8 +289,7 @@ def register_worker_tools(
         executor_wallet = ((executor or {}).get("wallet_address") or "").lower()
         if not executor or executor_wallet != verified_wallet:
             return (
-                "Error: Not authorized — executor does not belong to the "
-                "signing wallet"
+                "Error: Not authorized — executor does not belong to the signing wallet"
             )
         return None
 

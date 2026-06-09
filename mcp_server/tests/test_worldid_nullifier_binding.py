@@ -106,9 +106,7 @@ class _FakeTable:
 
     def execute(self):
         rows = self._store.get(self._name, [])
-        matched = [
-            r for r in rows if all(r.get(k) == v for k, v in self._eq.items())
-        ]
+        matched = [r for r in rows if all(r.get(k) == v for k, v in self._eq.items())]
         return MagicMock(data=matched)
 
     def insert(self, row):
@@ -153,8 +151,16 @@ def _make_request(executor_id, nullifier):
     )
 
 
-async def _verify(monkeypatch, *, worker_auth, body_executor, body_nullifier,
-                  store, api_nullifier=REAL_NULL, require_auth=True):
+async def _verify(
+    monkeypatch,
+    *,
+    worker_auth,
+    body_executor,
+    body_nullifier,
+    store,
+    api_nullifier=REAL_NULL,
+    require_auth=True,
+):
     """Call the handler with the local auth flag patched in-place (NO module
     reload — that corrupts module identity for the rest of the suite)."""
     import api.routers.worldid as wid
@@ -209,8 +215,11 @@ async def test_sybil_replay_with_fresh_fake_nullifier_is_blocked(monkeypatch):
     # Request 1 — executor A, fake nullifier 0xFAKE1.
     wa_a = WorkerAuth(executor_id=EXEC_A, auth_method="jwt")
     resp1 = await _verify(
-        monkeypatch, worker_auth=wa_a, body_executor=EXEC_A,
-        body_nullifier="0xFAKE1", store=store,
+        monkeypatch,
+        worker_auth=wa_a,
+        body_executor=EXEC_A,
+        body_nullifier="0xFAKE1",
+        store=store,
     )
     assert resp1.verified is True
     stored = store["world_id_verifications"][0]
@@ -221,8 +230,11 @@ async def test_sybil_replay_with_fresh_fake_nullifier_is_blocked(monkeypatch):
     wa_b = WorkerAuth(executor_id=EXEC_B, auth_method="jwt")
     with pytest.raises(HTTPException) as exc:
         await _verify(
-            monkeypatch, worker_auth=wa_b, body_executor=EXEC_B,
-            body_nullifier="0xFAKE2", store=store,
+            monkeypatch,
+            worker_auth=wa_b,
+            body_executor=EXEC_B,
+            body_nullifier="0xFAKE2",
+            store=store,
         )
     assert exc.value.status_code == 409
 
@@ -233,8 +245,11 @@ async def test_verify_uses_jwt_executor_not_body(monkeypatch):
     store = {}
     wa = WorkerAuth(executor_id=EXEC_A, auth_method="jwt")
     await _verify(
-        monkeypatch, worker_auth=wa, body_executor=EXEC_B,  # mismatched body
-        body_nullifier="0xCLIENT", store=store,
+        monkeypatch,
+        worker_auth=wa,
+        body_executor=EXEC_B,  # mismatched body
+        body_nullifier="0xCLIENT",
+        store=store,
     )
     stored = store["world_id_verifications"][0]
     assert stored["executor_id"] == EXEC_A
@@ -247,8 +262,12 @@ async def test_verify_502_when_api_returns_no_nullifier(monkeypatch):
     wa = WorkerAuth(executor_id=EXEC_A, auth_method="jwt")
     with pytest.raises(HTTPException) as exc:
         await _verify(
-            monkeypatch, worker_auth=wa, body_executor=EXEC_A,
-            body_nullifier="0xclient", store=store, api_nullifier=None,
+            monkeypatch,
+            worker_auth=wa,
+            body_executor=EXEC_A,
+            body_nullifier="0xclient",
+            store=store,
+            api_nullifier=None,
         )
     assert exc.value.status_code == 502
 
@@ -258,14 +277,20 @@ async def test_same_executor_reverify_is_idempotent_success(monkeypatch):
     store = {}
     wa = WorkerAuth(executor_id=EXEC_A, auth_method="jwt")
     r1 = await _verify(
-        monkeypatch, worker_auth=wa, body_executor=EXEC_A,
-        body_nullifier="0xREAL", store=store,
+        monkeypatch,
+        worker_auth=wa,
+        body_executor=EXEC_A,
+        body_nullifier="0xREAL",
+        store=store,
     )
     assert r1.verified is True
     # Second call for the same executor short-circuits to "Already verified".
     r2 = await _verify(
-        monkeypatch, worker_auth=wa, body_executor=EXEC_A,
-        body_nullifier="0xREAL", store=store,
+        monkeypatch,
+        worker_auth=wa,
+        body_executor=EXEC_A,
+        body_nullifier="0xREAL",
+        store=store,
     )
     assert r2.verified is True
 
@@ -276,8 +301,12 @@ async def test_verify_body_fallback_when_flag_explicitly_off(monkeypatch):
     but the nullifier still comes from the API (the nullifier fix stays active)."""
     store = {}
     resp = await _verify(
-        monkeypatch, worker_auth=None, body_executor=EXEC_A,
-        body_nullifier="0xBODYFAKE", store=store, require_auth=False,
+        monkeypatch,
+        worker_auth=None,
+        body_executor=EXEC_A,
+        body_nullifier="0xBODYFAKE",
+        store=store,
+        require_auth=False,
     )
     assert resp.verified is True
     stored = store["world_id_verifications"][0]

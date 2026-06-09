@@ -44,59 +44,10 @@
       "Resource": "*"
     },
     {
-      "Sid": "TerraformSecretsManage",
+      "Sid": "TerraformSecrets",
       "Effect": "Allow",
-      "Action": [
-        "secretsmanager:CreateSecret",
-        "secretsmanager:UpdateSecret",
-        "secretsmanager:PutSecretValue",
-        "secretsmanager:DeleteSecret",
-        "secretsmanager:RestoreSecret",
-        "secretsmanager:DescribeSecret",
-        "secretsmanager:ListSecretVersionIds",
-        "secretsmanager:TagResource",
-        "secretsmanager:UntagResource",
-        "secretsmanager:GetResourcePolicy",
-        "secretsmanager:PutResourcePolicy",
-        "secretsmanager:DeleteResourcePolicy"
-      ],
+      "Action": ["secretsmanager:*"],
       "Resource": ["arn:aws:secretsmanager:us-east-2:518898403364:secret:em/*"]
-    },
-    {
-      "Sid": "TerraformSecretsReadManagedVersionsOnly",
-      "Effect": "Allow",
-      "Action": ["secretsmanager:GetSecretValue"],
-      "Resource": [
-        "arn:aws:secretsmanager:us-east-2:518898403364:secret:em/sentry-dsn-*",
-        "arn:aws:secretsmanager:us-east-2:518898403364:secret:em/veryai-*",
-        "arn:aws:secretsmanager:us-east-2:518898403364:secret:em/evidence-jwt-secret-*",
-        "arn:aws:secretsmanager:us-east-2:518898403364:secret:em/payshell/facilitator-*",
-        "arn:aws:secretsmanager:us-east-2:518898403364:secret:em/xmtp-*",
-        "arn:aws:secretsmanager:us-east-2:518898403364:secret:em/meshrelay-*"
-      ]
-    },
-    {
-      "Sid": "DenyReadFundAndAuthSecrets",
-      "Effect": "Deny",
-      "Action": ["secretsmanager:GetSecretValue"],
-      "Resource": [
-        "arn:aws:secretsmanager:us-east-2:518898403364:secret:em/x402-*",
-        "arn:aws:secretsmanager:us-east-2:518898403364:secret:em/ens-*",
-        "arn:aws:secretsmanager:us-east-2:518898403364:secret:em/worldid-*",
-        "arn:aws:secretsmanager:us-east-2:518898403364:secret:em/supabase-*",
-        "arn:aws:secretsmanager:us-east-2:518898403364:secret:em/supabase-jwt-*",
-        "arn:aws:secretsmanager:us-east-2:518898403364:secret:em/admin-key-*",
-        "arn:aws:secretsmanager:us-east-2:518898403364:secret:em/commission-*",
-        "arn:aws:secretsmanager:us-east-2:518898403364:secret:em/reputation-relay-*",
-        "arn:aws:secretsmanager:us-east-2:518898403364:secret:em/rpc-mainnet-*",
-        "arn:aws:secretsmanager:us-east-2:518898403364:secret:em/anthropic-*",
-        "arn:aws:secretsmanager:us-east-2:518898403364:secret:em/openai-*",
-        "arn:aws:secretsmanager:us-east-2:518898403364:secret:em/google-*",
-        "arn:aws:secretsmanager:us-east-2:518898403364:secret:em/openrouter-*",
-        "arn:aws:secretsmanager:us-east-2:518898403364:secret:em/api-keys-*",
-        "arn:aws:secretsmanager:us-east-2:518898403364:secret:em/dynamic-*",
-        "arn:aws:secretsmanager:us-east-2:518898403364:secret:em/test-worker-*"
-      ]
     },
     {
       "Sid": "TerraformIAM",
@@ -147,52 +98,6 @@
       "Sid": "TerraformExtra",
       "Effect": "Allow",
       "Action": ["dynamodb:*", "sns:*", "wafv2:*", "elasticfilesystem:*", "cloudwatch:*", "application-autoscaling:*"],
-      "Resource": "*"
-    },
-    {
-      "Sid": "TerraformCloudTrail",
-      "Effect": "Allow",
-      "Action": [
-        "cloudtrail:CreateTrail",
-        "cloudtrail:DeleteTrail",
-        "cloudtrail:UpdateTrail",
-        "cloudtrail:StartLogging",
-        "cloudtrail:StopLogging",
-        "cloudtrail:PutEventSelectors",
-        "cloudtrail:GetEventSelectors",
-        "cloudtrail:PutInsightSelectors",
-        "cloudtrail:GetInsightSelectors",
-        "cloudtrail:GetTrail",
-        "cloudtrail:GetTrailStatus",
-        "cloudtrail:ListTags",
-        "cloudtrail:AddTags",
-        "cloudtrail:RemoveTags"
-      ],
-      "Resource": "arn:aws:cloudtrail:*:518898403364:trail/em-*"
-    },
-    {
-      "Sid": "TerraformGuardDuty",
-      "Effect": "Allow",
-      "Action": [
-        "guardduty:CreateDetector",
-        "guardduty:DeleteDetector",
-        "guardduty:UpdateDetector",
-        "guardduty:GetDetector",
-        "guardduty:ListDetectors",
-        "guardduty:TagResource",
-        "guardduty:UntagResource",
-        "guardduty:ListTagsForResource"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Sid": "TerraformCloudTrailList",
-      "Effect": "Allow",
-      "Action": [
-        "cloudtrail:DescribeTrails",
-        "cloudtrail:ListTrails",
-        "cloudtrail:LookupEvents"
-      ],
       "Resource": "*"
     }
   ]

@@ -33,13 +33,19 @@ def _no_admin():
 
 
 def _anon_agent():
-    return AsyncMock(
-        return_value=AgentAuth(agent_id="2106", auth_method="anonymous")
-    )
+    return AsyncMock(return_value=AgentAuth(agent_id="2106", auth_method="anonymous"))
 
 
-async def _download(monkeypatch, *, worker_auth=None, agent_read=None,
-                    admin=None, key=KEY, task=None, task_raises=False):
+async def _download(
+    monkeypatch,
+    *,
+    worker_auth=None,
+    agent_read=None,
+    admin=None,
+    key=KEY,
+    task=None,
+    task_raises=False,
+):
     import api.routers.evidence as ev
     import supabase_client
 
@@ -150,8 +156,9 @@ async def test_presign_download_db_error_fails_closed(monkeypatch):
 # --------------------------------------------------------------------------- #
 # Upload hardening
 # --------------------------------------------------------------------------- #
-async def _upload(monkeypatch, *, worker_auth=None, agent_read=None,
-                  admin=None, task=None):
+async def _upload(
+    monkeypatch, *, worker_auth=None, agent_read=None, admin=None, task=None
+):
     import api.routers.evidence as ev
     import supabase_client
 

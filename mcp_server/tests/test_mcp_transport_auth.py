@@ -162,9 +162,7 @@ async def test_mcp_middleware_strips_spoofed_header(monkeypatch):
     spoofed = [(b"x-em-verified-wallet", VICTIM.encode())]
     sent, received = await _drive(mw, _scope(headers=spoofed))
     # The client-supplied trusted header must be stripped before downstream.
-    assert all(
-        h[0] != b"x-em-verified-wallet" for h in received["scope"]["headers"]
-    )
+    assert all(h[0] != b"x-em-verified-wallet" for h in received["scope"]["headers"])
 
 
 @pytest.mark.asyncio
@@ -328,8 +326,8 @@ async def test_em_withdraw_earnings_binds_executor_to_wallet(monkeypatch):
         "id": exec2,
         "wallet_address": ATTACKER,
     }
-    params2 = WithdrawEarningsInput(
-        executor_id=exec2, destination_address=VICTIM
+    params2 = WithdrawEarningsInput(executor_id=exec2, destination_address=VICTIM)
+    result2 = await captured["em_withdraw_earnings"](
+        params2, _ctx_with_wallet(ATTACKER)
     )
-    result2 = await captured["em_withdraw_earnings"](params2, _ctx_with_wallet(ATTACKER))
     assert "destination must be the verified signing wallet" in result2

@@ -348,9 +348,7 @@ def _make_dispute_fake_client(
                 elif name == "tasks":
                     rows = [t for t in tasks if t.get("id") == filters.get("id")]
                 elif name == "submissions":
-                    rows = [
-                        s for s in submissions if s.get("id") == filters.get("id")
-                    ]
+                    rows = [s for s in submissions if s.get("id") == filters.get("id")]
                 else:
                     rows = []
                 return MagicMock(data=rows, count=len(rows))
@@ -416,9 +414,7 @@ class TestDisputeRecusal:
 
         # Guard: payment must NEVER be dispatched on a recused caller.
         pay_mock = AsyncMock()
-        monkeypatch.setattr(
-            disputes_mod, "_trigger_resolution_payment", pay_mock
-        )
+        monkeypatch.setattr(disputes_mod, "_trigger_resolution_payment", pay_mock)
 
         auth = _make_auth(wallet_address=worker_wallet, agent_id="0xworker")
         body = ResolveDisputeRequest(verdict="release", reason="my work is valid")
@@ -542,9 +538,7 @@ class TestDisputeRecusal:
         monkeypatch.setattr(disputes_mod.db, "get_client", lambda: client)
 
         pay_mock = AsyncMock(return_value="released")
-        monkeypatch.setattr(
-            disputes_mod, "_trigger_resolution_payment", pay_mock
-        )
+        monkeypatch.setattr(disputes_mod, "_trigger_resolution_payment", pay_mock)
 
         # Admin caller is NOT a party (distinct wallet) and presents the key.
         auth = _make_auth(wallet_address="0xadminoperator", agent_id="0xadminoperator")
@@ -577,9 +571,7 @@ class TestDisputeRecusal:
         monkeypatch.setattr(disputes_mod.db, "get_client", lambda: client)
 
         pay_mock = AsyncMock()
-        monkeypatch.setattr(
-            disputes_mod, "_trigger_resolution_payment", pay_mock
-        )
+        monkeypatch.setattr(disputes_mod, "_trigger_resolution_payment", pay_mock)
 
         auth = _make_auth(wallet_address=worker_wallet, agent_id="0xworker")
         body = ResolveDisputeRequest(verdict="release", reason="self deal attempt")

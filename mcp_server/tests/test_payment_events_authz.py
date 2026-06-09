@@ -39,8 +39,16 @@ def _fake_client_with_rows(rows):
     return client
 
 
-async def _call(monkeypatch, *, worker_auth=None, authorization=None, x_api_key=None,
-                address=OWNER_WALLET, rows=None, enforce=True):
+async def _call(
+    monkeypatch,
+    *,
+    worker_auth=None,
+    authorization=None,
+    x_api_key=None,
+    address=OWNER_WALLET,
+    rows=None,
+    enforce=True,
+):
     """Call the handler with the enforcement flag patched in-place (NO module
     reload — that corrupts module identity for the rest of the suite)."""
     import api.routers.workers as w

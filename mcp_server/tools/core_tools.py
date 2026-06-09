@@ -637,10 +637,7 @@ The task is now visible to human executors. Use `em_get_task` with the task ID t
 
             # Verify ownership against the authenticated principal.
             task = submission.get("task")
-            if (
-                not task
-                or (task.get("agent_id") or "").lower() != caller_agent_id
-            ):
+            if not task or (task.get("agent_id") or "").lower() != caller_agent_id:
                 return "Error: Not authorized to update this submission"
 
             task_id = task.get("id") if task else None
