@@ -479,6 +479,19 @@ def _compute_treasury_remainder(
     return treasury_amount
 
 
+def _solana_pubkeys_match(a: Optional[str], b: Optional[str]) -> bool:
+    """Compare two Solana base58 pubkeys for equality.
+
+    Solana addresses are case-sensitive base58 (unlike EVM hex), so we compare
+    exact strings after trimming whitespace. Both must be present and non-empty;
+    a missing value never matches (fail-closed) so an unbound or unverifiable
+    recipient cannot pass the payout-recipient check (L-25).
+    """
+    if not a or not b:
+        return False
+    return a.strip() == b.strip()
+
+
 _cached_platform_address: Optional[str] = None
 
 
@@ -1809,9 +1822,21 @@ class PaymentDispatcher:
         """
         network = network or "base"
 
+        # L-19/L-20: atomically claim the release before any on-chain TX so a
+        # concurrent / retried approval cannot double-release the escrow to the
+        # worker.
+        claim = await self._claim_escrow_operation(task_id, "release")
+        if not claim.get("claimed"):
+            blocked = await self._release_claim_blocked_result(task_id, claim)
+            if blocked is not None:
+                blocked.setdefault("escrow_mode", "direct_release")
+                return blocked
+            # no_escrow_row → fall through to the no-state handling below.
+
         # Reconstruct PaymentInfo from DB
         pi, pi_meta = await self._reconstruct_fase2_state(task_id)
         if pi is None:
+            await self._release_claim_rollback(task_id, "release")
             return {
                 "success": False,
                 "tx_hash": None,
@@ -1880,6 +1905,8 @@ class PaymentDispatcher:
                 "The agent must include 'payer' in payment_info when assigning.",
                 task_id,
             )
+            # No on-chain release attempted — release the claim for retry.
+            await self._release_claim_rollback(task_id, "release")
             return {
                 "success": False,
                 "tx_hash": None,
@@ -2040,6 +2067,8 @@ class PaymentDispatcher:
                 error=release_result.error,
                 metadata={"mode": "fase2", "escrow_mode": "direct_release"},
             )
+            # On-chain release did NOT succeed — release the claim for retry.
+            await self._release_claim_rollback(task_id, "release")
             return {
                 "success": False,
                 "tx_hash": None,
@@ -2158,6 +2187,16 @@ class PaymentDispatcher:
         Returns:
             Dict with success, tx_hash, etc.
         """
+        # L-19/L-20: atomically claim the refund before any on-chain TX so a
+        # concurrent / retried cancellation cannot double-refund the escrow.
+        claim = await self._claim_escrow_operation(task_id, "refund")
+        if not claim.get("claimed"):
+            blocked = await self._refund_claim_blocked_result(task_id, claim)
+            if blocked is not None:
+                blocked.setdefault("escrow_mode", "direct_release")
+                return blocked
+            # no_escrow_row → fall through to the no-state handling below.
+
         # Reconstruct PaymentInfo from DB
         pi, pi_meta = await self._reconstruct_fase2_state(task_id)
         if pi is None:
@@ -2165,6 +2204,7 @@ class PaymentDispatcher:
                 "trustless: No escrow state for task %s — treating as no-op refund",
                 task_id,
             )
+            await self._release_claim_rollback(task_id, "refund")
             await log_payment_event(
                 task_id=task_id,
                 event_type="escrow_refund",
@@ -2207,6 +2247,8 @@ class PaymentDispatcher:
                     "reason": reason,
                 },
             )
+            # On-chain refund did NOT happen — release the claim for retry.
+            await self._release_claim_rollback(task_id, "refund")
             return {
                 "success": False,
                 "tx_hash": None,
@@ -2392,6 +2434,221 @@ class PaymentDispatcher:
             return None
 
     # =========================================================================
+    # Atomic settlement claim (concurrency / idempotency — L-19, L-20)
+    # =========================================================================
+
+    # Statuses that are already terminal OR currently being settled. A claim is
+    # refused for any of these so a second concurrent (or retried) approval/
+    # cancellation cannot fire a duplicate on-chain release/refund.
+    _BLOCKED_CLAIM_STATUSES = (
+        "released",
+        "releasing",
+        "refunded",
+        "refunding",
+        "completed",
+        "authorization_expired",
+    )
+
+    async def _claim_escrow_operation(
+        self, task_id: str, operation: str
+    ) -> Dict[str, Any]:
+        """Atomically claim a release/refund for a task's escrow.
+
+        Root cause of L-19/L-20: release/refund were guarded only by a
+        read-then-act check (TOCTOU). Two concurrent approvals both read a
+        non-terminal status, both fired an on-chain settlement, and the escrow
+        was released twice (double-spend). This performs a single atomic
+        ``UPDATE escrows SET status=<transitional> WHERE task_id=? AND status
+        NOT IN (<terminal|transitional>)`` so exactly one caller wins the claim.
+
+        Args:
+            task_id: Task whose escrow is being settled.
+            operation: "release" or "refund".
+
+        Returns:
+            ``{"claimed": True}`` if this caller won the claim and may proceed.
+            ``{"claimed": False, "reason": ...}`` if the escrow is already
+            terminal/in-flight (caller must NOT fire another on-chain TX), or if
+            there is no escrow row to claim (caller falls through to its existing
+            no-escrow handling, which is a safe no-op).
+        """
+        transitional = "releasing" if operation == "release" else "refunding"
+        try:
+            import supabase_client as db
+
+            client = db.get_client()
+            # Atomic compare-and-swap. PostgREST emits a single SQL UPDATE; the
+            # WHERE clause (task_id + status NOT IN blocked) makes the claim
+            # race-safe. The returned rows are exactly those this caller flipped.
+            result = (
+                client.table("escrows")
+                .update({"status": transitional})
+                .eq("task_id", task_id)
+                .not_.in_("status", list(self._BLOCKED_CLAIM_STATUSES))
+                .execute()
+            )
+            claimed_rows = result.data or []
+            if claimed_rows:
+                logger.info(
+                    "escrow claim WON for task %s op=%s (status -> %s)",
+                    task_id,
+                    operation,
+                    transitional,
+                )
+                return {"claimed": True, "previous_rows": claimed_rows}
+
+            # No row flipped — either already terminal/in-flight, or no escrow row
+            # exists yet. Distinguish so the caller can react correctly.
+            existing = (
+                client.table("escrows")
+                .select("status")
+                .eq("task_id", task_id)
+                .order("created_at", desc=True)
+                .limit(1)
+                .execute()
+            )
+            rows = existing.data or []
+            if not rows:
+                return {"claimed": False, "reason": "no_escrow_row"}
+            current = (rows[0].get("status") or "").lower()
+            logger.warning(
+                "escrow claim REFUSED for task %s op=%s — current status=%s "
+                "(already terminal or in-flight). Skipping duplicate settlement.",
+                task_id,
+                operation,
+                current,
+            )
+            return {"claimed": False, "reason": "already_settled", "status": current}
+        except Exception as e:
+            # Fail-closed: if we cannot atomically claim, do NOT proceed to move
+            # funds. A duplicate release/refund is worse than a transient failure
+            # the caller can retry.
+            logger.error(
+                "escrow claim ERROR for task %s op=%s: %s — refusing to settle.",
+                task_id,
+                operation,
+                e,
+            )
+            return {"claimed": False, "reason": "claim_error", "error": str(e)}
+
+    async def _release_claim_rollback(self, task_id: str, operation: str) -> None:
+        """Release a transitional claim back to a retryable status after failure.
+
+        If the on-chain settlement fails AFTER we won the claim, the escrow is
+        left in ``releasing``/``refunding`` which would block all future retries.
+        Roll the status back to the pre-claim state so a legitimate retry can
+        re-acquire the claim. Only flips rows still in the transitional state
+        (so it never clobbers a status another worker advanced to terminal).
+        """
+        transitional = "releasing" if operation == "release" else "refunding"
+        rollback_to = "locked"
+        try:
+            import supabase_client as db
+
+            client = db.get_client()
+            client.table("escrows").update({"status": rollback_to}).eq(
+                "task_id", task_id
+            ).eq("status", transitional).execute()
+            logger.info(
+                "escrow claim rolled back for task %s op=%s (%s -> %s)",
+                task_id,
+                operation,
+                transitional,
+                rollback_to,
+            )
+        except Exception as e:
+            logger.error(
+                "escrow claim rollback FAILED for task %s op=%s: %s. "
+                "Escrow may be stuck in '%s' — manual remediation required.",
+                task_id,
+                operation,
+                e,
+                transitional,
+            )
+
+    async def _release_claim_blocked_result(
+        self, task_id: str, claim: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
+        """Map a refused release claim to an idempotent uniform result, or None.
+
+        Returns None when the refusal reason is ``no_escrow_row`` — the caller
+        should fall through to its own no-escrow handling. Otherwise returns an
+        idempotent success/failure dict so the caller short-circuits WITHOUT
+        firing a second on-chain release.
+        """
+        reason = claim.get("reason")
+        if reason == "no_escrow_row":
+            return None
+        if reason == "already_settled":
+            status = claim.get("status", "")
+            if status in ("released", "completed"):
+                # Already released — idempotent success (no second TX).
+                return {
+                    "success": True,
+                    "tx_hash": None,
+                    "mode": self.mode,
+                    "status": "already_released",
+                    "idempotent": True,
+                    "error": None,
+                }
+            # releasing/refunding/refunded/expired → cannot release now.
+            return {
+                "success": False,
+                "tx_hash": None,
+                "mode": self.mode,
+                "status": status or "claim_refused",
+                "error": (
+                    f"Release refused: escrow for task {task_id} is '{status}'. "
+                    "A concurrent settlement is in flight or the escrow is terminal."
+                ),
+            }
+        # claim_error → transient; surface a retryable failure.
+        return {
+            "success": False,
+            "tx_hash": None,
+            "mode": self.mode,
+            "status": "claim_error",
+            "error": claim.get("error", "Could not atomically claim escrow release"),
+        }
+
+    async def _refund_claim_blocked_result(
+        self, task_id: str, claim: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
+        """Map a refused refund claim to an idempotent uniform result, or None."""
+        reason = claim.get("reason")
+        if reason == "no_escrow_row":
+            return None
+        if reason == "already_settled":
+            status = claim.get("status", "")
+            if status in ("refunded", "authorization_expired"):
+                return {
+                    "success": True,
+                    "tx_hash": None,
+                    "mode": self.mode,
+                    "status": "already_refunded",
+                    "idempotent": True,
+                    "error": None,
+                }
+            return {
+                "success": False,
+                "tx_hash": None,
+                "mode": self.mode,
+                "status": status or "claim_refused",
+                "error": (
+                    f"Refund refused: escrow for task {task_id} is '{status}'. "
+                    "A concurrent settlement is in flight or the escrow is "
+                    "already released."
+                ),
+            }
+        return {
+            "success": False,
+            "tx_hash": None,
+            "mode": self.mode,
+            "status": "claim_error",
+            "error": claim.get("error", "Could not atomically claim escrow refund"),
+        }
+
+    # =========================================================================
     # release_payment
     # =========================================================================
 
@@ -2546,9 +2803,19 @@ class PaymentDispatcher:
         """
         network = network or "base"
 
+        # L-19/L-20: atomically claim the release before any on-chain TX so a
+        # concurrent / retried approval cannot double-release the escrow.
+        claim = await self._claim_escrow_operation(task_id, "release")
+        if not claim.get("claimed"):
+            blocked = await self._release_claim_blocked_result(task_id, claim)
+            if blocked is not None:
+                return blocked
+            # no_escrow_row → fall through to the no-state handling below.
+
         # Step 1: Reconstruct PaymentInfo from DB
         pi, pi_meta = await self._reconstruct_fase2_state(task_id)
         if pi is None:
+            await self._release_claim_rollback(task_id, "release")
             return {
                 "success": False,
                 "tx_hash": None,
@@ -2622,6 +2889,9 @@ class PaymentDispatcher:
                     error=release_result.error,
                     metadata={"mode": "fase2"},
                 )
+                # On-chain release did NOT happen — release the claim so a
+                # legitimate retry can re-acquire it.
+                await self._release_claim_rollback(task_id, "release")
                 return {
                     "success": False,
                     "tx_hash": None,
@@ -2910,6 +3180,73 @@ class PaymentDispatcher:
             }
 
         client = get_pay_shell_client()
+
+        # L-25: Validate payout recipient BEFORE settling. close_session settles
+        # to the channel's `payee` pubkey — if that does not match the task's
+        # assigned worker, settling would send the bounty to an attacker wallet
+        # (a worker can open a channel naming any payee, and a stale/hijacked
+        # binding could point elsewhere). Refuse to close on mismatch.
+        try:
+            session = await client.get_session(channel_id)
+        except PayShellError as e:
+            await log_payment_event(
+                task_id=task_id,
+                event_type="solana_session_release",
+                status="error",
+                to_address=worker_address,
+                amount_usdc=bounty_amount,
+                network="solana",
+                token=token,
+                metadata={
+                    "mode": "solana_session",
+                    "channel_id": channel_id,
+                    "error": f"session_lookup_failed: {e}",
+                },
+            )
+            return {
+                "success": False,
+                "tx_hash": None,
+                "mode": "solana_session",
+                "channel_id": channel_id,
+                "error": f"Cannot verify payout recipient: {e}",
+            }
+
+        if not _solana_pubkeys_match(session.payee, worker_address):
+            logger.error(
+                "solana: payout recipient mismatch for task %s — channel payee=%s "
+                "but assigned worker=%s. Refusing to settle.",
+                task_id,
+                session.payee,
+                worker_address,
+            )
+            await log_payment_event(
+                task_id=task_id,
+                event_type="solana_session_release",
+                status="error",
+                to_address=worker_address,
+                amount_usdc=bounty_amount,
+                network="solana",
+                token=token,
+                metadata={
+                    "mode": "solana_session",
+                    "channel_id": channel_id,
+                    "error": "payout_recipient_mismatch",
+                    "channel_payee": session.payee,
+                    "assigned_worker": worker_address,
+                },
+            )
+            return {
+                "success": False,
+                "tx_hash": None,
+                "mode": "solana_session",
+                "channel_id": channel_id,
+                "error": (
+                    "Payout recipient mismatch: pay.sh channel payee does not "
+                    "match the assigned worker. Refusing to settle to an "
+                    "unverified wallet."
+                ),
+            }
+
         try:
             result = await client.close_session(channel_id)
         except PayShellError as e:
@@ -3088,6 +3425,15 @@ class PaymentDispatcher:
         Funds return directly to the agent's wallet. No platform intermediary
         needed because the escrow contract sends funds to the original payer.
         """
+        # L-19/L-20: atomically claim the refund before any on-chain TX so a
+        # concurrent / retried cancellation cannot double-refund the escrow.
+        claim = await self._claim_escrow_operation(task_id, "refund")
+        if not claim.get("claimed"):
+            blocked = await self._refund_claim_blocked_result(task_id, claim)
+            if blocked is not None:
+                return blocked
+            # no_escrow_row → fall through to the no-state handling below.
+
         # Reconstruct PaymentInfo from DB
         pi, pi_meta = await self._reconstruct_fase2_state(task_id)
         if pi is None:
@@ -3097,6 +3443,7 @@ class PaymentDispatcher:
                 "fase2: No escrow state for task %s — treating as no-op refund",
                 task_id,
             )
+            await self._release_claim_rollback(task_id, "refund")
             await log_payment_event(
                 task_id=task_id,
                 event_type="escrow_refund",
@@ -3130,6 +3477,8 @@ class PaymentDispatcher:
                 error=refund_result.error,
                 metadata={"mode": "fase2", "reason": reason},
             )
+            # On-chain refund did NOT happen — release the claim for retry.
+            await self._release_claim_rollback(task_id, "refund")
             return {
                 "success": False,
                 "tx_hash": None,

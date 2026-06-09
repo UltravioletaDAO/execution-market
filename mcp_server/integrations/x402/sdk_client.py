@@ -725,6 +725,20 @@ ESCROW_API_KEY = os.environ.get("X402_ESCROW_API_KEY", os.environ.get("X402_API_
 PLATFORM_FEE_PERCENT = Decimal(os.environ.get("EM_PLATFORM_FEE", "0.13"))
 
 
+def _is_server_signing_enabled() -> bool:
+    """Whether the server may sign payment transactions with WALLET_PRIVATE_KEY.
+
+    EM_SERVER_SIGNING=true enables the server to sign EIP-3009 disbursement and
+    settlement authorizations from the platform wallet. This is for internal
+    testing ONLY (ADR-001: in production the server never touches funds —
+    external agents sign their own payments via X-Payment-Auth headers).
+
+    Live production runs with EM_SERVER_SIGNING unset (== false), so the
+    disbursement/settlement signers below are inert unless explicitly enabled.
+    """
+    return os.environ.get("EM_SERVER_SIGNING", "").lower() == "true"
+
+
 # =============================================================================
 # Payment Models
 # =============================================================================
@@ -819,19 +833,37 @@ class EMX402SDK:
 
     @staticmethod
     def _resolve_settlement_address() -> str:
-        """Resolve the settlement address: EM_SETTLEMENT_ADDRESS > WALLET_PRIVATE_KEY > EM_TREASURY."""
+        """Resolve the settlement (transit) address: EM_SETTLEMENT_ADDRESS > WALLET_PRIVATE_KEY.
+
+        The settlement address is the platform TRANSIT wallet — agent funds land
+        here at release, then immediately disburse to worker (87%) + treasury (13%).
+
+        It MUST NOT silently fall back to the cold treasury wallet (L-16). The
+        treasury is a Ledger cold wallet that only ever receives the 13% fee; if
+        agent funds settle there directly they are stranded in cold storage with
+        no automated disbursement path (worker never paid, funds effectively lost
+        / require a manual cold-wallet signing ceremony to recover). A misconfig
+        must be a hard, loud failure — never a quiet redirect of every bounty into
+        cold storage.
+        """
         if EM_SETTLEMENT_ADDRESS:
             return EM_SETTLEMENT_ADDRESS
         pk = os.environ.get("WALLET_PRIVATE_KEY")
         if pk:
             return Account.from_key(pk).address
-        logger.warning(
-            "No EM_SETTLEMENT_ADDRESS or WALLET_PRIVATE_KEY set — "
-            "falling back to EM_TREASURY as recipient. "
-            "This means agent funds settle directly to treasury, "
-            "which prevents split-payment disbursement to workers."
+        # Tests / explicitly-disabled payments don't move real funds — allow the
+        # placeholder so the module can import without a configured wallet. This
+        # mirrors the EM_TREASURY_ADDRESS guard at module load.
+        if _is_testing or _is_payment_disabled:
+            return EM_TREASURY
+        raise RuntimeError(
+            "CRITICAL: settlement address is not configured. "
+            "Set EM_SETTLEMENT_ADDRESS or WALLET_PRIVATE_KEY to the platform "
+            "TRANSIT wallet. Refusing to fall back to the cold treasury wallet — "
+            "settling agent funds there strands them in cold storage and "
+            "prevents disbursement to workers (L-16). "
+            "To bypass in tests, set TESTING=true or EM_PAYMENT_MODE=disabled."
         )
-        return EM_TREASURY
 
     def _setup_fastapi(self, app: FastAPI) -> None:
         """Setup FastAPI integration with x402."""
@@ -1017,7 +1049,22 @@ class EMX402SDK:
         return domain, config["address"]
 
     def _get_agent_account(self) -> Account:
-        """Get the agent wallet Account from WALLET_PRIVATE_KEY."""
+        """Get the platform wallet Account from WALLET_PRIVATE_KEY for server-side signing.
+
+        Gated by EM_SERVER_SIGNING (L-22). In production the server never signs
+        payments — external agents sign their own EIP-3009 authorizations and the
+        server only relays them to the facilitator. Loading the platform key to
+        sign a disbursement/settlement is testing-only behaviour; refuse it unless
+        EM_SERVER_SIGNING=true so a misconfigured production deploy cannot quietly
+        spend the platform wallet.
+        """
+        if not _is_server_signing_enabled():
+            raise RuntimeError(
+                "Server-side payment signing is disabled (EM_SERVER_SIGNING != true). "
+                "External agents must sign their own payments via X-Payment-Auth; "
+                "the server does not sign disbursement/settlement authorizations in "
+                "production (ADR-001). Set EM_SERVER_SIGNING=true for testing only."
+            )
         pk = os.environ.get("WALLET_PRIVATE_KEY")
         if not pk:
             raise RuntimeError("WALLET_PRIVATE_KEY not set — cannot sign disbursement")

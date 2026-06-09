@@ -632,6 +632,13 @@ class TestFase2Flow:
                 d._sdk = FakeSDK()
             mock_client = FaseClientMock()
             d._fase2_clients = {8453: mock_client}
+            # Phase 4 (L-19/L-20): release/refund now atomically claim the escrow
+            # before any on-chain TX. These flow tests exercise the downstream
+            # settlement logic, so stub the claim to "won" and make rollback a
+            # no-op. The claim/rollback machinery itself is covered by
+            # test_phase4_payment_fund_loss.py.
+            d._claim_escrow_operation = AsyncMock(return_value={"claimed": True})
+            d._release_claim_rollback = AsyncMock(return_value=None)
             return d, mock_client
 
     @pytest.mark.asyncio
@@ -1658,6 +1665,11 @@ class TestDirectRelease:
             d._sdk = FakeSDK()
             mock_client = FaseClientMock()
             d._fase2_clients = {8453: mock_client}
+            # Phase 4 (L-19/L-20): stub the atomic claim/rollback so these
+            # release/refund flow tests exercise the downstream settlement logic.
+            # Claim/rollback behaviour is covered by test_phase4_payment_fund_loss.py.
+            d._claim_escrow_operation = AsyncMock(return_value={"claimed": True})
+            d._release_claim_rollback = AsyncMock(return_value=None)
             return d, mock_client
 
     @pytest.mark.asyncio
@@ -1842,6 +1854,11 @@ class TestTrustlessRefund:
             d._sdk = FakeSDK()
             mock_client = FaseClientMock()
             d._fase2_clients = {8453: mock_client}
+            # Phase 4 (L-19/L-20): stub the atomic claim/rollback so these
+            # release/refund flow tests exercise the downstream settlement logic.
+            # Claim/rollback behaviour is covered by test_phase4_payment_fund_loss.py.
+            d._claim_escrow_operation = AsyncMock(return_value={"claimed": True})
+            d._release_claim_rollback = AsyncMock(return_value=None)
             return d, mock_client
 
     @pytest.mark.asyncio
