@@ -70,9 +70,9 @@ TASK_STATUS_COMPLETED = "completed"
 def _get_db():
     """Lazy supabase getter — keeps test imports cheap when the real
     client isn't available."""
-    from utils.supabase_client import get_supabase
+    import supabase_client as db
 
-    return get_supabase()
+    return db.get_client()
 
 
 # ---------------------------------------------------------------------------

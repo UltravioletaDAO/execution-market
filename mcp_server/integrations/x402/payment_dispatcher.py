@@ -3476,9 +3476,9 @@ class PaymentDispatcher:
         binding exists — caller handles graceful degradation.
         """
         try:
-            from utils.supabase_client import get_supabase
+            import supabase_client as db
 
-            supabase = get_supabase()
+            supabase = db.get_client()
             resp = (
                 supabase.table("payment_events")
                 .select("metadata")

@@ -161,10 +161,10 @@ async def _authorize_channel_access(channel_id: str, auth: AgentAuth) -> None:
 def _executor_owns(executor_id: str, caller_wallet: str) -> bool:
     """True if ``executor_id`` resolves to an executor with ``caller_wallet``."""
     try:
-        from utils.supabase_client import get_supabase
+        import supabase_client as db
 
         resp = (
-            get_supabase()
+            db.get_client()
             .table("executors")
             .select("wallet_address")
             .eq("id", executor_id)
@@ -207,9 +207,9 @@ async def _replay_from_db(channel_id: str, limit: int) -> AsyncIterator[bytes]:
     live events even if replay fails.
     """
     try:
-        from utils.supabase_client import get_supabase
+        import supabase_client as db
 
-        supabase = get_supabase()
+        supabase = db.get_client()
         resp = (
             supabase.table("mpp_session_events")
             .select(
@@ -275,9 +275,9 @@ async def _persist_event(channel_id: str, event_type: str, data: dict) -> None:
     in metadata so we don't silently drop forward-compat additions.
     """
     try:
-        from utils.supabase_client import get_supabase
+        import supabase_client as db
 
-        supabase = get_supabase()
+        supabase = db.get_client()
 
         # Normalize event type to migration 108's allowed values.
         allowed = {
@@ -418,9 +418,9 @@ async def taximetro_history(
     _validate_channel_id(channel_id)
     await _authorize_channel_access(channel_id, auth)
     try:
-        from utils.supabase_client import get_supabase
+        import supabase_client as db
 
-        supabase = get_supabase()
+        supabase = db.get_client()
         resp = (
             supabase.table("mpp_session_events")
             .select("*")
