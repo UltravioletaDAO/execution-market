@@ -16,6 +16,11 @@ import pytest
 
 from utils.net import _reload_trusted_cidrs, get_client_ip
 
+# Client-IP extraction feeds the middleware A2A limiter, app rate limiter and
+# IP auto-ban — infrastructure-layer abuse controls. Also security-relevant
+# (FIX-P2-02 XFF-spoofing hardening).
+pytestmark = [pytest.mark.infrastructure, pytest.mark.security]
+
 
 # ---------------------------------------------------------------------------
 # Test fakes
@@ -85,13 +90,53 @@ class TestTrustedProxyPath:
         )
         assert get_client_ip(req) == "203.0.113.7"
 
-    def test_xff_hop0_used_when_multiple_entries(self):
-        # XFF format: "client, proxy1, proxy2" — leftmost is the original client.
+    def test_rightmost_untrusted_hop_is_client_for_appending_proxy(self):
+        # ALB appends the real source to the RIGHT. Header arriving at the
+        # backend: "<spoofed client>, <real client appended by ALB>".
         req = _FakeRequest(
-            peer_host="172.20.0.10",  # inside 172.16.0.0/12
-            headers={"X-Forwarded-For": "198.51.100.1, 10.0.0.1, 10.0.0.2"},
+            peer_host="10.0.0.5",  # ALB, trusted
+            headers={"X-Forwarded-For": "1.2.3.4, 203.0.113.7"},
         )
-        assert get_client_ip(req) == "198.51.100.1"
+        # Must resolve to the appended (right-most non-trusted) IP, NOT 1.2.3.4.
+        assert get_client_ip(req) == "203.0.113.7"
+
+    def test_spoofed_left_prefix_is_ignored(self):
+        # Reproduces FIX-P2-02: a spoofed left hop must not change the result.
+        base = _FakeRequest(
+            peer_host="10.0.0.5",
+            headers={"X-Forwarded-For": "203.0.113.7"},
+        )
+        spoofed = _FakeRequest(
+            peer_host="10.0.0.5",
+            headers={"X-Forwarded-For": "9.9.9.9, 203.0.113.7"},
+        )
+        # Attacker prepending 9.9.9.9 must NOT alter the derived client IP.
+        assert get_client_ip(spoofed) == get_client_ip(base) == "203.0.113.7"
+
+    def test_walks_past_trailing_trusted_hops(self):
+        # Multi-proxy chain: skip trailing trusted hops, return the real client.
+        req = _FakeRequest(
+            peer_host="10.0.0.5",
+            headers={"X-Forwarded-For": "203.0.113.7, 10.0.0.1, 10.0.0.2"},
+        )
+        assert get_client_ip(req) == "203.0.113.7"
+
+    def test_all_trusted_xff_falls_back_to_peer(self):
+        # Every XFF hop is a trusted proxy → fall back to the TCP peer.
+        req = _FakeRequest(
+            peer_host="10.0.0.5",
+            headers={"X-Forwarded-For": "10.0.0.1, 10.0.0.2"},
+        )
+        assert get_client_ip(req) == "10.0.0.5"
+
+    def test_malformed_rightmost_hop_is_skipped(self):
+        # A non-IP appended on the right must not be echoed into limiter keys;
+        # the walk skips it and returns the next valid non-trusted hop.
+        req = _FakeRequest(
+            peer_host="10.0.0.5",
+            headers={"X-Forwarded-For": "203.0.113.7, junk"},
+        )
+        assert get_client_ip(req) == "203.0.113.7"
 
     def test_xff_header_lowercase_also_works(self):
         # HTTP headers are case-insensitive; Starlette normalizes to lowercase.
@@ -141,7 +186,7 @@ class TestMalformedXff:
             peer_host="10.0.0.1",
             headers={"X-Forwarded-For": "   ,  ,  "},
         )
-        # First token after split+strip is empty → fall back to peer.
+        # No non-empty hops survive the split+strip → fall back to peer.
         assert get_client_ip(req) == "10.0.0.1"
 
 

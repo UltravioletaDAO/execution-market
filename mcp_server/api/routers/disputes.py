@@ -25,6 +25,8 @@ Auth:
 """
 
 import logging
+import os
+import secrets
 import uuid as _uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -158,6 +160,67 @@ class ResolveDisputeResponse(BaseModel):
 
 OPEN_STATUSES = {"open", "under_review", "awaiting_response", "in_arbitration"}
 
+# Submission states from which a dispute 'release' is a no-op (already terminal).
+TERMINAL_SUBMISSION_STATUSES = {"paid", "released", "completed", "rated", "refunded"}
+
+
+def _arbiter_unilateral_resolution_enabled() -> bool:
+    """FIX-P1-08: Unilateral human-arbiter dispute resolution is OFF by default.
+
+    When false, only an admin (X-Admin-Key) or the future assigned-arbiter
+    consensus flow may resolve a dispute. A single eligible executor can NOT
+    unilaterally redirect escrowed funds.
+    """
+    return (
+        os.environ.get("EM_ARBITER_UNILATERAL_RESOLUTION", "false").strip().lower()
+        == "true"
+    )
+
+
+def _is_admin_request(request: Optional[Request]) -> bool:
+    """FIX-P1-08: Constant-time X-Admin-Key check.
+
+    Returns True only when a valid admin key is presented. A missing or invalid
+    key returns False (does NOT raise) so the admin path stays *optional* on the
+    /resolve endpoint — non-admin callers fall through to recusal/flag logic
+    instead of getting a 401/503 from a mandatory admin dependency.
+    """
+    if request is None:
+        return False
+    provided = (request.headers.get("X-Admin-Key") or "").strip()
+    expected = os.environ.get("EM_ADMIN_KEY", "").strip()
+    if not provided or not expected:
+        return False
+    return secrets.compare_digest(provided.encode(), expected.encode())
+
+
+def _is_party_to_dispute(
+    dispute: Dict[str, Any],
+    caller_wallet: str,
+    caller_agent_id: str,
+    caller_executor_id: Optional[str],
+) -> bool:
+    """FIX-P1-08: True if the caller is a party to THIS dispute (recusal).
+
+    A party is either the publisher (``agent_id``, matched by wallet or
+    agent_id) or the executor (matched by the executor row resolved from the
+    caller's wallet vs. ``dispute.executor_id``). A party must never resolve
+    their own dispute.
+
+    Wallet/agent comparisons are lowercased; executor comparison is by id.
+    """
+    dispute_agent_id = (dispute.get("agent_id") or "").lower()
+    if dispute_agent_id and dispute_agent_id in (caller_wallet, caller_agent_id):
+        return True
+    dispute_executor_id = dispute.get("executor_id")
+    if (
+        caller_executor_id
+        and dispute_executor_id
+        and str(caller_executor_id) == str(dispute_executor_id)
+    ):
+        return True
+    return False
+
 
 def _row_to_summary(row: Dict[str, Any]) -> DisputeSummary:
     return DisputeSummary(
@@ -225,18 +288,30 @@ async def _require_agent_owns_dispute(dispute: Dict[str, Any], auth: AgentAuth) 
         )
 
 
-async def _check_human_arbiter_eligibility(executor_id: str, category: str) -> bool:
+async def _check_human_arbiter_eligibility(
+    executor_id: str,
+    category: str,
+    dispute: Optional[Dict[str, Any]] = None,
+) -> bool:
     """Human arbiter eligibility check.
 
-    Criteria (from MASTER_PLAN Phase 2 Task 2.3):
+    Criteria (from MASTER_PLAN Phase 2 Task 2.3, tightened by FIX-P1-08):
+      - NOT a party to the dispute (defense in depth — recusal is the primary
+        gate, but the eligibility helper must never green-light a party)
       - reputation_score >= 80
       - completed_tasks >= 10 (total, across categories)
-      - (optional) specialty in the dispute's category
+      - category specialty MANDATORY when a non-general category is provided
 
     Returns True if the executor is eligible to resolve disputes in this
     category. False otherwise.
     """
     try:
+        # FIX-P1-08: an arbiter must not be the executor party of the dispute.
+        if dispute is not None:
+            dispute_executor_id = dispute.get("executor_id")
+            if dispute_executor_id and str(dispute_executor_id) == str(executor_id):
+                return False
+
         client = db.get_client()
         result = (
             client.table("executors")
@@ -255,8 +330,11 @@ async def _check_human_arbiter_eligibility(executor_id: str, category: str) -> b
             return False
         if completed < 10:
             return False
-        # Category specialty is bonus, not mandatory
-        _ = category in specialties
+        # FIX-P1-08: category specialty is now MANDATORY for a specific category.
+        # Only reachable when EM_ARBITER_UNILATERAL_RESOLUTION=true, so this
+        # stricter rule cannot lock out anyone on the default (admin-only) config.
+        if category and category != "general" and category not in specialties:
+            return False
         return True
     except Exception as e:
         logger.warning("Failed to check arbiter eligibility for %s: %s", executor_id, e)
@@ -651,14 +729,19 @@ async def create_dispute(
 async def resolve_dispute(
     dispute_id: str,
     body: ResolveDisputeRequest,
+    request: Request,
     auth: AgentAuth = Depends(verify_agent_auth_write),
 ) -> ResolveDisputeResponse:
     """Submit a resolution verdict on a dispute.
 
-    Who can call this:
-      1. The publishing agent (can always close their own dispute)
-      2. An eligible human arbiter (reputation_score >= 80,
-         tasks_completed >= 10)
+    Who can call this (FIX-P1-08 — recusal + neutral-resolver enforcement):
+      1. A platform admin (``X-Admin-Key``) — neutral operator path, mirrors
+         migration-004 'Manually resolve dispute (admin)'.
+      2. An eligible, ASSIGNED human arbiter — ONLY when the feature flag
+         ``EM_ARBITER_UNILATERAL_RESOLUTION=true`` is set (OFF by default).
+
+    A party to the dispute (publisher ``agent_id`` or the disputed
+    ``executor_id``) can NEVER resolve it — recusal is always enforced.
 
     Verdict options:
       - 'release' -> worker wins, trigger Facilitator /settle
@@ -707,38 +790,98 @@ async def resolve_dispute(
                 detail=f"Dispute already resolved (status={dispute['status']})",
             )
 
-        # 3. Authorization check: wallet-based ownership OR eligible human arbiter
-        # API-003 fix: compare wallet_address, not agent_id (which defaults to
+        # 3. Authorization (FIX-P1-08): recusal + neutral-resolver enforcement.
+        # API-003: compare wallet_address, not agent_id (which defaults to
         # "2106" for platform-owned tasks and can be impersonated).
         caller_wallet = (auth.wallet_address or "").lower()
         caller_agent_id = (auth.agent_id or "").lower()
 
-        # Check ownership via wallet address primarily, agent_id as fallback
-        # for pre-ERC-8128 records
-        dispute_agent_id = (dispute.get("agent_id") or "").lower()
-        is_task_owner = dispute_agent_id and dispute_agent_id in (
-            caller_wallet,
-            caller_agent_id,
-        )
+        # Optional admin path. A valid X-Admin-Key bypasses the
+        # eligibility/assignment requirement but is still subject to recusal
+        # (the admin key holder is the platform operator, not a dispute party).
+        is_admin = _is_admin_request(request)
 
-        if not is_task_owner:
-            # Not the task owner -- must be an eligible human arbiter.
-            # Resolve the caller's executor_id via wallet.
-            exec_query = (
-                client.table("executors")
+        # Resolve the caller's executor_id (if any) up front for recusal +
+        # eligibility.
+        caller_executor_id: Optional[str] = None
+        exec_query = (
+            client.table("executors")
+            .select("id")
+            .eq("wallet_address", caller_wallet)
+            .limit(1)
+            .execute()
+        )
+        if exec_query.data:
+            caller_executor_id = exec_query.data[0]["id"]
+
+        # 3a. RECUSAL — a party to the dispute may NEVER resolve it (always on).
+        #     Replaces the old "task owner can always close their own dispute"
+        #     branch: the publisher is now caught here and cannot self-resolve.
+        if not is_admin and _is_party_to_dispute(
+            dispute, caller_wallet, caller_agent_id, caller_executor_id
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    "Recusal: a party to the dispute (publisher or executor) "
+                    "cannot resolve it. Resolution requires a neutral arbiter "
+                    "or admin."
+                ),
+            )
+
+        # 3b. Admin short-circuit — neutral operator path. Skip all arbiter
+        #     gating below; admins are exempt from eligibility/assignment.
+        if not is_admin:
+            # 3c. Non-admin: unilateral human-arbiter resolution is flag-gated
+            #     OFF by default. When OFF, reject — must go through admin or
+            #     the future assigned-arbiter consensus flow.
+            if not _arbiter_unilateral_resolution_enabled():
+                raise HTTPException(
+                    status_code=403,
+                    detail=(
+                        "Dispute resolution requires admin authority "
+                        "(X-Admin-Key) or assigned-arbiter consensus. "
+                        "Unilateral arbiter resolution is disabled."
+                    ),
+                )
+
+            # 3d. Flag ON (transitional): caller must be a registered executor,
+            #     ASSIGNED to this dispute, and pass tightened eligibility.
+            if not caller_executor_id:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Not authorized: not a registered executor",
+                )
+
+            # Assignment guard — mirror the DB rule (an arbitration_votes row
+            # must exist for this dispute + this arbiter). Resolve arbitrator_id
+            # from the executor's wallet.
+            arb_query = (
+                client.table("arbitrators")
                 .select("id")
                 .eq("wallet_address", caller_wallet)
                 .limit(1)
                 .execute()
             )
-            if not exec_query.data:
+            arbitrator_id = arb_query.data[0]["id"] if arb_query.data else None
+            assigned = False
+            if arbitrator_id:
+                vote_query = (
+                    client.table("arbitration_votes")
+                    .select("id")
+                    .eq("dispute_id", dispute_id)
+                    .eq("arbitrator_id", arbitrator_id)
+                    .limit(1)
+                    .execute()
+                )
+                assigned = bool(vote_query.data)
+            if not assigned:
                 raise HTTPException(
                     status_code=403,
-                    detail="Not authorized: not task owner and not a registered executor",
+                    detail="Not assigned to this dispute",
                 )
-            executor_id = exec_query.data[0]["id"]
 
-            # Resolve task category for eligibility check
+            # Resolve task category for the tightened eligibility check.
             task_query = (
                 client.table("tasks")
                 .select("category")
@@ -752,12 +895,36 @@ async def resolve_dispute(
                 else "general"
             )
 
-            eligible = await _check_human_arbiter_eligibility(executor_id, category)
+            eligible = await _check_human_arbiter_eligibility(
+                caller_executor_id, category, dispute=dispute
+            )
             if not eligible:
                 raise HTTPException(
                     status_code=403,
-                    detail="Not eligible: human arbiter requires reputation>=80 and 10+ completed tasks",
+                    detail=(
+                        "Not eligible: arbiter must be unrelated to the task, "
+                        "category-matched, reputation>=80, 10+ completed tasks"
+                    ),
                 )
+
+        # 3e. State precondition before any payout (FIX-P1-08): ensure the
+        #     linked submission is not already terminal on a 'release' verdict.
+        #     Escrow-state checks remain in _settle_submission_payment.
+        if body.verdict == "release" and dispute.get("submission_id"):
+            sub_state = (
+                client.table("submissions")
+                .select("status")
+                .eq("id", dispute["submission_id"])
+                .limit(1)
+                .execute()
+            )
+            if sub_state.data:
+                ss = (sub_state.data[0].get("status") or "").lower()
+                if ss in TERMINAL_SUBMISSION_STATUSES:
+                    raise HTTPException(
+                        status_code=409,
+                        detail=f"Submission already {ss}; cannot release",
+                    )
 
         # 4. Compute split
         disputed_amount = float(dispute.get("disputed_amount_usdc", 0) or 0)

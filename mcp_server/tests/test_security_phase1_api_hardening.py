@@ -43,6 +43,13 @@ def _make_auth(
     )
 
 
+def _make_request(headers: dict[str, str] | None = None):
+    """Minimal Request stand-in: resolve_dispute only reads request.headers.get()."""
+    req = MagicMock()
+    req.headers = headers or {}
+    return req
+
+
 # ===========================================================================
 # API-002: Batch endpoint disabled
 # ===========================================================================
@@ -116,7 +123,12 @@ class TestDisputeResolveHardened:
         body = ResolveDisputeRequest(verdict="release", reason="Testing release")
 
         with pytest.raises(HTTPException) as exc_info:
-            await resolve_dispute(dispute_id="test-dispute-1", body=body, auth=auth)
+            await resolve_dispute(
+                dispute_id="test-dispute-1",
+                body=body,
+                request=_make_request(),
+                auth=auth,
+            )
 
         assert exc_info.value.status_code == 403
         assert "ERC-8128" in exc_info.value.detail
@@ -131,7 +143,12 @@ class TestDisputeResolveHardened:
         body = ResolveDisputeRequest(verdict="refund", reason="Testing refund")
 
         with pytest.raises(HTTPException) as exc_info:
-            await resolve_dispute(dispute_id="test-dispute-2", body=body, auth=auth)
+            await resolve_dispute(
+                dispute_id="test-dispute-2",
+                body=body,
+                request=_make_request(),
+                auth=auth,
+            )
 
         assert exc_info.value.status_code == 403
         assert "Wallet address required" in exc_info.value.detail
@@ -148,7 +165,10 @@ class TestDisputeResolveHardened:
         # Should pass the auth gate and hit 404 (no dispute found in mock DB)
         with pytest.raises(HTTPException) as exc_info:
             await resolve_dispute(
-                dispute_id="nonexistent-dispute", body=body, auth=auth
+                dispute_id="nonexistent-dispute",
+                body=body,
+                request=_make_request(),
+                auth=auth,
             )
 
         # If we get 404, the auth gate was passed
@@ -258,3 +278,318 @@ class TestA2AAgentIdExtraction:
             result = await _extract_agent_id(mock_request)
 
         assert result is None
+
+
+# ===========================================================================
+# FIX-P1-08: Dispute resolution recusal + neutral-resolver enforcement
+# ===========================================================================
+
+
+def _make_dispute_fake_client(
+    *,
+    dispute: dict,
+    executors_by_wallet: dict[str, dict] | None = None,
+    executor_rows_by_id: dict[str, dict] | None = None,
+    arbitrators_by_wallet: dict[str, dict] | None = None,
+    votes: list[dict] | None = None,
+    tasks: list[dict] | None = None,
+    submissions: list[dict] | None = None,
+):
+    """Build a per-table fake supabase client for resolve_dispute.
+
+    Each table's select chain captures the filters applied (.eq) and returns
+    the matching rows on .execute(). This mirrors the real PostgREST chain
+    closely enough to exercise the recusal/assignment/eligibility branches.
+    """
+    executors_by_wallet = executors_by_wallet or {}
+    executor_rows_by_id = executor_rows_by_id or {}
+    arbitrators_by_wallet = arbitrators_by_wallet or {}
+    votes = votes or []
+    tasks = tasks or []
+    submissions = submissions or []
+
+    def mk_table(name):
+        table = MagicMock()
+
+        def select(*_args, **_kwargs):
+            filters: dict[str, object] = {}
+
+            chain = MagicMock()
+
+            def eq(col, val):
+                filters[col] = val
+                return chain
+
+            def limit(_n):
+                return chain
+
+            def execute():
+                if name == "disputes":
+                    rows = [dispute] if filters.get("id") == dispute.get("id") else []
+                elif name == "executors":
+                    if "wallet_address" in filters:
+                        row = executors_by_wallet.get(filters["wallet_address"])
+                        rows = [row] if row else []
+                    elif "id" in filters:
+                        row = executor_rows_by_id.get(filters["id"])
+                        rows = [row] if row else []
+                    else:
+                        rows = []
+                elif name == "arbitrators":
+                    row = arbitrators_by_wallet.get(filters.get("wallet_address"))
+                    rows = [row] if row else []
+                elif name == "arbitration_votes":
+                    rows = [
+                        v
+                        for v in votes
+                        if v.get("dispute_id") == filters.get("dispute_id")
+                        and v.get("arbitrator_id") == filters.get("arbitrator_id")
+                    ]
+                elif name == "tasks":
+                    rows = [t for t in tasks if t.get("id") == filters.get("id")]
+                elif name == "submissions":
+                    rows = [
+                        s for s in submissions if s.get("id") == filters.get("id")
+                    ]
+                else:
+                    rows = []
+                return MagicMock(data=rows, count=len(rows))
+
+            chain.eq.side_effect = eq
+            chain.limit.side_effect = limit
+            chain.execute.side_effect = execute
+            return chain
+
+        # update().eq().execute() is a no-op that returns empty
+        upd_chain = MagicMock()
+        upd_chain.eq.return_value = upd_chain
+        upd_chain.execute.return_value = MagicMock(data=[], count=0)
+
+        table.select.side_effect = select
+        table.update.return_value = upd_chain
+        return table
+
+    client = MagicMock()
+    client.table.side_effect = mk_table
+    return client
+
+
+@pytest.mark.asyncio
+class TestDisputeRecusal:
+    """FIX-P1-08: a conflicted/unilateral arbiter cannot redirect escrow.
+
+    Reproduces the worker-self-deal and publisher-self-judge vectors and
+    proves the admin path + flag-gated assigned-arbiter path work.
+    """
+
+    DISPUTE_ID = "11111111-1111-1111-1111-111111111111"
+    TASK_ID = "22222222-2222-2222-2222-222222222222"
+    SUBMISSION_ID = "33333333-3333-3333-3333-333333333333"
+    EXECUTOR_ID = "44444444-4444-4444-4444-444444444444"
+    PUBLISHER_WALLET = "0xpublisher"
+
+    def _open_dispute(self):
+        return {
+            "id": self.DISPUTE_ID,
+            "task_id": self.TASK_ID,
+            "submission_id": self.SUBMISSION_ID,
+            "agent_id": self.PUBLISHER_WALLET,
+            "executor_id": self.EXECUTOR_ID,
+            "status": "open",
+            "disputed_amount_usdc": 10.0,
+        }
+
+    async def test_executor_party_release_rejected(self, monkeypatch):
+        """REPRODUCES bug: the disputed executor cannot release to themselves."""
+        from fastapi import HTTPException
+        from api.routers import disputes as disputes_mod
+        from api.routers.disputes import resolve_dispute, ResolveDisputeRequest
+
+        monkeypatch.delenv("EM_ARBITER_UNILATERAL_RESOLUTION", raising=False)
+        # Caller wallet maps to the executor that IS the dispute's executor_id.
+        worker_wallet = "0xworker"
+        client = _make_dispute_fake_client(
+            dispute=self._open_dispute(),
+            executors_by_wallet={worker_wallet: {"id": self.EXECUTOR_ID}},
+        )
+        monkeypatch.setattr(disputes_mod.db, "get_client", lambda: client)
+
+        # Guard: payment must NEVER be dispatched on a recused caller.
+        pay_mock = AsyncMock()
+        monkeypatch.setattr(
+            disputes_mod, "_trigger_resolution_payment", pay_mock
+        )
+
+        auth = _make_auth(wallet_address=worker_wallet, agent_id="0xworker")
+        body = ResolveDisputeRequest(verdict="release", reason="my work is valid")
+
+        with pytest.raises(HTTPException) as exc_info:
+            await resolve_dispute(
+                dispute_id=self.DISPUTE_ID,
+                body=body,
+                request=_make_request(),
+                auth=auth,
+            )
+
+        assert exc_info.value.status_code == 403
+        assert "Recusal" in exc_info.value.detail
+        pay_mock.assert_not_awaited()
+
+    async def test_publisher_party_refund_rejected(self, monkeypatch):
+        """The publisher (agent_id) cannot self-judge a refund."""
+        from fastapi import HTTPException
+        from api.routers import disputes as disputes_mod
+        from api.routers.disputes import resolve_dispute, ResolveDisputeRequest
+
+        monkeypatch.delenv("EM_ARBITER_UNILATERAL_RESOLUTION", raising=False)
+        client = _make_dispute_fake_client(
+            dispute=self._open_dispute(),
+            executors_by_wallet={},  # publisher has no executor row
+        )
+        monkeypatch.setattr(disputes_mod.db, "get_client", lambda: client)
+
+        auth = _make_auth(
+            wallet_address=self.PUBLISHER_WALLET, agent_id=self.PUBLISHER_WALLET
+        )
+        body = ResolveDisputeRequest(verdict="refund", reason="reclaiming funds")
+
+        with pytest.raises(HTTPException) as exc_info:
+            await resolve_dispute(
+                dispute_id=self.DISPUTE_ID,
+                body=body,
+                request=_make_request(),
+                auth=auth,
+            )
+
+        assert exc_info.value.status_code == 403
+        assert "Recusal" in exc_info.value.detail
+
+    async def test_non_admin_unilateral_disabled(self, monkeypatch):
+        """A neutral eligible executor is rejected when the flag is unset."""
+        from fastapi import HTTPException
+        from api.routers import disputes as disputes_mod
+        from api.routers.disputes import resolve_dispute, ResolveDisputeRequest
+
+        monkeypatch.delenv("EM_ARBITER_UNILATERAL_RESOLUTION", raising=False)
+        neutral_wallet = "0xneutral"
+        neutral_executor_id = "55555555-5555-5555-5555-555555555555"
+        client = _make_dispute_fake_client(
+            dispute=self._open_dispute(),
+            executors_by_wallet={neutral_wallet: {"id": neutral_executor_id}},
+        )
+        monkeypatch.setattr(disputes_mod.db, "get_client", lambda: client)
+
+        auth = _make_auth(wallet_address=neutral_wallet, agent_id="0xneutral")
+        body = ResolveDisputeRequest(verdict="release", reason="neutral verdict")
+
+        with pytest.raises(HTTPException) as exc_info:
+            await resolve_dispute(
+                dispute_id=self.DISPUTE_ID,
+                body=body,
+                request=_make_request(),
+                auth=auth,
+            )
+
+        assert exc_info.value.status_code == 403
+        assert "requires admin authority" in exc_info.value.detail
+
+    async def test_unassigned_arbiter_rejected_when_flag_on(self, monkeypatch):
+        """With the flag ON, a neutral arbiter with no vote row is rejected."""
+        from fastapi import HTTPException
+        from api.routers import disputes as disputes_mod
+        from api.routers.disputes import resolve_dispute, ResolveDisputeRequest
+
+        monkeypatch.setenv("EM_ARBITER_UNILATERAL_RESOLUTION", "true")
+        neutral_wallet = "0xneutral"
+        neutral_executor_id = "55555555-5555-5555-5555-555555555555"
+        client = _make_dispute_fake_client(
+            dispute=self._open_dispute(),
+            executors_by_wallet={neutral_wallet: {"id": neutral_executor_id}},
+            # arbitrator row exists, but there is NO arbitration_votes row.
+            arbitrators_by_wallet={
+                neutral_wallet: {"id": "66666666-6666-6666-6666-666666666666"}
+            },
+            votes=[],
+        )
+        monkeypatch.setattr(disputes_mod.db, "get_client", lambda: client)
+
+        auth = _make_auth(wallet_address=neutral_wallet, agent_id="0xneutral")
+        body = ResolveDisputeRequest(verdict="release", reason="neutral verdict")
+
+        with pytest.raises(HTTPException) as exc_info:
+            await resolve_dispute(
+                dispute_id=self.DISPUTE_ID,
+                body=body,
+                request=_make_request(),
+                auth=auth,
+            )
+
+        assert exc_info.value.status_code == 403
+        assert "Not assigned to this dispute" in exc_info.value.detail
+
+    async def test_admin_resolution_allowed(self, monkeypatch):
+        """A valid X-Admin-Key resolves the dispute and dispatches payment."""
+        from api.routers import disputes as disputes_mod
+        from api.routers.disputes import resolve_dispute, ResolveDisputeRequest
+
+        monkeypatch.setenv("EM_ADMIN_KEY", "super-secret-admin-key")
+        monkeypatch.delenv("EM_ARBITER_UNILATERAL_RESOLUTION", raising=False)
+        client = _make_dispute_fake_client(
+            dispute=self._open_dispute(),
+            executors_by_wallet={},
+            submissions=[{"id": self.SUBMISSION_ID, "status": "submitted"}],
+        )
+        monkeypatch.setattr(disputes_mod.db, "get_client", lambda: client)
+
+        pay_mock = AsyncMock(return_value="released")
+        monkeypatch.setattr(
+            disputes_mod, "_trigger_resolution_payment", pay_mock
+        )
+
+        # Admin caller is NOT a party (distinct wallet) and presents the key.
+        auth = _make_auth(wallet_address="0xadminoperator", agent_id="0xadminoperator")
+        body = ResolveDisputeRequest(verdict="release", reason="admin verdict")
+        request = _make_request({"X-Admin-Key": "super-secret-admin-key"})
+
+        resp = await resolve_dispute(
+            dispute_id=self.DISPUTE_ID,
+            body=body,
+            request=request,
+            auth=auth,
+        )
+
+        assert resp.success is True
+        assert resp.verdict == "release"
+        pay_mock.assert_awaited_once()
+
+    async def test_settle_payment_not_called_on_recusal(self, monkeypatch):
+        """Defense in depth: no funds move when the caller is recused."""
+        from fastapi import HTTPException
+        from api.routers import disputes as disputes_mod
+        from api.routers.disputes import resolve_dispute, ResolveDisputeRequest
+
+        monkeypatch.delenv("EM_ARBITER_UNILATERAL_RESOLUTION", raising=False)
+        worker_wallet = "0xworker"
+        client = _make_dispute_fake_client(
+            dispute=self._open_dispute(),
+            executors_by_wallet={worker_wallet: {"id": self.EXECUTOR_ID}},
+        )
+        monkeypatch.setattr(disputes_mod.db, "get_client", lambda: client)
+
+        pay_mock = AsyncMock()
+        monkeypatch.setattr(
+            disputes_mod, "_trigger_resolution_payment", pay_mock
+        )
+
+        auth = _make_auth(wallet_address=worker_wallet, agent_id="0xworker")
+        body = ResolveDisputeRequest(verdict="release", reason="self deal attempt")
+
+        with pytest.raises(HTTPException):
+            await resolve_dispute(
+                dispute_id=self.DISPUTE_ID,
+                body=body,
+                request=_make_request(),
+                auth=auth,
+            )
+
+        pay_mock.assert_not_awaited()

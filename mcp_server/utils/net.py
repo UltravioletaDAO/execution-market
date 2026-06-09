@@ -105,9 +105,10 @@ def get_client_ip(request: Request) -> str:
        directly and ignore any ``X-Forwarded-For`` header. This is the
        spoofing-resistant path — an attacker hitting the backend directly
        can set XFF to anything, but the backend ignores it.
-    3. If the TCP peer IS a trusted proxy, return the first hop of
-       ``X-Forwarded-For`` (the original client). Malformed XFF falls back
-       to the TCP peer.
+    3. If the TCP peer IS a trusted proxy, return the right-most
+       ``X-Forwarded-For`` entry that is not itself a trusted proxy (the real
+       client as seen by the edge proxy, which appends to the right). Malformed
+       or all-trusted XFF falls back to the TCP peer.
 
     Notes
     -----
@@ -131,17 +132,21 @@ def get_client_ip(request: Request) -> str:
     if not xff:
         return client_host
 
-    # XFF is a comma-separated chain "client, proxy1, proxy2". The left-most
-    # entry is the original client.
-    hop0 = xff.split(",")[0].strip()
-    if not hop0:
-        return client_host
-
-    # Guard against malformed entries (non-IP strings) — return the peer
-    # rather than echoing junk back into rate limiter keys.
-    try:
-        ipaddress.ip_address(hop0)
-    except ValueError:
-        return client_host
-
-    return hop0
+    # XFF is a comma-separated chain. With an APPENDING proxy (AWS ALB in
+    # default mode, and CloudFront-to-origin), the proxy appends the real TCP
+    # source to the RIGHT of any client-supplied value. The left-most entries
+    # are therefore attacker-controlled. Walk right-to-left and return the
+    # first entry that is NOT itself a trusted proxy — that is the real client
+    # as seen by the edge proxy. Everything to its left is client-supplied and
+    # must be ignored. (FIX-P2-02)
+    hops = [h.strip() for h in xff.split(",") if h.strip()]
+    for hop in reversed(hops):
+        try:
+            ipaddress.ip_address(hop)
+        except ValueError:
+            # Malformed entry — skip it, keep walking left.
+            continue
+        if not _is_trusted_proxy(hop):
+            return hop
+    # All hops were trusted proxies or malformed — fall back to the peer.
+    return client_host

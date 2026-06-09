@@ -173,16 +173,13 @@ class HealthResponse(BaseModel):
 def _resolve_device_ip(request: Request, override: Optional[str]) -> str:
     """Pick the client IP MoonPay's risk engine should see.
 
-    Honors X-Forwarded-For only when present (ECS/ALB injects it). Falls
-    back to the direct TCP peer. The spike doesn't enforce TRUSTED_PROXY_CIDRS
-    since this route runs behind the same ALB the rest of the API uses.
+    Delegates to the hardened :func:`utils.net.get_client_ip` so the
+    trusted-proxy boundary and right-most-hop selection (FIX-P2-02) apply.
+    An explicit ``override`` (validated upstream) still wins.
     """
     if override:
         return override
-    xff = request.headers.get("x-forwarded-for")
-    if xff:
-        return xff.split(",")[0].strip()
-    return request.client.host if request.client else "0.0.0.0"
+    return get_client_ip(request)
 
 
 def _window_cutoff_iso() -> str:
