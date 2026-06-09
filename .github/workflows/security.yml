@@ -368,11 +368,17 @@ jobs:
         with:
           path: ./
           base: ${{ github.event.repository.default_branch }}
-          # The action itself appends `--fail` to the trufflehog CLI. Adding it
-          # here a second time makes trufflehog abort with
-          # `error: flag 'fail' cannot be repeated`. Only pass flags the action
-          # does not already set. `--only-verified` is the extra knob we want.
-          extra_args: --only-verified
+          # L-59 fix: do NOT pass --only-verified. With it, TruffleHog reports
+          # ONLY secrets it can actively call/validate (e.g. a key that is still
+          # live), and stays silent on a committed-then-rotated/leaked key — which
+          # is EXACTLY the pattern of INC-2026-03-23 and INC-2026-03-30 (hardcoded
+          # wallet keys committed and drained). We want every high-confidence
+          # detector hit to fail the build regardless of live-verification.
+          # The action itself appends `--fail`; do not repeat it here (trufflehog
+          # aborts with `flag 'fail' cannot be repeated`). `--results=verified,unknown`
+          # surfaces unverified high-entropy findings without the noisiest
+          # detector-only matches.
+          extra_args: --results=verified,unknown
 
   license-check:
     name: License Compliance

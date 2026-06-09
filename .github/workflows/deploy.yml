@@ -11,6 +11,19 @@ concurrency:
   group: deploy-${{ github.ref }}
   cancel-in-progress: true
 
+# L-75 fix: enable OIDC-federated AWS auth. `id-token: write` lets
+# configure-aws-credentials mint a short-lived OIDC token and exchange it for
+# temporary STS creds via `role-to-assume`. `contents: read` keeps the rest of
+# the GITHUB_TOKEN least-privilege. The cutover is operator-controlled: set the
+# `AWS_DEPLOY_ROLE_ARN` repo variable to the github_actions_deploy_role_arn
+# Terraform output (after `terraform apply -var=enable_github_oidc_deploy_role=true`).
+# While that variable is empty the steps fall back to the static access key, so
+# this change is non-breaking until the operator flips it. Once a green OIDC
+# deploy is observed, delete the static key (see docs/runbooks/iam-credential-rotation.md).
+permissions:
+  id-token: write
+  contents: read
+
 env:
   AWS_REGION: us-east-2
   ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-2.amazonaws.com
@@ -69,8 +82,12 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@ec61189d14ec14c8efccab744f656cffd0e33f37  # v6.1.0
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          # L-75: prefer OIDC (short-lived STS creds) when AWS_DEPLOY_ROLE_ARN
+          # is set; fall back to the static access key while it is empty so the
+          # cutover is non-breaking. Delete the static key once OIDC is verified.
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-access-key-id: ${{ vars.AWS_DEPLOY_ROLE_ARN == '' && secrets.AWS_ACCESS_KEY_ID || '' }}
+          aws-secret-access-key: ${{ vars.AWS_DEPLOY_ROLE_ARN == '' && secrets.AWS_SECRET_ACCESS_KEY || '' }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
@@ -116,8 +133,12 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@ec61189d14ec14c8efccab744f656cffd0e33f37  # v6.1.0
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          # L-75: prefer OIDC (short-lived STS creds) when AWS_DEPLOY_ROLE_ARN
+          # is set; fall back to the static access key while it is empty so the
+          # cutover is non-breaking. Delete the static key once OIDC is verified.
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-access-key-id: ${{ vars.AWS_DEPLOY_ROLE_ARN == '' && secrets.AWS_ACCESS_KEY_ID || '' }}
+          aws-secret-access-key: ${{ vars.AWS_DEPLOY_ROLE_ARN == '' && secrets.AWS_SECRET_ACCESS_KEY || '' }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
@@ -264,8 +285,12 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@ec61189d14ec14c8efccab744f656cffd0e33f37  # v6.1.0
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          # L-75: prefer OIDC (short-lived STS creds) when AWS_DEPLOY_ROLE_ARN
+          # is set; fall back to the static access key while it is empty so the
+          # cutover is non-breaking. Delete the static key once OIDC is verified.
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-access-key-id: ${{ vars.AWS_DEPLOY_ROLE_ARN == '' && secrets.AWS_ACCESS_KEY_ID || '' }}
+          aws-secret-access-key: ${{ vars.AWS_DEPLOY_ROLE_ARN == '' && secrets.AWS_SECRET_ACCESS_KEY || '' }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Setup Terraform
@@ -323,8 +348,16 @@ jobs:
       always()
       && needs.detect-changes.outputs.frontend == 'true'
       && needs.terraform-apply.result != 'failure'
+    # L-77 fix: this workflow ONLY ever touches em-production-* infra and the
+    # live execution.market domain (see env: block), regardless of whether the
+    # push is on `main` or `production`. The previous
+    # `... && 'production' || 'staging'` expression mislabeled every `main`
+    # deploy as `staging`, silently BYPASSING the `production` GitHub
+    # Environment approval gate while still shipping to production. Pin both
+    # branches to the `production` environment so the approval gate always
+    # applies. (Real staging deploys live in deploy-staging.yml on `develop`.)
     environment:
-      name: ${{ github.ref == 'refs/heads/production' && 'production' || 'staging' }}
+      name: production
       url: ${{ env.BASE_URL }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
@@ -343,8 +376,12 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@ec61189d14ec14c8efccab744f656cffd0e33f37  # v6.1.0
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          # L-75: prefer OIDC (short-lived STS creds) when AWS_DEPLOY_ROLE_ARN
+          # is set; fall back to the static access key while it is empty so the
+          # cutover is non-breaking. Delete the static key once OIDC is verified.
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-access-key-id: ${{ vars.AWS_DEPLOY_ROLE_ARN == '' && secrets.AWS_ACCESS_KEY_ID || '' }}
+          aws-secret-access-key: ${{ vars.AWS_DEPLOY_ROLE_ARN == '' && secrets.AWS_SECRET_ACCESS_KEY || '' }}
           aws-region: ${{ env.AWS_REGION }}
 
       # Read the EM balances Lambda Function URL from Terraform state so the
@@ -518,8 +555,12 @@ jobs:
       && (needs.detect-changes.outputs.backend == 'true' || needs.detect-changes.outputs.infra == 'true')
       && needs.build-and-push-backend.result != 'failure'
       && needs.terraform-apply.result != 'failure'
+    # L-77 fix: pin to the `production` environment so the approval gate always
+    # applies. This job deploys the live em-production-mcp-server ECS service /
+    # api.execution.market regardless of branch; the prior staging mislabel for
+    # `main` bypassed the gate. See the deploy-frontend note above.
     environment:
-      name: ${{ github.ref == 'refs/heads/production' && 'production' || 'staging' }}
+      name: production
       url: ${{ env.API_URL }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
@@ -527,8 +568,12 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@ec61189d14ec14c8efccab744f656cffd0e33f37  # v6.1.0
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          # L-75: prefer OIDC (short-lived STS creds) when AWS_DEPLOY_ROLE_ARN
+          # is set; fall back to the static access key while it is empty so the
+          # cutover is non-breaking. Delete the static key once OIDC is verified.
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-access-key-id: ${{ vars.AWS_DEPLOY_ROLE_ARN == '' && secrets.AWS_ACCESS_KEY_ID || '' }}
+          aws-secret-access-key: ${{ vars.AWS_DEPLOY_ROLE_ARN == '' && secrets.AWS_SECRET_ACCESS_KEY || '' }}
           aws-region: ${{ env.AWS_REGION }}
 
       # ── Path A: Terraform applied — just force new deployment ────

@@ -8,6 +8,16 @@ concurrency:
   group: production-deploy
   cancel-in-progress: false
 
+# Least-privilege default token. `contents: read` covers checkout; everything
+# privileged uses AWS creds, not GITHUB_TOKEN. `id-token: write` (L-75) lets the
+# AWS-creds jobs mint an OIDC token for short-lived STS creds when the
+# AWS_DEPLOY_ROLE_ARN repo variable is set; until then they fall back to the
+# static key. id-token is a distinct permission from repo write, so this stays
+# least-privilege for GITHUB_TOKEN.
+permissions:
+  contents: read
+  id-token: write
+
 env:
   AWS_REGION: us-east-2
   ECR_REPOSITORY_BACKEND: em-production-mcp-server
@@ -26,9 +36,14 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Validate tag format
+        env:
+          # Bind untrusted release metadata to an env var so GitHub Actions
+          # passes it as a VALUE, never splices it into the script text. Any
+          # $(...)/backtick inside the tag is then inert (FIX-P2-03).
+          TAG: ${{ github.event.release.tag_name }}
         run: |
-          TAG=${{ github.event.release.tag_name }}
-          if [[ ! $TAG =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          set -euo pipefail
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Invalid tag format: $TAG"
             echo "Expected format: vX.Y.Z (e.g., v1.0.0)"
             exit 1
@@ -36,8 +51,12 @@ jobs:
           echo "Tag format valid: $TAG"
 
       - name: Check release notes
+        env:
+          # Opaque, untrusted data — bound via env: and only ever read, never
+          # re-tokenized by the shell (FIX-P2-03).
+          BODY: ${{ github.event.release.body }}
         run: |
-          BODY="${{ github.event.release.body }}"
+          set -euo pipefail
           if [ -z "$BODY" ]; then
             echo "Release notes are empty"
             exit 1
@@ -57,8 +76,12 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@ec61189d14ec14c8efccab744f656cffd0e33f37  # v6.1.0
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          # L-75: prefer OIDC (short-lived STS creds) when AWS_DEPLOY_ROLE_ARN
+          # is set; fall back to the static access key while it is empty so the
+          # cutover is non-breaking. Delete the static key once OIDC is verified.
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-access-key-id: ${{ vars.AWS_DEPLOY_ROLE_ARN == '' && secrets.AWS_ACCESS_KEY_ID || '' }}
+          aws-secret-access-key: ${{ vars.AWS_DEPLOY_ROLE_ARN == '' && secrets.AWS_SECRET_ACCESS_KEY || '' }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
@@ -70,9 +93,22 @@ jobs:
 
       - name: Extract version
         id: version
+        env:
+          # CRITICAL SINK (FIX-P2-03): this step runs in the AWS-creds job.
+          # Bind the untrusted tag via env: so it cannot inject shell commands.
+          TAG: ${{ github.event.release.tag_name }}
         run: |
-          VERSION=${{ github.event.release.tag_name }}
-          echo "version=${VERSION#v}" >> $GITHUB_OUTPUT
+          set -euo pipefail
+          # Re-validate INSIDE the AWS-creds job. The validate job's regex tested
+          # the EVALUATED tag and does not protect this sink; env-binding stops
+          # shell injection, this check stops a regex-bypassing / malformed tag
+          # from becoming a bad image tag (used at the build-and-push tags below).
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Refusing to build: tag '$TAG' is not strict semver vX.Y.Z"
+            exit 1
+          fi
+          VERSION="${TAG#v}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Build and push backend
         uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f  # v7.1.0
@@ -131,8 +167,12 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@ec61189d14ec14c8efccab744f656cffd0e33f37  # v6.1.0
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          # L-75: prefer OIDC (short-lived STS creds) when AWS_DEPLOY_ROLE_ARN
+          # is set; fall back to the static access key while it is empty so the
+          # cutover is non-breaking. Delete the static key once OIDC is verified.
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-access-key-id: ${{ vars.AWS_DEPLOY_ROLE_ARN == '' && secrets.AWS_ACCESS_KEY_ID || '' }}
+          aws-secret-access-key: ${{ vars.AWS_DEPLOY_ROLE_ARN == '' && secrets.AWS_SECRET_ACCESS_KEY || '' }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Get current task definitions for rollback
@@ -295,8 +335,12 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@ec61189d14ec14c8efccab744f656cffd0e33f37  # v6.1.0
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          # L-75: prefer OIDC (short-lived STS creds) when AWS_DEPLOY_ROLE_ARN
+          # is set; fall back to the static access key while it is empty so the
+          # cutover is non-breaking. Delete the static key once OIDC is verified.
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-access-key-id: ${{ vars.AWS_DEPLOY_ROLE_ARN == '' && secrets.AWS_ACCESS_KEY_ID || '' }}
+          aws-secret-access-key: ${{ vars.AWS_DEPLOY_ROLE_ARN == '' && secrets.AWS_SECRET_ACCESS_KEY || '' }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Download rollback info

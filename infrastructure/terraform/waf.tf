@@ -8,7 +8,8 @@
 # 5. AWS Managed Anonymous IP List (Tor exits — hosting providers COUNT-only)
 # 6. Stricter rate limit for non-legitimate Host headers (50 req/5min)
 # 7. A2A-specific rate limit: 100 req/5min for /a2a/ path
-# 8. Global rate limit: 600 req/5min per IP (coarse safety net)
+# 8. Admin-path rate limit: 100 req/5min for /api/v1/admin (L-69)
+# 9. Global rate limit: 600 req/5min per IP (coarse safety net)
 #
 # Cost: ~$12/mo at current traffic levels
 #   - $5/mo web ACL
@@ -341,13 +342,69 @@ resource "aws_wafv2_web_acl" "main" {
     }
   }
 
-  # Rule 8: Global rate limit — coarse safety net for volumetric abuse
+  # Rule 8: Stricter rate limit for the admin API surface (L-69).
+  #
+  # The admin REST API is served by the MCP backend on the ALB under
+  # /api/v1/admin/* (see mcp_server/api/admin.py, prefix="/api/v1/admin").
+  # Previously the admin paths were covered ONLY by the coarse global 600/5min
+  # rule (Rule 9) and were explicitly exempted from the strict bad-host rule
+  # (Rule 6 allows the admin.<domain> Host header), leaving the highest-value,
+  # lowest-legitimate-volume surface under-protected against credential-stuffing
+  # / X-Admin-Key brute force. This rule scope-downs to the admin URI prefix and
+  # caps it at 100 req/5min/IP. It fires BEFORE the global rule (lower priority
+  # number) so the stricter admin limit always wins for admin traffic. The AWS
+  # managed rule groups (Common/Known-Bad-Inputs/IP-reputation, Rules 2-4) have
+  # no scope-down, so admin paths are already covered by those.
+  rule {
+    name     = "rate-limit-admin"
+    priority = 8
+
+    action {
+      block {
+        custom_response {
+          response_code            = 429
+          custom_response_body_key = "rate-limited"
+        }
+      }
+    }
+
+    statement {
+      rate_based_statement {
+        limit              = 100
+        aggregate_key_type = "IP"
+
+        scope_down_statement {
+          byte_match_statement {
+            search_string         = "/api/v1/admin"
+            positional_constraint = "STARTS_WITH"
+
+            field_to_match {
+              uri_path {}
+            }
+
+            text_transformation {
+              priority = 0
+              type     = "LOWERCASE"
+            }
+          }
+        }
+      }
+    }
+
+    visibility_config {
+      sampled_requests_enabled   = true
+      cloudwatch_metrics_enabled = true
+      metric_name                = "${local.name_prefix}-rate-limit-admin"
+    }
+  }
+
+  # Rule 9: Global rate limit — coarse safety net for volumetric abuse
   # Set to 600/5min (2 req/sec) to avoid false positives on legitimate AI agents
   # doing multi-step task lifecycles. App-layer rate limiters handle fine-grained
   # per-agent, per-endpoint throttling.
   rule {
     name     = "rate-limit-global"
-    priority = 8
+    priority = 9
 
     action {
       block {

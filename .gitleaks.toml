@@ -1,20 +1,104 @@
 title = "Execution Market — Gitleaks Config"
 
+# L-59 fix (ROOT CAUSE): load gitleaks' built-in ruleset. Without this block a
+# custom config registers ZERO detection rules, so the scanner is completely
+# blind — it reports "no leaks found" even for a plain AWS key pair. The prior
+# config had only an [allowlist] and no [extend]/[[rules]], which silently
+# disabled all secret detection (the opposite of the intent behind the
+# INC-2026-03-23 / INC-2026-03-30 secret-scan gate). `useDefault = true` pulls
+# in the maintained default rules; the [allowlist] below only narrows them.
+[extend]
+useDefault = true
+
 [allowlist]
 description = "Test fixtures, docs, and skill examples contain placeholder values and public contract addresses — not real secrets"
 
 paths = [
     # Backend test suite — fake addresses, placeholder payloads, test fixtures
     '''mcp_server/tests/''',
-    # Test scripts (scripts/test_*.py)
+    # Test scripts (scripts/test_*.py and scripts/test-*.ts) — throwaway test keys
     '''scripts/test_''',
-    # All documentation — example values, curl snippets, guides
-    '''docs/''',
+    '''scripts/test-''',
+    # TypeScript SDK unit tests — use named TEST_PRIVATE_KEY constants (fixtures)
+    '''sdk/typescript/src/__tests__/''',
+    # KK signer tests — throwaway EIP-8128 signing keys
+    '''scripts/kk/tests/''',
+    # L-76 fix: the blanket `docs/` allowlist was REMOVED. It suppressed gitleaks
+    # findings in exactly the file type of the two prior wallet-drain incidents
+    # (INC-2026-03-23, INC-2026-03-30 — hardcoded keys committed and drained).
+    # Markdown docs are now scanned. Placeholder examples (e.g. `<YOUR_KEY>`,
+    # `0x000…`) do not match gitleaks' high-entropy/pattern detectors; if a
+    # genuine doc example ever trips a rule, allowlist that SPECIFIC file or use
+    # a regex stopword below — never re-add a blanket `docs/` path.
     # Skill files — usage examples for AI agents, not real credentials
     '''skill\.md$''',
+    '''SKILL\.md$''',
     # Lock files — package hashes occasionally trigger generic-api-key rule
     '''package-lock\.json$''',
     '''yarn\.lock$''',
     # Example env files — templates with placeholder values
     '''\.env\.example''',
 ]
+
+# Targeted, value-specific allowlist (preferred over blanket path allowlists).
+# These narrow the now-active default ruleset to suppress KNOWN-SAFE
+# documentation artifacts ONLY. Real-secret detection (incl. 64-hex private
+# keys) stays fully active — see the "DO NOT add" note at the bottom.
+regexes = [
+    # AWS Access Key ID (AKIA…) — a NON-SECRET public identifier. The sensitive
+    # half (40-char secret access key) is never present. Appears once, in a
+    # root-IAM audit report that documents it for rotation tracking.
+    '''AKIAIF525CM24R6A6GHQ''',
+    # Public EVM addresses (0x + EXACTLY 40 hex) — contract / wallet addresses
+    # like USDC, x402r escrow, token collectors. These are public on-chain
+    # identifiers, not secrets. The `{40}` bound with a non-hex right boundary
+    # deliberately does NOT match a 64-hex private key.
+    '''0x[a-fA-F0-9]{40}\b''',
+    # Well-known public Supabase demo JWT (issuer "supabase-demo"). Shipped in
+    # local-dev guides; it is the documented demo anon/service token, not a
+    # production credential.
+    '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJpc3MiOiJzdXBhYmFzZS1kZW1v[A-Za-z0-9._-]+''',
+]
+
+# Stopwords: a finding whose secret CONTAINS one of these literals is treated as
+# a documentation placeholder, not a real secret. Kept intentionally specific so
+# a genuine credential cannot hide behind them.
+stopwords = [
+    # Documentation / API-reference placeholders
+    "sk_live_abc123",
+    "whsec_abc123",
+    "abcdef0123456789",
+    "var.x402_private_key",
+    "em_enterprise_test1234567890",
+    "em_sk_live_xxx",
+    "em_sk_live_kk_skill_extractor",
+    "em_live_abc123",
+    "em_your_key",
+    "YOUR_API_KEY",
+    "YOUR_TOKEN",
+    "YOUR_JWT_TOKEN",
+    "YOUR_CROSSMINT_API_KEY",
+    "TU_ADMIN_KEY",
+    "your_admin_key",
+    "invalid_key",
+    # Legacy "chamba" rebrand-era placeholders still in git history
+    "chamba_enterprise_a1b2c3d4",
+    "chamba_enterprise_test1234567890",
+    "chamba_sk_live_",
+    # Event-id / dotted-identifier false positives (not credentials)
+    "evt_550e8400-e29b-41d4",
+    "earnings.period30d",
+    "x402.facilitator_url",
+    "erc8128-wallet-signing",
+    "erc8128VsApiKeys",
+]
+
+# ── DO NOT add the following to any allowlist ────────────────────────────────
+# These docs/ files contain real-shaped 64-hex private keys and MUST be scrubbed
+# + the keys rotated by the docs/ owner (OUT OF THIS WORK-STREAM'S FILE SCOPE).
+# Leaving them un-allowlisted means the secret-scan CI job correctly FAILS until
+# they are removed — that is the intended behavior of the L-59/76 fix:
+#   docs/reports/SECURITY_AUDIT_CLAWD_BOT_COMMITS_2026-02-24.md  (lines 55, 60)
+#   docs/reports/SECURITY_AUDIT_SUMMARY_CLAWD_BOT.txt            (line 127)
+# Suppressing them here would re-create exactly the INC-2026-03-23 /
+# INC-2026-03-30 blind spot this fix exists to close.

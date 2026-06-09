@@ -14,6 +14,29 @@ locals {
   evidence_custom_domain_ready = var.enable_evidence_pipeline && var.evidence_acm_certificate_arn != ""
 }
 
+# ----------------------------------------------------------------------------
+# L-85 fix: account-level S3 Public Access Block (defense-in-depth).
+#
+# The per-bucket PAB on the evidence bucket below is gated behind
+# `enable_evidence_pipeline`. The live production evidence bucket
+# (em-production-evidence-<acct>) was created out-of-band while that flag was on
+# and is NOT re-managed when the flag is off, so its PAB could silently drift.
+# This ACCOUNT-level block applies to EVERY current and future bucket in the
+# account unconditionally — including the live evidence bucket regardless of the
+# feature flag — so no bucket can ever be made public via ACL or policy.
+#
+# Safe to apply: every EM bucket is a private CloudFront-OAC origin or a log
+# sink; none rely on public access (verified — no bucket policy grants
+# Principal "*"). This only removes the *ability* to expose a bucket publicly.
+# ----------------------------------------------------------------------------
+resource "aws_s3_account_public_access_block" "account" {
+  account_id              = local.account_id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
 resource "aws_s3_bucket" "evidence" {
   count  = var.enable_evidence_pipeline ? 1 : 0
   bucket = local.evidence_bucket_name

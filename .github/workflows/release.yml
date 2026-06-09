@@ -99,6 +99,13 @@ jobs:
             COMMITS=$(git log ${LATEST_TAG}..HEAD --oneline --pretty=format:"- %s")
           fi
 
+          # Defense-in-depth (FIX-P2-03): neutralize shell command-substitution
+          # metacharacters in raw commit subjects so they cannot become an
+          # injection payload if a downstream consumer ever interpolates
+          # release.body into a run: block. Conservative — drops backticks and
+          # declaws $( without altering legitimate changelog text in practice.
+          COMMITS=$(printf '%s' "$COMMITS" | tr -d '`' | sed 's/\$(/(/g')
+
           # Categorize commits
           FEATURES=$(echo "$COMMITS" | grep -E "^- feat" || true)
           FIXES=$(echo "$COMMITS" | grep -E "^- fix" || true)
