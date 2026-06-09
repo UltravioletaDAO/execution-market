@@ -16,7 +16,9 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any, Dict, Optional
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp import Context, FastMCP
+
+from tools.mcp_identity import MCPAuthError, require_agent_identity
 
 logger = logging.getLogger(__name__)
 
@@ -201,7 +203,9 @@ def register_core_tools(
             "openWorldHint": True,
         },
     )
-    async def em_publish_task(params: PublishTaskInput) -> str:
+    async def em_publish_task(
+        params: PublishTaskInput, ctx: Optional[Context] = None
+    ) -> str:
         """
         Publish a new task for human execution in the Execution Market.
 
@@ -241,6 +245,15 @@ def register_core_tools(
             str: Success message with task ID and details, or error message.
         """
         try:
+            # FIX-P0-01: derive the publishing identity from the verified caller,
+            # never from the request body. The verified wallet IS the agent_id
+            # for ERC-8128 callers. With enforcement off (staged rollout) this
+            # falls back to params.agent_id.
+            try:
+                agent_id = require_agent_identity(ctx, params.agent_id)
+            except MCPAuthError as e:
+                return f"Error: {e}"
+
             deadline = datetime.now(timezone.utc) + timedelta(
                 hours=params.deadline_hours
             )
@@ -298,7 +311,7 @@ def register_core_tools(
                 bounty_dec = Decimal(str(params.bounty_usd))
                 total_required = (bounty_dec * (1 + fee_pct)).quantize(Decimal("0.01"))
                 gate = await check_solana_balance_gate(
-                    wallet=params.agent_id,
+                    wallet=agent_id,
                     required_usdc=total_required,
                 )
                 if not gate.sufficient:
@@ -313,7 +326,7 @@ def register_core_tools(
                         "required_usdc": str(total_required),
                         "balance_usdc": str(gate.balance),
                         "shortfall_usdc": str(gate.shortfall),
-                        "wallet_address": params.agent_id,
+                        "wallet_address": agent_id,
                         "network": "solana",
                     }
                     if gate.onramp is not None:
@@ -321,7 +334,7 @@ def register_core_tools(
                     return _json.dumps(err_body)
 
             task = await _get_db().create_task(
-                agent_id=params.agent_id,
+                agent_id=agent_id,
                 title=params.title,
                 instructions=params.instructions,
                 category=params.category.value,
@@ -359,9 +372,9 @@ def register_core_tools(
                     if (params.payment_network or "").lower() == "solana":
                         auth_result = await dispatcher.authorize_payment(
                             task_id=task["id"],
-                            receiver=params.agent_id,
+                            receiver=agent_id,
                             amount_usdc=Decimal(str(params.bounty_usd)),
-                            agent_address=params.agent_id,
+                            agent_address=agent_id,
                             network="solana",
                             token=params.payment_token or "USDC",
                         )
@@ -384,7 +397,7 @@ def register_core_tools(
                     elif mode == "fase2":
                         auth_result = await dispatcher.authorize_payment(
                             task_id=task["id"],
-                            receiver=params.agent_id,
+                            receiver=agent_id,
                             amount_usdc=Decimal(str(params.bounty_usd)),
                             network=params.payment_network or "base",
                             token=params.payment_token or "USDC",
@@ -435,7 +448,7 @@ def register_core_tools(
                         total_check = Decimal(str(params.bounty_usd)) * Decimal("1.08")
                         auth_result = await dispatcher.authorize_payment(
                             task_id=task["id"],
-                            receiver=params.agent_id,
+                            receiver=agent_id,
                             amount_usdc=total_check,
                             network=params.payment_network or "base",
                             token=params.payment_token or "USDC",
@@ -456,7 +469,7 @@ def register_core_tools(
 
                         escrow_result = authorize_task_bounty(
                             task_id=task["id"],
-                            receiver=params.agent_id,
+                            receiver=agent_id,
                             amount_usdc=Decimal(str(params.bounty_usd)),
                         )
                         escrow_info = {
@@ -487,7 +500,7 @@ def register_core_tools(
             # Auto-register agent in executor directory
             try:
                 _auto_register_agent_executor_mcp(
-                    params.agent_id, agent_name=params.agent_name
+                    agent_id, agent_name=params.agent_name
                 )
             except Exception as e:
                 logger.warning(
@@ -509,7 +522,7 @@ def register_core_tools(
                 pass  # Non-blocking
 
             # Dispatch webhook
-            await _dispatch_task_webhook("task_created", task, params.agent_id)
+            await _dispatch_task_webhook("task_created", task, agent_id)
 
             # Event Bus publish (coexists with legacy — Strangler Fig)
             try:
@@ -525,7 +538,7 @@ def register_core_tools(
                             "title": task["title"],
                             "category": task["category"],
                             "bounty_usd": task.get("bounty_usd", 0),
-                            "agent_id": params.agent_id,
+                            "agent_id": agent_id,
                             "status": task["status"],
                             "payment_network": task.get("payment_network", "base"),
                         },
@@ -589,7 +602,9 @@ The task is now visible to human executors. Use `em_get_task` with the task ID t
             "openWorldHint": True,
         },
     )
-    async def em_approve_submission(params: ApproveSubmissionInput) -> str:
+    async def em_approve_submission(
+        params: ApproveSubmissionInput, ctx: Optional[Context] = None
+    ) -> str:
         """
         Approve or reject a submission from a human executor.
 
@@ -609,17 +624,22 @@ The task is now visible to human executors. Use `em_get_task` with the task ID t
             str: Confirmation of the verdict.
         """
         try:
+            # FIX-P0-01: authorize against the verified caller, never the body.
+            try:
+                caller_agent_id = require_agent_identity(ctx, params.agent_id)
+            except MCPAuthError as e:
+                return f"Error: {e}"
+
             # Fetch submission without changing verdict yet (pay-before-mark pattern)
             submission = await _get_db().get_submission(params.submission_id)
             if not submission:
                 return f"Error: Submission {params.submission_id} not found"
 
-            # Verify ownership
+            # Verify ownership against the authenticated principal.
             task = submission.get("task")
             if (
                 not task
-                or (task.get("agent_id") or "").lower()
-                != (params.agent_id or "").lower()
+                or (task.get("agent_id") or "").lower() != caller_agent_id
             ):
                 return "Error: Not authorized to update this submission"
 
@@ -874,7 +894,9 @@ The task has been marked as completed and the executor will receive payment."""
             "openWorldHint": True,
         },
     )
-    async def em_cancel_task(params: CancelTaskInput) -> str:
+    async def em_cancel_task(
+        params: CancelTaskInput, ctx: Optional[Context] = None
+    ) -> str:
         """
         Cancel a task you published (only if still in 'published' or 'accepted' status).
 
@@ -890,13 +912,17 @@ The task has been marked as completed and the executor will receive payment."""
             str: Confirmation of cancellation.
         """
         try:
+            # FIX-P0-01: authorize against the verified caller, never the body.
+            try:
+                caller_agent_id = require_agent_identity(ctx, params.agent_id)
+            except MCPAuthError as e:
+                return f"Error: {e}"
+
             # Status guard: verify task is in a cancellable state before proceeding
             task_check = await _get_db().get_task(params.task_id)
             if not task_check:
                 return f"Error: Task {params.task_id} not found"
-            if (task_check.get("agent_id") or "").lower() != (
-                params.agent_id or ""
-            ).lower():
+            if (task_check.get("agent_id") or "").lower() != caller_agent_id:
                 return "Error: Not authorized to cancel this task"
 
             task_status = task_check.get("status", "")
@@ -914,7 +940,7 @@ The task has been marked as completed and the executor will receive payment."""
                         "Only direct_release mode supports cancelling accepted tasks."
                     )
 
-            task = await _get_db().cancel_task(params.task_id, params.agent_id)
+            task = await _get_db().cancel_task(params.task_id, caller_agent_id)
 
             # Handle escrow refund via PaymentDispatcher
             refund_info = None

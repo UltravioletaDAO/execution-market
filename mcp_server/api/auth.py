@@ -795,6 +795,15 @@ async def generate_auth_nonce(request: Request) -> dict:
 # Worker Authentication (Supabase JWT → executor_id)
 # ==========================================================================
 
+# FIX-P1-01: secure target value is "true" (fail-closed — worker identity must
+# come from the verified principal, never a body-supplied executor_id).
+# STAGED ROLLOUT: default is "false" here so a production deploy of this code is
+# NON-BREAKING for the live dashboard (which currently authenticates worker
+# flows via Supabase JWT). CUTOVER: after verifying in staging that the
+# dashboard/worker clients send accepted auth on every worker endpoint, set
+# EM_REQUIRE_WORKER_AUTH=true in the ECS task definition to enforce. The
+# flag-independent hardenings (evidence presign deny-by-default, World ID
+# identity binding) already enforce regardless of this flag.
 _REQUIRE_WORKER_AUTH = (
     os.environ.get("EM_REQUIRE_WORKER_AUTH", "false").lower() == "true"
 )
@@ -945,47 +954,109 @@ def _enforce_worker_identity(
     body_executor_id: str,
     request_path: str,
 ) -> str:
-    """
-    Compare verified executor_id from JWT with the one in the request body.
+    """Return the authoritative executor_id from the verified JWT principal.
 
-    Returns the authoritative executor_id to use.
-
-    When ``EM_REQUIRE_WORKER_AUTH=true`` and the IDs mismatch, raises 403.
-    When ``false``, logs a warning and falls back to the body value.
+    Fail-closed (FIX-P1-01): a missing principal or a body/JWT mismatch is
+    always rejected. The body value is only a hint that must match the verified
+    identity — it is NEVER an authoritative fallback source of truth.
     """
     if worker_auth is None:
-        # No JWT auth — feature flag is off or token was missing
         logger.warning(
-            "SECURITY_AUDIT action=worker_auth.body_fallback executor_id=%s path=%s",
-            body_executor_id[:8] if body_executor_id else "none",
+            "SECURITY_AUDIT action=worker_auth.rejected path=%s reason=no_jwt",
             request_path,
         )
-        return body_executor_id
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required (Bearer <supabase_jwt>)",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    if body_executor_id and worker_auth.executor_id != body_executor_id:
+        logger.warning(
+            "SECURITY_AUDIT action=worker_auth.mismatch jwt=%s body=%s path=%s",
+            worker_auth.executor_id[:8],
+            body_executor_id[:8],
+            request_path,
+        )
+        raise HTTPException(
+            status_code=403,
+            detail="Executor ID in request does not match authenticated identity",
+        )
+    return worker_auth.executor_id
 
-    if worker_auth.executor_id != body_executor_id:
-        if _REQUIRE_WORKER_AUTH:
+
+async def resolve_worker_identity(
+    request: Request,
+    worker_auth: Optional[WorkerAuth],
+    body_executor_id: str,
+    *,
+    task_id: Optional[str] = None,
+) -> str:
+    """Authoritative executor_id resolution (fail-closed, FIX-P1-01).
+
+    Order of trust:
+      1. Worker JWT principal — must equal body_executor_id (or body omitted).
+      2. ERC-8128 agent principal that PUBLISHED task_id — may act for the
+         task's assigned executor (H2H "agent acts as worker").
+      3. Otherwise → 401/403. The body value is NEVER authoritative on its own.
+    """
+    # Path 1: verified worker JWT.
+    if worker_auth is not None:
+        if body_executor_id and worker_auth.executor_id != body_executor_id:
             logger.warning(
-                "SECURITY_AUDIT action=worker_auth.mismatch "
-                "jwt_executor=%s body_executor=%s path=%s",
+                "SECURITY_AUDIT action=worker_auth.mismatch jwt=%s body=%s path=%s",
                 worker_auth.executor_id[:8],
                 body_executor_id[:8],
-                request_path,
+                request.url.path,
             )
             raise HTTPException(
                 status_code=403,
                 detail="Executor ID in request does not match authenticated identity",
             )
-        logger.warning(
-            "SECURITY_AUDIT action=worker_auth.mismatch_warn "
-            "jwt_executor=%s body_executor=%s path=%s "
-            "(EM_REQUIRE_WORKER_AUTH=false, allowing body value)",
-            worker_auth.executor_id[:8],
-            body_executor_id[:8],
-            request_path,
-        )
-        return body_executor_id
+        return worker_auth.executor_id
 
-    return worker_auth.executor_id
+    # Path 2: ERC-8128 agent that owns the task may act for its worker.
+    sig = request.headers.get("signature")
+    sig_input = request.headers.get("signature-input")
+    if sig and sig_input and task_id:
+        agent = await verify_agent_auth_write(request)  # raises 401 if invalid
+        if agent.auth_method == "erc8128" and await verify_agent_owns_task(
+            agent.agent_id, task_id
+        ):
+            from supabase_client import get_task
+
+            task = await get_task(task_id)
+            assigned = (task or {}).get("executor_id")
+            if assigned and (not body_executor_id or body_executor_id == assigned):
+                logger.info(
+                    "SECURITY_AUDIT action=worker_auth.agent_for_worker "
+                    "agent=%s task=%s executor=%s",
+                    agent.agent_id[:10],
+                    task_id,
+                    str(assigned)[:8],
+                )
+                return str(assigned)
+        logger.warning(
+            "SECURITY_AUDIT action=worker_auth.agent_not_authorized "
+            "agent=%s task=%s path=%s",
+            agent.agent_id[:10],
+            task_id,
+            request.url.path,
+        )
+        raise HTTPException(
+            status_code=403,
+            detail="Agent is not authorized to act for this worker",
+        )
+
+    # Path 3: no verified principal → reject (fail-closed).
+    logger.warning(
+        "SECURITY_AUDIT action=worker_auth.rejected path=%s reason=no_principal",
+        request.url.path,
+    )
+    raise HTTPException(
+        status_code=401,
+        detail="Authentication required (Bearer <supabase_jwt> or ERC-8128 signature)",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
 
 
 def clear_api_key_cache() -> int:
