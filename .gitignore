@@ -187,3 +187,10 @@ docs/reports/
 vault/
 .claude/worktrees/
 mempalace.yaml
+
+# Local tool state
+.obsidian/
+.playwright-mcp/
+
+# Playwright artifacts
+dashboard/test-results/
