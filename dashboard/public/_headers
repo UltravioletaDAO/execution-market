@@ -1,7 +1,41 @@
+# Security headers for the execution.market dashboard (static SPA).
+#
+# NOTE ON ENFORCEMENT (read before editing):
+#   The header that browsers actually enforce at the edge is emitted by the
+#   CloudFront response-headers policy in
+#   `infrastructure/terraform/dashboard-cdn.tf` (currently Report-Only while CSP
+#   telemetry is collected). S3 + CloudFront do NOT natively read this `_headers`
+#   file — it is kept as the source-of-truth the Terraform policy mirrors, and the
+#   identical policy is shipped as the `<meta http-equiv>` fallback in index.html
+#   so the browser enforces it even before the CloudFront policy flips to enforce.
+#
+# CSP HARDENING (security-audit-2026-06-09, finding L-53):
+#   - `'unsafe-eval'` REMOVED from script-src. Vite production builds and the
+#     web3 vendor chunk (wagmi/viem/WalletConnect) do not need eval() / new
+#     Function() at runtime, so eval is now blocked outright.
+#   - `'wasm-unsafe-eval'` ADDED to script-src. The bundle ships two WASM modules
+#     (XMTP bindings_wasm, World ID idkit WASM) that call WebAssembly.compile/
+#     instantiate at runtime; without this source they throw CSP CompileErrors.
+#     This permits ONLY WebAssembly compilation — JS eval() stays blocked.
+#   - `'unsafe-inline'` REMOVED from script-src. The two executable inline scripts
+#     in index.html (theme-detection + service-worker registration) are now
+#     allow-listed by their SHA-256 hashes. Adding a hash source makes the browser
+#     ignore any `'unsafe-inline'`, so an injected inline <script> can no longer
+#     run. The JSON-LD block (type="application/ld+json") is data, not script, and
+#     is exempt from script-src. If you change either inline script's bytes you
+#     MUST recompute its hash (see scripts/compute-csp-hashes.mjs) or the app
+#     breaks — this is intentional.
+#   - `'unsafe-inline'` is RETAINED in style-src only. The app renders React
+#     `style={{...}}` attribute styles and an inline critical-CSS <style> block;
+#     style-src governs both, and there is no per-request nonce on a static file.
+#     Inline-style injection is a markedly lower XSS risk than inline-script
+#     execution (no script execution, no data exfiltration primitive), so this is
+#     the minimized residual. Revisit if/when critical CSS moves to an external
+#     stylesheet and runtime inline styles are eliminated.
 /*
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(self), microphone=(), geolocation=(self)
   Strict-Transport-Security: max-age=31536000; includeSubDomains
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data: blob:; connect-src 'self' https://api.execution.market https://*.supabase.co wss://*.supabase.co https://*.walletconnect.com wss://*.walletconnect.com https://*.walletconnect.org wss://*.walletconnect.org https://*.reown.com wss://*.reown.com https://app.dynamic.xyz https://*.dynamic.xyz https://*.dynamicauth.com https://logs.dynamicauth.com https://app.dynamicauth.com https://dynamic-static-assets.com https://*.dynamic-static-assets.com https://*.amazonaws.com https://*.s3.amazonaws.com https://*.lambda-url.us-east-2.on.aws https://*.cloudfront.net https://*.xmtp.network wss://*.xmtp.network; frame-src https://app.dynamic.xyz https://*.dynamicauth.com https://app.dynamicauth.com https://id.worldcoin.org; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'sha256-sM9hxnxoc4LdZ9k9DThw2zCF/KyoDnZ3Ovixe4KW6gA=' 'sha256-FX88DKvzs1pCAh67sSx4Fb4KzYZsl630p99LD8pWg6w='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data: blob:; connect-src 'self' https://api.execution.market https://*.supabase.co wss://*.supabase.co https://*.walletconnect.com wss://*.walletconnect.com https://*.walletconnect.org wss://*.walletconnect.org https://*.reown.com wss://*.reown.com https://app.dynamic.xyz https://*.dynamic.xyz https://*.dynamicauth.com https://logs.dynamicauth.com https://app.dynamicauth.com https://dynamic-static-assets.com https://*.dynamic-static-assets.com https://*.amazonaws.com https://*.s3.amazonaws.com https://*.lambda-url.us-east-2.on.aws https://*.cloudfront.net https://*.xmtp.network wss://*.xmtp.network; frame-src https://app.dynamic.xyz https://*.dynamicauth.com https://app.dynamicauth.com https://id.worldcoin.org; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'

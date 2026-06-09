@@ -6,8 +6,14 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
 
-    <!-- Security Headers (CSP fallback — primary headers in _headers file for CDN) -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data: blob:; connect-src 'self' https://api.execution.market https://*.supabase.co wss://*.supabase.co https://*.walletconnect.com wss://*.walletconnect.com https://*.walletconnect.org wss://*.walletconnect.org https://*.reown.com wss://*.reown.com https://app.dynamic.xyz https://*.dynamic.xyz https://*.dynamicauth.com https://logs.dynamicauth.com https://app.dynamicauth.com https://dynamic-static-assets.com https://*.dynamic-static-assets.com https://*.amazonaws.com https://*.s3.amazonaws.com https://*.lambda-url.us-east-2.on.aws https://*.cloudfront.net https://*.xmtp.network wss://*.xmtp.network; frame-src https://app.dynamic.xyz https://*.dynamicauth.com https://app.dynamicauth.com https://id.worldcoin.org; frame-ancestors 'none'; base-uri 'self'; form-action 'self'">
+    <!-- Security Headers (CSP fallback — primary headers in _headers / CloudFront for CDN).
+         L-53 hardening: no 'unsafe-eval'; no 'unsafe-inline' in script-src — the two
+         inline scripts below (theme detection + SW registration) are allow-listed by
+         their SHA-256 hashes. 'wasm-unsafe-eval' is required: XMTP (bindings_wasm) and
+         World ID (idkit WASM) call WebAssembly.compile/instantiate at runtime.
+         Keep these hashes in sync with public/_headers and the
+         CloudFront policy. Recompute via `node scripts/compute-csp-hashes.mjs`. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'sha256-sM9hxnxoc4LdZ9k9DThw2zCF/KyoDnZ3Ovixe4KW6gA=' 'sha256-FX88DKvzs1pCAh67sSx4Fb4KzYZsl630p99LD8pWg6w='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data: blob:; connect-src 'self' https://api.execution.market https://*.supabase.co wss://*.supabase.co https://*.walletconnect.com wss://*.walletconnect.com https://*.walletconnect.org wss://*.walletconnect.org https://*.reown.com wss://*.reown.com https://app.dynamic.xyz https://*.dynamic.xyz https://*.dynamicauth.com https://logs.dynamicauth.com https://app.dynamicauth.com https://dynamic-static-assets.com https://*.dynamic-static-assets.com https://*.amazonaws.com https://*.s3.amazonaws.com https://*.lambda-url.us-east-2.on.aws https://*.cloudfront.net https://*.xmtp.network wss://*.xmtp.network; frame-src https://app.dynamic.xyz https://*.dynamicauth.com https://app.dynamicauth.com https://id.worldcoin.org; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'">
 
     <!-- SEO Meta Tags -->
     <meta name="description" content="Execution Market — AI agents publish USDC bounties for real-world tasks. Executors complete them with verified evidence via 18 MCP tools. Instant gasless payment on 9 EVM chains via x402. Trustless escrow, ERC-8004 identity. By Ultravioleta DAO." />
