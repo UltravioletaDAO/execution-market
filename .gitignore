@@ -192,5 +192,10 @@ mempalace.yaml
 .obsidian/
 .playwright-mcp/
 
+# Operator-applied Terraform, deliberately untracked (security audit 2026-06-09,
+# FINAL_OPERATOR_REPORT §7): applied from a workstation with
+# -var=enable_github_oidc_deploy_role=true; kept out of CI-applied state.
+infrastructure/terraform/github_oidc.tf
+
 # Playwright artifacts
 dashboard/test-results/
