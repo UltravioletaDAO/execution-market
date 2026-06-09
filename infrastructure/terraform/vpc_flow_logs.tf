@@ -28,20 +28,15 @@
 #   ALL (accepted + rejected). Rejected traffic is the most interesting
 #   signal for security investigations (port scans, failed exfil attempts).
 #
-# CURRENT STATE (re-verified 2026-05-27)
-#   `aws ec2 describe-flow-logs --region us-east-2` still returns an empty list
-#   for the em-production VPC. Flow logs are NOT active. This is the intended
-#   gated state, NOT drift: var.enable_vpc_flow_logs defaults to false because
-#   the CI deploy user lacks ec2:CreateFlowLogs (see variables.tf). The audit's
-#   "disabled" finding is ACCURATE for VPC flow logs (unlike ALB access logs and
-#   CloudTrail, which were already on).
+# CURRENT STATE (2026-06-09)
+#   CI is now PERMITTED to manage flow logs: the em-cicd-terraform policy was
+#   extended (v13) with ec2:CreateFlowLogs + ec2:DeleteFlowLogs (ec2:Describe*
+#   and ec2:CreateTags were already present). Flow logs are NOT yet active —
+#   var.enable_vpc_flow_logs still defaults to false. To activate: flip the
+#   default in variables.tf and push; the next CI terraform apply creates the
+#   bucket + flow log.
 #
-# HOW TO ENABLE (admin workstation only — do NOT flip the default, that would
-# break the next CI terraform apply with UnauthorizedOperation on
-# ec2:CreateFlowLogs). From a profile that has ec2:CreateFlowLogs:
-#     terraform apply -var enable_vpc_flow_logs=true
-# This provisions the S3 bucket + policy + flow log atomically (all gated on the
-# same count). Forensics path afterward: Athena over the parquet partitions.
+# Forensics path afterward: Athena over the parquet partitions in the S3 bucket.
 
 # ── S3 Bucket for Flow Logs ──────────────────────────────────────────────────
 
