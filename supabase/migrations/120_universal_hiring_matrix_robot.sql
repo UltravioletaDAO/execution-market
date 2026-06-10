@@ -1,4 +1,5 @@
--- Migration 119: Universal Hiring Matrix — enable 'robot' party
+-- Migration 120: Universal Hiring Matrix — enable 'robot' party
+-- (renumbered from 119 to avoid a collision with 119_fix_schema_drift_*)
 -- Part of MASTER_PLAN_UNIVERSAL_HIRING_MATRIX.md (Phase 0, Tasks 0.2 + 0.3)
 --
 -- The party taxonomy {human, agent, robot} must apply symmetrically to
