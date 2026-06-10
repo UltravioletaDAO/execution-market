@@ -58,6 +58,10 @@ regexes = [
     # local-dev guides; it is the documented demo anon/service token, not a
     # production credential.
     '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJpc3MiOiJzdXBhYmFzZS1kZW1v[A-Za-z0-9._-]+''',
+    # Fake JWT test fixture in em-mobile/__tests__/wsAuth.test.ts: payload is
+    # {"sub":"worker"} and the "signature" is the literal string
+    # "s3cr3t-signature_value" — not a real token.
+    '''eyJhbGciOiJIUzI1NiJ9\.eyJzdWIiOiJ3b3JrZXIifQ\.s3cr3t-signature_value''',
 ]
 
 # Stopwords: a finding whose secret CONTAINS one of these literals is treated as
