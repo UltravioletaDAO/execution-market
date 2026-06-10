@@ -224,7 +224,7 @@ async def verify_evidence(
       - The downstream AI verifier fetches with follow_redirects=False
         and caps the response body to MAX_EVIDENCE_BYTES.
     """
-    from ..verification_helpers import get_verifier
+    from api.verification_helpers import get_verifier
 
     # Reject anonymous/unauthenticated callers even if the global auth dep
     # allows anonymous access on read endpoints. This endpoint is write-ish:
@@ -638,7 +638,7 @@ async def get_auth_nonce(request: Request):
     when signing requests with ERC-8128. Each nonce is single-use and
     expires after 5 minutes.
     """
-    from ..auth import generate_auth_nonce
+    from api.auth import generate_auth_nonce
 
     return await generate_auth_nonce(request)
 
@@ -654,7 +654,7 @@ async def get_auth_nonce(request: Request):
 )
 async def get_erc8128_nonce(request: Request):
     """Generate a fresh nonce for EIP-8128 request signing."""
-    from ..auth import generate_auth_nonce
+    from api.auth import generate_auth_nonce
 
     return await generate_auth_nonce(request)
 
