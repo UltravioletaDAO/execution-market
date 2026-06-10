@@ -777,6 +777,17 @@ class RegisterAgentExecutorInput(BaseModel):
     agent_card_url: Optional[str] = Field(default=None, max_length=500)
     mcp_endpoint_url: Optional[str] = Field(default=None, max_length=500)
     a2a_protocol_version: Optional[str] = Field(default=None, max_length=10)
+    # Programmatic executor party: 'agent' (default) or 'robot'. Both authenticate
+    # the same way (wallet); the value declares which side of the matrix they fill.
+    # See MASTER_PLAN_UNIVERSAL_HIRING_MATRIX.md (Task 4.1).
+    executor_type: str = Field(default="agent", max_length=10)
+
+    @field_validator("executor_type")
+    @classmethod
+    def validate_executor_type(cls, v: str) -> str:
+        if v not in ("agent", "robot"):
+            raise ValueError("executor_type must be 'agent' or 'robot'")
+        return v
 
 
 class BrowseAgentTasksInput(BaseModel):

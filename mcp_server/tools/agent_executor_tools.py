@@ -186,7 +186,7 @@ def register_agent_executor_tools(
                 client.table("executors")
                 .select("id, display_name, capabilities")
                 .eq("wallet_address", params.wallet_address)
-                .eq("executor_type", "agent")
+                .eq("executor_type", params.executor_type)
                 .execute()
             )
 
@@ -208,7 +208,7 @@ def register_agent_executor_tools(
             executor_data = {
                 "wallet_address": params.wallet_address,
                 "display_name": params.display_name,
-                "executor_type": "agent",
+                "executor_type": params.executor_type,
                 "capabilities": params.capabilities,
                 "status": "active",
                 "reputation_score": 50,

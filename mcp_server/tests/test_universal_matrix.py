@@ -15,7 +15,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from api.party import can_execute, party_required_label
-from models import PartyType, party_type_from_agent_type
+from models import PartyType, party_type_from_agent_type, RegisterAgentExecutorInput
 
 PARTIES = [p.value for p in PartyType]  # human, agent, robot
 
@@ -73,3 +73,25 @@ class TestAgentTypeMapping:
     )
     def test_party_type_from_agent_type(self, agent_type, expected):
         assert party_type_from_agent_type(agent_type) == expected
+
+
+@pytest.mark.core
+class TestRobotRegistration:
+    _BASE = dict(
+        wallet_address="0x" + "a" * 40,
+        capabilities=["data_processing"],
+        display_name="Unit One",
+    )
+
+    def test_default_is_agent(self):
+        req = RegisterAgentExecutorInput(**self._BASE)
+        assert req.executor_type == "agent"
+
+    def test_robot_accepted(self):
+        req = RegisterAgentExecutorInput(**self._BASE, executor_type="robot")
+        assert req.executor_type == "robot"
+
+    def test_human_rejected(self):
+        # Humans register via the worker/REST path, not the programmatic one.
+        with pytest.raises(Exception):
+            RegisterAgentExecutorInput(**self._BASE, executor_type="human")
