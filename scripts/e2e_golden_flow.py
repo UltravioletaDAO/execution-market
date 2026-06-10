@@ -258,19 +258,61 @@ def _auth_headers() -> Dict[str, str]:
     return headers
 
 
+# ERC-8128 request signers (GR-0.1: anonymous mutations are rejected by the
+# API, and API keys are disabled in production — mutating calls must be
+# wallet-signed). Reuses EM8128Signer from scripts/em_monitor.py.
+_signers: Dict[str, Any] = {}
+
+
+def _get_signer(actor: str):
+    """Lazily build the ERC-8128 signer for 'agent' or 'worker'."""
+    if actor in _signers:
+        return _signers[actor]
+    key = (
+        AGENT_PRIVATE_KEY
+        if actor == "agent"
+        else os.environ.get("EM_WORKER_PRIVATE_KEY", "")
+    )
+    if not key:
+        _signers[actor] = None
+        return None
+    from em_monitor import EM8128Signer
+
+    _signers[actor] = EM8128Signer(key, chain_id=8453, api_url=API_BASE)
+    return _signers[actor]
+
+
 async def api_call(
     client: httpx.AsyncClient,
     method: str,
     path: str,
     json_data: Optional[dict] = None,
     extra_headers: Optional[Dict[str, str]] = None,
+    actor: Optional[str] = None,
 ) -> dict:
-    """Call /api/v1/* endpoint with auth headers."""
+    """Call /api/v1/* endpoint with auth headers.
+
+    actor='agent'|'worker' signs the request with ERC-8128 using the
+    corresponding wallet key (required for mutations); None = anonymous
+    (fine for public reads).
+    """
     url = f"{API_BASE}/api/v1{path}"
     headers = _auth_headers()
     if extra_headers:
         headers.update(extra_headers)
-    resp = await client.request(method, url, json=json_data, headers=headers)
+
+    signer = _get_signer(actor) if actor else None
+    if signer is not None:
+        # The signed Content-Digest must cover the exact bytes sent, so
+        # serialize once and send via content=, never via json=.
+        body = json.dumps(json_data) if json_data is not None else None
+        auth = await signer.sign_headers(method, url, body=body, client=client)
+        headers.update(auth)
+        if body is not None:
+            headers["Content-Type"] = "application/json"
+        resp = await client.request(method, url, content=body, headers=headers)
+    else:
+        resp = await client.request(method, url, json=json_data, headers=headers)
     try:
         data = resp.json()
     except Exception:
@@ -608,6 +650,7 @@ async def phase_task_creation(
             "POST",
             "/tasks",
             task_payload,
+            actor="agent",
         )
 
         http_status = task_data.get("_http_status")
@@ -704,6 +747,7 @@ async def phase_worker_registration(
                 "agent_uri": "https://execution.market/workers/golden-flow-test",
                 "recipient": WORKER_WALLET,
             },
+            actor="worker",
         )
 
         erc_status = erc_data.get("_http_status")
@@ -775,6 +819,7 @@ async def phase_task_lifecycle(
                 "executor_id": executor_id,
                 "message": "Golden Flow E2E test -- ready to work",
             },
+            actor="worker",
         )
         apply_status = apply_data.get("_http_status")
         print(f"         Apply: HTTP {apply_status}")
@@ -823,6 +868,7 @@ async def phase_task_lifecycle(
             "POST",
             f"/tasks/{task_id}/assign",
             assign_payload,
+            actor="agent",
         )
         assign_status = assign_data.get("_http_status")
         print(f"         Assign: HTTP {assign_status}")
@@ -888,6 +934,7 @@ async def phase_task_lifecycle(
                 },
                 "notes": "Golden Flow automated E2E submission",
             },
+            actor="worker",
         )
         submit_status = submit_data.get("_http_status")
         print(f"         Submit: HTTP {submit_status}")
@@ -958,6 +1005,7 @@ async def phase_approval_payment(
                 "notes": "Golden Flow E2E test -- approving for payment",
                 "rating_score": 90,
             },
+            actor="agent",
         )
         t_approve = time.time() - t0
         approve_status = approve_data.get("_http_status")
@@ -1159,6 +1207,7 @@ async def phase_reputation(
                 "score": 90,
                 "comment": "Golden Flow test -- excellent work",
             },
+            actor="agent",
         )
         rw_status = rate_worker_data.get("_http_status")
         print(f"         Rate worker: HTTP {rw_status}")
@@ -1185,6 +1234,7 @@ async def phase_reputation(
                 "comment": "Golden Flow test -- great agent",
                 "worker_address": WORKER_WALLET,
             },
+            actor="worker",
         )
         prep_status = prepare_data.get("_http_status")
         print(f"         Prepare feedback: HTTP {prep_status}")
@@ -1352,6 +1402,7 @@ async def phase_reputation(
                             "task_id": task_id,
                             "tx_hash": worker_rates_agent_tx,
                         },
+                        actor="worker",
                     )
                     cf_status = confirm_data.get("_http_status")
                     print(f"         Confirm: HTTP {cf_status}")
