@@ -15,7 +15,12 @@ import { createH2ATask } from '../../services/h2a'
 import type { H2ATaskCreateRequest, H2ATaskCreateResponse } from '../../types/database'
 import { useAuth } from '../../context/AuthContext'
 import { DepositModal } from '../../components/DepositModal'
-import { readEvmUsdcBalance, resolveEvmRpc } from '../../services/evm-balance'
+import { readEvmStablecoinBalance } from '../../services/evm-balance'
+import {
+  PAYMENT_NETWORKS,
+  getPaymentNetwork,
+  resolvePaymentRpc,
+} from '../../constants/payment-networks'
 
 const FEE_PCT = 0.13
 const DEADLINES = [
@@ -32,16 +37,41 @@ export function RequestService() {
   const { walletAddress, executor, isAuthenticated, openAuthModal } = useAuth()
 
   const [instructions, setInstructions] = useState('')
-  const [bounty, setBounty] = useState(10)
+  // Free-text bounty: keep the raw string so the user can clear the field and
+  // type intermediate states like "0." or "0.05" without it snapping back. The
+  // previous numeric state clamped every keystroke to Math.max(0.01, +value),
+  // which made the field unwritable (only the spinner arrows worked).
+  const [bountyInput, setBountyInput] = useState('10')
   const [deadlineHours, setDeadlineHours] = useState(24)
+  const [network, setNetwork] = useState('base')
+  const [stablecoin, setStablecoin] = useState('USDC')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<H2ATaskCreateResponse | null>(null)
   const [balance, setBalance] = useState<number | null>(null)
   const [showDeposit, setShowDeposit] = useState(false)
 
-  const fee = +(bounty * FEE_PCT).toFixed(2)
-  const total = +(bounty + fee).toFixed(2)
+  const bounty = parseFloat(bountyInput)
+  const bountyValid = Number.isFinite(bounty) && bounty >= 0.01 && bounty <= 500
+  const fee = bountyValid ? +(bounty * FEE_PCT).toFixed(2) : 0
+  const total = bountyValid ? +(bounty + fee).toFixed(2) : 0
+
+  const netInfo = getPaymentNetwork(network)
+  const coinInfo =
+    netInfo.stablecoins.find((c) => c.symbol === stablecoin) ?? netInfo.stablecoins[0]
+  // MoonPay only sells USDC on Base, so the in-app deposit is offered only there.
+  // On any other network/token the publisher must already hold the stablecoin.
+  const canDeposit = network === 'base' && coinInfo.symbol === 'USDC'
+
+  // Switching networks may strand the chosen stablecoin (e.g. PYUSD only on
+  // Ethereum); fall back to the network's first coin (always USDC).
+  const handleNetworkChange = (key: string) => {
+    setNetwork(key)
+    const next = getPaymentNetwork(key)
+    if (!next.stablecoins.some((c) => c.symbol === stablecoin)) {
+      setStablecoin(next.stablecoins[0].symbol)
+    }
+  }
 
   const loadBalance = useCallback(async () => {
     if (!walletAddress) {
@@ -49,11 +79,19 @@ export function RequestService() {
       return
     }
     try {
-      setBalance(await readEvmUsdcBalance(walletAddress, resolveEvmRpc('base'), 'base'))
+      setBalance(
+        await readEvmStablecoinBalance(
+          walletAddress,
+          netInfo.key,
+          coinInfo.address,
+          coinInfo.decimals,
+          resolvePaymentRpc(netInfo),
+        ),
+      )
     } catch {
       setBalance(null)
     }
-  }, [walletAddress])
+  }, [walletAddress, netInfo, coinInfo])
   useEffect(() => {
     loadBalance()
   }, [loadBalance])
@@ -70,7 +108,7 @@ export function RequestService() {
   }
 
   const canSubmit =
-    instructions.length >= 20 && bounty >= 0.01 && !submitting && !!walletAddress
+    instructions.length >= 20 && bountyValid && !submitting && !!walletAddress
   const needsFunds = balance !== null && balance < total
 
   const handleSubmit = async () => {
@@ -85,7 +123,8 @@ export function RequestService() {
         deadline_hours: deadlineHours,
         verification_mode: 'manual',
         evidence_required: ['screenshot', 'text_response'],
-        payment_network: 'base',
+        payment_network: netInfo.key,
+        payment_token: coinInfo.symbol,
         target_executor_type: 'human',
         publisher_wallet: walletAddress ?? undefined,
       }
@@ -109,11 +148,13 @@ export function RequestService() {
           <div className="mb-6 rounded-lg bg-zinc-50 p-4 text-left text-sm">
             <div className="mb-1 flex justify-between">
               <span className="text-zinc-500">Pago</span>
-              <span className="font-medium">${result.bounty_usd} USDC</span>
+              <span className="font-medium">
+                ${result.bounty_usd} {coinInfo.symbol} · {netInfo.label}
+              </span>
             </div>
             <div className="flex justify-between font-bold">
               <span>Total al aprobar</span>
-              <span>${result.total_required_usd} USDC</span>
+              <span>${result.total_required_usd} {coinInfo.symbol}</span>
             </div>
           </div>
           <button
@@ -160,32 +201,75 @@ export function RequestService() {
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-zinc-700">Pago (USDC) *</label>
+          <label className="mb-1 block text-sm font-medium text-zinc-700">
+            Pago ({coinInfo.symbol}) *
+          </label>
           <div className="relative">
             <span className="absolute left-3 top-2.5 text-zinc-400">$</span>
             <input
-              type="number"
-              value={bounty}
-              onChange={(e) => setBounty(Math.max(0.01, +e.target.value))}
-              step="0.01"
-              min="0.01"
-              max="500"
-              className="w-full rounded-lg border border-zinc-300 py-2 pl-7 pr-16"
+              type="text"
+              inputMode="decimal"
+              value={bountyInput}
+              onChange={(e) => {
+                const v = e.target.value
+                // Allow empty + free decimal typing ("", "0.", "0.05"); reject
+                // anything that isn't a plain decimal so we never store garbage.
+                if (v === '' || /^\d*\.?\d*$/.test(v)) setBountyInput(v)
+              }}
+              placeholder="0.10"
+              className="w-full rounded-lg border border-zinc-300 py-2 pl-7 pr-16 text-zinc-900"
             />
-            <span className="absolute right-3 top-2.5 text-sm text-zinc-400">USDC</span>
+            <span className="absolute right-3 top-2.5 text-sm text-zinc-400">
+              {coinInfo.symbol}
+            </span>
           </div>
+          {!bountyValid && bountyInput !== '' && (
+            <p className="mt-1 text-xs text-red-600">El pago debe estar entre $0.01 y $500.</p>
+          )}
+
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-zinc-500">Red</label>
+              <select
+                value={network}
+                onChange={(e) => handleNetworkChange(e.target.value)}
+                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900"
+              >
+                {PAYMENT_NETWORKS.map((n) => (
+                  <option key={n.key} value={n.key}>
+                    {n.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-zinc-500">Stablecoin</label>
+              <select
+                value={coinInfo.symbol}
+                onChange={(e) => setStablecoin(e.target.value)}
+                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900"
+              >
+                {netInfo.stablecoins.map((c) => (
+                  <option key={c.symbol} value={c.symbol}>
+                    {c.symbol}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           <div className="mt-2 rounded-lg bg-white border border-zinc-200 p-3 text-sm">
             <div className="flex justify-between">
               <span className="text-zinc-700">Pago al ejecutor</span>
-              <span className="font-medium text-zinc-900">${bounty.toFixed(2)}</span>
+              <span className="font-medium text-zinc-900">${(bountyValid ? bounty : 0).toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-zinc-700">Comisión (13%)</span>
               <span className="font-medium text-zinc-900">${fee.toFixed(2)}</span>
             </div>
-            <div className="mt-1 flex justify-between border-t border-zinc-200 pt-1 font-bold">
+            <div className="mt-1 flex justify-between border-t border-zinc-200 pt-1 font-bold text-zinc-900">
               <span>Total al aprobar</span>
-              <span>${total.toFixed(2)} USDC</span>
+              <span>${total.toFixed(2)} {coinInfo.symbol}</span>
             </div>
           </div>
         </div>
@@ -208,15 +292,22 @@ export function RequestService() {
         {walletAddress && (
           <div className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white p-3 text-sm">
             <span className="text-zinc-500">
-              Tu saldo: {balance === null ? '—' : `$${balance.toFixed(2)} USDC`}
-              {needsFunds && <span className="ml-2 text-zinc-900">· necesitas ${total.toFixed(2)}</span>}
+              Tu saldo: {balance === null ? '—' : `$${balance.toFixed(2)} ${coinInfo.symbol}`}
+              <span className="ml-1 text-zinc-400">· {netInfo.label}</span>
+              {needsFunds && (
+                <span className="ml-2 text-zinc-900">· necesitas ${total.toFixed(2)}</span>
+              )}
             </span>
-            <button
-              onClick={() => setShowDeposit(true)}
-              className="rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-800"
-            >
-              + Depositar
-            </button>
+            {canDeposit ? (
+              <button
+                onClick={() => setShowDeposit(true)}
+                className="rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-800"
+              >
+                + Depositar
+              </button>
+            ) : (
+              <span className="text-xs text-zinc-400">Deposita en Base/USDC</span>
+            )}
           </div>
         )}
 

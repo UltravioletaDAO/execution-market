@@ -654,6 +654,8 @@ export interface H2ATaskCreateRequest {
   verification_mode?: VerificationMode
   evidence_required?: string[]
   payment_network?: string
+  /** Stablecoin symbol (USDC | USDT | EURC | AUSD | PYUSD), must exist on payment_network. */
+  payment_token?: string
   target_agent_id?: string
   /**
    * Which party may execute — the Universal Hiring Matrix target.

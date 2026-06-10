@@ -868,6 +868,9 @@ class PublishH2ATaskRequest(BaseModel):
         default=["json_response"], min_length=1, max_length=5
     )
     payment_network: str = Field(default="base", max_length=30)
+    # Stablecoin symbol to escrow (USDC | USDT | EURC | AUSD | PYUSD). Must exist
+    # on payment_network — validated against NETWORK_CONFIG in create_h2a_task.
+    payment_token: str = Field(default="USDC", max_length=10)
     target_agent_id: Optional[str] = Field(default=None, max_length=255)
     # 'agent' (default, classic H2A) or 'human' (H2H — the Rappi-style services
     # catalog: a human publishes a physical task for another human to execute).

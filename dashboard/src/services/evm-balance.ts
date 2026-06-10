@@ -136,6 +136,47 @@ export async function readEvmUsdcBalance(
 }
 
 /**
+ * Read any ERC-20 stablecoin balance on an EVM chain via a single read-only
+ * `eth_call` to `balanceOf(address)`. Generalises readEvmUsdcBalance for the
+ * H2H publish flow's network/stablecoin selector (USDC/USDT/EURC/AUSD/PYUSD).
+ *
+ * The balances Lambda only knows each chain's USDC, so we only route through it
+ * when the requested token IS that chain's USDC; every other token reads the
+ * RPC directly. All five stablecoins are 6-decimal, but `decimals` is passed in
+ * so this stays correct if that ever changes. Returns 0 on empty/garbage result.
+ */
+export async function readEvmStablecoinBalance(
+  wallet: string,
+  network: string,
+  tokenAddress: string,
+  decimals: number,
+  rpcUrl: string,
+): Promise<number> {
+  const usdcCfg = EVM_USDC[network]
+  if (usdcCfg && tokenAddress.toLowerCase() === usdcCfg.usdc.toLowerCase()) {
+    const viaLambda = await readViaBalancesLambda(wallet, network)
+    if (viaLambda !== null) return viaLambda
+  }
+
+  const resp = await fetch(rpcUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'eth_call',
+      params: [{ to: tokenAddress, data: encodeBalanceOf(wallet) }, 'latest'],
+    }),
+  })
+  if (!resp.ok) throw new Error(`EVM RPC ${resp.status}`)
+  const body = (await resp.json()) as { result?: string; error?: { message?: string } }
+  if (body.error) throw new Error(`EVM RPC: ${body.error.message ?? 'unknown'}`)
+  const raw = body.result
+  if (!raw || !raw.startsWith('0x')) return 0
+  return Number(BigInt(raw)) / 10 ** decimals
+}
+
+/**
  * Resolve the EVM RPC URL: explicit override > VITE_<NETWORK>_RPC_URL >
  * public default. Mirrors resolveSolanaRpc. Prefers QuikNode private RPCs
  * from env per the repo RPC policy.

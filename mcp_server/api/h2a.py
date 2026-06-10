@@ -417,6 +417,16 @@ async def create_h2a_task(
             detail=f"Bounty ${bounty} exceeds H2A maximum ${max_bounty}",
         )
 
+    # Validate the stablecoin exists on the requested network. NETWORK_CONFIG is
+    # the single source of truth; get_token_config raises ValueError on an
+    # unsupported network or an unavailable token (e.g. PYUSD outside Ethereum).
+    from integrations.x402.sdk_client import get_token_config
+
+    try:
+        get_token_config(request.payment_network, request.payment_token)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
     # Calculate fees
     platform_fee_pct = await get_platform_fee_percent()
     fee_usd = float(bounty * platform_fee_pct)
@@ -444,7 +454,7 @@ async def create_h2a_task(
             "bounty_usd": float(bounty),
             "deadline": deadline.isoformat(),
             "evidence_schema": evidence_schema,
-            "payment_token": "USDC",
+            "payment_token": request.payment_token,
             "payment_network": request.payment_network,
             "status": "published",
             "min_reputation": 0,
