@@ -306,7 +306,19 @@ async def api_call(
         # The signed Content-Digest must cover the exact bytes sent, so
         # serialize once and send via content=, never via json=.
         body = json.dumps(json_data) if json_data is not None else None
-        auth = await signer.sign_headers(method, url, body=body, client=client)
+        # The nonce endpoint rate-limits bursts of signed calls (429);
+        # back off and retry instead of aborting the flow.
+        for _attempt in range(4):
+            try:
+                auth = await signer.sign_headers(
+                    method, url, body=body, client=client
+                )
+                break
+            except httpx.HTTPStatusError as _e:
+                if _e.response.status_code == 429 and _attempt < 3:
+                    await asyncio.sleep(4 * (_attempt + 1))
+                    continue
+                raise
         headers.update(auth)
         if body is not None:
             headers["Content-Type"] = "application/json"
@@ -1097,6 +1109,26 @@ async def phase_approval_payment(
                         )
         else:
             print("\n  [2/3] No TXs to verify on-chain")
+
+        # fase2 splits on-chain via the FeeCalculator; the API's advisory
+        # worker/fee fields can be 0. Prefer the amounts parsed from the
+        # release TX itself — that is the authoritative settlement record.
+        _rel_transfers = (tx_verifications.get("escrow_release") or {}).get(
+            "transfers"
+        ) or []
+        if _rel_transfers:
+            _w_tr = next(
+                (t for t in _rel_transfers if t["to"].lower() == WORKER_WALLET.lower()),
+                None,
+            )
+            _f_tr = next(
+                (t for t in _rel_transfers if t is not _w_tr),
+                None,
+            )
+            if _w_tr is not None:
+                worker_net_actual = _w_tr["amount_token"]
+            if _f_tr is not None:
+                platform_fee_actual = _f_tr["amount_token"]
 
         # Step 3: Fee math verification (credit card model)
         print("\n  [3/3] Verifying fee math (credit card model)...")
