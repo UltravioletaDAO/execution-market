@@ -344,16 +344,29 @@ async def _try_erc1271_fallback(
 
 
 def _get_header(request: Any, name: str) -> Optional[str]:
-    """Get a header value case-insensitively."""
+    """Get a header value case-insensitively.
+
+    Only ``str`` values are returned. A non-string header value (e.g. a test
+    ``MagicMock`` or any malformed/untyped headers object) is treated as
+    absent, so the downstream structured-field parser never receives a non-str
+    and raises a confusing ``'<' not supported between MagicMock and int``.
+    """
     headers = getattr(request, "headers", {})
     if hasattr(headers, "get"):
         val = headers.get(name)
-        if val:
+        if isinstance(val, str) and val:
             return val
         # Try case-insensitive lookup
-        for k, v in headers.items():
-            if k.lower() == name.lower():
-                return v
+        try:
+            for k, v in headers.items():
+                if (
+                    isinstance(k, str)
+                    and k.lower() == name.lower()
+                    and isinstance(v, str)
+                ):
+                    return v
+        except Exception:
+            return None
     return None
 
 

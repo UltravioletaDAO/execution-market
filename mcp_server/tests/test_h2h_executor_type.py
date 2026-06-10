@@ -70,15 +70,19 @@ class _FakeClient:
 
 
 def _apply_app():
-    """Minimal app with the workers router; worker auth overridden to None so the
-    body executor_id is used (EM_REQUIRE_WORKER_AUTH defaults off)."""
+    """Minimal app with the workers router. FIX-P1-01 made worker identity
+    resolution fail-closed, so we supply an authenticated WorkerAuth principal
+    matching the body executor_id (the executor-type gate is the subject under
+    test, not the auth layer)."""
     from fastapi import FastAPI
     from api.routers.workers import router
-    from api.auth import verify_worker_auth
+    from api.auth import verify_worker_auth, WorkerAuth
 
     app = FastAPI()
     app.include_router(router)
-    app.dependency_overrides[verify_worker_auth] = lambda: None
+    app.dependency_overrides[verify_worker_auth] = lambda: WorkerAuth(
+        executor_id=EXECUTOR_ID, auth_method="jwt"
+    )
     return app
 
 

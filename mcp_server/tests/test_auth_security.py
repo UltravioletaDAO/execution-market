@@ -219,6 +219,19 @@ class TestExecutorIdMismatch:
         assert result == "exec-body-id"
         assert "body_fallback" in caplog.text
 
+    def test_no_auth_raises_401_when_required(self, caplog):
+        """FIX-P1-01: with EM_REQUIRE_WORKER_AUTH=true a missing principal is
+        rejected (fail-closed) instead of trusting the spoofable body value."""
+        with patch.object(sys.modules["api.auth"], "_REQUIRE_WORKER_AUTH", True):
+            with pytest.raises(HTTPException) as exc:
+                _enforce_worker_identity(
+                    None,
+                    body_executor_id="exec-body-id",
+                    request_path="/api/v1/tasks/task-123/apply",
+                )
+            assert exc.value.status_code == 401
+        assert "worker_auth.rejected" in caplog.text
+
 
 # ---------------------------------------------------------------------------
 # 5. Apply with wrong executor_id

@@ -324,10 +324,29 @@ def _assert_erc8004_required_in_production() -> None:
         )
 
 
+def _assert_worker_auth_required_in_production() -> None:
+    """Refuse to boot if worker auth is explicitly disabled in production (FIX-P1-01).
+
+    Body-supplied executor_id is spoofable when worker auth is off. The code
+    default for EM_REQUIRE_WORKER_AUTH is currently "false" (staged rollout), so
+    this guard only rejects an EXPLICITLY-set "false" in production — once an
+    operator opts in to enforcement, it cannot be silently turned back off.
+    """
+    if os.environ.get("ENVIRONMENT", "development").lower() != "production":
+        return
+    if os.environ.get("EM_REQUIRE_WORKER_AUTH", "true").lower() != "true":
+        raise RuntimeError(
+            "CRITICAL: worker authentication disabled in production "
+            "(EM_REQUIRE_WORKER_AUTH != 'true'). Refusing to start — "
+            "body-supplied executor_id would be spoofable. See FIX-P1-01."
+        )
+
+
 if _BOOT_ASSERTIONS_ENABLED and not _BOOT_IS_TESTING:
     _assert_jwt_secret_not_default()
     _assert_settlement_not_treasury()
     _assert_erc8004_required_in_production()
+    _assert_worker_auth_required_in_production()
 
 
 # Get Streamable HTTP configuration from environment
@@ -1203,8 +1222,18 @@ except ImportError as exc:
 # Note: Due to Starlette routing, the canonical URL is /mcp/ (with trailing slash)
 # Requests to /mcp will redirect to /mcp/
 if MCP_HTTP_AVAILABLE and mcp_http_app:
-    app.mount("/mcp", mcp_http_app)
-    logger.info("MCP Streamable HTTP mounted at /mcp/")
+    # FIX-P0-01: authenticate the MCP transport at the ASGI boundary. FastAPI
+    # Depends do NOT apply to a mounted Starlette sub-app, so the ERC-8128
+    # request-signature scheme is enforced by this middleware. Master switch:
+    # EM_MCP_AUTH_ENABLED (default "false" — staged, pass-through with audit log,
+    # byte-identical request handling until explicitly enabled).
+    from integrations.erc8128.mcp_auth_middleware import MCPAuthMiddleware
+
+    app.mount("/mcp", MCPAuthMiddleware(mcp_http_app))
+    logger.info(
+        "MCP Streamable HTTP mounted at /mcp/ (auth enabled=%s)",
+        os.environ.get("EM_MCP_AUTH_ENABLED", "false"),
+    )
 else:
     logger.warning("MCP Streamable HTTP not available - stdio transport only")
 

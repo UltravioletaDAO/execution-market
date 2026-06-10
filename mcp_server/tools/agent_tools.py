@@ -20,7 +20,10 @@ from enum import Enum
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 # Import canonical enums from the single source of truth
+from mcp.server.fastmcp import Context
+
 from models import TaskCategory, EvidenceType  # noqa: F401
+from tools.mcp_identity import MCPAuthError, require_agent_identity
 
 logger = logging.getLogger(__name__)
 
@@ -441,7 +444,9 @@ def register_agent_tools(mcp, db):
             "openWorldHint": True,
         },
     )
-    async def em_assign_task(params: AssignTaskInput) -> str:
+    async def em_assign_task(
+        params: AssignTaskInput, ctx: Optional[Context] = None
+    ) -> str:
         """
         Assign a published task to a specific worker (executor).
 
@@ -465,6 +470,12 @@ def register_agent_tools(mcp, db):
             str: Confirmation of assignment with worker details.
         """
         try:
+            # FIX-P0-01: authorize against the verified caller, never the body.
+            try:
+                caller_agent_id = require_agent_identity(ctx, params.agent_id)
+            except MCPAuthError as e:
+                return f"Error: {e}"
+
             client = db.get_client()
 
             # Get task
@@ -472,8 +483,9 @@ def register_agent_tools(mcp, db):
             if not task:
                 return f"Error: Task {params.task_id} not found"
 
-            # Verify agent owns the task
-            if task["agent_id"] != params.agent_id:
+            # Verify agent owns the task (case-insensitive — verified wallet is
+            # lowercased; stored agent_id may be mixed-case).
+            if (task.get("agent_id") or "").lower() != caller_agent_id:
                 return "Error: Not authorized to assign this task"
 
             if task["status"] != "published":
@@ -495,7 +507,7 @@ def register_agent_tools(mcp, db):
                 fee_pct = await get_platform_fee_percent()
                 total_required = (bounty_dec * (1 + fee_pct)).quantize(Decimal("0.01"))
                 gate = await check_solana_balance_gate(
-                    wallet=params.agent_id,
+                    wallet=caller_agent_id,
                     required_usdc=total_required,
                 )
                 if not gate.sufficient:
@@ -510,7 +522,7 @@ def register_agent_tools(mcp, db):
                         "required_usdc": str(total_required),
                         "balance_usdc": str(gate.balance),
                         "shortfall_usdc": str(gate.shortfall),
-                        "wallet_address": params.agent_id,
+                        "wallet_address": caller_agent_id,
                         "network": "solana",
                     }
                     if gate.onramp is not None:
@@ -588,10 +600,14 @@ def register_agent_tools(mcp, db):
 
 {guidance}"""
 
-            # Perform assignment
+            # Perform assignment. Pass the task's stored owner value (already
+            # verified to match the authenticated caller above) so the DB-layer
+            # exact-match ownership backstop (supabase_client.assign_task) does
+            # not break on case differences between the lowercased verified
+            # wallet and the stored mixed-case agent_id.
             result = await db.assign_task(
                 task_id=params.task_id,
-                agent_id=params.agent_id,
+                agent_id=task["agent_id"],
                 executor_id=params.executor_id,
                 notes=params.notes,
             )
@@ -780,7 +796,9 @@ Use `em_check_submission` to monitor for submitted work."""
             "openWorldHint": True,
         },
     )
-    async def em_batch_create_tasks(params: BatchCreateTasksInput) -> str:
+    async def em_batch_create_tasks(
+        params: BatchCreateTasksInput, ctx: Optional[Context] = None
+    ) -> str:
         """
         Create multiple tasks in a single operation with escrow calculation.
 
@@ -812,6 +830,13 @@ Use `em_check_submission` to monitor for submitted work."""
             str: Summary of created tasks with IDs and escrow details.
         """
         try:
+            # FIX-P0-01: stamp the verified caller on every created task, never
+            # the body value. Falls back to params.agent_id with enforcement off.
+            try:
+                agent_id = require_agent_identity(ctx, params.agent_id)
+            except MCPAuthError as e:
+                return f"Error: {e}"
+
             # Calculate escrow first
             escrow_info = await calculate_batch_escrow(
                 params.tasks, params.payment_token or "USDC"
@@ -848,7 +873,7 @@ No tasks were created. Fix errors and retry."""
                     # the database directly instead of using REST API (POST /api/v1/tasks).
                     # Production use should route through the API for proper payment verification.
                     task = await db.create_task(
-                        agent_id=params.agent_id,
+                        agent_id=agent_id,
                         title=task_def.title,
                         instructions=task_def.instructions,
                         category=task_def.category.value,
@@ -977,7 +1002,7 @@ No tasks were created due to atomic mode.{rollback_note}"""
 
             logger.info(
                 f"Batch created {len(created_tasks)}/{len(params.tasks)} tasks "
-                f"for agent {params.agent_id}"
+                f"for agent {agent_id}"
             )
             return "\n".join(lines)
 

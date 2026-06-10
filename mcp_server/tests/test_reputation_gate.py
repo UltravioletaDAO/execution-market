@@ -363,12 +363,16 @@ async def test_apply_endpoint_returns_403_for_insufficient_reputation(monkeypatc
         message="I want to help",
     )
 
+    # FIX-P1-01: worker identity resolution is fail-closed, so supply an
+    # authenticated principal — the reputation gate is the subject under test.
+    from api.auth import WorkerAuth
+
     with pytest.raises(HTTPException) as exc:
         await routes.apply_to_task(
             raw_request=_mock_request(),
             task_id=TASK_ID,
             request=request,
-            worker_auth=None,
+            worker_auth=WorkerAuth(executor_id=EXECUTOR_ID, auth_method="jwt"),
         )
 
     assert exc.value.status_code == 403
@@ -399,11 +403,13 @@ async def test_apply_endpoint_returns_200_for_sufficient_reputation(monkeypatch)
         message="I want to help",
     )
 
+    from api.auth import WorkerAuth
+
     result = await routes.apply_to_task(
         raw_request=_mock_request(),
         task_id=TASK_ID,
         request=request,
-        worker_auth=None,
+        worker_auth=WorkerAuth(executor_id=EXECUTOR_ID, auth_method="jwt"),
     )
 
     assert result.message == "Application submitted successfully"

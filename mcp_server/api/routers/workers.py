@@ -4,14 +4,43 @@ Worker apply and submit endpoints.
 Extracted from api/routes.py.
 """
 
+import os
+import re
 from typing import Dict, Any, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Path, Query, Request
 
 import supabase_client as db
 import asyncio
 
-from ..auth import verify_worker_auth, WorkerAuth, _enforce_worker_identity
+from ..auth import (
+    verify_worker_auth,
+    WorkerAuth,
+    _enforce_worker_identity,
+    resolve_worker_identity,
+    verify_api_key,
+    is_worker_auth_required,
+)
+
+# Strict wallet validators — close the PostgREST .or_() injection vector (FIX-P1-03).
+_EVM_ADDR_RE = re.compile(r"^0x[0-9a-fA-F]{40}$")
+_SOLANA_ADDR_RE = re.compile(r"^[1-9A-HJ-NP-Za-km-z]{32,44}$")  # base58, no 0/O/I/l
+
+
+def _is_valid_wallet(addr: str) -> bool:
+    return bool(_EVM_ADDR_RE.match(addr) or _SOLANA_ADDR_RE.match(addr))
+
+
+# Payment-events authz. Defaults to the global worker-auth switch so it stays a
+# total no-op (byte-identical to main) until EM_REQUIRE_WORKER_AUTH is enabled.
+# Set EM_ENFORCE_PAYMENT_EVENTS_AUTH explicitly to override the inherited default.
+_ENFORCE_PAYMENT_EVENTS_AUTH = (
+    os.environ.get(
+        "EM_ENFORCE_PAYMENT_EVENTS_AUTH",
+        os.environ.get("EM_REQUIRE_WORKER_AUTH", "false"),
+    ).lower()
+    == "true"
+)
 
 from verification.pipeline import run_verification_pipeline
 from verification.sqs_publisher import publish_ring1
@@ -278,8 +307,7 @@ async def get_submission_detail(
     if not submission:
         raise HTTPException(status_code=404, detail="Submission not found")
 
-    # Auth: verify caller is the executor who submitted this work.
-    # If worker_auth is present, the executor_id must match the submission's.
+    # Auth: verify caller is the executor who submitted this work (FIX-P1-01).
     sub_executor_id = submission.get("executor_id")
     if worker_auth and worker_auth.executor_id:
         if worker_auth.executor_id != sub_executor_id:
@@ -287,8 +315,18 @@ async def get_submission_detail(
                 status_code=403,
                 detail="You are not authorized to view this submission",
             )
+    elif is_worker_auth_required():
+        # Fail-closed: an anonymous caller is rejected. Previously this branch
+        # "logged but allowed", leaking evidence S3 keys to anon callers.
+        logger.warning(
+            "SECURITY_AUDIT action=submission_detail.no_auth submission_id=%s path=%s",
+            submission_id[:8],
+            raw_request.url.path,
+        )
+        raise HTTPException(status_code=401, detail="Authentication required")
     else:
-        # Soft auth: log warning but allow (matches body-fallback pattern)
+        # Staged rollout (EM_REQUIRE_WORKER_AUTH off): log warning but allow
+        # (byte-identical to the legacy body-fallback pattern).
         logger.warning(
             "SECURITY_AUDIT action=submission_detail.no_auth submission_id=%s path=%s",
             submission_id[:8],
@@ -346,8 +384,11 @@ async def apply_to_task(
 
     Worker endpoint for submitting task applications. Checks reputation requirements.
     """
-    executor_id = _enforce_worker_identity(
-        worker_auth, request.executor_id, raw_request.url.path
+    # FIX-P1-01: fail-closed identity resolution when EM_REQUIRE_WORKER_AUTH is
+    # on (with an ERC-8128 H2H agent path); byte-identical legacy behaviour when
+    # off. resolve_worker_identity gates on the flag internally.
+    executor_id = await resolve_worker_identity(
+        raw_request, worker_auth, request.executor_id, task_id=task_id
     )
 
     # ---- ERC-8004 Worker Identity (check + auto-register) ----------------
@@ -673,8 +714,9 @@ async def submit_work(
     Automatically attempts instant payment settlement when possible, otherwise
     queues submission for agent review.
     """
-    executor_id = _enforce_worker_identity(
-        worker_auth, request.executor_id, raw_request.url.path
+    # FIX-P1-01: fail-closed identity resolution + H2H agent path (flag-gated).
+    executor_id = await resolve_worker_identity(
+        raw_request, worker_auth, request.executor_id, task_id=task_id
     )
     try:
         # Merge device_metadata into evidence so the verification pipeline
@@ -953,6 +995,7 @@ _EARNING_EVENT_TYPES = {"disburse_worker", "settle", "settle_worker_direct"}
     tags=["Workers", "Payments"],
 )
 async def get_payment_events(
+    raw_request: Request,
     address: str = Query(
         ...,
         description="Wallet address to filter by (matches from_address or to_address)",
@@ -969,9 +1012,85 @@ async def get_payment_events(
         description="Filter by event type (e.g. disburse_worker, settle, escrow_release)",
         alias="event_type",
     ),
+    worker_auth: Optional[WorkerAuth] = Depends(verify_worker_auth),
+    authorization: Optional[str] = Header(None),
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
 ) -> Dict[str, Any]:
-    """Return payment events where *address* appears as sender or receiver."""
+    """Return payment events where *address* appears as sender or receiver.
+
+    AuthZ (FIX-P1-03) is gated by ``EM_ENFORCE_PAYMENT_EVENTS_AUTH`` (which
+    defaults to the global ``EM_REQUIRE_WORKER_AUTH`` switch). When enabled,
+    the caller must either (a) be the worker who owns *address* (Supabase JWT),
+    or (b) present a valid internal API key; the address is strictly
+    format-validated and raw metadata is withheld. When disabled the endpoint
+    is byte-identical to the legacy unauthenticated behaviour.
+    """
     addr = address.strip().lower()
+
+    if _ENFORCE_PAYMENT_EVENTS_AUTH:
+        # 1) Strict format validation — closes the PostgREST filter injection.
+        if not _is_valid_wallet(addr):
+            raise HTTPException(status_code=400, detail="Invalid wallet address format")
+
+        # 2) AuthZ — deny by default.
+        authorized = False
+
+        # Path A: worker JWT must own the requested wallet (case-insensitive).
+        if worker_auth and worker_auth.executor_id:
+            owner_wallet = (worker_auth.wallet_address or "").strip().lower()
+            if not owner_wallet:
+                # JWT didn't carry a wallet — resolve from executors table.
+                try:
+                    _row = (
+                        db.get_client()
+                        .table("executors")
+                        .select("wallet_address")
+                        .eq("id", worker_auth.executor_id)
+                        .limit(1)
+                        .execute()
+                    )
+                    owner_wallet = (
+                        (_row.data[0].get("wallet_address") or "").strip().lower()
+                        if _row.data
+                        else ""
+                    )
+                except Exception:
+                    owner_wallet = ""
+            if owner_wallet and owner_wallet == addr:
+                authorized = True
+            else:
+                logger.warning(
+                    "SECURITY_AUDIT action=payment_events.ownership_mismatch "
+                    "executor=%s requested=%s path=%s",
+                    worker_auth.executor_id[:8],
+                    truncate_wallet(addr),
+                    raw_request.url.path,
+                )
+                raise HTTPException(
+                    status_code=403,
+                    detail="You may only view payment events for your own wallet",
+                )
+
+        # Path B: internal/service caller (e.g. XMTP bot) with a valid API key.
+        if not authorized and (authorization or x_api_key):
+            try:
+                await verify_api_key(authorization, x_api_key)
+                authorized = True
+            except HTTPException:
+                authorized = False  # invalid key — fall through to 401
+
+        if not authorized:
+            logger.warning(
+                "SECURITY_AUDIT action=payment_events.unauthenticated "
+                "requested=%s path=%s",
+                truncate_wallet(addr),
+                raw_request.url.path,
+            )
+            raise HTTPException(
+                status_code=401,
+                detail="Authentication required to view payment events",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
     client = db.get_client()
 
@@ -1004,24 +1123,26 @@ async def get_payment_events(
     # Build response events with fields the XMTP bot and dashboard expect
     events: List[Dict[str, Any]] = []
     for row in rows:
-        events.append(
-            {
-                "id": row.get("id"),
-                "task_id": row.get("task_id"),
-                "event_type": row.get("event_type"),
-                "status": row.get("status"),
-                "tx_hash": row.get("tx_hash"),
-                "from_address": row.get("from_address"),
-                "to_address": row.get("to_address"),
-                "amount": row.get("amount_usdc"),
-                "amount_usdc": row.get("amount_usdc"),
-                "network": row.get("network"),
-                "payment_network": row.get("network"),
-                "token": row.get("token", "USDC"),
-                "created_at": row.get("created_at"),
-                "metadata": row.get("metadata"),
-            }
-        )
+        event = {
+            "id": row.get("id"),
+            "task_id": row.get("task_id"),
+            "event_type": row.get("event_type"),
+            "status": row.get("status"),
+            "tx_hash": row.get("tx_hash"),
+            "from_address": row.get("from_address"),
+            "to_address": row.get("to_address"),
+            "amount": row.get("amount_usdc"),
+            "amount_usdc": row.get("amount_usdc"),
+            "network": row.get("network"),
+            "payment_network": row.get("network"),
+            "token": row.get("token", "USDC"),
+            "created_at": row.get("created_at"),
+        }
+        if not _ENFORCE_PAYMENT_EVENTS_AUTH:
+            # Legacy (byte-identical): include raw metadata. FIX-P1-03 withholds
+            # it once enforcement is enabled.
+            event["metadata"] = row.get("metadata")
+        events.append(event)
 
     # Compute total earned: sum of amounts where to_address matches and
     # event_type is one of the earning types.
@@ -1049,8 +1170,6 @@ async def get_payment_events(
 # ---------------------------------------------------------------------------
 # Social Links
 # ---------------------------------------------------------------------------
-
-import re
 
 _X_HANDLE_RE = re.compile(r"^@[A-Za-z0-9_]{1,15}$")
 

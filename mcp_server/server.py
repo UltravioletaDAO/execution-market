@@ -108,7 +108,13 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Dict, Any, Optional
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp import Context, FastMCP
+
+from tools.mcp_identity import (
+    MCPAuthError,
+    get_verified_wallet,
+    require_agent_identity,
+)
 
 # Core models
 from models import (
@@ -942,7 +948,9 @@ async def em_get_task(params: GetTaskInput) -> str:
         "openWorldHint": True,
     },
 )
-async def em_check_submission(params: CheckSubmissionInput) -> str:
+async def em_check_submission(
+    params: CheckSubmissionInput, ctx: Optional[Context] = None
+) -> str:
     """
     Check submissions for a task you published.
 
@@ -959,11 +967,17 @@ async def em_check_submission(params: CheckSubmissionInput) -> str:
         str: Submission details or "No submissions yet".
     """
     try:
-        # Verify ownership
+        # FIX-P0-01: authorize against the verified caller, never the body.
+        try:
+            caller_agent_id = require_agent_identity(ctx, params.agent_id)
+        except MCPAuthError as e:
+            return f"Error: {e}"
+
+        # Verify ownership against the authenticated principal.
         task = await db.get_task(params.task_id)
         if not task:
             return f"Error: Task {params.task_id} not found"
-        if (task.get("agent_id") or "").lower() != (params.agent_id or "").lower():
+        if (task.get("agent_id") or "").lower() != caller_agent_id:
             return "Error: Not authorized to view submissions for this task"
 
         submissions = await db.get_submissions_for_task(params.task_id)
@@ -1258,7 +1272,9 @@ async def em_get_arbiter_verdict(params: GetArbiterVerdictInput) -> str:
         "openWorldHint": True,
     },
 )
-async def em_resolve_dispute(params: ResolveDisputeInput) -> str:
+async def em_resolve_dispute(
+    params: ResolveDisputeInput, ctx: Optional[Context] = None
+) -> str:
     """
     Submit a resolution verdict on a Ring 2 escalated dispute.
 
@@ -1301,16 +1317,36 @@ async def em_resolve_dispute(params: ResolveDisputeInput) -> str:
         )
         from api.auth import AgentAuth
 
-        # Build a synthetic AgentAuth from env / platform config for MCP calls.
-        # In production MCP tool calls flow through the same auth layer as
-        # the REST API (via MCP Streamable HTTP), so this is only hit in
-        # local test mode or from the mcp.tool wrapper.
-        caller_agent_id = os.environ.get("EM_CALLER_AGENT_ID", "mcp-tool")
-        auth = AgentAuth(
-            agent_id=caller_agent_id,
-            wallet_address=os.environ.get("EM_CALLER_WALLET"),
-            auth_method="mcp_tool",
-        )
+        # FIX-P0-01: derive the caller from the verified MCP principal that the
+        # MCPAuthMiddleware injected (when EM_MCP_AUTH_ENABLED=true), NOT from
+        # EM_CALLER_* env vars (which would spoof a fixed platform identity).
+        # Auth is enforced by MCPAuthMiddleware at the /mcp ASGI boundary; this
+        # tool simply consumes the verified wallet. With enforcement off (staged
+        # rollout) no wallet is present and we fall back to the env value so
+        # local/stdio tooling keeps working — the bypass is audit-logged.
+        verified_wallet = get_verified_wallet(ctx)
+        if verified_wallet:
+            auth = AgentAuth(
+                agent_id=verified_wallet,
+                wallet_address=verified_wallet,
+                auth_method="erc8128",
+            )
+        else:
+            if os.environ.get("EM_MCP_AUTH_ENABLED", "false").lower() in (
+                "1",
+                "true",
+                "yes",
+            ):
+                return (
+                    "Error: Authentication required — sign this MCP request "
+                    "with ERC-8128 (see https://execution.market/skill.md)."
+                )
+            caller_agent_id = os.environ.get("EM_CALLER_AGENT_ID", "mcp-tool")
+            auth = AgentAuth(
+                agent_id=caller_agent_id,
+                wallet_address=os.environ.get("EM_CALLER_WALLET"),
+                auth_method="mcp_tool",
+            )
 
         body = ResolveDisputeRequest(
             verdict=params.verdict,
