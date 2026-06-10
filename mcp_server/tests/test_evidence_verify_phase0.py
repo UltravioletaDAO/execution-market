@@ -21,9 +21,19 @@ pytestmark = [pytest.mark.security, pytest.mark.core]
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+# Imported at module scope (repo convention): the autouse _isolate_sys_modules
+# fixture in conftest strips heavy modules after each test, and re-importing
+# api.* inside test bodies then fails with 'attempted relative import beyond
+# top-level package' on a partially-evicted package tree.
+from fastapi import HTTPException  # noqa: E402
+from api.auth import AgentAuth  # noqa: E402
+from api.routers._models import VerifyEvidenceRequest  # noqa: E402
+import api.routers.misc as misc  # noqa: E402
+from api.routers.misc import verify_evidence  # noqa: E402
+from api.routers.misc import _validate_evidence_url  # noqa: E402,F401
+
 
 def _make_auth(anonymous: bool = False):
-    from api.auth import AgentAuth
 
     if anonymous:
         return AgentAuth(
@@ -39,7 +49,6 @@ def _make_auth(anonymous: bool = False):
 
 
 def _make_request(url: str):
-    from api.routers._models import VerifyEvidenceRequest
 
     return VerifyEvidenceRequest(
         task_id="11111111-2222-3333-4444-555555555555",
@@ -57,8 +66,6 @@ class TestEvidenceVerifyAuth:
     @pytest.mark.asyncio
     async def test_anonymous_caller_rejected_401(self, monkeypatch):
         """Anonymous callers MUST be rejected — closes API-004."""
-        from fastapi import HTTPException
-        from api.routers.misc import verify_evidence
 
         monkeypatch.setenv("EM_EVIDENCE_ALLOWED_HOSTS", "cdn.execution.market")
         # Re-import to pick up env var if needed — not strictly required
@@ -75,8 +82,6 @@ class TestEvidenceVerifyAuth:
     @pytest.mark.asyncio
     async def test_authenticated_caller_passes_auth_gate(self, monkeypatch):
         """An ERC-8128 authenticated caller does NOT 401."""
-        from api.routers.misc import verify_evidence
-        import api.routers.misc as misc
 
         # Make sure allowlist contains our test host.
         monkeypatch.setattr(
@@ -120,14 +125,8 @@ class TestEvidenceVerifyAuth:
 
 
 class TestEvidenceVerifyHostAllowlist:
-    def setup_method(self):
-        from api.routers.misc import _validate_evidence_url  # noqa: F401
-
     @pytest.mark.asyncio
     async def test_rejects_raw_ipv4(self, monkeypatch):
-        from fastapi import HTTPException
-        from api.routers.misc import verify_evidence
-        import api.routers.misc as misc
 
         monkeypatch.setattr(
             misc, "ALLOWED_EVIDENCE_HOSTS", frozenset({"cdn.execution.market"})
@@ -144,9 +143,6 @@ class TestEvidenceVerifyHostAllowlist:
 
     @pytest.mark.asyncio
     async def test_rejects_ipv6_localhost(self, monkeypatch):
-        from fastapi import HTTPException
-        from api.routers.misc import verify_evidence
-        import api.routers.misc as misc
 
         monkeypatch.setattr(
             misc, "ALLOWED_EVIDENCE_HOSTS", frozenset({"cdn.execution.market"})
@@ -161,9 +157,6 @@ class TestEvidenceVerifyHostAllowlist:
 
     @pytest.mark.asyncio
     async def test_rejects_http_scheme(self, monkeypatch):
-        from fastapi import HTTPException
-        from api.routers.misc import verify_evidence
-        import api.routers.misc as misc
 
         monkeypatch.setattr(
             misc, "ALLOWED_EVIDENCE_HOSTS", frozenset({"cdn.execution.market"})
@@ -179,9 +172,6 @@ class TestEvidenceVerifyHostAllowlist:
 
     @pytest.mark.asyncio
     async def test_rejects_file_scheme(self, monkeypatch):
-        from fastapi import HTTPException
-        from api.routers.misc import verify_evidence
-        import api.routers.misc as misc
 
         monkeypatch.setattr(
             misc, "ALLOWED_EVIDENCE_HOSTS", frozenset({"cdn.execution.market"})
@@ -196,9 +186,6 @@ class TestEvidenceVerifyHostAllowlist:
 
     @pytest.mark.asyncio
     async def test_rejects_javascript_scheme(self, monkeypatch):
-        from fastapi import HTTPException
-        from api.routers.misc import verify_evidence
-        import api.routers.misc as misc
 
         monkeypatch.setattr(
             misc, "ALLOWED_EVIDENCE_HOSTS", frozenset({"cdn.execution.market"})
@@ -213,9 +200,6 @@ class TestEvidenceVerifyHostAllowlist:
 
     @pytest.mark.asyncio
     async def test_rejects_unknown_host(self, monkeypatch):
-        from fastapi import HTTPException
-        from api.routers.misc import verify_evidence
-        import api.routers.misc as misc
 
         monkeypatch.setattr(
             misc, "ALLOWED_EVIDENCE_HOSTS", frozenset({"cdn.execution.market"})
@@ -231,9 +215,6 @@ class TestEvidenceVerifyHostAllowlist:
 
     @pytest.mark.asyncio
     async def test_rejects_vpc_internal_host(self, monkeypatch):
-        from fastapi import HTTPException
-        from api.routers.misc import verify_evidence
-        import api.routers.misc as misc
 
         monkeypatch.setattr(
             misc, "ALLOWED_EVIDENCE_HOSTS", frozenset({"cdn.execution.market"})
@@ -250,8 +231,6 @@ class TestEvidenceVerifyHostAllowlist:
     @pytest.mark.asyncio
     async def test_allows_cdn_execution_market(self, monkeypatch):
         """Our own CDN must be allowed."""
-        from api.routers.misc import verify_evidence
-        import api.routers.misc as misc
 
         monkeypatch.setattr(
             misc, "ALLOWED_EVIDENCE_HOSTS", frozenset({"cdn.execution.market"})

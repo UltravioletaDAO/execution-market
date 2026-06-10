@@ -331,3 +331,81 @@ async def test_em_withdraw_earnings_binds_executor_to_wallet(monkeypatch):
         params2, _ctx_with_wallet(ATTACKER)
     )
     assert "destination must be the verified signing wallet" in result2
+
+
+# ---------------------------------------------------------------------------
+# Regression: INC 2026-06-10 — the middleware froze the event loop on real
+# MCP streamable sessions. The transport polls receive() to detect client
+# disconnect while a session streams; a wrapper that synthesizes http.request
+# forever busy-loops the whole server (prod boot-looped on every session).
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_mcp_middleware_disabled_hands_through_real_receive(monkeypatch):
+    """Flag off: the inner app must get the ORIGINAL receive callable."""
+    from integrations.erc8128.mcp_auth_middleware import MCPAuthMiddleware
+
+    monkeypatch.delenv("EM_MCP_AUTH_ENABLED", raising=False)
+    mw = MCPAuthMiddleware(None)
+
+    async def real_receive():
+        return {"type": "http.request", "body": b"", "more_body": False}
+
+    seen = {}
+
+    async def inner(scope, receive, send):
+        seen["receive"] = receive
+
+    mw.app = inner
+    await mw(_scope(), real_receive, None)
+    assert seen["receive"] is real_receive
+
+
+@pytest.mark.asyncio
+async def test_mcp_middleware_enabled_replay_forwards_disconnect(monkeypatch):
+    """Flag on: after the body replays once, receive() must surface the real
+    http.disconnect instead of returning http.request forever."""
+    from integrations.erc8128 import mcp_auth_middleware as mam
+
+    monkeypatch.setenv("EM_MCP_AUTH_ENABLED", "true")
+
+    class _OkResult:
+        ok = True
+        address = "0x" + "ab" * 20
+        chain_id = 8453
+        reason = ""
+
+    async def fake_verify(request, nonce_store=None):
+        return _OkResult()
+
+    monkeypatch.setattr(
+        "integrations.erc8128.verifier.verify_erc8128_request", fake_verify
+    )
+    monkeypatch.setattr(
+        "api.auth._get_erc8128_nonce_store", lambda: None, raising=False
+    )
+
+    messages = [
+        {"type": "http.request", "body": b'{"x":1}', "more_body": False},
+        {"type": "http.disconnect"},
+    ]
+
+    async def real_receive():
+        return messages.pop(0)
+
+    got = []
+
+    async def inner(scope, receive, send):
+        got.append(await receive())  # replayed body
+        got.append(await receive())  # MUST be the real disconnect
+
+    mw = mam.MCPAuthMiddleware(inner)
+    await mw(_scope(), real_receive, None)
+
+    assert got[0]["type"] == "http.request"
+    assert got[0]["body"] == b'{"x":1}'
+    assert got[1]["type"] == "http.disconnect", (
+        "second receive() must forward the real disconnect — synthesizing "
+        "http.request forever busy-loops the event loop (INC 2026-06-10)"
+    )

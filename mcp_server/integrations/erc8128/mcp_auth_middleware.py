@@ -69,21 +69,8 @@ class MCPAuthMiddleware:
             await self.app(scope, receive, send)
             return
 
-        # 1. Buffer the whole body so both the verifier and the inner app can read it.
-        body = b""
-        more = True
-        while more:
-            message = await receive()
-            if message["type"] == "http.request":
-                body += message.get("body", b"")
-                more = message.get("more_body", False)
-            else:  # http.disconnect
-                more = False
-
-        async def replay_receive() -> Message:
-            return {"type": "http.request", "body": body, "more_body": False}
-
-        # 2. Strip any client-supplied trusted headers (anti-spoof) BEFORE anything reads them.
+        # 1. Strip any client-supplied trusted headers (anti-spoof) BEFORE anything
+        #    reads them. Header surgery needs no body interaction.
         scope = dict(scope)
         scope["headers"] = [
             (k, v)
@@ -92,13 +79,42 @@ class MCPAuthMiddleware:
         ]
 
         if not _enabled():
+            # Flag off: hand the REAL receive straight through. The streamable
+            # HTTP transport polls receive() to detect client disconnect while a
+            # session streams; any wrapper that synthesizes http.request messages
+            # forever busy-loops the event loop and freezes the whole server
+            # (INC 2026-06-10: prod boot-looped on every MCP session).
             logger.warning(
                 "SECURITY_AUDIT action=mcp_auth.bypass reason=flag_off path=%s "
                 "(EM_MCP_AUTH_ENABLED=false — MCP transport is UNAUTHENTICATED)",
                 scope.get("path"),
             )
-            await self.app(scope, replay_receive, send)
+            await self.app(scope, receive, send)
             return
+
+        # 2. Buffer the whole body so both the verifier and the inner app can read it.
+        body = b""
+        more = True
+        while more:
+            message = await receive()
+            if message["type"] == "http.request":
+                body += message.get("body", b"")
+                more = message.get("more_body", False)
+            else:  # http.disconnect — client gone before the body finished
+                return
+
+        replayed = False
+
+        async def replay_receive() -> Message:
+            # Replay the buffered body exactly once, then delegate to the real
+            # receive so the inner app can await http.disconnect (the streamable
+            # transport polls this to notice the client leaving — returning the
+            # same http.request forever would busy-loop the event loop).
+            nonlocal replayed
+            if not replayed:
+                replayed = True
+                return {"type": "http.request", "body": body, "more_body": False}
+            return await receive()
 
         # 3. Verify ERC-8128 over the raw request.
         from integrations.erc8128.verifier import verify_erc8128_request
