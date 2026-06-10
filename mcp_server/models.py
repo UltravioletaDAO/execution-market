@@ -827,6 +827,24 @@ class PublishH2ATaskRequest(BaseModel):
     # 'agent' (default, classic H2A) or 'human' (H2H — the Rappi-style services
     # catalog: a human publishes a physical task for another human to execute).
     target_executor_type: str = Field(default="agent", max_length=10)
+    # Publisher's funding wallet, asserted by the client. Humans authenticate via
+    # Dynamic.xyz (the wallet) while the Supabase JWT is anonymous and carries no
+    # wallet claim, and the wallet->user_id link RPC is revoked (migration 092).
+    # So the backend cannot derive the wallet from the JWT — the client passes it
+    # here, exactly as every other mutation passes the wallet to service_role RPCs.
+    # Trust model: the publisher funds their own escrow and signs EIP-3009 at
+    # approval from this wallet, so a wrong address only self-DoSes (no fund theft).
+    publisher_wallet: Optional[str] = Field(default=None, max_length=42)
+
+    @field_validator("publisher_wallet")
+    @classmethod
+    def validate_publisher_wallet(cls, v: Optional[str]) -> Optional[str]:
+        if v is None or v == "":
+            return None
+        v = v.strip().lower()
+        if not (v.startswith("0x") and len(v) == 42):
+            raise ValueError("publisher_wallet must be a 0x EVM address")
+        return v
 
     @field_validator("target_executor_type")
     @classmethod

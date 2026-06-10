@@ -69,7 +69,8 @@ export function RequestService() {
     )
   }
 
-  const canSubmit = instructions.length >= 20 && bounty >= 0.01 && !submitting
+  const canSubmit =
+    instructions.length >= 20 && bounty >= 0.01 && !submitting && !!walletAddress
   const needsFunds = balance !== null && balance < total
 
   const handleSubmit = async () => {
@@ -86,6 +87,7 @@ export function RequestService() {
         evidence_required: ['screenshot', 'text_response'],
         payment_network: 'base',
         target_executor_type: 'human',
+        publisher_wallet: walletAddress ?? undefined,
       }
       setResult(await createH2ATask(req))
     } catch (e) {

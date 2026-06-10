@@ -374,13 +374,19 @@ async def create_h2a_task(
     """
     await _check_h2a_enabled()
 
-    # Resolve human's wallet
-    wallet = auth.wallet_address
+    # Resolve human's wallet.
+    # Humans sign in via Dynamic.xyz (the wallet), but the Supabase JWT is
+    # anonymous and carries no wallet claim, and the wallet->user_id link RPC is
+    # revoked (migration 092). So auth.wallet_address is usually None for browser
+    # publishers — fall back to the wallet the client asserts in the request body,
+    # the same way every other mutation passes the wallet to service_role RPCs.
+    wallet = auth.wallet_address or request.publisher_wallet
     if not wallet:
         raise HTTPException(
             status_code=400,
             detail="No wallet address linked to your account. Please connect a wallet first.",
         )
+    wallet = wallet.lower()
 
     # Validate bounty against H2A limits
     bounty = Decimal(str(request.bounty_usd))

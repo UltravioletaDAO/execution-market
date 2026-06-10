@@ -392,6 +392,59 @@ class TestH2AIntegration:
             assert "wallet" in exc_info.value.detail.lower()
 
     @pytest.mark.asyncio
+    async def test_create_h2a_task_wallet_from_body(self):
+        """Browser publishers assert their wallet in the body (JWT is anonymous)."""
+        from api.h2a import create_h2a_task, JWTData
+
+        # JWT carries no wallet (Dynamic.xyz auth + anonymous Supabase session).
+        auth = JWTData(user_id="user-1", wallet_address=None)
+        req = PublishH2ATaskRequest(
+            title="Foto / Evidencia request",
+            instructions="Screenshot de que me retweeteo lo ultimo que postie en x.",
+            category=TaskCategory.DIGITAL_PHYSICAL,
+            bounty_usd=0.05,
+            target_executor_type="human",
+            publisher_wallet="0xABCDef0123456789012345678901234567890123",
+        )
+
+        captured = {}
+
+        def _capture_insert(payload):
+            captured["task_data"] = payload
+            result = MagicMock()
+            result.data = [{"id": "task-xyz", **payload}]
+            insert_mock = MagicMock()
+            insert_mock.execute.return_value = result
+            return insert_mock
+
+        mock_client = MagicMock()
+        mock_client.table.return_value.insert.side_effect = _capture_insert
+
+        with (
+            patch("api.h2a._check_h2a_enabled", new_callable=AsyncMock),
+            patch(
+                "api.h2a._get_h2a_bounty_limits",
+                new_callable=AsyncMock,
+                return_value=(Decimal("0.01"), Decimal("500")),
+            ),
+            patch(
+                "api.h2a.get_platform_fee_percent",
+                new_callable=AsyncMock,
+                return_value=Decimal("0.13"),
+            ),
+            patch("api.h2a.db.get_client", return_value=mock_client),
+        ):
+            resp = await create_h2a_task(request=req, auth=auth)
+
+        assert resp.publisher_type == "human"
+        # Wallet from the body is stored, lowercased.
+        assert (
+            captured["task_data"]["human_wallet"]
+            == "0xabcdef0123456789012345678901234567890123"
+        )
+        assert captured["task_data"]["target_executor_type"] == "human"
+
+    @pytest.mark.asyncio
     async def test_cancel_h2a_task_wrong_owner(self):
         """Should fail when trying to cancel someone else's task."""
         from api.h2a import cancel_h2a_task, JWTData

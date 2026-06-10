@@ -657,6 +657,11 @@ export interface H2ATaskCreateRequest {
   target_agent_id?: string
   /** 'agent' (default, classic H2A) or 'human' (H2H — Rappi services catalog). */
   target_executor_type?: 'agent' | 'human'
+  /**
+   * Publisher's funding wallet. The Supabase JWT is anonymous and carries no
+   * wallet claim, so the backend can't derive it — the client asserts it here.
+   */
+  publisher_wallet?: string
 }
 
 /** Response from creating an H2A task */
