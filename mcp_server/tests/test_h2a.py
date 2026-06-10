@@ -444,6 +444,59 @@ class TestH2AIntegration:
         )
         assert captured["task_data"]["target_executor_type"] == "human"
 
+    @pytest.mark.parametrize("target", ["human", "agent", "robot", "any"])
+    @pytest.mark.asyncio
+    async def test_create_h2a_task_target_not_collapsed(self, target):
+        """Universal matrix (Task 0.4): the real target party is stored as-is.
+
+        Previously robot|any|agent collapsed to 'agent' and only 'human'
+        survived. Now every validated value persists verbatim.
+        """
+        from api.h2a import create_h2a_task, JWTData
+
+        auth = JWTData(
+            user_id="user-1",
+            wallet_address="0x1234567890123456789012345678901234567890",
+        )
+        req = PublishH2ATaskRequest(
+            title="Matrix target persistence",
+            instructions="Publish a task targeting a specific party type for the matrix.",
+            category=TaskCategory.DIGITAL_PHYSICAL,
+            bounty_usd=0.05,
+            target_executor_type=target,
+        )
+
+        captured = {}
+
+        def _capture_insert(payload):
+            captured["task_data"] = payload
+            result = MagicMock()
+            result.data = [{"id": "task-xyz", **payload}]
+            insert_mock = MagicMock()
+            insert_mock.execute.return_value = result
+            return insert_mock
+
+        mock_client = MagicMock()
+        mock_client.table.return_value.insert.side_effect = _capture_insert
+
+        with (
+            patch("api.h2a._check_h2a_enabled", new_callable=AsyncMock),
+            patch(
+                "api.h2a._get_h2a_bounty_limits",
+                new_callable=AsyncMock,
+                return_value=(Decimal("0.01"), Decimal("500")),
+            ),
+            patch(
+                "api.h2a.get_platform_fee_percent",
+                new_callable=AsyncMock,
+                return_value=Decimal("0.13"),
+            ),
+            patch("api.h2a.db.get_client", return_value=mock_client),
+        ):
+            await create_h2a_task(request=req, auth=auth)
+
+        assert captured["task_data"]["target_executor_type"] == target
+
     @pytest.mark.asyncio
     async def test_cancel_h2a_task_wrong_owner(self):
         """Should fail when trying to cancel someone else's task."""

@@ -364,13 +364,14 @@ async def create_h2a_task(
     auth: JWTData = Depends(verify_jwt_auth),
 ):
     """
-    Human publishes a task for AI agents to execute.
+    Human publishes a task for another party to execute.
 
-    Creates a task with publisher_type='human' and target_executor_type='agent'.
-    The task appears in the agent task board for agents to browse and accept.
+    Creates a task with publisher_type='human' and the requested
+    target_executor_type (any|human|agent|robot) — the human side of the
+    universal hiring matrix. The task surfaces on the matching party's board.
 
     Payment uses sign-on-approval: the human signs EIP-3009 authorizations
-    only when approving the agent's completed work (no upfront funds locked).
+    only when approving the completed work (no upfront funds locked).
     """
     await _check_h2a_enabled()
 
@@ -437,11 +438,11 @@ async def create_h2a_task(
             "publisher_type": "human",
             "human_wallet": wallet,
             "human_user_id": auth.user_id,
-            # Only an explicit 'human' enables H2H; any|agent|robot keep the
-            # historical 'agent' default so existing publish flows are unaffected.
-            "target_executor_type": "human"
-            if request.target_executor_type == "human"
-            else "agent",
+            # Store the real validated target party (any|human|agent|robot) so the
+            # full hiring matrix is expressible. The model validator already
+            # constrains the value; empty falls back to the historical 'agent'.
+            # See MASTER_PLAN_UNIVERSAL_HIRING_MATRIX.md Task 0.4.
+            "target_executor_type": request.target_executor_type or "agent",
             "required_capabilities": request.required_capabilities,
             "verification_mode": request.verification_mode or "manual",
         }

@@ -9,18 +9,52 @@ from enum import Enum
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 
-class ExecutorType(str, Enum):
-    """Type of executor."""
+class PartyType(str, Enum):
+    """Canonical party taxonomy for the universal hiring matrix.
+
+    A *party* is anyone who can publish a task or execute one. The same three
+    values apply symmetrically to publishers and executors, so the 3x3 matrix
+    ``{human, agent, robot} x {human, agent, robot}`` is fully expressible.
+
+    See ``MASTER_PLAN_UNIVERSAL_HIRING_MATRIX.md``. This supersedes the older,
+    overlapping notions (``executor_type``, ``agent_type``) which are kept for
+    backward compatibility and mapped onto this via ``party_type_from_agent_type``.
+    """
 
     HUMAN = "human"
     AGENT = "agent"
+    ROBOT = "robot"
+
+
+def party_type_from_agent_type(agent_type: Optional[str]) -> str:
+    """Map the profile-level ``agent_type`` onto a canonical :class:`PartyType`.
+
+    ``agent_type`` (``human | ai | organization``) describes *identity*; the
+    party taxonomy describes *role in the matrix*. ``ai`` and ``organization``
+    both act as ``agent`` parties; ``human`` stays ``human``. Anything unknown
+    defaults to ``human`` (the safest, most-restricted executor class).
+    """
+    if agent_type in ("ai", "agent", "organization"):
+        return PartyType.AGENT.value
+    if agent_type == "robot":
+        return PartyType.ROBOT.value
+    return PartyType.HUMAN.value
+
+
+class ExecutorType(str, Enum):
+    """Type of executor. Alias of :class:`PartyType` at the executor side."""
+
+    HUMAN = "human"
+    AGENT = "agent"
+    ROBOT = "robot"
 
 
 class TargetExecutorType(str, Enum):
-    """Who can execute."""
+    """Who can execute. ``any`` is the wildcard — any party may execute."""
 
     HUMAN = "human"
     AGENT = "agent"
+    ROBOT = "robot"
     ANY = "any"
 
 
