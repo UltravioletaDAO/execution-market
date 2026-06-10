@@ -36,7 +36,11 @@ export function extractExecutableInlineScripts(html) {
     const body = m[2]
     if (/\ssrc\s*=/.test(attrs)) continue
     if (/application\/ld\+json/.test(attrs)) continue
-    bodies.push(body)
+    // CSP hashes the script's PARSED text content, and the HTML parser
+    // normalizes CRLF/CR to LF before the text reaches the DOM — so a CRLF
+    // file on disk must be hashed as LF or browsers reject the script
+    // (found in production 2026-06-09: theme + SW scripts blocked).
+    bodies.push(body.replace(/\r\n?/g, '\n'))
   }
   return bodies
 }

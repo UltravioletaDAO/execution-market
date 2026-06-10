@@ -180,9 +180,9 @@ resource "aws_cloudfront_response_headers_policy" "execution_market_security_hea
       header = "Content-Security-Policy-Report-Only"
       value = join("; ", [
         "default-src 'self'",
-        "script-src 'self' 'wasm-unsafe-eval' 'sha256-sM9hxnxoc4LdZ9k9DThw2zCF/KyoDnZ3Ovixe4KW6gA=' 'sha256-FX88DKvzs1pCAh67sSx4Fb4KzYZsl630p99LD8pWg6w='",
+        "script-src 'self' 'wasm-unsafe-eval' 'sha256-0OyAIOiAHoZKjKpZb3ptVIg23auXBYCYbu4XpfIQFyE=' 'sha256-Qm/WQDpj6f0pFGNAertQc3ue+4+tWB27RVm5RCZQ/9Q='",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-        "font-src 'self' https://fonts.gstatic.com",
+        "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net",
         "img-src 'self' data: blob: https:",
         join(" ", [
           "connect-src 'self'",
@@ -194,6 +194,7 @@ resource "aws_cloudfront_response_headers_policy" "execution_market_security_hea
           "https://*.dynamic.xyz",
           "https://*.dynamicauth.com",
           "wss://*.dynamicauth.com",
+          "wss://metamask-sdk.api.cx.metamask.io",
           "https://dynamic-static-assets.com",
           "https://*.dynamic-static-assets.com",
           "https://*.xmtp.network",
