@@ -44,6 +44,9 @@ DROP POLICY IF EXISTS "veryai_verifications_service_update" ON veryai_verificati
 -- Defensive: any variant names that may exist in production.
 DROP POLICY IF EXISTS "veryai_verifications_insert" ON veryai_verifications;
 DROP POLICY IF EXISTS "veryai_verifications_update" ON veryai_verifications;
+-- This migration's own target names — so a re-run does not collide (idempotent).
+DROP POLICY IF EXISTS "veryai_verifications_insert_service_role_only" ON veryai_verifications;
+DROP POLICY IF EXISTS "veryai_verifications_update_service_role_only" ON veryai_verifications;
 
 -- Recreate scoped to service_role only.
 CREATE POLICY "veryai_verifications_insert_service_role_only"
@@ -81,6 +84,10 @@ DROP POLICY IF EXISTS "agent_kya_verifications_service_delete" ON agent_kya_veri
 DROP POLICY IF EXISTS "agent_kya_verifications_insert" ON agent_kya_verifications;
 DROP POLICY IF EXISTS "agent_kya_verifications_update" ON agent_kya_verifications;
 DROP POLICY IF EXISTS "agent_kya_verifications_delete" ON agent_kya_verifications;
+-- This migration's own target names — so a re-run does not collide (idempotent).
+DROP POLICY IF EXISTS "agent_kya_verifications_insert_service_role_only" ON agent_kya_verifications;
+DROP POLICY IF EXISTS "agent_kya_verifications_update_service_role_only" ON agent_kya_verifications;
+DROP POLICY IF EXISTS "agent_kya_verifications_delete_service_role_only" ON agent_kya_verifications;
 
 -- Recreate scoped to service_role only.
 CREATE POLICY "agent_kya_verifications_insert_service_role_only"

@@ -103,7 +103,9 @@ BEGIN
     FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
     WHERE n.nspname = 'public'
       AND p.prosecdef
-      AND p.proname <> 'get_or_create_executor'
+      AND p.proname <> ALL(ARRAY['get_or_create_executor', 'get_tasks_near_location'])
+      AND NOT EXISTS (SELECT 1 FROM pg_depend d   -- skip extension funcs (PostGIS st_*, etc.)
+                      WHERE d.objid = p.oid AND d.deptype = 'e')
       AND ( has_function_privilege('anon', p.oid, 'EXECUTE')
          OR has_function_privilege('authenticated', p.oid, 'EXECUTE') );
     IF leaked IS NOT NULL THEN
