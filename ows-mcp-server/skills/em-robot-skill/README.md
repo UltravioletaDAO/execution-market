@@ -84,15 +84,18 @@ duration, which the protocol does not support cleanly. The bundled
 
 The skill is built into the `@execution-market/ows-mcp-server` package; if you
 already have that server installed there is nothing extra to install. The
-five tools register themselves automatically alongside the 10 core
-`ows_*` tools.
+skill is **alpha and disabled by default** — set `OWS_ROBOT_SKILL_ENABLED=true`
+to register the five robot tools alongside the core `ows_*` tools.
 
 ```bash
 git clone https://github.com/Felipe-Tabares/execution-market.git
 cd execution-market/ows-mcp-server
-npm install         # installs bs58 + @solana/web3.js needed by the skill
-npm start           # boots stdio MCP transport — 15 tools available
+npm install                          # installs bs58 + @solana/web3.js needed by the skill
+OWS_ROBOT_SKILL_ENABLED=true npm start   # boots stdio MCP transport with the 5 robot tools
 ```
+
+Without `OWS_ROBOT_SKILL_ENABLED=true` the server boots with only the core
+`ows_*` tools and the `robot_*` tools do not appear in `tools/list`.
 
 Verify the skill registered:
 
@@ -114,6 +117,7 @@ npm run demo:robot -- --task-id <uuid> --wallet em-robot --duration 30
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
+| `OWS_ROBOT_SKILL_ENABLED` | **yes** | unset (disabled) | Set to `true` (or `1`) to register the 5 robot tools. The skill is alpha and off by default. |
 | `EM_PAYSHELL_URL` | **yes** | – | pay.sh proxy base URL. Local dev: `http://127.0.0.1:7081`. Prod: `https://api.execution.market`. |
 | `EM_API_BASE` | yes (for REST routes) | falls back to `EM_PAYSHELL_URL` | EM REST API base. In prod this is the same host as pay.sh. |
 | `EM_ROBOT_WALLET_NAME` | yes | – | OWS wallet name created via `ows_create_wallet`. Must have a `solana:` account. |
@@ -263,7 +267,7 @@ to summarise:
 | Check | How |
 |-------|-----|
 | Manifest parses | `ows skill validate em-robot-skill` |
-| All 5 tools registered | MCP `tools/list` returns names beginning with `robot_*` |
+| All 5 tools registered | With `OWS_ROBOT_SKILL_ENABLED=true`, MCP `tools/list` returns names beginning with `robot_*` |
 | 30-second voucher loop | `npm run demo:robot -- ... --duration 30` exits 0 |
 | Robot wallet stays 0 SOL | `assertCinematicBalance()` runs at start; final `final_robot_lamports` in JSON is `0` |
 | Settlement tx visible on Surfpool / Solscan | Use the `settlement.tx_hash` from the JSON summary |

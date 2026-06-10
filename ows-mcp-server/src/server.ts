@@ -1267,7 +1267,16 @@ server.registerTool(
 // All require an OWS wallet with a `solana:` account. See
 // `skills/em-robot-skill/skill.md` for the manifest and `README.md` for usage.
 //
-registerEmRobotSkill(server);
+// The skill is alpha and gated OFF by default. Set OWS_ROBOT_SKILL_ENABLED=true
+// (or 1) to register the 5 robot tools.
+//
+const ROBOT_SKILL_ENABLED =
+  process.env.OWS_ROBOT_SKILL_ENABLED === "1" ||
+  process.env.OWS_ROBOT_SKILL_ENABLED === "true";
+
+if (ROBOT_SKILL_ENABLED) {
+  registerEmRobotSkill(server);
+}
 
 // ---------------------------------------------------------------------------
 // Boot
@@ -1276,7 +1285,11 @@ registerEmRobotSkill(server);
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("[ows-mcp-server] Running on stdio — 15 tools available (10 core + 5 em-robot-skill)");
+  console.error(
+    ROBOT_SKILL_ENABLED
+      ? "[ows-mcp-server] Running on stdio — 16 tools available (11 core + 5 em-robot-skill, OWS_ROBOT_SKILL_ENABLED=true)"
+      : "[ows-mcp-server] Running on stdio — 11 core tools available (em-robot-skill disabled; set OWS_ROBOT_SKILL_ENABLED=true to add the 5 robot tools)"
+  );
   console.error("[ows-mcp-server] Wallet vault: ~/.ows/wallets/");
 }
 

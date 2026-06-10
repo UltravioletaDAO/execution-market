@@ -2,9 +2,9 @@
  * Phase 3 — em-robot-skill registration entry point.
  *
  * The main OWS MCP server (`src/server.ts`) calls `registerEmRobotSkill(server)`
- * to attach the five robot tools. Splitting into a function lets a future
- * `skill enable / disable` flow gate the registration without rewriting
- * `server.ts`.
+ * to attach the five robot tools. Registration is gated behind
+ * `OWS_ROBOT_SKILL_ENABLED=true` (or `1`) in `server.ts` — the skill is alpha
+ * and disabled by default.
  *
  * Tools registered (Phase 3.2 – 3.6):
  *   - robot_accept_task

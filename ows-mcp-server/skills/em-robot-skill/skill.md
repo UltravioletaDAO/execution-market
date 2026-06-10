@@ -13,6 +13,7 @@ metadata:
   payment: x402-mpp
   requires:
     env:
+      - OWS_ROBOT_SKILL_ENABLED
       - EM_PAYSHELL_URL
       - EM_API_BASE
       - EM_ROBOT_WALLET_NAME
@@ -122,6 +123,7 @@ See `_fee_payer.ts` for the precise integration boundary.
 
 | Variable | Required | Description |
 |----------|----------|-------------|
+| `OWS_ROBOT_SKILL_ENABLED` | yes | `true` (or `1`) to register the 5 robot tools. The skill is alpha and disabled by default — without it the tools do not appear in `tools/list` |
 | `EM_PAYSHELL_URL` | yes | pay.sh proxy URL — e.g. `https://api.execution.market` (prod) or `http://127.0.0.1:7081` (local) |
 | `EM_API_BASE` | yes | EM REST API base — same host as pay.sh in prod, or `http://127.0.0.1:8080` for local stub |
 | `EM_ROBOT_WALLET_NAME` | yes | OWS wallet name (created via `ows_create_wallet`) |

@@ -7,7 +7,7 @@
     "start": "tsx src/server.ts",
     "build": "tsc",
     "start:built": "node dist/server.js",
-    "test": "tsx --test src/spending-policy.test.ts"
+    "test": "tsx --test src/spending-policy.test.ts src/robot-skill-gate.test.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
