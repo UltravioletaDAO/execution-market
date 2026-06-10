@@ -125,10 +125,15 @@ async def register_worker(
     """
     try:
         client = db.get_client()
+        # Migration 111 (FIX-P0-02) hardened the signature to
+        # get_or_create_executor(p_wallet_address, p_display_name, p_email,
+        # p_signature, p_message) and RETURNS TABLE. The backend uses the
+        # service_role key (auth.uid() is NULL) so it creates without a wallet-
+        # ownership proof; p_signature/p_message keep their NULL defaults.
         result = client.rpc(
             "get_or_create_executor",
             {
-                "p_wallet": request.wallet_address.lower(),
+                "p_wallet_address": request.wallet_address.lower(),
                 "p_display_name": request.name,
                 "p_email": request.email,
             },
@@ -139,14 +144,21 @@ async def register_worker(
                 status_code=500, detail="No response from executor registration"
             )
 
-        rpc_result = result.data
-        executor = rpc_result.get("executor", {})
+        # RETURNS TABLE → PostgREST returns a list of rows (columns include
+        # id, wallet_address, display_name, email, created_at, is_new).
+        rows = result.data
+        executor = (
+            rows[0]
+            if isinstance(rows, list) and rows
+            else (rows if isinstance(rows, dict) else {})
+        )
+        is_new = bool(executor.get("is_new"))
 
         logger.info(
             "Worker registered: wallet=%s, executor=%s, new=%s",
             request.wallet_address[:10],
             str(executor.get("id", ""))[:8],
-            rpc_result.get("is_new"),
+            is_new,
         )
 
         # Fire-and-forget: auto-resolve ENS name for wallet
@@ -162,12 +174,12 @@ async def register_worker(
 
         return SuccessResponse(
             message="Worker registered successfully"
-            if rpc_result.get("is_new")
+            if is_new
             else "Worker already registered",
             data={
                 "executor_id": executor_id,
                 "wallet_address": wallet,
-                "created": rpc_result.get("is_new", False),
+                "created": is_new,
             },
         )
 
