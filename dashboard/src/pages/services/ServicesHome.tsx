@@ -7,12 +7,14 @@
  */
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { SERVICES } from '../../constants/services'
 import { useAuth } from '../../context/AuthContext'
 import { DepositModal } from '../../components/DepositModal'
 import { readEvmUsdcBalance, resolveEvmRpc } from '../../services/evm-balance'
 
 export function ServicesHome() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { walletAddress, executor } = useAuth()
   const [balance, setBalance] = useState<number | null>(null)
@@ -39,7 +41,7 @@ export function ServicesHome() {
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4">
           <div className="flex items-center gap-2">
             <span className="text-sm">📍</span>
-            <span className="font-mono text-sm font-medium text-zinc-900">Tu zona</span>
+            <span className="font-mono text-sm font-medium text-zinc-900">{t('services.home.yourZone', 'Tu zona')}</span>
           </div>
           {walletAddress && (
             <button
@@ -57,9 +59,9 @@ export function ServicesHome() {
       </div>
 
       <div className="mx-auto max-w-3xl px-4 py-8">
-        <h1 className="mb-1 text-2xl font-bold text-zinc-900">¿Qué necesitas hoy?</h1>
+        <h1 className="mb-1 text-2xl font-bold text-zinc-900">{t('services.home.title', '¿Qué necesitas hoy?')}</h1>
         <p className="mb-6 text-sm text-zinc-500">
-          Publica una tarea y un humano cercano la ejecuta. Pago seguro en USDC.
+          {t('services.home.subtitle', 'Publica una tarea y un humano cercano la ejecuta. Pago seguro en USDC.')}
         </p>
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -70,22 +72,22 @@ export function ServicesHome() {
               className="flex flex-col items-center gap-2 rounded-xl border border-zinc-200 bg-white p-5 transition hover:border-zinc-900 hover:shadow-md"
             >
               <span className="text-3xl">{s.icon}</span>
-              <span className="text-sm font-medium text-zinc-900">{s.label}</span>
-              <span className="text-center text-xs text-zinc-500">{s.desc}</span>
+              <span className="text-sm font-medium text-zinc-900">{t(`services.catalog.${s.key}.label`, s.label)}</span>
+              <span className="text-center text-xs text-zinc-500">{t(`services.catalog.${s.key}.desc`, s.desc)}</span>
             </button>
           ))}
         </div>
 
         <div className="mt-8 rounded-xl border border-zinc-200 bg-white p-4">
-          <h2 className="mb-2 text-sm font-bold text-zinc-900">¿Eres ejecutor?</h2>
+          <h2 className="mb-2 text-sm font-bold text-zinc-900">{t('services.home.executorPrompt', '¿Eres ejecutor?')}</h2>
           <p className="mb-3 text-xs text-zinc-500">
-            Encuentra tareas cerca de ti y gana USDC.
+            {t('services.home.executorDesc', 'Encuentra tareas cerca de ti y gana USDC.')}
           </p>
           <button
             onClick={() => navigate('/tasks')}
             className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
           >
-            Ver tareas disponibles
+            {t('services.home.seeTasks', 'Ver tareas disponibles')}
           </button>
         </div>
       </div>

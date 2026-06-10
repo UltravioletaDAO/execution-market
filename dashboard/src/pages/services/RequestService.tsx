@@ -10,6 +10,7 @@
  */
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { getService } from '../../constants/services'
 import { createH2ATask } from '../../services/h2a'
 import type { H2ATaskCreateRequest, H2ATaskCreateResponse } from '../../types/database'
@@ -24,13 +25,14 @@ import {
 
 const FEE_PCT = 0.13
 const DEADLINES = [
-  { h: 1, l: '1 hora' },
-  { h: 4, l: '4 horas' },
-  { h: 24, l: '1 día' },
-  { h: 72, l: '3 días' },
+  { h: 1, k: '1h', l: '1 hora' },
+  { h: 4, k: '4h', l: '4 horas' },
+  { h: 24, k: '1d', l: '1 día' },
+  { h: 72, k: '3d', l: '3 días' },
 ]
 
 export function RequestService() {
+  const { t } = useTranslation()
   const { serviceKey } = useParams()
   const navigate = useNavigate()
   const svc = getService(serviceKey || '')
@@ -99,9 +101,9 @@ export function RequestService() {
   if (!svc) {
     return (
       <div className="flex min-h-screen items-center justify-center text-zinc-500">
-        Servicio no encontrado.
+        {t('services.request.notFound', 'Servicio no encontrado.')}
         <button className="ml-2 underline" onClick={() => navigate('/services')}>
-          Volver
+          {t('services.request.back', 'Volver')}
         </button>
       </div>
     )
@@ -116,7 +118,7 @@ export function RequestService() {
     setError(null)
     try {
       const req: H2ATaskCreateRequest = {
-        title: `${svc.label}: ${instructions.slice(0, 48)}`,
+        title: `${t(`services.catalog.${svc.key}.label`, svc.label)}: ${instructions.slice(0, 48)}`,
         instructions,
         category: svc.category,
         bounty_usd: bounty,
@@ -141,19 +143,19 @@ export function RequestService() {
       <div className="flex min-h-screen items-center justify-center bg-zinc-50 p-4">
         <div className="w-full max-w-md rounded-xl border border-zinc-200 bg-white p-8 text-center shadow-lg">
           <div className="mb-4 text-5xl">✅</div>
-          <h2 className="mb-2 text-2xl font-bold text-zinc-900">¡Servicio publicado!</h2>
+          <h2 className="mb-2 text-2xl font-bold text-zinc-900">{t('services.request.publishedTitle', '¡Servicio publicado!')}</h2>
           <p className="mb-6 text-zinc-500">
-            Un humano cercano puede aceptarlo. Haz seguimiento desde tu panel.
+            {t('services.request.publishedDesc', 'Un humano cercano puede aceptarlo. Haz seguimiento desde tu panel.')}
           </p>
           <div className="mb-6 rounded-lg bg-zinc-50 p-4 text-left text-sm">
             <div className="mb-1 flex justify-between">
-              <span className="text-zinc-500">Pago</span>
+              <span className="text-zinc-500">{t('services.request.payment', 'Pago')}</span>
               <span className="font-medium">
                 ${result.bounty_usd} {coinInfo.symbol} · {netInfo.label}
               </span>
             </div>
             <div className="flex justify-between font-bold">
-              <span>Total al aprobar</span>
+              <span>{t('services.request.totalOnApproval', 'Total al aprobar')}</span>
               <span>${result.total_required_usd} {coinInfo.symbol}</span>
             </div>
           </div>
@@ -161,7 +163,7 @@ export function RequestService() {
             onClick={() => navigate('/publisher/dashboard')}
             className="w-full rounded-lg bg-zinc-900 px-4 py-2 font-medium text-white hover:bg-zinc-800"
           >
-            Ver mi panel
+            {t('services.request.viewPanel', 'Ver mi panel')}
           </button>
         </div>
       </div>
@@ -176,33 +178,33 @@ export function RequestService() {
             onClick={() => navigate('/services')}
             className="mb-2 text-sm text-zinc-500 hover:text-zinc-900"
           >
-            ← Servicios
+            {t('services.request.backToServices', '← Servicios')}
           </button>
           <h1 className="flex items-center gap-2 text-2xl font-bold text-zinc-900">
-            <span>{svc.icon}</span> {svc.label}
+            <span>{svc.icon}</span> {t(`services.catalog.${svc.key}.label`, svc.label)}
           </h1>
-          <p className="mt-1 text-sm text-zinc-500">{svc.desc}</p>
+          <p className="mt-1 text-sm text-zinc-500">{t(`services.catalog.${svc.key}.desc`, svc.desc)}</p>
         </div>
       </div>
 
       <div className="mx-auto max-w-2xl space-y-5 px-4 py-6">
         <div>
           <label className="mb-1 block text-sm font-medium text-zinc-700">
-            ¿Qué necesitas? *
+            {t('services.request.whatNeed', '¿Qué necesitas?')} *
           </label>
           <textarea
             value={instructions}
             onChange={(e) => setInstructions(e.target.value)}
-            placeholder={svc.placeholder}
+            placeholder={t(`services.catalog.${svc.key}.placeholder`, svc.placeholder)}
             className="h-32 w-full resize-y rounded-lg border border-zinc-300 px-3 py-2"
             maxLength={10000}
           />
-          <p className="mt-1 text-xs text-zinc-400">{instructions.length}/10000 (mín. 20)</p>
+          <p className="mt-1 text-xs text-zinc-400">{instructions.length}/10000 {t('services.request.charHint', '(mín. 20)')}</p>
         </div>
 
         <div>
           <label className="mb-1 block text-sm font-medium text-zinc-700">
-            Pago ({coinInfo.symbol}) *
+            {t('services.request.payment', 'Pago')} ({coinInfo.symbol}) *
           </label>
           <div className="relative">
             <span className="absolute left-3 top-2.5 text-zinc-400">$</span>
@@ -224,12 +226,12 @@ export function RequestService() {
             </span>
           </div>
           {!bountyValid && bountyInput !== '' && (
-            <p className="mt-1 text-xs text-red-600">El pago debe estar entre $0.01 y $500.</p>
+            <p className="mt-1 text-xs text-red-600">{t('services.request.bountyRange', 'El pago debe estar entre $0.01 y $500.')}</p>
           )}
 
           <div className="mt-3 grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-xs font-medium text-zinc-500">Red</label>
+              <label className="mb-1 block text-xs font-medium text-zinc-500">{t('services.request.network', 'Red')}</label>
               <select
                 value={network}
                 onChange={(e) => handleNetworkChange(e.target.value)}
@@ -243,7 +245,7 @@ export function RequestService() {
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-zinc-500">Stablecoin</label>
+              <label className="mb-1 block text-xs font-medium text-zinc-500">{t('services.request.stablecoin', 'Stablecoin')}</label>
               <select
                 value={coinInfo.symbol}
                 onChange={(e) => setStablecoin(e.target.value)}
@@ -260,22 +262,22 @@ export function RequestService() {
 
           <div className="mt-2 rounded-lg bg-white border border-zinc-200 p-3 text-sm">
             <div className="flex justify-between">
-              <span className="text-zinc-700">Pago al ejecutor</span>
+              <span className="text-zinc-700">{t('services.request.payExecutor', 'Pago al ejecutor')}</span>
               <span className="font-medium text-zinc-900">${(bountyValid ? bounty : 0).toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-zinc-700">Comisión (13%)</span>
+              <span className="text-zinc-700">{t('services.request.commission', 'Comisión (13%)')}</span>
               <span className="font-medium text-zinc-900">${fee.toFixed(2)}</span>
             </div>
             <div className="mt-1 flex justify-between border-t border-zinc-200 pt-1 font-bold text-zinc-900">
-              <span>Total al aprobar</span>
+              <span>{t('services.request.totalOnApproval', 'Total al aprobar')}</span>
               <span>${total.toFixed(2)} {coinInfo.symbol}</span>
             </div>
           </div>
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-zinc-700">Plazo *</label>
+          <label className="mb-2 block text-sm font-medium text-zinc-700">{t('services.request.deadline', 'Plazo')} *</label>
           <div className="grid grid-cols-4 gap-2">
             {DEADLINES.map((d) => (
               <button
@@ -283,7 +285,7 @@ export function RequestService() {
                 onClick={() => setDeadlineHours(d.h)}
                 className={`rounded-lg border px-3 py-2 text-sm ${deadlineHours === d.h ? 'border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-200 text-zinc-700'}`}
               >
-                {d.l}
+                {t(`services.deadlines.${d.k}`, d.l)}
               </button>
             ))}
           </div>
@@ -292,10 +294,10 @@ export function RequestService() {
         {walletAddress && (
           <div className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white p-3 text-sm">
             <span className="text-zinc-500">
-              Tu saldo: {balance === null ? '—' : `$${balance.toFixed(2)} ${coinInfo.symbol}`}
+              {t('services.request.balance', 'Tu saldo:')} {balance === null ? '—' : `$${balance.toFixed(2)} ${coinInfo.symbol}`}
               <span className="ml-1 text-zinc-400">· {netInfo.label}</span>
               {needsFunds && (
-                <span className="ml-2 text-zinc-900">· necesitas ${total.toFixed(2)}</span>
+                <span className="ml-2 text-zinc-900">· {t('services.request.needs', 'necesitas')} ${total.toFixed(2)}</span>
               )}
             </span>
             {canDeposit ? (
@@ -303,10 +305,10 @@ export function RequestService() {
                 onClick={() => setShowDeposit(true)}
                 className="rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-800"
               >
-                + Depositar
+                + {t('services.request.deposit', 'Depositar')}
               </button>
             ) : (
-              <span className="text-xs text-zinc-400">Deposita en Base/USDC</span>
+              <span className="text-xs text-zinc-400">{t('services.request.depositOnBase', 'Deposita en Base/USDC')}</span>
             )}
           </div>
         )}
@@ -319,18 +321,18 @@ export function RequestService() {
             disabled={!canSubmit}
             className="w-full rounded-lg bg-zinc-900 px-6 py-3 font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
           >
-            {submitting ? 'Publicando…' : '🚀 Publicar servicio'}
+            {submitting ? t('services.request.publishing', 'Publicando…') : `🚀 ${t('services.request.publish', 'Publicar servicio')}`}
           </button>
         ) : (
           <div className="rounded-lg border border-zinc-200 bg-white p-4 text-center">
             <p className="mb-3 text-sm text-zinc-600">
-              Inicia sesión para publicar tu servicio y pagar de forma segura.
+              {t('services.request.loginPrompt', 'Inicia sesión para publicar tu servicio y pagar de forma segura.')}
             </p>
             <button
               onClick={openAuthModal}
               className="w-full rounded-lg bg-zinc-900 px-6 py-3 font-medium text-white hover:bg-zinc-800"
             >
-              Iniciar sesión para publicar
+              {t('services.request.loginButton', 'Iniciar sesión para publicar')}
             </button>
           </div>
         )}

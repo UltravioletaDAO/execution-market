@@ -2377,6 +2377,51 @@
       "webScraping": "Web Scraping"
     }
   },
+  "services": {
+    "home": {
+      "yourZone": "Tu zona",
+      "title": "¿Qué necesitas hoy?",
+      "subtitle": "Publica una tarea y un humano cercano la ejecuta. Pago seguro en USDC.",
+      "executorPrompt": "¿Eres ejecutor?",
+      "executorDesc": "Encuentra tareas cerca de ti y gana USDC.",
+      "seeTasks": "Ver tareas disponibles"
+    },
+    "request": {
+      "notFound": "Servicio no encontrado.",
+      "back": "Volver",
+      "backToServices": "← Servicios",
+      "whatNeed": "¿Qué necesitas?",
+      "charHint": "(mín. 20)",
+      "payment": "Pago",
+      "bountyRange": "El pago debe estar entre $0.01 y $500.",
+      "network": "Red",
+      "stablecoin": "Stablecoin",
+      "payExecutor": "Pago al ejecutor",
+      "commission": "Comisión (13%)",
+      "totalOnApproval": "Total al aprobar",
+      "depositOnBase": "Deposita en Base/USDC",
+      "balance": "Tu saldo:",
+      "needs": "necesitas",
+      "deposit": "Depositar",
+      "deadline": "Plazo",
+      "publish": "Publicar servicio",
+      "publishing": "Publicando…",
+      "loginPrompt": "Inicia sesión para publicar tu servicio y pagar de forma segura.",
+      "loginButton": "Iniciar sesión para publicar",
+      "publishedTitle": "¡Servicio publicado!",
+      "publishedDesc": "Un humano cercano puede aceptarlo. Haz seguimiento desde tu panel.",
+      "viewPanel": "Ver mi panel"
+    },
+    "deadlines": { "1h": "1 hora", "4h": "4 horas", "1d": "1 día", "3d": "3 días" },
+    "catalog": {
+      "domicilio": { "label": "Domicilio", "desc": "Entrega o recogida", "placeholder": "Recoger un pedido en X y entregarlo en Y antes de las 5pm." },
+      "mandado": { "label": "Mandado", "desc": "Compra o diligencia", "placeholder": "Comprar X en el supermercado y traerlo a esta dirección." },
+      "tramite": { "label": "Trámite", "desc": "Fila, firma o gestión", "placeholder": "Hacer la fila en el banco y radicar este documento." },
+      "foto": { "label": "Foto / Evidencia", "desc": "Captura en sitio", "placeholder": "Tomar foto del estado del local en esta dirección." },
+      "hogar": { "label": "Hogar", "desc": "Arreglos o limpieza", "placeholder": "Limpieza de apartamento de 2 habitaciones." },
+      "info": { "label": "Info local", "desc": "Verificar algo en sitio", "placeholder": "Verificar si el local está abierto y tomar nota de los precios." }
+    }
+  },
   "publisher": {
     "dashboard": {
       "title": "Panel de Publicador",
@@ -2395,6 +2440,12 @@
       "noHistory": "Sin historial",
       "createFirstRequest": "Crear Primera Solicitud",
       "confirmCancel": "¿Cancelar?",
+      "applicants": "Aplicantes",
+      "noApplicants": "Aún no hay aplicantes",
+      "assign": "Asignar",
+      "assigning": "Asignando…",
+      "confirmAssign": "¿Asignar a este worker?",
+      "tasksDone": "tareas",
       "status": {
         "published": "Buscando Agente",
         "accepted": "Agente Asignado",

@@ -2377,6 +2377,51 @@
       "webScraping": "Web Scraping"
     }
   },
+  "services": {
+    "home": {
+      "yourZone": "Your area",
+      "title": "What do you need today?",
+      "subtitle": "Post a task and a nearby human does it. Secure payment in USDC.",
+      "executorPrompt": "Are you an executor?",
+      "executorDesc": "Find tasks near you and earn USDC.",
+      "seeTasks": "See available tasks"
+    },
+    "request": {
+      "notFound": "Service not found.",
+      "back": "Back",
+      "backToServices": "← Services",
+      "whatNeed": "What do you need?",
+      "charHint": "(min. 20)",
+      "payment": "Payment",
+      "bountyRange": "Payment must be between $0.01 and $500.",
+      "network": "Network",
+      "stablecoin": "Stablecoin",
+      "payExecutor": "Pay to executor",
+      "commission": "Commission (13%)",
+      "totalOnApproval": "Total on approval",
+      "depositOnBase": "Deposit on Base/USDC",
+      "balance": "Your balance:",
+      "needs": "you need",
+      "deposit": "Deposit",
+      "deadline": "Deadline",
+      "publish": "Publish service",
+      "publishing": "Publishing…",
+      "loginPrompt": "Sign in to publish your service and pay securely.",
+      "loginButton": "Sign in to publish",
+      "publishedTitle": "Service published!",
+      "publishedDesc": "A nearby human can accept it. Track it from your panel.",
+      "viewPanel": "Go to my panel"
+    },
+    "deadlines": { "1h": "1 hour", "4h": "4 hours", "1d": "1 day", "3d": "3 days" },
+    "catalog": {
+      "domicilio": { "label": "Delivery", "desc": "Drop-off or pickup", "placeholder": "Pick up an order at X and deliver it to Y before 5pm." },
+      "mandado": { "label": "Errand", "desc": "Shopping or task", "placeholder": "Buy X at the supermarket and bring it to this address." },
+      "tramite": { "label": "Paperwork", "desc": "Queue, signature or filing", "placeholder": "Wait in line at the bank and file this document." },
+      "foto": { "label": "Photo / Evidence", "desc": "On-site capture", "placeholder": "Take a photo of the venue's condition at this address." },
+      "hogar": { "label": "Home", "desc": "Repairs or cleaning", "placeholder": "Cleaning of a 2-bedroom apartment." },
+      "info": { "label": "Local info", "desc": "Verify something on-site", "placeholder": "Check if the venue is open and note the prices." }
+    }
+  },
   "publisher": {
     "dashboard": {
       "title": "Publisher Panel",
@@ -2395,6 +2440,12 @@
       "noHistory": "No history",
       "createFirstRequest": "Create First Request",
       "confirmCancel": "Cancel?",
+      "applicants": "Applicants",
+      "noApplicants": "No applicants yet",
+      "assign": "Assign",
+      "assigning": "Assigning…",
+      "confirmAssign": "Assign this worker?",
+      "tasksDone": "tasks",
       "status": {
         "published": "Searching for Agent",
         "accepted": "Agent Assigned",

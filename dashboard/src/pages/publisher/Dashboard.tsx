@@ -5,8 +5,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import type { Task } from '../../types/database'
-import { listH2ATasks, cancelH2ATask } from '../../services/h2a'
+import type { Task, H2AApplication } from '../../types/database'
+import {
+  listH2ATasks,
+  cancelH2ATask,
+  getH2AApplications,
+  assignH2AWorker,
+} from '../../services/h2a'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { useAuth } from '../../context/AuthContext'
 import { DepositModal } from '../../components/DepositModal'
@@ -24,7 +29,72 @@ const STATUS_ICON: Record<string, string> = {
   cancelled: '❌',
 }
 
-function TaskCard({ task, onReview, onCancel }: { task: Task; onReview?: (id: string) => void; onCancel?: (id: string) => void }) {
+function shortWallet(w: string | null): string {
+  if (!w || w.length < 10) return w || '—'
+  return `${w.slice(0, 6)}…${w.slice(-4)}`
+}
+
+/** Applicants list + assign action, shown only for published H2A tasks. */
+function Applicants({ taskId, onAssigned }: { taskId: string; onAssigned: () => void }) {
+  const { t } = useTranslation()
+  const [apps, setApps] = useState<H2AApplication[]>([])
+  const [loading, setLoading] = useState(true)
+  const [assigning, setAssigning] = useState<string | null>(null)
+  const [err, setErr] = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try { setApps((await getH2AApplications(taskId)).applications) }
+    catch (e) { setErr(e instanceof Error ? e.message : 'Error') }
+    finally { setLoading(false) }
+  }, [taskId])
+  useEffect(() => { load() }, [load])
+
+  const assign = async (executorId: string) => {
+    if (!confirm(t('publisher.dashboard.confirmAssign', '¿Asignar a este worker?'))) return
+    setAssigning(executorId); setErr(null)
+    try { await assignH2AWorker(taskId, executorId); onAssigned() }
+    catch (e) { setErr(e instanceof Error ? e.message : 'Error'); setAssigning(null) }
+  }
+
+  return (
+    <div className="mt-3 border-t border-zinc-100 pt-3">
+      <p className="text-xs font-medium text-zinc-500 mb-2">
+        {t('publisher.dashboard.applicants', 'Aplicantes')} {apps.length > 0 && `(${apps.length})`}
+      </p>
+      {loading ? (
+        <p className="text-xs text-zinc-400">{t('common.loading')}</p>
+      ) : apps.length === 0 ? (
+        <p className="text-xs text-zinc-400">{t('publisher.dashboard.noApplicants', 'Aún no hay aplicantes')}</p>
+      ) : (
+        <ul className="space-y-2">
+          {apps.map((a) => (
+            <li key={a.id} className="flex items-center justify-between gap-2 rounded-md bg-zinc-50 px-2.5 py-2">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-zinc-900">
+                  {a.executor?.display_name || shortWallet(a.executor?.wallet_address ?? null)}
+                </p>
+                <p className="text-xs text-zinc-500">
+                  ⭐ {(a.executor?.avg_rating ?? 0).toFixed(1)} · {a.executor?.tasks_completed ?? 0} {t('publisher.dashboard.tasksDone', 'tareas')}
+                </p>
+              </div>
+              <button
+                onClick={() => assign(a.executor_id)}
+                disabled={assigning !== null}
+                className="shrink-0 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+              >
+                {assigning === a.executor_id ? t('publisher.dashboard.assigning', 'Asignando…') : t('publisher.dashboard.assign', 'Asignar')}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {err && <p className="mt-2 text-xs text-red-600">{err}</p>}
+    </div>
+  )
+}
+
+function TaskCard({ task, onReview, onCancel, onAssigned }: { task: Task; onReview?: (id: string) => void; onCancel?: (id: string) => void; onAssigned?: () => void }) {
   const { t } = useTranslation()
   const icon = STATUS_ICON[task.status] || '❓'
   const statusLabel = t(`publisher.dashboard.status.${task.status}`, task.status)
@@ -43,6 +113,7 @@ function TaskCard({ task, onReview, onCancel }: { task: Task; onReview?: (id: st
         {task.status === 'submitted' && onReview && <button onClick={() => onReview(task.id)} className="flex-1 px-3 py-1.5 bg-zinc-900 text-white text-sm rounded-lg hover:bg-zinc-800">⚡ {t('publisher.dashboard.review', 'Review')}</button>}
         {['published', 'accepted'].includes(task.status) && onCancel && <button onClick={() => onCancel(task.id)} className="px-3 py-1.5 border border-red-300 text-red-700 text-sm rounded-lg hover:bg-red-50">{t('common.cancel')}</button>}
       </div>
+      {task.status === 'published' && onAssigned && <Applicants taskId={task.id} onAssigned={onAssigned} />}
     </div>
   )
 }
@@ -137,7 +208,7 @@ export function PublisherDashboard() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {displayed.map(task => <TaskCard key={task.id} task={task} onReview={id => navigate(`/publisher/requests/${id}/review`)} onCancel={async id => { if (confirm(t('publisher.dashboard.confirmCancel', 'Cancel?'))) { await cancelH2ATask(id); loadTasks() } }} />)}
+            {displayed.map(task => <TaskCard key={task.id} task={task} onReview={id => navigate(`/publisher/requests/${id}/review`)} onCancel={async id => { if (confirm(t('publisher.dashboard.confirmCancel', 'Cancel?'))) { await cancelH2ATask(id); loadTasks() } }} onAssigned={loadTasks} />)}
           </div>
         )}
       </div>

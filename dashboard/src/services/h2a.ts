@@ -4,6 +4,7 @@
 import type {
   H2ATaskCreateRequest, H2ATaskCreateResponse, H2AApprovalRequest,
   H2AApprovalResponse, AgentDirectoryResponse, AgentDirectoryEntry, Task,
+  H2AApplicationsResponse,
 } from '../types/database'
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'https://api.execution.market').replace(/\/+$/, '')
@@ -56,6 +57,20 @@ export async function getH2ASubmissions(id: string) {
 export async function approveH2ASubmission(id: string, data: H2AApprovalRequest): Promise<H2AApprovalResponse> {
   const t = await token(); if (!t) throw new Error('Auth required')
   const r = await fetch(h2a(`/tasks/${id}/approve`), { method: 'POST', headers: ah(t), body: JSON.stringify(data) })
+  if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error((e as ApiErrorResponse).detail || r.statusText) }
+  return r.json()
+}
+
+export async function getH2AApplications(id: string): Promise<H2AApplicationsResponse> {
+  const t = await token(); if (!t) throw new Error('Auth required')
+  const r = await fetch(h2a(`/tasks/${id}/applications`), { headers: ah(t) })
+  if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error((e as ApiErrorResponse).detail || r.statusText) }
+  return r.json()
+}
+
+export async function assignH2AWorker(id: string, executorId: string): Promise<{ status: string; task_id: string; executor_id: string }> {
+  const t = await token(); if (!t) throw new Error('Auth required')
+  const r = await fetch(h2a(`/tasks/${id}/assign`), { method: 'POST', headers: ah(t), body: JSON.stringify({ executor_id: executorId }) })
   if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error((e as ApiErrorResponse).detail || r.statusText) }
   return r.json()
 }

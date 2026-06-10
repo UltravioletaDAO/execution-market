@@ -33,7 +33,7 @@ from fastapi import (
     Request,
     Response,
 )
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 import supabase_client as db
 
@@ -698,6 +698,179 @@ async def get_h2a_submissions(
         raise
     except Exception as e:
         logger.error("Failed to get submissions for H2A task %s: %s", task_id, str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get(
+    "/api/v1/h2a/tasks/{task_id}/applications",
+    summary="View Task Applications",
+    description="View the workers who applied to an H2A task. Only the human publisher can view.",
+    tags=["H2A Marketplace"],
+)
+async def get_h2a_applications(
+    task_id: str = Path(..., min_length=36, max_length=36),
+    auth: JWTData = Depends(verify_jwt_auth),
+):
+    """List applications for a task owned by the authenticated human publisher.
+
+    The generic GET /tasks/{id}/applications gates ownership on agent_id, which a
+    browser publisher (anonymous Supabase JWT) can never satisfy for an H2A task
+    (agent_id is 'human:{user_id}'). This is the human-auth twin, mirroring
+    get_h2a_submissions.
+    """
+    try:
+        client = db.get_client()
+        task_result = (
+            client.table("tasks")
+            .select("id, human_user_id, publisher_type")
+            .eq("id", task_id)
+            .single()
+            .execute()
+        )
+
+        if not task_result.data:
+            raise HTTPException(status_code=404, detail="Task not found")
+
+        task = task_result.data
+        if task.get("publisher_type") != "human":
+            raise HTTPException(status_code=404, detail="Not an H2A task")
+        if task.get("human_user_id") != auth.user_id:
+            raise HTTPException(status_code=403, detail="Not your task")
+
+        apps_result = (
+            client.table("task_applications")
+            .select("id, task_id, executor_id, message, status, created_at")
+            .eq("task_id", task_id)
+            .order("created_at", desc=False)
+            .execute()
+        )
+        applications = apps_result.data or []
+
+        # Enrich with executor profile (separate lookup — no implicit FK join).
+        executor_ids = [a["executor_id"] for a in applications]
+        executor_map = {}
+        if executor_ids:
+            execs = (
+                client.table("executors")
+                .select(
+                    "id, display_name, wallet_address, reputation_score, "
+                    "tasks_completed, avg_rating"
+                )
+                .in_("id", executor_ids)
+                .execute()
+            )
+            executor_map = {e["id"]: e for e in (execs.data or [])}
+
+        for app in applications:
+            app["executor"] = executor_map.get(app["executor_id"])
+
+        return {
+            "task_id": task_id,
+            "applications": applications,
+            "count": len(applications),
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to get applications for H2A task %s: %s", task_id, str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class H2AAssignRequest(BaseModel):
+    """Body for assigning an applied worker to an H2A task."""
+
+    executor_id: str = Field(..., min_length=1, max_length=64)
+
+
+@router.post(
+    "/api/v1/h2a/tasks/{task_id}/assign",
+    summary="Assign Worker to Task",
+    description=(
+        "Assign a worker who applied to an H2A task. Only the human publisher "
+        "can assign. H2A is sign-on-approval, so NO escrow is locked here — "
+        "funds move only when the publisher approves the completed work."
+    ),
+    tags=["H2A Marketplace"],
+)
+async def assign_h2a_worker(
+    task_id: str = Path(..., min_length=36, max_length=36),
+    request: H2AAssignRequest = ...,
+    auth: JWTData = Depends(verify_jwt_auth),
+):
+    """Assign an applied worker. Sets executor + status=accepted, no escrow lock."""
+    try:
+        client = db.get_client()
+        task_result = (
+            client.table("tasks")
+            .select("id, human_user_id, publisher_type, status")
+            .eq("id", task_id)
+            .single()
+            .execute()
+        )
+
+        if not task_result.data:
+            raise HTTPException(status_code=404, detail="Task not found")
+
+        task = task_result.data
+        if task.get("publisher_type") != "human":
+            raise HTTPException(status_code=404, detail="Not an H2A task")
+        if task.get("human_user_id") != auth.user_id:
+            raise HTTPException(status_code=403, detail="Not your task")
+        if task.get("status") != "published":
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Cannot assign a task in status '{task.get('status')}'. "
+                    "Only 'published' tasks can be assigned."
+                ),
+            )
+
+        # The worker must have an application on file.
+        app_result = (
+            client.table("task_applications")
+            .select("id")
+            .eq("task_id", task_id)
+            .eq("executor_id", request.executor_id)
+            .limit(1)
+            .execute()
+        )
+        if not app_result.data:
+            raise HTTPException(
+                status_code=404, detail="That worker has not applied to this task."
+            )
+
+        # Assign: set executor + move to accepted. Sign-on-approval means no
+        # escrow is touched here.
+        client.table("tasks").update(
+            {"executor_id": request.executor_id, "status": "accepted"}
+        ).eq("id", task_id).execute()
+
+        # Mark the chosen application accepted; the rest rejected.
+        client.table("task_applications").update({"status": "accepted"}).eq(
+            "task_id", task_id
+        ).eq("executor_id", request.executor_id).execute()
+        client.table("task_applications").update({"status": "rejected"}).eq(
+            "task_id", task_id
+        ).neq("executor_id", request.executor_id).execute()
+
+        logger.info(
+            "H2A task assigned: task=%s, executor=%s, user=%s",
+            task_id,
+            request.executor_id,
+            auth.user_id,
+        )
+
+        return {
+            "status": "accepted",
+            "task_id": task_id,
+            "executor_id": request.executor_id,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("H2A assign failed: task=%s, error=%s", task_id, str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
 

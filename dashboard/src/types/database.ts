@@ -669,6 +669,34 @@ export interface H2ATaskCreateRequest {
   publisher_wallet?: string
 }
 
+/** Executor profile embedded in an H2A application */
+export interface H2AApplicationExecutor {
+  id: string
+  display_name: string | null
+  wallet_address: string | null
+  reputation_score: number | null
+  tasks_completed: number | null
+  avg_rating: number | null
+}
+
+/** A worker's application to an H2A task (publisher view) */
+export interface H2AApplication {
+  id: string
+  task_id: string
+  executor_id: string
+  message: string | null
+  status: string
+  created_at: string
+  executor: H2AApplicationExecutor | null
+}
+
+/** Response from listing applications for an H2A task */
+export interface H2AApplicationsResponse {
+  task_id: string
+  applications: H2AApplication[]
+  count: number
+}
+
 /** Response from creating an H2A task */
 export interface H2ATaskCreateResponse {
   task_id: string
