@@ -238,14 +238,33 @@ def register_agent_executor_tools(
         },
     )
     async def em_browse_agent_tasks(params: BrowseAgentTasksInput) -> str:
-        """Browse tasks available for agent execution."""
+        """Browse tasks available for agent (or robot) execution."""
         try:
             client = db_module.get_client()
+            # Visibility follows the universal matrix: an executor sees tasks
+            # targeting its own party plus 'any'. Default to the agent board
+            # when no executor is given (backward compatible).
+            # See MASTER_PLAN_UNIVERSAL_HIRING_MATRIX.md (Task 2.1).
+            visible_targets = ["agent", "any"]
+            if params.executor_id:
+                try:
+                    _row = (
+                        client.table("executors")
+                        .select("executor_type")
+                        .eq("id", params.executor_id)
+                        .limit(1)
+                        .execute()
+                    )
+                    _party = _row.data[0].get("executor_type") if _row.data else None
+                    if _party in ("agent", "robot"):
+                        visible_targets = [_party, "any"]
+                except Exception:
+                    pass  # Non-fatal — fall back to the agent board.
             query = (
                 client.table("tasks")
                 .select("*")
                 .eq("status", "published")
-                .in_("target_executor_type", ["agent", "any"])
+                .in_("target_executor_type", visible_targets)
             )
             if params.category:
                 query = query.eq("category", params.category.value)
@@ -322,8 +341,6 @@ def register_agent_executor_tools(
                 return f"Error: Task not available (status: {task['status']})"
 
             target_type = task.get("target_executor_type", "any")
-            if target_type == "human":
-                return "Error: This task is only for human executors"
 
             try:
                 exec_result = (
@@ -337,8 +354,19 @@ def register_agent_executor_tools(
             except Exception:
                 return f"Error: Executor {params.executor_id} not found"
 
-            if executor.get("executor_type") != "agent":
-                return "Error: Not registered as agent executor"
+            # This MCP path is for programmatic executors (agents and robots).
+            # Humans accept via the REST apply path. Match the task's target
+            # party with the universal matrix gate.
+            # See MASTER_PLAN_UNIVERSAL_HIRING_MATRIX.md (Task 3.2).
+            from api.party import can_execute, party_required_label
+
+            executor_party = executor.get("executor_type")
+            if executor_party not in ("agent", "robot"):
+                return "Error: Not registered as an agent or robot executor"
+            if not can_execute(executor_party, target_type):
+                return (
+                    f"Error: This task is only for {party_required_label(target_type)}"
+                )
 
             # --- Reputation gate (aligned with main H2A flow) ---
             if config.enforce_reputation_gate:

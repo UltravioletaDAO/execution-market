@@ -40,9 +40,13 @@ class TestExecutorType:
     def test_agent(self):
         assert ExecutorType.AGENT == "agent"
 
+    def test_robot(self):
+        # Universal Hiring Matrix: robot is now a first-class executor party.
+        assert ExecutorType.ROBOT == "robot"
+
     def test_invalid(self):
         with pytest.raises(ValueError):
-            ExecutorType("robot")
+            ExecutorType("alien")
 
 
 class TestTargetExecutorType:

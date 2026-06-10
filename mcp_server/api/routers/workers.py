@@ -580,12 +580,15 @@ async def apply_to_task(
     if not _wid_allowed:
         raise HTTPException(status_code=403, detail=_wid_error)
 
-    # ---- H2H executor-type enforcement (F-08) -------------------------------
-    # When a task targets human executors (services catalog / Rappi-style H2H),
-    # reject non-human executors on the REST apply path. The MCP accept path
-    # (agent_executor_tools.py) already blocks agents from human tasks; this
-    # mirrors that guard so the REST surface cannot be used to bypass it.
-    if (task_data or {}).get("target_executor_type") == "human":
+    # ---- Universal matrix executor-party enforcement (F-08 + Phase 3) -------
+    # A task targeting a specific party (human|agent|robot) may only be taken by
+    # an executor of that party; 'any'/unset is open. This is the REST mirror of
+    # the MCP accept guard (agent_executor_tools.py), so neither surface can
+    # bypass the other. See MASTER_PLAN_UNIVERSAL_HIRING_MATRIX.md (Task 3.1).
+    from api.party import can_execute, party_required_label
+
+    _target_party = (task_data or {}).get("target_executor_type")
+    if _target_party and _target_party != "any":
         _exec_type_row = (
             db.get_client()
             .table("executors")
@@ -594,19 +597,22 @@ async def apply_to_task(
             .limit(1)
             .execute()
         )
-        _applicant_type = (
+        # Column default is 'human'; treat an unset type as human (the REST
+        # apply surface is the human worker path).
+        _applicant_party = (
             _exec_type_row.data[0].get("executor_type") if _exec_type_row.data else None
-        )
-        if _applicant_type and _applicant_type != "human":
+        ) or "human"
+        if not can_execute(_applicant_party, _target_party):
             logger.warning(
-                "H2H apply rejected: executor=%s type=%s task=%s target=human",
+                "Apply rejected (matrix): executor=%s party=%s task=%s target=%s",
                 executor_id[:8],
-                _applicant_type,
+                _applicant_party,
                 task_id,
+                _target_party,
             )
             raise HTTPException(
                 status_code=403,
-                detail="This task is only for human executors",
+                detail=f"This task is only for {party_required_label(_target_party)}",
             )
 
     try:
