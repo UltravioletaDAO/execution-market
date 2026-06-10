@@ -1836,7 +1836,9 @@ class PaymentDispatcher:
         # Reconstruct PaymentInfo from DB
         pi, pi_meta = await self._reconstruct_fase2_state(task_id)
         if pi is None:
-            await self._release_claim_rollback(task_id, "release")
+            await self._release_claim_rollback(
+                task_id, "release", claim.get("previous_status")
+            )
             return {
                 "success": False,
                 "tx_hash": None,
@@ -1906,7 +1908,9 @@ class PaymentDispatcher:
                 task_id,
             )
             # No on-chain release attempted — release the claim for retry.
-            await self._release_claim_rollback(task_id, "release")
+            await self._release_claim_rollback(
+                task_id, "release", claim.get("previous_status")
+            )
             return {
                 "success": False,
                 "tx_hash": None,
@@ -2068,7 +2072,9 @@ class PaymentDispatcher:
                 metadata={"mode": "fase2", "escrow_mode": "direct_release"},
             )
             # On-chain release did NOT succeed — release the claim for retry.
-            await self._release_claim_rollback(task_id, "release")
+            await self._release_claim_rollback(
+                task_id, "release", claim.get("previous_status")
+            )
             return {
                 "success": False,
                 "tx_hash": None,
@@ -2204,7 +2210,9 @@ class PaymentDispatcher:
                 "trustless: No escrow state for task %s — treating as no-op refund",
                 task_id,
             )
-            await self._release_claim_rollback(task_id, "refund")
+            await self._release_claim_rollback(
+                task_id, "refund", claim.get("previous_status")
+            )
             await log_payment_event(
                 task_id=task_id,
                 event_type="escrow_refund",
@@ -2248,7 +2256,9 @@ class PaymentDispatcher:
                 },
             )
             # On-chain refund did NOT happen — release the claim for retry.
-            await self._release_claim_rollback(task_id, "refund")
+            await self._release_claim_rollback(
+                task_id, "refund", claim.get("previous_status")
+            )
             return {
                 "success": False,
                 "tx_hash": None,
@@ -2466,7 +2476,10 @@ class PaymentDispatcher:
             operation: "release" or "refund".
 
         Returns:
-            ``{"claimed": True}`` if this caller won the claim and may proceed.
+            ``{"claimed": True, "previous_status": ...}`` if this caller won the
+            claim and may proceed. ``previous_status`` is the exact pre-claim
+            status — callers MUST pass it to ``_release_claim_rollback`` so a
+            failed settlement restores the true prior state.
             ``{"claimed": False, "reason": ...}`` if the escrow is already
             terminal/in-flight (caller must NOT fire another on-chain TX), or if
             there is no escrow row to claim (caller falls through to its existing
@@ -2477,48 +2490,88 @@ class PaymentDispatcher:
             import supabase_client as db
 
             client = db.get_client()
-            # Atomic compare-and-swap. PostgREST emits a single SQL UPDATE; the
-            # WHERE clause (task_id + status NOT IN blocked) makes the claim
-            # race-safe. The returned rows are exactly those this caller flipped.
-            result = (
-                client.table("escrows")
-                .update({"status": transitional})
-                .eq("task_id", task_id)
-                .not_.in_("status", list(self._BLOCKED_CLAIM_STATUSES))
-                .execute()
-            )
-            claimed_rows = result.data or []
-            if claimed_rows:
-                logger.info(
-                    "escrow claim WON for task %s op=%s (status -> %s)",
-                    task_id,
-                    operation,
-                    transitional,
+            # Read-then-CAS: read the current status, then atomically flip it
+            # ONLY if it is still that exact value (UPDATE ... WHERE task_id=?
+            # AND status=<read>). Pinning the WHERE to the read status keeps the
+            # claim race-safe (a concurrent claimer flips it first → 0 rows for
+            # us) AND captures the exact pre-claim status. The pre-claim status
+            # + claim timestamp are persisted in metadata so that (a) rollbacks
+            # restore the true prior state instead of assuming 'locked', and
+            # (b) the escrow reconciler can remediate rows stranded in the
+            # transitional state by a crash between the claim and the TX.
+            for _ in range(3):
+                existing = (
+                    client.table("escrows")
+                    .select("status, metadata")
+                    .eq("task_id", task_id)
+                    .order("created_at", desc=True)
+                    .limit(1)
+                    .execute()
                 )
-                return {"claimed": True, "previous_rows": claimed_rows}
+                rows = existing.data or []
+                if not rows:
+                    return {"claimed": False, "reason": "no_escrow_row"}
+                current = (rows[0].get("status") or "").lower()
+                if current in self._BLOCKED_CLAIM_STATUSES:
+                    logger.warning(
+                        "escrow claim REFUSED for task %s op=%s — current "
+                        "status=%s (already terminal or in-flight). Skipping "
+                        "duplicate settlement.",
+                        task_id,
+                        operation,
+                        current,
+                    )
+                    return {
+                        "claimed": False,
+                        "reason": "already_settled",
+                        "status": current,
+                    }
+                metadata = rows[0].get("metadata") or {}
+                if isinstance(metadata, str):
+                    metadata = json.loads(metadata)
+                result = (
+                    client.table("escrows")
+                    .update(
+                        {
+                            "status": transitional,
+                            "metadata": {
+                                **metadata,
+                                "claim_previous_status": current,
+                                "claim_claimed_at": datetime.now(
+                                    timezone.utc
+                                ).isoformat(),
+                            },
+                        }
+                    )
+                    .eq("task_id", task_id)
+                    .eq("status", current)
+                    .execute()
+                )
+                claimed_rows = result.data or []
+                if claimed_rows:
+                    logger.info(
+                        "escrow claim WON for task %s op=%s (%s -> %s)",
+                        task_id,
+                        operation,
+                        current,
+                        transitional,
+                    )
+                    return {
+                        "claimed": True,
+                        "previous_status": current,
+                        "previous_rows": claimed_rows,
+                    }
+                # 0 rows flipped — a concurrent writer changed the status
+                # between the read and the CAS. Loop: re-read and retry; if the
+                # winner moved it to a blocked status the next read refuses.
 
-            # No row flipped — either already terminal/in-flight, or no escrow row
-            # exists yet. Distinguish so the caller can react correctly.
-            existing = (
-                client.table("escrows")
-                .select("status")
-                .eq("task_id", task_id)
-                .order("created_at", desc=True)
-                .limit(1)
-                .execute()
-            )
-            rows = existing.data or []
-            if not rows:
-                return {"claimed": False, "reason": "no_escrow_row"}
-            current = (rows[0].get("status") or "").lower()
             logger.warning(
-                "escrow claim REFUSED for task %s op=%s — current status=%s "
-                "(already terminal or in-flight). Skipping duplicate settlement.",
+                "escrow claim CONTENDED for task %s op=%s — status kept "
+                "changing under the CAS. Refusing to settle (retryable).",
                 task_id,
                 operation,
-                current,
             )
-            return {"claimed": False, "reason": "already_settled", "status": current}
+            return {"claimed": False, "reason": "claim_contended"}
         except Exception as e:
             # Fail-closed: if we cannot atomically claim, do NOT proceed to move
             # funds. A duplicate release/refund is worse than a transient failure
@@ -2531,7 +2584,9 @@ class PaymentDispatcher:
             )
             return {"claimed": False, "reason": "claim_error", "error": str(e)}
 
-    async def _release_claim_rollback(self, task_id: str, operation: str) -> None:
+    async def _release_claim_rollback(
+        self, task_id: str, operation: str, previous_status: Optional[str] = None
+    ) -> None:
         """Release a transitional claim back to a retryable status after failure.
 
         If the on-chain settlement fails AFTER we won the claim, the escrow is
@@ -2539,13 +2594,37 @@ class PaymentDispatcher:
         Roll the status back to the pre-claim state so a legitimate retry can
         re-acquire the claim. Only flips rows still in the transitional state
         (so it never clobbers a status another worker advanced to terminal).
+
+        Args:
+            task_id: Task whose claim is being rolled back.
+            operation: "release" or "refund".
+            previous_status: Exact pre-claim status captured by
+                ``_claim_escrow_operation``. When omitted (e.g. the claim fell
+                through with ``no_escrow_row``), it is read back from the
+                ``claim_previous_status`` metadata persisted at claim time,
+                defaulting to ``locked`` for rows claimed before that marker
+                existed.
         """
         transitional = "releasing" if operation == "release" else "refunding"
-        rollback_to = "locked"
         try:
             import supabase_client as db
 
             client = db.get_client()
+            rollback_to = previous_status
+            if not rollback_to:
+                existing = (
+                    client.table("escrows")
+                    .select("status, metadata")
+                    .eq("task_id", task_id)
+                    .order("created_at", desc=True)
+                    .limit(1)
+                    .execute()
+                )
+                rows = existing.data or []
+                meta = (rows[0].get("metadata") or {}) if rows else {}
+                if isinstance(meta, str):
+                    meta = json.loads(meta)
+                rollback_to = meta.get("claim_previous_status") or "locked"
             client.table("escrows").update({"status": rollback_to}).eq(
                 "task_id", task_id
             ).eq("status", transitional).execute()
@@ -2815,7 +2894,9 @@ class PaymentDispatcher:
         # Step 1: Reconstruct PaymentInfo from DB
         pi, pi_meta = await self._reconstruct_fase2_state(task_id)
         if pi is None:
-            await self._release_claim_rollback(task_id, "release")
+            await self._release_claim_rollback(
+                task_id, "release", claim.get("previous_status")
+            )
             return {
                 "success": False,
                 "tx_hash": None,
@@ -2891,7 +2972,9 @@ class PaymentDispatcher:
                 )
                 # On-chain release did NOT happen — release the claim so a
                 # legitimate retry can re-acquire it.
-                await self._release_claim_rollback(task_id, "release")
+                await self._release_claim_rollback(
+                    task_id, "release", claim.get("previous_status")
+                )
                 return {
                     "success": False,
                     "tx_hash": None,
@@ -3443,7 +3526,9 @@ class PaymentDispatcher:
                 "fase2: No escrow state for task %s — treating as no-op refund",
                 task_id,
             )
-            await self._release_claim_rollback(task_id, "refund")
+            await self._release_claim_rollback(
+                task_id, "refund", claim.get("previous_status")
+            )
             await log_payment_event(
                 task_id=task_id,
                 event_type="escrow_refund",
@@ -3478,7 +3563,9 @@ class PaymentDispatcher:
                 metadata={"mode": "fase2", "reason": reason},
             )
             # On-chain refund did NOT happen — release the claim for retry.
-            await self._release_claim_rollback(task_id, "refund")
+            await self._release_claim_rollback(
+                task_id, "refund", claim.get("previous_status")
+            )
             return {
                 "success": False,
                 "tx_hash": None,

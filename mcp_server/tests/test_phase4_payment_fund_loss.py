@@ -50,13 +50,16 @@ class TestSettlementAddressNoTreasuryFallback:
         test/disabled mode, resolution MUST raise rather than redirect every
         bounty into cold storage.
         """
-        with patch.object(sdk_client, "EM_SETTLEMENT_ADDRESS", None), patch.object(
-            sdk_client, "_is_testing", False
-        ), patch.object(sdk_client, "_is_payment_disabled", False), patch.dict(
-            os.environ, {}, clear=False
+        with (
+            patch.object(sdk_client, "EM_SETTLEMENT_ADDRESS", None),
+            patch.object(sdk_client, "_is_testing", False),
+            patch.object(sdk_client, "_is_payment_disabled", False),
+            patch.dict(os.environ, {}, clear=False),
         ):
             os.environ.pop("WALLET_PRIVATE_KEY", None)
-            with pytest.raises(RuntimeError, match="settlement address is not configured"):
+            with pytest.raises(
+                RuntimeError, match="settlement address is not configured"
+            ):
                 sdk_client.EMX402SDK._resolve_settlement_address()
 
     def test_explicit_settlement_address_is_used(self):
@@ -65,9 +68,11 @@ class TestSettlementAddressNoTreasuryFallback:
 
     def test_testing_mode_allows_treasury_placeholder(self):
         """In TESTING/disabled mode (no real funds) the placeholder is allowed."""
-        with patch.object(sdk_client, "EM_SETTLEMENT_ADDRESS", None), patch.object(
-            sdk_client, "_is_testing", True
-        ), patch.dict(os.environ, {}, clear=False):
+        with (
+            patch.object(sdk_client, "EM_SETTLEMENT_ADDRESS", None),
+            patch.object(sdk_client, "_is_testing", True),
+            patch.dict(os.environ, {}, clear=False),
+        ):
             os.environ.pop("WALLET_PRIVATE_KEY", None)
             assert (
                 sdk_client.EMX402SDK._resolve_settlement_address()
@@ -85,9 +90,13 @@ class TestServerSigningGate:
         """With EM_SERVER_SIGNING off, loading the platform key to sign a
         disbursement MUST be refused (pre-fix it signed unconditionally)."""
         sdk = sdk_client.EMX402SDK.__new__(sdk_client.EMX402SDK)  # no __init__
-        with patch.dict(os.environ, {"WALLET_PRIVATE_KEY": "0x" + "11" * 32}, clear=False):
+        with patch.dict(
+            os.environ, {"WALLET_PRIVATE_KEY": "0x" + "11" * 32}, clear=False
+        ):
             os.environ.pop("EM_SERVER_SIGNING", None)
-            with pytest.raises(RuntimeError, match="Server-side payment signing is disabled"):
+            with pytest.raises(
+                RuntimeError, match="Server-side payment signing is disabled"
+            ):
                 sdk._get_agent_account()
 
     def test_get_agent_account_allowed_when_signing_enabled(self):
@@ -105,7 +114,9 @@ class TestServerSigningGate:
         """End-to-end: the public disbursement entry point fails closed."""
         sdk = sdk_client.EMX402SDK.__new__(sdk_client.EMX402SDK)
         sdk.network = "base"
-        with patch.dict(os.environ, {"WALLET_PRIVATE_KEY": "0x" + "11" * 32}, clear=False):
+        with patch.dict(
+            os.environ, {"WALLET_PRIVATE_KEY": "0x" + "11" * 32}, clear=False
+        ):
             os.environ.pop("EM_SERVER_SIGNING", None)
             result = await sdk.disburse_to_worker(
                 worker_address=WORKER,
@@ -136,6 +147,7 @@ class _AtomicEscrowTable:
 
     def __init__(self, initial_status="locked"):
         self._status = initial_status
+        self._metadata = {}
         self._lock = threading.Lock()
         # builder state
         self._mode = None
@@ -180,20 +192,27 @@ class _AtomicEscrowTable:
         if self._mode == "update":
             with self._lock:
                 payload_status = self._update_payload.get("status")
-                # Rollback update: .eq("status", transitional)
+                payload_meta = self._update_payload.get("metadata")
+                # CAS update: .eq("status", X) — used by both the claim
+                # (X = pre-claim status read just before) and the rollback
+                # (X = transitional status).
                 if self._eq_status is not None:
                     if self._status == self._eq_status:
                         self._status = payload_status
+                        if payload_meta is not None:
+                            self._metadata = payload_meta
                         return _FakeResult([{"status": payload_status}])
                     return _FakeResult([])
-                # Claim update: NOT IN blocked
+                # Legacy claim shape: NOT IN blocked
                 if self._not_in is not None and self._status in self._not_in:
                     return _FakeResult([])  # blocked — claim refused
                 prev = self._status
                 self._status = payload_status
+                if payload_meta is not None:
+                    self._metadata = payload_meta
                 return _FakeResult([{"status": payload_status, "_prev": prev}])
         # select latest row
-        return _FakeResult([{"status": self._status}])
+        return _FakeResult([{"status": self._status, "metadata": dict(self._metadata)}])
 
 
 class _FakeClient:
@@ -206,8 +225,9 @@ class _FakeClient:
 
 
 def _make_dispatcher(mode="fase2"):
-    with patch.object(pd, "FASE2_SDK_AVAILABLE", True), patch.object(
-        pd, "SDK_AVAILABLE", True
+    with (
+        patch.object(pd, "FASE2_SDK_AVAILABLE", True),
+        patch.object(pd, "SDK_AVAILABLE", True),
     ):
         return pd.PaymentDispatcher(mode=mode)
 
@@ -217,7 +237,9 @@ class TestAtomicClaim:
     async def test_first_claim_wins_second_refused(self):
         table = _AtomicEscrowTable(initial_status="locked")
         d = _make_dispatcher()
-        with patch.object(supabase_client, "get_client", return_value=_FakeClient(table)):
+        with patch.object(
+            supabase_client, "get_client", return_value=_FakeClient(table)
+        ):
             first = await d._claim_escrow_operation(TASK_ID, "release")
             second = await d._claim_escrow_operation(TASK_ID, "release")
         assert first["claimed"] is True
@@ -239,7 +261,9 @@ class TestAtomicClaim:
 
         empty = _EmptyTable()
         d = _make_dispatcher()
-        with patch.object(supabase_client, "get_client", return_value=_FakeClient(empty)):
+        with patch.object(
+            supabase_client, "get_client", return_value=_FakeClient(empty)
+        ):
             claim = await d._claim_escrow_operation(TASK_ID, "release")
         assert claim["claimed"] is False
         assert claim["reason"] == "no_escrow_row"
@@ -249,7 +273,9 @@ class TestAtomicClaim:
         """REPRO L-19/L-20: fire many concurrent release claims; exactly one wins."""
         table = _AtomicEscrowTable(initial_status="locked")
         d = _make_dispatcher()
-        with patch.object(supabase_client, "get_client", return_value=_FakeClient(table)):
+        with patch.object(
+            supabase_client, "get_client", return_value=_FakeClient(table)
+        ):
             results = await asyncio.gather(
                 *[d._claim_escrow_operation(TASK_ID, "release") for _ in range(20)]
             )
@@ -271,7 +297,9 @@ class TestAtomicClaim:
     async def test_already_released_release_is_idempotent_success(self):
         table = _AtomicEscrowTable(initial_status="released")
         d = _make_dispatcher()
-        with patch.object(supabase_client, "get_client", return_value=_FakeClient(table)):
+        with patch.object(
+            supabase_client, "get_client", return_value=_FakeClient(table)
+        ):
             claim = await d._claim_escrow_operation(TASK_ID, "release")
             blocked = await d._release_claim_blocked_result(TASK_ID, claim)
         assert claim["claimed"] is False
@@ -284,7 +312,9 @@ class TestAtomicClaim:
     async def test_already_refunded_refund_is_idempotent_success(self):
         table = _AtomicEscrowTable(initial_status="refunded")
         d = _make_dispatcher()
-        with patch.object(supabase_client, "get_client", return_value=_FakeClient(table)):
+        with patch.object(
+            supabase_client, "get_client", return_value=_FakeClient(table)
+        ):
             claim = await d._claim_escrow_operation(TASK_ID, "refund")
             blocked = await d._refund_claim_blocked_result(TASK_ID, claim)
         assert blocked is not None
@@ -295,12 +325,62 @@ class TestAtomicClaim:
     async def test_rollback_restores_locked_for_retry(self):
         table = _AtomicEscrowTable(initial_status="locked")
         d = _make_dispatcher()
-        with patch.object(supabase_client, "get_client", return_value=_FakeClient(table)):
+        with patch.object(
+            supabase_client, "get_client", return_value=_FakeClient(table)
+        ):
             claim = await d._claim_escrow_operation(TASK_ID, "release")
             assert claim["claimed"] is True
             assert table._status == "releasing"
             await d._release_claim_rollback(TASK_ID, "release")
         assert table._status == "locked"
+
+    @pytest.mark.asyncio
+    async def test_claim_captures_previous_status(self):
+        """The CAS claim must capture the exact pre-claim status — both in the
+        return value (for in-process rollback) and persisted in metadata (for
+        the crash-recovery reconciler)."""
+        table = _AtomicEscrowTable(initial_status="pending_assignment")
+        d = _make_dispatcher()
+        with patch.object(
+            supabase_client, "get_client", return_value=_FakeClient(table)
+        ):
+            claim = await d._claim_escrow_operation(TASK_ID, "release")
+        assert claim["claimed"] is True
+        assert claim["previous_status"] == "pending_assignment"
+        assert table._metadata["claim_previous_status"] == "pending_assignment"
+        assert table._metadata["claim_claimed_at"]  # timestamp persisted
+
+    @pytest.mark.asyncio
+    async def test_rollback_fidelity_non_locked_pre_claim_status(self):
+        """REPRO state-fidelity loss: pre-fix the rollback always restored
+        'locked' even when the escrow was claimed from another status."""
+        table = _AtomicEscrowTable(initial_status="pending_assignment")
+        d = _make_dispatcher()
+        with patch.object(
+            supabase_client, "get_client", return_value=_FakeClient(table)
+        ):
+            claim = await d._claim_escrow_operation(TASK_ID, "release")
+            assert claim["claimed"] is True
+            assert table._status == "releasing"
+            await d._release_claim_rollback(
+                TASK_ID, "release", claim.get("previous_status")
+            )
+        assert table._status == "pending_assignment"
+
+    @pytest.mark.asyncio
+    async def test_rollback_reads_previous_status_from_metadata(self):
+        """When the caller cannot supply previous_status (e.g. claim fell
+        through), the rollback must recover it from the claim metadata
+        persisted at claim time — not assume 'locked'."""
+        table = _AtomicEscrowTable(initial_status="authorized")
+        d = _make_dispatcher()
+        with patch.object(
+            supabase_client, "get_client", return_value=_FakeClient(table)
+        ):
+            claim = await d._claim_escrow_operation(TASK_ID, "refund")
+            assert claim["claimed"] is True
+            await d._release_claim_rollback(TASK_ID, "refund")  # no arg
+        assert table._status == "authorized"
 
 
 # ===========================================================================
@@ -332,9 +412,15 @@ class TestSolanaPayoutRecipient:
         fake_client.get_session = AsyncMock(return_value=_FakeSession(payee=OTHER))
         fake_client.close_session = AsyncMock()
 
-        with patch.object(d, "_lookup_channel_id", AsyncMock(return_value="Chan11111111111111111111111111111111")), patch.object(
-            pd, "get_pay_shell_client", return_value=fake_client
-        ), patch.object(pd, "log_payment_event", AsyncMock()):
+        with (
+            patch.object(
+                d,
+                "_lookup_channel_id",
+                AsyncMock(return_value="Chan11111111111111111111111111111111"),
+            ),
+            patch.object(pd, "get_pay_shell_client", return_value=fake_client),
+            patch.object(pd, "log_payment_event", AsyncMock()),
+        ):
             result = await d._release_solana_session(
                 task_id=TASK_ID,
                 worker_address=WORKER,
@@ -359,9 +445,15 @@ class TestSolanaPayoutRecipient:
         fake_client.get_session = AsyncMock(return_value=_FakeSession(payee=WORKER))
         fake_client.close_session = AsyncMock(return_value=close_result)
 
-        with patch.object(d, "_lookup_channel_id", AsyncMock(return_value="Chan11111111111111111111111111111111")), patch.object(
-            pd, "get_pay_shell_client", return_value=fake_client
-        ), patch.object(pd, "log_payment_event", AsyncMock()):
+        with (
+            patch.object(
+                d,
+                "_lookup_channel_id",
+                AsyncMock(return_value="Chan11111111111111111111111111111111"),
+            ),
+            patch.object(pd, "get_pay_shell_client", return_value=fake_client),
+            patch.object(pd, "log_payment_event", AsyncMock()),
+        ):
             result = await d._release_solana_session(
                 task_id=TASK_ID,
                 worker_address=WORKER,
