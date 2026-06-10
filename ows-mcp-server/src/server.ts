@@ -18,6 +18,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import * as crypto from "node:crypto";
 import * as ows from "@open-wallet-standard/core";
+import { Transaction, Signature } from "ethers";
 import { OWSWalletAdapter } from "uvd-x402-sdk";
 import type { OWSWallet } from "uvd-x402-sdk";
 import type { EIP3009Authorization } from "uvd-x402-sdk";
@@ -37,8 +38,9 @@ import {
  * Create an OWSWallet-compatible object from @open-wallet-standard/core.
  *
  * The SDK's OWSWalletAdapter expects an object with `accounts`, `signMessage`,
- * and `signTypedData` methods using structured params. The @open-wallet-standard/core
- * module uses a different function-call-based API. This bridge adapts between them.
+ * `signTypedData`, and `signTransaction` methods using structured params. The
+ * @open-wallet-standard/core module uses a different function-call-based API.
+ * This bridge adapts between them.
  *
  * @param walletName - OWS wallet name or ID
  * @param passphrase - Optional wallet passphrase for decryption
@@ -88,6 +90,50 @@ function createOWSWalletBridge(walletName: string, passphrase?: string): OWSWall
       });
       const result = ows.signTypedData(walletName, "evm", typedDataJson, passphrase);
       return { signature: result.signature };
+    },
+
+    async signTransaction(params: {
+      account: { address: string };
+      transaction: string;
+      chainId: string;
+    }) {
+      // OWS core signs keccak256(unsigned serialized tx) and returns a raw
+      // signature + recoveryId — NOT a broadcast-ready transaction (same
+      // underlying ows.signTransaction the ows_sign_transaction tool uses).
+      // Parse the unsigned tx, sign its digest via OWS, attach the signature,
+      // and re-serialize. chainId comes from the serialized tx itself, so the
+      // SDK's `params.chainId` hint is not needed.
+      const unsignedTx = params.transaction.startsWith("0x")
+        ? params.transaction
+        : "0x" + params.transaction;
+      const tx = Transaction.from(unsignedTx);
+      const result = ows.signTransaction(walletName, "evm", unsignedTx, passphrase);
+
+      // Extract v, r, s — with OWS CLI 64-byte bug workaround (see signEip191WithOws)
+      let sigHex = result.signature.startsWith("0x")
+        ? result.signature.slice(2)
+        : result.signature;
+      if (sigHex.length === 128) {
+        const vByte =
+          result.recoveryId !== undefined && result.recoveryId !== null
+            ? result.recoveryId < 27
+              ? result.recoveryId + 27
+              : result.recoveryId
+            : 27;
+        sigHex = sigHex + vByte.toString(16).padStart(2, "0");
+      } else if (sigHex.length < 128) {
+        sigHex = sigHex.padStart(130, "0");
+      }
+      const r = "0x" + sigHex.slice(0, 64);
+      const s = "0x" + sigHex.slice(64, 128);
+      const rawV =
+        result.recoveryId !== undefined && result.recoveryId !== null
+          ? result.recoveryId
+          : parseInt(sigHex.slice(128, 130), 16);
+      const v = rawV < 27 ? rawV + 27 : rawV;
+
+      tx.signature = Signature.from({ r, s, v });
+      return { signedTransaction: tx.serialized };
     },
   };
 }
