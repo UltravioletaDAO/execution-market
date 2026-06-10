@@ -376,9 +376,12 @@ async def update_wallet_address(
         "`link_wallet_to_session` RPC (migration 092) and the anon-revoked "
         "`get_or_create_executor` (migration 111). The wallet MUST sign:\n\n"
         "```\n"
-        "Execution Market: link wallet <wallet> to session at <ISO8601 UTC>\n"
+        "Execution Market: link wallet <wallet> to Supabase user <sub> at <ISO8601 UTC>\n"
         "```\n\n"
-        "The signature proves ownership of the wallet, which authorizes binding "
+        "The `<sub>` is the caller's JWT subject — binding it into the signed "
+        "message stops a captured signature from being replayed under a different "
+        "JWT to hijack the executor. The signature proves ownership of the wallet, "
+        "which authorizes binding "
         "`executors.user_id` to the JWT `sub` (the 'proven owner' rule from "
         "migration 111). Timestamp must be within the last 10 minutes. This "
         "endpoint does NOT use worker-auth (that's circular — the link is what "
@@ -460,8 +463,14 @@ async def link_wallet_to_session(
         )
 
     # 3. Validate challenge format and freshness (replay protection). Reuses the
-    #    same window as the wallet-change flow above.
-    expected_prefix = f"Execution Market: link wallet {wallet} to session at "
+    #    same window as the wallet-change flow above. The session principal
+    #    (user_id) is BOUND INTO the signed message: this is what stops a captured
+    #    signature from being replayed under a different JWT to hijack the
+    #    executor (account takeover). The wallet owner signs consent to bind to
+    #    THIS specific session — an attacker with a different sub cannot reuse it.
+    expected_prefix = (
+        f"Execution Market: link wallet {wallet} to Supabase user {user_id} at "
+    )
     if not request.message.startswith(expected_prefix):
         raise HTTPException(
             status_code=400,

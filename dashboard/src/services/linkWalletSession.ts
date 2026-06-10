@@ -27,12 +27,16 @@ interface LinkWalletParams {
   /** Wallet to link. Must match the address currently active in Dynamic so the
    *  user can sign the ownership challenge. */
   walletAddress: string
+  /** Supabase session user id (JWT sub). Bound into the signed message so the
+   *  signature cannot be replayed under a different session to hijack the row. */
+  userId: string
   /** Dynamic's `primaryWallet` from `useDynamicContext()`. */
   primaryWallet: Wallet | null
 }
 
 export async function linkWalletSession({
   walletAddress,
+  userId,
   primaryWallet,
 }: LinkWalletParams): Promise<LinkWalletResponse> {
   if (!primaryWallet || !isEthereumWallet(primaryWallet)) {
@@ -47,7 +51,7 @@ export async function linkWalletSession({
 
   const timestamp = new Date().toISOString()
   const message =
-    `Execution Market: link wallet ${wallet} to session at ${timestamp}`
+    `Execution Market: link wallet ${wallet} to Supabase user ${userId} at ${timestamp}`
 
   // personal_sign is chain-agnostic, but Dynamic's getWalletClient needs some
   // chain — Base, since every executor is funded there.

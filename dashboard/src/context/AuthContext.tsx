@@ -361,7 +361,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
         if (linkAttemptRef.current === wallet) return // already tried this load
         linkAttemptRef.current = wallet
-        await linkWalletSession({ walletAddress: wallet, primaryWallet })
+        await linkWalletSession({ walletAddress: wallet, userId: sub, primaryWallet })
         linkedWalletRef.current = wallet
         const refreshed = await fetchExecutor(wallet, user?.email)
         if (refreshed) setExecutor(refreshed)

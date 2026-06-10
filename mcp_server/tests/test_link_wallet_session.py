@@ -33,9 +33,12 @@ def _sign(acct, message: str) -> str:
     return sig if sig.startswith("0x") else "0x" + sig
 
 
-def _challenge(wallet: str, ts: datetime | None = None) -> str:
+def _challenge(wallet: str, sub: str = SUB, ts: datetime | None = None) -> str:
     ts = ts or datetime.now(timezone.utc)
-    return f"Execution Market: link wallet {wallet} to session at {ts.isoformat()}"
+    return (
+        f"Execution Market: link wallet {wallet} to Supabase user {sub} "
+        f"at {ts.isoformat()}"
+    )
 
 
 def _mock_client(existing_row):
@@ -96,6 +99,28 @@ async def test_already_linked_is_noop():
 
     assert out["linked"] is False
     client.table.return_value.update.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_captured_signature_cannot_rebind_to_other_session():
+    """Account-takeover guard: a valid signature the victim made to bind to
+    THEIR session must not rebind the executor when replayed under a different
+    JWT. The sub is bound into the message, so the prefix check fails (400)."""
+    victim_sub = "22222222-2222-2222-2222-222222222222"
+    attacker_sub = "33333333-3333-3333-3333-333333333333"
+    acct = Account.create()  # the victim's wallet
+    wallet = acct.address.lower()
+    # Victim signs consent to bind to victim_sub — a genuine, valid signature.
+    msg = _challenge(wallet, sub=victim_sub)
+    req = LinkWalletRequest(
+        wallet_address=wallet, message=msg, signature=_sign(acct, msg)
+    )
+
+    # Attacker replays it under their own JWT.
+    with patch("api.h2a._decode_supabase_jwt", return_value={"sub": attacker_sub}):
+        with pytest.raises(HTTPException) as exc:
+            await link_wallet_to_session(req, authorization="Bearer attacker-tok")
+    assert exc.value.status_code == 400
 
 
 @pytest.mark.asyncio

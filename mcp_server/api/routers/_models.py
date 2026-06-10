@@ -534,8 +534,10 @@ class LinkWalletRequest(BaseModel):
     resolve the executor. The wallet must sign the exact ``message`` to prove
     ownership (this is what authorizes the rebind under migration 111's
     "proven owner" rule). The message MUST follow the format
-    ``"Execution Market: link wallet <wallet> to session at <ISO8601 UTC>"``
+    ``"Execution Market: link wallet <wallet> to Supabase user <sub> at <ISO8601 UTC>"``
     and the timestamp must be within the last 10 minutes (replay protection).
+    The ``<sub>`` binds the signature to the caller's session, so a captured
+    signature cannot be replayed under a different JWT to hijack the executor.
     """
 
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
