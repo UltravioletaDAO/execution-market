@@ -71,5 +71,8 @@
     "tsx": "^4.22.4",
     "typescript": "~5.9.2"
   },
-  "private": true
+  "private": true,
+  "overrides": {
+    "shell-quote": "^1.8.4"
+  }
 }
