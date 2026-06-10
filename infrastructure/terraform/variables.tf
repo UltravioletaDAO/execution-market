@@ -242,14 +242,14 @@ variable "enable_mfa_enforcement" {
 }
 
 variable "enable_vpc_flow_logs" {
-  # Default false: CI deploy user does NOT have ec2:CreateFlowLogs.
-  # Flow logs are a security/forensics control best provisioned from an admin
-  # workstation. The S3 bucket + policy are also gated here so the Terraform
-  # state stays coherent (all-or-nothing).
-  # Reason: CI run 24749420481 UnauthorizedOperation on ec2:CreateFlowLogs.
+  # Default true since 2026-06-09: em-cicd-terraform policy v13 added
+  # ec2:CreateFlowLogs + ec2:DeleteFlowLogs (Sid VpcFlowLogsManagement), so the
+  # CI deploy user can now manage the flow log + S3 bucket end-to-end.
+  # (Previously false: CI run 24749420481 UnauthorizedOperation on
+  # ec2:CreateFlowLogs, before the policy extension.)
   description = "Manage VPC Flow Logs (S3 bucket + flow log + policies; requires ec2:CreateFlowLogs)."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "enable_canary_health_checks" {

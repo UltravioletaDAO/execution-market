@@ -26,6 +26,12 @@
       "Resource": "*"
     },
     {
+      "Sid": "VpcFlowLogsManagement",
+      "Effect": "Allow",
+      "Action": ["ec2:CreateFlowLogs", "ec2:DeleteFlowLogs"],
+      "Resource": "*"
+    },
+    {
       "Sid": "TerraformDNSCerts",
       "Effect": "Allow",
       "Action": ["route53:*", "acm:*"],

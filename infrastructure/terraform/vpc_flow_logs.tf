@@ -29,12 +29,11 @@
 #   signal for security investigations (port scans, failed exfil attempts).
 #
 # CURRENT STATE (2026-06-09)
-#   CI is now PERMITTED to manage flow logs: the em-cicd-terraform policy was
-#   extended (v13) with ec2:CreateFlowLogs + ec2:DeleteFlowLogs (ec2:Describe*
-#   and ec2:CreateTags were already present). Flow logs are NOT yet active —
-#   var.enable_vpc_flow_logs still defaults to false. To activate: flip the
-#   default in variables.tf and push; the next CI terraform apply creates the
-#   bucket + flow log.
+#   ENABLED via CI/CD: the em-cicd-terraform policy was extended (v13) with
+#   ec2:CreateFlowLogs + ec2:DeleteFlowLogs (Sid VpcFlowLogsManagement;
+#   ec2:Describe* and ec2:CreateTags were already present), and
+#   var.enable_vpc_flow_logs now defaults to true — CI terraform apply creates
+#   and manages the bucket + flow log.
 #
 # Forensics path afterward: Athena over the parquet partitions in the S3 bucket.
 
