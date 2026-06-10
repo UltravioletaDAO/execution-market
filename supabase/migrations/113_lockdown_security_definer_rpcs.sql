@@ -34,7 +34,10 @@ DECLARE
     --   be anon-executable. The allowlist here keeps THIS migration from depending on
     --   the apply-order of 111: if 111 ran first, the loop already skips it; if 113
     --   runs first, the allowlist prevents a double-handling. Either order is safe.)
-    allowlist text[] := ARRAY['get_or_create_executor'];
+    -- get_tasks_near_location: app-defined SECURITY DEFINER read-only location
+    -- search, intentionally anon (matches the secondary-tree allowlist). Not a
+    -- money/state RPC — out of scope for FIX-P1-05.
+    allowlist text[] := ARRAY['get_or_create_executor', 'get_tasks_near_location', 'current_executor_ids'];
 BEGIN
     FOR r IN
         SELECT p.oid::regprocedure AS sig, p.proname AS name
@@ -43,6 +46,13 @@ BEGIN
         WHERE n.nspname = 'public'
           AND p.prosecdef                                   -- SECURITY DEFINER only
           AND p.proname <> ALL(allowlist)
+          -- Exclude extension-owned functions (PostGIS st_*, pgcrypto, etc.).
+          -- They are not app RPCs, are not a security risk, and are often not
+          -- revocable by the migration role (owned by the extension installer).
+          AND NOT EXISTS (
+                SELECT 1 FROM pg_depend d
+                WHERE d.objid = p.oid AND d.deptype = 'e'
+              )
           AND (
                 has_function_privilege('anon', p.oid, 'EXECUTE')
                 OR has_function_privilege('authenticated', p.oid, 'EXECUTE')
@@ -88,7 +98,10 @@ END $$;
 DO $$
 DECLARE
     leaked text;
-    allowlist text[] := ARRAY['get_or_create_executor'];
+    -- get_tasks_near_location: app-defined SECURITY DEFINER read-only location
+    -- search, intentionally anon (matches the secondary-tree allowlist). Not a
+    -- money/state RPC — out of scope for FIX-P1-05.
+    allowlist text[] := ARRAY['get_or_create_executor', 'get_tasks_near_location', 'current_executor_ids'];
 BEGIN
     SELECT string_agg(p.oid::regprocedure::text, ', ')
     INTO leaked
@@ -96,6 +109,10 @@ BEGIN
     WHERE n.nspname = 'public'
       AND p.prosecdef
       AND p.proname <> ALL(allowlist)
+      AND NOT EXISTS (                                       -- skip extension funcs
+            SELECT 1 FROM pg_depend d
+            WHERE d.objid = p.oid AND d.deptype = 'e'
+          )
       AND (
             has_function_privilege('anon', p.oid, 'EXECUTE')
             OR has_function_privilege('authenticated', p.oid, 'EXECUTE')

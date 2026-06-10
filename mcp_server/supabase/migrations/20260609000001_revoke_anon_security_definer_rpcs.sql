@@ -32,7 +32,7 @@ DECLARE
     r RECORD;
     -- Read-only, public-data RPCs that are deliberately anon-callable.
     -- (These are SECURITY DEFINER in this tree but only read public task data.)
-    allowlist text[] := ARRAY['get_tasks_near_location'];
+    allowlist text[] := ARRAY['get_tasks_near_location', 'current_executor_ids'];
 BEGIN
     FOR r IN
         SELECT p.oid::regprocedure AS sig
@@ -41,6 +41,8 @@ BEGIN
         WHERE n.nspname = 'public'
           AND p.prosecdef
           AND p.proname <> ALL(allowlist)
+          AND NOT EXISTS (SELECT 1 FROM pg_depend d   -- skip extension funcs (PostGIS st_*, etc.)
+                          WHERE d.objid = p.oid AND d.deptype = 'e')
           AND ( has_function_privilege('anon', p.oid, 'EXECUTE')
              OR has_function_privilege('authenticated', p.oid, 'EXECUTE') )
     LOOP
@@ -55,7 +57,7 @@ END $$;
 DO $$
 DECLARE
     leaked text;
-    allowlist text[] := ARRAY['get_tasks_near_location'];
+    allowlist text[] := ARRAY['get_tasks_near_location', 'current_executor_ids'];
 BEGIN
     SELECT string_agg(p.oid::regprocedure::text, ', ')
     INTO leaked
@@ -63,6 +65,8 @@ BEGIN
     WHERE n.nspname = 'public'
       AND p.prosecdef
       AND p.proname <> ALL(allowlist)
+      AND NOT EXISTS (SELECT 1 FROM pg_depend d   -- skip extension funcs (PostGIS st_*, etc.)
+                      WHERE d.objid = p.oid AND d.deptype = 'e')
       AND ( has_function_privilege('anon', p.oid, 'EXECUTE')
          OR has_function_privilege('authenticated', p.oid, 'EXECUTE') );
     IF leaked IS NOT NULL THEN
