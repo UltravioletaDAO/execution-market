@@ -527,6 +527,40 @@ class UpdateWalletRequest(BaseModel):
     )
 
 
+class LinkWalletRequest(BaseModel):
+    """Request to link the caller's wallet to their current Supabase session.
+
+    Binds ``executors.user_id`` to the JWT ``sub`` so worker-auth endpoints can
+    resolve the executor. The wallet must sign the exact ``message`` to prove
+    ownership (this is what authorizes the rebind under migration 111's
+    "proven owner" rule). The message MUST follow the format
+    ``"Execution Market: link wallet <wallet> to session at <ISO8601 UTC>"``
+    and the timestamp must be within the last 10 minutes (replay protection).
+    """
+
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    wallet_address: str = Field(
+        ...,
+        description="The wallet that signed the message (0x-prefixed, 42 chars)",
+        pattern=r"^0x[a-fA-F0-9]{40}$",
+    )
+    message: str = Field(
+        ...,
+        description=(
+            "Exact human-readable message that was signed. "
+            "Format: 'Execution Market: link wallet <wallet> to session at <ISO8601 UTC>'"
+        ),
+        min_length=60,
+        max_length=300,
+    )
+    signature: str = Field(
+        ...,
+        description="EIP-191 signature of the message, signed by wallet_address",
+        pattern=r"^0x[a-fA-F0-9]{130}$",
+    )
+
+
 # =============================================================================
 # ANALYTICS & CONFIG
 # =============================================================================
