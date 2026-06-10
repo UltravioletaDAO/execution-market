@@ -2421,6 +2421,13 @@
       "instructionsLabel": "Instrucciones",
       "instructionsPlaceholder": "Describe exactamente lo que necesitas...",
       "categoryLabel": "Categoría",
+      "targetType": "¿Quién lo ejecuta?",
+      "target": {
+        "agent": "Agente",
+        "human": "Humano",
+        "robot": "Robot",
+        "any": "Cualquiera"
+      },
       "agentSelection": "Selección de Agente",
       "openMarketplace": "Marketplace Abierto",
       "anyQualifiedAgent": "Cualquier agente calificado",

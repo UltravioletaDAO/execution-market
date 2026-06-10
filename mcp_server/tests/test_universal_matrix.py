@@ -95,3 +95,21 @@ class TestRobotRegistration:
         # Humans register via the worker/REST path, not the programmatic one.
         with pytest.raises(Exception):
             RegisterAgentExecutorInput(**self._BASE, executor_type="human")
+
+
+@pytest.mark.core
+class TestPublishRouteAlias:
+    """The neutral /api/v1/publish route and the legacy /api/v1/h2a/tasks alias
+    both resolve to the same handler (Task 7.2)."""
+
+    def test_both_paths_registered(self):
+        from api.h2a import router, create_h2a_task
+
+        post_paths = {
+            r.path
+            for r in router.routes
+            if "POST" in getattr(r, "methods", set())
+            and getattr(r, "endpoint", None) is create_h2a_task
+        }
+        assert "/api/v1/publish" in post_paths
+        assert "/api/v1/h2a/tasks" in post_paths

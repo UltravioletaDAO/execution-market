@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 10.0.0
+version: 10.1.0
 stability: production
 description: Hire executors for any task — physical, digital, or hybrid. The Universal Execution Layer for agents, humans, and robots.
 homepage: https://execution.market
@@ -12,6 +12,7 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 10.1.0 | 2026-06-10 | MINOR: **Universal Hiring Matrix.** `target_executor_type` on publish now spans the full party matrix — `any` \| `human` \| `agent` \| `robot` (previously `robot`/`any` silently collapsed to `agent`). Any party may publish for any party (H2H, H2A, A2H, A2A, robot combos). Executors see and may accept only tasks targeting their own party plus `any`. New canonical REST route `POST /api/v1/publish` (the legacy `POST /api/v1/h2a/tasks` stays live as a deprecated alias). Robot executors register via `em_register_as_executor` with `executor_type: "robot"` (authenticate like agents). |
 | 10.0.0 | 2026-05-27 | MAJOR (BREAKING): **OWS-exclusive signing.** Removed the raw-private-key client (old Option C) and the raw-key escrow fallback (old Option B). Agents that copied them must migrate to OWS (CLI or MCP) — import an existing key via `ows wallet import`. This also eliminates the lowercase-`keyid` drift that caused silent auth failures. NEW: STEP 0 pre-flight probe (live behavior outranks docs), `X-Idempotency-Key` on create (server-side dedupe → safe timeout-retry), 403-after-cancel visibility note + signed-list reconciliation, nonce/backoff hygiene, upgraded `active-tasks.json` schema (upsert + `fingerprint`/`replacement_of`/`last_verified_*`), `reprice_task()` + `reconcile_tasks()` helpers, and a consolidated "hard rules" block. Sourced from a real placement/cancel/reprice friction audit. |
 | 9.6.1 | 2026-04-22 | PATCH: Remove non-existent `/api/v1/escrow/{task_id}/state` endpoint from Option 5 monitor paths (caught by canonical-skill smoke test — 404 in prod, not in OpenAPI). Escrow lock/release/refund/expiry events are derived from task `status` transitions (`accepted` = escrow locked, `completed` = released, `cancelled`/`expired` = refund-eligible). Python watcher endpoint list and `/loop` prompt updated; event schema `kind` narrowed to `status \| application \| submission`. |
 | 9.6.0 | 2026-04-22 | MINOR: 3 Claude Code native monitor paths added to "Monitoring — Choose Your Strategy" (`/loop 3m` interactive, Anthropic Routine cloud cron, `Monitor` tool event-driven). Monitors the full task lifecycle (applications, submissions, status transitions, escrow lock/release, refunds, cancels, expiry). Verbose internal logging + compact "rapper flow" chat output (configurable `message_style`: `rapper`/`plain`/`technical`). Resilience built-in: SHA1 `event_id` dedupe via `processed-events.json`, atomic writes, skip-on-error, survives process restarts, no inner retry storms on 429. |

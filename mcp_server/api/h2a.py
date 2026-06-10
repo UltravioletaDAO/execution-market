@@ -351,13 +351,26 @@ router = APIRouter(tags=["H2A Marketplace"])
 # ---------------------------------------------------------------------------
 
 
+# Canonical neutral route — a human publishes for any party (human/agent/robot).
+# The legacy "/api/v1/h2a/tasks" alias stays live (deprecated) so existing web,
+# mobile and external integrations never break. Both map to the same handler.
+# See MASTER_PLAN_UNIVERSAL_HIRING_MATRIX.md (Task 7.2).
+@router.post(
+    "/api/v1/publish",
+    response_model=H2ATaskResponse,
+    status_code=201,
+    summary="Publish Task (universal)",
+    description="A human publishes a task for any party (human/agent/robot) to execute.",
+    tags=["Publish"],
+)
 @router.post(
     "/api/v1/h2a/tasks",
     response_model=H2ATaskResponse,
     status_code=201,
-    summary="Publish H2A Task",
-    description="Human publishes a task for AI agents to execute.",
+    summary="Publish H2A Task (deprecated alias of /api/v1/publish)",
+    description="Deprecated alias. Use POST /api/v1/publish.",
     tags=["H2A Marketplace"],
+    deprecated=True,
 )
 async def create_h2a_task(
     request: PublishH2ATaskRequest,
