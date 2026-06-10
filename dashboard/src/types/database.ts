@@ -655,8 +655,11 @@ export interface H2ATaskCreateRequest {
   evidence_required?: string[]
   payment_network?: string
   target_agent_id?: string
-  /** 'agent' (default, classic H2A) or 'human' (H2H — Rappi services catalog). */
-  target_executor_type?: 'agent' | 'human'
+  /**
+   * Which party may execute — the Universal Hiring Matrix target.
+   * 'any' (open) | 'human' (H2H / Rappi catalog) | 'agent' (classic H2A) | 'robot'.
+   */
+  target_executor_type?: 'any' | 'human' | 'agent' | 'robot'
   /**
    * Publisher's funding wallet. The Supabase JWT is anonymous and carries no
    * wallet claim, so the backend can't derive it — the client asserts it here.

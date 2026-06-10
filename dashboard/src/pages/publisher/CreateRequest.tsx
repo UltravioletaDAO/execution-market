@@ -14,11 +14,22 @@ import { DepositModal } from '../../components/DepositModal'
 
 type WizardStep = 'details' | 'agent' | 'budget' | 'preview'
 
+type ExecutorTarget = 'any' | 'human' | 'agent' | 'robot'
+
 interface FormData {
   title: string; instructions: string; category: TaskCategory; bounty_usd: number
   deadline_hours: number; required_capabilities: string[]; verification_mode: 'manual' | 'auto'
   evidence_required: string[]; target_agent_id: string | null; payment_network: string
+  target_executor_type: ExecutorTarget
 }
+
+// Universal Hiring Matrix — who may execute. Mirrors the mobile publish wizard.
+const EXECUTOR_TARGET_KEYS: { value: ExecutorTarget; key: string; icon: string }[] = [
+  { value: 'agent', key: 'publisher.create.target.agent', icon: '🤖' },
+  { value: 'human', key: 'publisher.create.target.human', icon: '👤' },
+  { value: 'robot', key: 'publisher.create.target.robot', icon: '🦾' },
+  { value: 'any', key: 'publisher.create.target.any', icon: '🌐' },
+]
 
 const DIGITAL_CATEGORY_KEYS: { value: TaskCategory; key: string; icon: string; descKey: string }[] = [
   { value: 'data_processing', key: 'publisher.create.cat.dataProcessing', icon: '📊', descKey: 'publisher.create.catDesc.dataProcessing' },
@@ -77,6 +88,7 @@ export function CreateRequest() {
     title: '', instructions: '', category: 'data_processing', bounty_usd: 5, deadline_hours: 24,
     required_capabilities: [], verification_mode: 'manual', evidence_required: ['json_response'],
     target_agent_id: searchParams.get('agent'), payment_network: 'base',
+    target_executor_type: 'agent',
   })
 
   const fee = +(form.bounty_usd * FEE_PCT).toFixed(2)
@@ -102,6 +114,8 @@ export function CreateRequest() {
         required_capabilities: form.required_capabilities.length > 0 ? form.required_capabilities : undefined,
         verification_mode: form.verification_mode, evidence_required: form.evidence_required,
         payment_network: form.payment_network, target_agent_id: form.target_agent_id || undefined,
+        target_executor_type: form.target_executor_type,
+        publisher_wallet: walletAddress ?? undefined,
       }
       setResult(await createH2ATask(req))
     } catch (e) { setError(e instanceof Error ? e.message : 'Error') } finally { setSubmitting(false) }
@@ -179,6 +193,18 @@ export function CreateRequest() {
           {step === 'agent' && (
             <div className="space-y-5">
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('publisher.create.targetType', 'Who executes this?')}</label>
+                <div className="grid grid-cols-4 gap-2">
+                  {EXECUTOR_TARGET_KEYS.map(tt => (
+                    <button key={tt.value} onClick={() => updateForm({ target_executor_type: tt.value })} className={`flex flex-col items-center gap-1 p-3 rounded-lg border text-center ${form.target_executor_type === tt.value ? 'border-zinc-900 bg-zinc-50' : 'border-zinc-200 hover:border-zinc-400'}`}>
+                      <span className="text-xl">{tt.icon}</span><span className="text-xs font-medium text-zinc-900">{t(tt.key, tt.value)}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {(form.target_executor_type === 'agent' || form.target_executor_type === 'any') && (
+              <>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t('publisher.create.agentSelection', 'Agent Selection')}</label>
                 <div className="flex gap-3">
                   <button onClick={() => updateForm({ target_agent_id: null })} className={`flex-1 p-4 rounded-lg border text-center ${!form.target_agent_id ? 'border-zinc-900 bg-zinc-50' : 'border-zinc-200 hover:border-zinc-400'}`}>
@@ -198,6 +224,8 @@ export function CreateRequest() {
                   })}
                 </div>
               </div>
+              </>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t('publisher.create.verification', 'Verification')}</label>
                 <div className="flex gap-3">
