@@ -289,6 +289,15 @@ resource "aws_ecs_task_definition" "mcp_server" {
         { name = "ERC8128_NONCE_STORE", value = "dynamodb" },
         { name = "EM_REQUIRE_ERC8004", value = "true" },
         { name = "EM_REQUIRE_ERC8004_WORKER", value = "true" },
+        # Security audit 2026-06-09 cutover: enforce identity, not body-claimed.
+        # EM_MCP_AUTH_ENABLED  -> /mcp transport requires ERC-8128 signature;
+        #                        tools derive identity from the verified wallet,
+        #                        never params.agent_id (closes P0-01 escrow drain).
+        # EM_REQUIRE_WORKER_AUTH -> REST worker endpoints require a Supabase JWT;
+        #                        executor_id comes from the verified principal,
+        #                        not the request body (closes P1-01 + evidence IDOR).
+        { name = "EM_MCP_AUTH_ENABLED", value = "true" },
+        { name = "EM_REQUIRE_WORKER_AUTH", value = "true" },
         # VeryAI master switch — flipped on 2026-05-01 after Veros
         # provisioned production OAuth credentials in em/veryai.
         # When true, /api/v1/very-id/* routes are mounted and the OAuth
