@@ -4,7 +4,11 @@ ChatRelay — WebSocket endpoint bridging mobile clients to IRC task channels.
 Endpoint: ``/ws/chat/{task_id}``
 
 Flow:
-1. Client opens WebSocket with ``?token=JWT``
+1. Client opens WebSocket with the JWT in the ``Sec-WebSocket-Protocol``
+   header (subprotocols ``em-bearer`` + ``bearer.<JWT>``, see
+   ``em-mobile/lib/wsAuth.ts``) — or legacy ``?token=JWT`` query fallback
+   (web dashboard). Subprotocol auth avoids leaking tokens into ALB access
+   logs (security audit 2026-06-09, finding L-72).
 2. Server verifies JWT and extracts executor_id
 3. Server verifies executor is assigned to the task
 4. Server subscribes to ``#task-{task_id[:8]}`` on IRCPool
@@ -125,6 +129,34 @@ _rate_limiter = _RateLimiter()
 # Helpers
 # ---------------------------------------------------------------------------
 
+# WebSocket subprotocol bearer auth (L-72) — wire format MUST mirror
+# em-mobile/lib/wsAuth.ts: the client offers two subprotocols, the sentinel
+# ``em-bearer`` (scheme detection) and ``bearer.<JWT>`` (token carrier).
+WS_AUTH_SENTINEL = "em-bearer"
+WS_BEARER_PREFIX = "bearer."
+
+
+def _negotiate_subprotocol_auth(
+    websocket: WebSocket,
+) -> tuple[Optional[str], Optional[str]]:
+    """Extract the bearer token offered via ``Sec-WebSocket-Protocol``.
+
+    Returns ``(token, subprotocol_to_echo)``. Per RFC 6455 the server must
+    select one of the client-offered subprotocols or browsers/RN clients kill
+    the connection — we echo the sentinel ``em-bearer``, NEVER the
+    ``bearer.<token>`` entry, so the token does not appear in response headers.
+
+    Returns ``(None, None)`` when the client did not use the scheme (e.g. web
+    dashboard clients that still authenticate via ``?token=``).
+    """
+    offered = websocket.scope.get("subprotocols") or []
+    if WS_AUTH_SENTINEL not in offered:
+        return None, None
+    for proto in offered:
+        if proto.startswith(WS_BEARER_PREFIX) and len(proto) > len(WS_BEARER_PREFIX):
+            return proto[len(WS_BEARER_PREFIX) :], WS_AUTH_SENTINEL
+    return None, None
+
 
 def _task_channel(task_id: str) -> str:
     """Derive the IRC channel name from a task ID."""
@@ -236,7 +268,10 @@ async def chat_websocket(
     log_svc = get_log_service()
 
     # ---- Auth ----
-    user_info = await _verify_token(token)
+    # Preferred: bearer token in the Sec-WebSocket-Protocol header (L-72,
+    # mobile clients). Fallback: legacy ?token= query string (web dashboard).
+    subprotocol_token, selected_subprotocol = _negotiate_subprotocol_auth(websocket)
+    user_info = await _verify_token(subprotocol_token or token)
     if not user_info:
         await websocket.close(code=4001, reason="Authentication required")
         return
@@ -258,7 +293,9 @@ async def chat_websocket(
     except Exception:
         pass  # If config unavailable, allow (fail open for dev)
 
-    await websocket.accept()
+    # RFC 6455: when the client offered subprotocols, the server must echo
+    # its selection (the sentinel) or the client aborts the connection.
+    await websocket.accept(subprotocol=selected_subprotocol)
 
     subscriber_id = secrets.token_hex(8)
     channel = _task_channel(task_id)
