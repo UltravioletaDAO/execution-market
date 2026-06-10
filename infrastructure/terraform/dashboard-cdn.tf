@@ -124,6 +124,12 @@ resource "aws_acm_certificate_validation" "dashboard_cdn" {
 #       the `Content-Security-Policy-Report-Only` header to `Content-Security-Policy`
 #       (enforcing) once telemetry shows no legitimate requests are being blocked.
 #       No `'unsafe-eval'` in script-src — Vite production builds do not need it.
+#       script-src mirrors the L-53 hash-based policy enforced by the index.html
+#       <meta> tag (see dashboard/public/_headers): the two inline scripts are
+#       allow-listed by SHA-256 hash, and 'wasm-unsafe-eval' permits the XMTP +
+#       World ID WASM modules. If either inline script changes, recompute hashes
+#       with `node dashboard/scripts/compute-csp-hashes.mjs` and update all three
+#       places (index.html, _headers, here).
 #
 # Origins allowed in connect-src were derived from:
 #   - dashboard/src/lib/{supabase,dynamic}.ts                (Supabase + Dynamic)
@@ -174,7 +180,7 @@ resource "aws_cloudfront_response_headers_policy" "execution_market_security_hea
       header = "Content-Security-Policy-Report-Only"
       value = join("; ", [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline'",
+        "script-src 'self' 'wasm-unsafe-eval' 'sha256-sM9hxnxoc4LdZ9k9DThw2zCF/KyoDnZ3Ovixe4KW6gA=' 'sha256-FX88DKvzs1pCAh67sSx4Fb4KzYZsl630p99LD8pWg6w='",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src 'self' https://fonts.gstatic.com",
         "img-src 'self' data: blob: https:",
