@@ -451,7 +451,10 @@ jobs:
             echo "::error::No index bundle produced — Vite build is broken."
             exit 1
           fi
-          echo "Inspecting bundle: $BUNDLE"
+          # The import.meta.env snapshot can land in any chunk depending on
+          # code-splitting — scan every JS asset, not just the first index
+          # chunk (the index-only grep false-failed run 27368865943).
+          echo "Inspecting all JS chunks in dist/assets/"
 
           # Each entry: "VITE_VAR=expected_value". Verified only when the flag
           # is ACTIVELY shipped on (its env var equals the expected value at
@@ -470,10 +473,12 @@ jobs:
               echo "  ${VAR} not shipped on (env=${VAR_VALUE:-unset}, expected=${EXPECTED}) — skipping verification"
               continue
             fi
-            if grep -qE "${VAR}:\"${EXPECTED}\"" "$BUNDLE"; then
+            if grep -qE "${VAR}:\"${EXPECTED}\"" dist/assets/*.js; then
               echo "  ${VAR}=\"${EXPECTED}\" — embedded"
             else
-              echo "::error::${VAR} shipped on but not embedded in bundle (Vite likely tree-shook the gated branch). Check the build env."
+              echo "::error::${VAR} shipped on but not embedded in any bundle chunk (Vite likely tree-shook the gated branch). Check the build env."
+              echo "Diagnostic — how the var appears in the chunks (if at all):"
+              grep -oE "${VAR}[^,}]{0,40}" dist/assets/*.js | head -5 || echo "  (no occurrence of ${VAR} in any chunk)"
               MISSING=1
             fi
           done
