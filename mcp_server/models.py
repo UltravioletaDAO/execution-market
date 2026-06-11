@@ -858,7 +858,7 @@ class PublishH2ATaskRequest(BaseModel):
         str_strip_whitespace=True, validate_assignment=True, extra="forbid"
     )
     title: str = Field(..., min_length=5, max_length=255)
-    instructions: str = Field(..., min_length=20, max_length=10000)
+    instructions: str = Field(..., min_length=10, max_length=10000)
     category: TaskCategory = Field(...)
     bounty_usd: float = Field(..., gt=0, le=500)
     deadline_hours: int = Field(default=24, ge=1, le=720)

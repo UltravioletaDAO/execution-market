@@ -2391,7 +2391,7 @@
       "back": "Volver",
       "backToServices": "← Servicios",
       "whatNeed": "¿Qué necesitas?",
-      "charHint": "(mín. 20)",
+      "charHint": "(mín. 10)",
       "payment": "Pago",
       "bountyRange": "El pago debe estar entre $0.01 y $500.",
       "network": "Red",

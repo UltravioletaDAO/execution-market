@@ -110,7 +110,7 @@ export function RequestService() {
   }
 
   const canSubmit =
-    instructions.length >= 20 && bountyValid && !submitting && !!walletAddress
+    instructions.length >= 10 && bountyValid && !submitting && !!walletAddress
   const needsFunds = balance !== null && balance < total
 
   const handleSubmit = async () => {
@@ -196,7 +196,7 @@ export function RequestService() {
             value={instructions}
             onChange={(e) => setInstructions(e.target.value)}
             placeholder={t(`services.catalog.${svc.key}.placeholder`, svc.placeholder)}
-            className="h-32 w-full resize-y rounded-lg border border-zinc-300 px-3 py-2"
+            className="h-32 w-full resize-y rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 placeholder:text-zinc-400"
             maxLength={10000}
           />
           <p className="mt-1 text-xs text-zinc-400">{instructions.length}/10000 {t('services.request.charHint', '(mín. 20)')}</p>
@@ -219,7 +219,7 @@ export function RequestService() {
                 if (v === '' || /^\d*\.?\d*$/.test(v)) setBountyInput(v)
               }}
               placeholder="0.10"
-              className="w-full rounded-lg border border-zinc-300 py-2 pl-7 pr-16 text-zinc-900"
+              className="w-full rounded-lg border border-zinc-300 bg-white py-2 pl-7 pr-16 text-zinc-900 placeholder:text-zinc-400"
             />
             <span className="absolute right-3 top-2.5 text-sm text-zinc-400">
               {coinInfo.symbol}
