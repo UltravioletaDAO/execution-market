@@ -1859,6 +1859,17 @@ class TestTrustlessRefund:
             # Claim/rollback behaviour is covered by test_phase4_payment_fund_loss.py.
             d._claim_escrow_operation = AsyncMock(return_value={"claimed": True})
             d._release_claim_rollback = AsyncMock(return_value=None)
+            # Refund goes straight to the facilitator (action=refundInEscrow,
+            # gasless, no AdvancedEscrowClient) — default to a success response
+            # with the REAL wire shape (transaction = tx-hash string).
+            refund_response = MagicMock()
+            refund_response.status_code = 200
+            refund_response.text = ""
+            refund_response.json.return_value = {
+                "success": True,
+                "transaction": "0x" + "ab" * 32,
+            }
+            d._post_facilitator_json = AsyncMock(return_value=refund_response)
             return d, mock_client
 
     @pytest.mark.asyncio
@@ -1912,10 +1923,15 @@ class TestTrustlessRefund:
     @pytest.mark.asyncio
     async def test_refund_escrow_failure(self):
         """Should handle facilitator refund failure."""
-        d, mock_client = self._make_refund_dispatcher()
-        mock_client.refund_via_facilitator = lambda pi: FakeTransactionResult(
-            success=False, error="Refund window expired"
-        )
+        d, _ = self._make_refund_dispatcher()
+        fail_response = MagicMock()
+        fail_response.status_code = 200
+        fail_response.text = ""
+        fail_response.json.return_value = {
+            "success": False,
+            "errorReason": "Refund window expired",
+        }
+        d._post_facilitator_json = AsyncMock(return_value=fail_response)
         d._reconstruct_fase2_state = AsyncMock(
             return_value=(
                 FakeEscrowPaymentInfo(

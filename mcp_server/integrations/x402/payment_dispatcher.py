@@ -2241,21 +2241,73 @@ class PaymentDispatcher:
             }
 
         stored_network = pi_meta.get("network", "base")
-        client = self._get_fase2_client(stored_network)
 
-        # Step 1: Refund escrow via facilitator — bounty returns to agent
+        # Step 1: Refund escrow via facilitator — bounty returns to the payer.
+        # GASLESS facilitator-arbiter operation (action=refundInEscrow, mirror
+        # of uvd_x402_sdk._settle_via_facilitator): no signature is involved,
+        # so no AdvancedEscrowClient — _get_fase2_client requires
+        # EM_SERVER_SIGNING and broke production refunds of deposited escrows
+        # (h2a cancel 500, e2e_h2h_flow refund run).
+        payer = pi_meta.get("payer") or pi_meta.get("agent_address") or ""
+        net_config = NETWORK_CONFIG.get(stored_network, {})
+        chain_id = net_config.get("chain_id", 8453)
+        x402r_infra = net_config.get("x402r_infra", {})
+        refund_payload = {
+            "x402Version": 2,
+            "scheme": "escrow",
+            "action": "refundInEscrow",
+            "payload": {
+                "paymentInfo": {
+                    "operator": pi.operator,
+                    "receiver": pi.receiver,
+                    "token": pi.token,
+                    "maxAmount": str(pi.max_amount),
+                    "preApprovalExpiry": pi.pre_approval_expiry,
+                    "authorizationExpiry": pi.authorization_expiry,
+                    "refundExpiry": pi.refund_expiry,
+                    "minFeeBps": pi.min_fee_bps,
+                    "maxFeeBps": pi.max_fee_bps,
+                    "feeReceiver": pi.fee_receiver,
+                    "salt": pi.salt,
+                },
+                "payer": payer,
+                "amount": str(pi.max_amount),
+            },
+            "paymentRequirements": {
+                "scheme": "escrow",
+                "network": f"eip155:{chain_id}",
+                "extra": {
+                    "escrowAddress": net_config.get(
+                        "escrow", net_config.get("escrow_address", "")
+                    ),
+                    "operatorAddress": pi.operator,
+                    "tokenCollector": x402r_infra.get("tokenCollector", ""),
+                },
+            },
+        }
         logger.info(
             "trustless: Refunding escrow for task %s via facilitator...", task_id
         )
-        refund_result = await asyncio.to_thread(client.refund_via_facilitator, pi)
+        try:
+            response = await self._post_facilitator_json(
+                f"{FACILITATOR_URL}/settle", refund_payload
+            )
+            refund_data = response.json()
+        except Exception as e:
+            refund_data = {"success": False, "errorReason": str(e)}
 
-        if not refund_result.success:
+        if not refund_data.get("success"):
+            refund_error = (
+                refund_data.get("errorReason")
+                or refund_data.get("error")
+                or "Facilitator rejected refund"
+            )
             await log_payment_event(
                 task_id=task_id,
                 event_type="escrow_refund",
                 status="failed",
                 network=stored_network,
-                error=refund_result.error,
+                error=str(refund_error),
                 metadata={
                     "mode": "fase2",
                     "escrow_mode": "direct_release",
@@ -2272,17 +2324,22 @@ class PaymentDispatcher:
                 "mode": "fase2",
                 "escrow_mode": "direct_release",
                 "status": "refund_failed",
-                "error": f"Escrow refund failed: {refund_result.error}",
+                "error": f"Escrow refund failed: {refund_error}",
             }
 
-        escrow_tx = refund_result.transaction_hash
+        # The facilitator returns "transaction" as the tx-hash string;
+        # tolerate the object form too (same guard as the relay/release paths).
+        tx_field = refund_data.get("transaction")
+        escrow_tx = (
+            tx_field.get("hash", "") if isinstance(tx_field, dict) else (tx_field or "")
+        ) or refund_data.get("txHash", "")
         await log_payment_event(
             task_id=task_id,
             event_type="escrow_refund",
             status="success",
             tx_hash=escrow_tx,
             from_address=pi.receiver,
-            to_address=client.payer,
+            to_address=payer,
             network=stored_network,
             metadata={
                 "mode": "fase2",

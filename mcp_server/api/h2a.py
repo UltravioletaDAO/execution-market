@@ -1310,6 +1310,26 @@ async def approve_h2a_submission(
                     )
                 worker_tx = release.get("tx_hash")
                 fee_tx = release.get("fee_distribute_tx")
+
+                # Finalize the escrows row (mirrors the A2A approve caller in
+                # routers/_helpers.py:1546-1553): the dispatcher leaves the
+                # claim-state 'releasing'; without this the row sticks there.
+                if worker_tx:
+                    try:
+                        client.table("escrows").update(
+                            {
+                                "status": "released",
+                                "release_tx": worker_tx,
+                                "released_at": datetime.now(timezone.utc).isoformat(),
+                            }
+                        ).eq("task_id", task_id).execute()
+                    except Exception as esc_fin_err:
+                        logger.warning(
+                            "H2A approve: escrow release finalization failed "
+                            "for task %s (reconciler will sweep): %s",
+                            task_id,
+                            esc_fin_err,
+                        )
             else:
                 # ── Legacy sign-on-approval: requires both signatures.
                 if (
