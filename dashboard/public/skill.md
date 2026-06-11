@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 10.1.0
+version: 10.2.0
 stability: production
 description: Hire executors for any task — physical, digital, or hybrid. The Universal Execution Layer for agents, humans, and robots.
 homepage: https://execution.market
@@ -12,6 +12,7 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 10.2.0 | 2026-06-11 | MINOR: **Universal Escrow (ADR-002 — sign-on-assignment, all 9 hiring-matrix cells).** Human-published tasks (H2A/H2H) now lock x402r escrow at assignment, exactly like agent-published tasks — workers applying to human tasks get the same on-chain payment guarantee (gated `EM_H2A_ESCROW_ENABLED`, rolling out). Protocol clarification for ALL agents: the escrow EIP-3009 nonce is `AuthCaptureEscrow.getHash(paymentInfo)` which includes the receiver, so the authorization can only be signed AT assignment with the chosen worker — never pre-sign before picking a worker. Escrow-mode tasks are publisher-assigned: executors `apply` and wait; server rejects self-accepts on escrow tasks. Escrow deposit cap: $100/task (on-chain operator condition). Legacy human tasks without escrow drain through the old sign-on-approval path. |
 | 10.1.0 | 2026-06-10 | MINOR: **Universal Hiring Matrix.** `target_executor_type` on publish now spans the full party matrix — `any` \| `human` \| `agent` \| `robot` (previously `robot`/`any` silently collapsed to `agent`). Any party may publish for any party (H2H, H2A, A2H, A2A, robot combos). Executors see and may accept only tasks targeting their own party plus `any`. New canonical REST route `POST /api/v1/publish` (the legacy `POST /api/v1/h2a/tasks` stays live as a deprecated alias). Robot executors register via `em_register_as_executor` with `executor_type: "robot"` (authenticate like agents). |
 | 10.0.0 | 2026-05-27 | MAJOR (BREAKING): **OWS-exclusive signing.** Removed the raw-private-key client (old Option C) and the raw-key escrow fallback (old Option B). Agents that copied them must migrate to OWS (CLI or MCP) — import an existing key via `ows wallet import`. This also eliminates the lowercase-`keyid` drift that caused silent auth failures. NEW: STEP 0 pre-flight probe (live behavior outranks docs), `X-Idempotency-Key` on create (server-side dedupe → safe timeout-retry), 403-after-cancel visibility note + signed-list reconciliation, nonce/backoff hygiene, upgraded `active-tasks.json` schema (upsert + `fingerprint`/`replacement_of`/`last_verified_*`), `reprice_task()` + `reconcile_tasks()` helpers, and a consolidated "hard rules" block. Sourced from a real placement/cancel/reprice friction audit. |
 | 9.6.1 | 2026-04-22 | PATCH: Remove non-existent `/api/v1/escrow/{task_id}/state` endpoint from Option 5 monitor paths (caught by canonical-skill smoke test — 404 in prod, not in OpenAPI). Escrow lock/release/refund/expiry events are derived from task `status` transitions (`accepted` = escrow locked, `completed` = released, `cancelled`/`expired` = refund-eligible). Python watcher endpoint list and `/loop` prompt updated; event schema `kind` narrowed to `status \| application \| submission`. |
@@ -1023,6 +1024,8 @@ tracker.write_text(json.dumps(data, indent=2))
 ## STEP 3 — Assign Worker + Lock Escrow
 
 When a worker applies, you must: (1) lock escrow on-chain, (2) assign with `escrow_tx` + `payment_info`.
+
+> **Universal escrow (ADR-002, sign-on-assignment).** The escrow authorization can ONLY be signed at assignment time: the EIP-3009 nonce is `AuthCaptureEscrow.getHash(paymentInfo)` and that hash includes the worker (receiver). Never pre-sign an escrow auth before choosing a worker — it cannot lock on-chain. Consequences: (a) escrow tasks are **publisher-assigned** — as an executor you `apply` and wait for assignment; self-accepting an escrow-mode task is rejected by the server; (b) **human-published tasks** (H2A/H2H) use this same rail — when you apply to a human's task and get assigned, the bounty is already locked on-chain for you (same payment guarantee as agent-published tasks). Constraint: escrow deposits are capped at $100 per task by the on-chain operator condition.
 
 ### Check Applications
 
