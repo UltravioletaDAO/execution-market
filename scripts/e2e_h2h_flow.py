@@ -192,7 +192,10 @@ class PhaseResult:
         }
         if self.error:
             d["error"] = self.error
-        d.update(self.details)
+        # Session tokens stay out of the JSON report (user is always streaming).
+        d.update(
+            {k: v for k, v in self.details.items() if k not in ("jwt", "worker_jwt")}
+        )
         return d
 
     def print_result(self) -> None:
@@ -795,44 +798,83 @@ async def phase_worker_setup(
     results: H2HFlowResults,
     worker_wallet: str,
 ) -> PhaseResult:
-    """Phase 4: Register worker executor + ERC-8004 identity (best-effort)."""
-    phase = PhaseResult("worker_setup", "Worker Registration & Identity")
-    _print_header("PHASE 4: WORKER REGISTRATION & IDENTITY")
+    """Phase 4: Worker session + executor binding (+ ERC-8004 best-effort).
 
-    executor_id = EXISTING_EXECUTOR_ID
+    Mirrors the dashboard human-worker flow: the worker gets its OWN
+    anonymous Supabase session and binds the executor row to it via the
+    get_or_create_executor RPC (first-bind-wins in the hardened FIX-P0-02
+    version). REST worker endpoints (apply/submit) authenticate with this
+    JWT -- verify_worker_auth resolves executors.user_id, ERC-8128 is not
+    accepted there when EM_REQUIRE_WORKER_AUTH=true.
+    """
+    phase = PhaseResult("worker_setup", "Worker Session & Executor Binding")
+    _print_header("PHASE 4: WORKER SESSION & EXECUTOR BINDING")
 
     try:
-        if executor_id:
-            print(f"  [1/2] Using existing executor: {executor_id}")
-        else:
-            print("  [1/2] Registering worker...")
-            url = f"{API_BASE}/api/v1/executors/register"
-            resp = await client.post(
-                url,
-                json={
-                    "wallet_address": worker_wallet,
-                    "display_name": "H2H Flow Test Worker",
-                },
+        print("  [1/3] Worker anonymous sign-in (separate session)...")
+        signin = await supabase_anonymous_signin(client)
+        s_status = signin.get("_http_status")
+        print(f"         Sign-in: HTTP {s_status}")
+        worker_jwt = signin.get("access_token")
+        if s_status != 200 or not worker_jwt:
+            return phase.fail(f"Worker anonymous sign-in failed: HTTP {s_status}")
+        worker_user = (signin.get("user") or {}).get("id")
+        print(f"         Worker user ID: {worker_user}")
+
+        # Bind executors.user_id to this session via the GR-1.7 backend
+        # endpoint (mirrors dashboard/src/services/linkWalletSession.ts):
+        # the wallet signs a fresh challenge proving ownership, which
+        # authorizes the bind under migration 111's "proven owner" rule.
+        print("  [2/3] Linking wallet to worker session (signed challenge)...")
+        from eth_account import Account
+        from eth_account.messages import encode_defunct
+
+        wallet_lower = worker_wallet.lower()
+        timestamp = datetime.now(timezone.utc).isoformat()
+        message = (
+            f"Execution Market: link wallet {wallet_lower} "
+            f"to Supabase user {worker_user} at {timestamp}"
+        )
+        signed = Account.sign_message(
+            encode_defunct(text=message), private_key=WORKER_PRIVATE_KEY
+        )
+        sig_hex = signed.signature.hex()
+        if not sig_hex.startswith("0x"):
+            sig_hex = "0x" + sig_hex
+
+        link_data = await api_call(
+            client,
+            "POST",
+            "/account/link-wallet",
+            {
+                "wallet_address": wallet_lower,
+                "message": message,
+                "signature": sig_hex,
+            },
+            jwt=worker_jwt,
+        )
+        l_status = link_data.get("_http_status")
+        print(f"         Link: HTTP {l_status}")
+        if l_status not in (200, 201):
+            err = link_data.get("detail", str(link_data)[:200])
+            return phase.fail(f"Wallet link failed: {err}")
+
+        executor_id = link_data.get("executor_id", "")
+        print(f"         Executor ID: {executor_id}")
+        print(f"         Linked: {link_data.get('linked')}")
+
+        if EXISTING_EXECUTOR_ID and executor_id != EXISTING_EXECUTOR_ID:
+            print(
+                f"         Note: EM_TEST_EXECUTOR_ID={EXISTING_EXECUTOR_ID} "
+                "differs from the wallet's executor; using the RPC result."
             )
-            try:
-                reg_data = resp.json()
-            except Exception:
-                reg_data = {"raw": resp.text}
-            print(f"         Register: HTTP {resp.status_code}")
-
-            if resp.status_code not in (200, 201):
-                err = reg_data.get("detail", str(reg_data)[:200])
-                return phase.fail(f"Worker registration failed: {err}")
-
-            executor_id = (reg_data.get("executor") or {}).get("id", "")
-            print(f"         Executor ID: {executor_id}")
 
         if not executor_id:
             return phase.fail("No executor ID obtained")
 
         # ERC-8004 identity (best-effort -- mirrors the Golden Flow: a worker
         # without on-chain identity can still operate where not enforced).
-        print("  [2/2] Registering worker on ERC-8004 (best-effort)...")
+        print("  [3/3] Registering worker on ERC-8004 (best-effort)...")
         erc_data = await api_call(
             client,
             "POST",
@@ -855,23 +897,24 @@ async def phase_worker_setup(
         else:
             print(f"         Non-fatal: {erc_data.get('detail', erc_status)}")
 
-        return phase.pass_(executor_id=executor_id)
+        return phase.pass_(executor_id=executor_id, worker_jwt=worker_jwt)
 
     except Exception as e:
         return phase.fail(f"Unexpected error: {e}")
 
 
 # ---------------------------------------------------------------------------
-# Phase 5: Worker applies (ERC-8128)
+# Phase 5: Worker applies (worker JWT)
 # ---------------------------------------------------------------------------
 async def phase_apply(
     client: httpx.AsyncClient,
     results: H2HFlowResults,
     task_id: str,
     executor_id: str,
+    worker_jwt: str,
 ) -> PhaseResult:
-    """Phase 5: Worker applies to the H2H task."""
-    phase = PhaseResult("apply", "Worker Application (ERC-8128)")
+    """Phase 5: Worker applies to the H2H task (Supabase JWT auth)."""
+    phase = PhaseResult("apply", "Worker Application (worker JWT)")
     _print_header("PHASE 5: WORKER APPLICATION")
 
     try:
@@ -884,7 +927,7 @@ async def phase_apply(
                 "executor_id": executor_id,
                 "message": "H2H Flow E2E test -- ready to work",
             },
-            actor="worker",
+            jwt=worker_jwt,
         )
         status = apply_data.get("_http_status")
         print(f"         Apply: HTTP {status}")
@@ -1011,9 +1054,10 @@ async def phase_submit(
     results: H2HFlowResults,
     task_id: str,
     executor_id: str,
+    worker_jwt: str,
 ) -> PhaseResult:
-    """Phase 7: Worker submits evidence."""
-    phase = PhaseResult("submit", "Worker Submission (ERC-8128)")
+    """Phase 7: Worker submits evidence (Supabase JWT auth)."""
+    phase = PhaseResult("submit", "Worker Submission (worker JWT)")
     _print_header("PHASE 7: WORKER SUBMISSION")
 
     try:
@@ -1027,7 +1071,7 @@ async def phase_submit(
                 "evidence": {"text_response": "h2h_flow_complete"},
                 "notes": "H2H Flow automated E2E submission",
             },
-            actor="worker",
+            jwt=worker_jwt,
         )
         status = submit_data.get("_http_status")
         print(f"         Submit: HTTP {status}")
@@ -1521,18 +1565,19 @@ async def run_flow(args: argparse.Namespace) -> int:
 
         await asyncio.sleep(2)
 
-        # Phase 4: Worker registration
+        # Phase 4: Worker session + executor binding
         p4 = await phase_worker_setup(client, results, worker_wallet)
         results.add(p4)
         executor_id = p4.details.get("executor_id")
-        if p4.status == "FAIL" or not executor_id:
+        worker_jwt = p4.details.get("worker_jwt")
+        if p4.status == "FAIL" or not executor_id or not worker_jwt:
             _print_summary(results, bounty, mode)
             return 1
 
         await asyncio.sleep(2)
 
         # Phase 5: Worker applies
-        p5 = await phase_apply(client, results, task_id, executor_id)
+        p5 = await phase_apply(client, results, task_id, executor_id, worker_jwt)
         results.add(p5)
         if p5.status == "FAIL":
             _print_summary(results, bounty, mode)
@@ -1557,7 +1602,7 @@ async def run_flow(args: argparse.Namespace) -> int:
             results.add(p8)
         else:
             # Phase 7: Worker submits
-            p7 = await phase_submit(client, results, task_id, executor_id)
+            p7 = await phase_submit(client, results, task_id, executor_id, worker_jwt)
             results.add(p7)
             submission_id = p7.details.get("submission_id")
             if p7.status == "FAIL" or not submission_id:
