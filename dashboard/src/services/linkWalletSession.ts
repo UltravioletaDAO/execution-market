@@ -53,17 +53,29 @@ export async function linkWalletSession({
   const message =
     `Execution Market: link wallet ${wallet} to Supabase user ${userId} at ${timestamp}`
 
-  // personal_sign is chain-agnostic, but Dynamic's getWalletClient needs some
-  // chain — Base, since every executor is funded there.
-  const walletClient = await primaryWallet.getWalletClient('8453')
-  if (!walletClient) {
-    throw new Error('Wallet client unavailable.')
+  // personal_sign is chain-agnostic. Prefer the wallet-level signMessage:
+  // getWalletClient(chainId) requires that chain to be enabled in the Dynamic
+  // environment's EVM networks, which EMBEDDED wallets enforce — a brand-new
+  // email signup died here with "EVM network not found" before the executor
+  // could even be bootstrapped. External wallets manage their own chains, so
+  // the old path only ever worked for those.
+  let signature: string | undefined
+  if (typeof primaryWallet.signMessage === 'function') {
+    signature = await primaryWallet.signMessage(message)
+    if (!signature) {
+      // Dynamic returns undefined when the user dismisses the prompt.
+      throw new Error('Signature request was cancelled.')
+    }
+  } else {
+    const walletClient = await primaryWallet.getWalletClient('8453')
+    if (!walletClient) {
+      throw new Error('Wallet client unavailable.')
+    }
+    signature = await walletClient.signMessage({
+      message,
+      account: walletClient.account,
+    })
   }
-
-  const signature = await walletClient.signMessage({
-    message,
-    account: walletClient.account,
-  })
 
   const headers = await buildAuthHeaders({
     'Content-Type': 'application/json',

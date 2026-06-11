@@ -58,17 +58,25 @@ export async function updateWalletAddress({
     `Execution Market: change wallet to ${newWallet} ` +
     `for executor ${executorId} at ${timestamp}`
 
-  // Chain id is irrelevant for personal_sign but Dynamic's getWalletClient
-  // needs *some* chain — pick Base since every executor is funded there.
-  const walletClient = await primaryWallet.getWalletClient('8453')
-  if (!walletClient) {
-    throw new Error('Wallet client unavailable.')
+  // personal_sign is chain-agnostic. Prefer the wallet-level signMessage —
+  // getWalletClient(chainId) needs the chain enabled in Dynamic's environment
+  // networks, which embedded wallets enforce ("EVM network not found").
+  let signature: string | undefined
+  if (typeof primaryWallet.signMessage === 'function') {
+    signature = await primaryWallet.signMessage(message)
+    if (!signature) {
+      throw new Error('Signature request was cancelled.')
+    }
+  } else {
+    const walletClient = await primaryWallet.getWalletClient('8453')
+    if (!walletClient) {
+      throw new Error('Wallet client unavailable.')
+    }
+    signature = await walletClient.signMessage({
+      message,
+      account: walletClient.account,
+    })
   }
-
-  const signature = await walletClient.signMessage({
-    message,
-    account: walletClient.account,
-  })
 
   const headers = await buildAuthHeaders({
     'Content-Type': 'application/json',
