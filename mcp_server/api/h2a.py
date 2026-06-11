@@ -19,6 +19,7 @@ Endpoints:
 
 import os
 import logging
+import uuid
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from typing import Optional
@@ -50,14 +51,25 @@ from models import (
 # Payment event audit trail
 from integrations.x402.payment_events import log_payment_event
 
-# Re-use canonical fee helper from routers (avoids duplication)
-from .routers._helpers import get_platform_fee_percent
+# Shared escrow chokepoint (sign-on-assignment) — see escrow_lock.py docstring
+from integrations.x402.escrow_lock import (
+    create_escrow_marker,
+    get_escrow_marker,
+    lock_with_fresh_auth,
+)
+
+# Re-use canonical helpers from routers (avoids duplication)
+from .routers._helpers import get_platform_fee_percent, get_payment_dispatcher
 
 logger = logging.getLogger(__name__)
 
 TREASURY_ADDRESS = os.environ.get(
     "EM_TREASURY_ADDRESS", "0xae07B067934975cF3DA0aa1D09cF373b0FED3661"
 )
+
+# Escrow statuses that allow a release/refund — mirror of the releasable set in
+# api/routers/_helpers.py (ESCROW-004).
+RELEASABLE_ESCROW_STATUSES = {"deposited", "funded", "locked", "active"}
 
 
 # ---------------------------------------------------------------------------
@@ -257,6 +269,20 @@ async def _check_h2a_enabled():
         )
 
 
+def _h2a_escrow_enabled() -> bool:
+    """True when human-published tasks use x402r escrow (sign-on-assignment).
+
+    Gated by ``EM_H2A_ESCROW_ENABLED`` (default off). The flag only affects
+    PUBLISH: tasks created without the escrow marker drain through the legacy
+    sign-on-approval behavior regardless of the flag's current value.
+    """
+    return os.environ.get("EM_H2A_ESCROW_ENABLED", "false").lower() in (
+        "1",
+        "true",
+        "yes",
+    )
+
+
 async def _get_h2a_bounty_limits() -> tuple[Decimal, Decimal]:
     """Get H2A bounty limits from config."""
     min_bounty = Decimal("0.01")
@@ -383,8 +409,14 @@ async def create_h2a_task(
     target_executor_type (any|human|agent|robot) — the human side of the
     universal hiring matrix. The task surfaces on the matching party's board.
 
-    Payment uses sign-on-approval: the human signs EIP-3009 authorizations
-    only when approving the completed work (no upfront funds locked).
+    Payment depends on EM_H2A_ESCROW_ENABLED:
+    - Flag ON (escrow-mode, sign-on-assignment): an ``escrows`` marker row is
+      created at publish (NO signature — the EIP-3009 nonce commits to the
+      receiver, so signing is only possible at assignment when the worker is
+      known). Requires an escrow-capable network and bounty <= $100
+      (DEPOSIT_LIMIT contract condition).
+    - Flag OFF (legacy, sign-on-approval): unchanged — the human signs
+      EIP-3009 authorizations only when approving the completed work.
     """
     await _check_h2a_enabled()
 
@@ -420,12 +452,35 @@ async def create_h2a_task(
     # Validate the stablecoin exists on the requested network. NETWORK_CONFIG is
     # the single source of truth; get_token_config raises ValueError on an
     # unsupported network or an unavailable token (e.g. PYUSD outside Ethereum).
-    from integrations.x402.sdk_client import get_token_config
+    from integrations.x402.sdk_client import get_token_config, has_escrow_support
 
     try:
         get_token_config(request.payment_network, request.payment_token)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+    # Escrow-mode validations (EM_H2A_ESCROW_ENABLED).
+    escrow_mode = _h2a_escrow_enabled()
+    if escrow_mode:
+        if not has_escrow_support(request.payment_network):
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Network '{request.payment_network}' does not support the "
+                    "x402r escrow lifecycle required for escrow-mode tasks "
+                    "(Solana is not supported yet). Choose an escrow-capable "
+                    "EVM network."
+                ),
+            )
+        if bounty > Decimal("100"):
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Bounty ${bounty} exceeds the $100 per-deposit limit "
+                    "enforced by the escrow contract (DEPOSIT_LIMIT). "
+                    "Escrow-mode tasks must have bounty <= $100."
+                ),
+            )
 
     # Calculate fees
     platform_fee_pct = await get_platform_fee_percent()
@@ -477,11 +532,59 @@ async def create_h2a_task(
 
         task = result.data[0]
 
+        if escrow_mode:
+            # Marker row (NO signature): tags the task as escrow-mode so
+            # assign/approve/cancel route through the escrow lifecycle. An
+            # escrow-mode task must never exist without its marker — roll the
+            # task back if the insert fails.
+            try:
+                await create_escrow_marker(
+                    task["id"], float(bounty), request.payment_network, wallet
+                )
+            except Exception as marker_err:
+                logger.error(
+                    "H2A escrow marker creation failed for task %s: %s "
+                    "-- rolling back task",
+                    task["id"],
+                    marker_err,
+                )
+                try:
+                    client.table("tasks").delete().eq("id", task["id"]).execute()
+                except Exception as del_err:
+                    logger.error(
+                        "H2A task rollback failed for task %s: %s",
+                        task["id"],
+                        del_err,
+                    )
+                raise HTTPException(
+                    status_code=500,
+                    detail=(
+                        "Task creation failed: escrow marker could not be "
+                        "created. No task was published."
+                    ),
+                )
+
+            # Parity with the A2A publish flow: the expiry sweep
+            # (jobs/task_expiration.py) keys its auto-refund on tasks.escrow_id,
+            # which only the agent publish path used to set. Best-effort —
+            # cancel/refund still work without it.
+            try:
+                client.table("tasks").update(
+                    {"escrow_id": f"escrow_{task['id'][:8]}"}
+                ).eq("id", task["id"]).execute()
+            except Exception as eid_err:
+                logger.warning(
+                    "Could not set escrow_id on H2A task %s: %s",
+                    task["id"],
+                    eid_err,
+                )
+
         logger.info(
-            "H2A task created: task_id=%s, user=%s, bounty=$%s",
+            "H2A task created: task_id=%s, user=%s, bounty=$%s, escrow_mode=%s",
             task["id"],
             auth.user_id,
             bounty,
+            escrow_mode,
         )
 
         return H2ATaskResponse(
@@ -637,6 +740,27 @@ async def get_h2a_task(
         task.pop("human_wallet", None)
         task.pop("human_user_id", None)
 
+        # Expose escrow state so the frontend can detect escrow-mode /
+        # escrow-locked tasks (sign-on-assignment). Best-effort.
+        try:
+            esc_res = (
+                client.table("escrows")
+                .select("status, funding_tx")
+                .eq("task_id", task_id)
+                .limit(1)
+                .execute()
+            )
+            esc_rows = esc_res.data or []
+            if esc_rows and isinstance(esc_rows[0], dict):
+                task["escrow_status"] = esc_rows[0].get("status")
+                task["escrow_tx"] = esc_rows[0].get("funding_tx") or task.get(
+                    "escrow_tx"
+                )
+        except Exception as esc_err:
+            logger.warning(
+                "Could not load escrow state for H2A task %s: %s", task_id, esc_err
+            )
+
         return task
 
     except HTTPException:
@@ -788,8 +912,13 @@ class H2AAssignRequest(BaseModel):
     summary="Assign Worker to Task",
     description=(
         "Assign a worker who applied to an H2A task. Only the human publisher "
-        "can assign. H2A is sign-on-approval, so NO escrow is locked here — "
-        "funds move only when the publisher approves the completed work."
+        "can assign. Escrow-mode tasks (published with EM_H2A_ESCROW_ENABLED) "
+        "require an X-Payment-Auth header: the publisher signs the EIP-3009 "
+        "escrow authorization for the chosen worker at assignment "
+        "(sign-on-assignment) and funds are locked on-chain before the "
+        "assignment is final. Legacy tasks (no escrow marker) keep the "
+        "sign-on-approval behavior: status-only assign, funds move only when "
+        "the publisher approves the completed work."
     ),
     tags=["H2A Marketplace"],
 )
@@ -797,13 +926,27 @@ async def assign_h2a_worker(
     task_id: str = Path(..., min_length=36, max_length=36),
     request: H2AAssignRequest = ...,
     auth: JWTData = Depends(verify_jwt_auth),
+    x_payment_auth: Optional[str] = Header(None, alias="X-Payment-Auth"),
 ):
-    """Assign an applied worker. Sets executor + status=accepted, no escrow lock."""
+    """Assign an applied worker.
+
+    Escrow-mode (task has a pending_assignment escrow marker): requires
+    X-Payment-Auth signed for the chosen worker (the EIP-3009 nonce =
+    getHash(paymentInfo) commits to the receiver). The task is moved to
+    accepted FIRST, then the escrow is locked via lock_with_fresh_auth();
+    on any lock failure the assignment is rolled back to published.
+
+    Legacy drain (no marker): status-only assign, exactly the historical
+    sign-on-approval behavior — no escrow is touched.
+    """
     try:
         client = db.get_client()
         task_result = (
             client.table("tasks")
-            .select("id, human_user_id, publisher_type, status")
+            .select(
+                "id, human_user_id, human_wallet, publisher_type, status, "
+                "bounty_usd, payment_network, payment_token"
+            )
             .eq("id", task_id)
             .single()
             .execute()
@@ -840,8 +983,133 @@ async def assign_h2a_worker(
                 status_code=404, detail="That worker has not applied to this task."
             )
 
-        # Assign: set executor + move to accepted. Sign-on-approval means no
-        # escrow is touched here.
+        marker = await get_escrow_marker(task_id)
+
+        if marker:
+            # ── Escrow-mode: sign-on-assignment ──
+            if not x_payment_auth:
+                raise HTTPException(
+                    status_code=402,
+                    detail=(
+                        "This task is escrow-mode: the publisher must sign the "
+                        "EIP-3009 escrow authorization for the chosen worker "
+                        "and send it in the X-Payment-Auth header. Use "
+                        "GET /api/v1/h2a/payment-config to build the "
+                        "paymentInfo for the task's network."
+                    ),
+                )
+
+            # Resolve the worker wallet BEFORE any mutation.
+            exec_result = (
+                client.table("executors")
+                .select("wallet_address")
+                .eq("id", request.executor_id)
+                .limit(1)
+                .execute()
+            )
+            exec_rows = exec_result.data or []
+            worker_wallet = (
+                exec_rows[0].get("wallet_address")
+                if exec_rows and isinstance(exec_rows[0], dict)
+                else None
+            )
+            if not worker_wallet:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        "Worker has no wallet address linked — cannot lock "
+                        "escrow for this assignment."
+                    ),
+                )
+
+            dispatcher = get_payment_dispatcher()
+
+            # Assignment first, lock second (mirrors the REST assign flow);
+            # rolled back below if the lock does not land.
+            client.table("tasks").update(
+                {"executor_id": request.executor_id, "status": "accepted"}
+            ).eq("id", task_id).execute()
+
+            lock = await lock_with_fresh_auth(
+                task_id,
+                task,
+                worker_wallet,
+                x_payment_auth,
+                dispatcher,
+                expected_payer=task.get("human_wallet") or "",
+            )
+
+            if lock.get("status") == "locked":
+                # Mark the chosen application accepted; the rest rejected.
+                client.table("task_applications").update({"status": "accepted"}).eq(
+                    "task_id", task_id
+                ).eq("executor_id", request.executor_id).execute()
+                client.table("task_applications").update({"status": "rejected"}).eq(
+                    "task_id", task_id
+                ).neq("executor_id", request.executor_id).execute()
+
+                logger.info(
+                    "H2A task assigned with escrow lock: task=%s, executor=%s, "
+                    "user=%s, tx=%s",
+                    task_id,
+                    request.executor_id,
+                    auth.user_id,
+                    lock.get("escrow_tx"),
+                )
+
+                return {
+                    "status": "accepted",
+                    "task_id": task_id,
+                    "executor_id": request.executor_id,
+                    "escrow_tx": lock.get("escrow_tx"),
+                }
+
+            # Lock did not land — roll the assignment back to published.
+            try:
+                client.table("tasks").update(
+                    {"status": "published", "executor_id": None}
+                ).eq("id", task_id).execute()
+            except Exception as revert_err:
+                logger.error(
+                    "H2A assign rollback failed: task=%s, error=%s",
+                    task_id,
+                    revert_err,
+                )
+
+            if lock.get("status") == "invalid_auth":
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        "Invalid escrow authorization: "
+                        f"{lock.get('error', 'validation failed')}"
+                    ),
+                )
+            if lock.get("status") == "lock_failed":
+                _ref = str(uuid.uuid4())[:8]
+                logger.error(
+                    "H2A escrow lock failed for task %s [ref=%s]: %s",
+                    task_id,
+                    _ref,
+                    lock.get("error"),
+                )
+                raise HTTPException(
+                    status_code=402,
+                    detail=(
+                        f"Escrow lock failed. Task remains published (ref: {_ref})."
+                    ),
+                )
+            raise HTTPException(
+                status_code=502,
+                detail=(
+                    "Escrow lock error: "
+                    f"{lock.get('error', 'unexpected failure')}. "
+                    "Task remains published."
+                ),
+            )
+
+        # ── Legacy drain (no escrow marker): sign-on-approval ──
+        # Assign: set executor + move to accepted. No escrow is touched here;
+        # funds move only when the publisher approves the completed work.
         client.table("tasks").update(
             {"executor_id": request.executor_id, "status": "accepted"}
         ).eq("id", task_id).execute()
@@ -887,13 +1155,21 @@ async def approve_h2a_submission(
     auth: JWTData = Depends(verify_jwt_auth),
 ):
     """
-    Human approves agent's work and provides signed payment authorizations.
+    Human approves agent's work.
 
-    For verdict='accepted':
-    - settlement_auth_worker: EIP-3009 auth (human → agent, bounty amount)
-    - settlement_auth_fee: EIP-3009 auth (human → treasury, 13% fee)
+    For verdict='accepted', the payment path depends on the task's escrow:
+    - Escrow-mode (releasable escrows row — sign-on-assignment tasks): the
+      locked escrow is released to the worker via the Facilitator (1 TX,
+      atomic 87/13 split on-chain). NO settlement signatures are needed;
+      settlement_auth_* fields are ignored if sent.
+    - Legacy (no escrow): sign-on-approval — requires both signatures:
+      - settlement_auth_worker: EIP-3009 auth (human → agent, bounty amount)
+      - settlement_auth_fee: EIP-3009 auth (human → treasury, 13% fee)
+      Both are settled via the Facilitator for gasless on-chain transfer.
 
-    Both signatures are settled via the Facilitator for gasless on-chain transfer.
+    For verdict='rejected' / 'needs_revision': NO escrow operation happens —
+    a locked escrow stays locked. Refund only via cancel or deadline expiry
+    (mirrors the A2A flow).
     """
     try:
         # Validate task ownership
@@ -946,18 +1222,11 @@ async def approve_h2a_submission(
         agent_wallet = executor.get("wallet_address")
 
         if request.verdict == "accepted":
-            # Validate signatures are provided
-            if not request.settlement_auth_worker or not request.settlement_auth_fee:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Payment signatures required for approval "
-                    "(settlement_auth_worker and settlement_auth_fee)",
-                )
-
             # Anti-self-collusion (F-04): the worker being paid must not be the
             # publisher paying. Same guard style as SC-010 in payment_dispatcher
             # (worker != treasury/operator/payer). Blocks a publisher from
             # funding a task and approving their own wallet as the worker.
+            # Applies to BOTH payment branches (escrow release and legacy).
             human_wallet = (task.get("human_wallet") or "").lower()
             worker_wallet = (agent_wallet or "").lower()
             if human_wallet and worker_wallet and human_wallet == worker_wallet:
@@ -974,109 +1243,181 @@ async def approve_h2a_submission(
 
             # Post-onramp hold period (F-04): block payout while a recent
             # card-funded onramp is still reversible. No-op unless MoonPay is
-            # enabled AND EM_ONRAMP_PAYOUT_HOLD_HOURS > 0.
+            # enabled AND EM_ONRAMP_PAYOUT_HOLD_HOURS > 0. Both branches.
             _hold_blocked, _hold_reason = await _onramp_hold_active(
                 task.get("human_wallet") or ""
             )
             if _hold_blocked:
                 raise HTTPException(status_code=403, detail=_hold_reason)
 
-            # Settlement via Facilitator — imitate the external-agent path
-            # (_settle_external_auths): extract each base64 X-Payment header that
-            # the web publisher signed and settle worker (bounty) + fee (treasury)
-            # through the SDK client, gasless. This is the SAME settlement the
-            # KK agents use; the only difference is the signer (browser human vs
-            # programmatic agent).
+            # Detect a releasable escrow (sign-on-assignment tasks locked at
+            # assignment). Best-effort lookup: on error fall through to legacy.
+            esc_status = ""
+            try:
+                esc_res = (
+                    client.table("escrows")
+                    .select("id, status, funding_tx")
+                    .eq("task_id", task_id)
+                    .limit(1)
+                    .execute()
+                )
+                esc_rows = esc_res.data or []
+                if esc_rows and isinstance(esc_rows[0], dict):
+                    esc_status = str(esc_rows[0].get("status") or "").lower()
+            except Exception as esc_err:
+                logger.warning(
+                    "H2A approve: escrow lookup failed for task %s: %s",
+                    task_id,
+                    esc_err,
+                )
+
             worker_tx = None
             fee_tx = None
 
-            try:
-                from integrations.x402.sdk_client import get_sdk, SDK_AVAILABLE
+            if esc_status in RELEASABLE_ESCROW_STATUSES:
+                # ── Escrow-mode release: gasless 1-TX via Facilitator with
+                # atomic on-chain fee split. settlement_auth_* are IGNORED —
+                # the funds are already locked in escrow.
+                dispatcher = get_payment_dispatcher()
+                if not dispatcher:
+                    raise HTTPException(
+                        status_code=502,
+                        detail=(
+                            "Payment dispatcher unavailable — cannot release "
+                            "escrow. Task status unchanged."
+                        ),
+                    )
 
-                if not SDK_AVAILABLE:
-                    raise RuntimeError("x402 SDK unavailable")
-                sdk = get_sdk()
-                if not sdk:
-                    raise RuntimeError("x402 SDK not initialised")
-
-                fee_pct = await get_platform_fee_percent()
-                bounty_amount = Decimal(str(task.get("bounty_usd", 0)))
-                platform_fee = (bounty_amount * fee_pct).quantize(Decimal("0.000001"))
                 network = task.get("payment_network") or "base"
                 token = task.get("payment_token") or "USDC"
-
-                settle_result = await sdk._settle_external_auths(
+                release = await dispatcher.release_direct_to_worker(
                     task_id=task_id,
-                    worker_address=agent_wallet,
-                    bounty_amount=bounty_amount,
-                    platform_fee=platform_fee,
-                    worker_auth_header=request.settlement_auth_worker,
-                    fee_auth_header=request.settlement_auth_fee,
                     network=network,
                     token=token,
                 )
-
-                if not settle_result.get("success"):
-                    raise RuntimeError(
-                        settle_result.get("error") or "settlement failed"
+                if not release.get("success"):
+                    err = release.get("error") or "release failed"
+                    logger.error(
+                        "H2A escrow release failed: task=%s, error=%s",
+                        task_id,
+                        err,
                     )
-                worker_tx = settle_result.get("tx_hash")
-                fee_tx = settle_result.get("fee_tx_hash")
-            except Exception as e:
-                logger.error("H2A payment settlement failed: %s", str(e))
-                # Log the failure as a payment event
+                    raise HTTPException(
+                        status_code=502,
+                        detail=(
+                            f"Escrow release failed: {err}. Task status unchanged."
+                        ),
+                    )
+                worker_tx = release.get("tx_hash")
+                fee_tx = release.get("fee_distribute_tx")
+            else:
+                # ── Legacy sign-on-approval: requires both signatures.
+                if (
+                    not request.settlement_auth_worker
+                    or not request.settlement_auth_fee
+                ):
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Payment signatures required for approval "
+                        "(settlement_auth_worker and settlement_auth_fee)",
+                    )
+
+                # Settlement via Facilitator — imitate the external-agent path
+                # (_settle_external_auths): extract each base64 X-Payment header
+                # that the web publisher signed and settle worker (bounty) + fee
+                # (treasury) through the SDK client, gasless. This is the SAME
+                # settlement the KK agents use; the only difference is the
+                # signer (browser human vs programmatic agent).
+                try:
+                    from integrations.x402.sdk_client import get_sdk, SDK_AVAILABLE
+
+                    if not SDK_AVAILABLE:
+                        raise RuntimeError("x402 SDK unavailable")
+                    sdk = get_sdk()
+                    if not sdk:
+                        raise RuntimeError("x402 SDK not initialised")
+
+                    fee_pct = await get_platform_fee_percent()
+                    bounty_amount = Decimal(str(task.get("bounty_usd", 0)))
+                    platform_fee = (bounty_amount * fee_pct).quantize(
+                        Decimal("0.000001")
+                    )
+                    network = task.get("payment_network") or "base"
+                    token = task.get("payment_token") or "USDC"
+
+                    settle_result = await sdk._settle_external_auths(
+                        task_id=task_id,
+                        worker_address=agent_wallet,
+                        bounty_amount=bounty_amount,
+                        platform_fee=platform_fee,
+                        worker_auth_header=request.settlement_auth_worker,
+                        fee_auth_header=request.settlement_auth_fee,
+                        network=network,
+                        token=token,
+                    )
+
+                    if not settle_result.get("success"):
+                        raise RuntimeError(
+                            settle_result.get("error") or "settlement failed"
+                        )
+                    worker_tx = settle_result.get("tx_hash")
+                    fee_tx = settle_result.get("fee_tx_hash")
+                except Exception as e:
+                    logger.error("H2A payment settlement failed: %s", str(e))
+                    # Log the failure as a payment event
+                    try:
+                        await log_payment_event(
+                            event_type="h2a_settle_error",
+                            task_id=task_id,
+                            tx_hash=None,
+                            amount_usdc=task.get("bounty_usd"),
+                            from_address=task.get("human_wallet"),
+                            to_address=agent_wallet,
+                            metadata={
+                                "submission_id": request.submission_id,
+                                "error": str(e),
+                            },
+                        )
+                    except Exception:
+                        pass
+                    # Settlement failed — do NOT update task/submission status
+                    raise HTTPException(
+                        status_code=502,
+                        detail=f"Payment settlement failed: {str(e)}. Task status unchanged.",
+                    )
+
+                # Log payment events (legacy 2-transfer settlement only — the
+                # escrow branch logs 'escrow_release' inside the dispatcher).
                 try:
                     await log_payment_event(
-                        event_type="h2a_settle_error",
+                        event_type="h2a_settle_worker",
                         task_id=task_id,
-                        tx_hash=None,
+                        tx_hash=worker_tx,
                         amount_usdc=task.get("bounty_usd"),
                         from_address=task.get("human_wallet"),
                         to_address=agent_wallet,
                         metadata={
                             "submission_id": request.submission_id,
-                            "error": str(e),
+                            "publisher_type": "human",
                         },
                     )
-                except Exception:
-                    pass
-                # Settlement failed — do NOT update task/submission status
-                raise HTTPException(
-                    status_code=502,
-                    detail=f"Payment settlement failed: {str(e)}. Task status unchanged.",
-                )
-
-            # Log payment events
-            try:
-                await log_payment_event(
-                    event_type="h2a_settle_worker",
-                    task_id=task_id,
-                    tx_hash=worker_tx,
-                    amount_usdc=task.get("bounty_usd"),
-                    from_address=task.get("human_wallet"),
-                    to_address=agent_wallet,
-                    metadata={
-                        "submission_id": request.submission_id,
-                        "publisher_type": "human",
-                    },
-                )
-                await log_payment_event(
-                    event_type="h2a_settle_fee",
-                    task_id=task_id,
-                    tx_hash=fee_tx,
-                    amount_usdc=float(
-                        Decimal(str(task.get("bounty_usd", 0)))
-                        * await get_platform_fee_percent()
-                    ),
-                    from_address=task.get("human_wallet"),
-                    to_address=TREASURY_ADDRESS,
-                    metadata={
-                        "submission_id": request.submission_id,
-                        "publisher_type": "human",
-                    },
-                )
-            except Exception as e:
-                logger.warning("Failed to log H2A payment events: %s", e)
+                    await log_payment_event(
+                        event_type="h2a_settle_fee",
+                        task_id=task_id,
+                        tx_hash=fee_tx,
+                        amount_usdc=float(
+                            Decimal(str(task.get("bounty_usd", 0)))
+                            * await get_platform_fee_percent()
+                        ),
+                        from_address=task.get("human_wallet"),
+                        to_address=TREASURY_ADDRESS,
+                        metadata={
+                            "submission_id": request.submission_id,
+                            "publisher_type": "human",
+                        },
+                    )
+                except Exception as e:
+                    logger.warning("Failed to log H2A payment events: %s", e)
 
             # Update task + submission status
             try:
@@ -1112,6 +1453,9 @@ async def approve_h2a_submission(
             )
 
         elif request.verdict == "rejected":
+            # Final reject does NOT touch the escrow: a locked escrow stays
+            # locked. The publisher recovers funds via cancel (refund) or
+            # deadline expiry — mirrors the A2A flow.
             client.table("submissions").update(
                 {
                     "agent_verdict": "rejected",
@@ -1131,6 +1475,8 @@ async def approve_h2a_submission(
             )
 
         elif request.verdict == "needs_revision":
+            # needs_revision does NOT touch the escrow either: funds stay
+            # locked while the worker revises (refund only via cancel/expiry).
             client.table("submissions").update(
                 {
                     "agent_verdict": "more_info_requested",
@@ -1171,7 +1517,15 @@ async def cancel_h2a_task(
     task_id: str = Path(..., min_length=36, max_length=36),
     auth: JWTData = Depends(verify_jwt_auth),
 ):
-    """Cancel a published H2A task. Only works for published/accepted tasks."""
+    """Cancel a published/accepted H2A task.
+
+    Escrow-aware unwind:
+    - pending_assignment marker (escrow never locked): free cancel — the task
+      is cancelled and the marker row is set to 'cancelled'. No funds moved.
+    - deposited escrow (locked at assignment): on-chain refund via
+      refund_trustless_escrow(); on failure the task stays unchanged (502).
+    - no escrow rows: legacy status-only cancel, exactly as before.
+    """
     try:
         client = db.get_client()
         task_result = (
@@ -1199,6 +1553,121 @@ async def cancel_h2a_task(
                 f"Only tasks in {cancellable} can be cancelled.",
             )
 
+        # ── Escrow-mode marker, never locked → free cancel ──
+        marker = await get_escrow_marker(task_id)
+        if marker:
+            client.table("tasks").update({"status": "cancelled"}).eq(
+                "id", task_id
+            ).execute()
+            # Close the marker so the task can never lock later. Best-effort
+            # CAS on pending_assignment (a cancelled task cannot be assigned,
+            # so a stale marker is inert anyway).
+            try:
+                client.table("escrows").update({"status": "cancelled"}).eq(
+                    "task_id", task_id
+                ).eq("status", "pending_assignment").execute()
+            except Exception as esc_err:
+                logger.warning(
+                    "Could not cancel escrow marker for task %s: %s",
+                    task_id,
+                    esc_err,
+                )
+
+            logger.info(
+                "H2A escrow-mode task cancelled pre-lock (free): task=%s, user=%s",
+                task_id,
+                auth.user_id,
+            )
+            return {"status": "cancelled", "task_id": task_id}
+
+        # ── Deposited escrow → on-chain refund, then cancel ──
+        esc_status = ""
+        try:
+            esc_res = (
+                client.table("escrows")
+                .select("id, status")
+                .eq("task_id", task_id)
+                .limit(1)
+                .execute()
+            )
+            esc_rows = esc_res.data or []
+            if esc_rows and isinstance(esc_rows[0], dict):
+                esc_status = str(esc_rows[0].get("status") or "").lower()
+        except Exception as esc_err:
+            logger.warning(
+                "H2A cancel: escrow lookup failed for task %s: %s",
+                task_id,
+                esc_err,
+            )
+
+        if esc_status in RELEASABLE_ESCROW_STATUSES:
+            dispatcher = get_payment_dispatcher()
+            if not dispatcher:
+                raise HTTPException(
+                    status_code=502,
+                    detail=(
+                        "Payment dispatcher unavailable — cannot refund "
+                        "escrow. Task status unchanged."
+                    ),
+                )
+
+            refund = await dispatcher.refund_trustless_escrow(
+                task_id=task_id, reason="h2a_cancel"
+            )
+            if not refund.get("success"):
+                err = refund.get("error") or "refund failed"
+                logger.error(
+                    "H2A escrow refund failed: task=%s, error=%s", task_id, err
+                )
+                raise HTTPException(
+                    status_code=502,
+                    detail=f"Escrow refund failed: {err}. Task status unchanged.",
+                )
+
+            refund_tx = refund.get("tx_hash")
+            # The dispatcher leaves the row in the transitional 'refunding'
+            # claim state — finalize it here (mirror of the REST cancel flow
+            # in api/routers/tasks.py).
+            try:
+                client.table("escrows").update(
+                    {
+                        "status": "refunded",
+                        "refund_tx": refund_tx,
+                        "refunded_at": datetime.now(timezone.utc).isoformat(),
+                    }
+                ).eq("task_id", task_id).execute()
+            except Exception as esc_err:
+                logger.warning(
+                    "Could not mark escrow refunded for task %s: %s",
+                    task_id,
+                    esc_err,
+                )
+            try:
+                client.table("tasks").update({"refund_tx": refund_tx}).eq(
+                    "id", task_id
+                ).execute()
+            except Exception as tx_err:
+                logger.warning(
+                    "Could not store refund_tx on task %s: %s", task_id, tx_err
+                )
+
+            client.table("tasks").update({"status": "cancelled"}).eq(
+                "id", task_id
+            ).execute()
+
+            logger.info(
+                "H2A task cancelled with escrow refund: task=%s, user=%s, tx=%s",
+                task_id,
+                auth.user_id,
+                refund_tx,
+            )
+            return {
+                "status": "cancelled",
+                "task_id": task_id,
+                "refund_tx": refund_tx,
+            }
+
+        # ── Legacy (no escrow rows): status-only cancel ──
         client.table("tasks").update({"status": "cancelled"}).eq(
             "id", task_id
         ).execute()
@@ -1219,14 +1688,87 @@ async def cancel_h2a_task(
     summary="H2A Payment Config",
     description=(
         "Public fee/treasury config the web publisher needs to build the fee "
-        "EIP-3009 authorization (treasury = payTo for the platform fee)."
+        "EIP-3009 authorization (treasury = payTo for the platform fee), plus "
+        "the per-network escrow parameters needed to build the paymentInfo "
+        "for sign-on-assignment escrow locks (all public on-chain constants)."
     ),
     tags=["H2A Marketplace"],
 )
 async def get_h2a_payment_config():
-    """Treasury address + platform fee percent for browser settlement signing."""
+    """Treasury + fee percent + escrow signing parameters per network.
+
+    The ``escrow`` block lets the browser build the EXACT paymentInfo the SDK
+    builds (uvd_x402_sdk.advanced_escrow): the EIP-3009 nonce is
+    keccak(chainId, escrow, keccak(PAYMENT_INFO_TYPEHASH, paymentInfo tuple
+    with payer=0)) and the signed typed-data is ReceiveWithAuthorization over
+    the network's USDC EIP-712 domain with to=token_collector.
+    """
     fee_pct = await get_platform_fee_percent()
-    return {"treasury": TREASURY_ADDRESS, "fee_pct": float(fee_pct)}
+
+    from integrations.x402.sdk_client import NETWORK_CONFIG, has_escrow_support
+
+    # PAYMENT_INFO_TYPEHASH + tier timings come from the SDK (single source of
+    # truth); fall back to the documented protocol constants if unavailable.
+    try:
+        from uvd_x402_sdk.advanced_escrow import (
+            PAYMENT_INFO_TYPEHASH,
+            TIER_TIMINGS,
+            TaskTier,
+        )
+
+        typehash = "0x" + PAYMENT_INFO_TYPEHASH.hex()
+        micro = dict(TIER_TIMINGS[TaskTier.MICRO])
+        standard = dict(TIER_TIMINGS[TaskTier.STANDARD])
+    except Exception:
+        typehash = "0xae68ac7ce30c86ece8196b61a7c486d8f0061f575037fbd34e7fe4e2820c6591"
+        micro = {"pre": 3600, "auth": 7200, "refund": 86400}
+        standard = {"pre": 7200, "auth": 86400, "refund": 604800}
+
+    networks = {}
+    for name, cfg in NETWORK_CONFIG.items():
+        if not has_escrow_support(name):
+            continue
+        usdc = (cfg.get("tokens") or {}).get("USDC") or {}
+        domain_name = usdc.get("name")
+        domain_version = usdc.get("version")
+        if not (domain_name and domain_version):
+            # NETWORK_CONFIG is checked first; fall back to the SDK's network
+            # registry, then to the canonical USDC domain.
+            try:
+                from uvd_x402_sdk.networks import get_network_by_chain_id
+
+                sdk_net = get_network_by_chain_id(cfg.get("chain_id"))
+                if sdk_net is not None:
+                    domain_name = domain_name or sdk_net.usdc_domain_name
+                    domain_version = domain_version or sdk_net.usdc_domain_version
+            except Exception:
+                pass
+        networks[name] = {
+            "chain_id": cfg.get("chain_id"),
+            "operator": cfg.get("operator"),
+            "escrow": cfg.get("escrow"),
+            "token_collector": (cfg.get("x402r_infra") or {}).get("tokenCollector"),
+            "usdc": usdc.get("address"),
+            "usdc_domain_name": domain_name or "USD Coin",
+            "usdc_domain_version": domain_version or "2",
+        }
+
+    return {
+        "treasury": TREASURY_ADDRESS,
+        "fee_pct": float(fee_pct),
+        "escrow": {
+            "payment_info_typehash": typehash,
+            # Canonical fee bounds: max must cover the operator's 1300bps
+            # static fee; fee_receiver is the network's operator address.
+            "min_fee_bps": 0,
+            "max_fee_bps": 1800,
+            # Contract condition: $100 max per deposit.
+            "deposit_limit_usd": 100,
+            # Expiry windows (seconds, relative to now() at signing).
+            "tier_timings": {"micro": micro, "standard": standard},
+            "networks": networks,
+        },
+    }
 
 
 # ---------------------------------------------------------------------------
