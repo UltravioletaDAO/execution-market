@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-06-11 03:50 America/New_York
+> Last updated: 2026-06-11 04:34 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -8,6 +8,61 @@
 > - `CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md`
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
+
+
+## Latest June 11 04:00 handoff packet contract guard
+
+`CITY_AS_A_SERVICE_4AM_HANDOFF_PACKET_CONTRACT_GUARD_2026_06_11.md` is the current internal/admin pattern-recognition guard-hardening slice. It obeyed `/Users/clawdbot/clawd/DREAM-PRIORITIES.md` over the stale 4 AM cron payload, so AutoJob pull/analysis/integration, Frontier Academy expansion, KK v2 continuation, and KarmaCadabra v2 work remain stopped.
+
+Execution Market was synced on `feat/operator-route-regret-panel`; `git pull --ff-only` reported already up to date. Pre-existing untracked `scripts/sign_req.mjs` and `mcp_server/city_ops/tests/` were preserved and not staged.
+
+The active posture remains:
+
+```text
+pause_aas_proof_layering
+```
+
+This pass did not create another no-answer proof wrapper or any answer receipt. It hardened the deterministic 4 AM pattern-recognition ladder so future agent/runtime/memory/IRC consumers must carry a compact handoff packet contract instead of inferring authority from pattern matches. Required fields are:
+
+- `source_file`
+- `source_digest_sha256`
+- `safe_claim`
+- `blocked_claims`
+- `next_gate`
+- `recommended_posture`
+
+The new contract records that missing fields mean hold; safe claims are not permissions; blocked claims must travel with every downstream summary, IRC handoff, memory note, Acontext candidate, or future agent prompt. Without an explicit operator answer, the only allowed postures remain `pause_aas_proof_layering` and `keep_both_lanes_held`.
+
+Changed files:
+
+- `mcp_server/city_ops/aas_four_am_pattern_recognition_multiplier_ladder.py`
+- `mcp_server/city_ops/fixtures/aas_package_ladder/aas_four_am_pattern_recognition_multiplier_ladder.json`
+- `mcp_server/city_ops/fixtures/aas_package_ladder/aas_five_am_pre_dawn_synthesis_handoff.json`
+- `mcp_server/tests/city_ops/test_aas_four_am_pattern_recognition_multiplier_ladder.py`
+- `docs/planning/CITY_AS_A_SERVICE_4AM_HANDOFF_PACKET_CONTRACT_GUARD_2026_06_11.md`
+
+Safe 04:00 claim:
+
+```text
+internal_admin_aas_4am_handoff_packet_contract_guard_2026_06_11_landed
+```
+
+Meaning only: the pattern-recognition ladder now fails closed when handoff packets drop source/digest/safe-claim/blocked-claim/next-gate/posture context. It records no operator answer, approval, answer receipt, customer/public/worker copy, catalog, pricing, quote, route, queue, dispatch, runtime mutation, Acontext write/retrieve, IRC/session-manager mutation, reputation/Worker Skill DNA, payment/production reverification, exact-location/raw-metadata/private-context/PII release, authority claim, worker-copyable doctrine, or stopped-project integration.
+
+Verification passed:
+
+```text
+./.venv/bin/pytest mcp_server/tests/city_ops/test_aas_four_am_pattern_recognition_multiplier_ladder.py mcp_server/tests/city_ops/test_aas_five_am_pre_dawn_synthesis_handoff.py -q
+# 21 passed
+
+git diff --check && ./.venv/bin/pytest mcp_server/tests/city_ops -q
+# 2088 passed
+```
+
+Next valid action remains exactly one of these:
+
+1. if Saúl provides exactly one allowed AAS answer value, create one separate digest-backed answer receipt using an opaque non-secret reference and validate it through the hardened gate;
+2. otherwise hold / pause and do not add product, runtime, customer, worker, dispatch, reputation, payment, private-context, exact-location, authority, worker-doctrine, or stopped-project layers.
 
 
 ## Latest June 11 03:00 receipt ID and approval scope guard

@@ -1881,6 +1881,43 @@
       "aas_intelligence_flow_compounder.json"
     ]
   },
+  "handoff_packet_contract": {
+    "allowed_postures_without_operator_answer": [
+      "pause_aas_proof_layering",
+      "keep_both_lanes_held"
+    ],
+    "consumer_rules": [
+      {
+        "description": "If any required handoff field is absent, the consumer must preserve pause_aas_proof_layering rather than infer state from prose.",
+        "rule": "missing_field_means_hold"
+      },
+      {
+        "description": "Safe claims describe the internal/admin artifact only; they never authorize customer copy, public routes, dispatch, runtime memory, reputation, payment, exact-location release, or stopped-project work.",
+        "rule": "safe_claim_is_not_permission"
+      },
+      {
+        "description": "Every downstream summary, IRC handoff, memory note, Acontext candidate, or future agent prompt must carry blocked claims beside the source digest.",
+        "rule": "blocked_claims_travel_with_the_packet"
+      }
+    ],
+    "contract_status": "required_for_future_agent_or_runtime_consumers",
+    "forbidden_consumer_behaviors": [
+      "treat_pattern_match_as_operator_approval",
+      "drop_blocked_claims_during_summary",
+      "rewrite_safe_claim_into_customer_copy",
+      "route_to_stopped_project_codebase",
+      "mutate_live_acontext_or_irc_session_manager",
+      "emit_reputation_worker_skill_dna_or_payment_claims"
+    ],
+    "required_fields": [
+      "source_file",
+      "source_digest_sha256",
+      "safe_claim",
+      "blocked_claims",
+      "next_gate",
+      "recommended_posture"
+    ]
+  },
   "ladder_id": "execution_market.aas.pattern_recognition_multiplier_ladder.2026_06_05_0400",
   "ladder_status": "read_only_pattern_recognition_no_answer_no_runtime_or_external_promotion",
   "ladder_verdict": "pattern_recognition_multiplier_ladder_landed_internal_only",
@@ -2034,7 +2071,7 @@
     "source_role": "reviewed_cross_project_intelligence_filter"
   },
   "source_operator_answer_gate": {
-    "digest_sha256": "c54e0b5b3f2cf0e858c2e7f4d6593a2e4a81a396fec72f4c42621e6d3c67c389",
+    "digest_sha256": "f207e4039b2dc61e28c41fb9a215567dbfb85be91cdc1ccfcbb342ebffd9e356",
     "file": "aas_operator_answer_receipt_gate.json",
     "safe_claim": "internal_admin_aas_operator_answer_receipt_gate_landed",
     "source_role": "current_future_answer_contract"

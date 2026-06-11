@@ -137,6 +137,37 @@ def test_pattern_recognition_ladder_keeps_required_gates_closed() -> None:
     ]
 
 
+def test_pattern_recognition_ladder_defines_fail_closed_handoff_packet_contract() -> None:
+    ladder = build_aas_four_am_pattern_recognition_multiplier_ladder()
+    contract = ladder["handoff_packet_contract"]
+
+    assert contract["contract_status"] == "required_for_future_agent_or_runtime_consumers"
+    assert contract["required_fields"] == [
+        "source_file",
+        "source_digest_sha256",
+        "safe_claim",
+        "blocked_claims",
+        "next_gate",
+        "recommended_posture",
+    ]
+    assert set(contract["allowed_postures_without_operator_answer"]) == {
+        "pause_aas_proof_layering",
+        "keep_both_lanes_held",
+    }
+    assert "treat_pattern_match_as_operator_approval" in contract[
+        "forbidden_consumer_behaviors"
+    ]
+    assert "drop_blocked_claims_during_summary" in contract[
+        "forbidden_consumer_behaviors"
+    ]
+    assert "route_to_stopped_project_codebase" in contract[
+        "forbidden_consumer_behaviors"
+    ]
+    assert "mutate_live_acontext_or_irc_session_manager" in contract[
+        "forbidden_consumer_behaviors"
+    ]
+
+
 def test_pattern_recognition_ladder_preserves_blocked_claims() -> None:
     ladder = build_aas_four_am_pattern_recognition_multiplier_ladder()
     safe = set(ladder["claim_boundaries"]["safe_to_claim"])
@@ -207,3 +238,16 @@ def test_pattern_recognition_ladder_rejects_forbidden_safe_claim() -> None:
             answer_gate=gate,
             compounder=promoted,
         )
+
+
+def test_pattern_recognition_ladder_rejects_handoff_packet_contract_drift() -> None:
+    ladder = build_aas_four_am_pattern_recognition_multiplier_ladder()
+    drifted = copy.deepcopy(ladder)
+    drifted["handoff_packet_contract"]["required_fields"].remove("blocked_claims")
+
+    from mcp_server.city_ops.aas_four_am_pattern_recognition_multiplier_ladder import (
+        _assert_ladder_conservative,
+    )
+
+    with pytest.raises(CityOpsContractError, match="required fields drift"):
+        _assert_ladder_conservative(drifted)

@@ -225,6 +225,7 @@ def build_aas_four_am_pattern_recognition_multiplier_ladder(
         "readiness": _readiness(),
         "pattern_recognition_cards": _pattern_recognition_cards(),
         "multiplier_edges": _multiplier_edges(),
+        "handoff_packet_contract": _handoff_packet_contract(),
         "scaling_rules": _scaling_rules(),
         "next_required_gates": _next_required_gates(),
         "claim_boundaries": {
@@ -391,6 +392,46 @@ def _multiplier_edges() -> list[dict[str, str]]:
     ]
 
 
+def _handoff_packet_contract() -> dict[str, Any]:
+    return {
+        "contract_status": "required_for_future_agent_or_runtime_consumers",
+        "required_fields": [
+            "source_file",
+            "source_digest_sha256",
+            "safe_claim",
+            "blocked_claims",
+            "next_gate",
+            "recommended_posture",
+        ],
+        "consumer_rules": [
+            {
+                "rule": "missing_field_means_hold",
+                "description": "If any required handoff field is absent, the consumer must preserve pause_aas_proof_layering rather than infer state from prose.",
+            },
+            {
+                "rule": "safe_claim_is_not_permission",
+                "description": "Safe claims describe the internal/admin artifact only; they never authorize customer copy, public routes, dispatch, runtime memory, reputation, payment, exact-location release, or stopped-project work.",
+            },
+            {
+                "rule": "blocked_claims_travel_with_the_packet",
+                "description": "Every downstream summary, IRC handoff, memory note, Acontext candidate, or future agent prompt must carry blocked claims beside the source digest.",
+            },
+        ],
+        "allowed_postures_without_operator_answer": [
+            "pause_aas_proof_layering",
+            "keep_both_lanes_held",
+        ],
+        "forbidden_consumer_behaviors": [
+            "treat_pattern_match_as_operator_approval",
+            "drop_blocked_claims_during_summary",
+            "rewrite_safe_claim_into_customer_copy",
+            "route_to_stopped_project_codebase",
+            "mutate_live_acontext_or_irc_session_manager",
+            "emit_reputation_worker_skill_dna_or_payment_claims",
+        ],
+    }
+
+
 def _scaling_rules() -> list[dict[str, str]]:
     return [
         {
@@ -532,6 +573,35 @@ def _assert_ladder_conservative(ladder: dict[str, Any]) -> None:
     }
     if not required_forbidden <= forbidden_inputs:
         raise CityOpsContractError("4 AM pattern ladder missing forbidden inputs")
+    packet = ladder.get("handoff_packet_contract", {})
+    if packet.get("contract_status") != "required_for_future_agent_or_runtime_consumers":
+        raise CityOpsContractError("4 AM pattern ladder handoff packet contract status drift")
+    required_fields = packet.get("required_fields", [])
+    expected_fields = [
+        "source_file",
+        "source_digest_sha256",
+        "safe_claim",
+        "blocked_claims",
+        "next_gate",
+        "recommended_posture",
+    ]
+    if required_fields != expected_fields:
+        raise CityOpsContractError("4 AM pattern ladder handoff packet required fields drift")
+    allowed = set(packet.get("allowed_postures_without_operator_answer", []))
+    if allowed != {"pause_aas_proof_layering", "keep_both_lanes_held"}:
+        raise CityOpsContractError("4 AM pattern ladder allowed postures drift")
+    forbidden_behaviors = set(packet.get("forbidden_consumer_behaviors", []))
+    for required in [
+        "treat_pattern_match_as_operator_approval",
+        "drop_blocked_claims_during_summary",
+        "route_to_stopped_project_codebase",
+        "mutate_live_acontext_or_irc_session_manager",
+        "emit_reputation_worker_skill_dna_or_payment_claims",
+    ]:
+        if required not in forbidden_behaviors:
+            raise CityOpsContractError(
+                f"4 AM pattern ladder handoff packet missing forbidden behavior: {required}"
+            )
     _assert_claim_boundaries(
         ladder.get("claim_boundaries", {}).get("safe_to_claim", []),
         ladder.get("claim_boundaries", {}).get("do_not_claim_yet", []),
