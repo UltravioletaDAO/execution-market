@@ -221,7 +221,9 @@ class TestH2AApprovalCritical:
 
         # Mock SDK external-auth settlement to fail → approve must raise 502
         mock_sdk = AsyncMock()
-        mock_sdk._settle_external_auths.side_effect = Exception("Settlement RPC timeout")
+        mock_sdk._settle_external_auths.side_effect = Exception(
+            "Settlement RPC timeout"
+        )
 
         with patch("api.h2a.db.get_client", return_value=mock_client):
             with patch(
