@@ -1877,7 +1877,7 @@
       "admin_aas_coordination_multiplier_pattern_map_landed",
       "admin_aas_intelligence_flow_compounder_landed",
       "internal_admin_aas_4am_pattern_recognition_multiplier_ladder_landed",
-      "internal_admin_aas_5am_pre_dawn_synthesis_handoff_landed"
+      "internal_admin_aas_5am_pre_dawn_synthesis_handoff_2026_06_11_landed"
     ]
   },
   "daytime_recommendations": [
@@ -1960,9 +1960,33 @@
       "blocked_claim_count": 670,
       "card": "blocked_surface",
       "summary": "No public/customer/worker route, queue, dispatch, reputation, Worker Skill DNA, payment, production, GPS/raw metadata, or private-context claim is authorized."
+    },
+    {
+      "card": "handoff_packet_contract",
+      "source_contract_status": "required_for_future_agent_or_runtime_consumers",
+      "summary": "Future consumers must carry source_file, source_digest_sha256, safe_claim, blocked_claims, next_gate, and recommended_posture; missing fields mean hold."
     }
   ],
-  "handoff_id": "execution_market.aas.pre_dawn_synthesis_handoff.2026_06_05_0500",
+  "handoff_id": "execution_market.aas.pre_dawn_synthesis_handoff.2026_06_11_0500",
+  "handoff_packet_contract_synthesis": {
+    "blocked_behavior_count": 6,
+    "consumer_rules_to_preserve": [
+      "missing_field_means_hold",
+      "safe_claim_is_not_permission",
+      "blocked_claims_travel_with_the_packet"
+    ],
+    "daytime_operating_rule": "Any daytime summary, Acontext candidate, IRC handoff, memory note, or future agent prompt must carry the six required fields before it can recommend action.",
+    "fail_closed_posture": "pause_aas_proof_layering",
+    "required_fields": [
+      "source_file",
+      "source_digest_sha256",
+      "safe_claim",
+      "blocked_claims",
+      "next_gate",
+      "recommended_posture"
+    ],
+    "source_contract_status": "required_for_future_agent_or_runtime_consumers"
+  },
   "handoff_status": "read_only_synthesis_no_answer_no_runtime_or_external_promotion",
   "handoff_verdict": "five_am_pre_dawn_synthesis_landed_internal_only",
   "integration_synthesis": [
@@ -1991,7 +2015,7 @@
       "system": "agent_coordination"
     }
   ],
-  "operator_instruction": "Use this as the June 5 daytime handoff: preserve the stopped-project firewall, keep AAS in no-answer hold unless one explicit allowed operator value exists, and treat all integration ideas as internal/admin decision support until a separate answer receipt validates movement.",
+  "operator_instruction": "Use this as the June 11 daytime handoff: preserve the stopped-project firewall, keep AAS in no-answer hold unless one explicit allowed operator value exists, and treat all integration ideas as internal/admin decision support until a separate answer receipt validates movement.",
   "readiness": {
     "catalog_visible": false,
     "customer_visible": false,
@@ -2003,6 +2027,7 @@
     "exact_gps_or_raw_metadata_release_allowed": false,
     "five_am_handoff_landed": true,
     "future_answer_receipt_created": false,
+    "handoff_packet_contract_consumed": true,
     "irc_session_manager_mutated": false,
     "live_acontext_write_or_retrieval_enabled": false,
     "night_insights_synthesized": true,
@@ -2066,6 +2091,7 @@
     "synthesis_selects_future_answer": false,
     "synthesis_uses_stopped_projects_as_active_sources": false,
     "synthesis_writes_live_acontext": false,
+    "tonights_guardrails_synthesized": true,
     "worker_copyable_doctrine_ready": false,
     "worker_skill_dna_ready": false,
     "worker_visible": false
@@ -2087,7 +2113,7 @@
     ]
   },
   "source_pattern_ladder": {
-    "digest_sha256": "20438b0669de17fa4a4786346f5491a6f1e25eb23f3f703915c08e7da787d329",
+    "digest_sha256": "b091664a71e308ed4faa5ccdefcc5a79ea71420f843474e65360f22021a6559f",
     "file": "aas_four_am_pattern_recognition_multiplier_ladder.json",
     "safe_claim": "internal_admin_aas_4am_pattern_recognition_multiplier_ladder_landed",
     "source_role": "current_4am_pattern_recognition_multiplier_ladder"

@@ -1,6 +1,6 @@
 """Internal/admin 5 AM pre-dawn synthesis handoff for AAS.
 
-This artifact synthesizes the June 5 dream-session ladder into a daytime
+This artifact synthesizes the June 11 dream-session ladder into a daytime
 operations handoff without crossing the current AAS no-answer boundary. It
 consumes only the reviewed 4 AM pattern-recognition multiplier ladder and turns
 it into actionable daytime recommendations, integration connections, and strict
@@ -40,10 +40,10 @@ AAS_FIVE_AM_PRE_DAWN_SYNTHESIS_HANDOFF_FILENAME = (
     "aas_five_am_pre_dawn_synthesis_handoff.json"
 )
 AAS_FIVE_AM_PRE_DAWN_SYNTHESIS_HANDOFF_SAFE_CLAIM = (
-    "internal_admin_aas_5am_pre_dawn_synthesis_handoff_landed"
+    "internal_admin_aas_5am_pre_dawn_synthesis_handoff_2026_06_11_landed"
 )
 AAS_FIVE_AM_PRE_DAWN_SYNTHESIS_HANDOFF_ID = (
-    "execution_market.aas.pre_dawn_synthesis_handoff.2026_06_05_0500"
+    "execution_market.aas.pre_dawn_synthesis_handoff.2026_06_11_0500"
 )
 AAS_FIVE_AM_PRE_DAWN_SYNTHESIS_HANDOFF_STATUS = (
     "read_only_synthesis_no_answer_no_runtime_or_external_promotion"
@@ -185,6 +185,7 @@ def build_aas_five_am_pre_dawn_synthesis_handoff(
         "access_policy": _access_policy(),
         "readiness": _readiness(),
         "integration_synthesis": _integration_synthesis(source),
+        "handoff_packet_contract_synthesis": _handoff_packet_contract_synthesis(source),
         "daytime_recommendations": _daytime_recommendations(),
         "handoff_cards": _handoff_cards(source),
         "claim_boundaries": {
@@ -193,7 +194,7 @@ def build_aas_five_am_pre_dawn_synthesis_handoff(
         },
         "handoff_verdict": "five_am_pre_dawn_synthesis_landed_internal_only",
         "operator_instruction": (
-            "Use this as the June 5 daytime handoff: preserve the stopped-project "
+            "Use this as the June 11 daytime handoff: preserve the stopped-project "
             "firewall, keep AAS in no-answer hold unless one explicit allowed "
             "operator value exists, and treat all integration ideas as internal/admin "
             "decision support until a separate answer receipt validates movement."
@@ -302,9 +303,11 @@ def _readiness() -> dict[str, bool]:
         "five_am_handoff_landed": True,
         "source_pattern_ladder_consumed": True,
         "night_insights_synthesized": True,
+        "tonights_guardrails_synthesized": True,
         "daytime_recommendations_documented": True,
         "stopped_project_firewall_preserved": True,
         "operator_answer_gate_preserved": True,
+        "handoff_packet_contract_consumed": True,
     }
     readiness.update(SYNTHESIS_FALSE_FLAGS)
     return readiness
@@ -338,6 +341,21 @@ def _integration_synthesis(source: dict[str, Any]) -> list[dict[str, str]]:
             "blocked_until": "internal metric gate with no public/customer/worker visibility",
         },
     ]
+
+
+def _handoff_packet_contract_synthesis(source: dict[str, Any]) -> dict[str, Any]:
+    contract = source["handoff_packet_contract"]
+    return {
+        "source_contract_status": contract["contract_status"],
+        "required_fields": list(contract["required_fields"]),
+        "consumer_rules_to_preserve": [rule["rule"] for rule in contract["consumer_rules"]],
+        "daytime_operating_rule": (
+            "Any daytime summary, Acontext candidate, IRC handoff, memory note, or future "
+            "agent prompt must carry the six required fields before it can recommend action."
+        ),
+        "fail_closed_posture": "pause_aas_proof_layering",
+        "blocked_behavior_count": len(contract["forbidden_consumer_behaviors"]),
+    }
 
 
 def _daytime_recommendations() -> list[dict[str, str]]:
@@ -386,6 +404,11 @@ def _handoff_cards(source: dict[str, Any]) -> list[dict[str, Any]]:
             "summary": "No public/customer/worker route, queue, dispatch, reputation, Worker Skill DNA, payment, production, GPS/raw metadata, or private-context claim is authorized.",
             "blocked_claim_count": len(FIVE_AM_SYNTHESIS_BLOCKED_CLAIMS),
         },
+        {
+            "card": "handoff_packet_contract",
+            "summary": "Future consumers must carry source_file, source_digest_sha256, safe_claim, blocked_claims, next_gate, and recommended_posture; missing fields mean hold.",
+            "source_contract_status": source["handoff_packet_contract"]["contract_status"],
+        },
     ]
 
 
@@ -407,6 +430,20 @@ def _assert_ladder_conservative(ladder: dict[str, Any]) -> None:
     for key, expected in LADDER_FALSE_FLAGS.items():
         if ladder.get("readiness", {}).get(key) is not expected:
             raise CityOpsContractError(f"5 AM synthesis source ladder promoted {key}")
+    contract = ladder.get("handoff_packet_contract", {})
+    required_fields = set(contract.get("required_fields", []))
+    missing_required = {
+        "source_file",
+        "source_digest_sha256",
+        "safe_claim",
+        "blocked_claims",
+        "next_gate",
+        "recommended_posture",
+    } - required_fields
+    if missing_required:
+        raise CityOpsContractError(
+            f"5 AM synthesis source ladder missing handoff packet fields: {sorted(missing_required)}"
+        )
 
 
 def _assert_claim_boundaries(safe_to_claim: list[str], do_not_claim_yet: list[str]) -> None:
@@ -466,3 +503,9 @@ def _assert_handoff_conservative(handoff: dict[str, Any]) -> None:
         handoff.get("claim_boundaries", {}).get("safe_to_claim", []),
         handoff.get("claim_boundaries", {}).get("do_not_claim_yet", []),
     )
+    contract = handoff.get("handoff_packet_contract_synthesis", {})
+    if contract.get("fail_closed_posture") != "pause_aas_proof_layering":
+        raise CityOpsContractError("5 AM synthesis handoff packet posture drift")
+    required = set(contract.get("required_fields", []))
+    if "blocked_claims" not in required or "recommended_posture" not in required:
+        raise CityOpsContractError("5 AM synthesis handoff packet fields drift")

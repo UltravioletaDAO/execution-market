@@ -114,6 +114,30 @@ def test_five_am_handoff_connects_requested_systems_without_authority() -> None:
     assert "boundary survival" in systems["agent_coordination"]["daytime_use"]
 
 
+def test_five_am_handoff_consumes_handoff_packet_contract() -> None:
+    handoff = build_aas_five_am_pre_dawn_synthesis_handoff()
+    contract = handoff["handoff_packet_contract_synthesis"]
+
+    assert contract["source_contract_status"] == "required_for_future_agent_or_runtime_consumers"
+    assert contract["fail_closed_posture"] == "pause_aas_proof_layering"
+    assert set(contract["required_fields"]) == {
+        "source_file",
+        "source_digest_sha256",
+        "safe_claim",
+        "blocked_claims",
+        "next_gate",
+        "recommended_posture",
+    }
+    assert "missing_field_means_hold" in contract["consumer_rules_to_preserve"]
+    assert "blocked_claims_travel_with_the_packet" in contract["consumer_rules_to_preserve"]
+    assert contract["blocked_behavior_count"] >= 5
+
+    cards = {card["card"]: card for card in handoff["handoff_cards"]}
+    assert cards["handoff_packet_contract"]["source_contract_status"] == contract[
+        "source_contract_status"
+    ]
+
+
 def test_five_am_handoff_preserves_blocked_claims() -> None:
     handoff = build_aas_five_am_pre_dawn_synthesis_handoff()
     safe = set(handoff["claim_boundaries"]["safe_to_claim"])
@@ -156,4 +180,15 @@ def test_five_am_handoff_rejects_forbidden_safe_claim() -> None:
     promoted["claim_boundaries"]["safe_to_claim"].append("dispatch_ready")
 
     with pytest.raises(CityOpsContractError, match="forbidden safe claims"):
+        build_aas_five_am_pre_dawn_synthesis_handoff(ladder=promoted)
+
+
+def test_five_am_handoff_rejects_source_ladder_missing_packet_fields() -> None:
+    ladder = json.loads(
+        (ARTIFACT_DIR / AAS_FOUR_AM_PATTERN_RECOGNITION_MULTIPLIER_LADDER_FILENAME).read_text()
+    )
+    promoted = copy.deepcopy(ladder)
+    promoted["handoff_packet_contract"]["required_fields"].remove("blocked_claims")
+
+    with pytest.raises(CityOpsContractError, match="missing handoff packet fields"):
         build_aas_five_am_pre_dawn_synthesis_handoff(ladder=promoted)

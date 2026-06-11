@@ -1715,11 +1715,25 @@
   },
   "current_entrypoints": [
     {
-      "digest_sha256": "4625aabff568e2e50d7ba8eaabb2fea7125bbe2bb27a95fd8e637d3a1b675ce6",
+      "digest_sha256": "9bf74cea968abd5dfe0a6735c288a1984907bf4d53bd496b1f869d69c88dbf85",
       "exists": true,
       "extension_policy": "current_entrypoint_update_only_when_new_safe_claim_lands",
       "path": "docs/planning/CITY_AS_A_SERVICE_DAYTIME_EXECUTION_BOARD.md",
       "role": "latest_append_only_execution_board"
+    },
+    {
+      "digest_sha256": "e621355d54d5d06d0630911d1105bd3b8394ec8523b848175aa5bb6f8e2605ee",
+      "exists": true,
+      "extension_policy": "current_read_only_daytime_handoff_no_answer_runtime_payment_or_stopped_project_movement",
+      "path": "docs/planning/CITY_AS_A_SERVICE_5AM_PRE_DAWN_SYNTHESIS_HANDOFF_2026_06_11.md",
+      "role": "latest_pre_dawn_synthesis_handoff"
+    },
+    {
+      "digest_sha256": "1952e6d0b542e8a85c5000680e985a2d98f28f448fd1cfcb7b1cae1432d1ebf6",
+      "exists": true,
+      "extension_policy": "current_read_only_packet_contract_guard_no_answer_runtime_payment_or_stopped_project_movement",
+      "path": "docs/planning/CITY_AS_A_SERVICE_4AM_HANDOFF_PACKET_CONTRACT_GUARD_2026_06_11.md",
+      "role": "latest_handoff_packet_contract_guard"
     },
     {
       "digest_sha256": "fc1238a54d9c4bda740a0d3ef116ce09afbf66a8a32afe12b04355287f3fb817",

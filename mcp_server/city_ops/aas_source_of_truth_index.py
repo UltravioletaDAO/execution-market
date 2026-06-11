@@ -43,6 +43,16 @@ CURRENT_ENTRYPOINT_DOCS = [
         "extension_policy": "current_entrypoint_update_only_when_new_safe_claim_lands",
     },
     {
+        "path": "docs/planning/CITY_AS_A_SERVICE_5AM_PRE_DAWN_SYNTHESIS_HANDOFF_2026_06_11.md",
+        "role": "latest_pre_dawn_synthesis_handoff",
+        "extension_policy": "current_read_only_daytime_handoff_no_answer_runtime_payment_or_stopped_project_movement",
+    },
+    {
+        "path": "docs/planning/CITY_AS_A_SERVICE_4AM_HANDOFF_PACKET_CONTRACT_GUARD_2026_06_11.md",
+        "role": "latest_handoff_packet_contract_guard",
+        "extension_policy": "current_read_only_packet_contract_guard_no_answer_runtime_payment_or_stopped_project_movement",
+    },
+    {
         "path": "docs/planning/CITY_AS_A_SERVICE_6AM_FINAL_WRAP_2026_06_07.md",
         "role": "latest_final_morning_wrap",
         "extension_policy": "current_read_only_morning_handoff_no_answer_runtime_payment_or_stopped_project_movement",

@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-06-11 04:34 America/New_York
+> Last updated: 2026-06-11 05:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -8,6 +8,52 @@
 > - `CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md`
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
+
+
+## Latest June 11 05:00 pre-dawn synthesis handoff
+
+`CITY_AS_A_SERVICE_5AM_PRE_DAWN_SYNTHESIS_HANDOFF_2026_06_11.md` is the current internal/admin pre-dawn synthesis. It obeyed `/Users/clawdbot/clawd/DREAM-PRIORITIES.md` over the stale 5 AM cron payload, so AutoJob pull/analysis/integration, Frontier Academy expansion, KK v2 continuation, and KarmaCadabra v2 work remain stopped.
+
+Execution Market was synced on `feat/operator-route-regret-panel`; `git pull --ff-only` reported already up to date. Pre-existing untracked local files were preserved and not staged.
+
+The active posture remains:
+
+```text
+pause_aas_proof_layering
+```
+
+This pass did not create an operator answer, approval, selected answer, answer receipt, customer/public/worker copy, route, queue, dispatch, runtime mutation, Acontext write/retrieve, IRC/session-manager mutation, reputation/Worker Skill DNA, payment/production reverification, exact-location/raw-metadata/private-context release, authority claim, worker-copyable doctrine, or stopped-project integration.
+
+It synthesizes tonight's guardrail chain:
+
+1. 00:00 pause checkpoint — preparation docs are not approval.
+2. 01:00 answer receipt runbook — exactly one real allowed value can become exactly one separate digest-backed receipt.
+3. 02:00 operator-reference privacy guard — receipt references must be opaque/non-secret/non-doxxing.
+4. 03:00 receipt ID and approval-scope guard — IDs are bounded and approved sections require approval plus redaction proof.
+5. 04:00 handoff packet contract guard — future consumers must carry source, digest, safe claim, blocked claims, next gate, and recommended posture.
+
+Safe 05:00 claim:
+
+```text
+internal_admin_aas_5am_pre_dawn_synthesis_handoff_2026_06_11_landed
+```
+
+Meaning only: the June 11 AAS night has a read-only synthesis connecting the pause checkpoint, answer-receipt runbook, privacy guard, receipt ID/scope guard, and packet-contract guard into a daytime coordination handoff.
+
+Next valid action remains exactly one of these:
+
+1. if Saúl provides exactly one allowed AAS answer value, create one separate digest-backed answer receipt using an opaque non-secret reference and validate it through the hardened gate;
+2. otherwise hold / pause and do not add product, runtime, customer, worker, dispatch, reputation, payment, private-context, exact-location, authority, worker-doctrine, or stopped-project layers.
+
+Verification target:
+
+```text
+PYTHONPATH=. ./.venv/bin/pytest mcp_server/tests/city_ops/test_aas_five_am_pre_dawn_synthesis_handoff.py -q
+# focused 5 AM deterministic handoff gate
+
+git diff --check && PYTHONPATH=. ./.venv/bin/pytest mcp_server/tests/city_ops -q
+# full city-ops gate
+```
 
 
 ## Latest June 11 04:00 handoff packet contract guard
