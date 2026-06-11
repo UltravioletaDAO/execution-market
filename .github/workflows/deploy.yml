@@ -427,6 +427,7 @@ jobs:
           VITE_ENABLE_EVIDENCE_CAROUSEL: ${{ secrets.VITE_ENABLE_EVIDENCE_CAROUSEL || 'false' }}
           VITE_WORLD_ID_ENABLED: ${{ secrets.VITE_WORLD_ID_ENABLED || 'false' }}
           VITE_VERYAI_ENABLED: ${{ secrets.VITE_VERYAI_ENABLED || '' }}
+          VITE_H2A_ESCROW_ENABLED: ${{ secrets.VITE_H2A_ESCROW_ENABLED || 'true' }}
           VITE_BALANCES_LAMBDA_URL: ${{ steps.tf-outputs.outputs.balances_url || secrets.VITE_BALANCES_LAMBDA_URL }}
           VITE_GIT_SHA: ${{ github.sha }}
           VITE_BUILD_TIMESTAMP: ${{ steps.timestamp.outputs.value }}
@@ -442,6 +443,7 @@ jobs:
         env:
           # Mirror the build env so the verifier knows which flags were shipped on.
           VITE_VERYAI_ENABLED: ${{ secrets.VITE_VERYAI_ENABLED || '' }}
+          VITE_H2A_ESCROW_ENABLED: ${{ secrets.VITE_H2A_ESCROW_ENABLED || 'true' }}
         run: |
           set -euo pipefail
           BUNDLE=$(ls dist/assets/index-*.js 2>/dev/null | head -1)
@@ -457,6 +459,7 @@ jobs:
           # tree-shakes the gated branch and that is the intended behavior.
           declare -A REQUIRED=(
             [VITE_VERYAI_ENABLED]="true"
+            [VITE_H2A_ESCROW_ENABLED]="true"
           )
 
           MISSING=0

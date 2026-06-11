@@ -304,6 +304,11 @@ resource "aws_ecs_task_definition" "mcp_server" {
         # callback exchanges palm-print verification level → executor.
         { name = "EM_VERYAI_ENABLED", value = "true" },
         { name = "EM_GEO_MATCH_ENABLED", value = "true" },
+        # Universal Escrow (ADR-002, sign-on-assignment): human-published
+        # tasks create an escrow marker at publish and lock at assignment
+        # via the publisher's browser-signed EIP-3009. Frontend twin flag:
+        # VITE_H2A_ESCROW_ENABLED (deploy.yml dashboard build).
+        { name = "EM_H2A_ESCROW_ENABLED", value = "true" },
         { name = "VERIFICATION_AI_ENABLED", value = "true" },
         { name = "AI_VERIFICATION_PROVIDER", value = "gemini" },
         { name = "VERIFICATION_AUTO_APPROVE", value = "true" },
