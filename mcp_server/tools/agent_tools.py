@@ -639,81 +639,42 @@ def register_agent_tools(mcp, db):
 - **Settlement**: via pay.sh MPP — no on-chain lock at assignment
 - **Refund safety**: bounded by channel cap; idle close after 15s of inactivity"""
             elif worker_wallet and dispatcher:
-                try:
-                    esc_row = (
-                        client.table("escrows")
-                        .select("metadata")
-                        .eq("task_id", params.task_id)
-                        .eq("status", "pending_assignment")
-                        .limit(1)
-                        .execute()
-                    )
-                    if esc_row.data:
-                        esc_meta = esc_row.data[0].get("metadata") or {}
-                        stored_preauth = esc_meta.get("preauth_signature")
-                        if stored_preauth:
-                            network = task_data.get("payment_network") or esc_meta.get(
-                                "network", "base"
-                            )
-                            lock_result = (
-                                await dispatcher.relay_agent_auth_to_facilitator(
-                                    json.loads(stored_preauth),
-                                    worker_address=worker_wallet,
-                                    network=network,
-                                )
-                            )
-                            if lock_result.get("success"):
-                                escrow_tx = lock_result.get("tx_hash", "")
-                                # Update escrow record
-                                client.table("escrows").update(
-                                    {
-                                        "status": "deposited",
-                                        "funding_tx": escrow_tx,
-                                        "metadata": {
-                                            **esc_meta,
-                                            "escrow_timing": "lock_on_assignment",
-                                            "worker_address": worker_wallet,
-                                            "lock_tx": escrow_tx,
-                                        },
-                                    }
-                                ).eq("task_id", params.task_id).execute()
-                                await db.update_task(
-                                    params.task_id, {"escrow_tx": escrow_tx}
-                                )
-                                escrow_section = f"""
+                # Shared chokepoint: every published->accepted transition that
+                # may carry a stored pre-auth locks through lock_stored_preauth()
+                # (same implementation as the REST assign endpoint).
+                from integrations.x402.escrow_lock import lock_stored_preauth
+
+                lock = await lock_stored_preauth(
+                    params.task_id, task_data, worker_wallet, dispatcher
+                )
+                if lock["status"] == "locked":
+                    escrow_tx = lock["escrow_tx"]
+                    escrow_section = f"""
 ## Escrow
 - **Status**: DEPOSITED (locked on-chain)
 - **TX**: `{escrow_tx}`
-- **Network**: {network}
+- **Network**: {lock["network"]}
 - **Agent-Signed**: Yes"""
-                                logger.info(
-                                    "Agent-signed pre-auth executed at assignment: "
-                                    "task=%s, worker=%s, tx=%s",
-                                    params.task_id,
-                                    worker_wallet[:10] + "...",
-                                    escrow_tx,
-                                )
-                            else:
-                                # Lock failed — rollback assignment
-                                escrow_error = lock_result.get("error", "Lock failed")
-                                logger.error(
-                                    "Agent-signed pre-auth lock failed: "
-                                    "task=%s, error=%s",
-                                    params.task_id,
-                                    escrow_error,
-                                )
-                                try:
-                                    await db.update_task(
-                                        params.task_id,
-                                        {
-                                            "status": "published",
-                                            "executor_id": None,
-                                            "assigned_at": None,
-                                        },
-                                    )
-                                except Exception:
-                                    pass
-                                return f"""# Escrow Lock Failed
+                elif lock["status"] == "lock_failed":
+                    # Lock failed — rollback assignment
+                    escrow_error = lock.get("error", "Lock failed")
+                    logger.error(
+                        "Agent-signed pre-auth lock failed: task=%s, error=%s",
+                        params.task_id,
+                        escrow_error,
+                    )
+                    try:
+                        await db.update_task(
+                            params.task_id,
+                            {
+                                "status": "published",
+                                "executor_id": None,
+                                "assigned_at": None,
+                            },
+                        )
+                    except Exception:
+                        pass
+                    return f"""# Escrow Lock Failed
 
 **Task**: {task_data["title"]}
 **Task ID**: `{params.task_id}`
@@ -722,12 +683,48 @@ def register_agent_tools(mcp, db):
 The assignment has been rolled back. Task remains **PUBLISHED**.
 
 Check your wallet balance and pre-authorization, then try again."""
-                except Exception as e:
-                    logger.debug(
-                        "No agent pre-auth to execute for task %s: %s",
-                        params.task_id,
-                        e,
-                    )
+                # "no_preauth" / "error" -> no stored pre-auth to execute;
+                # proceed without an escrow section (legacy/fase1 tasks).
+
+            # ── AC-01 guard: escrow-mode tasks can NEVER be assigned
+            # without an on-chain lock. A pending_assignment escrows row
+            # without an executed lock means either a sign-on-assignment
+            # marker (the publisher must sign for the chosen worker — this
+            # MCP tool carries no X-Payment-Auth) or a stored pre-auth that
+            # failed to execute. Refuse and roll back, mirroring the REST
+            # ESCROW GUARD (api/routers/tasks.py).
+            if not escrow_section and task_network != "solana":
+                from integrations.x402.escrow_lock import get_escrow_marker
+
+                marker = await get_escrow_marker(params.task_id)
+                if marker:
+                    try:
+                        await db.update_task(
+                            params.task_id,
+                            {
+                                "status": "published",
+                                "executor_id": None,
+                                "assigned_at": None,
+                            },
+                        )
+                    except Exception:
+                        pass
+                    return f"""# Escrow Lock Required
+
+**Task**: {task_data["title"]}
+**Task ID**: `{params.task_id}`
+
+This task uses trustless escrow (sign-on-assignment): the escrow
+authorization must be signed for the chosen worker at assignment time.
+This tool cannot lock it. Assign via the REST endpoint instead:
+
+1. Lock escrow with `AdvancedEscrowClient.authorize()` (receiver = the
+   worker's wallet) and pass `escrow_tx` + `payment_info` to
+   `POST /api/v1/tasks/{params.task_id}/assign`, OR
+2. Send a fresh `X-Payment-Auth` header (signed with the worker as
+   receiver) on that same endpoint.
+
+The assignment has been rolled back. Task remains **PUBLISHED**."""
 
             # Format response
             response = f"""# Task Assigned Successfully

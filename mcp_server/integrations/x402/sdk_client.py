@@ -612,6 +612,17 @@ def get_operator_address(network: str) -> Optional[str]:
     return net_config.get("operator")
 
 
+def has_escrow_support(network: str) -> bool:
+    """True when the network can run the full x402r escrow lifecycle (Fase 2).
+
+    Requires BOTH the AuthCaptureEscrow singleton ("escrow") AND a deployed
+    EM PaymentOperator ("operator") in NETWORK_CONFIG. Solana (no x402r
+    contracts, Fase 1 only) and operator-less testnets return False.
+    """
+    net_config = NETWORK_CONFIG.get(network) or {}
+    return bool(net_config.get("escrow") and net_config.get("operator"))
+
+
 def get_escrow_config(network: str) -> Optional[Dict[str, str]]:
     """Get escrow contract addresses for a network, or None if not supported."""
     net_config = NETWORK_CONFIG.get(network)

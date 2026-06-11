@@ -107,8 +107,10 @@ def _auto_register_agent_executor(
     if existing.data:
         row = existing.data[0]
         updates = {}
-        # Promote worker → agent if this wallet is publishing tasks
-        if row.get("executor_type") != "agent":
+        # Promote worker → agent if this wallet is publishing tasks.
+        # Robots keep their registered type: a robot publishing a task is
+        # still a robot (publisher_type derives from executor_type — Task 5.1).
+        if row.get("executor_type") not in ("agent", "robot"):
             updates["executor_type"] = "agent"
         # Set agent name if provided and current name is generic
         if agent_name and (
@@ -1067,6 +1069,40 @@ async def create_task(
             geo_match_mode=final_geo_mode,
             location_radius_m=final_radius_m,
         )
+
+        # ---- Robot publisher recording (Universal Escrow Task 5.1) ------
+        # tasks.publisher_type defaults to 'agent' (migration 034). When the
+        # authenticated wallet is registered as a robot executor (see
+        # em_register_as_executor), persist publisher_type='robot' so the
+        # robot cells of the hiring matrix are distinguishable. Failure
+        # tolerant: any lookup/update problem keeps the default and never
+        # blocks publish.
+        try:
+            _robot_row = (
+                db.get_client()
+                .table("executors")
+                .select("id")
+                .eq("executor_type", "robot")
+                .ilike("wallet_address", task_agent_id)
+                .limit(1)
+                .execute()
+            )
+            _robot_data = getattr(_robot_row, "data", None)
+            if isinstance(_robot_data, list) and _robot_data:
+                await db.update_task(task["id"], {"publisher_type": "robot"})
+                task["publisher_type"] = "robot"
+                logger.info(
+                    "Robot publisher recorded: task=%s, wallet=%s",
+                    task["id"],
+                    str(task_agent_id)[:10],
+                )
+        except Exception as e:
+            logger.warning(
+                "Robot publisher lookup failed for task %s (keeping default "
+                "publisher_type): %s",
+                task["id"],
+                e,
+            )
 
         # ---- Persist ERC-8004 identity on the task record ---------------
         if erc8004_identity and erc8004_identity.get("registered"):
@@ -3748,107 +3784,53 @@ async def assign_task_to_worker(
 
         # ── Stored pre-auth execution (Mode B) ──────────────
         # If this task has a stored pre-auth from creation, execute it now
-        # with the worker address filled in.
+        # with the worker address filled in. Shared chokepoint: every
+        # published->accepted transition locks through lock_stored_preauth().
         if not agent_preauth_executed and worker_wallet and dispatcher:
-            try:
-                client = db.get_client()
-                esc_row = (
-                    client.table("escrows")
-                    .select("metadata")
-                    .eq("task_id", task_id)
-                    .eq("status", "pending_assignment")
-                    .limit(1)
-                    .execute()
+            from integrations.x402.escrow_lock import lock_stored_preauth
+
+            _lock = await lock_stored_preauth(task_id, task, worker_wallet, dispatcher)
+            if _lock["status"] == "locked":
+                escrow_data = {
+                    "escrow_tx": _lock["escrow_tx"],
+                    "escrow_status": "deposited",
+                    "escrow_mode": "direct_release",
+                    "agent_signed": True,
+                }
+                agent_preauth_executed = True
+            elif _lock["status"] == "lock_failed":
+                # Lock failed — rollback assignment
+                escrow_error = _lock.get("error", "Lock failed")
+                logger.error(
+                    "Agent-signed pre-auth lock failed at assignment: "
+                    "task=%s, error=%s",
+                    task_id,
+                    escrow_error,
                 )
-                if esc_row.data:
-                    esc_meta = esc_row.data[0].get("metadata") or {}
-                    stored_preauth = esc_meta.get("preauth_signature")
-                    if stored_preauth:
-                        network = task.get("payment_network") or esc_meta.get(
-                            "network", "base"
-                        )
-                        lock_result = await dispatcher.relay_agent_auth_to_facilitator(
-                            json.loads(stored_preauth),
-                            worker_address=worker_wallet,
-                            network=network,
-                        )
-                        if lock_result.get("success"):
-                            escrow_tx = lock_result.get("tx_hash")
-                            client.table("escrows").update(
-                                {
-                                    "status": "deposited",
-                                    "funding_tx": escrow_tx,
-                                    "metadata": {
-                                        **esc_meta,
-                                        "escrow_timing": "lock_on_assignment",
-                                        "worker_address": worker_wallet,
-                                        "lock_tx": escrow_tx,
-                                    },
-                                }
-                            ).eq("task_id", task_id).execute()
-
-                            await db.update_task(task_id, {"escrow_tx": escrow_tx})
-
-                            escrow_data = {
-                                "escrow_tx": escrow_tx,
-                                "escrow_status": "deposited",
-                                "escrow_mode": "direct_release",
-                                "agent_signed": True,
-                            }
-                            agent_preauth_executed = True
-
-                            from audit import audit_log as _audit_preauth_lock
-
-                            _audit_preauth_lock(
-                                "escrow_locked",
-                                task_id=task_id,
-                                tx_hash=escrow_tx,
-                                amount_usd=float(task.get("bounty_usd", 0)),
-                                escrow_contract="preauth_deferred",
-                            )
-
-                            logger.info(
-                                "Agent-signed pre-auth executed at assignment: "
-                                "task=%s, worker=%s, tx=%s",
-                                task_id,
-                                worker_wallet[:10] + "...",
-                                escrow_tx,
-                            )
-                        else:
-                            # Lock failed — rollback assignment
-                            escrow_error = lock_result.get("error", "Lock failed")
-                            logger.error(
-                                "Agent-signed pre-auth lock failed at assignment: "
-                                "task=%s, error=%s",
-                                task_id,
-                                escrow_error,
-                            )
-                            try:
-                                await db.update_task(
-                                    task_id,
-                                    {
-                                        "status": "published",
-                                        "executor_id": None,
-                                        "assigned_at": None,
-                                    },
-                                )
-                            except Exception:
-                                pass
-                            _ref = str(_uuid.uuid4())[:8]
-                            logger.error(
-                                "Escrow lock failed for task %s [ref=%s]: %s",
-                                task_id,
-                                _ref,
-                                escrow_error,
-                            )
-                            raise HTTPException(
-                                status_code=402,
-                                detail=f"Escrow lock failed. Task remains published (ref: {_ref}).",
-                            )
-            except HTTPException:
-                raise
-            except Exception as e:
-                logger.debug("No agent pre-auth to execute for task %s: %s", task_id, e)
+                try:
+                    await db.update_task(
+                        task_id,
+                        {
+                            "status": "published",
+                            "executor_id": None,
+                            "assigned_at": None,
+                        },
+                    )
+                except Exception:
+                    pass
+                _ref = str(_uuid.uuid4())[:8]
+                logger.error(
+                    "Escrow lock failed for task %s [ref=%s]: %s",
+                    task_id,
+                    _ref,
+                    escrow_error,
+                )
+                raise HTTPException(
+                    status_code=402,
+                    detail=f"Escrow lock failed. Task remains published (ref: {_ref}).",
+                )
+            # "no_preauth" / "error" -> fall through to the next strategy
+            # (same swallow-and-continue behavior as before the extraction).
 
         if not agent_preauth_executed and is_direct_release and worker_wallet:
             try:

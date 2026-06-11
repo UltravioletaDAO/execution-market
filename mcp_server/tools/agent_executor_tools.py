@@ -331,6 +331,9 @@ def register_agent_executor_tools(
         - Target executor type check (agent/any)
         - Capability matching
         - Reputation gate (min_reputation from task)
+        - Escrow-mode refusal: tasks with a publish-time escrow marker
+          require apply + publisher assignment (the escrow signature
+          commits to the chosen worker), so self-accept is rejected.
         """
         try:
             client = db_module.get_client()
@@ -386,6 +389,27 @@ def register_agent_executor_tools(
                     missing = set(required_caps) - set(executor_caps)
                     return f"Error: Missing capabilities: {', '.join(missing)}"
 
+            # --- Trustless escrow gate (sign-on-assignment) ---
+            # Escrow-mode tasks carry a publish-time escrows marker row. The
+            # escrow EIP-3009 nonce = AuthCaptureEscrow.getHash(paymentInfo)
+            # INCLUDES the receiver, so the publisher must sign the lock
+            # authorization FOR the chosen worker at assignment time.
+            # Self-accept cannot produce a valid on-chain lock -> refuse
+            # without mutating any state.
+            # See MASTER_PLAN_UNIVERSAL_ESCROW_CONSISTENCY.md (Task 2.2, D2).
+            from integrations.x402.escrow_lock import get_escrow_marker
+
+            if await get_escrow_marker(params.task_id):
+                return (
+                    "Error: This task uses trustless escrow. The escrow "
+                    "signature commits to the chosen worker, so the "
+                    "publisher must assign you after you apply (self-accept "
+                    "cannot lock the bounty on-chain). Apply via "
+                    "em_apply_to_task and wait for the publisher to assign "
+                    "you."
+                )
+
+            # No marker -> legacy/fase1/Solana task: status-only acceptance.
             await db_module.update_task(
                 params.task_id,
                 {

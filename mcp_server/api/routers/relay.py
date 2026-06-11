@@ -217,6 +217,11 @@ async def assign_leg_worker(
     auth: AgentAuth = Depends(verify_agent_auth_write),
 ):
     """Assign a worker to a relay chain leg."""
+    # Escrow exclusion (universal escrow consistency, Task 2.3): legs live in
+    # `relay_legs` with their own `bounty_usdc` and never transition a `tasks`
+    # row to 'accepted' — no `escrows` row references a leg. The parent task's
+    # escrow (if any) locks via the parent task's own assign path, so the
+    # lock_stored_preauth() chokepoint does not apply here.
     # Verify chain exists
     chain_resp = (
         db.client.table("relay_chains").select("*").eq("chain_id", chain_id).execute()
