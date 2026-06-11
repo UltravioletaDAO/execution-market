@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-06-11 00:20 America/New_York
+> Last updated: 2026-06-11 01:45 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -8,6 +8,45 @@
 > - `CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md`
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
+
+
+## Latest June 11 01:00 answer receipt operating runbook
+
+`CITY_AS_A_SERVICE_1AM_ANSWER_RECEIPT_OPERATING_RUNBOOK_2026_06_11.md` is the current internal/admin operating runbook for the next valid AAS move. It obeyed `/Users/clawdbot/clawd/DREAM-PRIORITIES.md` over the stale 1 AM cron payload, so AutoJob pull/analysis/integration, Frontier Academy expansion, KK v2 continuation, and KarmaCadabra v2 work remain stopped.
+
+Execution Market was synced on the current tracked branch `feat/operator-route-regret-panel`; `git pull --ff-only` reported the branch already up to date at `f92127c8` (`docs: add AAS June 11 pause checkpoint`) after fetching newer `origin/main` refs. Pre-existing untracked `scripts/sign_req.mjs` and `mcp_server/city_ops/tests/` were preserved and not staged.
+
+The runbook aligns these source artifacts by digest:
+
+- `CITY_AS_A_SERVICE_00AM_PAUSE_CHECKPOINT_2026_06_11.md`
+- `CITY_AS_A_SERVICE_AAS_OPERATOR_ANSWER_RECEIPT_PREPARATION_MATRIX_2026_06_10.md`
+- `CITY_AS_A_SERVICE_AAS_OPERATOR_ANSWER_RECEIPT_PREPARATION_MAP_2026_06_10.md`
+- `CITY_AS_A_SERVICE_DAYTIME_EXECUTION_BOARD.md`
+
+No explicit operator answer, operator approval, selected future answer, or separate answer receipt exists. The runbook therefore keeps the active posture:
+
+```text
+pause_aas_proof_layering
+```
+
+Safe 01:00 claim:
+
+```text
+internal_admin_aas_1am_answer_receipt_operating_runbook_2026_06_11_landed
+```
+
+Meaning only: future sessions now have a fail-closed procedure for converting one real allowed AAS answer into one separate receipt without treating preparation docs, displayed answer menus, source digests, board entries, repository sync, confidence scores, or stale cron instructions as approval.
+
+Next valid action remains exactly one of these:
+
+1. if Saúl provides exactly one allowed value (`keep_both_lanes_held`, `create_retail_reality_answer_or_hold_record`, `create_runtime_memory_operator_answer_record`, or `pause_aas_proof_layering`), create one separate digest-backed answer receipt and validate all blocked downstream claims before any follow-on gate;
+2. otherwise hold / pause and do not add product, runtime, customer, worker, dispatch, reputation, payment, private-context, exact-location, authority, worker-doctrine, or stopped-project layers.
+
+Verification for this doc-only runbook:
+
+```text
+git diff --check
+```
 
 ## Latest June 11 00:00 pause checkpoint
 
