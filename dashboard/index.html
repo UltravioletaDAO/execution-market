@@ -197,25 +197,18 @@
     <script>
       (function() {
         try {
-          var stored = localStorage.getItem('em-theme');
-          var theme = stored;
+          // Force light. The UI is built light-only (B&W brand): pages use light
+          // backgrounds with no dark: variants, so auto-applying the OS dark mode
+          // (prefers-color-scheme) turned the stray dark:text-* headers near-white
+          // on white = unreadable. There is no theme toggle (em-theme is never
+          // written), so OS dark mode was never user-controllable anyway. Until
+          // dark mode is fully built out, force light everywhere.
+          document.documentElement.classList.remove('dark');
+          document.documentElement.style.colorScheme = 'light';
 
-          if (!theme || theme === 'system') {
-            theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-          }
-
-          if (theme === 'dark') {
-            document.documentElement.classList.add('dark');
-          } else {
-            document.documentElement.classList.remove('dark');
-          }
-
-          document.documentElement.style.colorScheme = theme;
-
-          // Update theme-color meta tag
           var metaThemeColor = document.querySelector('meta[name="theme-color"]');
           if (metaThemeColor) {
-            metaThemeColor.setAttribute('content', theme === 'dark' ? '#000000' : '#ffffff');
+            metaThemeColor.setAttribute('content', '#ffffff');
           }
         } catch (e) {
           console.error('Theme detection error:', e);

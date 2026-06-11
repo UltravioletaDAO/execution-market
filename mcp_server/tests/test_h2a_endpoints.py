@@ -148,12 +148,14 @@ class TestH2AApprovalCritical:
 
         mock_client.table.side_effect = table_side_effect
 
-        # Mock SDK to return successful tx hashes
+        # Mock SDK external-auth settlement (worker + fee in one call), matching
+        # the agent flow path used by approve_h2a_submission.
         mock_sdk = AsyncMock()
-        mock_sdk.settle_payment.side_effect = [
-            {"tx_hash": "0xworkertx123"},
-            {"tx_hash": "0xfeetx456"},
-        ]
+        mock_sdk._settle_external_auths.return_value = {
+            "success": True,
+            "tx_hash": "0xworkertx123",
+            "fee_tx_hash": "0xfeetx456",
+        }
 
         with patch("api.h2a.db.get_client", return_value=mock_client):
             with patch(
@@ -217,9 +219,9 @@ class TestH2AApprovalCritical:
 
         mock_client.table.side_effect = table_side_effect
 
-        # Mock SDK to raise an exception
+        # Mock SDK external-auth settlement to fail → approve must raise 502
         mock_sdk = AsyncMock()
-        mock_sdk.settle_payment.side_effect = Exception("Settlement RPC timeout")
+        mock_sdk._settle_external_auths.side_effect = Exception("Settlement RPC timeout")
 
         with patch("api.h2a.db.get_client", return_value=mock_client):
             with patch(

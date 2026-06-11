@@ -901,7 +901,8 @@ async def approve_h2a_submission(
         task_result = (
             client.table("tasks")
             .select(
-                "id, human_user_id, human_wallet, publisher_type, bounty_usd, status"
+                "id, human_user_id, human_wallet, publisher_type, bounty_usd, "
+                "status, payment_network, payment_token"
             )
             .eq("id", task_id)
             .single()
@@ -980,37 +981,47 @@ async def approve_h2a_submission(
             if _hold_blocked:
                 raise HTTPException(status_code=403, detail=_hold_reason)
 
-            # Settlement via Facilitator
+            # Settlement via Facilitator — imitate the external-agent path
+            # (_settle_external_auths): extract each base64 X-Payment header that
+            # the web publisher signed and settle worker (bounty) + fee (treasury)
+            # through the SDK client, gasless. This is the SAME settlement the
+            # KK agents use; the only difference is the signer (browser human vs
+            # programmatic agent).
             worker_tx = None
             fee_tx = None
 
             try:
                 from integrations.x402.sdk_client import get_sdk, SDK_AVAILABLE
 
-                if SDK_AVAILABLE:
-                    sdk = get_sdk()
-                    if sdk:
-                        # Settle bounty: human → agent
-                        worker_result = await sdk.settle_payment(
-                            request.settlement_auth_worker
-                        )
-                        worker_tx = (
-                            worker_result.get("tx_hash")
-                            or worker_result.get("transaction_hash")
-                            if worker_result
-                            else None
-                        )
+                if not SDK_AVAILABLE:
+                    raise RuntimeError("x402 SDK unavailable")
+                sdk = get_sdk()
+                if not sdk:
+                    raise RuntimeError("x402 SDK not initialised")
 
-                        # Settle fee: human → treasury
-                        fee_result = await sdk.settle_payment(
-                            request.settlement_auth_fee
-                        )
-                        fee_tx = (
-                            fee_result.get("tx_hash")
-                            or fee_result.get("transaction_hash")
-                            if fee_result
-                            else None
-                        )
+                fee_pct = await get_platform_fee_percent()
+                bounty_amount = Decimal(str(task.get("bounty_usd", 0)))
+                platform_fee = (bounty_amount * fee_pct).quantize(Decimal("0.000001"))
+                network = task.get("payment_network") or "base"
+                token = task.get("payment_token") or "USDC"
+
+                settle_result = await sdk._settle_external_auths(
+                    task_id=task_id,
+                    worker_address=agent_wallet,
+                    bounty_amount=bounty_amount,
+                    platform_fee=platform_fee,
+                    worker_auth_header=request.settlement_auth_worker,
+                    fee_auth_header=request.settlement_auth_fee,
+                    network=network,
+                    token=token,
+                )
+
+                if not settle_result.get("success"):
+                    raise RuntimeError(
+                        settle_result.get("error") or "settlement failed"
+                    )
+                worker_tx = settle_result.get("tx_hash")
+                fee_tx = settle_result.get("fee_tx_hash")
             except Exception as e:
                 logger.error("H2A payment settlement failed: %s", str(e))
                 # Log the failure as a payment event
@@ -1201,6 +1212,21 @@ async def cancel_h2a_task(
     except Exception as e:
         logger.error("H2A cancel failed: task=%s, error=%s", task_id, str(e))
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get(
+    "/api/v1/h2a/payment-config",
+    summary="H2A Payment Config",
+    description=(
+        "Public fee/treasury config the web publisher needs to build the fee "
+        "EIP-3009 authorization (treasury = payTo for the platform fee)."
+    ),
+    tags=["H2A Marketplace"],
+)
+async def get_h2a_payment_config():
+    """Treasury address + platform fee percent for browser settlement signing."""
+    fee_pct = await get_platform_fee_percent()
+    return {"treasury": TREASURY_ADDRESS, "fee_pct": float(fee_pct)}
 
 
 # ---------------------------------------------------------------------------

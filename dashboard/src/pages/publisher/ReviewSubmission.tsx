@@ -4,8 +4,17 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useDynamicContext } from '@dynamic-labs/sdk-react-core'
+import { isEthereumWallet } from '@dynamic-labs/ethereum'
 import type { Task, Submission } from '../../types/database'
-import { getH2ATask, getH2ASubmissions, approveH2ASubmission } from '../../services/h2a'
+import {
+  getH2ATask,
+  getH2ASubmissions,
+  approveH2ASubmission,
+  getH2APaymentConfig,
+} from '../../services/h2a'
+import { buildEip3009XPayment } from '../../services/h2aSigning'
+import { getPaymentNetwork } from '../../constants/payment-networks'
 import { createDispute, type DisputeReason } from '../../services/disputes'
 import { safeHref } from '../../lib/safeHref'
 
@@ -23,13 +32,12 @@ const DISPUTE_REASONS: { value: DisputeReason; label: string }[] = [
 
 /**
  * Feature flag: H2A on-chain signing.
- * The approval flow currently sends placeholder strings ('pending_browser_signature')
- * instead of real EIP-3009 signatures. The backend silently rejects them, causing
- * a false "success" state. Gate the entire approval UI behind this flag until
- * Phase 3 implements real viem signing.
- *
- * Set VITE_H2A_SIGNING_ENABLED=true in .env.local to re-enable during development.
- * See: FE-001, FE-002 in security audit.
+ * Real EIP-3009 signing IS now implemented (handleSubmit signs worker + fee
+ * authorizations with the publisher's Dynamic wallet via h2aSigning.ts,
+ * mirroring the agent flow). This flag is now the on-chain-testing safety
+ * switch: keep it off in prod until the full flow has been verified on-chain
+ * with small amounts (< $0.30), then set VITE_H2A_SIGNING_ENABLED=true in the
+ * deploy env to go live. See MASTER_PLAN_H2H_WEB_SIGNING.md.
  */
 const H2A_SIGNING_ENABLED = import.meta.env.VITE_H2A_SIGNING_ENABLED === 'true'
 
@@ -53,6 +61,7 @@ function redactGps(obj: unknown): unknown {
 
 export function ReviewSubmission() {
   const navigate = useNavigate()
+  const { primaryWallet } = useDynamicContext()
   const { taskId } = useParams<{ taskId: string }>()
   const [task, setTask] = useState<Task | null>(null)
   const [submissions, setSubmissions] = useState<Submission[]>([])
@@ -91,10 +100,57 @@ export function ReviewSubmission() {
     if (!task || !latest) return
     setSubmitting(true); setSubmitError(null)
     try {
+      let authWorker: string | undefined
+      let authFee: string | undefined
+
+      if (verdict === 'accepted') {
+        // Imitate the agent flow from the browser: the publisher signs two
+        // EIP-3009 authorizations with their Dynamic wallet — worker (bounty)
+        // and treasury (fee) — which the backend settles gasless via the
+        // Facilitator, exactly like a programmatic agent.
+        if (!primaryWallet || !isEthereumWallet(primaryWallet)) {
+          throw new Error('Conecta una wallet EVM para firmar el pago.')
+        }
+        const workerWallet = latest.executor?.wallet_address
+        if (!workerWallet) {
+          throw new Error('No se encontró la wallet del worker en la entrega.')
+        }
+        const fromAddress = primaryWallet.address as `0x${string}`
+        if (workerWallet.toLowerCase() === fromAddress.toLowerCase()) {
+          throw new Error('No puedes pagarte a ti mismo (worker == publisher).')
+        }
+
+        const network = task.payment_network || 'base'
+        const coin = task.payment_token || 'USDC'
+        const net = getPaymentNetwork(network)
+        const walletClient = await primaryWallet.getWalletClient(String(net.chainId))
+        if (!walletClient) throw new Error('Wallet client no disponible para esta red.')
+
+        // Fee precision must match the backend (6-decimal USDC), not the 2-dp
+        // display value — the SIGNED amount is what transfers on-chain.
+        const cfg = await getH2APaymentConfig()
+        const feeAmount = +(bounty * cfg.fee_pct).toFixed(6)
+
+        authWorker = await buildEip3009XPayment(walletClient, {
+          from: fromAddress,
+          to: workerWallet as `0x${string}`,
+          amountUsd: bounty,
+          network,
+          coinSymbol: coin,
+        })
+        authFee = await buildEip3009XPayment(walletClient, {
+          from: fromAddress,
+          to: cfg.treasury as `0x${string}`,
+          amountUsd: feeAmount,
+          network,
+          coinSymbol: coin,
+        })
+      }
+
       await approveH2ASubmission(taskId!, {
         submission_id: latest.id, verdict, notes: notes || undefined,
-        settlement_auth_worker: verdict === 'accepted' ? 'pending_browser_signature' : undefined,
-        settlement_auth_fee: verdict === 'accepted' ? 'pending_browser_signature' : undefined,
+        settlement_auth_worker: authWorker,
+        settlement_auth_fee: authFee,
       })
       navigate('/publisher/dashboard')
     } catch (e) { setSubmitError(e instanceof Error ? e.message : 'Error') }

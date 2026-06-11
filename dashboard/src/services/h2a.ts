@@ -75,6 +75,12 @@ export async function assignH2AWorker(id: string, executorId: string): Promise<{
   return r.json()
 }
 
+export async function getH2APaymentConfig(): Promise<{ treasury: string; fee_pct: number }> {
+  const r = await fetch(h2a('/payment-config'))
+  if (!r.ok) throw new Error(`Payment config failed: ${r.status}`)
+  return r.json()
+}
+
 export async function cancelH2ATask(id: string) {
   const t = await token(); if (!t) throw new Error('Auth required')
   const r = await fetch(h2a(`/tasks/${id}/cancel`), { method: 'POST', headers: ah(t) })
