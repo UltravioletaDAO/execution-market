@@ -522,6 +522,12 @@ The server is a marketplace — it never touches funds. External agents sign the
 - **Architecture doc**: `docs/planning/ADR-001-payment-architecture-v2.md`
 - **Trust model**: Fully trustless — EM never touches funds. Agent signs, escrow holds, worker receives directly.
 
+**>>> UNIVERSAL ESCROW (ADR-002 — all 9 hiring-matrix cells, sign-on-assignment) <<<**
+Every publisher type (human, agent, robot) uses the SAME escrow rail. Protocol constraint: the EIP-3009 nonce is `AuthCaptureEscrow.getHash(paymentInfo)` which **includes the receiver** — the escrow signature can only be created AT ASSIGNMENT, when the worker is known. Never design flows that sign an escrow auth before the worker is chosen ("stored pre-auth with late receiver fill" is on-chain unsound).
+- **Chokepoint**: `mcp_server/integrations/x402/escrow_lock.py` — ALL published→accepted transitions lock through `lock_with_fresh_auth()` (canonical) or document their exclusion. Self-accept (`em_accept_agent_task`) refuses escrow-mode tasks: escrow assignment is publisher-driven by protocol.
+- **Human publishers (H2A/H2H)**: publish creates an `escrows` marker row (`sign_on_assignment`, no signature); the browser signs the `ReceiveWithAuthorization` at assign (Dynamic wallet, `buildEscrowPreAuth()`); approve releases with NO signatures; cancel/expiry refunds. Flags: `EM_H2A_ESCROW_ENABLED` (backend) + `VITE_H2A_ESCROW_ENABLED` (frontend), default OFF until the H2H Golden Flow passes. Legacy tasks (no marker row) drain through the old sign-on-approval path.
+- **Constraints**: escrow-capable networks only (`has_escrow_support()`, no Solana), bounty ≤ $100 (contract deposit limit), signed `maxFeeBps` must cover the operator's 1300bps, SC-010 blocks self-hire (receiver == payer) — E2E tests need 2 wallets.
+
 **Fase 1 (DEPRECATED — testing only)**: Server signs EIP-3009 at approval, settles agent→worker + agent→treasury directly. No escrow, no pre-auth, cancel = no-op. Requires `EM_SERVER_SIGNING=true`. Fee configurable via `EM_PLATFORM_FEE` (default 13%, 6-decimal USDC precision, $0.01 minimum).
 
 **Audit Trail**: All payment events logged to `payment_events` table (migration 027). Tracks verify, store_auth, settle, disburse_worker, disburse_fee, refund, cancel, error events with tx hashes and amounts.
@@ -594,6 +600,7 @@ The **Golden Flow** is the definitive acceptance test — if it passes, the plat
 | File | Purpose |
 |------|---------|
 | `mcp_server/integrations/x402/sdk_client.py` | x402 SDK wrapper + multichain token registry — **USE THIS for all payments** |
+| `mcp_server/integrations/x402/escrow_lock.py` | Universal escrow chokepoint (ADR-002) — ALL assignment-time locks go through here |
 | `mcp_server/integrations/x402/client.py` | Direct HTTP facilitator client (fallback) |
 | `mcp_server/integrations/erc8004/facilitator_client.py` | ERC-8004 identity, reputation, registration |
 | `mcp_server/integrations/erc8004/identity.py` | Worker identity check + gasless registration |
