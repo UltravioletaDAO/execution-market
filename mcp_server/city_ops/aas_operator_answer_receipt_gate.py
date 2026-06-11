@@ -82,6 +82,10 @@ NEXT_REQUIRED_GATE_BY_VALUE = {
 }
 
 OPERATOR_REFERENCE_MAX_LENGTH = 240
+ANSWER_RECEIPT_ID_MAX_LENGTH = 160
+ANSWER_RECEIPT_ID_PATTERN = re.compile(
+    r"^execution_market\.aas\.operator_answer\.\d{4}_\d{2}_\d{2}\.[a-z0-9][a-z0-9_-]{2,80}$"
+)
 DISALLOWED_OPERATOR_REFERENCE_PATTERNS = {
     "email_address": re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.I),
     "decimal_coordinate_pair": re.compile(
@@ -367,6 +371,13 @@ def build_aas_operator_answer_receipt_gate(
             "allows_runtime_path_authorization": False,
             "requires_blocked_claims_preserved": True,
             "approval_true_requires_approval_evidence_ref": True,
+            "requires_safe_answer_receipt_id": True,
+            "answer_receipt_id_format": (
+                "execution_market.aas.operator_answer.YYYY_MM_DD.<opaque_short_label>"
+            ),
+            "answer_receipt_id_max_length": ANSWER_RECEIPT_ID_MAX_LENGTH,
+            "approved_sections_require_approval_and_redaction": True,
+            "held_sections_must_be_non_empty": True,
             "no_movement_values": NO_MOVEMENT_VALUES,
             "product_value_next_gate": NEXT_REQUIRED_GATE_BY_VALUE[
                 "create_retail_reality_answer_or_hold_record"
@@ -487,6 +498,9 @@ def _assert_aas_operator_answer_receipt_gate(
         "requires_source_cockpit_digest_match",
         "requires_blocked_claims_preserved",
         "approval_true_requires_approval_evidence_ref",
+        "requires_safe_answer_receipt_id",
+        "approved_sections_require_approval_and_redaction",
+        "held_sections_must_be_non_empty",
     ]:
         if policy.get(key) is not True:
             raise CityOpsContractError(f"AAS answer receipt gate disabled policy {key}")
@@ -557,6 +571,7 @@ def validate_aas_operator_answer_receipt(
         )
     if receipt.get("receipt_schema") != FUTURE_RECEIPT_SCHEMA:
         raise CityOpsContractError("AAS operator answer receipt schema drift")
+    _assert_answer_receipt_id_is_safe(receipt.get("answer_receipt_id"))
     if receipt.get("source_cockpit_ref") != SOURCE_COCKPIT_REF:
         raise CityOpsContractError("AAS operator answer receipt source ref drift")
     if receipt.get("source_cockpit_digest_sha256") != source_gate["source_cockpit"][
@@ -582,6 +597,21 @@ def validate_aas_operator_answer_receipt(
             raise CityOpsContractError(
                 f"AAS operator answer receipt {list_field} must be a list"
             )
+        if not all(isinstance(item, str) and item.strip() for item in receipt[list_field]):
+            raise CityOpsContractError(
+                f"AAS operator answer receipt {list_field} must contain only non-empty strings"
+            )
+    if receipt.get("approved_sections") and (
+        receipt["operator_approval_recorded"] is not True
+        or receipt.get("redactions_passed") is not True
+    ):
+        raise CityOpsContractError(
+            "AAS operator answer receipt approved sections require approval and redaction proof"
+        )
+    if not receipt.get("held_sections"):
+        raise CityOpsContractError(
+            "AAS operator answer receipt held sections must preserve at least one hold"
+        )
     if receipt.get("blocked_claims_preserved") is not True:
         raise CityOpsContractError("AAS operator answer receipt did not preserve blocked claims")
     for bool_field in [
@@ -608,6 +638,22 @@ def validate_aas_operator_answer_receipt(
         "runtime_path_authorized": False,
         "blocked_claims_preserved": True,
     }
+
+
+def _assert_answer_receipt_id_is_safe(answer_receipt_id: Any) -> None:
+    if not isinstance(answer_receipt_id, str) or not answer_receipt_id.strip():
+        raise CityOpsContractError("AAS operator answer receipt lacks receipt id")
+    normalized = answer_receipt_id.strip()
+    if len(normalized) > ANSWER_RECEIPT_ID_MAX_LENGTH:
+        raise CityOpsContractError("AAS operator answer receipt id too long")
+    if not ANSWER_RECEIPT_ID_PATTERN.fullmatch(normalized):
+        raise CityOpsContractError("AAS operator answer receipt id format drift")
+    for label, pattern in DISALLOWED_OPERATOR_REFERENCE_PATTERNS.items():
+        if pattern.search(normalized):
+            raise CityOpsContractError(
+                "AAS operator answer receipt id includes disallowed private data: "
+                f"{label}"
+            )
 
 
 def _assert_explicit_operator_reference_is_safe(reference: Any) -> None:

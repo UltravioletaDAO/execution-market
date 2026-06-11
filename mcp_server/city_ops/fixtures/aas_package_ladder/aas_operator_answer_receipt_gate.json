@@ -2012,7 +2012,10 @@
     "allows_cockpit_display_as_answer": false,
     "allows_public_delivery_authorization": false,
     "allows_runtime_path_authorization": false,
+    "answer_receipt_id_format": "execution_market.aas.operator_answer.YYYY_MM_DD.<opaque_short_label>",
+    "answer_receipt_id_max_length": 160,
     "approval_true_requires_approval_evidence_ref": true,
+    "approved_sections_require_approval_and_redaction": true,
     "disallowed_operator_reference_material": [
       "aws_access_key",
       "decimal_coordinate_pair",
@@ -2024,6 +2027,7 @@
       "phone_number"
     ],
     "explicit_operator_reference_max_length": 240,
+    "held_sections_must_be_non_empty": true,
     "no_movement_values": [
       "keep_both_lanes_held",
       "pause_aas_proof_layering"
@@ -2032,6 +2036,7 @@
     "rejects_private_or_secret_operator_reference": true,
     "requires_blocked_claims_preserved": true,
     "requires_explicit_operator_reference": true,
+    "requires_safe_answer_receipt_id": true,
     "requires_source_cockpit_digest_match": true,
     "runtime_value_next_gate": "create_runtime_memory_operator_answer_record_then_restore_docker_and_rerun_read_only_inventory"
   },

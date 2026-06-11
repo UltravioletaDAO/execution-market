@@ -309,6 +309,29 @@ def test_answer_receipt_validator_rejects_missing_explicit_reference() -> None:
 
 
 @pytest.mark.parametrize(
+    "bad_receipt_id,match",
+    [
+        ("", "lacks receipt id"),
+        ("execution_market.aas.operator_answer.2026-06-11.fixture", "id format drift"),
+        ("execution_market.aas.operator_answer.2026_06_11.fi", "id format drift"),
+        (
+            "execution_market.aas.operator_answer.2026_06_11.fixture_" + "x" * 130,
+            "id too long",
+        ),
+    ],
+)
+def test_answer_receipt_validator_rejects_unsafe_receipt_id(
+    bad_receipt_id: str, match: str
+) -> None:
+    gate = build_aas_operator_answer_receipt_gate()
+    receipt = valid_receipt(gate)
+    receipt["answer_receipt_id"] = bad_receipt_id
+
+    with pytest.raises(CityOpsContractError, match=match):
+        validate_aas_operator_answer_receipt(receipt, gate=gate)
+
+
+@pytest.mark.parametrize(
     "bad_reference,match",
     [
         ("operator answered from " + "person" + "@" + "example.test", "email_address"),
@@ -359,6 +382,33 @@ def test_answer_receipt_validator_rejects_delivery_or_runtime_authorization() ->
         validate_aas_operator_answer_receipt(delivery_receipt, gate=gate)
     with pytest.raises(CityOpsContractError, match="authorized runtime too early"):
         validate_aas_operator_answer_receipt(runtime_receipt, gate=gate)
+
+
+def test_answer_receipt_validator_rejects_approved_sections_without_redaction_proof() -> None:
+    gate = build_aas_operator_answer_receipt_gate()
+    receipt = valid_receipt(gate)
+    receipt["approved_sections"] = ["retail_reality_answer_or_hold_record"]
+
+    with pytest.raises(CityOpsContractError, match="approval and redaction proof"):
+        validate_aas_operator_answer_receipt(receipt, gate=gate)
+
+    receipt["operator_approval_recorded"] = True
+    receipt["approval_evidence_ref"] = "opaque-approval-ref"
+    with pytest.raises(CityOpsContractError, match="approval and redaction proof"):
+        validate_aas_operator_answer_receipt(receipt, gate=gate)
+
+
+def test_answer_receipt_validator_rejects_empty_or_blank_section_lists() -> None:
+    gate = build_aas_operator_answer_receipt_gate()
+    empty_held_receipt = valid_receipt(gate)
+    empty_held_receipt["held_sections"] = []
+    blank_section_receipt = valid_receipt(gate)
+    blank_section_receipt["held_sections"] = ["runtime_path", ""]
+
+    with pytest.raises(CityOpsContractError, match="at least one hold"):
+        validate_aas_operator_answer_receipt(empty_held_receipt, gate=gate)
+    with pytest.raises(CityOpsContractError, match="only non-empty strings"):
+        validate_aas_operator_answer_receipt(blank_section_receipt, gate=gate)
 
 
 def test_answer_receipt_validator_rejects_next_gate_mismatch() -> None:
