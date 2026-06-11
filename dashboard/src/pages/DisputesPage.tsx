@@ -12,6 +12,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ArbiterVerdictBadge } from '../components/ArbiterVerdictBadge'
 import { buildAuthHeaders } from '../lib/auth'
 
@@ -142,6 +143,7 @@ function DisputeRow({
   selected: boolean
   onClick: () => void
 }) {
+  const { t } = useTranslation()
   return (
     <button
       type="button"
@@ -158,7 +160,7 @@ function DisputeRow({
             {dispute.id}
           </div>
           <div className="text-sm font-medium text-gray-900 mt-1 line-clamp-2">
-            {dispute.description || '(no description)'}
+            {dispute.description || t('disputes.noDescription', '(no description)')}
           </div>
           <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
             <span className="font-mono">{dispute.reason}</span>
@@ -175,7 +177,7 @@ function DisputeRow({
           </div>
         </div>
         <span className="text-[10px] uppercase tracking-wide text-gray-500 whitespace-nowrap">
-          tier {dispute.escalation_tier}
+          {t('disputes.tierN', 'tier {{n}}', { n: dispute.escalation_tier })}
         </span>
       </div>
     </button>
@@ -191,6 +193,7 @@ function ResolveForm({
   disputedAmount: number
   onResolved: () => void
 }) {
+  const { t } = useTranslation()
   const [verdict, setVerdict] = useState<VerdictChoice>('release')
   const [reason, setReason] = useState('')
   const [splitPct, setSplitPct] = useState<number>(50)
@@ -200,7 +203,7 @@ function ResolveForm({
 
   const handleSubmit = useCallback(async () => {
     if (reason.length < 5) {
-      setError('Reason must be at least 5 characters')
+      setError(t('disputes.reasonMinError', 'Reason must be at least 5 characters'))
       return
     }
     setSubmitting(true)
@@ -212,15 +215,19 @@ function ResolveForm({
         split_pct: verdict === 'split' ? splitPct : undefined,
       })
       setResult(
-        `Resolved: agent $${res.agent_refund_usdc.toFixed(4)}, worker $${res.executor_payout_usdc.toFixed(4)} (${res.action_triggered || 'pending'})`,
+        t('disputes.resolvedResult', 'Resolved: agent ${{agent}}, worker ${{worker}} ({{action}})', {
+          agent: res.agent_refund_usdc.toFixed(4),
+          worker: res.executor_payout_usdc.toFixed(4),
+          action: res.action_triggered || 'pending',
+        }),
       )
       onResolved()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Resolve failed')
+      setError(e instanceof Error ? e.message : t('disputes.resolveFailed', 'Resolve failed'))
     } finally {
       setSubmitting(false)
     }
-  }, [reason, verdict, splitPct, disputeId, onResolved])
+  }, [reason, verdict, splitPct, disputeId, onResolved, t])
 
   const previewAgent =
     verdict === 'refund'
@@ -232,15 +239,15 @@ function ResolveForm({
 
   return (
     <div className="border border-gray-200 rounded-lg p-4 space-y-3 bg-white">
-      <h3 className="text-sm font-semibold text-gray-900">Resolve dispute</h3>
+      <h3 className="text-sm font-semibold text-gray-900">{t('disputes.resolveHeading', 'Resolve dispute')}</h3>
 
       <div className="grid grid-cols-3 gap-2">
         {(['release', 'refund', 'split'] as const).map((v) => {
           const selected = verdict === v
           const labels = {
-            release: 'Release (worker wins)',
-            refund: 'Refund (agent wins)',
-            split: 'Split (partial)',
+            release: t('disputes.verdictRelease', 'Release (worker wins)'),
+            refund: t('disputes.verdictRefund', 'Refund (agent wins)'),
+            split: t('disputes.verdictSplit', 'Split (partial)'),
           }
           return (
             <button
@@ -284,14 +291,14 @@ function ResolveForm({
 
       <div>
         <label className="block text-xs font-medium text-gray-700 mb-1">
-          Reason (5-2000 chars, stored in audit trail)
+          {t('disputes.reasonLabel', 'Reason (5-2000 chars, stored in audit trail)')}
         </label>
         <textarea
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           rows={3}
-          className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-          placeholder="Explain your decision..."
+          className="w-full px-3 py-2 border border-gray-300 rounded text-sm bg-white text-zinc-900"
+          placeholder={t('disputes.reasonPlaceholder', 'Explain your decision...')}
           maxLength={2000}
         />
       </div>
@@ -313,7 +320,7 @@ function ResolveForm({
         disabled={submitting || reason.length < 5}
         className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-sm font-semibold"
       >
-        {submitting ? 'Submitting...' : 'Submit verdict'}
+        {submitting ? t('disputes.submitting', 'Submitting...') : t('disputes.submitVerdict', 'Submit verdict')}
       </button>
     </div>
   )
@@ -326,6 +333,7 @@ function DisputeDetailPanel({
   dispute: DisputeDetail
   onResolved: () => void
 }) {
+  const { t } = useTranslation()
   const vdata = dispute.arbiter_verdict_data
   const disputedAmount = dispute.disputed_amount_usdc ?? 0
   const isResolved = !!dispute.resolved_at
@@ -337,7 +345,7 @@ function DisputeDetailPanel({
           <div>
             <div className="text-xs text-gray-500 font-mono">{dispute.id}</div>
             <h2 className="text-lg font-semibold text-gray-900 mt-1">
-              Dispute
+              {t('disputes.detailHeading', 'Dispute')}
             </h2>
           </div>
           {vdata?.decision && (
@@ -355,37 +363,37 @@ function DisputeDetailPanel({
 
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
-            <div className="text-xs text-gray-500">Task</div>
+            <div className="text-xs text-gray-500">{t('disputes.fieldTask', 'Task')}</div>
             <div className="font-mono text-xs truncate">{dispute.task_id}</div>
           </div>
           <div>
-            <div className="text-xs text-gray-500">Submission</div>
+            <div className="text-xs text-gray-500">{t('disputes.fieldSubmission', 'Submission')}</div>
             <div className="font-mono text-xs truncate">
               {dispute.submission_id ?? '—'}
             </div>
           </div>
           <div>
-            <div className="text-xs text-gray-500">Reason</div>
+            <div className="text-xs text-gray-500">{t('disputes.fieldReason', 'Reason')}</div>
             <div className="text-sm">{dispute.reason}</div>
           </div>
           <div>
-            <div className="text-xs text-gray-500">Status</div>
+            <div className="text-xs text-gray-500">{t('disputes.fieldStatus', 'Status')}</div>
             <div className="text-sm">{dispute.status}</div>
           </div>
           <div>
-            <div className="text-xs text-gray-500">Disputed amount</div>
+            <div className="text-xs text-gray-500">{t('disputes.fieldDisputedAmount', 'Disputed amount')}</div>
             <div className="text-sm font-mono">
               ${disputedAmount.toFixed(4)}
             </div>
           </div>
           <div>
-            <div className="text-xs text-gray-500">Priority</div>
+            <div className="text-xs text-gray-500">{t('disputes.fieldPriority', 'Priority')}</div>
             <div className="text-sm">{dispute.priority}</div>
           </div>
         </div>
 
         <div>
-          <div className="text-xs text-gray-500 mb-1">Description</div>
+          <div className="text-xs text-gray-500 mb-1">{t('disputes.fieldDescription', 'Description')}</div>
           <div className="text-sm text-gray-800 whitespace-pre-wrap">
             {dispute.description}
           </div>
@@ -393,7 +401,7 @@ function DisputeDetailPanel({
 
         {vdata?.reason && (
           <div>
-            <div className="text-xs text-gray-500 mb-1">Arbiter reason</div>
+            <div className="text-xs text-gray-500 mb-1">{t('disputes.arbiterReason', 'Arbiter reason')}</div>
             <div className="text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded p-2">
               {vdata.reason}
             </div>
@@ -402,13 +410,13 @@ function DisputeDetailPanel({
 
         {vdata?.disagreement && (
           <div className="text-xs text-amber-700 font-medium bg-amber-50 border border-amber-200 rounded p-2">
-            Ring disagreement detected — rings could not reach consensus
+            {t('disputes.ringDisagreement', 'Ring disagreement detected — rings could not reach consensus')}
           </div>
         )}
 
         {Array.isArray(vdata?.ring_scores) && vdata.ring_scores.length > 0 && (
           <div>
-            <div className="text-xs text-gray-500 mb-1">Ring breakdown</div>
+            <div className="text-xs text-gray-500 mb-1">{t('disputes.ringBreakdown', 'Ring breakdown')}</div>
             <div className="space-y-1">
               {vdata.ring_scores.map((rs, i) => (
                 <div
@@ -431,7 +439,7 @@ function DisputeDetailPanel({
         )}
 
         {vdata?.evidence_hash && (
-          <div className="text-[10px] font-mono text-gray-400 break-all">
+          <div className="text-[10px] font-mono text-zinc-600 break-all">
             evidence_hash: {vdata.evidence_hash}
           </div>
         )}
@@ -446,7 +454,7 @@ function DisputeDetailPanel({
       ) : (
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-sm">
           <div className="font-semibold text-green-900">
-            Resolved: {dispute.winner}
+            {t('disputes.resolvedWinner', 'Resolved: {{winner}}', { winner: dispute.winner })}
           </div>
           {dispute.resolution_notes && (
             <div className="text-green-800 mt-1">
@@ -468,6 +476,7 @@ function DisputeDetailPanel({
 // --------------------------------------------------------------------------
 
 export default function DisputesPage() {
+  const { t } = useTranslation()
   const [disputes, setDisputes] = useState<DisputeSummary[]>([])
   const [selected, setSelected] = useState<DisputeDetail | null>(null)
   const [loading, setLoading] = useState(false)
@@ -510,9 +519,9 @@ export default function DisputesPage() {
   return (
     <div className="max-w-7xl mx-auto p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Disputes</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('disputes.title', 'Disputes')}</h1>
         <p className="text-sm text-gray-600 mt-1">
-          Ring 2 escalated disputes awaiting human arbiter review
+          {t('disputes.subtitle', 'Ring 2 escalated disputes awaiting human arbiter review')}
         </p>
       </div>
 
@@ -527,19 +536,19 @@ export default function DisputesPage() {
         <div className="lg:col-span-1 space-y-2">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-gray-700">
-              {loading ? 'Loading...' : `${disputes.length} open`}
+              {loading ? t('common.loading', 'Loading...') : t('disputes.openCount', '{{count}} open', { count: disputes.length })}
             </h2>
             <button
               type="button"
               onClick={load}
               className="text-xs text-blue-600 hover:text-blue-700"
             >
-              Refresh
+              {t('common.refresh', 'Refresh')}
             </button>
           </div>
           {disputes.length === 0 && !loading ? (
             <div className="text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded p-4">
-              No open disputes
+              {t('disputes.empty', 'No open disputes')}
             </div>
           ) : (
             disputes.map((d) => (
@@ -562,7 +571,7 @@ export default function DisputesPage() {
             />
           ) : (
             <div className="text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
-              Select a dispute from the list to see details and resolve it
+              {t('disputes.selectPrompt', 'Select a dispute from the list to see details and resolve it')}
             </div>
           )}
         </div>

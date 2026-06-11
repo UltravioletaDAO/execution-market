@@ -195,7 +195,7 @@ function TaskCard({
                 <span>{t(CATEGORY_I18N_KEYS[task.category])}</span>
                 <span className="text-gray-300">|</span>
                 <span className={deadline.isUrgent ? 'text-orange-600 font-medium' : deadline.isExpired ? 'text-red-500' : ''}>
-                  {deadline.text}
+                  {t(`taskMgmt.deadline.${deadline.text}`, deadline.text)}
                 </span>
                 {task.location_hint && (
                   <>
@@ -215,7 +215,7 @@ function TaskCard({
           {/* Bounty */}
           <div className="text-right flex-shrink-0">
             <p className="text-lg font-semibold text-green-600">{formatCurrency(task.bounty_usd)}</p>
-            <p className="text-xs text-gray-400">USDC</p>
+            <p className="text-xs text-zinc-600">USDC</p>
           </div>
         </div>
 
@@ -251,7 +251,7 @@ function TaskCard({
             )}
 
             {/* Created date */}
-            <span className="text-gray-400">
+            <span className="text-zinc-600">
               {t('taskMgmt.created', 'Created')} {formatDate(task.created_at)}
             </span>
           </div>
@@ -618,7 +618,7 @@ export function TaskManagement({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t('taskMgmt.searchPlaceholder', 'Search tasks...')}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full pl-10 pr-4 py-2 bg-white text-zinc-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
 

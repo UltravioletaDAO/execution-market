@@ -138,7 +138,7 @@ function GpsToggle({ data }: { data: Record<string, unknown> }) {
       <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs">
         {Object.entries(data).map(([k, v]) => (
           <span key={k} className="contents">
-            <span className="text-gray-400">{k}</span>
+            <span className="text-zinc-600">{k}</span>
             <span className="text-gray-600">{typeof v === 'number' ? String(Math.round(v * 1000000) / 1000000) : String(v ?? '')}</span>
           </span>
         ))}
@@ -294,7 +294,7 @@ export function TaskDetail({
                   ? { backgroundColor: '#e5e7eb', color: '#6b7280' }
                   : task.status === 'disputed'
                   ? { backgroundColor: '#fecaca', color: '#991b1b' }
-                  : { backgroundColor: '#e0e7ff', color: '#3730a3' }}
+                  : { backgroundColor: '#f4f4f5', color: '#18181b' }}
               >
                 {t(STATUS_I18N_KEY[task.status] || `agentDashboard.status.${task.status}`, STATUS_FALLBACK[task.status] || task.status)}
               </span>
@@ -313,7 +313,7 @@ export function TaskDetail({
                   size="sm"
                 />
               ) : (
-                <div className="text-xs text-gray-400">
+                <div className="text-xs text-zinc-600">
                   {task.payment_token}{task.payment_network ? ` on ${getNetworkDisplayName(task.payment_network)}` : ''}
                 </div>
               )}
@@ -566,7 +566,7 @@ export function TaskDetail({
                                   {/* Fallback for broken images */}
                                   <div className="hidden w-full h-32 bg-gray-100 rounded items-center justify-center">
                                     <div className="text-center">
-                                      <span className="text-xs text-gray-400 block">{t('evidence.imageLoadError', 'Could not load image')}</span>
+                                      <span className="text-xs text-zinc-600 block">{t('evidence.imageLoadError', 'Could not load image')}</span>
                                       <a href={safeHref(fileUrl)} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline mt-1 block">
                                         {t('evidence.downloadDirect', 'Download directly')}
                                       </a>
@@ -577,13 +577,13 @@ export function TaskDetail({
                               {/* Placeholder when image is detected but no URL available */}
                               {isImage && !fileUrl && (
                                 <div className="w-full h-32 bg-gray-100 rounded flex items-center justify-center mt-2">
-                                  <span className="text-xs text-gray-400">{t('evidence.imageNotAvailable', 'Image not available')}</span>
+                                  <span className="text-xs text-zinc-600">{t('evidence.imageNotAvailable', 'Image not available')}</span>
                                 </div>
                               )}
                               {/* Non-image file link */}
                               {!isImage && fileUrl && (
                                 <a href={safeHref(fileUrl)} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm block mt-1">
-                                  {filename || 'View file'}
+                                  {filename || t('evidence.viewFile', 'View file')}
                                 </a>
                               )}
                               {/* Metadata as clean key-value pairs */}
@@ -592,7 +592,7 @@ export function TaskDetail({
                                   <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                                     {filename && (
                                       <>
-                                        <span className="text-gray-400">{t('submission.filename', 'File')}</span>
+                                        <span className="text-zinc-600">{t('submission.filename', 'File')}</span>
                                         <span className="text-gray-600 truncate">{filename}</span>
                                       </>
                                     )}
@@ -603,7 +603,7 @@ export function TaskDetail({
                                       if (typeof mv === 'object' && mv !== null) return null
                                       return (
                                         <span key={mk} className="contents">
-                                          <span className="text-gray-400">
+                                          <span className="text-zinc-600">
                                             {mk === 'size' ? t('submission.fileSize', 'Size')
                                               : mk === 'checksum' ? 'Hash'
                                               : mk.replace(/_/g, ' ')}
@@ -612,7 +612,7 @@ export function TaskDetail({
                                             {mk === 'size' && typeof mv === 'number'
                                               ? mv > 1048576 ? `${(mv / 1048576).toFixed(1)} MB` : `${(mv / 1024).toFixed(0)} KB`
                                               : mk === 'checksum' && typeof mv === 'string' && mv.length > 16
-                                              ? <>{mv.slice(0, 16)}...<button type="button" title="Copy hash" className="ml-1 text-gray-400 hover:text-gray-600" onClick={() => navigator.clipboard.writeText(String(mv))}><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg></button></>
+                                              ? <>{mv.slice(0, 16)}...<button type="button" title={t('submission.copyHash', 'Copy hash')} className="ml-1 text-gray-400 hover:text-gray-600" onClick={() => navigator.clipboard.writeText(String(mv))}><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg></button></>
                                               : String(mv)}
                                           </span>
                                         </span>
@@ -646,12 +646,12 @@ export function TaskDetail({
                                           <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 mt-1 text-xs">
                                             {parsedDevice && Object.entries(parsedDevice).map(([dk, dv]) => (
                                               <span key={dk} className="contents">
-                                                <span className="text-gray-400">{dk === 'userAgent' ? 'User Agent' : dk.replace(/_/g, ' ')}</span>
+                                                <span className="text-zinc-600">{dk === 'userAgent' ? 'User Agent' : dk.replace(/_/g, ' ')}</span>
                                                 <span className="text-gray-600 break-all">{String(dv)}</span>
                                               </span>
                                             ))}
                                             <span className="contents">
-                                              <span className="text-gray-400">source</span>
+                                              <span className="text-zinc-600">source</span>
                                               <span className="text-gray-600">{derivedSource}</span>
                                             </span>
                                             {Object.entries(obj).map(([nk, nv]) => {
@@ -662,14 +662,14 @@ export function TaskDetail({
                                                 if (isGpsKey(nk) || isGpsObject(nested)) {
                                                   return (
                                                     <span key={nk} className="contents col-span-2">
-                                                      <span className="text-gray-400">{nk.replace(/_/g, ' ')}</span>
+                                                      <span className="text-zinc-600">{nk.replace(/_/g, ' ')}</span>
                                                       <GpsToggle data={nested} />
                                                     </span>
                                                   )
                                                 }
                                                 return Object.entries(nested).map(([gk, gv]) => (
                                                   <span key={`${nk}.${gk}`} className="contents">
-                                                    <span className="text-gray-400">{gk.replace(/_/g, ' ')}</span>
+                                                    <span className="text-zinc-600">{gk.replace(/_/g, ' ')}</span>
                                                     <span className="text-gray-600 truncate">
                                                       {typeof gv === 'number' ? (gk === 'timestamp' ? new Date(gv).toLocaleString() : String(Math.round(gv * 1000) / 1000)) : String(gv ?? '')}
                                                     </span>
@@ -682,7 +682,7 @@ export function TaskDetail({
                                               }
                                               return (
                                                 <span key={nk} className="contents">
-                                                  <span className="text-gray-400">{nk.replace(/_/g, ' ')}</span>
+                                                  <span className="text-zinc-600">{nk.replace(/_/g, ' ')}</span>
                                                   <span className="text-gray-600 truncate">{String(nv ?? '')}</span>
                                                 </span>
                                               )
@@ -715,7 +715,7 @@ export function TaskDetail({
                                               if (isGpsKey(nk) || isGpsObject(nestedObj)) {
                                                 return (
                                                   <span key={nk} className="contents col-span-2">
-                                                    <span className="text-gray-400">{nk.replace(/_/g, ' ')}</span>
+                                                    <span className="text-zinc-600">{nk.replace(/_/g, ' ')}</span>
                                                     <GpsToggle data={nestedObj} />
                                                   </span>
                                                 )
@@ -724,21 +724,21 @@ export function TaskDetail({
                                               if (containsGpsJson(jsonStr)) {
                                                 return (
                                                   <span key={nk} className="contents col-span-2">
-                                                    <span className="text-gray-400">{nk.replace(/_/g, ' ')}</span>
+                                                    <span className="text-zinc-600">{nk.replace(/_/g, ' ')}</span>
                                                     <GpsToggle data={nestedObj} />
                                                   </span>
                                                 )
                                               }
                                               return (
                                                 <span key={nk} className="contents">
-                                                  <span className="text-gray-400">{nk.replace(/_/g, ' ')}</span>
+                                                  <span className="text-zinc-600">{nk.replace(/_/g, ' ')}</span>
                                                   <span className="text-gray-600 truncate">{jsonStr}</span>
                                                 </span>
                                               )
                                             }
                                             return (
                                               <span key={nk} className="contents">
-                                                <span className="text-gray-400">{nk.replace(/_/g, ' ')}</span>
+                                                <span className="text-zinc-600">{nk.replace(/_/g, ' ')}</span>
                                                 <span className="text-gray-600 truncate">
                                                   {typeof nv === 'boolean' ? (nv ? t('common.yes', 'Yes') : t('common.no', 'No'))
                                                     : typeof nv === 'number' ? (nk.includes('score') ? `${Math.round(nv * 100)}%` : String(nv))
@@ -798,7 +798,7 @@ export function TaskDetail({
                             return (
                               <div key={key}>
                                 <span className="text-xs font-semibold text-gray-600 uppercase">{key.replace(/_/g, ' ')}</span>
-                                <p className="text-sm text-gray-500 mt-1">[GPS data hidden]</p>
+                                <p className="text-sm text-gray-500 mt-1">{t('gps.dataHidden', '[GPS data hidden]')}</p>
                               </div>
                             )
                           }
@@ -809,7 +809,7 @@ export function TaskDetail({
                                 <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 mt-1 text-xs">
                                   {Object.entries(ev as Record<string, unknown>).map(([fk, fv]) => (
                                     <span key={fk} className="contents">
-                                      <span className="text-gray-400">{fk.replace(/_/g, ' ')}</span>
+                                      <span className="text-zinc-600">{fk.replace(/_/g, ' ')}</span>
                                       <span className="text-gray-600 truncate">
                                         {typeof fv === 'boolean'
                                           ? (fv ? t('common.yes', 'Yes') : t('common.no', 'No'))
@@ -933,7 +933,7 @@ export function TaskDetail({
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
               {t('tasks.submissions', 'Evidence Submitted')}
             </h2>
-            <div className="flex items-center gap-2 text-sm text-gray-400 py-2">
+            <div className="flex items-center gap-2 text-sm text-zinc-500 py-2">
               <div className="w-4 h-4 border-2 border-gray-300 border-t-transparent rounded-full animate-spin" />
               {t('common.loading', 'Loading...')}
             </div>

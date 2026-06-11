@@ -16,6 +16,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { OnrampPayload } from '../services/moonpay'
 
 const MOBILE_BREAKPOINT_PX = 640
@@ -91,6 +92,7 @@ function parseMoonPayUrl(url: string): ParsedMoonPayUrl {
 type Phase = 'loading' | 'opening' | 'opened' | 'closed' | 'fallback' | 'error'
 
 export function MoonPayFrame({ onramp, onEvent, onError, onClose }: Props) {
+  const { t } = useTranslation()
   const widgetRef = useRef<MoonPayWidget | null>(null)
   const [phase, setPhase] = useState<Phase>('loading')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -205,16 +207,16 @@ export function MoonPayFrame({ onramp, onEvent, onError, onClose }: Props) {
         <span>phase: {phase}</span>
       </div>
       <p className="text-sm text-zinc-700">
-        {phase === 'loading' && 'Loading MoonPay overlay…'}
-        {phase === 'opening' && 'Opening MoonPay overlay…'}
-        {phase === 'opened' && 'MoonPay overlay is open in the foreground.'}
+        {phase === 'loading' && t('moonpay.phase.loading', 'Loading MoonPay overlay…')}
+        {phase === 'opening' && t('moonpay.phase.opening', 'Opening MoonPay overlay…')}
+        {phase === 'opened' && t('moonpay.phase.opened', 'MoonPay overlay is open in the foreground.')}
         {phase === 'fallback' &&
-          'Opened MoonPay in a new tab (mobile fallback). Return to this page once the buy completes.'}
-        {phase === 'closed' && 'MoonPay overlay closed.'}
+          t('moonpay.phase.fallback', 'Opened MoonPay in a new tab (mobile fallback). Return to this page once the buy completes.')}
+        {phase === 'closed' && t('moonpay.phase.closed', 'MoonPay overlay closed.')}
       </p>
       {phase === 'error' && (
         <div className="mt-3 rounded bg-red-50 p-3 text-sm text-red-700">
-          <p className="font-semibold">MoonPay overlay failed to open</p>
+          <p className="font-semibold">{t('moonpay.openFailed', 'MoonPay overlay failed to open')}</p>
           <pre className="mt-1 whitespace-pre-wrap break-all text-xs">{errorMsg}</pre>
           {errorMsg?.includes('@moonpay/moonpay-js') && (
             <p className="mt-2 text-xs">
@@ -227,14 +229,14 @@ export function MoonPayFrame({ onramp, onEvent, onError, onClose }: Props) {
           )}
           {errorMsg === 'popup blocked' && (
             <p className="mt-2 text-xs">
-              The browser blocked the popup. Open the URL manually:{' '}
+              {t('moonpay.popupBlocked', 'The browser blocked the popup. Open the URL manually:')}{' '}
               <a
                 href={onramp.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline"
               >
-                buy USDC on MoonPay
+                {t('moonpay.buyLink', 'buy USDC on MoonPay')}
               </a>
               .
             </p>

@@ -411,7 +411,7 @@ export function GPSCapture({
               </svg>
               {t('gps.activate', 'Activar GPS')}
             </button>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+            <p className="text-xs text-zinc-600 dark:text-gray-500 mt-2">
               {t('gps.tapToActivate', 'Toca para permitir el acceso a tu ubicacion')}
             </p>
           </div>
@@ -428,7 +428,7 @@ export function GPSCapture({
             <p className="text-sm text-gray-600 dark:text-gray-400">
               {t('gps.acquiring', 'Obteniendo ubicacion GPS...')}
             </p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+            <p className="text-xs text-zinc-500 dark:text-gray-500 mt-1">
               {t('gps.waitMessage', 'Esto puede tomar unos segundos')}
             </p>
           </div>

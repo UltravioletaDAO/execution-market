@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../context/AuthContext'
 import { TypingEffect } from './TypingEffect'
@@ -30,7 +31,13 @@ export function HeroSection({ onConnectWallet, onGoToDashboard, onScrollToTasks 
   const { t, i18n } = useTranslation()
   const { isAuthenticated, loading } = useAuth()
 
-  const examples = i18n.language === 'es' ? TASK_EXAMPLES_ES : TASK_EXAMPLES_EN
+  const examples = useMemo(
+    () =>
+      (i18n.language === 'es' ? TASK_EXAMPLES_ES : TASK_EXAMPLES_EN).map((fallback, i) =>
+        t(`landing.heroExamples.${i}`, fallback)
+      ),
+    [t, i18n.language]
+  )
 
   return (
     <section className="pt-8 pb-6 md:pt-12 md:pb-8">
@@ -77,7 +84,7 @@ export function HeroSection({ onConnectWallet, onGoToDashboard, onScrollToTasks 
         </div>
 
         {/* Trust signals - tight row */}
-        <div className="flex items-center justify-center gap-6 mt-6 text-xs text-gray-400">
+        <div className="flex items-center justify-center gap-6 mt-6 text-xs text-zinc-600">
           <span className="flex items-center gap-1">
             <svg className="w-3.5 h-3.5 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />

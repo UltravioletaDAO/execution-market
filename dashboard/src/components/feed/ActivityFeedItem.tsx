@@ -170,7 +170,7 @@ export const ActivityFeedItem = memo(function ActivityFeedItem({
       {/* Timestamp */}
       <span
         className={cn(
-          'flex-shrink-0 text-slate-400 dark:text-slate-500 whitespace-nowrap',
+          'flex-shrink-0 text-zinc-500 dark:text-slate-500 whitespace-nowrap',
           compact ? 'text-[10px]' : 'text-xs',
         )}
         title={new Date(event.created_at).toLocaleString()}

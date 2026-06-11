@@ -93,7 +93,7 @@ const EVENT_STYLES: Record<string, { label: string; color: string; icon: string 
   task_created: { label: 'Task Posted', color: 'bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200', icon: '📝' },
   task_accepted: { label: 'Assigned to Executor', color: 'bg-zinc-200 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200', icon: '🤝' },
   task_in_progress: { label: 'In Progress', color: 'bg-zinc-300 text-zinc-900 dark:bg-zinc-600 dark:text-zinc-100', icon: '⚙️' },
-  task_submitted: { label: 'Work Submitted', color: 'bg-zinc-400 text-white dark:bg-zinc-500 dark:text-zinc-50', icon: '📤' },
+  task_submitted: { label: 'Work Submitted', color: 'bg-zinc-400 text-zinc-900 dark:bg-zinc-500 dark:text-zinc-50', icon: '📤' },
   task_completed: { label: 'Task Completed', color: 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900', icon: '🎉' },
   feedback_given: { label: 'Reputation Scored', color: 'bg-amber-50 text-amber-800 border border-amber-300 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700', icon: '⭐' },
   dispute_opened: { label: 'Dispute Opened', color: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300', icon: '⚠️' },
@@ -114,11 +114,11 @@ function truncateWallet(wallet: string): string {
 
 // Reputation tiers — metallic palette EXCEPTION (per brand decision: bronze/silver/gold/platinum).
 // Tailwind substitutes: orange (bronze), slate (silver), yellow (gold), sky (platinum/diamond).
-function getReputationTier(score: number): { name: string; color: string } {
-  if (score >= 81) return { name: 'Diamante', color: 'text-sky-600 dark:text-sky-400' }
-  if (score >= 61) return { name: 'Oro', color: 'text-yellow-600 dark:text-yellow-400' }
-  if (score >= 31) return { name: 'Plata', color: 'text-slate-500 dark:text-slate-400' }
-  return { name: 'Bronce', color: 'text-orange-600 dark:text-orange-400' }
+function getReputationTier(score: number): { nameKey: string; nameFallback: string; color: string } {
+  if (score >= 81) return { nameKey: 'feed.tier.diamond', nameFallback: 'Diamond', color: 'text-sky-600 dark:text-sky-400' }
+  if (score >= 61) return { nameKey: 'feed.tier.gold', nameFallback: 'Gold', color: 'text-yellow-600 dark:text-yellow-400' }
+  if (score >= 31) return { nameKey: 'feed.tier.silver', nameFallback: 'Silver', color: 'text-slate-500 dark:text-slate-400' }
+  return { nameKey: 'feed.tier.bronze', nameFallback: 'Bronze', color: 'text-orange-600 dark:text-orange-400' }
 }
 
 function formatDuration(seconds: number): string {
@@ -215,13 +215,13 @@ const ParticipantPanel = memo(function ParticipantPanel({
         <span className={cn('text-xs font-bold', tier.color)}>
           {score > 0 ? score.toFixed(0) : '—'}
         </span>
-        <span className={cn('text-[10px]', tier.color)}>{tier.name}</span>
+        <span className={cn('text-[10px]', tier.color)}>{t(tier.nameKey, tier.nameFallback)}</span>
       </div>
 
       {/* Tasks completed */}
       {participant.tasks_completed != null && participant.tasks_completed > 0 && (
         <span className="text-[10px] text-slate-500 dark:text-slate-400">
-          {participant.tasks_completed} tasks
+          {t('feed.tasksCount', '{{count}} tasks', { count: participant.tasks_completed })}
         </span>
       )}
     </button>
@@ -250,13 +250,15 @@ function FeedbackPanel({
   feedback: FeedbackData | null
   network: string
 }) {
+  const { t } = useTranslation()
+
   if (!feedback || feedback.status === 'pending') {
     return (
       <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 p-2">
         <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mb-1">{label}</p>
         <div className="flex items-center gap-1.5">
           <span className="text-amber-400 text-sm">⏳</span>
-          <span className="text-xs text-slate-500 dark:text-slate-400 italic">Pending</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 italic">{t('feed.pendingFeedback', 'Pending')}</span>
         </div>
       </div>
     )
@@ -314,7 +316,7 @@ function TaskCenterContent({
               {data.task_title}
             </button>
           ) : (
-            <span className="text-sm text-slate-400 italic">{t('feed.untitledTask', 'Untitled task')}</span>
+            <span className="text-sm text-zinc-500 italic">{t('feed.untitledTask', 'Untitled task')}</span>
           )}
           {data.task_category && (
             <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-0.5">
@@ -419,13 +421,13 @@ export const TaskFeedCard = memo(function TaskFeedCard({
   const transactions = useMemo<TaskFeedTransaction[]>(() => {
     const txs: TaskFeedTransaction[] = []
     const net = data.payment_network || 'base'
-    if (data.escrow_tx) txs.push({ label: 'Escrow', hash: data.escrow_tx, network: net })
-    if (data.payment_tx) txs.push({ label: 'Payment', hash: data.payment_tx, network: net })
-    if (data.refund_tx) txs.push({ label: 'Refund', hash: data.refund_tx, network: net })
-    if (data.agent_to_worker_feedback?.reputation_tx) txs.push({ label: 'Rep (Agent→Worker)', hash: data.agent_to_worker_feedback.reputation_tx, network: net })
-    if (data.worker_to_agent_feedback?.reputation_tx) txs.push({ label: 'Rep (Worker→Agent)', hash: data.worker_to_agent_feedback.reputation_tx, network: net })
+    if (data.escrow_tx) txs.push({ label: t('feed.tx.escrow', 'Escrow'), hash: data.escrow_tx, network: net })
+    if (data.payment_tx) txs.push({ label: t('feed.tx.payment', 'Payment'), hash: data.payment_tx, network: net })
+    if (data.refund_tx) txs.push({ label: t('feed.tx.refund', 'Refund'), hash: data.refund_tx, network: net })
+    if (data.agent_to_worker_feedback?.reputation_tx) txs.push({ label: t('feed.tx.repAgentToWorker', 'Rep (Agent→Worker)'), hash: data.agent_to_worker_feedback.reputation_tx, network: net })
+    if (data.worker_to_agent_feedback?.reputation_tx) txs.push({ label: t('feed.tx.repWorkerToAgent', 'Rep (Worker→Agent)'), hash: data.worker_to_agent_feedback.reputation_tx, network: net })
     return txs
-  }, [data])
+  }, [data, t])
 
   const hasFeedback = Boolean(data.agent_to_worker_feedback || data.worker_to_agent_feedback)
   const isCompleted = data.event_type === 'task_completed'

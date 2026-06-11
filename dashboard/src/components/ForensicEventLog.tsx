@@ -422,7 +422,7 @@ function RingSection({
                   <span className="text-[11px] text-gray-500 min-w-0 break-words">{summary}</span>
                 )}
                 {latency && (
-                  <span className="text-[11px] text-gray-400 font-mono flex-shrink-0 ml-auto pl-2" title="Inference latency">
+                  <span className="text-[11px] text-zinc-600 font-mono flex-shrink-0 ml-auto pl-2" title="Inference latency">
                     {latency}
                   </span>
                 )}
@@ -467,7 +467,7 @@ function RingSection({
                   <span className={`truncate ${c.passed ? 'text-gray-600' : 'text-red-500'}`}>
                     {getStepLabel(c.name, t)}
                   </span>
-                  <span className="text-gray-400 font-mono ml-auto pl-1 flex-shrink-0">
+                  <span className="text-zinc-600 font-mono ml-auto pl-1 flex-shrink-0">
                     {Math.round(c.score * 100)}%
                   </span>
                 </div>

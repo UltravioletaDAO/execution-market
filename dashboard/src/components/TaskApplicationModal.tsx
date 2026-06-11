@@ -90,7 +90,7 @@ export function TaskApplicationModal({ task, hasAlreadyApplied, onClose, onSucce
         }
         setError(err.message)
       } else {
-        setError(err instanceof Error ? err.message : 'Failed to apply')
+        setError(err instanceof Error ? err.message : t('application.failedToApply', 'Failed to apply'))
       }
       setResultState('error')
     } finally {
@@ -218,7 +218,7 @@ export function TaskApplicationModal({ task, hasAlreadyApplied, onClose, onSucce
                     'application.messagePlaceholder',
                     'Why are you a good fit for this task?'
                   )}
-                  className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none resize-none"
+                  className="w-full px-3 py-2 bg-white text-zinc-900 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none resize-none"
                   rows={3}
                   maxLength={500}
                 />

@@ -57,7 +57,7 @@ export function ProtocolStack() {
         {/* Section label */}
         <div className="flex items-center gap-2 mb-2">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-gray-500">
+          <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">
             {t('landing.protocolStack.label', 'Protocol Stack')}
           </span>
         </div>
@@ -87,7 +87,7 @@ export function ProtocolStack() {
                 <span className="text-base md:text-lg font-black text-white tracking-tight">
                   {protocol.name}
                 </span>
-                <span className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider">
+                <span className="text-[10px] md:text-xs text-zinc-400 uppercase tracking-wider">
                   {t(`landing.protocolStack.${protocol.key}.standard`, protocol.standard)}
                 </span>
               </div>
@@ -112,7 +112,7 @@ export function ProtocolStack() {
               <p className="text-xs md:text-sm font-semibold text-white">
                 {t('landing.protocolStack.networksTitle', '9 Networks')}
               </p>
-              <p className="text-[10px] md:text-xs text-gray-500">
+              <p className="text-[10px] md:text-xs text-zinc-400">
                 {t('landing.protocolStack.networksSubtitle', '9 Networks Live · Multi-stablecoin payments across all chains')}
               </p>
             </div>
@@ -151,11 +151,11 @@ export function ProtocolStack() {
                   </span>
                 </div>
               ))}
-              <span className="text-[10px] md:text-xs text-gray-600 ml-1">
+              <span className="text-[10px] md:text-xs text-zinc-400 ml-1">
                 {t('landing.protocolStack.configuredTokens', '5 stablecoins live')}
               </span>
             </div>
-            <span className="flex items-center gap-1.5 text-[10px] md:text-xs text-gray-600">
+            <span className="flex items-center gap-1.5 text-[10px] md:text-xs text-zinc-400">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
               {t('landing.protocolStack.status', '9 Networks Live')}
             </span>

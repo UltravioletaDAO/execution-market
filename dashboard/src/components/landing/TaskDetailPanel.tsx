@@ -117,7 +117,7 @@ export function TaskDetailPanel({ task, isAuthenticated, onClose, onApply }: Tas
 
           <div className="flex items-center gap-4 mt-3">
             <div className="text-2xl font-bold text-green-600">{bountyText}</div>
-            <span className="text-xs text-gray-400">{task.payment_token}</span>
+            <span className="text-xs text-zinc-600">{task.payment_token}</span>
             <div className="ml-auto flex items-center gap-1 text-sm text-gray-500">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -151,7 +151,7 @@ export function TaskDetailPanel({ task, isAuthenticated, onClose, onApply }: Tas
                   className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-50 text-red-700 text-sm rounded-full"
                 >
                   <span className="w-1.5 h-1.5 bg-red-500 rounded-full" />
-                  {EVIDENCE_TYPE_LABELS[type] || type}
+                  {t(`tasks.evidenceTypes.${type}`, EVIDENCE_TYPE_LABELS[type] || type)}
                 </span>
               ))}
               {task.evidence_schema.optional?.map((type) => (
@@ -160,7 +160,7 @@ export function TaskDetailPanel({ task, isAuthenticated, onClose, onApply }: Tas
                   className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 text-gray-600 text-sm rounded-full"
                 >
                   <span className="w-1.5 h-1.5 bg-gray-400 rounded-full" />
-                  {EVIDENCE_TYPE_LABELS[type] || type}
+                  {t(`tasks.evidenceTypes.${type}`, EVIDENCE_TYPE_LABELS[type] || type)}
                 </span>
               ))}
             </div>
@@ -225,7 +225,7 @@ export function TaskDetailPanel({ task, isAuthenticated, onClose, onApply }: Tas
               </h3>
 
               {paymentLoading && (
-                <div className="flex items-center gap-2 text-sm text-gray-400 py-4">
+                <div className="flex items-center gap-2 text-sm text-zinc-500 py-4">
                   <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
@@ -269,7 +269,7 @@ export function TaskDetailPanel({ task, isAuthenticated, onClose, onApply }: Tas
               )}
 
               {!paymentLoading && !payment && (
-                <p className="text-sm text-gray-400 italic">
+                <p className="text-sm text-zinc-600 italic">
                   {hasEscrow
                     ? t('payment.syncingData', 'Escrow detectado. Esperando sincronizacion de transacciones x402.')
                     : t('payment.noData', 'No hay datos de pago disponibles.')}

@@ -34,13 +34,13 @@ export function LanguageSwitcher({
   showLabels = true,
   compact = false,
 }: LanguageSwitcherProps) {
-  useTranslation() // Hook needed for re-render on language change
+  const { t } = useTranslation()
   const currentLang = getCurrentLanguage()
 
   const languages = SUPPORTED_LANGUAGES.map((code) => LANGUAGE_CONFIG[code])
 
   return (
-    <div className={`flex items-center gap-0.5 ${className}`} role="group" aria-label="Language selection">
+    <div className={`flex items-center gap-0.5 ${className}`} role="group" aria-label={t('common.languageSelection', 'Language selection')}>
       {languages.map((lang, idx) => (
         <span key={lang.code} className="flex items-center">
           <Pill
@@ -48,7 +48,7 @@ export function LanguageSwitcher({
             size="sm"
             onClick={() => changeLanguage(lang.code)}
             title={lang.nativeName}
-            aria-label={`Switch to ${lang.fullName}`}
+            aria-label={t('common.switchToLanguage', 'Switch to {{language}}', { language: lang.fullName })}
             aria-pressed={currentLang === lang.code}
             leftIcon={showFlags ? <span aria-hidden="true">{lang.flag}</span> : undefined}
           >
@@ -68,7 +68,7 @@ export function LanguageSwitcher({
  * Best for: Mobile nav, compact headers
  */
 export function LanguageSwitcherDropdown({ className = '' }: LanguageSwitcherProps) {
-  useTranslation() // Hook needed for re-render on language change
+  const { t } = useTranslation()
   const currentLang = getCurrentLanguage()
 
   return (
@@ -76,7 +76,7 @@ export function LanguageSwitcherDropdown({ className = '' }: LanguageSwitcherPro
       value={currentLang}
       onChange={(e) => changeLanguage(e.target.value as SupportedLanguage)}
       className={`px-2 py-1 text-sm border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500 outline-none cursor-pointer ${className}`}
-      aria-label="Select language"
+      aria-label={t('common.selectLanguage', 'Select language')}
     >
       {SUPPORTED_LANGUAGES.map((code) => {
         const config = LANGUAGE_CONFIG[code]
@@ -95,7 +95,7 @@ export function LanguageSwitcherDropdown({ className = '' }: LanguageSwitcherPro
  * Best for: Settings pages, onboarding
  */
 export function LanguageSwitcherMenu({ className = '' }: LanguageSwitcherProps) {
-  useTranslation()
+  const { t } = useTranslation()
   const currentLang = getCurrentLanguage()
   const currentConfig = LANGUAGE_CONFIG[currentLang]
   const [isOpen, setIsOpen] = useState(false)
@@ -160,7 +160,7 @@ export function LanguageSwitcherMenu({ className = '' }: LanguageSwitcherProps) 
         <div
           className="absolute z-50 mt-2 w-48 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1"
           role="listbox"
-          aria-label="Available languages"
+          aria-label={t('common.availableLanguages', 'Available languages')}
         >
           {SUPPORTED_LANGUAGES.map((code) => {
             const config = LANGUAGE_CONFIG[code]

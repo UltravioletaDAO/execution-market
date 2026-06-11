@@ -7,6 +7,8 @@
  */
 
 import { memo, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 
 interface PaymentBadgeProps {
   amountUsd: number
@@ -22,20 +24,20 @@ function formatPrice(amount: number): string {
   return `$${amount.toFixed(2).replace(/\.?0+$/, '')}`
 }
 
-function formatRelativeTime(iso: string): string {
+function formatRelativeTime(iso: string, t: TFunction): string {
   const then = new Date(iso).getTime()
   if (!Number.isFinite(then)) return ''
   const diffMs = Date.now() - then
   const diffSec = Math.max(0, Math.round(diffMs / 1000))
-  if (diffSec < 60) return `${diffSec}s ago`
+  if (diffSec < 60) return t('common.timeAgo.seconds', '{{n}}s ago', { n: diffSec })
   const diffMin = Math.round(diffSec / 60)
-  if (diffMin < 60) return `${diffMin}m ago`
+  if (diffMin < 60) return t('common.timeAgo.minutes', '{{n}}m ago', { n: diffMin })
   const diffH = Math.round(diffMin / 60)
-  if (diffH < 24) return `${diffH}h ago`
+  if (diffH < 24) return t('common.timeAgo.hours', '{{n}}h ago', { n: diffH })
   const diffD = Math.round(diffH / 24)
-  if (diffD < 30) return `${diffD}d ago`
+  if (diffD < 30) return t('common.timeAgo.days', '{{n}}d ago', { n: diffD })
   const diffMo = Math.round(diffD / 30)
-  return `${diffMo}mo ago`
+  return t('common.timeAgo.months', '{{n}}mo ago', { n: diffMo })
 }
 
 export const PaymentBadge = memo(function PaymentBadge({
@@ -45,6 +47,7 @@ export const PaymentBadge = memo(function PaymentBadge({
   paidAt,
   animate = false,
 }: PaymentBadgeProps) {
+  const { t } = useTranslation()
   const target = formatPrice(amountUsd)
   const [display, setDisplay] = useState<string>(animate ? '$0' : target)
 
@@ -69,7 +72,7 @@ export const PaymentBadge = memo(function PaymentBadge({
     return () => cancelAnimationFrame(raf)
   }, [amountUsd, animate, target])
 
-  const subtitle = [token, network?.toUpperCase(), formatRelativeTime(paidAt)]
+  const subtitle = [token, network?.toUpperCase(), formatRelativeTime(paidAt, t)]
     .filter(Boolean)
     .join(' · ')
 

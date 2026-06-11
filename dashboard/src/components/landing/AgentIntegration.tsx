@@ -44,7 +44,7 @@ export const AgentIntegration = forwardRef<HTMLElement, AgentIntegrationProps>(
               <div className="w-3 h-3 rounded-full bg-red-500" />
               <div className="w-3 h-3 rounded-full bg-yellow-500" />
               <div className="w-3 h-3 rounded-full bg-green-500" />
-              <span className="text-gray-500 text-xs ml-2">terminal</span>
+              <span className="text-zinc-400 text-xs ml-2">terminal</span>
             </div>
 
             {/* ClawHub Install */}
@@ -53,9 +53,9 @@ export const AgentIntegration = forwardRef<HTMLElement, AgentIntegrationProps>(
                 <span className="text-gray-400 text-xs">OpenClaw / ClawHub</span>
                 <button
                   onClick={() => copyToClipboard(installCommand, 'clawhub')}
-                  className="text-xs text-gray-500 hover:text-white transition-colors"
+                  className="text-xs text-zinc-400 hover:text-white transition-colors"
                 >
-                  {copiedCommand === 'clawhub' ? 'Copied!' : 'Copy'}
+                  {copiedCommand === 'clawhub' ? t('common.copied', 'Copied!') : t('common.copy', 'Copy')}
                 </button>
               </div>
               <code className="block text-green-400 font-mono text-sm">
@@ -69,9 +69,9 @@ export const AgentIntegration = forwardRef<HTMLElement, AgentIntegrationProps>(
                 <span className="text-gray-400 text-xs">Manual</span>
                 <button
                   onClick={() => copyToClipboard(curlCommand, 'curl')}
-                  className="text-xs text-gray-500 hover:text-white transition-colors"
+                  className="text-xs text-zinc-400 hover:text-white transition-colors"
                 >
-                  {copiedCommand === 'curl' ? 'Copied!' : 'Copy'}
+                  {copiedCommand === 'curl' ? t('common.copied', 'Copied!') : t('common.copy', 'Copy')}
                 </button>
               </div>
               <code className="block text-green-400 font-mono text-sm break-all">
@@ -139,7 +139,7 @@ export const AgentIntegration = forwardRef<HTMLElement, AgentIntegrationProps>(
                 </div>
                 <div>
                   <p className="font-medium text-gray-900 text-sm">SKILL.md</p>
-                  <p className="text-xs text-gray-500">API reference & examples</p>
+                  <p className="text-xs text-gray-500">{t('landing.docs.skillDesc', 'API reference & examples')}</p>
                 </div>
               </a>
               <a
@@ -153,7 +153,7 @@ export const AgentIntegration = forwardRef<HTMLElement, AgentIntegrationProps>(
                 </div>
                 <div>
                   <p className="font-medium text-gray-900 text-sm">HEARTBEAT.md</p>
-                  <p className="text-xs text-gray-500">Monitoring patterns</p>
+                  <p className="text-xs text-gray-500">{t('landing.docs.heartbeatDesc', 'Monitoring patterns')}</p>
                 </div>
               </a>
               <a
@@ -167,7 +167,7 @@ export const AgentIntegration = forwardRef<HTMLElement, AgentIntegrationProps>(
                 </div>
                 <div>
                   <p className="font-medium text-gray-900 text-sm">WORKFLOWS.md</p>
-                  <p className="text-xs text-gray-500">Task templates</p>
+                  <p className="text-xs text-gray-500">{t('landing.docs.workflowsDesc', 'Task templates')}</p>
                 </div>
               </a>
               <a
@@ -182,8 +182,8 @@ export const AgentIntegration = forwardRef<HTMLElement, AgentIntegrationProps>(
                   </svg>
                 </div>
                 <div>
-                  <p className="font-medium text-gray-900 text-sm">API Docs</p>
-                  <p className="text-xs text-gray-500">Interactive Swagger UI</p>
+                  <p className="font-medium text-gray-900 text-sm">{t('landing.docs.apiDocsTitle', 'API Docs')}</p>
+                  <p className="text-xs text-gray-500">{t('landing.docs.apiDocsDesc', 'Interactive Swagger UI')}</p>
                 </div>
               </a>
             </div>

@@ -21,6 +21,7 @@
  * when MoonPay is off, surfaced here as a clear error rather than a crash.
  */
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   requestMoonPaySignedUrl,
   MoonPayError,
@@ -57,6 +58,7 @@ export function DepositModal({
   onClose,
   onFunded,
 }: Props) {
+  const { t } = useTranslation()
   const [stage, setStage] = useState<Stage>('idle')
   const [onramp, setOnramp] = useState<OnrampPayload | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -111,13 +113,13 @@ export function DepositModal({
         const msg =
           e instanceof MoonPayError
             ? e.status === 404 || e.status === 403
-              ? 'Los depósitos con tarjeta no están disponibles por ahora.'
+              ? t('deposit.unavailable', 'Los depósitos con tarjeta no están disponibles por ahora.')
               : e.message
-            : 'No se pudo iniciar el depósito. Intenta de nuevo.'
+            : t('deposit.startError', 'No se pudo iniciar el depósito. Intenta de nuevo.')
         setError(msg)
         setStage('error')
       })
-  }, [open, walletAddress, depositAmountUsdc, externalCustomerId])
+  }, [open, walletAddress, depositAmountUsdc, externalCustomerId, t])
 
   if (!open) return null
 
@@ -130,12 +132,12 @@ export function DepositModal({
       <div className="w-full max-w-md rounded-xl border border-zinc-200 bg-white shadow-xl">
         <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-3">
           <h3 className="font-mono text-sm font-bold text-zinc-900">
-            Depositar USDC (Base)
+            {t('deposit.title', 'Depositar USDC (Base)')}
           </h3>
           <button
             onClick={onClose}
-            className="text-zinc-400 hover:text-zinc-900"
-            aria-label="Cerrar"
+            className="text-zinc-600 hover:text-zinc-900"
+            aria-label={t('common.close', 'Cerrar')}
           >
             ✕
           </button>
@@ -144,31 +146,31 @@ export function DepositModal({
         <div className="space-y-4 p-5">
           <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-sm">
             <div className="flex justify-between">
-              <span className="text-zinc-500">Necesitas</span>
+              <span className="text-zinc-500">{t('deposit.youNeed', 'Necesitas')}</span>
               <span className="font-medium text-zinc-900">
                 ${targetBalanceUsdc.toFixed(2)} USDC
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-zinc-500">Comprarás</span>
+              <span className="text-zinc-500">{t('deposit.youWillBuy', 'Comprarás')}</span>
               <span className="font-medium text-zinc-900">
                 ${Math.max(5, Number(depositAmountUsdc.toFixed(2))).toFixed(2)} USDC
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-zinc-500">Saldo actual</span>
+              <span className="text-zinc-500">{t('deposit.currentBalance', 'Saldo actual')}</span>
               <span className="font-medium text-zinc-900">
                 ${displayBalance.toFixed(2)} USDC
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-zinc-500">Red</span>
+              <span className="text-zinc-500">{t('deposit.network', 'Red')}</span>
               <span className="font-medium text-zinc-900">Base</span>
             </div>
           </div>
 
           {stage === 'requesting' && (
-            <p className="text-sm text-zinc-500">Preparando el depósito…</p>
+            <p className="text-sm text-zinc-500">{t('deposit.preparing', 'Preparando el depósito…')}</p>
           )}
 
           {(stage === 'overlay' || stage === 'watching') && onramp && (
@@ -184,16 +186,15 @@ export function DepositModal({
               />
               <p className="text-xs text-zinc-500">
                 {phase === 'watching'
-                  ? 'Esperando que el USDC llegue a tu wallet en Base…'
-                  : 'Completa el pago en la ventana de MoonPay.'}
+                  ? t('deposit.waitingForUsdc', 'Esperando que el USDC llegue a tu wallet en Base…')
+                  : t('deposit.completeInMoonPay', 'Completa el pago en la ventana de MoonPay.')}
               </p>
             </>
           )}
 
           {stage === 'funded' && (
             <div className="rounded-lg bg-zinc-900 p-3 text-center text-sm text-white">
-              ✅ Fondos recibidos — ${balance.toFixed(2)} USDC en Base. Ya puedes
-              continuar.
+              ✅ {t('deposit.funded', 'Fondos recibidos — ${{balance}} USDC en Base. Ya puedes continuar.', { balance: balance.toFixed(2) })}
             </div>
           )}
 
@@ -209,7 +210,7 @@ export function DepositModal({
             onClick={onClose}
             className="rounded-lg px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-100"
           >
-            {stage === 'funded' ? 'Listo' : 'Cancelar'}
+            {stage === 'funded' ? t('common.done', 'Listo') : t('common.cancel', 'Cancelar')}
           </button>
         </div>
       </div>

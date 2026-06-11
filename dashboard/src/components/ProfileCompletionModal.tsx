@@ -151,7 +151,7 @@ export function ProfileCompletionModal({ onComplete, onSkip, executor }: Profile
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder={t('profile.completion.displayNamePlaceholder', 'e.g. Maria, FastRunner, JuanDev')}
-            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none"
+            className="w-full px-3 py-2 border border-zinc-300 rounded-lg bg-white text-zinc-900 focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none"
             maxLength={50}
           />
         </div>
@@ -168,11 +168,11 @@ export function ProfileCompletionModal({ onComplete, onSkip, executor }: Profile
               'profile.completion.bioPlaceholder',
               'Tell agents about your skills, experience, and what tasks you can do...'
             )}
-            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none resize-none"
+            className="w-full px-3 py-2 border border-zinc-300 rounded-lg bg-white text-zinc-900 focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none resize-none"
             rows={3}
             maxLength={500}
           />
-          <div className="text-xs text-zinc-400 mt-1 text-right">{bio.length}/500</div>
+          <div className="text-xs text-zinc-500 mt-1 text-right">{bio.length}/500</div>
         </div>
 
         {/* Skills */}
@@ -188,7 +188,7 @@ export function ProfileCompletionModal({ onComplete, onSkip, executor }: Profile
                 size="md"
                 onClick={() => toggleSkill(skill)}
               >
-                {skill.replace(/_/g, ' ')}
+                {t(`skills.${skill}`, skill.replace(/_/g, ' '))}
               </Pill>
             ))}
           </div>
@@ -200,7 +200,7 @@ export function ProfileCompletionModal({ onComplete, onSkip, executor }: Profile
               onChange={(e) => setCustomSkill(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomSkill())}
               placeholder={t('skills.customPlaceholder', 'Type your skill...')}
-              className="flex-1 px-3 py-1.5 text-sm border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none"
+              className="flex-1 px-3 py-1.5 text-sm border border-zinc-200 rounded-lg bg-white text-zinc-900 focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none"
             />
             <button
               type="button"
@@ -244,7 +244,7 @@ export function ProfileCompletionModal({ onComplete, onSkip, executor }: Profile
                 size="md"
                 onClick={() => toggleLanguage(lang)}
               >
-                {lang}
+                {t(`languages.${lang.toLowerCase()}`, lang)}
               </Pill>
             ))}
           </div>
@@ -261,7 +261,7 @@ export function ProfileCompletionModal({ onComplete, onSkip, executor }: Profile
               value={locationCity}
               onChange={(e) => setLocationCity(e.target.value)}
               placeholder={t('profile.completion.cityPlaceholder', 'e.g. Mexico City')}
-              className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none"
+              className="w-full px-3 py-2 border border-zinc-300 rounded-lg bg-white text-zinc-900 focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none"
             />
           </div>
           <div>
@@ -273,7 +273,7 @@ export function ProfileCompletionModal({ onComplete, onSkip, executor }: Profile
               value={locationCountry}
               onChange={(e) => setLocationCountry(e.target.value)}
               placeholder={t('profile.completion.countryPlaceholder', 'e.g. Mexico')}
-              className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none"
+              className="w-full px-3 py-2 border border-zinc-300 rounded-lg bg-white text-zinc-900 focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none"
             />
           </div>
         </div>
@@ -282,14 +282,14 @@ export function ProfileCompletionModal({ onComplete, onSkip, executor }: Profile
         <div>
           <label className="block text-sm font-medium text-zinc-700 mb-1">
             {t('profile.completion.email', 'Email')}{' '}
-            <span className="text-zinc-400 font-normal">({t('common.optional', 'optional')})</span>
+            <span className="text-zinc-500 font-normal">({t('common.optional', 'optional')})</span>
           </label>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder={t('profile.completion.emailPlaceholder', 'For task notifications')}
-            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none"
+            className="w-full px-3 py-2 border border-zinc-300 rounded-lg bg-white text-zinc-900 focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none"
           />
         </div>
 

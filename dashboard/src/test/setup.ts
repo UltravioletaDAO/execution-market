@@ -12,6 +12,9 @@ vi.mock('react-i18next', () => ({
     },
   }),
   Trans: ({ children }: { children: React.ReactNode }) => children,
+  // no-op 3rd-party plugin shape so src/i18n/index.ts (i18n.use(initReactI18next))
+  // can be imported by components under test (e.g. ErrorBoundary)
+  initReactI18next: { type: '3rdParty', init: vi.fn() },
 }))
 
 // Mock Supabase

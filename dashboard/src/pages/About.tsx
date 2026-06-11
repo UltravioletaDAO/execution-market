@@ -309,7 +309,7 @@ export function About() {
                     <th className="py-3 px-4 text-sm font-semibold text-emerald-600 uppercase tracking-wider">
                       Execution Market
                     </th>
-                    <th className="py-3 pl-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">
+                    <th className="py-3 pl-4 text-sm font-semibold text-zinc-600 uppercase tracking-wider">
                       {t('about.compHeaderLegacy', 'Legacy Platforms')}
                     </th>
                   </tr>
@@ -319,7 +319,7 @@ export function About() {
                     <tr key={row.feature}>
                       <td className="py-3.5 pr-4 text-sm text-gray-700 font-medium">{row.feature}</td>
                       <td className="py-3.5 px-4 text-sm text-gray-900 font-semibold">{row.em}</td>
-                      <td className="py-3.5 pl-4 text-sm text-gray-400">{row.legacy}</td>
+                      <td className="py-3.5 pl-4 text-sm text-zinc-600">{row.legacy}</td>
                     </tr>
                   ))}
                 </tbody>

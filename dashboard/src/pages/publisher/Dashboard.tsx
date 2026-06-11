@@ -63,9 +63,9 @@ function Applicants({ taskId, onAssigned }: { taskId: string; onAssigned: () => 
         {t('publisher.dashboard.applicants', 'Aplicantes')} {apps.length > 0 && `(${apps.length})`}
       </p>
       {loading ? (
-        <p className="text-xs text-zinc-400">{t('common.loading')}</p>
+        <p className="text-xs text-zinc-600">{t('common.loading')}</p>
       ) : apps.length === 0 ? (
-        <p className="text-xs text-zinc-400">{t('publisher.dashboard.noApplicants', 'Aún no hay aplicantes')}</p>
+        <p className="text-xs text-zinc-600">{t('publisher.dashboard.noApplicants', 'Aún no hay aplicantes')}</p>
       ) : (
         <ul className="space-y-2">
           {apps.map((a) => (
@@ -162,7 +162,7 @@ export function PublisherDashboard() {
                 <div className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
                   <span className="text-xs text-zinc-500">{t('publisher.dashboard.balance', 'Saldo')}</span>
                   <span className="font-mono text-sm font-bold text-zinc-900">{balance === null ? '—' : `$${balance.toFixed(2)}`}</span>
-                  <span className="hidden sm:inline text-xs text-zinc-400">USDC · Base</span>
+                  <span className="hidden sm:inline text-xs text-zinc-600">USDC · Base</span>
                   <button onClick={() => setShowDeposit(true)} className="ml-1 rounded-md bg-zinc-900 px-2.5 py-1 text-xs font-medium text-white hover:bg-zinc-800">+ {t('publisher.dashboard.deposit', 'Depositar')}</button>
                 </div>
               )}

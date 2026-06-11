@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate } from 'react-router-dom'
 import { safeHref } from '../lib/safeHref'
 import { TxLink as CanonicalTxLink } from '../components/TxLink'
@@ -65,6 +66,7 @@ function TxLink({ hash, network }: { hash: string; network: string }) {
 }
 
 export function FeedbackPage() {
+  const { t, i18n } = useTranslation()
   const { taskId } = useParams<{ taskId: string }>()
   const navigate = useNavigate()
   const [doc, setDoc] = useState<FeedbackDocument | null>(null)
@@ -101,8 +103,8 @@ export function FeedbackPage() {
     <div className="max-w-3xl mx-auto px-4 py-8 w-full">
         {loading && (
           <div className="flex items-center justify-center py-20">
-            <Spinner size="lg" className="text-zinc-700 mr-3" label="Loading feedback" />
-            <span className="text-zinc-500">Loading feedback...</span>
+            <Spinner size="lg" className="text-zinc-700 mr-3" label={t('feedback.loadingLabel', 'Loading feedback')} />
+            <span className="text-zinc-500">{t('feedback.loading', 'Loading feedback...')}</span>
           </div>
         )}
 
@@ -110,14 +112,14 @@ export function FeedbackPage() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
             <div className="text-4xl mb-4">&#128269;</div>
             <h2 className="text-xl font-bold text-gray-900 mb-2">
-              Feedback not found
+              {t('feedback.notFound', 'Feedback not found')}
             </h2>
             <p className="text-gray-500 mb-6">{error}</p>
             <button
               onClick={() => navigate('/')}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
-              Go to Home
+              {t('feedback.goHome', 'Go to Home')}
             </button>
           </div>
         )}
@@ -130,13 +132,13 @@ export function FeedbackPage() {
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900">
                     {doc.feedback_type === 'rejection'
-                      ? 'Submission Rejected'
+                      ? t('feedback.typeRejection', 'Submission Rejected')
                       : doc.feedback_type === 'worker_rating'
-                        ? 'Worker Rating'
-                        : 'Agent Rating'}
+                        ? t('feedback.typeWorkerRating', 'Worker Rating')
+                        : t('feedback.typeAgentRating', 'Agent Rating')}
                   </h1>
                   <p className="text-gray-500 text-sm mt-1">
-                    ERC-8004 On-Chain Reputation Feedback
+                    {t('feedback.subtitle', 'ERC-8004 On-Chain Reputation Feedback')}
                   </p>
                 </div>
                 <ScoreBadge score={doc.rating.score} maxScore={doc.rating.max_score} />
@@ -144,13 +146,13 @@ export function FeedbackPage() {
 
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="text-gray-500">Network</span>
+                  <span className="text-gray-500">{t('feedback.network', 'Network')}</span>
                   <p className="font-medium text-gray-900 capitalize">{doc.network}</p>
                 </div>
                 <div>
-                  <span className="text-gray-500">Date</span>
+                  <span className="text-gray-500">{t('feedback.date', 'Date')}</span>
                   <p className="font-medium text-gray-900">
-                    {new Date(doc.created_at).toLocaleDateString('en-US', {
+                    {new Date(doc.created_at).toLocaleDateString(i18n.language, {
                       year: 'numeric',
                       month: 'short',
                       day: 'numeric',
@@ -164,21 +166,21 @@ export function FeedbackPage() {
 
             {/* Task Info */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Task Details</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('feedback.taskDetails', 'Task Details')}</h2>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="text-gray-500">Task ID</span>
+                  <span className="text-gray-500">{t('feedback.taskId', 'Task ID')}</span>
                   <p className="font-mono text-gray-900 text-xs break-all">{doc.task.id}</p>
                 </div>
                 {doc.task.title && (
                   <div>
-                    <span className="text-gray-500">Title</span>
+                    <span className="text-gray-500">{t('feedback.titleLabel', 'Title')}</span>
                     <p className="font-medium text-gray-900">{doc.task.title}</p>
                   </div>
                 )}
                 {doc.task.category && (
                   <div>
-                    <span className="text-gray-500">Category</span>
+                    <span className="text-gray-500">{t('feedback.category', 'Category')}</span>
                     <p className="font-medium text-gray-900 capitalize">
                       {doc.task.category.replace(/_/g, ' ')}
                     </p>
@@ -186,7 +188,7 @@ export function FeedbackPage() {
                 )}
                 {doc.task.bounty_usd > 0 && (
                   <div>
-                    <span className="text-gray-500">Bounty</span>
+                    <span className="text-gray-500">{t('feedback.bounty', 'Bounty')}</span>
                     <p className="font-medium text-gray-900">${doc.task.bounty_usd.toFixed(2)} USDC</p>
                   </div>
                 )}
@@ -195,19 +197,19 @@ export function FeedbackPage() {
 
             {/* Rating Details */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Rating</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('feedback.rating', 'Rating')}</h2>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="text-gray-500">Rater</span>
+                  <span className="text-gray-500">{t('feedback.rater', 'Rater')}</span>
                   <p className="font-medium text-gray-900 capitalize">{doc.rating.rater_type}</p>
                 </div>
                 <div>
-                  <span className="text-gray-500">Target</span>
+                  <span className="text-gray-500">{t('feedback.target', 'Target')}</span>
                   <p className="font-medium text-gray-900 capitalize">{doc.rating.target_type}</p>
                 </div>
                 {doc.rating.target_address && (
                   <div className="col-span-2">
-                    <span className="text-gray-500">Target Address</span>
+                    <span className="text-gray-500">{t('feedback.targetAddress', 'Target Address')}</span>
                     <p className="font-mono text-gray-900 text-xs break-all">
                       {doc.rating.target_address}
                     </p>
@@ -215,7 +217,7 @@ export function FeedbackPage() {
                 )}
                 {doc.rating.target_agent_id && (
                   <div>
-                    <span className="text-gray-500">Agent ID</span>
+                    <span className="text-gray-500">{t('feedback.agentId', 'Agent ID')}</span>
                     <p className="font-medium text-gray-900">#{doc.rating.target_agent_id}</p>
                   </div>
                 )}
@@ -225,7 +227,7 @@ export function FeedbackPage() {
             {/* Comment */}
             {doc.comment && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-3">Comment</h2>
+                <h2 className="text-lg font-semibold text-gray-900 mb-3">{t('feedback.comment', 'Comment')}</h2>
                 <p className="text-gray-700 whitespace-pre-wrap">{doc.comment}</p>
               </div>
             )}
@@ -233,14 +235,14 @@ export function FeedbackPage() {
             {/* Rejection Details */}
             {doc.rejection && (
               <div className="bg-red-50 rounded-xl border border-red-200 p-6">
-                <h2 className="text-lg font-semibold text-red-900 mb-3">Rejection</h2>
+                <h2 className="text-lg font-semibold text-red-900 mb-3">{t('feedback.rejection', 'Rejection')}</h2>
                 <div className="space-y-2 text-sm">
                   <div>
-                    <span className="text-red-600">Reason</span>
+                    <span className="text-red-600">{t('feedback.reason', 'Reason')}</span>
                     <p className="text-red-900 font-medium">{doc.rejection.reason}</p>
                   </div>
                   <div>
-                    <span className="text-red-600">Severity</span>
+                    <span className="text-red-600">{t('feedback.severity', 'Severity')}</span>
                     <p className="text-red-900 font-medium capitalize">{doc.rejection.severity}</p>
                   </div>
                 </div>
@@ -250,7 +252,7 @@ export function FeedbackPage() {
             {/* Evidence */}
             {doc.evidence && doc.evidence.length > 0 && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-3">Evidence</h2>
+                <h2 className="text-lg font-semibold text-gray-900 mb-3">{t('feedback.evidence', 'Evidence')}</h2>
                 <ul className="space-y-2">
                   {doc.evidence.map((url, i) => (
                     <li key={i}>
@@ -270,14 +272,14 @@ export function FeedbackPage() {
 
             {/* Transactions */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">On-Chain Transactions</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('feedback.onChainTx', 'On-Chain Transactions')}</h2>
               <div className="space-y-3 text-sm">
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-500">Payment TX</span>
+                  <span className="text-gray-500">{t('feedback.paymentTx', 'Payment TX')}</span>
                   <TxLink hash={doc.transactions.payment_tx} network={doc.network} />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-500">Reputation TX</span>
+                  <span className="text-gray-500">{t('feedback.reputationTx', 'Reputation TX')}</span>
                   <TxLink hash={doc.transactions.reputation_tx} network={doc.network} />
                 </div>
               </div>
@@ -299,7 +301,7 @@ export function FeedbackPage() {
                 .
               </p>
               <p className="mt-1">
-                Document version: {doc.version} | Schema: {doc.type}
+                {t('feedback.docVersion', 'Document version: {{version}} | Schema: {{schema}}', { version: doc.version, schema: doc.type })}
               </p>
             </div>
           </div>

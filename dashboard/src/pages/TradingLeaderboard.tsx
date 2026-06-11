@@ -90,6 +90,7 @@ function DirectionBadge({ direction }: { direction: string }) {
 }
 
 function StatusBadge({ status }: { status: string }) {
+  const { t } = useTranslation()
   const styles: Record<string, string> = {
     open: 'bg-zinc-100 text-zinc-900',
     tp_hit: 'bg-zinc-900 text-white',
@@ -99,12 +100,12 @@ function StatusBadge({ status }: { status: string }) {
     cancelled: 'bg-zinc-100 text-zinc-500',
   }
   const label: Record<string, string> = {
-    open: 'Abierta',
-    tp_hit: 'TP Hit',
-    sl_hit: 'SL Hit',
-    closed: 'Cerrada',
-    expired: 'Expirada',
-    cancelled: 'Cancelada',
+    open: t('trading.status.open', 'Abierta'),
+    tp_hit: t('trading.status.tp_hit', 'TP Hit'),
+    sl_hit: t('trading.status.sl_hit', 'SL Hit'),
+    closed: t('trading.status.closed', 'Cerrada'),
+    expired: t('trading.status.expired', 'Expirada'),
+    cancelled: t('trading.status.cancelled', 'Cancelada'),
   }
   return (
     <span className={`px-1.5 py-0.5 text-xs font-medium rounded ${styles[status] || 'bg-zinc-100 text-zinc-500'}`}>
@@ -261,14 +262,14 @@ export function TradingLeaderboard() {
           ) : (
             <div className="divide-y divide-slate-100">
               {/* Header */}
-              <div className="grid grid-cols-12 gap-2 px-4 py-2 text-xs font-medium text-slate-400 uppercase tracking-wider">
+              <div className="grid grid-cols-12 gap-2 px-4 py-2 text-xs font-medium text-zinc-600 uppercase tracking-wider">
                 <div className="col-span-1">#</div>
-                <div className="col-span-3">Trader</div>
-                <div className="col-span-1">Win%</div>
-                <div className="col-span-2">P&L Prom.</div>
-                <div className="col-span-2">P&L Total</div>
-                <div className="col-span-1">Signals</div>
-                <div className="col-span-2">Racha</div>
+                <div className="col-span-3">{t('trading.colTrader', 'Trader')}</div>
+                <div className="col-span-1">{t('trading.colWinRate', 'Win%')}</div>
+                <div className="col-span-2">{t('trading.colAvgPnl', 'P&L Prom.')}</div>
+                <div className="col-span-2">{t('trading.colTotalPnl', 'P&L Total')}</div>
+                <div className="col-span-1">{t('trading.colSignals', 'Signals')}</div>
+                <div className="col-span-2">{t('trading.colStreak', 'Racha')}</div>
               </div>
 
               {leaderboard.map((trader, i) => (
@@ -276,7 +277,7 @@ export function TradingLeaderboard() {
                   key={trader.nick}
                   className="grid grid-cols-12 gap-2 px-4 py-3 items-center hover:bg-slate-50 transition-colors"
                 >
-                  <div className="col-span-1 text-sm font-bold text-slate-400">
+                  <div className="col-span-1 text-sm font-bold text-zinc-600">
                     {i + 1}
                   </div>
                   <div className="col-span-3">
@@ -309,7 +310,7 @@ export function TradingLeaderboard() {
                     ) : (
                       <span className="text-slate-400">-</span>
                     )}
-                    <span className="text-xs text-slate-400 ml-1">
+                    <span className="text-xs text-zinc-600 ml-1">
                       (max {trader.longest_streak})
                     </span>
                   </div>
@@ -317,7 +318,7 @@ export function TradingLeaderboard() {
               ))}
 
               {leaderboard.length === 0 && (
-                <div className="px-4 py-8 text-center text-sm text-slate-400">
+                <div className="px-4 py-8 text-center text-sm text-zinc-600">
                   {t('trading.noTraders', 'No hay traders con signals cerrados en este periodo.')}
                 </div>
               )}
@@ -349,11 +350,11 @@ export function TradingLeaderboard() {
                     {sig.pnl_percent !== null && (
                       <PnlDisplay pnl={sig.pnl_percent} />
                     )}
-                    <span className="ml-auto text-xs text-slate-400">
+                    <span className="ml-auto text-xs text-zinc-600">
                       @{sig.author}
                     </span>
                   </div>
-                  <div className="mt-1 flex items-center gap-4 text-xs text-slate-400">
+                  <div className="mt-1 flex items-center gap-4 text-xs text-zinc-600">
                     <span>SL: {sig.stop_loss}</span>
                     <span>TP: {sig.take_profit}</span>
                     <span>{sig.confidence}% confianza</span>
@@ -364,7 +365,7 @@ export function TradingLeaderboard() {
               ))}
 
               {signals.length === 0 && (
-                <div className="px-4 py-8 text-center text-sm text-slate-400">
+                <div className="px-4 py-8 text-center text-sm text-zinc-600">
                   {t('trading.noSignals', 'No hay signals recientes.')}
                 </div>
               )}
@@ -379,11 +380,10 @@ export function TradingLeaderboard() {
           {/* How it works */}
           <div className="bg-white rounded-xl border border-slate-200 p-6">
             <h2 className="text-lg font-bold text-slate-900 mb-3">
-              Copy Trading via IRC
+              {t('trading.copyTradingTitle', 'Copy Trading via IRC')}
             </h2>
             <p className="text-sm text-slate-600 mb-4">
-              Suscribete a los mejores traders y recibe sus signals por DM en IRC.
-              Revenue split: 70% trader / 20% MeshRelay / 10% EM treasury.
+              {t('trading.copyTradingBody', 'Suscribete a los mejores traders y recibe sus signals por DM en IRC. Revenue split: 70% trader / 20% MeshRelay / 10% EM treasury.')}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {PLANS.map(plan => (
@@ -393,13 +393,13 @@ export function TradingLeaderboard() {
                 >
                   <div className="text-lg font-bold text-slate-900">
                     ${plan.price.toFixed(2)}
-                    <span className="text-sm font-normal text-slate-400 ml-1">USDC</span>
+                    <span className="text-sm font-normal text-zinc-600 ml-1">USDC</span>
                   </div>
                   <div className="text-sm font-medium text-slate-700 mt-1">
-                    {plan.label}
+                    {t(`trading.plans.${plan.id}.label`, plan.label)}
                   </div>
-                  <div className="text-xs text-slate-400 mt-1">
-                    {plan.duration}
+                  <div className="text-xs text-zinc-600 mt-1">
+                    {t(`trading.plans.${plan.id}.duration`, plan.duration)}
                   </div>
                   <div className="mt-3 text-xs text-slate-500">
                     IRC: <code className="bg-slate-100 px-1 rounded">!ts subscribe @trader {plan.id}</code>
@@ -412,20 +412,19 @@ export function TradingLeaderboard() {
           {/* Premium channel */}
           <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-xl p-6 text-white">
             <h2 className="text-lg font-bold mb-2">
-              #abra-alpha — Canal Premium
+              {t('trading.premiumChannel', '#abra-alpha — Canal Premium')}
             </h2>
             <p className="text-sm text-slate-300 mb-4">
-              Acceso directo al alfa de @zeroxultravioleta en tiempo real.
-              $1.00 USDC/hora via Turnstile x402 en Base.
+              {t('trading.premiumChannelBody', 'Acceso directo al alfa de @zeroxultravioleta en tiempo real. $1.00 USDC/hora via Turnstile x402 en Base.')}
             </p>
             <div className="flex items-center gap-4">
               <div className="text-2xl font-bold">$1.00<span className="text-sm font-normal text-slate-400 ml-1">USDC/h</span></div>
               <div className="text-xs text-slate-400">
-                Base Mainnet | Gasless EIP-3009 | 50 slots max
+                {t('trading.premiumChannelMeta', 'Base Mainnet | Gasless EIP-3009 | 50 slots max')}
               </div>
             </div>
             <div className="mt-4 text-xs text-slate-400">
-              Conectate a <code className="bg-slate-700 px-1 rounded">irc.meshrelay.xyz</code> y paga via Turnstile para entrar.
+              {t('trading.premiumConnectPrefix', 'Conectate a')} <code className="bg-slate-700 px-1 rounded">irc.meshrelay.xyz</code> {t('trading.premiumConnectSuffix', 'y paga via Turnstile para entrar.')}
             </div>
           </div>
 
@@ -443,14 +442,14 @@ export function TradingLeaderboard() {
                     </div>
                     <div>
                       <div className="text-sm font-medium text-slate-900">@{trader.nick}</div>
-                      <div className="text-xs text-slate-400">
+                      <div className="text-xs text-zinc-600">
                         Win: {winRate(trader).toFixed(0)}% | {trader.total_signals} signals
                       </div>
                     </div>
                   </div>
                   <div className="text-right">
                     <PnlDisplay pnl={trader.total_pnl} />
-                    <div className="text-xs text-slate-400">P&L total</div>
+                    <div className="text-xs text-zinc-600">P&L total</div>
                   </div>
                 </div>
               ))}

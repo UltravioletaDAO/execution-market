@@ -13,6 +13,7 @@
 
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { TX_EXPLORER_URLS, ADDRESS_EXPLORER_URLS } from '../utils/blockchain'
 
 // Types
@@ -90,7 +91,7 @@ function formatDate(dateStr: string): string {
 }
 
 // Format relative time
-function formatRelativeTime(dateStr: string): string {
+function formatRelativeTime(dateStr: string, t: TFunction): string {
   const date = new Date(dateStr)
   const now = new Date()
   const diffMs = now.getTime() - date.getTime()
@@ -98,10 +99,10 @@ function formatRelativeTime(dateStr: string): string {
   const diffHours = Math.floor(diffMs / 3600000)
   const diffDays = Math.floor(diffMs / 86400000)
 
-  if (diffMins < 1) return 'Just now'
-  if (diffMins < 60) return `${diffMins} min ago`
-  if (diffHours < 24) return `${diffHours}h ago`
-  if (diffDays < 7) return `${diffDays}d ago`
+  if (diffMins < 1) return t('time.justNow', 'Just now')
+  if (diffMins < 60) return t('time.minAgo', '{{n}} min ago', { n: diffMins })
+  if (diffHours < 24) return t('time.hoursAgo', '{{n}}h ago', { n: diffHours })
+  if (diffDays < 7) return t('time.daysAgo', '{{n}}d ago', { n: diffDays })
   return formatDate(dateStr)
 }
 
@@ -329,7 +330,7 @@ function TimelineEvent({ event, network, bountyAmount }: { event: PaymentEvent; 
               {eventLabels[event.type]}
             </p>
             <p className="text-xs text-zinc-500">
-              {actorLabels[event.actor]} - {formatRelativeTime(event.timestamp)}
+              {actorLabels[event.actor]} - {formatRelativeTime(event.timestamp, t)}
             </p>
           </div>
           {event.amount !== undefined && event.amount > 0 && (
@@ -424,7 +425,7 @@ export function PaymentStatus({
           </span>
           {hasPartialRelease && (
             <span className="text-zinc-500 ml-1">
-              ({Math.round((payment.released_amount / displayAmount) * 100)}% liberado)
+              ({t('paymentStatus.percentReleased', '{{pct}}% liberado', { pct: Math.round((payment.released_amount / displayAmount) * 100) })})
             </span>
           )}
         </div>
@@ -434,7 +435,7 @@ export function PaymentStatus({
             target="_blank"
             rel="noopener noreferrer"
             className="text-zinc-700 hover:text-zinc-900"
-            title={`Ver en explorer (${payment.network})`}
+            title={t('paymentStatus.viewOnExplorer', 'Ver en explorer ({{network}})', { network: payment.network })}
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -484,7 +485,7 @@ export function PaymentStatus({
           </div>
           <div>
             <dt className="text-zinc-500">{t('payment.updated', 'Actualizado')}</dt>
-            <dd className="font-medium text-zinc-900">{formatRelativeTime(payment.updated_at)}</dd>
+            <dd className="font-medium text-zinc-900">{formatRelativeTime(payment.updated_at, t)}</dd>
           </div>
           {/* Escrow TX is already shown in the timeline below — removed from details to avoid duplication */}
           {payment.escrow_contract && (

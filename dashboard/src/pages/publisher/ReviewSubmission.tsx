@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useDynamicContext } from '@dynamic-labs/sdk-react-core'
 import { isEthereumWallet } from '@dynamic-labs/ethereum'
 import type { Task, Submission } from '../../types/database'
@@ -60,6 +61,7 @@ function redactGps(obj: unknown): unknown {
 }
 
 export function ReviewSubmission() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { primaryWallet } = useDynamicContext()
   const { taskId } = useParams<{ taskId: string }>()
@@ -109,22 +111,22 @@ export function ReviewSubmission() {
         // and treasury (fee) — which the backend settles gasless via the
         // Facilitator, exactly like a programmatic agent.
         if (!primaryWallet || !isEthereumWallet(primaryWallet)) {
-          throw new Error('Conecta una wallet EVM para firmar el pago.')
+          throw new Error(t('review.errors.connectWallet', 'Conecta una wallet EVM para firmar el pago.'))
         }
         const workerWallet = latest.executor?.wallet_address
         if (!workerWallet) {
-          throw new Error('No se encontró la wallet del worker en la entrega.')
+          throw new Error(t('review.errors.noWorkerWallet', 'No se encontró la wallet del worker en la entrega.'))
         }
         const fromAddress = primaryWallet.address as `0x${string}`
         if (workerWallet.toLowerCase() === fromAddress.toLowerCase()) {
-          throw new Error('No puedes pagarte a ti mismo (worker == publisher).')
+          throw new Error(t('review.errors.selfPayment', 'No puedes pagarte a ti mismo (worker == publisher).'))
         }
 
         const network = task.payment_network || 'base'
         const coin = task.payment_token || 'USDC'
         const net = getPaymentNetwork(network)
         const walletClient = await primaryWallet.getWalletClient(String(net.chainId))
-        if (!walletClient) throw new Error('Wallet client no disponible para esta red.')
+        if (!walletClient) throw new Error(t('review.errors.walletClientUnavailable', 'Wallet client no disponible para esta red.'))
 
         // Fee precision must match the backend (6-decimal USDC), not the 2-dp
         // display value — the SIGNED amount is what transfers on-chain.
@@ -160,7 +162,7 @@ export function ReviewSubmission() {
   const handleDispute = async () => {
     if (!latest) return
     if (disputeDescription.trim().length < 5) {
-      setDisputeError('La descripción debe tener al menos 5 caracteres')
+      setDisputeError(t('review.dispute.minDescription', 'La descripción debe tener al menos 5 caracteres'))
       return
     }
     setDisputeSubmitting(true); setDisputeError(null); setDisputeSuccess(null)
@@ -170,7 +172,7 @@ export function ReviewSubmission() {
         reason: disputeReason,
         description: disputeDescription.trim(),
       })
-      setDisputeSuccess(`Disputa abierta (id=${created.id.slice(0, 8)}...)`)
+      setDisputeSuccess(t('review.dispute.opened', 'Disputa abierta (id={{id}}…)', { id: created.id.slice(0, 8) }))
       setDisputeOpen(false)
       setDisputeDescription('')
       await loadData()
@@ -181,27 +183,26 @@ export function ReviewSubmission() {
     }
   }
 
-  if (loading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-500">Cargando...</div>
-  if (error || !task) return <div className="min-h-screen bg-gray-50 flex items-center justify-center"><div className="text-center"><p className="text-red-500 mb-4">{error || 'No encontrado'}</p><button onClick={() => navigate('/publisher/dashboard')} className="px-4 py-2 bg-blue-600 text-white rounded-lg">Volver</button></div></div>
+  if (loading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-500">{t('common.loading')}</div>
+  if (error || !task) return <div className="min-h-screen bg-gray-50 flex items-center justify-center"><div className="text-center"><p className="text-red-500 mb-4">{error || t('review.notFound', 'No encontrado')}</p><button onClick={() => navigate('/publisher/dashboard')} className="px-4 py-2 bg-blue-600 text-white rounded-lg">{t('common.back')}</button></div></div>
 
   // FE-001/FE-002: H2A approval flow disabled until real EIP-3009 signing is implemented (Phase 3)
   if (!H2A_SIGNING_ENABLED) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="max-w-md p-6 text-center">
-          <h2 className="text-xl font-semibold mb-4">Approval Temporarily Disabled</h2>
+          <h2 className="text-xl font-semibold mb-4">{t('review.disabled.title', 'Approval Temporarily Disabled')}</h2>
           <p className="text-gray-600 mb-4">
-            The on-chain approval flow is being upgraded for security.
-            Approvals are currently processed via the API.
+            {t('review.disabled.body', 'The on-chain approval flow is being upgraded for security. Approvals are currently processed via the API.')}
           </p>
-          <p className="text-sm text-gray-400 mb-6">
-            Phase 2 security hardening — FE-001
+          <p className="text-sm text-zinc-600 mb-6">
+            {t('review.disabled.meta', 'Phase 2 security hardening — FE-001')}
           </p>
           <button
             onClick={() => navigate('/publisher/dashboard')}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
-            Back to Dashboard
+            {t('review.disabled.back', 'Back to Dashboard')}
           </button>
         </div>
       </div>
@@ -212,29 +213,29 @@ export function ReviewSubmission() {
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white border-b">
         <div className="max-w-4xl mx-auto px-4 py-6">
-          <button onClick={() => navigate('/publisher/dashboard')} className="text-sm text-gray-500 hover:text-gray-700 mb-3">← Volver al Panel</button>
-          <h1 className="text-2xl font-bold">Revisar Entrega</h1>
+          <button onClick={() => navigate('/publisher/dashboard')} className="text-sm text-gray-500 hover:text-gray-700 mb-3">{t('review.backToPanel', '← Volver al Panel')}</button>
+          <h1 className="text-2xl font-bold">{t('review.title', 'Revisar Entrega')}</h1>
           <p className="text-sm text-gray-500 mt-1">{task.title}</p>
         </div>
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         <div className="bg-white rounded-lg border p-4">
-          <h3 className="font-medium mb-2">📋 Solicitud</h3>
+          <h3 className="font-medium mb-2">📋 {t('review.request', 'Solicitud')}</h3>
           <p className="text-sm text-gray-600 mb-3">{task.instructions}</p>
-          <div className="flex gap-4 text-sm text-gray-400">
+          <div className="flex gap-4 text-sm text-zinc-600">
             <span>💰 ${bounty.toFixed(2)} USDC</span>
             <span>📅 {new Date(task.deadline).toLocaleDateString('es')}</span>
           </div>
         </div>
 
         {submissions.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">No hay entregas aún.</div>
+          <div className="text-center py-8 text-gray-500">{t('review.noSubmissions', 'No hay entregas aún.')}</div>
         ) : (
           <>
             {submissions.map(sub => (
               <div key={sub.id} className="bg-gray-50 rounded-lg border p-4">
-                <h4 className="font-medium mb-3">📦 Entrega del Agente</h4>
+                <h4 className="font-medium mb-3">📦 {t('review.agentDelivery', 'Entrega del Agente')}</h4>
                 {Object.keys(sub.evidence || {}).length > 0 && (
                   <div className="mb-3">
                     <div className="flex justify-end mb-1">
@@ -242,7 +243,7 @@ export function ReviewSubmission() {
                         onClick={() => setShowRawCoords(prev => !prev)}
                         className="text-xs text-gray-400 hover:text-gray-200 bg-gray-800 px-2 py-1 rounded"
                       >
-                        {showRawCoords ? 'Ocultar coordenadas' : 'Mostrar coordenadas'}
+                        {showRawCoords ? t('review.coords.hide', 'Ocultar coordenadas') : t('review.coords.show', 'Mostrar coordenadas')}
                       </button>
                     </div>
                     <pre className="bg-gray-900 text-green-400 p-3 rounded-lg text-xs overflow-auto max-h-96">
@@ -252,43 +253,43 @@ export function ReviewSubmission() {
                 )}
                 {sub.evidence_files?.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-3">
-                    {sub.evidence_files.map((f, i) => <a key={i} href={safeHref(f)} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline bg-white px-3 py-1 rounded border">📁 Archivo {i + 1}</a>)}
+                    {sub.evidence_files.map((f, i) => <a key={i} href={safeHref(f)} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline bg-white px-3 py-1 rounded border">📁 {t('review.fileN', 'Archivo {{n}}', { n: i + 1 })}</a>)}
                   </div>
                 )}
-                <div className="text-xs text-gray-400">Entregado: {new Date(sub.submitted_at).toLocaleString('es')}</div>
+                <div className="text-xs text-zinc-500">Entregado: {new Date(sub.submitted_at).toLocaleString('es')}</div>
               </div>
             ))}
 
             <div className="bg-white rounded-lg border p-6">
-              <h3 className="font-semibold mb-4">🔍 Tu Veredicto</h3>
+              <h3 className="font-semibold mb-4">🔍 {t('review.verdictHeading', 'Tu Veredicto')}</h3>
               <div className="grid grid-cols-3 gap-3 mb-4">
                 {[
-                  { v: 'accepted' as const, icon: '✅', label: 'Aprobar y Pagar' },
-                  { v: 'needs_revision' as const, icon: '🔄', label: 'Solicitar Revisión' },
-                  { v: 'rejected' as const, icon: '❌', label: 'Rechazar' },
+                  { v: 'accepted' as const, icon: '✅', label: t('review.verdict.approve', 'Aprobar y Pagar') },
+                  { v: 'needs_revision' as const, icon: '🔄', label: t('review.verdict.revision', 'Solicitar Revisión') },
+                  { v: 'rejected' as const, icon: '❌', label: t('review.verdict.reject', 'Rechazar') },
                 ].map(opt => (
-                  <button key={opt.v} onClick={() => setVerdict(opt.v)} className={`p-3 rounded-lg border text-center ${verdict === opt.v ? `border-${opt.v === 'accepted' ? 'green' : opt.v === 'rejected' ? 'red' : 'yellow'}-500 bg-${opt.v === 'accepted' ? 'green' : opt.v === 'rejected' ? 'red' : 'yellow'}-50` : 'border-gray-200'}`}>
+                  <button key={opt.v} onClick={() => setVerdict(opt.v)} className={`p-3 rounded-lg border text-center ${verdict === opt.v ? 'border-zinc-900 bg-zinc-100' : 'border-gray-200'}`}>
                     <div className="text-xl mb-1">{opt.icon}</div><div className="text-sm font-medium">{opt.label}</div>
                   </button>
                 ))}
               </div>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Notas</label>
-                <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder={verdict === 'accepted' ? 'Comentarios opcionales...' : 'Describe qué necesita mejorar...'} className="w-full px-3 py-2 border rounded-lg h-24 resize-y" />
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('review.notes', 'Notas')}</label>
+                <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder={verdict === 'accepted' ? t('review.notesPlaceholderApprove', 'Comentarios opcionales...') : t('review.notesPlaceholderRevise', 'Describe qué necesita mejorar...')} className="w-full px-3 py-2 border rounded-lg h-24 resize-y bg-white text-zinc-900" />
               </div>
               {verdict === 'accepted' && (
                 <div className="bg-blue-50 rounded-lg p-4 mb-4 border border-blue-200 text-sm">
-                  <h4 className="font-medium text-blue-900 mb-2">💰 Resumen de Pago</h4>
-                  <div className="flex justify-between"><span>Pago al agente:</span><span>${bounty.toFixed(2)} USDC</span></div>
-                  <div className="flex justify-between"><span>Comisión (13%):</span><span>${fee.toFixed(2)} USDC</span></div>
-                  <div className="flex justify-between font-bold border-t border-blue-200 pt-1"><span>Total:</span><span>${total.toFixed(2)} USDC</span></div>
-                  <p className="text-xs text-blue-700 mt-2">🔐 Firmarás 2 autorizaciones en tu wallet.</p>
+                  <h4 className="font-medium text-blue-900 mb-2">💰 {t('review.payment.summary', 'Resumen de Pago')}</h4>
+                  <div className="flex justify-between"><span>{t('review.payment.toAgent', 'Pago al agente:')}</span><span>${bounty.toFixed(2)} USDC</span></div>
+                  <div className="flex justify-between"><span>{t('review.payment.commission', 'Comisión (13%):')}</span><span>${fee.toFixed(2)} USDC</span></div>
+                  <div className="flex justify-between font-bold border-t border-blue-200 pt-1"><span>{t('review.payment.total', 'Total:')}</span><span>${total.toFixed(2)} USDC</span></div>
+                  <p className="text-xs text-blue-700 mt-2">🔐 {t('review.payment.signTwo', 'Firmarás 2 autorizaciones en tu wallet.')}</p>
                 </div>
               )}
               {submitError && <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm mb-4">❌ {submitError}</div>}
               {disputeSuccess && <div className="bg-green-50 text-green-800 p-3 rounded-lg text-sm mb-4">✅ {disputeSuccess}</div>}
               <button onClick={handleSubmit} disabled={submitting} className={`w-full py-3 px-4 rounded-lg font-medium text-white ${verdict === 'accepted' ? 'bg-green-600 hover:bg-green-700' : verdict === 'needs_revision' ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-red-600 hover:bg-red-700'} disabled:opacity-50`}>
-                {submitting ? 'Procesando...' : verdict === 'accepted' ? '✅ Aprobar y Pagar' : verdict === 'needs_revision' ? '🔄 Solicitar Revisión' : '❌ Rechazar'}
+                {submitting ? t('review.processing', 'Procesando...') : verdict === 'accepted' ? `✅ ${t('review.verdict.approve', 'Aprobar y Pagar')}` : verdict === 'needs_revision' ? `🔄 ${t('review.verdict.revision', 'Solicitar Revisión')}` : `❌ ${t('review.verdict.reject', 'Rechazar')}`}
               </button>
 
               <div className="mt-4 pt-4 border-t border-gray-200">
@@ -298,36 +299,35 @@ export function ReviewSubmission() {
                     onClick={() => { setDisputeOpen(true); setDisputeError(null); setDisputeSuccess(null) }}
                     className="w-full py-2 px-4 rounded-lg border border-orange-300 text-orange-700 bg-orange-50 hover:bg-orange-100 text-sm font-medium"
                   >
-                    ⚠️ Iniciar disputa formal
+                    ⚠️ {t('review.dispute.start', 'Iniciar disputa formal')}
                   </button>
                 ) : (
                   <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                    <h4 className="font-semibold text-orange-900 mb-3">⚠️ Abrir disputa</h4>
+                    <h4 className="font-semibold text-orange-900 mb-3">⚠️ {t('review.dispute.heading', 'Abrir disputa')}</h4>
                     <p className="text-xs text-orange-800 mb-3">
-                      Una disputa formal marca esta entrega como impugnada y la envía al arbitraje humano.
-                      Usa esta opción solo si crees que la evidencia es fraudulenta, incompleta o no cumple con el brief.
+                      {t('review.dispute.explainer', 'Una disputa formal marca esta entrega como impugnada y la envía al arbitraje humano. Usa esta opción solo si crees que la evidencia es fraudulenta, incompleta o no cumple con el brief.')}
                     </p>
                     <div className="mb-3">
-                      <label className="block text-sm font-medium text-orange-900 mb-1">Motivo</label>
+                      <label className="block text-sm font-medium text-orange-900 mb-1">{t('review.dispute.reason', 'Motivo')}</label>
                       <select
                         value={disputeReason}
                         onChange={e => setDisputeReason(e.target.value as DisputeReason)}
                         className="w-full px-3 py-2 border border-orange-300 rounded-lg bg-white text-sm"
                       >
                         {DISPUTE_REASONS.map(r => (
-                          <option key={r.value} value={r.value}>{r.label}</option>
+                          <option key={r.value} value={r.value}>{t(`review.dispute.reasons.${r.value}`, r.label)}</option>
                         ))}
                       </select>
                     </div>
                     <div className="mb-3">
                       <label className="block text-sm font-medium text-orange-900 mb-1">
-                        Descripción <span className="text-xs text-orange-700">(5-2000 caracteres)</span>
+                        {t('review.dispute.descLabel', 'Descripción')} <span className="text-xs text-orange-700">{t('review.dispute.descHint', '(5-2000 caracteres)')}</span>
                       </label>
                       <textarea
                         value={disputeDescription}
                         onChange={e => setDisputeDescription(e.target.value)}
                         maxLength={2000}
-                        placeholder="Explica por qué esta entrega debe ser disputada. Sé específico: qué falta, qué no cumple, qué evidencia consideras falsa..."
+                        placeholder={t('review.dispute.descPlaceholder', 'Explica por qué esta entrega debe ser disputada. Sé específico: qué falta, qué no cumple, qué evidencia consideras falsa...')}
                         className="w-full px-3 py-2 border border-orange-300 rounded-lg h-28 resize-y bg-white text-sm"
                       />
                       <div className="text-xs text-orange-700 mt-1 text-right">
@@ -346,7 +346,7 @@ export function ReviewSubmission() {
                         disabled={disputeSubmitting || disputeDescription.trim().length < 5}
                         className="flex-1 py-2 px-4 rounded-lg font-medium text-white bg-orange-600 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                       >
-                        {disputeSubmitting ? 'Enviando...' : 'Abrir disputa'}
+                        {disputeSubmitting ? t('review.dispute.submitting', 'Enviando...') : t('review.dispute.submit', 'Abrir disputa')}
                       </button>
                       <button
                         type="button"
@@ -354,7 +354,7 @@ export function ReviewSubmission() {
                         disabled={disputeSubmitting}
                         className="py-2 px-4 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-sm"
                       >
-                        Cancelar
+                        {t('common.cancel')}
                       </button>
                     </div>
                   </div>

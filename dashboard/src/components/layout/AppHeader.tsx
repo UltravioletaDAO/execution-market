@@ -76,7 +76,7 @@ export function AppHeader() {
             <button
               onClick={() => setMenuOpen(!menuOpen)}
               className="md:hidden p-1.5 text-gray-400 hover:text-white transition-colors"
-              aria-label="Menu"
+              aria-label={t('nav.menu', 'Menu')}
             >
               {menuOpen ? (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -127,7 +127,7 @@ export function AppHeader() {
                 className={`p-1.5 rounded-md transition-colors ${
                   menuOpen ? 'text-white bg-white/15' : 'text-gray-400 hover:text-white hover:bg-white/10'
                 }`}
-                aria-label="More"
+                aria-label={t('nav.more', 'More')}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />

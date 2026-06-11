@@ -51,7 +51,7 @@ export function ServicesHome() {
               <span className="font-mono text-sm font-bold text-zinc-900">
                 {balance === null ? '—' : `$${balance.toFixed(2)}`}
               </span>
-              <span className="text-xs text-zinc-400">USDC</span>
+              <span className="text-xs text-zinc-600">USDC</span>
               <span className="text-xs text-zinc-900">▾</span>
             </button>
           )}

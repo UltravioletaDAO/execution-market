@@ -92,7 +92,7 @@ export function H2ASection() {
                 {t('landing.h2a.comparison.h2aTitle', 'Human → Agent (H2A)')}
               </h4>
               <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 text-[10px] font-bold rounded uppercase">
-                New
+                {t('landing.h2a.comparison.newBadge', 'New')}
               </span>
             </div>
             <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">

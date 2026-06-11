@@ -149,12 +149,12 @@ export function RequestService() {
           </p>
           <div className="mb-6 rounded-lg bg-zinc-50 p-4 text-left text-sm">
             <div className="mb-1 flex justify-between">
-              <span className="text-zinc-500">{t('services.request.payment', 'Pago')}</span>
-              <span className="font-medium">
+              <span className="text-zinc-600">{t('services.request.payment', 'Pago')}</span>
+              <span className="font-medium text-zinc-900">
                 ${result.bounty_usd} {coinInfo.symbol} · {netInfo.label}
               </span>
             </div>
-            <div className="flex justify-between font-bold">
+            <div className="flex justify-between font-bold text-zinc-900">
               <span>{t('services.request.totalOnApproval', 'Total al aprobar')}</span>
               <span>${result.total_required_usd} {coinInfo.symbol}</span>
             </div>
@@ -199,7 +199,7 @@ export function RequestService() {
             className="h-32 w-full resize-y rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 placeholder:text-zinc-400"
             maxLength={10000}
           />
-          <p className="mt-1 text-xs text-zinc-400">{instructions.length}/10000 {t('services.request.charHint', '(mín. 20)')}</p>
+          <p className="mt-1 text-xs text-zinc-600">{instructions.length}/10000 {t('services.request.charHint', '(mín. 10)')}</p>
         </div>
 
         <div>
@@ -207,7 +207,7 @@ export function RequestService() {
             {t('services.request.payment', 'Pago')} ({coinInfo.symbol}) *
           </label>
           <div className="relative">
-            <span className="absolute left-3 top-2.5 text-zinc-400">$</span>
+            <span className="absolute left-3 top-2.5 text-zinc-500">$</span>
             <input
               type="text"
               inputMode="decimal"
@@ -221,7 +221,7 @@ export function RequestService() {
               placeholder="0.10"
               className="w-full rounded-lg border border-zinc-300 bg-white py-2 pl-7 pr-16 text-zinc-900 placeholder:text-zinc-400"
             />
-            <span className="absolute right-3 top-2.5 text-sm text-zinc-400">
+            <span className="absolute right-3 top-2.5 text-sm text-zinc-500">
               {coinInfo.symbol}
             </span>
           </div>
@@ -295,7 +295,7 @@ export function RequestService() {
           <div className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white p-3 text-sm">
             <span className="text-zinc-500">
               {t('services.request.balance', 'Tu saldo:')} {balance === null ? '—' : `$${balance.toFixed(2)} ${coinInfo.symbol}`}
-              <span className="ml-1 text-zinc-400">· {netInfo.label}</span>
+              <span className="ml-1 text-zinc-600">· {netInfo.label}</span>
               {needsFunds && (
                 <span className="ml-2 text-zinc-900">· {t('services.request.needs', 'necesitas')} ${total.toFixed(2)}</span>
               )}
@@ -308,7 +308,7 @@ export function RequestService() {
                 + {t('services.request.deposit', 'Depositar')}
               </button>
             ) : (
-              <span className="text-xs text-zinc-400">{t('services.request.depositOnBase', 'Deposita en Base/USDC')}</span>
+              <span className="text-xs text-zinc-600">{t('services.request.depositOnBase', 'Deposita en Base/USDC')}</span>
             )}
           </div>
         )}

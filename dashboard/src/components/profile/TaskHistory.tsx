@@ -1,5 +1,6 @@
 // Execution Market: Task History Component
 import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import type { TaskHistoryItem } from '../../hooks/useProfile'
 import { Spinner } from '../ui/Spinner'
 import { EmptyState } from '../ui/EmptyState'
@@ -43,18 +44,18 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 // Format relative time
-function formatRelativeTime(dateStr: string): string {
+function formatRelativeTime(dateStr: string, t: TFunction): string {
   const date = new Date(dateStr)
   const now = new Date()
   const diffMs = now.getTime() - date.getTime()
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
 
-  if (diffDays === 0) return 'Today'
-  if (diffDays === 1) return 'Yesterday'
-  if (diffDays < 7) return `${diffDays} days ago`
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`
-  if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`
-  return `${Math.floor(diffDays / 365)} years ago`
+  if (diffDays === 0) return t('time.today', 'Today')
+  if (diffDays === 1) return t('time.yesterday', 'Yesterday')
+  if (diffDays < 7) return t('time.daysAgo', '{{count}} days ago', { count: diffDays })
+  if (diffDays < 30) return t('time.weeksAgo', '{{count}} weeks ago', { count: Math.floor(diffDays / 7) })
+  if (diffDays < 365) return t('time.monthsAgo', '{{count}} months ago', { count: Math.floor(diffDays / 30) })
+  return t('time.yearsAgo', '{{count}} years ago', { count: Math.floor(diffDays / 365) })
 }
 
 export function TaskHistory({ history, loading, hasMore, onLoadMore }: TaskHistoryProps) {
@@ -117,7 +118,7 @@ export function TaskHistory({ history, loading, hasMore, onLoadMore }: TaskHisto
 
                   <div className="flex items-center gap-3 mt-1">
                     <span className="text-gray-500 text-xs">
-                      {formatRelativeTime(item.submitted_at)}
+                      {formatRelativeTime(item.submitted_at, t)}
                     </span>
 
                     {/* Payment amount */}
@@ -129,7 +130,7 @@ export function TaskHistory({ history, loading, hasMore, onLoadMore }: TaskHisto
 
                     {/* Bounty for pending/rejected */}
                     {item.status !== 'approved' && (
-                      <span className="text-gray-400 text-xs">
+                      <span className="text-zinc-600 text-xs">
                         ${item.bounty_usd.toFixed(2)}
                       </span>
                     )}

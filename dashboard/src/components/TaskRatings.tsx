@@ -27,7 +27,7 @@ interface TaskRatingsProps {
 }
 
 function ScoreDisplay({ score }: { score: number }) {
-  const color = score >= 80 ? '#16a34a' : score >= 50 ? '#ca8a04' : '#dc2626'
+  const color = score >= 80 ? '#18181b' : score >= 50 ? '#71717a' : '#dc2626'
   return (
     <div className="flex items-center gap-2">
       <div className="flex-1 h-2 rounded-full bg-gray-200 overflow-hidden">
@@ -55,7 +55,7 @@ function RatingCard({
         <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
           {label}
         </span>
-        <span className="text-xs text-slate-400">
+        <span className="text-xs text-zinc-500">
           {new Date(rating.created_at).toLocaleDateString()}
         </span>
       </div>
@@ -70,14 +70,13 @@ function RatingCard({
           href={getExplorerUrl(rating.reputation_tx, network)}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-2 flex items-center gap-1.5 text-xs hover:opacity-80 transition-opacity"
-          style={{ color: '#2563eb' }}
+          className="mt-2 flex items-center gap-1.5 text-xs text-zinc-700 hover:text-zinc-900 underline transition-colors"
         >
           <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101" />
             <path strokeLinecap="round" strokeLinejoin="round" d="M10.172 13.828a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.102 1.101" />
           </svg>
-          <span>ERC-8004 Reputation: {truncateHash(rating.reputation_tx)}</span>
+          <span>{t('ratings.onChainReputation', 'ERC-8004 Reputation: {{hash}}', { hash: truncateHash(rating.reputation_tx) })}</span>
           <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
           </svg>
@@ -94,7 +93,7 @@ function NoRatingPlaceholder({ label }: { label: string }) {
       <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
         {label}
       </span>
-      <p className="mt-1 text-sm text-slate-400">
+      <p className="mt-1 text-sm text-zinc-600">
         {t('ratings.noRatingYet', 'No rating yet')}
       </p>
     </div>

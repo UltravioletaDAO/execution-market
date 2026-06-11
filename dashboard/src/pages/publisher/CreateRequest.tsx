@@ -169,13 +169,13 @@ export function CreateRequest() {
             <div className="space-y-5">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t('publisher.create.titleLabel', 'Title')} *</label>
-                <input type="text" value={form.title} onChange={e => updateForm({ title: e.target.value })} placeholder={t('publisher.create.titlePlaceholder', 'E.g.: Analyze last quarter sales data')} className="w-full px-3 py-2 border rounded-lg" maxLength={255} />
-                <p className="text-xs text-gray-400 mt-1">{form.title.length}/255 ({t('publisher.create.min', 'min')}. 5)</p>
+                <input type="text" value={form.title} onChange={e => updateForm({ title: e.target.value })} placeholder={t('publisher.create.titlePlaceholder', 'E.g.: Analyze last quarter sales data')} className="w-full px-3 py-2 border rounded-lg bg-white text-zinc-900" maxLength={255} />
+                <p className="text-xs text-zinc-600 mt-1">{form.title.length}/255 ({t('publisher.create.min', 'min')}. 5)</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t('publisher.create.instructionsLabel', 'Instructions')} *</label>
-                <textarea value={form.instructions} onChange={e => updateForm({ instructions: e.target.value })} placeholder={t('publisher.create.instructionsPlaceholder', 'Describe exactly what you need...')} className="w-full px-3 py-2 border rounded-lg h-40 resize-y" maxLength={10000} />
-                <p className="text-xs text-gray-400 mt-1">{form.instructions.length}/10000 ({t('publisher.create.min', 'min')}. 20)</p>
+                <textarea value={form.instructions} onChange={e => updateForm({ instructions: e.target.value })} placeholder={t('publisher.create.instructionsPlaceholder', 'Describe exactly what you need...')} className="w-full px-3 py-2 border rounded-lg h-40 resize-y bg-white text-zinc-900" maxLength={10000} />
+                <p className="text-xs text-zinc-600 mt-1">{form.instructions.length}/10000 ({t('publisher.create.min', 'min')}. 20)</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t('publisher.create.categoryLabel', 'Category')} *</label>
@@ -241,15 +241,15 @@ export function CreateRequest() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t('publisher.create.budget', 'Budget')} (USDC) *</label>
                 <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-gray-400">$</span>
-                  <input type="number" value={form.bounty_usd} onChange={e => updateForm({ bounty_usd: Math.max(5, +e.target.value) })} step="1" min="5" max="500" className="w-full pl-7 pr-16 py-2 border rounded-lg" />
-                  <span className="absolute right-3 top-2.5 text-gray-400 text-sm">USDC</span>
+                  <span className="absolute left-3 top-2.5 text-zinc-500">$</span>
+                  <input type="number" value={form.bounty_usd} onChange={e => updateForm({ bounty_usd: Math.max(5, +e.target.value) })} step="1" min="5" max="500" className="w-full pl-7 pr-16 py-2 border rounded-lg bg-white text-zinc-900" />
+                  <span className="absolute right-3 top-2.5 text-zinc-500 text-sm">USDC</span>
                 </div>
                 <div className="mt-2 bg-gray-50 rounded-lg p-3 text-sm">
                   <div className="flex justify-between"><span className="text-gray-500">{t('publisher.create.budget', 'Budget')}:</span><span>${form.bounty_usd.toFixed(2)}</span></div>
                   <div className="flex justify-between"><span className="text-gray-500">{t('publisher.create.commission', 'Commission')} (13%):</span><span>${fee.toFixed(2)}</span></div>
                   <div className="flex justify-between font-bold border-t mt-1 pt-1"><span>{t('publisher.create.totalOnApproval', 'Total on approval')}:</span><span className="text-blue-600">${total.toFixed(2)} USDC</span></div>
-                  <p className="text-xs text-gray-400 mt-2">💡 {t('publisher.create.payOnApprove', 'You only pay when you approve the agent\'s work.')}</p>
+                  <p className="text-xs text-zinc-600 mt-2">💡 {t('publisher.create.payOnApprove', 'You only pay when you approve the agent\'s work.')}</p>
                 </div>
               </div>
               <div>

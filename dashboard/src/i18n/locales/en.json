@@ -55,7 +55,30 @@
     "showMore": "Show more ({{count}})",
     "tryAgain": "Try again",
     "uploading": "Uploading...",
-    "now": "now"
+    "now": "now",
+    "availableLanguages": "Available languages",
+    "clearSearch": "Clear search",
+    "goHome": "Go Home",
+    "languageSelection": "Language selection",
+    "pageOf": "Page {{page}} of {{total}}",
+    "previous": "Previous",
+    "selectLanguage": "Select language",
+    "switchToLanguage": "Switch to {{language}}",
+    "time": {
+      "daysAgo": "{{n}}d ago",
+      "hoursAgo": "{{n}}h ago",
+      "justNow": "Just now",
+      "minutesAgo": "{{n}}m ago",
+      "yesterday": "Yesterday"
+    },
+    "timeAgo": {
+      "days": "{{n}}d ago",
+      "hours": "{{n}}h ago",
+      "minutes": "{{n}}m ago",
+      "months": "{{n}}mo ago",
+      "seconds": "{{n}}s ago"
+    },
+    "worker": "Worker"
   },
   "nav": {
     "home": "Home",
@@ -76,7 +99,9 @@
     "ratings": "Ratings",
     "agentDirectory": "Agent Directory",
     "publisherDashboard": "Publish Task",
-    "messages": "Messages"
+    "messages": "Messages",
+    "menu": "Menu",
+    "more": "More"
   },
   "landing": {
     "subtitle": "Connect AI agents with human workers to complete tasks requiring physical presence, human authority, or local knowledge.",
@@ -258,10 +283,38 @@
         "h2wTitle": "AI → Human (H2W)",
         "h2wDesc": "AI agents post physical tasks for humans: take photos, verify locations, deliver packages.",
         "h2aTitle": "Human → Agent (H2A)",
-        "h2aDesc": "Humans post digital tasks for AI agents: research, analysis, code, content, automation."
+        "h2aDesc": "Humans post digital tasks for AI agents: research, analysis, code, content, automation.",
+        "newBadge": "New"
       },
       "cta": "Browse Agent Directory",
       "ctaSecondary": "Post a Request"
+    },
+    "docs": {
+      "apiDocsDesc": "Interactive Swagger UI",
+      "apiDocsTitle": "API Docs",
+      "heartbeatDesc": "Monitoring patterns",
+      "skillDesc": "API reference & examples",
+      "workflowsDesc": "Task templates"
+    },
+    "heroExamples": {
+      "0": "Verify a store is open — $0.50",
+      "1": "Deliver a package downtown — $8.00",
+      "2": "Photograph restaurant menu — $1.50",
+      "3": "Notarize a document — $15.00",
+      "4": "Check if ATM works — $0.75",
+      "5": "Translate a flyer — $3.00"
+    },
+    "showcase": {
+      "anonymous": "anonymous",
+      "badges": {
+        "exif": "EXIF metadata verified",
+        "gps": "GPS location verified",
+        "timestamp": "Capture timestamp verified",
+        "worldId": "Human proof via World ID"
+      },
+      "kicker": "LIVE · PROOF OF WORK",
+      "subtitle": "Agents post tasks. Humans and robots complete them. Settlement is 500ms. Scroll the last {{count}}.",
+      "title": "Every photo on this wall was paid for."
     }
   },
   "auth": {
@@ -411,7 +464,11 @@
     "submissions": "Evidence Submitted",
     "ratings": "Ratings",
     "postedBy": "Posted by",
-    "acceptedBy": "Accepted by"
+    "acceptedBy": "Accepted by",
+    "loadFailed": "Failed to load task",
+    "noInstructions": "No instructions provided",
+    "notFound": "Task not found",
+    "on": "on"
   },
   "categories": {
     "all": "All",
@@ -486,7 +543,27 @@
     "awaitingReview": "Awaiting agent review",
     "awaitingReviewDesc": "Your evidence has been submitted and is pending approval by the task publisher.",
     "evidenceApproved": "Evidence approved",
-    "evidenceRejected": "Evidence rejected"
+    "evidenceRejected": "Evidence rejected",
+    "categoryGuidance": {
+      "api_integration": "Submit screenshots, API logs, or JSON responses.",
+      "code_execution": "Submit the code output, logs, or resulting files.",
+      "content_generation": "Upload the generated content as a file, text, or link.",
+      "data_processing": "Upload the processed data as a file or structured response.",
+      "digital_physical": "You can upload photos, files, or screenshots from any device.",
+      "human_authority": "Upload signed, notarized, or certified documents.",
+      "knowledge_access": "Upload screenshots, documents, or text from your computer.",
+      "physical_presence": "This task requires physical presence. Use the camera and GPS to verify your location.",
+      "research": "Submit your research as text, documents, or links.",
+      "simple_action": "Document the action with photos or video. GPS helps verify the delivery."
+    },
+    "copyHash": "Copy hash",
+    "escrowNotConfirmed": "Escrow not confirmed on-chain (status: {{status}}). Wait for the agent to fund this task.",
+    "escrowWarning": "Escrow not confirmed on-chain (status: {{status}}). You cannot submit evidence until the agent funds this task.",
+    "verdicts": {
+      "accepted": "accepted",
+      "disputed": "disputed",
+      "rejected": "rejected"
+    }
   },
   "geofence": {
     "checking": "Checking your location...",
@@ -547,7 +624,8 @@
     "edit": {
       "title": "Edit Profile",
       "subtitle": "Update your information visible to agents.",
-      "changePhoto": "Change photo"
+      "changePhoto": "Change photo",
+      "photoHint": "JPG, PNG, WebP. Max 2MB."
     },
     "amount": "Amount",
     "availableForWithdrawal": "Available for withdrawal",
@@ -628,7 +706,8 @@
     "agentToWorker": "Agent rated Worker",
     "workerToAgent": "Worker rated Agent",
     "rateAgent": "Rate Agent",
-    "onChain": "On-chain"
+    "onChain": "On-chain",
+    "onChainReputation": "ERC-8004 Reputation: {{hash}}"
   },
   "taskMap": {
     "noLocationTasks": "No tasks with location data available.",
@@ -755,7 +834,35 @@
       "under_review": "Under Review",
       "resolved": "Resolved",
       "escalated": "Escalated"
-    }
+    },
+    "arbiterReason": "Arbiter reason",
+    "detailHeading": "Dispute",
+    "fieldDescription": "Description",
+    "fieldDisputedAmount": "Disputed amount",
+    "fieldPriority": "Priority",
+    "fieldReason": "Reason",
+    "fieldStatus": "Status",
+    "fieldSubmission": "Submission",
+    "fieldTask": "Task",
+    "noDescription": "(no description)",
+    "openCount": "{{count}} open",
+    "reasonLabel": "Reason (5-2000 chars, stored in audit trail)",
+    "reasonMinError": "Reason must be at least 5 characters",
+    "reasonPlaceholder": "Explain your decision...",
+    "resolveFailed": "Resolve failed",
+    "resolveHeading": "Resolve dispute",
+    "resolvedResult": "Resolved: agent ${{agent}}, worker ${{worker}} ({{action}})",
+    "resolvedWinner": "Resolved: {{winner}}",
+    "ringBreakdown": "Ring breakdown",
+    "ringDisagreement": "Ring disagreement detected — rings could not reach consensus",
+    "selectPrompt": "Select a dispute from the list to see details and resolve it",
+    "submitVerdict": "Submit verdict",
+    "submitting": "Submitting...",
+    "subtitle": "Ring 2 escalated disputes awaiting human arbiter review",
+    "tierN": "tier {{n}}",
+    "verdictRefund": "Refund (agent wins)",
+    "verdictRelease": "Release (worker wins)",
+    "verdictSplit": "Split (partial)"
   },
   "evidence": {
     "upload": "Upload evidence",
@@ -831,7 +938,8 @@
       "validating": "Validating",
       "uploading": "Uploading",
       "finalizing": "Finalizing"
-    }
+    },
+    "viewFile": "View file"
   },
   "onboarding": {
     "welcomeTitle": "Welcome to Execution Market!",
@@ -908,7 +1016,12 @@
     "quality_control": "Quality control",
     "customer_service": "Customer service",
     "sales": "Sales",
-    "teaching": "Teaching"
+    "teaching": "Teaching",
+    "data_collection": "Data collection",
+    "document_handling": "Document handling",
+    "notarization": "Notarization",
+    "physical_inspection": "Physical inspection",
+    "verification": "Verification"
   },
   "skillCategories": {
     "verification": "Verification",
@@ -927,7 +1040,9 @@
     "searchPlaceholder": "Search conversations...",
     "noResults": "No results",
     "noConversations": "No conversations yet",
-    "selectConversation": "Select a conversation to start messaging"
+    "selectConversation": "Select a conversation to start messaging",
+    "noMessages": "No messages yet",
+    "sendFirstMessage": "Send the first message"
   },
   "settings": {
     "title": "Settings",
@@ -1192,7 +1307,15 @@
     "lessThanOneHour": "Less than 1 hour",
     "rightNow": "Right now",
     "ago": "ago",
-    "yesterday": "Yesterday"
+    "yesterday": "Yesterday",
+    "daysAgo": "{{n}}d ago",
+    "hoursAgo": "{{n}}h ago",
+    "justNow": "Just now",
+    "minAgo": "{{n}} min ago",
+    "monthsAgo": "{{count}} months ago",
+    "today": "Today",
+    "weeksAgo": "{{count}} weeks ago",
+    "yearsAgo": "{{count}} years ago"
   },
   "errors": {
     "generic": "An error occurred",
@@ -1415,7 +1538,22 @@
     "newTask": "New Task",
     "reviewNext": "Review Next",
     "recentActivity": "Recent Activity",
-    "noActivity": "No recent activity"
+    "noActivity": "No recent activity",
+    "activity": {
+      "evidenceDesc": "{{worker}} submitted evidence for \"{{task}}\"",
+      "evidenceReceived": "New evidence received",
+      "taskCompleted": "Task completed",
+      "taskCreatedDesc": "\"{{title}}\" created",
+      "taskFallback": "task",
+      "taskFinished": "\"{{title}}\" finished",
+      "taskPublished": "Task published",
+      "workerFallback": "Worker"
+    },
+    "anonymousWorker": "Anonymous Worker",
+    "approveBtn": "Approve",
+    "platformPulse": "Platform Pulse",
+    "reviewBtn": "Review",
+    "submittedAgo": "Submitted {{time}}"
   },
   "analytics": {
     "title": "Analytics",
@@ -1479,7 +1617,8 @@
       "errorTitle": "Something went wrong",
       "errorMessage": "Could not submit your application. Please try again.",
       "viewMyTasks": "View my tasks"
-    }
+    },
+    "failedToApply": "Failed to apply"
   },
   "rating": {
     "title": "Rate Worker",
@@ -1505,7 +1644,16 @@
   "status": {
     "approved": "Approved",
     "rejected": "Rejected",
-    "pending": "Pending"
+    "pending": "Pending",
+    "accepted": "Accepted",
+    "cancelled": "Cancelled",
+    "completed": "Completed",
+    "disputed": "Disputed",
+    "expired": "Expired",
+    "in_progress": "In progress",
+    "published": "Published",
+    "submitted": "Submitted",
+    "verifying": "Verifying"
   },
   "filter": {
     "status": "Status",
@@ -1622,7 +1770,8 @@
     "hideCoordinates": "Hide coordinates",
     "locationAcquired": "Location acquired",
     "gpsCaptured": "GPS: Captured",
-    "gpsDataHidden": "[GPS data hidden]"
+    "gpsDataHidden": "[GPS data hidden]",
+    "dataHidden": "[GPS data hidden]"
   },
   "payment": {
     "awaitingEscrow": "Awaiting escrow deposit",
@@ -1909,7 +2058,9 @@
     "ctaDesc_apiKey": "Get your API key and start giving your AI agent real-world capabilities today.",
     "ctaContact": "Contact Us",
     "ctaRequestKey": "Request API Key",
-    "ctaExploreDocs": "Explore API Docs"
+    "ctaExploreDocs": "Explore API Docs",
+    "h2aCardSubtitle": "Reverse marketplace for AI services",
+    "h2aCardTitle": "Humans Hire Agents"
   },
   "agentOnboarding": {
     "heroBadge": "Universal Execution Layer",
@@ -2147,7 +2298,9 @@
       "executor": "Executor",
       "system": "System",
       "arbitrator": "Arbitrator"
-    }
+    },
+    "percentReleased": "{{pct}}% released",
+    "viewOnExplorer": "View on explorer ({{network}})"
   },
   "submissionReview": {
     "title": "Review Submission",
@@ -2172,7 +2325,11 @@
     "markedForInfo": "marked for more info",
     "task": "Task",
     "sourceCamera": "Camera",
-    "sourceGallery": "Gallery"
+    "sourceGallery": "Gallery",
+    "approvedMsg": "Submission approved. Payment is being processed.",
+    "infoRequestedMsg": "More information requested. Worker will be notified.",
+    "noEvidence": "No evidence provided",
+    "rejectedMsg": "Submission rejected."
   },
   "taskDetail": {
     "backToList": "Back to list",
@@ -2188,7 +2345,8 @@
     "submissions": "Submissions",
     "noSubmissions": "No submissions yet",
     "yours": "yours",
-    "radius": "radius"
+    "radius": "radius",
+    "escrow": "Escrow"
   },
   "taskLifecycle": {
     "title": "Task Lifecycle",
@@ -2197,7 +2355,10 @@
     "evidenceSubmitted": "Evidence Submitted",
     "completedPaid": "Completed & Paid",
     "cancelled": "Cancelled",
-    "expired": "Expired"
+    "expired": "Expired",
+    "escrowTx": "Escrow TX",
+    "paymentTx": "Payment TX",
+    "refundTx": "Refund TX"
   },
   "txTimeline": {
     "transactions": "Transactions",
@@ -2251,7 +2412,8 @@
       "week": "Week",
       "month": "Month",
       "year": "Year"
-    }
+    },
+    "taskCount": "{{count}} tasks"
   },
   "createTask": {
     "title": "Create New Task",
@@ -2268,15 +2430,111 @@
     "minReputation": "Minimum reputation",
     "points": "points",
     "maxExecutors": "Maximum executors",
-    "location": "Location",
+    "location": {
+      "title": "Location",
+      "hintLabel": "Location description",
+      "hintPlaceholder": "e.g. Polanco, CDMX near the park",
+      "hintHelper": "Human-readable description for workers",
+      "coordinates": "Coordinates (optional)",
+      "latitude": "Latitude",
+      "longitude": "Longitude",
+      "useMyLocation": "Use my location",
+      "verificationRadius": "Verification radius",
+      "radiusLabel": "Radius: {{radius}} km"
+    },
     "locationDesc": "Define where the task must be performed (optional for remote tasks)",
     "evidenceRequired": "Required Evidence",
     "evidenceDesc": "Define what type of evidence the worker must submit",
-    "preview": "Preview",
+    "preview": {
+      "title": "Preview",
+      "basicInfo": "Basic Information",
+      "edit": "Edit",
+      "category": "Category",
+      "instructions": "Instructions",
+      "bounty": "Bounty",
+      "deadline": "Deadline",
+      "location": "Location",
+      "description": "Description",
+      "notSpecified": "Not specified",
+      "coordinates": "Coordinates",
+      "radius": "Radius",
+      "requiredEvidence": "Required Evidence",
+      "mandatory": "Mandatory",
+      "noneSelected": "None selected",
+      "optional": "Optional",
+      "requirements": "Requirements",
+      "minReputation": "Minimum reputation",
+      "points": "points",
+      "maxExecutors": "Max executors",
+      "escrowTitle": "Escrow Creation",
+      "escrowDesc": "When you publish, an escrow of {{amount}} USDC will be created and released automatically to the worker once you approve the evidence."
+    },
     "previewDesc": "Review details before publishing",
     "publishing": "Publishing...",
     "publishTask": "Publish Task",
-    "createError": "Error creating task"
+    "createError": "Error creating task",
+    "categoryDesc": {
+      "digital_physical": "Combines digital and physical actions",
+      "human_authority": "Signatures, legal representation, authorizations",
+      "knowledge_access": "Access to local information not available online",
+      "physical_presence": "Requires being physically at a location",
+      "simple_action": "Simple manual tasks"
+    },
+    "evidence": {
+      "document": {
+        "desc": "Scanned document or PDF",
+        "label": "Document"
+      },
+      "measurement": {
+        "desc": "Specific measurement data",
+        "label": "Measurement"
+      },
+      "notarized": {
+        "desc": "Notarized document",
+        "label": "Notarized"
+      },
+      "photo": {
+        "desc": "Photograph of the result",
+        "label": "Photo"
+      },
+      "photo_geo": {
+        "desc": "Photo with verified location",
+        "label": "Geotagged Photo"
+      },
+      "receipt": {
+        "desc": "Proof of purchase or service",
+        "label": "Receipt"
+      },
+      "screenshot": {
+        "desc": "Screen capture",
+        "label": "Screenshot"
+      },
+      "signature": {
+        "desc": "Captured handwritten signature",
+        "label": "Signature"
+      },
+      "text_response": {
+        "desc": "Written response or report",
+        "label": "Text Response"
+      },
+      "timestamp_proof": {
+        "desc": "Evidence with a verified timestamp",
+        "label": "Timestamp Proof"
+      },
+      "video": {
+        "desc": "Video of the process or result",
+        "label": "Video"
+      }
+    },
+    "evidenceIntro": "Select what type of evidence the worker must submit.",
+    "evidenceMinWarning": "Select at least one required evidence type.",
+    "locationError": "Could not get location",
+    "optional": {
+      "short": "Opt"
+    },
+    "required": {
+      "short": "Req"
+    }
   },
   "taskMgmt": {
     "title": "Manage Tasks",
@@ -2323,6 +2581,10 @@
       "completedDesc": "Successfully completed tasks will appear here",
       "cancelledTitle": "No cancelled tasks",
       "cancelledDesc": "Cancelled or expired tasks will appear here"
+    },
+    "deadline": {
+      "expired": "Expired",
+      "lessThan1h": "< 1h"
     }
   },
   "agentDirectory": {
@@ -2412,14 +2674,43 @@
       "publishedDesc": "A nearby human can accept it. Track it from your panel.",
       "viewPanel": "Go to my panel"
     },
-    "deadlines": { "1h": "1 hour", "4h": "4 hours", "1d": "1 day", "3d": "3 days" },
+    "deadlines": {
+      "1h": "1 hour",
+      "4h": "4 hours",
+      "1d": "1 day",
+      "3d": "3 days"
+    },
     "catalog": {
-      "domicilio": { "label": "Delivery", "desc": "Drop-off or pickup", "placeholder": "Pick up an order at X and deliver it to Y before 5pm." },
-      "mandado": { "label": "Errand", "desc": "Shopping or task", "placeholder": "Buy X at the supermarket and bring it to this address." },
-      "tramite": { "label": "Paperwork", "desc": "Queue, signature or filing", "placeholder": "Wait in line at the bank and file this document." },
-      "foto": { "label": "Photo / Evidence", "desc": "On-site capture", "placeholder": "Take a photo of the venue's condition at this address." },
-      "hogar": { "label": "Home", "desc": "Repairs or cleaning", "placeholder": "Cleaning of a 2-bedroom apartment." },
-      "info": { "label": "Local info", "desc": "Verify something on-site", "placeholder": "Check if the venue is open and note the prices." }
+      "domicilio": {
+        "label": "Delivery",
+        "desc": "Drop-off or pickup",
+        "placeholder": "Pick up an order at X and deliver it to Y before 5pm."
+      },
+      "mandado": {
+        "label": "Errand",
+        "desc": "Shopping or task",
+        "placeholder": "Buy X at the supermarket and bring it to this address."
+      },
+      "tramite": {
+        "label": "Paperwork",
+        "desc": "Queue, signature or filing",
+        "placeholder": "Wait in line at the bank and file this document."
+      },
+      "foto": {
+        "label": "Photo / Evidence",
+        "desc": "On-site capture",
+        "placeholder": "Take a photo of the venue's condition at this address."
+      },
+      "hogar": {
+        "label": "Home",
+        "desc": "Repairs or cleaning",
+        "placeholder": "Cleaning of a 2-bedroom apartment."
+      },
+      "info": {
+        "label": "Local info",
+        "desc": "Verify something on-site",
+        "placeholder": "Check if the venue is open and note the prices."
+      }
     }
   },
   "publisher": {
@@ -2560,5 +2851,299 @@
     "required": "Requires World ID",
     "requiredExplainer": "This task requires World ID verification to apply.",
     "verifyFirst": "Verify your identity first to apply to this task."
+  },
+  "agentLogin": {
+    "apiKeyHelper": "Enter the API key from your agent configuration",
+    "apiKeyLabel": "API Key",
+    "areYouWorker": "Are you a worker?",
+    "authenticating": "Authenticating...",
+    "connectWallet": "Connect Wallet Instead",
+    "errors": {
+      "empty": "Please enter your API key",
+      "failed": "Authentication failed. Please try again.",
+      "invalid": "Invalid API key. Please check and try again."
+    },
+    "signIn": "Sign In",
+    "title": "Agent Login"
+  },
+  "agents": {
+    "tier": {
+      "bronce": "Bronze",
+      "diamante": "Diamond",
+      "oro": "Gold",
+      "plata": "Silver"
+    }
+  },
+  "auditGrid": {
+    "allNetworks": "All Networks",
+    "allStatuses": "All Statuses",
+    "colAuth": "Auth",
+    "colBounty": "Bounty",
+    "colExecution": "Execution",
+    "colNetwork": "Network",
+    "colPayment": "Payment",
+    "colProgress": "Progress",
+    "colReputation": "Reputation",
+    "colSkill": "Skill",
+    "colStatus": "Status",
+    "colTask": "Task",
+    "empty": "No tasks found",
+    "issuesOnly": "Issues only",
+    "loading": "Loading audit grid...",
+    "skillVersionPlaceholder": "Skill version (e.g. 4.1.0)"
+  },
+  "deposit": {
+    "completeInMoonPay": "Complete the payment in the MoonPay window.",
+    "currentBalance": "Current balance",
+    "funded": "Funds received — ${{balance}} USDC on Base. You can continue.",
+    "network": "Network",
+    "preparing": "Preparing the deposit…",
+    "startError": "Could not start the deposit. Please try again.",
+    "title": "Deposit USDC (Base)",
+    "unavailable": "Card deposits are not available right now.",
+    "waitingForUsdc": "Waiting for the USDC to arrive in your Base wallet…",
+    "youNeed": "You need",
+    "youWillBuy": "You'll buy"
+  },
+  "errorBoundary": {
+    "goHome": "Go Home",
+    "message": "An unexpected error occurred. Our team has been notified.",
+    "reload": "Reload page",
+    "title": "Something went wrong"
+  },
+  "feed": {
+    "pendingFeedback": "Pending",
+    "tasksCount": "{{count}} tasks",
+    "tier": {
+      "bronze": "Bronze",
+      "diamond": "Diamond",
+      "gold": "Gold",
+      "silver": "Silver"
+    },
+    "tx": {
+      "escrow": "Escrow",
+      "payment": "Payment",
+      "refund": "Refund",
+      "repAgentToWorker": "Rep (Agent→Worker)",
+      "repWorkerToAgent": "Rep (Worker→Agent)"
+    }
+  },
+  "feedback": {
+    "agentId": "Agent ID",
+    "bounty": "Bounty",
+    "category": "Category",
+    "comment": "Comment",
+    "date": "Date",
+    "docVersion": "Document version: {{version}} | Schema: {{schema}}",
+    "evidence": "Evidence",
+    "goHome": "Go to Home",
+    "loading": "Loading feedback...",
+    "loadingLabel": "Loading feedback",
+    "network": "Network",
+    "notFound": "Feedback not found",
+    "onChainTx": "On-Chain Transactions",
+    "paymentTx": "Payment TX",
+    "rater": "Rater",
+    "rating": "Rating",
+    "reason": "Reason",
+    "rejection": "Rejection",
+    "reputationTx": "Reputation TX",
+    "severity": "Severity",
+    "subtitle": "ERC-8004 On-Chain Reputation Feedback",
+    "target": "Target",
+    "targetAddress": "Target Address",
+    "taskDetails": "Task Details",
+    "taskId": "Task ID",
+    "titleLabel": "Title",
+    "typeAgentRating": "Agent Rating",
+    "typeRejection": "Submission Rejected",
+    "typeWorkerRating": "Worker Rating"
+  },
+  "guards": {
+    "loadingAgentPanel": "Loading agent panel...",
+    "takingLonger": "Taking longer than expected...",
+    "verifyingAuth": "Verifying authentication..."
+  },
+  "languages": {
+    "chinese": "Chinese",
+    "english": "English",
+    "french": "French",
+    "german": "German",
+    "italian": "Italian",
+    "japanese": "Japanese",
+    "portuguese": "Portuguese",
+    "spanish": "Spanish"
+  },
+  "legal": {
+    "delete": {
+      "bullet1": "Your profile information (name, email, bio) will be permanently removed.",
+      "bullet2": "Your task submissions and evidence files will be deleted.",
+      "bullet3": "Your wallet linkages will be removed.",
+      "bullet4Post": "as they are recorded on public blockchains.",
+      "bullet4Pre": "On-chain data (payment transactions, reputation scores, identity records)",
+      "bullet4Strong": "cannot be deleted",
+      "bullet5": "Deletion is processed within 30 days of your request.",
+      "contactQuestion": "Questions? Contact",
+      "emailLabel": "Email address associated with your account",
+      "emailPlaceholder": "your@email.com",
+      "emailRequired": "Please enter your email address.",
+      "inAppHint": "You can also delete your account from within the app: Settings > Delete Account",
+      "reasonLabel": "Reason for leaving (optional)",
+      "reasonPlaceholder": "Help us improve...",
+      "submit": "Request Account Deletion",
+      "subtitle": "Request deletion of your Execution Market account and associated data.",
+      "successBody": "If an account exists with this email address, we will process the deletion request within 30 days. You will receive a confirmation email.",
+      "successNote": "Note: On-chain data (payment transactions, reputation scores) cannot be deleted due to the immutable nature of blockchain technology.",
+      "successTitle": "Request Received",
+      "title": "Delete Account",
+      "whatHappensTitle": "What happens when you delete your account"
+    },
+    "support": {
+      "contactBody": "For questions, feedback, or support requests, email us at:",
+      "contactTitle": "Contact Us",
+      "deleteAccount": "Delete Account",
+      "faq1A": "A service marketplace where AI agents publish tasks for real-world completion. Workers browse tasks, complete them, and receive instant digital payment.",
+      "faq1Q": "What is Execution Market?",
+      "faq2A": "Payments are instant and gasless in stablecoins (USDC, EURC, USDT). You pay zero transaction fees. Funds arrive the moment your work is approved.",
+      "faq2Q": "How do payments work?",
+      "faq3A": "Workers receive 87% of the task payment. A 13% platform fee covers payment processing, verification, and infrastructure.",
+      "faq3Q": "How much do workers earn?",
+      "faq4A": "Use the in-app report button (flag icon) on any task or message, or email us at executionmarket@proton.me.",
+      "faq4Q": "How do I report a problem?",
+      "faq5APost": ", or email us.",
+      "faq5APre": "Go to Settings > Delete Account in the app, or visit",
+      "faq5Q": "How do I delete my account?",
+      "faqTitle": "Frequently Asked Questions",
+      "legalTitle": "Legal",
+      "privacyPolicy": "Privacy Policy",
+      "subtitle": "Get help with Execution Market",
+      "termsOfService": "Terms of Service",
+      "title": "Support"
+    }
+  },
+  "moonpay": {
+    "buyLink": "buy USDC on MoonPay",
+    "openFailed": "MoonPay overlay failed to open",
+    "phase": {
+      "closed": "MoonPay overlay closed.",
+      "fallback": "Opened MoonPay in a new tab (mobile fallback). Return to this page once the buy completes.",
+      "loading": "Loading MoonPay overlay…",
+      "opened": "MoonPay overlay is open in the foreground.",
+      "opening": "Opening MoonPay overlay…"
+    },
+    "popupBlocked": "The browser blocked the popup. Open the URL manually:"
+  },
+  "moonpayFallback": {
+    "balanceOk": "Balance OK ({{balance}} USDC ≥ {{target}} USDC). Resuming…",
+    "body": "If you already have USDC on Solana in this wallet, skip the on-ramp. We'll check the chain directly.",
+    "checking": "Checking balance…",
+    "readError": "Couldn't read on-chain balance:",
+    "retry": "Open MoonPay again",
+    "shortBy": "Short by {{shortfall}} USDC. Wallet has {{balance}} USDC; need {{target}} USDC. Re-open MoonPay or top up another way.",
+    "skip": "I already have USDC, skip on-ramp",
+    "title": "MoonPay not working?"
+  },
+  "review": {
+    "agentDelivery": "Agent Delivery",
+    "backToPanel": "← Back to Panel",
+    "coords": {
+      "hide": "Hide coordinates",
+      "show": "Show coordinates"
+    },
+    "disabled": {
+      "back": "Back to Dashboard",
+      "body": "The on-chain approval flow is being upgraded for security. Approvals are currently processed via the API.",
+      "meta": "Phase 2 security hardening — FE-001",
+      "title": "Approval Temporarily Disabled"
+    },
+    "dispute": {
+      "descHint": "(5-2000 characters)",
+      "descLabel": "Description",
+      "descPlaceholder": "Explain why this submission should be disputed. Be specific: what is missing, what does not comply, what evidence you consider fake...",
+      "explainer": "A formal dispute marks this submission as contested and sends it to human arbitration. Use this option only if you believe the evidence is fraudulent, incomplete, or does not meet the brief.",
+      "heading": "Open dispute",
+      "minDescription": "Description must be at least 5 characters",
+      "opened": "Dispute opened (id={{id}}…)",
+      "reason": "Reason",
+      "reasons": {
+        "fake_evidence": "Fake / tampered evidence",
+        "incomplete_work": "Incomplete work",
+        "late_delivery": "Late delivery",
+        "no_response": "No response from worker",
+        "other": "Other",
+        "payment_issue": "Payment issue",
+        "poor_quality": "Poor quality",
+        "unfair_rejection": "Unfair rejection (appeal)",
+        "wrong_deliverable": "Wrong deliverable"
+      },
+      "start": "Start formal dispute",
+      "submit": "Open dispute",
+      "submitting": "Sending..."
+    },
+    "errors": {
+      "connectWallet": "Connect an EVM wallet to sign the payment.",
+      "noWorkerWallet": "Worker wallet not found in the submission.",
+      "selfPayment": "You cannot pay yourself (worker == publisher).",
+      "walletClientUnavailable": "Wallet client unavailable for this network."
+    },
+    "fileN": "File {{n}}",
+    "noSubmissions": "No submissions yet.",
+    "notFound": "Not found",
+    "notes": "Notes",
+    "notesPlaceholderApprove": "Optional comments...",
+    "notesPlaceholderRevise": "Describe what needs improvement...",
+    "payment": {
+      "commission": "Commission (13%):",
+      "signTwo": "You will sign 2 authorizations in your wallet.",
+      "summary": "Payment Summary",
+      "toAgent": "Payment to agent:",
+      "total": "Total:"
+    },
+    "processing": "Processing...",
+    "request": "Request",
+    "title": "Review Submission",
+    "verdict": {
+      "approve": "Approve & Pay",
+      "reject": "Reject",
+      "revision": "Request Revision"
+    },
+    "verdictHeading": "Your Verdict"
+  },
+  "trading": {
+    "colAvgPnl": "Avg P&L",
+    "colSignals": "Signals",
+    "colStreak": "Streak",
+    "colTotalPnl": "Total P&L",
+    "colTrader": "Trader",
+    "colWinRate": "Win%",
+    "copyTradingBody": "Subscribe to the best traders and receive their signals by IRC DM. Revenue split: 70% trader / 20% MeshRelay / 10% EM treasury.",
+    "copyTradingTitle": "Copy Trading via IRC",
+    "plans": {
+      "daily": {
+        "duration": "1 day",
+        "label": "Daily"
+      },
+      "monthly": {
+        "duration": "30 days",
+        "label": "Monthly"
+      },
+      "weekly": {
+        "duration": "7 days",
+        "label": "Weekly"
+      }
+    },
+    "premiumChannel": "#abra-alpha — Premium Channel",
+    "premiumChannelBody": "Direct access to @zeroxultravioleta alpha in real time. $1.00 USDC/hour via Turnstile x402 on Base.",
+    "premiumChannelMeta": "Base Mainnet | Gasless EIP-3009 | 50 slots max",
+    "premiumConnectPrefix": "Connect to",
+    "premiumConnectSuffix": "and pay via Turnstile to join.",
+    "status": {
+      "cancelled": "Cancelled",
+      "closed": "Closed",
+      "expired": "Expired",
+      "open": "Open",
+      "sl_hit": "SL Hit",
+      "tp_hit": "TP Hit"
+    }
   }
 }

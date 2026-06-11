@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useMessages } from "../../hooks/useMessages";
 import { useXMTP } from "../../context/XMTPContext";
 import { MessageBubble } from "./MessageBubble";
@@ -17,6 +18,7 @@ function shorten(id: string): string {
 }
 
 export function ConversationThread({ peerInboxId, peerAddress, onBack, contextPrefix }: Props) {
+  const { t } = useTranslation();
   const { inboxId } = useXMTP();
   const { messages, isLoading, isSending, sendMessage, loadMore } = useMessages(peerInboxId);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -44,16 +46,16 @@ export function ConversationThread({ peerInboxId, peerAddress, onBack, contextPr
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center gap-3 p-4 border-b border-white/10">
-        <button onClick={onBack} className="text-white/50 hover:text-white">
+      <div className="flex items-center gap-3 p-4 border-b border-zinc-200">
+        <button onClick={onBack} className="text-zinc-500 hover:text-zinc-900">
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-          <span className="text-white/60 text-xs font-mono">{avatarLetters}</span>
+        <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center">
+          <span className="text-zinc-600 text-xs font-mono">{avatarLetters}</span>
         </div>
-        <span className="text-white text-sm font-medium">{shortLabel}</span>
+        <span className="text-zinc-900 text-sm font-medium">{shortLabel}</span>
       </div>
 
       {/* Messages */}
@@ -68,11 +70,11 @@ export function ConversationThread({ peerInboxId, peerAddress, onBack, contextPr
       >
         {isLoading ? (
           <div className="flex justify-center py-12">
-            <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-zinc-200 border-t-zinc-600 rounded-full animate-spin" />
           </div>
         ) : messages.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-white/30 text-sm">Envia el primer mensaje</p>
+            <p className="text-zinc-500 text-sm">{t("messages.sendFirstMessage", "Send the first message")}</p>
           </div>
         ) : (
           messages.map(msg => (

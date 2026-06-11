@@ -98,7 +98,7 @@ function getStepTextClasses(status: StepStatus): string {
       return 'text-red-700'
     case 'pending':
     default:
-      return 'text-gray-400'
+      return 'text-zinc-500'
   }
 }
 
@@ -152,7 +152,7 @@ function getPaymentStatusLabel(status: string, t: (key: string, fallback: string
   }
 }
 
-function buildSteps(task: Task, submissions?: Submission[], payment?: PaymentData | null): TimelineStep[] {
+function buildSteps(task: Task, submissions: Submission[] | undefined, payment: PaymentData | null | undefined, t: (key: string, fallback: string) => string): TimelineStep[] {
   const status = task.status
   const isTerminal = status === 'cancelled' || status === 'expired'
   const isCompleted = status === 'completed'
@@ -219,7 +219,7 @@ function buildSteps(task: Task, submissions?: Submission[], payment?: PaymentDat
         : (isTerminal ? 'error' : 'pending'),
       date: task.assigned_at,
       txHash: task.escrow_tx,
-      txLabel: 'Escrow TX',
+      txLabel: t('taskLifecycle.escrowTx', 'Escrow TX'),
       inlineDetails: assignedDetails.length > 0 ? assignedDetails : undefined,
     },
     {
@@ -246,8 +246,8 @@ function buildSteps(task: Task, submissions?: Submission[], payment?: PaymentDat
           : 'pending',
       date: isCompleted ? task.completed_at : null,
       txHash: paymentTx,
-      txLabel: 'Payment TX',
-      extraTx: task.refund_tx ? { hash: task.refund_tx, label: 'Refund TX' } : null,
+      txLabel: t('taskLifecycle.paymentTx', 'Payment TX'),
+      extraTx: task.refund_tx ? { hash: task.refund_tx, label: t('taskLifecycle.refundTx', 'Refund TX') } : null,
       inlineDetails: isTerminal
         ? (terminalDetails.length > 0 ? terminalDetails : undefined)
         : (completedDetails.length > 0 ? completedDetails : undefined),
@@ -259,7 +259,7 @@ function buildSteps(task: Task, submissions?: Submission[], payment?: PaymentDat
 
 export function TaskLifecycleTimeline({ task, submissions, payment, paymentLoading }: TaskLifecycleTimelineProps) {
   const { t } = useTranslation()
-  const steps = buildSteps(task, submissions, payment)
+  const steps = buildSteps(task, submissions, payment, t)
 
   return (
     <section>
@@ -312,7 +312,7 @@ export function TaskLifecycleTimeline({ task, submissions, payment, paymentLoadi
                   )}
                   {step.txHash && (
                     <div className="mt-1 flex items-center gap-1.5">
-                      <span className="text-xs text-gray-400">{step.txLabel}:</span>
+                      <span className="text-xs text-zinc-600">{step.txLabel}:</span>
                       <TxHashLink
                         txHash={step.txHash}
                         network={task.payment_network || 'base'}
@@ -321,7 +321,7 @@ export function TaskLifecycleTimeline({ task, submissions, payment, paymentLoadi
                   )}
                   {step.extraTx && (
                     <div className="mt-1 flex items-center gap-1.5">
-                      <span className="text-xs text-gray-400">{step.extraTx.label}:</span>
+                      <span className="text-xs text-zinc-600">{step.extraTx.label}:</span>
                       <TxHashLink
                         txHash={step.extraTx.hash}
                         network={task.payment_network || 'base'}
@@ -365,7 +365,7 @@ export function TaskLifecycleTimeline({ task, submissions, payment, paymentLoadi
                   {step.key === 'completed' && paymentLoading && (
                     <div className="mt-1.5 flex items-center gap-2">
                       <div className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-                      <span className="text-xs text-gray-400">{t('taskDetail.loadingPayment', 'Loading payment status...')}</span>
+                      <span className="text-xs text-zinc-600">{t('taskDetail.loadingPayment', 'Loading payment status...')}</span>
                     </div>
                   )}
                 </div>

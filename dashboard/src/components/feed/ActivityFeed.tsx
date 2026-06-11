@@ -115,7 +115,7 @@ export function ActivityFeed({
   if (error && cards.length === 0) {
     return (
       <div className={cn('text-center py-8', className)}>
-        <p className="text-sm text-red-500 dark:text-red-400">
+        <p className="text-sm text-red-600 dark:text-red-400">
           {t('feed.error', 'Could not load activity feed.')}
         </p>
       </div>

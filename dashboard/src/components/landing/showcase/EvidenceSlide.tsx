@@ -6,6 +6,7 @@
  */
 
 import { memo, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { decode as decodeBlurhash } from 'blurhash'
 import { safeSrc } from '../../../lib/safeHref'
 import type { ShowcaseEvidence } from '../../../services/showcase'
@@ -46,6 +47,7 @@ export const EvidenceSlide = memo(function EvidenceSlide({
   onOpen,
   animatePrice = false,
 }: EvidenceSlideProps) {
+  const { t } = useTranslation()
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const [loaded, setLoaded] = useState(false)
 
@@ -154,7 +156,7 @@ export const EvidenceSlide = memo(function EvidenceSlide({
                 />
               )}
               <span className="font-mono text-xs text-slate-700 dark:text-slate-300 truncate">
-                {evidence.executor.displayName || 'anonymous'}
+                {evidence.executor.displayName || t('landing.showcase.anonymous', 'anonymous')}
               </span>
               {evidence.executor.rating !== null &&
                 Number.isFinite(evidence.executor.rating) && (

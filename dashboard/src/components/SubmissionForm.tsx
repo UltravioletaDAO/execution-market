@@ -90,7 +90,7 @@ const EVIDENCE_TYPE_CONFIG: Record<string, { accept: string; icon: string }> = {
   text_report: { accept: '', icon: '📄' },
 }
 
-// Category-specific guidance messages (Spanish)
+// Category-specific guidance fallbacks (localized via submission.categoryGuidance.*)
 const CATEGORY_GUIDANCE: Partial<Record<TaskCategory, string>> = {
   physical_presence: 'Esta tarea requiere presencia fisica. Usa la camara y GPS para verificar tu ubicacion.',
   simple_action: 'Documenta la accion con fotos o video. GPS ayuda a verificar la entrega.',
@@ -401,7 +401,7 @@ export function SubmissionForm({
       // Block submission if escrow is not funded on-chain
       if (task.escrow_status && !FUNDED_STATUSES.includes(task.escrow_status)) {
         throw new Error(
-          `Escrow not confirmed on-chain (status: ${task.escrow_status}). Wait for the agent to fund this task.`,
+          t('submission.escrowNotConfirmed', 'Escrow not confirmed on-chain (status: {{status}}). Wait for the agent to fund this task.', { status: task.escrow_status }),
         )
       }
 
@@ -601,7 +601,7 @@ export function SubmissionForm({
               />
             ) : (
               <div className="w-full h-24 bg-zinc-100 rounded-lg flex items-center justify-center">
-                <span className="text-zinc-500">{evidenceFile.file.name}</span>
+                <span className="text-zinc-700">{evidenceFile.file.name}</span>
               </div>
             )}
 
@@ -708,7 +708,7 @@ export function SubmissionForm({
             value={textValue}
             onChange={(e) => handleTextChange(type, e.target.value)}
             placeholder={type === 'measurement' ? t('submission.measurementPlaceholder') : t('submission.textPlaceholder')}
-            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none"
+            className="w-full px-3 py-2 bg-white text-zinc-900 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none"
             rows={3}
           />
         </label>
@@ -769,7 +769,7 @@ export function SubmissionForm({
               <p className="text-sm text-zinc-600">
                 {t('submission.waitingReview', 'Waiting for review. Checking status automatically...')}
               </p>
-              <div className="flex items-center justify-center gap-1.5 text-xs text-zinc-400">
+              <div className="flex items-center justify-center gap-1.5 text-xs text-zinc-600">
                 <span className="w-1.5 h-1.5 rounded-full bg-zinc-900 animate-pulse" />
                 {t('submission.polling', 'Auto-refreshing every 5s')}
               </div>
@@ -841,7 +841,7 @@ export function SubmissionForm({
         {/* Category-specific guidance */}
         {CATEGORY_GUIDANCE[category] && (
           <div className="p-3 bg-zinc-50 border border-zinc-200 rounded-lg">
-            <p className="text-sm text-zinc-700">{CATEGORY_GUIDANCE[category]}</p>
+            <p className="text-sm text-zinc-700">{t(`submission.categoryGuidance.${category}`, CATEGORY_GUIDANCE[category])}</p>
           </div>
         )}
 
@@ -849,8 +849,7 @@ export function SubmissionForm({
         {!escrowReady && (
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
             <p className="text-amber-800 text-sm">
-              Escrow not confirmed on-chain (status: {task.escrow_status}).
-              You cannot submit evidence until the agent funds this task.
+              {t('submission.escrowWarning', 'Escrow not confirmed on-chain (status: {{status}}). You cannot submit evidence until the agent funds this task.', { status: task.escrow_status })}
             </p>
           </div>
         )}

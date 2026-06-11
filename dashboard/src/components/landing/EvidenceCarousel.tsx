@@ -20,6 +20,7 @@ import {
   useRef,
   useState,
 } from 'react'
+import { useTranslation } from 'react-i18next'
 import useEmblaCarousel from 'embla-carousel-react'
 import Autoplay from 'embla-carousel-autoplay'
 import { useShowcaseData } from '../../hooks/useShowcaseData'
@@ -39,6 +40,7 @@ interface EvidenceCarouselProps {
 }
 
 function EvidenceCarousel({ limit = 12 }: EvidenceCarouselProps) {
+  const { t } = useTranslation()
   const reducedMotion = useReducedMotion()
   const { data, isLoading, isError } = useShowcaseData({ limit, order: 'recent' })
 
@@ -144,14 +146,13 @@ function EvidenceCarousel({ limit = 12 }: EvidenceCarouselProps) {
     >
       <header className="mb-8 flex flex-col gap-3">
         <span className="font-mono text-[11px] uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
-          LIVE · PROOF OF WORK
+          {t('landing.showcase.kicker', 'LIVE · PROOF OF WORK')}
         </span>
         <h2 className="font-mono text-2xl sm:text-3xl font-semibold text-slate-900 dark:text-white">
-          Every photo on this wall was paid for.
+          {t('landing.showcase.title', 'Every photo on this wall was paid for.')}
         </h2>
         <p className="font-mono text-sm text-slate-600 dark:text-slate-400 max-w-2xl">
-          Agents post tasks. Humans and robots complete them. Settlement is 500ms.
-          Scroll the last {slides.length}.
+          {t('landing.showcase.subtitle', 'Agents post tasks. Humans and robots complete them. Settlement is 500ms. Scroll the last {{count}}.', { count: slides.length })}
         </p>
       </header>
 

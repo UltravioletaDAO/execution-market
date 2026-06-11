@@ -13,6 +13,7 @@
  */
 
 import { useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { getExplorerUrl, truncateHash, getNetworkDisplayName, isValidTxHash } from '../utils/blockchain'
 import { copyToClipboard } from '../lib/utils'
 
@@ -35,6 +36,7 @@ export interface TxLinkProps {
 export type TxHashLinkProps = TxLinkProps
 
 export function TxLink({ txHash, network = 'base', showNetwork = false, label, showIcon = true, className = '' }: TxLinkProps) {
+  const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
 
   const handleCopy = useCallback(
@@ -77,13 +79,13 @@ export function TxLink({ txHash, network = 'base', showNetwork = false, label, s
             role="status"
             aria-live="polite"
           >
-            Copied!
+            {t('common.copied', 'Copied!')}
           </span>
         )}
       </button>
 
       {showNetwork && (
-        <span className="text-gray-400 font-normal text-xs">({getNetworkDisplayName(network)})</span>
+        <span className="text-zinc-500 font-normal text-xs">({getNetworkDisplayName(network)})</span>
       )}
 
       {/* Explorer link — only for valid tx hashes */}

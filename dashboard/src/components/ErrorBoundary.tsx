@@ -15,6 +15,7 @@
 
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import * as Sentry from '@sentry/react'
+import i18n from '../i18n'
 
 interface ErrorBoundaryProps {
   children: ReactNode
@@ -111,13 +112,13 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             </div>
             <div className="flex-1 min-w-0">
               <h1 className="text-lg font-semibold text-gray-900">
-                Algo salió mal
+                {i18n.t('errorBoundary.title', 'Something went wrong')}
               </h1>
               <p className="text-sm text-gray-600 mt-1">
-                Un error inesperado ocurrió. Nuestro equipo fue notificado.
+                {i18n.t('errorBoundary.message', 'An unexpected error occurred. Our team has been notified.')}
               </p>
               {eventId ? (
-                <p className="mt-2 text-xs text-gray-400 font-mono break-all">
+                <p className="mt-2 text-xs text-zinc-600 font-mono break-all">
                   Ref: {eventId}
                 </p>
               ) : null}
@@ -130,14 +131,14 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               onClick={this.handleReload}
               className="inline-flex items-center justify-center rounded-lg font-medium px-4 py-2 text-sm bg-zinc-900 text-white hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-700 transition-colors"
             >
-              Recargar la página
+              {i18n.t('errorBoundary.reload', 'Reload page')}
             </button>
             <button
               type="button"
               onClick={this.handleGoHome}
               className="inline-flex items-center justify-center rounded-lg font-medium px-4 py-2 text-sm border-2 border-zinc-300 text-zinc-700 hover:bg-zinc-100 hover:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-500 transition-colors"
             >
-              Ir al inicio
+              {i18n.t('errorBoundary.goHome', 'Go Home')}
             </button>
           </div>
 

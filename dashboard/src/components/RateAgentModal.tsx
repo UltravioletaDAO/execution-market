@@ -41,7 +41,7 @@ export function RateAgentModal({
   const scoreTextClass =
     score >= 80 ? 'text-zinc-900' : score >= 50 ? 'text-amber-700' : 'text-red-700'
   const scoreAccentColor =
-    score >= 80 ? '#18181b' : score >= 50 ? '#b45309' : '#b91c1c'
+    score >= 80 ? '#18181b' : score >= 50 ? '#71717a' : '#b91c1c'
 
   async function handleSubmit() {
     setSubmitting(true)
@@ -188,7 +188,7 @@ export function RateAgentModal({
           onChange={(e) => setComment(e.target.value)}
           disabled={submitting}
           placeholder={t('rateAgent.commentPlaceholder', 'Optional comment about your experience...')}
-          className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none resize-none text-sm disabled:bg-zinc-100 disabled:text-zinc-400 disabled:cursor-not-allowed"
+          className="w-full px-3 py-2 bg-white text-zinc-900 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none resize-none text-sm disabled:bg-zinc-100 disabled:text-zinc-400 disabled:cursor-not-allowed"
           rows={3}
           maxLength={1000}
         />

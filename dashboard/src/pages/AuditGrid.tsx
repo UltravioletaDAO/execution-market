@@ -293,7 +293,7 @@ export function AuditGrid() {
           disabled={loading}
           className="px-4 py-2 bg-zinc-900 text-white text-sm rounded-lg hover:bg-zinc-800 disabled:opacity-50"
         >
-          {loading ? 'Loading...' : 'Refresh'}
+          {loading ? t('common.loading', 'Loading...') : t('common.refresh', 'Refresh')}
         </button>
       </div>
 
@@ -304,7 +304,7 @@ export function AuditGrid() {
           onChange={e => { setStatusFilter(e.target.value); setPage(1) }}
           className="px-3 py-1.5 text-sm border border-zinc-300 rounded-lg bg-white"
         >
-          <option value="">All Statuses</option>
+          <option value="">{t('auditGrid.allStatuses', 'All Statuses')}</option>
           {['published', 'accepted', 'in_progress', 'submitted', 'verifying', 'completed', 'cancelled', 'expired'].map(s => (
             <option key={s} value={s}>{s}</option>
           ))}
@@ -314,7 +314,7 @@ export function AuditGrid() {
           onChange={e => { setNetworkFilter(e.target.value); setPage(1) }}
           className="px-3 py-1.5 text-sm border border-zinc-300 rounded-lg bg-white"
         >
-          <option value="">All Networks</option>
+          <option value="">{t('auditGrid.allNetworks', 'All Networks')}</option>
           {['base', 'ethereum', 'polygon', 'arbitrum', 'optimism', 'avalanche', 'celo', 'monad', 'skale', 'solana'].map(n => (
             <option key={n} value={n}>{n}</option>
           ))}
@@ -323,7 +323,7 @@ export function AuditGrid() {
           type="text"
           value={versionFilter}
           onChange={e => { setVersionFilter(e.target.value); setPage(1) }}
-          placeholder="Skill version (e.g. 4.1.0)"
+          placeholder={t('auditGrid.skillVersionPlaceholder', 'Skill version (e.g. 4.1.0)')}
           className="px-3 py-1.5 text-sm border border-zinc-300 rounded-lg bg-white w-40"
         />
         <label className="flex items-center gap-2 text-sm text-zinc-700 cursor-pointer">
@@ -333,7 +333,7 @@ export function AuditGrid() {
             onChange={e => { setIssuesOnly(e.target.checked); setPage(1) }}
             className="rounded border-zinc-300"
           />
-          Issues only
+          {t('auditGrid.issuesOnly', 'Issues only')}
         </label>
       </div>
 
@@ -346,38 +346,38 @@ export function AuditGrid() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-zinc-200 bg-zinc-50">
-              <th className="text-left px-4 py-3 font-medium text-zinc-700 w-52">Task</th>
-              <th className="text-left px-3 py-3 font-medium text-zinc-700 w-16">Skill</th>
-              <th className="text-left px-3 py-3 font-medium text-zinc-700 w-20">Network</th>
-              <th className="text-right px-3 py-3 font-medium text-zinc-700 w-16">Bounty</th>
+              <th className="text-left px-4 py-3 font-medium text-zinc-700 w-52">{t('auditGrid.colTask', 'Task')}</th>
+              <th className="text-left px-3 py-3 font-medium text-zinc-700 w-16">{t('auditGrid.colSkill', 'Skill')}</th>
+              <th className="text-left px-3 py-3 font-medium text-zinc-700 w-20">{t('auditGrid.colNetwork', 'Network')}</th>
+              <th className="text-right px-3 py-3 font-medium text-zinc-700 w-16">{t('auditGrid.colBounty', 'Bounty')}</th>
               <th className="text-center px-3 py-3 font-medium text-zinc-700 w-24">
-                <button className="hover:text-zinc-900">Auth</button>
+                <button className="hover:text-zinc-900">{t('auditGrid.colAuth', 'Auth')}</button>
               </th>
               <th className="text-center px-3 py-3 font-medium text-zinc-700 w-28">
-                <button className="hover:text-zinc-900">Payment</button>
+                <button className="hover:text-zinc-900">{t('auditGrid.colPayment', 'Payment')}</button>
               </th>
               <th className="text-center px-3 py-3 font-medium text-zinc-700 w-32">
-                <button className="hover:text-zinc-900">Execution</button>
+                <button className="hover:text-zinc-900">{t('auditGrid.colExecution', 'Execution')}</button>
               </th>
               <th className="text-center px-3 py-3 font-medium text-zinc-700 w-24">
-                <button className="hover:text-zinc-900">Reputation</button>
+                <button className="hover:text-zinc-900">{t('auditGrid.colReputation', 'Reputation')}</button>
               </th>
-              <th className="text-center px-3 py-3 font-medium text-zinc-700 w-20">Progress</th>
-              <th className="text-center px-3 py-3 font-medium text-zinc-700 w-24">Status</th>
+              <th className="text-center px-3 py-3 font-medium text-zinc-700 w-20">{t('auditGrid.colProgress', 'Progress')}</th>
+              <th className="text-center px-3 py-3 font-medium text-zinc-700 w-24">{t('auditGrid.colStatus', 'Status')}</th>
             </tr>
           </thead>
           <tbody>
             {loading && !data && (
               <tr>
                 <td colSpan={10} className="px-4 py-12 text-center text-zinc-500">
-                  Loading audit grid...
+                  {t('auditGrid.loading', 'Loading audit grid...')}
                 </td>
               </tr>
             )}
             {data && data.tasks.length === 0 && (
               <tr>
                 <td colSpan={10} className="px-4 py-12 text-center text-zinc-500">
-                  No tasks found
+                  {t('auditGrid.empty', 'No tasks found')}
                 </td>
               </tr>
             )}
@@ -467,17 +467,17 @@ export function AuditGrid() {
             disabled={page === 1}
             className="px-3 py-1.5 text-sm bg-white border border-zinc-300 rounded-lg disabled:opacity-50"
           >
-            Previous
+            {t('common.previous', 'Previous')}
           </button>
           <span className="px-3 py-1.5 text-sm text-zinc-700">
-            Page {page} of {totalPages}
+            {t('common.pageOf', 'Page {{page}} of {{total}}', { page, total: totalPages })}
           </span>
           <button
             onClick={() => setPage(p => p + 1)}
             disabled={page >= totalPages}
             className="px-3 py-1.5 text-sm bg-white border border-zinc-300 rounded-lg disabled:opacity-50"
           >
-            Next
+            {t('common.next', 'Next')}
           </button>
         </div>
       )}

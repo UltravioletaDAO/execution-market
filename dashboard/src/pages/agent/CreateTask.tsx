@@ -194,6 +194,7 @@ function CategorySelector({
   value: TaskCategory
   onChange: (category: TaskCategory) => void
 }) {
+  const { t } = useTranslation()
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       {CATEGORY_OPTIONS.map((option) => (
@@ -215,9 +216,9 @@ function CategorySelector({
             </div>
             <div className="flex-1">
               <p className="font-medium text-zinc-900">
-                {option.label}
+                {t(`tasks.categories.${option.value}`, option.label)}
               </p>
-              <p className="text-xs text-zinc-500 mt-0.5">{option.description}</p>
+              <p className="text-xs text-zinc-500 mt-0.5">{t(`createTask.categoryDesc.${option.value}`, option.description)}</p>
             </div>
           </div>
         </button>
@@ -241,6 +242,7 @@ function LocationPicker({
   onHintChange: (hint: string) => void
   onRadiusChange: (radius: number) => void
 }) {
+  const { t } = useTranslation()
   const [isGettingLocation, setIsGettingLocation] = useState(false)
   const [locationError, setLocationError] = useState<string | null>(null)
 
@@ -261,28 +263,28 @@ function LocationPicker({
         lng: position.coords.longitude,
       })
     } catch (err) {
-      setLocationError('Could not get location')
+      setLocationError(t('createTask.locationError', 'Could not get location'))
     } finally {
       setIsGettingLocation(false)
     }
-  }, [onLocationChange])
+  }, [onLocationChange, t])
 
   return (
     <div className="space-y-4">
       {/* Location Hint */}
       <Input
-        label="Descripcion de ubicacion"
+        label={t('createTask.location.hintLabel', 'Descripcion de ubicacion')}
         type="text"
         value={locationHint}
         onChange={(e) => onHintChange(e.target.value)}
-        placeholder="ej. Polanco, CDMX cerca del parque"
-        helperText="Descripcion legible para los trabajadores"
+        placeholder={t('createTask.location.hintPlaceholder', 'ej. Polanco, CDMX cerca del parque')}
+        helperText={t('createTask.location.hintHelper', 'Descripcion legible para los trabajadores')}
       />
 
       {/* Coordinates */}
       <div>
         <label className="block text-sm font-medium text-zinc-700 mb-1">
-          Coordenadas (opcional)
+          {t('createTask.location.coordinates', 'Coordenadas (opcional)')}
         </label>
         <div className="flex gap-2">
           <div className="flex-1">
@@ -291,8 +293,8 @@ function LocationPicker({
               step="0.000001"
               value={location?.lat || ''}
               onChange={(e) => onLocationChange(e.target.value ? { lat: parseFloat(e.target.value), lng: location?.lng || 0 } : null)}
-              placeholder="Latitud"
-              className="w-full px-4 py-2.5 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900"
+              placeholder={t('createTask.location.latitude', 'Latitud')}
+              className="w-full px-4 py-2.5 bg-white text-zinc-900 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900"
             />
           </div>
           <div className="flex-1">
@@ -301,8 +303,8 @@ function LocationPicker({
               step="0.000001"
               value={location?.lng || ''}
               onChange={(e) => onLocationChange(e.target.value ? { lat: location?.lat || 0, lng: parseFloat(e.target.value) } : null)}
-              placeholder="Longitud"
-              className="w-full px-4 py-2.5 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900"
+              placeholder={t('createTask.location.longitude', 'Longitud')}
+              className="w-full px-4 py-2.5 bg-white text-zinc-900 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900"
             />
           </div>
           <button
@@ -310,7 +312,7 @@ function LocationPicker({
             onClick={getCurrentLocation}
             disabled={isGettingLocation}
             className="px-4 py-2.5 bg-zinc-100 text-zinc-700 rounded-lg hover:bg-zinc-200 transition-colors disabled:bg-zinc-100 disabled:text-zinc-400 disabled:cursor-not-allowed"
-            title="Usar mi ubicacion"
+            title={t('createTask.location.useMyLocation', 'Usar mi ubicacion')}
           >
             {isGettingLocation ? (
               <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -331,7 +333,7 @@ function LocationPicker({
       {/* Radius */}
       <div>
         <label className="block text-sm font-medium text-zinc-700 mb-1">
-          Radio de verificacion: {radius} km
+          {t('createTask.location.verificationRadius', 'Radio de verificacion')}: {radius} km
         </label>
         <input
           type="range"
@@ -342,7 +344,7 @@ function LocationPicker({
           onChange={(e) => onRadiusChange(parseFloat(e.target.value))}
           className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
         />
-        <div className="flex justify-between text-xs text-zinc-400 mt-1">
+        <div className="flex justify-between text-xs text-zinc-600 mt-1">
           <span>100m</span>
           <span>5km</span>
         </div>
@@ -358,7 +360,7 @@ function LocationPicker({
             <p className="text-sm text-zinc-500">
               {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
             </p>
-            <p className="text-xs text-zinc-400 mt-1">Radio: {radius} km</p>
+            <p className="text-xs text-zinc-600 mt-1">{t('createTask.location.radiusLabel', 'Radio: {{radius}} km', { radius })}</p>
           </div>
         </div>
       )}
@@ -377,6 +379,7 @@ function EvidenceSelector({
   onRequiredChange: (types: EvidenceType[]) => void
   onOptionalChange: (types: EvidenceType[]) => void
 }) {
+  const { t } = useTranslation()
   const toggleRequired = (type: EvidenceType) => {
     if (required.includes(type)) {
       onRequiredChange(required.filter((t) => t !== type))
@@ -400,7 +403,7 @@ function EvidenceSelector({
   return (
     <div className="space-y-4">
       <p className="text-sm text-zinc-600">
-        Selecciona que tipo de evidencia debe enviar el trabajador.
+        {t('createTask.evidenceIntro', 'Selecciona que tipo de evidencia debe enviar el trabajador.')}
       </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -424,7 +427,7 @@ function EvidenceSelector({
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <p className={`font-medium text-sm ${isSelected ? 'text-zinc-900' : 'text-zinc-700'}`}>
-                      {evidence.label}
+                      {t(`createTask.evidence.${evidence.value}.label`, evidence.label)}
                     </p>
                     {evidence.requiresGps && (
                       <span className="px-1.5 py-0.5 bg-zinc-100 text-zinc-700 text-xs rounded">
@@ -432,7 +435,7 @@ function EvidenceSelector({
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-zinc-500 mt-0.5">{evidence.description}</p>
+                  <p className="text-xs text-zinc-500 mt-0.5">{t(`createTask.evidence.${evidence.value}.desc`, evidence.description)}</p>
                 </div>
                 <div className="flex gap-1">
                   <button
@@ -444,7 +447,7 @@ function EvidenceSelector({
                         : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
                     }`}
                   >
-                    Req
+                    {t('createTask.required.short', 'Req')}
                   </button>
                   <button
                     type="button"
@@ -455,7 +458,7 @@ function EvidenceSelector({
                         : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
                     }`}
                   >
-                    Opc
+                    {t('createTask.optional.short', 'Opt')}
                   </button>
                 </div>
               </div>
@@ -466,7 +469,7 @@ function EvidenceSelector({
 
       {required.length === 0 && (
         <p className="text-sm text-amber-600 bg-amber-50 p-3 rounded-lg">
-          Selecciona al menos un tipo de evidencia requerida.
+          {t('createTask.evidenceMinWarning', 'Selecciona al menos un tipo de evidencia requerida.')}
         </p>
       )}
     </div>
@@ -480,6 +483,7 @@ function TaskPreview({
   data: TaskFormData
   onEdit: (step: FormStep) => void
 }) {
+  const { t } = useTranslation()
   const category = CATEGORY_OPTIONS.find((c) => c.value === data.category)
   const requiredEvidence = EVIDENCE_TYPES.filter((e) => data.evidence_required.includes(e.value))
   const optionalEvidence = EVIDENCE_TYPES.filter((e) => data.evidence_optional.includes(e.value))
@@ -489,22 +493,22 @@ function TaskPreview({
       {/* Basic Info */}
       <div className="bg-white rounded-lg border border-zinc-200 p-5">
         <div className="flex items-start justify-between mb-4">
-          <h3 className="font-semibold text-zinc-900">Informacion Basica</h3>
+          <h3 className="font-semibold text-zinc-900">{t('createTask.preview.basicInfo', 'Informacion Basica')}</h3>
           <button
             type="button"
             onClick={() => onEdit('details')}
             className="text-sm text-zinc-900 hover:text-zinc-700 hover:underline"
           >
-            Editar
+            {t('createTask.preview.edit', 'Editar')}
           </button>
         </div>
         <div className="space-y-3">
           <div>
-            <p className="text-xs text-zinc-500">Titulo</p>
+            <p className="text-xs text-zinc-500">{t('createTask.preview.title', 'Titulo')}</p>
             <p className="font-medium text-zinc-900">{data.title || '-'}</p>
           </div>
           <div>
-            <p className="text-xs text-zinc-500">Categoria</p>
+            <p className="text-xs text-zinc-500">{t('createTask.preview.category', 'Categoria')}</p>
             <div className="flex items-center gap-2 mt-1">
               {category && (
                 <>
@@ -513,22 +517,22 @@ function TaskPreview({
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={category.icon} />
                     </svg>
                   </div>
-                  <span className="text-zinc-900">{category.label}</span>
+                  <span className="text-zinc-900">{t(`tasks.categories.${category.value}`, category.label)}</span>
                 </>
               )}
             </div>
           </div>
           <div>
-            <p className="text-xs text-zinc-500">Instrucciones</p>
+            <p className="text-xs text-zinc-500">{t('createTask.preview.instructions', 'Instrucciones')}</p>
             <p className="text-zinc-700 whitespace-pre-wrap">{data.instructions || '-'}</p>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-xs text-zinc-500">Recompensa</p>
+              <p className="text-xs text-zinc-500">{t('createTask.preview.bounty', 'Recompensa')}</p>
               <p className="font-semibold text-zinc-900 text-lg">{formatCurrency(data.bounty_usd)}</p>
             </div>
             <div>
-              <p className="text-xs text-zinc-500">Fecha limite</p>
+              <p className="text-xs text-zinc-500">{t('createTask.preview.deadline', 'Fecha limite')}</p>
               <p className="text-zinc-900">{formatDeadline(data.deadline) || '-'}</p>
             </div>
           </div>
@@ -538,30 +542,30 @@ function TaskPreview({
       {/* Location */}
       <div className="bg-white rounded-lg border border-zinc-200 p-5">
         <div className="flex items-start justify-between mb-4">
-          <h3 className="font-semibold text-zinc-900">Ubicacion</h3>
+          <h3 className="font-semibold text-zinc-900">{t('createTask.preview.location', 'Ubicacion')}</h3>
           <button
             type="button"
             onClick={() => onEdit('location')}
             className="text-sm text-zinc-900 hover:text-zinc-700 hover:underline"
           >
-            Editar
+            {t('createTask.preview.edit', 'Editar')}
           </button>
         </div>
         <div className="space-y-2">
           <div>
-            <p className="text-xs text-zinc-500">Descripcion</p>
-            <p className="text-zinc-900">{data.location_hint || 'Sin especificar'}</p>
+            <p className="text-xs text-zinc-500">{t('createTask.preview.description', 'Descripcion')}</p>
+            <p className="text-zinc-900">{data.location_hint || t('createTask.preview.notSpecified', 'Sin especificar')}</p>
           </div>
           {data.location && (
             <>
               <div>
-                <p className="text-xs text-zinc-500">Coordenadas</p>
+                <p className="text-xs text-zinc-500">{t('createTask.preview.coordinates', 'Coordenadas')}</p>
                 <p className="text-zinc-700 font-mono text-sm">
                   {data.location.lat.toFixed(6)}, {data.location.lng.toFixed(6)}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-zinc-500">Radio</p>
+                <p className="text-xs text-zinc-500">{t('createTask.preview.radius', 'Radio')}</p>
                 <p className="text-zinc-900">{data.location_radius_km} km</p>
               </div>
             </>
@@ -572,37 +576,37 @@ function TaskPreview({
       {/* Evidence */}
       <div className="bg-white rounded-lg border border-zinc-200 p-5">
         <div className="flex items-start justify-between mb-4">
-          <h3 className="font-semibold text-zinc-900">Evidencia Requerida</h3>
+          <h3 className="font-semibold text-zinc-900">{t('createTask.preview.requiredEvidence', 'Evidencia Requerida')}</h3>
           <button
             type="button"
             onClick={() => onEdit('evidence')}
             className="text-sm text-zinc-900 hover:text-zinc-700 hover:underline"
           >
-            Editar
+            {t('createTask.preview.edit', 'Editar')}
           </button>
         </div>
         <div className="space-y-3">
           <div>
-            <p className="text-xs text-zinc-500 mb-2">Obligatoria</p>
+            <p className="text-xs text-zinc-500 mb-2">{t('createTask.preview.mandatory', 'Obligatoria')}</p>
             <div className="flex flex-wrap gap-2">
               {requiredEvidence.length > 0 ? (
                 requiredEvidence.map((e) => (
                   <span key={e.value} className="px-2 py-1 bg-zinc-100 text-zinc-900 text-xs font-medium rounded">
-                    {e.label}
+                    {t(`createTask.evidence.${e.value}.label`, e.label)}
                   </span>
                 ))
               ) : (
-                <span className="text-zinc-400 text-sm">Ninguna seleccionada</span>
+                <span className="text-zinc-600 text-sm">{t('createTask.preview.noneSelected', 'Ninguna seleccionada')}</span>
               )}
             </div>
           </div>
           {optionalEvidence.length > 0 && (
             <div>
-              <p className="text-xs text-zinc-500 mb-2">Opcional</p>
+              <p className="text-xs text-zinc-500 mb-2">{t('createTask.preview.optional', 'Opcional')}</p>
               <div className="flex flex-wrap gap-2">
                 {optionalEvidence.map((e) => (
                   <span key={e.value} className="px-2 py-1 bg-amber-100 text-amber-800 text-xs font-medium rounded">
-                    {e.label}
+                    {t(`createTask.evidence.${e.value}.label`, e.label)}
                   </span>
                 ))}
               </div>
@@ -613,14 +617,14 @@ function TaskPreview({
 
       {/* Requirements */}
       <div className="bg-white rounded-lg border border-zinc-200 p-5">
-        <h3 className="font-semibold text-zinc-900 mb-4">Requisitos</h3>
+        <h3 className="font-semibold text-zinc-900 mb-4">{t('createTask.preview.requirements', 'Requisitos')}</h3>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-xs text-zinc-500">Reputacion minima</p>
-            <p className="text-zinc-900">{data.min_reputation} puntos</p>
+            <p className="text-xs text-zinc-500">{t('createTask.preview.minReputation', 'Reputacion minima')}</p>
+            <p className="text-zinc-900">{data.min_reputation} {t('createTask.preview.points', 'puntos')}</p>
           </div>
           <div>
-            <p className="text-xs text-zinc-500">Max ejecutores</p>
+            <p className="text-xs text-zinc-500">{t('createTask.preview.maxExecutors', 'Max ejecutores')}</p>
             <p className="text-zinc-900">{data.max_executors}</p>
           </div>
         </div>
@@ -633,10 +637,9 @@ function TaskPreview({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <div>
-            <p className="text-sm font-medium text-zinc-900">Creacion de Escrow</p>
+            <p className="text-sm font-medium text-zinc-900">{t('createTask.preview.escrowTitle', 'Creacion de Escrow')}</p>
             <p className="text-sm text-zinc-700 mt-1">
-              Al publicar, se creara un escrow de {formatCurrency(data.bounty_usd)} USDC que se liberara
-              automaticamente al trabajador cuando apruebes la evidencia.
+              {t('createTask.preview.escrowDesc', 'Al publicar, se creara un escrow de {{amount}} USDC que se liberara automaticamente al trabajador cuando apruebes la evidencia.', { amount: formatCurrency(data.bounty_usd) })}
             </p>
           </div>
         </div>
@@ -959,7 +962,7 @@ export function CreateTask({ agentId, onBack, onSubmit, onSuccess }: CreateTaskP
         {step === 'location' && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-lg font-semibold text-zinc-900">{t('createTask.location', 'Location')}</h2>
+              <h2 className="text-lg font-semibold text-zinc-900">{t('createTask.location.title', 'Location')}</h2>
               <p className="text-sm text-zinc-500 mt-1">
                 {t('createTask.locationDesc', 'Define where the task must be performed (optional for remote tasks)')}
               </p>
@@ -999,7 +1002,7 @@ export function CreateTask({ agentId, onBack, onSubmit, onSuccess }: CreateTaskP
         {step === 'preview' && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-lg font-semibold text-zinc-900">{t('createTask.preview', 'Preview')}</h2>
+              <h2 className="text-lg font-semibold text-zinc-900">{t('createTask.preview.title', 'Preview')}</h2>
               <p className="text-sm text-zinc-500 mt-1">
                 {t('createTask.previewDesc', 'Review details before publishing')}
               </p>

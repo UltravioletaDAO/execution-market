@@ -26,6 +26,7 @@
  */
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { readSolanaUsdcBalance, resolveSolanaRpc } from '../services/solana-balance'
 
 interface Props {
@@ -52,6 +53,7 @@ export function MoonPayFailureFallback({
   onSkip,
   onRetry,
 }: Props) {
+  const { t } = useTranslation()
   const [state, setState] = useState<CheckState>('idle')
   const [balance, setBalance] = useState(0)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -80,7 +82,7 @@ export function MoonPayFailureFallback({
     <div className="rounded-md border border-amber-300 bg-amber-50 p-4">
       <div className="mb-2 flex items-start justify-between">
         <h3 className="text-sm font-semibold text-amber-900">
-          MoonPay not working?
+          {t('moonpayFallback.title', 'MoonPay not working?')}
         </h3>
         {reason && (
           <span className="ml-2 rounded bg-amber-200 px-2 py-0.5 text-[10px] font-mono text-amber-900">
@@ -90,8 +92,7 @@ export function MoonPayFailureFallback({
       </div>
 
       <p className="text-xs text-amber-800">
-        If you already have USDC on Solana in this wallet, skip the on-ramp.
-        We'll check the chain directly.
+        {t('moonpayFallback.body', "If you already have USDC on Solana in this wallet, skip the on-ramp. We'll check the chain directly.")}
       </p>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -102,8 +103,8 @@ export function MoonPayFailureFallback({
           className="rounded bg-zinc-900 px-3 py-1.5 text-xs text-white disabled:bg-zinc-400"
         >
           {state === 'checking'
-            ? 'Checking balance…'
-            : 'I already have USDC, skip on-ramp'}
+            ? t('moonpayFallback.checking', 'Checking balance…')
+            : t('moonpayFallback.skip', 'I already have USDC, skip on-ramp')}
         </button>
         {onRetry && (
           <button
@@ -111,29 +112,26 @@ export function MoonPayFailureFallback({
             onClick={onRetry}
             className="rounded border border-zinc-400 bg-white px-3 py-1.5 text-xs text-zinc-800"
           >
-            Open MoonPay again
+            {t('moonpayFallback.retry', 'Open MoonPay again')}
           </button>
         )}
       </div>
 
       {state === 'sufficient' && (
         <p className="mt-3 text-xs text-emerald-800">
-          Balance OK ({balance.toFixed(2)} USDC ≥ {targetUsdc.toFixed(2)} USDC).
-          Resuming…
+          {t('moonpayFallback.balanceOk', 'Balance OK ({{balance}} USDC ≥ {{target}} USDC). Resuming…', { balance: balance.toFixed(2), target: targetUsdc.toFixed(2) })}
         </p>
       )}
 
       {state === 'insufficient' && (
         <p className="mt-3 text-xs text-red-700">
-          Short by {shortfall.toFixed(2)} USDC. Wallet has{' '}
-          {balance.toFixed(2)} USDC; need {targetUsdc.toFixed(2)} USDC. Re-open
-          MoonPay or top up another way.
+          {t('moonpayFallback.shortBy', 'Short by {{shortfall}} USDC. Wallet has {{balance}} USDC; need {{target}} USDC. Re-open MoonPay or top up another way.', { shortfall: shortfall.toFixed(2), balance: balance.toFixed(2), target: targetUsdc.toFixed(2) })}
         </p>
       )}
 
       {state === 'error' && (
         <p className="mt-3 text-xs text-red-700">
-          Couldn't read on-chain balance:{' '}
+          {t('moonpayFallback.readError', "Couldn't read on-chain balance:")}{' '}
           <code className="font-mono">{errorMsg ?? 'unknown error'}</code>
         </p>
       )}

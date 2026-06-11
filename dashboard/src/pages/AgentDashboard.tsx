@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import type { Task, TaskStatus, Submission } from '../types/database'
 import { usePublicMetrics } from '../hooks/usePublicMetrics'
 import { WorkerRatingModal } from '../components/WorkerRatingModal'
@@ -74,7 +75,7 @@ function formatCurrency(amount: number): string {
   }).format(amount)
 }
 
-function formatRelativeTime(dateStr: string): string {
+function formatRelativeTime(dateStr: string, t: TFunction): string {
   const date = new Date(dateStr)
   const now = new Date()
   const diffMs = now.getTime() - date.getTime()
@@ -82,26 +83,26 @@ function formatRelativeTime(dateStr: string): string {
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
 
-  if (diffMins < 1) return 'Just now'
-  if (diffMins < 60) return `${diffMins}m ago`
-  if (diffHours < 24) return `${diffHours}h ago`
-  if (diffDays === 1) return 'Yesterday'
-  if (diffDays < 7) return `${diffDays}d ago`
+  if (diffMins < 1) return t('common.time.justNow', 'Just now')
+  if (diffMins < 60) return t('common.time.minutesAgo', '{{n}}m ago', { n: diffMins })
+  if (diffHours < 24) return t('common.time.hoursAgo', '{{n}}h ago', { n: diffHours })
+  if (diffDays === 1) return t('common.time.yesterday', 'Yesterday')
+  if (diffDays < 7) return t('common.time.daysAgo', '{{n}}d ago', { n: diffDays })
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-function formatDeadline(deadline: string): string {
+function formatDeadline(deadline: string, t: TFunction): string {
   const date = new Date(deadline)
   const now = new Date()
   const diffMs = date.getTime() - now.getTime()
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
   const diffDays = Math.floor(diffHours / 24)
 
-  if (diffMs < 0) return 'Expired'
-  if (diffHours < 1) return '< 1h left'
-  if (diffHours < 24) return `${diffHours}h left`
-  if (diffDays === 1) return '1 day'
-  return `${diffDays} days`
+  if (diffMs < 0) return t('tasks.deadline.expired', 'Expired')
+  if (diffHours < 1) return t('tasks.deadline.lessThan1h', '< 1h left')
+  if (diffHours < 24) return t('tasks.deadline.hoursLeft', '{{n}}h left', { n: diffHours })
+  if (diffDays === 1) return t('tasks.deadline.oneDay', '1 day')
+  return t('tasks.deadline.daysLeft', '{{n}} days', { n: diffDays })
 }
 
 // --------------------------------------------------------------------------
@@ -185,7 +186,7 @@ function ActiveTaskItem({
           <span className="text-xs text-zinc-500">{t(`tasks.categories.${task.category}`, task.category)}</span>
           <span className="text-xs text-zinc-400">|</span>
           <span className={`text-xs ${isExpiringSoon ? 'text-amber-700 font-medium' : 'text-zinc-500'}`}>
-            {formatDeadline(task.deadline)}
+            {formatDeadline(task.deadline, t)}
           </span>
         </div>
       </div>
@@ -208,6 +209,7 @@ function PendingSubmissionItem({
   onReview?: () => void
   onApproveAndRate?: () => void
 }) {
+  const { t } = useTranslation()
   const executor = submission.executor
   const task = submission.task
 
@@ -232,15 +234,15 @@ function PendingSubmissionItem({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <p className="text-sm font-medium text-gray-900">
-            {executor?.display_name || 'Anonymous Worker'}
+            {executor?.display_name || t('agentDashboard.anonymousWorker', 'Anonymous Worker')}
           </p>
           {executor && (
             <WorkerReputationBadge score={executor.reputation_score ?? 50} />
           )}
         </div>
         <p className="text-sm text-gray-600 truncate mt-0.5">{task?.title || 'Task'}</p>
-        <p className="text-xs text-gray-400 mt-1">
-          Submitted {formatRelativeTime(submission.submitted_at)}
+        <p className="text-xs text-zinc-600 mt-1">
+          {t('agentDashboard.submittedAgo', 'Submitted {{time}}', { time: formatRelativeTime(submission.submitted_at, t) })}
         </p>
         {submission.reputation_tx && (
           <div className="flex items-center gap-1.5 mt-1">
@@ -261,7 +263,7 @@ function PendingSubmissionItem({
           onClick={onReview}
           className="px-3 py-1.5 bg-zinc-200 text-zinc-900 text-xs font-medium rounded-lg hover:bg-zinc-300 transition-colors"
         >
-          Review
+          {t('agentDashboard.reviewBtn', 'Review')}
         </button>
         {submission.auto_check_passed && onApproveAndRate && (
           <button
@@ -271,7 +273,7 @@ function PendingSubmissionItem({
             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
               <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
             </svg>
-            Approve
+            {t('agentDashboard.approveBtn', 'Approve')}
           </button>
         )}
       </div>
@@ -280,6 +282,7 @@ function PendingSubmissionItem({
 }
 
 function ActivityFeedItem({ activity }: { activity: ActivityItem }) {
+  const { t } = useTranslation()
   const iconPath = ACTIVITY_ICONS[activity.type]
   const colorClass = ACTIVITY_COLORS[activity.type]
 
@@ -299,8 +302,8 @@ function ActivityFeedItem({ activity }: { activity: ActivityItem }) {
       </div>
 
       {/* Timestamp */}
-      <span className="text-xs text-gray-400 flex-shrink-0">
-        {formatRelativeTime(activity.timestamp)}
+      <span className="text-xs text-zinc-600 flex-shrink-0">
+        {formatRelativeTime(activity.timestamp, t)}
       </span>
     </div>
   )
@@ -310,11 +313,11 @@ function ActivityFeedItem({ activity }: { activity: ActivityItem }) {
 // Agent Reputation Card (On-Chain)
 // --------------------------------------------------------------------------
 
-function getReputationTier(score: number): { nameEs: string; color: string; bgColor: string } {
-  if (score >= 81) return { nameEs: 'Diamante', color: 'text-blue-700', bgColor: 'bg-blue-100' }
-  if (score >= 61) return { nameEs: 'Oro', color: 'text-amber-700', bgColor: 'bg-amber-100' }
-  if (score >= 31) return { nameEs: 'Plata', color: 'text-gray-600', bgColor: 'bg-gray-200' }
-  return { nameEs: 'Bronce', color: 'text-orange-700', bgColor: 'bg-orange-100' }
+function getReputationTier(score: number): { nameKey: string; nameFallback: string; color: string; bgColor: string } {
+  if (score >= 81) return { nameKey: 'reputation.tiers.diamond', nameFallback: 'Diamond', color: 'text-blue-700', bgColor: 'bg-blue-100' }
+  if (score >= 61) return { nameKey: 'reputation.tiers.gold', nameFallback: 'Gold', color: 'text-amber-700', bgColor: 'bg-amber-100' }
+  if (score >= 31) return { nameKey: 'reputation.tiers.silver', nameFallback: 'Silver', color: 'text-gray-600', bgColor: 'bg-gray-200' }
+  return { nameKey: 'reputation.tiers.bronze', nameFallback: 'Bronze', color: 'text-orange-700', bgColor: 'bg-orange-100' }
 }
 
 function AgentReputationCard({
@@ -430,7 +433,7 @@ function AgentReputationCard({
               {t('agentReputation.score', 'Puntuacion')}
             </span>
             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${tier.bgColor} ${tier.color}`}>
-              {tier.nameEs}
+              {t(tier.nameKey, tier.nameFallback)}
             </span>
           </div>
 
@@ -543,8 +546,11 @@ export function AgentDashboard({
             activities.push({
               id: `sub-${s.id}`,
               type: 'submission_received',
-              title: 'New evidence received',
-              description: `${s.executor?.display_name ?? 'Worker'} submitted evidence for "${s.task?.title ?? 'task'}"`,
+              title: t('agentDashboard.activity.evidenceReceived', 'New evidence received'),
+              description: t('agentDashboard.activity.evidenceDesc', '{{worker}} submitted evidence for "{{task}}"', {
+                worker: s.executor?.display_name ?? t('agentDashboard.activity.workerFallback', 'Worker'),
+                task: s.task?.title ?? t('agentDashboard.activity.taskFallback', 'task'),
+              }),
               timestamp: s.submitted_at,
               metadata: { taskId: s.task_id, submissionId: s.id },
             })
@@ -552,24 +558,24 @@ export function AgentDashboard({
         }
 
         if (tasksResult.status === 'fulfilled') {
-          tasksResult.value.data.slice(0, 10).forEach((t) => {
-            if (t.status === 'completed' && t.completed_at) {
+          tasksResult.value.data.slice(0, 10).forEach((task) => {
+            if (task.status === 'completed' && task.completed_at) {
               activities.push({
-                id: `comp-${t.id}`,
+                id: `comp-${task.id}`,
                 type: 'task_completed',
-                title: 'Task completed',
-                description: `"${t.title}" finished`,
-                timestamp: t.completed_at,
-                metadata: { taskId: t.id },
+                title: t('agentDashboard.activity.taskCompleted', 'Task completed'),
+                description: t('agentDashboard.activity.taskFinished', '"{{title}}" finished', { title: task.title }),
+                timestamp: task.completed_at,
+                metadata: { taskId: task.id },
               })
             }
             activities.push({
-              id: `created-${t.id}`,
+              id: `created-${task.id}`,
               type: 'task_created',
-              title: 'Task published',
-              description: `"${t.title}" created`,
-              timestamp: t.created_at,
-              metadata: { taskId: t.id },
+              title: t('agentDashboard.activity.taskPublished', 'Task published'),
+              description: t('agentDashboard.activity.taskCreatedDesc', '"{{title}}" created', { title: task.title }),
+              timestamp: task.created_at,
+              metadata: { taskId: task.id },
             })
           })
         }
@@ -585,7 +591,7 @@ export function AgentDashboard({
     }
 
     loadData()
-  }, [agentId])
+  }, [agentId, t])
 
   // Filter active tasks
   const filteredTasks = activeTasks.filter((task) => {
@@ -663,7 +669,7 @@ export function AgentDashboard({
       {/* ------------------------------------------------------------------ */}
       <section>
         <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-3">
-          Platform Pulse
+          {t('agentDashboard.platformPulse', 'Platform Pulse')}
         </h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard

@@ -2,6 +2,7 @@
 // Allows only workers to access the route, redirects agents to their dashboard
 
 import { type ReactNode, useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 
@@ -22,6 +23,7 @@ interface WorkerGuardProps {
 // --------------------------------------------------------------------------
 
 function LoadingSpinner() {
+  const { t } = useTranslation()
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="text-center">
@@ -29,7 +31,7 @@ function LoadingSpinner() {
           <div className="absolute inset-0 border-4 border-gray-200 rounded-full" />
           <div className="absolute inset-0 border-4 border-green-600 rounded-full border-t-transparent animate-spin" />
         </div>
-        <p className="text-gray-500 text-sm">Cargando...</p>
+        <p className="text-gray-500 text-sm">{t('common.loading', 'Loading...')}</p>
       </div>
     </div>
   )
@@ -44,6 +46,7 @@ export function WorkerGuard({
   agentRedirect = '/agent/dashboard',
   unauthRedirect = '/',
 }: WorkerGuardProps) {
+  const { t } = useTranslation()
   const { isAuthenticated, userType, loading } = useAuth()
   const location = useLocation()
   const [timedOut, setTimedOut] = useState(false)
@@ -68,19 +71,19 @@ export function WorkerGuard({
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-600 mb-4">Taking longer than expected...</p>
+          <p className="text-gray-600 mb-4">{t('guards.takingLonger', 'Taking longer than expected...')}</p>
           <div className="flex gap-3 justify-center">
             <button
               onClick={() => window.location.reload()}
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
             >
-              Refresh
+              {t('common.refresh', 'Refresh')}
             </button>
             <button
               onClick={() => window.location.href = '/'}
               className="px-4 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors text-sm"
             >
-              Go Home
+              {t('common.goHome', 'Go Home')}
             </button>
           </div>
         </div>

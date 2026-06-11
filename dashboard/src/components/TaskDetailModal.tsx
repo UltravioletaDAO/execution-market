@@ -55,14 +55,14 @@ export function TaskDetailModal({ taskId, onClose, onReviewSubmission }: TaskDet
 
         if (!cancelled) {
           if (taskRes.error || !taskRes.data) {
-            setError('Task not found')
+            setError(t('tasks.notFound', 'Task not found'))
           } else {
             setTask(taskRes.data)
             setSubmissions(subsRes.data || [])
           }
         }
       } catch (err: unknown) {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load task')
+        if (!cancelled) setError(err instanceof Error ? err.message : t('tasks.loadFailed', 'Failed to load task'))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -136,11 +136,11 @@ export function TaskDetailModal({ taskId, onClose, onReviewSubmission }: TaskDet
               <div>
                 <div className="flex items-start justify-between gap-3">
                   <h3 className="text-lg font-medium text-gray-900">{task.title}</h3>
-                  <StatusBadge status={task.status} size="sm" label={task.status} />
+                  <StatusBadge status={task.status} size="sm" label={t(`tasks.statuses.${task.status}`)} />
                 </div>
                 <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                   <span>${task.bounty_usd?.toFixed(2)} USDC</span>
-                  <span>{task.category}</span>
+                  <span>{t(`tasks.categories.${task.category}`)}</span>
                   <span>{task.payment_network || 'base'}</span>
                 </div>
               </div>
@@ -159,7 +159,7 @@ export function TaskDetailModal({ taskId, onClose, onReviewSubmission }: TaskDet
               <div>
                 <h4 className="text-sm font-medium text-gray-700 mb-1">{t('tasks.instructions')}</h4>
                 <p className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3 whitespace-pre-wrap">
-                  {task.instructions || 'No instructions provided'}
+                  {task.instructions || t('tasks.noInstructions', 'No instructions provided')}
                 </p>
               </div>
 
@@ -184,7 +184,7 @@ export function TaskDetailModal({ taskId, onClose, onReviewSubmission }: TaskDet
                   <p className="text-gray-900">{new Date(task.created_at).toLocaleString()}</p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-gray-500 text-xs">Deadline</p>
+                  <p className="text-gray-500 text-xs">{t('tasks.deadline')}</p>
                   <p className="text-gray-900">{task.deadline ? new Date(task.deadline).toLocaleString() : 'N/A'}</p>
                 </div>
                 {task.location_hint && (
@@ -195,7 +195,7 @@ export function TaskDetailModal({ taskId, onClose, onReviewSubmission }: TaskDet
                 )}
                 {task.escrow_tx && (
                   <div className="bg-gray-50 rounded-lg p-3">
-                    <p className="text-gray-500 text-xs">Escrow</p>
+                    <p className="text-gray-500 text-xs">{t('taskDetail.escrow', 'Escrow')}</p>
                     <TxHashLink txHash={task.escrow_tx} network={(task as unknown as Record<string, unknown>).payment_network as string || 'base'} />
                   </div>
                 )}
@@ -207,7 +207,7 @@ export function TaskDetailModal({ taskId, onClose, onReviewSubmission }: TaskDet
                   {t('taskDetail.submissions', 'Submissions')} ({submissions.length})
                 </h4>
                 {submissions.length === 0 ? (
-                  <p className="text-sm text-gray-400 italic">{t('taskDetail.noSubmissions', 'No submissions yet')}</p>
+                  <p className="text-sm text-zinc-600 italic">{t('taskDetail.noSubmissions', 'No submissions yet')}</p>
                 ) : (
                   <div className="space-y-2">
                     {submissions.map((sub: Submission) => (
@@ -217,7 +217,7 @@ export function TaskDetailModal({ taskId, onClose, onReviewSubmission }: TaskDet
                       >
                         <div>
                           <p className="text-sm font-medium text-gray-900">
-                            {sub.executor?.display_name || 'Worker'}
+                            {sub.executor?.display_name || t('common.worker', 'Worker')}
                           </p>
                           <p className="text-xs text-gray-500">
                             {new Date(sub.submitted_at).toLocaleString()}
@@ -226,7 +226,7 @@ export function TaskDetailModal({ taskId, onClose, onReviewSubmission }: TaskDet
                                 sub.agent_verdict === 'accepted' ? 'text-green-600' :
                                 sub.agent_verdict === 'disputed' ? 'text-red-600' : 'text-yellow-600'
                               }`}>
-                                {sub.agent_verdict}
+                                {t(`submission.verdicts.${sub.agent_verdict}`, sub.agent_verdict)}
                               </span>
                             )}
                           </p>
@@ -264,7 +264,7 @@ export function TaskDetailModal({ taskId, onClose, onReviewSubmission }: TaskDet
       </Modal.Body>
 
       <Modal.Footer className="justify-between">
-        <p className="text-xs text-zinc-400">ID: {taskId.slice(0, 8)}...</p>
+        <p className="text-xs text-zinc-500">ID: {taskId.slice(0, 8)}...</p>
         <button
           onClick={onClose}
           className="px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-200 rounded-lg transition-colors"

@@ -321,7 +321,7 @@ export const HowItWorks = forwardRef<HTMLElement, HowItWorksProps>(
           >
             {t('landing.startEarningNow', 'Start Earning Now')}
           </button>
-          <p className="text-xs text-gray-400 mt-3">
+          <p className="text-xs text-zinc-600 mt-3">
             {t('landing.ctaSubtext', 'Connect your wallet to browse tasks and start earning stablecoins')}
           </p>
         </div>

@@ -180,7 +180,7 @@ resource "aws_cloudfront_response_headers_policy" "execution_market_security_hea
       header = "Content-Security-Policy-Report-Only"
       value = join("; ", [
         "default-src 'self'",
-        "script-src 'self' 'wasm-unsafe-eval' 'sha256-0OyAIOiAHoZKjKpZb3ptVIg23auXBYCYbu4XpfIQFyE=' 'sha256-Qm/WQDpj6f0pFGNAertQc3ue+4+tWB27RVm5RCZQ/9Q='",
+        "script-src 'self' 'wasm-unsafe-eval' 'sha256-3RfGuFZIQUe/BDJpEHmLTPhsAgYddk9G1zhCZcUrd1o=' 'sha256-Qm/WQDpj6f0pFGNAertQc3ue+4+tWB27RVm5RCZQ/9Q='",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net",
         "img-src 'self' data: blob: https:",

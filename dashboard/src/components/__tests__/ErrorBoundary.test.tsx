@@ -45,9 +45,10 @@ describe('ErrorBoundary', () => {
     )
 
     expect(screen.getByRole('alert')).toBeInTheDocument()
-    expect(screen.getByText(/algo salió mal/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /recargar la página/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /ir al inicio/i })).toBeInTheDocument()
+    // ErrorBoundary now renders via i18n (real i18next core, default 'en' in tests)
+    expect(screen.getByText(/something went wrong/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /reload page/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /go home/i })).toBeInTheDocument()
   })
 
   it('supports a custom fallback render prop', () => {

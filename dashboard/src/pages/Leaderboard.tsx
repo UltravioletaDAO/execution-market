@@ -23,9 +23,9 @@ interface LeaderboardEntry {
 }
 
 function getRankStyle(rank: number): { color: string; size: string } {
-  if (rank === 1) return { color: '#FFD700', size: 'text-2xl' } // gold
-  if (rank === 2) return { color: '#C0C0C0', size: 'text-xl' } // silver
-  if (rank === 3) return { color: '#CD7F32', size: 'text-xl' } // bronze
+  if (rank === 1) return { color: '#18181b', size: 'text-2xl' } // zinc-900
+  if (rank === 2) return { color: '#3f3f46', size: 'text-xl' } // zinc-700
+  if (rank === 3) return { color: '#52525b', size: 'text-xl' } // zinc-600
   return { color: '#6B7280', size: 'text-base' } // gray
 }
 
@@ -107,7 +107,7 @@ export function Leaderboard() {
       {/* Table */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         {/* Header row */}
-        <div className="grid grid-cols-12 gap-2 px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider border-b border-slate-100 bg-slate-50">
+        <div className="grid grid-cols-12 gap-2 px-4 py-3 text-xs font-medium text-zinc-600 uppercase tracking-wider border-b border-slate-100 bg-slate-50">
           <div className="col-span-1">#</div>
           <div className="col-span-4">{t('leaderboard.worker', 'Worker')}</div>
           <div className="col-span-2">{t('leaderboard.reputation', 'Reputation')}</div>
@@ -118,7 +118,7 @@ export function Leaderboard() {
         {loading ? (
           <div className="p-4"><SkeletonRows /></div>
         ) : entries.length === 0 ? (
-          <div className="px-4 py-12 text-center text-sm text-slate-400">
+          <div className="px-4 py-12 text-center text-sm text-zinc-600">
             {t('leaderboard.noWorkers', 'No workers on the leaderboard yet.')}
           </div>
         ) : (
@@ -169,7 +169,7 @@ export function Leaderboard() {
                     {entry.avg_rating != null && entry.avg_rating > 0 ? (
                       <ScoreBadge score={entry.avg_rating < 10 ? entry.avg_rating * 20 : entry.avg_rating} />
                     ) : (
-                      <span className="text-xs text-slate-400">N/A</span>
+                      <span className="text-xs text-zinc-500">N/A</span>
                     )}
                   </div>
                 </div>

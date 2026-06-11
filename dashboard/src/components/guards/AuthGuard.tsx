@@ -2,6 +2,7 @@
 // Protects routes that require authentication, redirects to landing if not authenticated
 
 import { type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 
@@ -20,6 +21,7 @@ interface AuthGuardProps {
 // --------------------------------------------------------------------------
 
 function LoadingSpinner() {
+  const { t } = useTranslation()
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="text-center">
@@ -29,7 +31,7 @@ function LoadingSpinner() {
           <div className="absolute inset-0 border-4 border-blue-600 rounded-full border-t-transparent animate-spin" />
         </div>
         {/* Text */}
-        <p className="text-gray-500 text-sm">Verificando autenticacion...</p>
+        <p className="text-gray-500 text-sm">{t('guards.verifyingAuth', 'Verifying authentication...')}</p>
       </div>
     </div>
   )

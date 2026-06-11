@@ -27,6 +27,7 @@ import {
   type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
 
 // ---------------------------------------------------------------------------
@@ -238,6 +239,7 @@ export interface ModalHeaderProps {
 }
 
 function ModalHeader({ onClose, className, children }: ModalHeaderProps) {
+  const { t } = useTranslation();
   return (
     <div
       className={cn(
@@ -255,7 +257,7 @@ function ModalHeader({ onClose, className, children }: ModalHeaderProps) {
           type="button"
           onClick={onClose}
           className="p-1 -mr-1 rounded-lg text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800 transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100"
-          aria-label="Close"
+          aria-label={t('common.close', 'Close')}
         >
           <svg
             className="w-5 h-5"

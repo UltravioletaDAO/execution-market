@@ -176,7 +176,7 @@ export function WorkerRatingModal({
             <p className="font-semibold text-zinc-900 truncate">{workerName}</p>
             <div className="flex items-center gap-2 mt-0.5">
               <WorkerReputationBadge score={worker.reputation_score} />
-              <span className="text-xs text-zinc-400 truncate">
+              <span className="text-xs text-zinc-500 truncate">
                 {worker.wallet_address.slice(0, 6)}...{worker.wallet_address.slice(-4)}
               </span>
             </div>
@@ -209,7 +209,7 @@ export function WorkerRatingModal({
               >
                 <svg
                   className={`w-8 h-8 transition-colors ${
-                    star <= displayRating ? 'text-amber-400' : 'text-zinc-200'
+                    star <= displayRating ? 'text-zinc-900' : 'text-zinc-400'
                   }`}
                   fill="currentColor"
                   viewBox="0 0 20 20"
@@ -241,7 +241,7 @@ export function WorkerRatingModal({
               'rating.commentPlaceholder',
               'Share details about the worker\'s performance...'
             )}
-            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none resize-none text-sm"
+            className="w-full px-3 py-2 bg-white text-zinc-900 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none resize-none text-sm"
             rows={3}
             maxLength={1000}
           />

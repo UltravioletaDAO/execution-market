@@ -13,6 +13,7 @@ import {
   type ReactNode,
   useId,
 } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
 
 // ============================================================================
@@ -105,7 +106,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             <div
               className={cn(
                 'absolute inset-y-0 left-0 flex items-center',
-                'text-zinc-400 dark:text-zinc-500',
+                'text-zinc-500 dark:text-zinc-500',
                 'pointer-events-none',
                 addonSizeClasses[size]
               )}
@@ -151,7 +152,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             <div
               className={cn(
                 'absolute inset-y-0 right-0 flex items-center',
-                'text-zinc-400 dark:text-zinc-500',
+                'text-zinc-500 dark:text-zinc-500',
                 addonSizeClasses[size]
               )}
             >
@@ -623,6 +624,7 @@ export interface SearchInputProps extends Omit<InputProps, 'leftAddon' | 'rightA
 
 export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
   ({ onSearch, showClear, onClear, value, onChange, ...props }, ref) => {
+    const { t } = useTranslation();
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === 'Enter' && onSearch) {
         onSearch((e.target as HTMLInputElement).value);
@@ -657,7 +659,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
               type="button"
               onClick={onClear}
               className="hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
-              aria-label="Clear search"
+              aria-label={t('common.clearSearch', 'Clear search')}
             >
               <svg
                 className="w-4 h-4"

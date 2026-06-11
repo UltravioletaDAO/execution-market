@@ -97,11 +97,11 @@ export const TaskCard = memo(function TaskCard({ task, onClick }: TaskCardProps)
           <span className="text-lg font-bold text-green-600 dark:text-green-400">
             {bountyText}
           </span>
-          <div className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
+          <div className="flex items-center gap-1 text-xs text-zinc-600 dark:text-zinc-400">
             <span>{task.payment_token}</span>
             {task.payment_network && (
               <>
-                <span>on</span>
+                <span>{t('tasks.on', 'on')}</span>
                 <img
                   src={getNetworkLogo(task.payment_network)}
                   alt={`${getNetworkDisplayName(task.payment_network)} logo`}
@@ -152,7 +152,7 @@ export const TaskCard = memo(function TaskCard({ task, onClick }: TaskCardProps)
           <span>{deadlineText}</span>
         </div>
         {createdDate && (
-          <span className="text-xs text-gray-400 dark:text-gray-500" title="Created at">
+          <span className="text-xs text-zinc-500 dark:text-zinc-400" title="Created at">
             {createdDate}
           </span>
         )}

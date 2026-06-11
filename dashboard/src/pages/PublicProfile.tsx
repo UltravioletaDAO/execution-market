@@ -240,7 +240,7 @@ export function PublicProfile() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                   ) : (
-                    <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
                     </svg>
                   )}
@@ -287,7 +287,7 @@ export function PublicProfile() {
                 </div>
               </div>
               <span className={cn('text-sm px-2.5 py-1 rounded border font-medium', tierColor)}>
-                {tier}
+                {t(`agents.tier.${tier.toLowerCase()}`, tier)}
               </span>
             </div>
           </div>
@@ -390,7 +390,7 @@ export function PublicProfile() {
                     task.status === 'expired' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' :
                     'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
                   )}>
-                    {task.status}
+                    {t(`status.${task.status}`, task.status)}
                   </span>
                 </div>
               ))}
@@ -417,7 +417,7 @@ export function PublicProfile() {
                         ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
                         : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                     )}>
-                      {fb.verdict}
+                      {t(`status.${fb.verdict}`, fb.verdict)}
                     </span>
                     <span className="text-sm text-gray-900 dark:text-gray-100 font-medium truncate">
                       {fb.task_title}
@@ -428,7 +428,7 @@ export function PublicProfile() {
                       {fb.notes}
                     </p>
                   )}
-                  <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                  <div className="text-xs text-zinc-500 dark:text-gray-500 mt-1">
                     {formatDate(fb.submitted_at)}
                   </div>
                 </div>

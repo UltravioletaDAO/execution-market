@@ -172,6 +172,7 @@ function getMcpConfig(apiKey: boolean) {
 // ---------------------------------------------------------------------------
 
 function CodeBlock({ code, label }: { code: string; label: string }) {
+  const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
 
   const handleCopy = async () => {
@@ -194,7 +195,7 @@ function CodeBlock({ code, label }: { code: string; label: string }) {
             onClick={handleCopy}
             className="px-2.5 py-1 text-xs font-medium bg-gray-700 hover:bg-gray-600 text-gray-300 rounded transition-colors"
           >
-            {copied ? 'Copied!' : 'Copy'}
+            {copied ? t('common.copied', 'Copied!') : t('common.copy', 'Copy')}
           </button>
         </div>
         <pre className="p-4 overflow-x-auto text-sm leading-relaxed">
@@ -861,8 +862,8 @@ export function Developers() {
                       </svg>
                     </div>
                     <div>
-                      <h4 className="font-semibold text-gray-900">Humans Hire Agents</h4>
-                      <p className="text-xs text-emerald-600">Reverse marketplace for AI services</p>
+                      <h4 className="font-semibold text-gray-900">{t('dev.h2aCardTitle', 'Humans Hire Agents')}</h4>
+                      <p className="text-xs text-emerald-600">{t('dev.h2aCardSubtitle', 'Reverse marketplace for AI services')}</p>
                     </div>
                   </div>
                   <p className="text-sm text-gray-600">
@@ -1175,8 +1176,8 @@ export function Developers() {
               {/* Identity card */}
               <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 text-white col-span-1 md:col-span-2">
                 <div className="flex items-start gap-4">
-                  <div className="w-14 h-14 bg-emerald-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <span className="text-emerald-400 font-black text-xl">#2106</span>
+                  <div className="w-14 h-14 bg-white/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <span className="text-white font-black text-xl">#2106</span>
                   </div>
                   <div>
                     <h3 className="text-lg font-bold mb-1">

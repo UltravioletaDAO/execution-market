@@ -35,7 +35,7 @@ export function AppFooter() {
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-gray-500 hover:text-gray-300 transition-colors"
+                  className="text-sm text-zinc-400 hover:text-gray-300 transition-colors"
                 >
                   {link.label}
                 </a>
@@ -43,7 +43,7 @@ export function AppFooter() {
                 <button
                   key={link.label}
                   onClick={() => navigate(link.href)}
-                  className="text-sm text-gray-500 hover:text-gray-300 transition-colors"
+                  className="text-sm text-zinc-400 hover:text-gray-300 transition-colors"
                 >
                   {link.label}
                 </button>
@@ -54,7 +54,7 @@ export function AppFooter() {
 
         {/* Partners */}
         <div className="mt-6 pt-4 border-t border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <span className="text-xs text-gray-600">{t('footer.poweredBy', 'Powered by')} Ultravioleta DAO</span>
+          <span className="text-xs text-zinc-400">{t('footer.poweredBy', 'Powered by')} Ultravioleta DAO</span>
           <div className="flex items-center gap-4">
             <a href="https://openwallet.sh" target="_blank" rel="noopener noreferrer" className="opacity-50 hover:opacity-80 transition-opacity" title="Open Wallet Standard">
               <img src="/ows-logo.svg" alt="OWS" className="h-5 w-auto invert" />

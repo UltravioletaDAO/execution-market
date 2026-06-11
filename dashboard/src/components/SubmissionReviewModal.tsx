@@ -186,14 +186,14 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
         verdict: 'accepted',
         notes: approveNotes || undefined,
       })
-      setResult({ type: 'success', message: 'Submission approved. Payment is being processed.' })
+      setResult({ type: 'success', message: t('submissionReview.approvedMsg', 'Submission approved. Payment is being processed.') })
       onSuccess?.()
     } catch (err: unknown) {
       setResult({ type: 'error', message: err instanceof Error ? err.message : 'Failed to approve submission' })
     } finally {
       setAction('idle')
     }
-  }, [executor?.id, submission, approveNotes, onSuccess])
+  }, [executor?.id, submission, approveNotes, onSuccess, t])
 
   const handleReject = useCallback(async () => {
     if (!executor?.id || !submission || !feedback.trim()) return
@@ -205,14 +205,14 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
         agentId: executor.id,
         feedback: feedback.trim(),
       })
-      setResult({ type: 'success', message: 'Submission rejected.' })
+      setResult({ type: 'success', message: t('submissionReview.rejectedMsg', 'Submission rejected.') })
       onSuccess?.()
     } catch (err: unknown) {
       setResult({ type: 'error', message: err instanceof Error ? err.message : 'Failed to reject submission' })
     } finally {
       setAction('idle')
     }
-  }, [executor?.id, submission, feedback, onSuccess])
+  }, [executor?.id, submission, feedback, onSuccess, t])
 
   const handleRequestInfo = useCallback(async () => {
     if (!executor?.id || !submission || !feedback.trim()) return
@@ -220,14 +220,14 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
     setResult(null)
     try {
       await requestMoreInfo(submission.id, executor.id, feedback.trim())
-      setResult({ type: 'success', message: 'More information requested. Worker will be notified.' })
+      setResult({ type: 'success', message: t('submissionReview.infoRequestedMsg', 'More information requested. Worker will be notified.') })
       onSuccess?.()
     } catch (err: unknown) {
       setResult({ type: 'error', message: err instanceof Error ? err.message : 'Failed to request more info' })
     } finally {
       setAction('idle')
     }
-  }, [executor?.id, submission, feedback, onSuccess])
+  }, [executor?.id, submission, feedback, onSuccess, t])
 
   const isProcessing = action !== 'idle'
 
@@ -408,7 +408,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-zinc-500 italic">No evidence provided</p>
+                  <p className="text-sm text-zinc-500 italic">{t('submissionReview.noEvidence', 'No evidence provided')}</p>
                 )}
               </div>
 
@@ -734,7 +734,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                         value={feedback}
                         onChange={(e) => setFeedback(e.target.value)}
                         rows={3}
-                        className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none"
+                        className="w-full bg-white text-zinc-900 border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none"
                         placeholder={showRejectForm
                           ? t('submissionReview.rejectPlaceholder', 'Explain why you are rejecting this submission...')
                           : t('submissionReview.infoPlaceholder', 'Describe what additional information you need...')}
@@ -773,7 +773,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                           value={approveNotes}
                           onChange={(e) => setApproveNotes(e.target.value)}
                           placeholder={t('submissionReview.approvalNotes', 'Approval notes (optional)')}
-                          className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none"
+                          className="w-full bg-white text-zinc-900 border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none"
                         />
                       </div>
                       <div className="flex items-center gap-3">

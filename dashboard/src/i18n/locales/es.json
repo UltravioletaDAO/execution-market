@@ -55,7 +55,30 @@
     "showMore": "Ver mas ({{count}})",
     "tryAgain": "Intentar de nuevo",
     "uploading": "Subiendo...",
-    "now": "ahora"
+    "now": "ahora",
+    "availableLanguages": "Idiomas disponibles",
+    "clearSearch": "Limpiar búsqueda",
+    "goHome": "Ir al inicio",
+    "languageSelection": "Selección de idioma",
+    "pageOf": "Página {{page}} de {{total}}",
+    "previous": "Anterior",
+    "selectLanguage": "Seleccionar idioma",
+    "switchToLanguage": "Cambiar a {{language}}",
+    "time": {
+      "daysAgo": "hace {{n}}d",
+      "hoursAgo": "hace {{n}}h",
+      "justNow": "Ahora mismo",
+      "minutesAgo": "hace {{n}}m",
+      "yesterday": "Ayer"
+    },
+    "timeAgo": {
+      "days": "hace {{n}}d",
+      "hours": "hace {{n}}h",
+      "minutes": "hace {{n}}m",
+      "months": "hace {{n}} meses",
+      "seconds": "hace {{n}}s"
+    },
+    "worker": "Trabajador"
   },
   "nav": {
     "home": "Inicio",
@@ -76,7 +99,9 @@
     "ratings": "Calificaciones",
     "agentDirectory": "Directorio de Agentes",
     "publisherDashboard": "Publicar Tarea",
-    "messages": "Mensajes"
+    "messages": "Mensajes",
+    "menu": "Menú",
+    "more": "Más"
   },
   "landing": {
     "subtitle": "Conecta agentes de IA con trabajadores humanos para completar tareas que requieren presencia fisica, autoridad humana o conocimiento local.",
@@ -258,10 +283,38 @@
         "h2wTitle": "IA → Humano (H2W)",
         "h2wDesc": "Agentes IA publican tareas físicas para humanos: tomar fotos, verificar ubicaciones, entregar paquetes.",
         "h2aTitle": "Humano → Agente (H2A)",
-        "h2aDesc": "Humanos publican tareas digitales para agentes IA: investigación, análisis, código, contenido, automatización."
+        "h2aDesc": "Humanos publican tareas digitales para agentes IA: investigación, análisis, código, contenido, automatización.",
+        "newBadge": "Nuevo"
       },
       "cta": "Explorar Directorio de Agentes",
       "ctaSecondary": "Publicar Solicitud"
+    },
+    "docs": {
+      "apiDocsDesc": "Swagger UI interactivo",
+      "apiDocsTitle": "Docs de API",
+      "heartbeatDesc": "Patrones de monitoreo",
+      "skillDesc": "Referencia de API y ejemplos",
+      "workflowsDesc": "Plantillas de tareas"
+    },
+    "heroExamples": {
+      "0": "Verifica si una tienda está abierta — $0.50",
+      "1": "Entrega un paquete al centro — $8.00",
+      "2": "Fotografía el menú de un restaurante — $1.50",
+      "3": "Notariza un documento — $15.00",
+      "4": "Revisa si el cajero funciona — $0.75",
+      "5": "Traduce un volante — $3.00"
+    },
+    "showcase": {
+      "anonymous": "anónimo",
+      "badges": {
+        "exif": "Metadatos EXIF verificados",
+        "gps": "Ubicación GPS verificada",
+        "timestamp": "Marca de tiempo de captura verificada",
+        "worldId": "Prueba de humanidad vía World ID"
+      },
+      "kicker": "EN VIVO · PRUEBA DE TRABAJO",
+      "subtitle": "Los agentes publican tareas. Humanos y robots las completan. La liquidación toma 500ms. Desliza las últimas {{count}}.",
+      "title": "Cada foto en este muro fue pagada."
     }
   },
   "auth": {
@@ -503,7 +556,11 @@
       "text_response": "Respuesta de texto",
       "measurement": "Medicion",
       "screenshot": "Captura de pantalla"
-    }
+    },
+    "loadFailed": "No se pudo cargar la tarea",
+    "noInstructions": "Sin instrucciones",
+    "notFound": "Tarea no encontrada",
+    "on": "en"
   },
   "categories": {
     "all": "Todas",
@@ -578,7 +635,27 @@
     "awaitingReview": "Esperando revision del agente",
     "awaitingReviewDesc": "Tu evidencia ha sido enviada y esta pendiente de aprobacion por el publicador de la tarea.",
     "evidenceApproved": "Evidencia aprobada",
-    "evidenceRejected": "Evidencia rechazada"
+    "evidenceRejected": "Evidencia rechazada",
+    "categoryGuidance": {
+      "api_integration": "Envía capturas, logs de API o respuestas JSON.",
+      "code_execution": "Envía el output del código, logs o archivos resultantes.",
+      "content_generation": "Sube el contenido generado como archivo, texto o enlace.",
+      "data_processing": "Sube los datos procesados como archivo o respuesta estructurada.",
+      "digital_physical": "Puedes subir fotos, archivos o capturas de pantalla desde cualquier dispositivo.",
+      "human_authority": "Sube documentos firmados, notarizados o certificados.",
+      "knowledge_access": "Sube capturas de pantalla, documentos o texto desde tu computador.",
+      "physical_presence": "Esta tarea requiere presencia física. Usa la cámara y GPS para verificar tu ubicación.",
+      "research": "Envía tu investigación como texto, documentos o enlaces.",
+      "simple_action": "Documenta la acción con fotos o video. El GPS ayuda a verificar la entrega."
+    },
+    "copyHash": "Copiar hash",
+    "escrowNotConfirmed": "El escrow no está confirmado on-chain (estado: {{status}}). Espera a que el agente fondee esta tarea.",
+    "escrowWarning": "El escrow no está confirmado on-chain (estado: {{status}}). No puedes enviar evidencia hasta que el agente fondee esta tarea.",
+    "verdicts": {
+      "accepted": "aceptada",
+      "disputed": "disputada",
+      "rejected": "rechazada"
+    }
   },
   "geofence": {
     "checking": "Verificando tu ubicacion...",
@@ -688,7 +765,8 @@
     "edit": {
       "title": "Editar Perfil",
       "subtitle": "Actualiza tu informacion visible para los agentes.",
-      "changePhoto": "Cambiar foto"
+      "changePhoto": "Cambiar foto",
+      "photoHint": "JPG, PNG o WebP. Máx. 2MB."
     }
   },
   "header": {
@@ -722,7 +800,16 @@
   "status": {
     "approved": "Aprobadas",
     "rejected": "Rechazadas",
-    "pending": "Pendientes"
+    "pending": "Pendientes",
+    "accepted": "Aceptada",
+    "cancelled": "Cancelada",
+    "completed": "Completada",
+    "disputed": "En disputa",
+    "expired": "Vencida",
+    "in_progress": "En progreso",
+    "published": "Publicada",
+    "submitted": "Enviada",
+    "verifying": "En verificación"
   },
   "metrics": {
     "registeredUsers": "Usuarios Registrados",
@@ -846,7 +933,35 @@
       "under_review": "En revision",
       "resolved": "Resuelta",
       "escalated": "Escalada"
-    }
+    },
+    "arbiterReason": "Razón del árbitro",
+    "detailHeading": "Disputa",
+    "fieldDescription": "Descripción",
+    "fieldDisputedAmount": "Monto en disputa",
+    "fieldPriority": "Prioridad",
+    "fieldReason": "Razón",
+    "fieldStatus": "Estado",
+    "fieldSubmission": "Entrega",
+    "fieldTask": "Tarea",
+    "noDescription": "(sin descripción)",
+    "openCount": "{{count}} abiertas",
+    "reasonLabel": "Razón (5-2000 caracteres, guardada en el registro de auditoría)",
+    "reasonMinError": "La razón debe tener al menos 5 caracteres",
+    "reasonPlaceholder": "Explica tu decisión...",
+    "resolveFailed": "Falló la resolución",
+    "resolveHeading": "Resolver disputa",
+    "resolvedResult": "Resuelto: agente ${{agent}}, trabajador ${{worker}} ({{action}})",
+    "resolvedWinner": "Resuelto: {{winner}}",
+    "ringBreakdown": "Desglose por ring",
+    "ringDisagreement": "Desacuerdo entre rings detectado — los rings no llegaron a consenso",
+    "selectPrompt": "Selecciona una disputa de la lista para ver detalles y resolverla",
+    "submitVerdict": "Enviar veredicto",
+    "submitting": "Enviando...",
+    "subtitle": "Disputas escaladas a Ring 2 en espera de revisión por árbitro humano",
+    "tierN": "nivel {{n}}",
+    "verdictRefund": "Reembolsar (gana el agente)",
+    "verdictRelease": "Liberar (gana el trabajador)",
+    "verdictSplit": "Dividir (parcial)"
   },
   "evidence": {
     "upload": "Subir evidencia",
@@ -922,7 +1037,8 @@
       "validating": "Validando",
       "uploading": "Subiendo",
       "finalizing": "Finalizando"
-    }
+    },
+    "viewFile": "Ver archivo"
   },
   "camera": {
     "back": "Trasera",
@@ -984,7 +1100,8 @@
     "hideCoordinates": "Ocultar coordenadas",
     "locationAcquired": "Ubicacion obtenida",
     "gpsCaptured": "GPS: Capturado",
-    "gpsDataHidden": "[Datos GPS ocultos]"
+    "gpsDataHidden": "[Datos GPS ocultos]",
+    "dataHidden": "[Datos GPS ocultos]"
   },
   "verification": {
     "title": "Verificacion de Evidencia",
@@ -1103,7 +1220,12 @@
     "quality_control": "Control de calidad",
     "customer_service": "Servicio al cliente",
     "sales": "Ventas",
-    "teaching": "Ensenanza"
+    "teaching": "Ensenanza",
+    "data_collection": "Recolección de datos",
+    "document_handling": "Manejo de documentos",
+    "notarization": "Notarización",
+    "physical_inspection": "Inspección física",
+    "verification": "Verificación"
   },
   "skillCategories": {
     "verification": "Verificacion",
@@ -1122,7 +1244,9 @@
     "searchPlaceholder": "Buscar conversaciones...",
     "noResults": "Sin resultados",
     "noConversations": "No hay conversaciones",
-    "selectConversation": "Selecciona una conversacion para empezar a chatear"
+    "selectConversation": "Selecciona una conversacion para empezar a chatear",
+    "noMessages": "Sin mensajes",
+    "sendFirstMessage": "Envía el primer mensaje"
   },
   "settings": {
     "title": "Configuracion",
@@ -1355,7 +1479,15 @@
     "lessThanOneHour": "Menos de 1 hora",
     "rightNow": "Ahora mismo",
     "ago": "hace",
-    "yesterday": "Ayer"
+    "yesterday": "Ayer",
+    "daysAgo": "hace {{n}}d",
+    "hoursAgo": "hace {{n}}h",
+    "justNow": "Ahora mismo",
+    "minAgo": "hace {{n}} min",
+    "monthsAgo": "hace {{count}} meses",
+    "today": "Hoy",
+    "weeksAgo": "hace {{count}} semanas",
+    "yearsAgo": "hace {{count}} años"
   },
   "errors": {
     "generic": "Ocurrio un error",
@@ -1400,7 +1532,8 @@
     "agentToWorker": "Agente califico al Trabajador",
     "workerToAgent": "Trabajador califico al Agente",
     "rateAgent": "Calificar Agente",
-    "onChain": "On-chain"
+    "onChain": "On-chain",
+    "onChainReputation": "Reputación ERC-8004: {{hash}}"
   },
   "taskMap": {
     "noLocationTasks": "No hay tareas con datos de ubicacion disponibles.",
@@ -1562,7 +1695,22 @@
     "newTask": "Nueva Tarea",
     "reviewNext": "Revisar Siguiente",
     "recentActivity": "Actividad Reciente",
-    "noActivity": "No hay actividad reciente"
+    "noActivity": "No hay actividad reciente",
+    "activity": {
+      "evidenceDesc": "{{worker}} envió evidencia para \"{{task}}\"",
+      "evidenceReceived": "Nueva evidencia recibida",
+      "taskCompleted": "Tarea completada",
+      "taskCreatedDesc": "\"{{title}}\" creada",
+      "taskFallback": "tarea",
+      "taskFinished": "\"{{title}}\" finalizada",
+      "taskPublished": "Tarea publicada",
+      "workerFallback": "Trabajador"
+    },
+    "anonymousWorker": "Trabajador anónimo",
+    "approveBtn": "Aprobar",
+    "platformPulse": "Pulso de la plataforma",
+    "reviewBtn": "Revisar",
+    "submittedAgo": "Enviado {{time}}"
   },
   "analytics": {
     "title": "Analytics",
@@ -1626,7 +1774,8 @@
       "errorTitle": "Algo salio mal",
       "errorMessage": "No se pudo enviar tu aplicacion. Por favor intenta de nuevo.",
       "viewMyTasks": "Ver mis tareas"
-    }
+    },
+    "failedToApply": "No se pudo enviar la aplicación"
   },
   "rating": {
     "title": "Calificar Trabajador",
@@ -1827,7 +1976,9 @@
     "ctaDesc_apiKey": "Obtiene tu API key y empieza a darle a tu agente de IA capacidades del mundo fisico hoy.",
     "ctaContact": "Contactanos",
     "ctaRequestKey": "Solicitar API Key",
-    "ctaExploreDocs": "Explorar API Docs"
+    "ctaExploreDocs": "Explorar API Docs",
+    "h2aCardSubtitle": "Marketplace inverso de servicios de IA",
+    "h2aCardTitle": "Humanos contratan agentes"
   },
   "stake": {
     "title": "Mi Stake",
@@ -2147,7 +2298,9 @@
       "executor": "Ejecutor",
       "system": "Sistema",
       "arbitrator": "Arbitrador"
-    }
+    },
+    "percentReleased": "{{pct}}% liberado",
+    "viewOnExplorer": "Ver en explorer ({{network}})"
   },
   "submissionReview": {
     "title": "Revisar Entrega",
@@ -2172,7 +2325,11 @@
     "markedForInfo": "marcada para mas info",
     "task": "Tarea",
     "sourceCamera": "Camara",
-    "sourceGallery": "Galeria"
+    "sourceGallery": "Galeria",
+    "approvedMsg": "Envío aprobado. El pago se está procesando.",
+    "infoRequestedMsg": "Información adicional solicitada. El trabajador será notificado.",
+    "noEvidence": "Sin evidencia",
+    "rejectedMsg": "Envío rechazado."
   },
   "taskDetail": {
     "backToList": "Volver a lista",
@@ -2188,7 +2345,8 @@
     "submissions": "Entregas",
     "noSubmissions": "No hay entregas aun",
     "yours": "tuyo",
-    "radius": "radio"
+    "radius": "radio",
+    "escrow": "Escrow"
   },
   "taskLifecycle": {
     "title": "Ciclo de Vida",
@@ -2197,7 +2355,10 @@
     "evidenceSubmitted": "Evidencia Enviada",
     "completedPaid": "Completada y Pagada",
     "cancelled": "Cancelada",
-    "expired": "Expirada"
+    "expired": "Expirada",
+    "escrowTx": "TX de escrow",
+    "paymentTx": "TX de pago",
+    "refundTx": "TX de reembolso"
   },
   "txTimeline": {
     "transactions": "Transacciones",
@@ -2251,7 +2412,8 @@
       "week": "Semana",
       "month": "Mes",
       "year": "Ano"
-    }
+    },
+    "taskCount": "{{count}} tareas"
   },
   "createTask": {
     "title": "Crear Nueva Tarea",
@@ -2268,15 +2430,111 @@
     "minReputation": "Reputacion minima",
     "points": "puntos",
     "maxExecutors": "Maximo de ejecutores",
-    "location": "Ubicacion",
+    "location": {
+      "title": "Ubicacion",
+      "hintLabel": "Descripción de ubicación",
+      "hintPlaceholder": "ej. Polanco, CDMX cerca del parque",
+      "hintHelper": "Descripción legible para los trabajadores",
+      "coordinates": "Coordenadas (opcional)",
+      "latitude": "Latitud",
+      "longitude": "Longitud",
+      "useMyLocation": "Usar mi ubicación",
+      "verificationRadius": "Radio de verificación",
+      "radiusLabel": "Radio: {{radius}} km"
+    },
     "locationDesc": "Define donde debe realizarse la tarea (opcional para tareas remotas)",
     "evidenceRequired": "Evidencia Requerida",
     "evidenceDesc": "Define que tipo de evidencia debe enviar el trabajador",
-    "preview": "Vista Previa",
+    "preview": {
+      "title": "Vista Previa",
+      "basicInfo": "Información básica",
+      "edit": "Editar",
+      "category": "Categoría",
+      "instructions": "Instrucciones",
+      "bounty": "Recompensa",
+      "deadline": "Fecha límite",
+      "location": "Ubicación",
+      "description": "Descripción",
+      "notSpecified": "Sin especificar",
+      "coordinates": "Coordenadas",
+      "radius": "Radio",
+      "requiredEvidence": "Evidencia requerida",
+      "mandatory": "Obligatoria",
+      "noneSelected": "Ninguna seleccionada",
+      "optional": "Opcional",
+      "requirements": "Requisitos",
+      "minReputation": "Reputación mínima",
+      "points": "puntos",
+      "maxExecutors": "Máx. ejecutores",
+      "escrowTitle": "Creación de escrow",
+      "escrowDesc": "Al publicar, se creará un escrow de {{amount}} USDC que se liberará automáticamente al trabajador cuando apruebes la evidencia."
+    },
     "previewDesc": "Revisa los detalles antes de publicar",
     "publishing": "Publicando...",
     "publishTask": "Publicar Tarea",
-    "createError": "Error al crear la tarea"
+    "createError": "Error al crear la tarea",
+    "categoryDesc": {
+      "digital_physical": "Combina acciones digitales y físicas",
+      "human_authority": "Firmas, representación legal, autorizaciones",
+      "knowledge_access": "Acceso a información local no disponible en línea",
+      "physical_presence": "Requiere estar físicamente en un lugar",
+      "simple_action": "Tareas manuales simples"
+    },
+    "evidence": {
+      "document": {
+        "desc": "Documento escaneado o PDF",
+        "label": "Documento"
+      },
+      "measurement": {
+        "desc": "Datos de medición específica",
+        "label": "Medición"
+      },
+      "notarized": {
+        "desc": "Documento notariado",
+        "label": "Notarizado"
+      },
+      "photo": {
+        "desc": "Fotografía del resultado",
+        "label": "Foto"
+      },
+      "photo_geo": {
+        "desc": "Foto con ubicación verificada",
+        "label": "Foto con GPS"
+      },
+      "receipt": {
+        "desc": "Comprobante de compra o servicio",
+        "label": "Recibo"
+      },
+      "screenshot": {
+        "desc": "Captura de pantalla",
+        "label": "Captura de pantalla"
+      },
+      "signature": {
+        "desc": "Firma manuscrita capturada",
+        "label": "Firma"
+      },
+      "text_response": {
+        "desc": "Respuesta escrita o informe",
+        "label": "Respuesta de texto"
+      },
+      "timestamp_proof": {
+        "desc": "Evidencia con timestamp verificado",
+        "label": "Prueba de tiempo"
+      },
+      "video": {
+        "desc": "Video del proceso o resultado",
+        "label": "Video"
+      }
+    },
+    "evidenceIntro": "Selecciona qué tipo de evidencia debe enviar el trabajador.",
+    "evidenceMinWarning": "Selecciona al menos un tipo de evidencia requerida.",
+    "locationError": "No se pudo obtener la ubicación",
+    "optional": {
+      "short": "Opc"
+    },
+    "required": {
+      "short": "Obl"
+    }
   },
   "taskMgmt": {
     "title": "Gestionar Tareas",
@@ -2323,6 +2581,10 @@
       "completedDesc": "Las tareas finalizadas exitosamente apareceran aqui",
       "cancelledTitle": "Sin tareas canceladas",
       "cancelledDesc": "Las tareas canceladas o expiradas apareceran aqui"
+    },
+    "deadline": {
+      "expired": "Vencida",
+      "lessThan1h": "< 1h"
     }
   },
   "agentDirectory": {
@@ -2412,14 +2674,43 @@
       "publishedDesc": "Un humano cercano puede aceptarlo. Haz seguimiento desde tu panel.",
       "viewPanel": "Ver mi panel"
     },
-    "deadlines": { "1h": "1 hora", "4h": "4 horas", "1d": "1 día", "3d": "3 días" },
+    "deadlines": {
+      "1h": "1 hora",
+      "4h": "4 horas",
+      "1d": "1 día",
+      "3d": "3 días"
+    },
     "catalog": {
-      "domicilio": { "label": "Domicilio", "desc": "Entrega o recogida", "placeholder": "Recoger un pedido en X y entregarlo en Y antes de las 5pm." },
-      "mandado": { "label": "Mandado", "desc": "Compra o diligencia", "placeholder": "Comprar X en el supermercado y traerlo a esta dirección." },
-      "tramite": { "label": "Trámite", "desc": "Fila, firma o gestión", "placeholder": "Hacer la fila en el banco y radicar este documento." },
-      "foto": { "label": "Foto / Evidencia", "desc": "Captura en sitio", "placeholder": "Tomar foto del estado del local en esta dirección." },
-      "hogar": { "label": "Hogar", "desc": "Arreglos o limpieza", "placeholder": "Limpieza de apartamento de 2 habitaciones." },
-      "info": { "label": "Info local", "desc": "Verificar algo en sitio", "placeholder": "Verificar si el local está abierto y tomar nota de los precios." }
+      "domicilio": {
+        "label": "Domicilio",
+        "desc": "Entrega o recogida",
+        "placeholder": "Recoger un pedido en X y entregarlo en Y antes de las 5pm."
+      },
+      "mandado": {
+        "label": "Mandado",
+        "desc": "Compra o diligencia",
+        "placeholder": "Comprar X en el supermercado y traerlo a esta dirección."
+      },
+      "tramite": {
+        "label": "Trámite",
+        "desc": "Fila, firma o gestión",
+        "placeholder": "Hacer la fila en el banco y radicar este documento."
+      },
+      "foto": {
+        "label": "Foto / Evidencia",
+        "desc": "Captura en sitio",
+        "placeholder": "Tomar foto del estado del local en esta dirección."
+      },
+      "hogar": {
+        "label": "Hogar",
+        "desc": "Arreglos o limpieza",
+        "placeholder": "Limpieza de apartamento de 2 habitaciones."
+      },
+      "info": {
+        "label": "Info local",
+        "desc": "Verificar algo en sitio",
+        "placeholder": "Verificar si el local está abierto y tomar nota de los precios."
+      }
     }
   },
   "publisher": {
@@ -2560,5 +2851,299 @@
     "required": "Requiere World ID",
     "requiredExplainer": "Esta tarea requiere verificacion de World ID para aplicar.",
     "verifyFirst": "Verifica tu identidad primero para aplicar a esta tarea."
+  },
+  "agentLogin": {
+    "apiKeyHelper": "Ingresa la API key de la configuración de tu agente",
+    "apiKeyLabel": "API Key",
+    "areYouWorker": "¿Eres un trabajador?",
+    "authenticating": "Autenticando...",
+    "connectWallet": "Conectar wallet en su lugar",
+    "errors": {
+      "empty": "Por favor ingresa tu API key",
+      "failed": "Falló la autenticación. Intenta de nuevo.",
+      "invalid": "API key inválida. Verifícala e intenta de nuevo."
+    },
+    "signIn": "Iniciar sesión",
+    "title": "Inicio de sesión de agente"
+  },
+  "agents": {
+    "tier": {
+      "bronce": "Bronce",
+      "diamante": "Diamante",
+      "oro": "Oro",
+      "plata": "Plata"
+    }
+  },
+  "auditGrid": {
+    "allNetworks": "Todas las redes",
+    "allStatuses": "Todos los estados",
+    "colAuth": "Auth",
+    "colBounty": "Recompensa",
+    "colExecution": "Ejecución",
+    "colNetwork": "Red",
+    "colPayment": "Pago",
+    "colProgress": "Progreso",
+    "colReputation": "Reputación",
+    "colSkill": "Skill",
+    "colStatus": "Estado",
+    "colTask": "Tarea",
+    "empty": "No se encontraron tareas",
+    "issuesOnly": "Solo con problemas",
+    "loading": "Cargando cuadrícula de auditoría...",
+    "skillVersionPlaceholder": "Versión del skill (ej. 4.1.0)"
+  },
+  "deposit": {
+    "completeInMoonPay": "Completa el pago en la ventana de MoonPay.",
+    "currentBalance": "Saldo actual",
+    "funded": "Fondos recibidos — ${{balance}} USDC en Base. Ya puedes continuar.",
+    "network": "Red",
+    "preparing": "Preparando el depósito…",
+    "startError": "No se pudo iniciar el depósito. Intenta de nuevo.",
+    "title": "Depositar USDC (Base)",
+    "unavailable": "Los depósitos con tarjeta no están disponibles por ahora.",
+    "waitingForUsdc": "Esperando que el USDC llegue a tu wallet en Base…",
+    "youNeed": "Necesitas",
+    "youWillBuy": "Comprarás"
+  },
+  "errorBoundary": {
+    "goHome": "Ir al inicio",
+    "message": "Un error inesperado ocurrió. Nuestro equipo fue notificado.",
+    "reload": "Recargar la página",
+    "title": "Algo salió mal"
+  },
+  "feed": {
+    "pendingFeedback": "Pendiente",
+    "tasksCount": "{{count}} tareas",
+    "tier": {
+      "bronze": "Bronce",
+      "diamond": "Diamante",
+      "gold": "Oro",
+      "silver": "Plata"
+    },
+    "tx": {
+      "escrow": "Escrow",
+      "payment": "Pago",
+      "refund": "Reembolso",
+      "repAgentToWorker": "Rep (Agente→Trabajador)",
+      "repWorkerToAgent": "Rep (Trabajador→Agente)"
+    }
+  },
+  "feedback": {
+    "agentId": "ID del agente",
+    "bounty": "Recompensa",
+    "category": "Categoría",
+    "comment": "Comentario",
+    "date": "Fecha",
+    "docVersion": "Versión del documento: {{version}} | Esquema: {{schema}}",
+    "evidence": "Evidencia",
+    "goHome": "Ir al inicio",
+    "loading": "Cargando feedback...",
+    "loadingLabel": "Cargando feedback",
+    "network": "Red",
+    "notFound": "Feedback no encontrado",
+    "onChainTx": "Transacciones on-chain",
+    "paymentTx": "TX de pago",
+    "rater": "Calificador",
+    "rating": "Calificación",
+    "reason": "Razón",
+    "rejection": "Rechazo",
+    "reputationTx": "TX de reputación",
+    "severity": "Severidad",
+    "subtitle": "Feedback de reputación on-chain ERC-8004",
+    "target": "Calificado",
+    "targetAddress": "Dirección del calificado",
+    "taskDetails": "Detalles de la tarea",
+    "taskId": "ID de la tarea",
+    "titleLabel": "Título",
+    "typeAgentRating": "Calificación del agente",
+    "typeRejection": "Entrega rechazada",
+    "typeWorkerRating": "Calificación del trabajador"
+  },
+  "guards": {
+    "loadingAgentPanel": "Cargando panel de agente...",
+    "takingLonger": "Está tardando más de lo esperado...",
+    "verifyingAuth": "Verificando autenticación..."
+  },
+  "languages": {
+    "chinese": "Chino",
+    "english": "Inglés",
+    "french": "Francés",
+    "german": "Alemán",
+    "italian": "Italiano",
+    "japanese": "Japonés",
+    "portuguese": "Portugués",
+    "spanish": "Español"
+  },
+  "legal": {
+    "delete": {
+      "bullet1": "Tu información de perfil (nombre, email, bio) será eliminada permanentemente.",
+      "bullet2": "Tus entregas de tareas y archivos de evidencia serán eliminados.",
+      "bullet3": "Las vinculaciones de tu wallet serán eliminadas.",
+      "bullet4Post": "porque están registrados en blockchains públicas.",
+      "bullet4Pre": "Los datos on-chain (transacciones de pago, puntajes de reputación, registros de identidad)",
+      "bullet4Strong": "no se pueden eliminar",
+      "bullet5": "La eliminación se procesa dentro de los 30 días posteriores a tu solicitud.",
+      "contactQuestion": "¿Preguntas? Contacta a",
+      "emailLabel": "Dirección de email asociada a tu cuenta",
+      "emailPlaceholder": "tu@email.com",
+      "emailRequired": "Por favor ingresa tu dirección de email.",
+      "inAppHint": "También puedes eliminar tu cuenta desde la app: Configuración > Eliminar cuenta",
+      "reasonLabel": "Motivo de tu salida (opcional)",
+      "reasonPlaceholder": "Ayúdanos a mejorar...",
+      "submit": "Solicitar eliminación de cuenta",
+      "subtitle": "Solicita la eliminación de tu cuenta de Execution Market y los datos asociados.",
+      "successBody": "Si existe una cuenta con esta dirección de email, procesaremos la solicitud de eliminación en un plazo de 30 días. Recibirás un email de confirmación.",
+      "successNote": "Nota: los datos on-chain (transacciones de pago, puntajes de reputación) no se pueden eliminar debido a la naturaleza inmutable de la tecnología blockchain.",
+      "successTitle": "Solicitud recibida",
+      "title": "Eliminar cuenta",
+      "whatHappensTitle": "Qué sucede cuando eliminas tu cuenta"
+    },
+    "support": {
+      "contactBody": "Para preguntas, comentarios o solicitudes de soporte, escríbenos a:",
+      "contactTitle": "Contáctanos",
+      "deleteAccount": "Eliminar cuenta",
+      "faq1A": "Un marketplace de servicios donde los agentes de IA publican tareas para completarse en el mundo real. Los trabajadores exploran tareas, las completan y reciben pago digital instantáneo.",
+      "faq1Q": "¿Qué es Execution Market?",
+      "faq2A": "Los pagos son instantáneos y sin gas en stablecoins (USDC, EURC, USDT). No pagas comisiones de transacción. Los fondos llegan en el momento en que se aprueba tu trabajo.",
+      "faq2Q": "¿Cómo funcionan los pagos?",
+      "faq3A": "Los trabajadores reciben el 87% del pago de la tarea. Una comisión de plataforma del 13% cubre el procesamiento de pagos, la verificación y la infraestructura.",
+      "faq3Q": "¿Cuánto ganan los trabajadores?",
+      "faq4A": "Usa el botón de reporte en la app (ícono de bandera) en cualquier tarea o mensaje, o escríbenos a executionmarket@proton.me.",
+      "faq4Q": "¿Cómo reporto un problema?",
+      "faq5APost": ", o escríbenos.",
+      "faq5APre": "Ve a Configuración > Eliminar cuenta en la app, o visita",
+      "faq5Q": "¿Cómo elimino mi cuenta?",
+      "faqTitle": "Preguntas frecuentes",
+      "legalTitle": "Legal",
+      "privacyPolicy": "Política de privacidad",
+      "subtitle": "Obtén ayuda con Execution Market",
+      "termsOfService": "Términos de servicio",
+      "title": "Soporte"
+    }
+  },
+  "moonpay": {
+    "buyLink": "comprar USDC en MoonPay",
+    "openFailed": "No se pudo abrir la ventana de MoonPay",
+    "phase": {
+      "closed": "Ventana de MoonPay cerrada.",
+      "fallback": "Se abrió MoonPay en una pestaña nueva (alternativa móvil). Vuelve a esta página cuando se complete la compra.",
+      "loading": "Cargando la ventana de MoonPay…",
+      "opened": "La ventana de MoonPay está abierta en primer plano.",
+      "opening": "Abriendo la ventana de MoonPay…"
+    },
+    "popupBlocked": "El navegador bloqueó la ventana emergente. Abre la URL manualmente:"
+  },
+  "moonpayFallback": {
+    "balanceOk": "Saldo OK ({{balance}} USDC ≥ {{target}} USDC). Reanudando…",
+    "body": "Si ya tienes USDC en Solana en esta wallet, omite el on-ramp. Verificaremos la cadena directamente.",
+    "checking": "Verificando saldo…",
+    "readError": "No se pudo leer el saldo on-chain:",
+    "retry": "Abrir MoonPay de nuevo",
+    "shortBy": "Faltan {{shortfall}} USDC. La wallet tiene {{balance}} USDC; necesitas {{target}} USDC. Vuelve a abrir MoonPay o recarga de otra forma.",
+    "skip": "Ya tengo USDC, omitir el on-ramp",
+    "title": "¿MoonPay no funciona?"
+  },
+  "review": {
+    "agentDelivery": "Entrega del Agente",
+    "backToPanel": "← Volver al Panel",
+    "coords": {
+      "hide": "Ocultar coordenadas",
+      "show": "Mostrar coordenadas"
+    },
+    "disabled": {
+      "back": "Volver al panel",
+      "body": "El flujo de aprobación on-chain se está actualizando por seguridad. Las aprobaciones se procesan actualmente vía API.",
+      "meta": "Endurecimiento de seguridad Fase 2 — FE-001",
+      "title": "Aprobación temporalmente deshabilitada"
+    },
+    "dispute": {
+      "descHint": "(5-2000 caracteres)",
+      "descLabel": "Descripción",
+      "descPlaceholder": "Explica por qué esta entrega debe ser disputada. Sé específico: qué falta, qué no cumple, qué evidencia consideras falsa...",
+      "explainer": "Una disputa formal marca esta entrega como impugnada y la envía al arbitraje humano. Usa esta opción solo si crees que la evidencia es fraudulenta, incompleta o no cumple con el brief.",
+      "heading": "Abrir disputa",
+      "minDescription": "La descripción debe tener al menos 5 caracteres",
+      "opened": "Disputa abierta (id={{id}}…)",
+      "reason": "Motivo",
+      "reasons": {
+        "fake_evidence": "Evidencia falsa / manipulada",
+        "incomplete_work": "Trabajo incompleto",
+        "late_delivery": "Entrega tardía",
+        "no_response": "Sin respuesta del worker",
+        "other": "Otro",
+        "payment_issue": "Problema de pago",
+        "poor_quality": "Calidad insuficiente",
+        "unfair_rejection": "Rechazo injusto (apelación)",
+        "wrong_deliverable": "Entregable incorrecto"
+      },
+      "start": "Iniciar disputa formal",
+      "submit": "Abrir disputa",
+      "submitting": "Enviando..."
+    },
+    "errors": {
+      "connectWallet": "Conecta una wallet EVM para firmar el pago.",
+      "noWorkerWallet": "No se encontró la wallet del worker en la entrega.",
+      "selfPayment": "No puedes pagarte a ti mismo (worker == publisher).",
+      "walletClientUnavailable": "Wallet client no disponible para esta red."
+    },
+    "fileN": "Archivo {{n}}",
+    "noSubmissions": "No hay entregas aún.",
+    "notFound": "No encontrado",
+    "notes": "Notas",
+    "notesPlaceholderApprove": "Comentarios opcionales...",
+    "notesPlaceholderRevise": "Describe qué necesita mejorar...",
+    "payment": {
+      "commission": "Comisión (13%):",
+      "signTwo": "Firmarás 2 autorizaciones en tu wallet.",
+      "summary": "Resumen de Pago",
+      "toAgent": "Pago al agente:",
+      "total": "Total:"
+    },
+    "processing": "Procesando...",
+    "request": "Solicitud",
+    "title": "Revisar Entrega",
+    "verdict": {
+      "approve": "Aprobar y Pagar",
+      "reject": "Rechazar",
+      "revision": "Solicitar Revisión"
+    },
+    "verdictHeading": "Tu Veredicto"
+  },
+  "trading": {
+    "colAvgPnl": "P&L prom.",
+    "colSignals": "Señales",
+    "colStreak": "Racha",
+    "colTotalPnl": "P&L total",
+    "colTrader": "Trader",
+    "colWinRate": "% de aciertos",
+    "copyTradingBody": "Suscríbete a los mejores traders y recibe sus signals por DM en IRC. Revenue split: 70% trader / 20% MeshRelay / 10% EM treasury.",
+    "copyTradingTitle": "Copy Trading vía IRC",
+    "plans": {
+      "daily": {
+        "duration": "1 día",
+        "label": "Diario"
+      },
+      "monthly": {
+        "duration": "30 días",
+        "label": "Mensual"
+      },
+      "weekly": {
+        "duration": "7 días",
+        "label": "Semanal"
+      }
+    },
+    "premiumChannel": "#abra-alpha — Canal Premium",
+    "premiumChannelBody": "Acceso directo al alfa de @zeroxultravioleta en tiempo real. $1.00 USDC/hora vía Turnstile x402 en Base.",
+    "premiumChannelMeta": "Base Mainnet | EIP-3009 sin gas | máx. 50 cupos",
+    "premiumConnectPrefix": "Conéctate a",
+    "premiumConnectSuffix": "y paga vía Turnstile para entrar.",
+    "status": {
+      "cancelled": "Cancelada",
+      "closed": "Cerrada",
+      "expired": "Expirada",
+      "open": "Abierta",
+      "sl_hit": "SL alcanzado",
+      "tp_hit": "TP alcanzado"
+    }
   }
 }

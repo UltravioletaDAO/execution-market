@@ -46,7 +46,7 @@ export function WalletSection({ walletAddress }: WalletSectionProps) {
           </div>
           <button
             onClick={() => void refetch()}
-            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg"
+            className="p-1.5 text-zinc-500 hover:text-gray-600 hover:bg-gray-50 rounded-lg"
             title={t('common.refresh', 'Refresh')}
             aria-label={t('common.refresh', 'Refresh')}
             disabled={loading}
@@ -144,7 +144,7 @@ export function WalletSection({ walletAddress }: WalletSectionProps) {
                 </div>
                 {b.error ? (
                   <span
-                    className="text-xs text-gray-400"
+                    className="text-xs text-zinc-600"
                     title={b.error}
                   >
                     {t('wallet.section.rpcError', 'RPC error')}

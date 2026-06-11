@@ -6,6 +6,7 @@
 // Redirects unauthenticated agents to /agent/login only when API key is required
 
 import { type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { isAgentLoggedIn } from '../../utils/agentAuth'
@@ -28,6 +29,7 @@ interface AgentGuardProps {
 // --------------------------------------------------------------------------
 
 function LoadingSpinner() {
+  const { t } = useTranslation()
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="text-center">
@@ -35,7 +37,7 @@ function LoadingSpinner() {
           <div className="absolute inset-0 border-4 border-gray-200 rounded-full" />
           <div className="absolute inset-0 border-4 border-purple-600 rounded-full border-t-transparent animate-spin" />
         </div>
-        <p className="text-gray-500 text-sm">Cargando panel de agente...</p>
+        <p className="text-gray-500 text-sm">{t('guards.loadingAgentPanel', 'Loading agent panel...')}</p>
       </div>
     </div>
   )

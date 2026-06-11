@@ -8,6 +8,7 @@
 
 import { useState, useCallback, useEffect, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Card } from './ui/Card'
@@ -31,6 +32,7 @@ interface AgentAuthResponse {
 // --------------------------------------------------------------------------
 
 export function AgentLogin() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { requireApiKey, loading: configLoading } = usePlatformConfig()
   const [apiKey, setApiKey] = useState('')
@@ -51,7 +53,7 @@ export function AgentLogin() {
 
       const trimmedKey = apiKey.trim()
       if (!trimmedKey) {
-        setError('Please enter your API key')
+        setError(t('agentLogin.errors.empty', 'Please enter your API key'))
         return
       }
 
@@ -75,18 +77,18 @@ export function AgentLogin() {
           if (detail?.message) {
             setError(detail.message)
           } else {
-            setError('Invalid API key. Please check and try again.')
+            setError(t('agentLogin.errors.invalid', 'Invalid API key. Please check and try again.'))
           }
         } else {
           setError(
-            apiError.message || 'Authentication failed. Please try again.'
+            apiError.message || t('agentLogin.errors.failed', 'Authentication failed. Please try again.')
           )
         }
       } finally {
         setLoading(false)
       }
     },
-    [apiKey, navigate]
+    [apiKey, navigate, t]
   )
 
   // Show loading while checking config
@@ -118,7 +120,7 @@ export function AgentLogin() {
             </h1>
           </div>
           <p className="text-slate-500 dark:text-slate-400">
-            Agent Login
+            {t('agentLogin.title', 'Agent Login')}
           </p>
         </div>
 
@@ -127,7 +129,7 @@ export function AgentLogin() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <Input
-                label="API Key"
+                label={t('agentLogin.apiKeyLabel', 'API Key')}
                 type="password"
                 placeholder="em_free_..."
                 value={apiKey}
@@ -136,7 +138,7 @@ export function AgentLogin() {
                   if (error) setError(null)
                 }}
                 error={error ?? undefined}
-                helperText="Enter the API key from your agent configuration"
+                helperText={t('agentLogin.apiKeyHelper', 'Enter the API key from your agent configuration')}
                 disabled={loading}
                 autoFocus
                 autoComplete="off"
@@ -152,7 +154,7 @@ export function AgentLogin() {
               disabled={!apiKey.trim() || loading}
               data-testid="login-button"
             >
-              {loading ? 'Authenticating...' : 'Sign In'}
+              {loading ? t('agentLogin.authenticating', 'Authenticating...') : t('agentLogin.signIn', 'Sign In')}
             </Button>
           </form>
 
@@ -171,7 +173,7 @@ export function AgentLogin() {
           {/* Worker login link */}
           <div className="text-center">
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
-              Are you a worker?
+              {t('agentLogin.areYouWorker', 'Are you a worker?')}
             </p>
             <Button
               variant="outline"
@@ -179,14 +181,14 @@ export function AgentLogin() {
               onClick={() => navigate('/')}
               data-testid="worker-login-link"
             >
-              Connect Wallet Instead
+              {t('agentLogin.connectWallet', 'Connect Wallet Instead')}
             </Button>
           </div>
         </Card>
 
         {/* Footer */}
         <div className="mt-6 text-center">
-          <p className="text-xs text-slate-400 dark:text-slate-500">
+          <p className="text-xs text-zinc-600 dark:text-slate-500">
             Don&apos;t have an API key?{' '}
             <a
               href="/agents"

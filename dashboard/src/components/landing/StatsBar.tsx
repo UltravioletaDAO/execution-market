@@ -40,7 +40,7 @@ export function StatsBar() {
     <div className="flex items-center justify-center gap-6 md:gap-10 py-4 border-y border-gray-200 flex-wrap">
       {stats.map((stat, i) => (
         <div key={i} className="text-center">
-          <div className="text-xl md:text-2xl font-bold text-amber-500">{stat.value}</div>
+          <div className="text-xl md:text-2xl font-bold text-zinc-900">{stat.value}</div>
           <div className="text-xs text-gray-500 uppercase tracking-wide">{stat.label}</div>
         </div>
       ))}

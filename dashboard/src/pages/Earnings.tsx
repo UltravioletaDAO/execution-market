@@ -287,7 +287,7 @@ function EarningsChart({
       {/* Chart */}
       <div className="p-4">
         {data.length === 0 ? (
-          <div className="h-48 flex items-center justify-center text-gray-400">
+          <div className="h-48 flex items-center justify-center text-zinc-600">
             {t('earnings.noData', 'No data to show')}
           </div>
         ) : (
@@ -334,7 +334,7 @@ function PendingPaymentsSection({ payments }: { payments: PendingPayment[] }) {
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-gray-900">{t('earnings.pendingPayments', 'Pending Payments')}</h3>
           <span className="text-sm text-gray-500">
-            {payments.length} tarea{payments.length !== 1 ? 's' : ''}
+            {t('earnings.taskCount', '{{count}} tasks', { count: payments.length })}
           </span>
         </div>
       </div>
@@ -356,7 +356,7 @@ function PendingPaymentsSection({ payments }: { payments: PendingPayment[] }) {
                 <p className="text-lg font-semibold text-green-600">
                   {formatCurrency(payment.bounty_usd)}
                 </p>
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-zinc-500 mt-1">
                   {t('earnings.expected', 'Expected')}: {formatDate(payment.expected_payout_date)}
                 </p>
               </div>
@@ -536,7 +536,7 @@ function TransactionHistory({ transactions }: { transactions: Transaction[] }) {
               {tx.task_title && (
                 <p className="text-sm text-gray-500 truncate">{tx.task_title}</p>
               )}
-              <p className="text-xs text-gray-400 mt-0.5">{formatDateTime(tx.created_at)}</p>
+              <p className="text-xs text-zinc-500 mt-0.5">{formatDateTime(tx.created_at)}</p>
             </div>
 
             <div className="text-right">
@@ -633,7 +633,7 @@ export function Earnings({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <h1 className="text-xl font-bold text-gray-900">Mis Ganancias</h1>
+      <h1 className="text-xl font-bold text-gray-900">{t('earnings.title', 'My Earnings')}</h1>
 
       {/* Summary Card */}
       {summary && <SummaryCard summary={summary} />}
