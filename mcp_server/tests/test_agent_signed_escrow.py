@@ -250,6 +250,47 @@ class TestRelayToFacilitator:
         assert result["escrow_status"] == "locked"
 
     @pytest.mark.asyncio
+    async def test_success_with_string_transaction(self):
+        """REGRESSION (ref 24e7114a): the real facilitator returns
+        ``transaction`` as the tx-hash STRING, not an object. The dict-only
+        parser crashed AFTER a successful on-chain lock and the caller rolled
+        back an assignment whose funds were already escrowed."""
+        d = _make_dispatcher()
+        tx_hash = "0x" + "84" * 32
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.text = ""
+        mock_response.json.return_value = {
+            "success": True,
+            "transaction": tx_hash,
+        }
+
+        with (
+            patch(
+                f"{DISPATCHER_MODULE}._get_operator_for_network",
+                return_value=_TEST_OPERATOR,
+            ),
+            patch("httpx.AsyncClient") as MockClient,
+        ):
+            mock_client_instance = AsyncMock()
+            mock_client_instance.post.return_value = mock_response
+            mock_client_instance.__aenter__ = AsyncMock(
+                return_value=mock_client_instance
+            )
+            mock_client_instance.__aexit__ = AsyncMock(return_value=False)
+            MockClient.return_value = mock_client_instance
+
+            result = await d.relay_agent_auth_to_facilitator(
+                payload=dict(VALID_PREAUTH_PAYLOAD),
+                worker_address="0xWorker123",
+                network="base",
+            )
+
+        assert result["success"] is True
+        assert result["tx_hash"] == tx_hash
+        assert result["escrow_status"] == "locked"
+
+    @pytest.mark.asyncio
     async def test_facilitator_rejects(self):
         d = _make_dispatcher()
         mock_response = MagicMock()

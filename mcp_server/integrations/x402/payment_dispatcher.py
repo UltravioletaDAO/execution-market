@@ -1668,9 +1668,16 @@ class PaymentDispatcher:
             result = response.json()
 
             if result.get("success"):
-                tx_hash = result.get("transaction", {}).get("hash") or result.get(
-                    "txHash", ""
-                )
+                # The facilitator returns "transaction" as the tx-hash STRING
+                # (same shape the SDK's authorize() consumes); tolerate the
+                # object form too. The dict-only .get("hash") here crashed
+                # AFTER a successful on-chain lock (run ref 24e7114a).
+                tx_field = result.get("transaction")
+                tx_hash = (
+                    tx_field.get("hash", "")
+                    if isinstance(tx_field, dict)
+                    else (tx_field or "")
+                ) or result.get("txHash", "")
                 logger.info(
                     "Agent-signed escrow locked: network=%s, worker=%s, tx=%s",
                     network,
