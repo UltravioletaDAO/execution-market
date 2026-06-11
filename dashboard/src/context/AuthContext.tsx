@@ -350,12 +350,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // --------------------------------------------------------------------------
   const ensureWalletLinked = useCallback(
     async (executorData: Executor | null, wallet: string): Promise<void> => {
-      if (!executorData) return
+      // executorData === null is a BRAND-NEW wallet: the browser cannot create
+      // executors directly anymore (get_or_create_executor is service-role
+      // only since migration 111), so the link-wallet endpoint bootstraps the
+      // row AND binds it — same single signature prompt as a rebind.
       try {
         const { data: sessionData } = await supabase.auth.getSession()
         const sub = sessionData.session?.user?.id
         if (!sub) return
-        if (executorData.user_id === sub) {
+        if (executorData?.user_id === sub) {
           linkedWalletRef.current = wallet
           return // already linked — no signature needed
         }
@@ -626,7 +629,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
           // Bind the executor to the current Supabase session if needed (one
           // signature prompt, only on mismatch). Non-blocking — failures are
           // recoverable from the apply/submit flow. See ensureWalletLinked.
-          if (data) {
+          // data === null with a LIVE Dynamic wallet means a brand-new wallet
+          // with no executor row: link-wallet bootstraps (creates + binds) it.
+          // Persisted-only wallets (no Dynamic signer) are cleared above instead.
+          if (data || dynamicWalletRef.current) {
             void ensureWalletLinked(data, walletAddress)
           }
           // Sync language preference from DB (cross-device persistence).
