@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -78,6 +79,22 @@ NEXT_REQUIRED_GATE_BY_VALUE = {
     "create_runtime_memory_operator_answer_record": (
         "create_runtime_memory_operator_answer_record_then_restore_docker_and_rerun_read_only_inventory"
     ),
+}
+
+OPERATOR_REFERENCE_MAX_LENGTH = 240
+DISALLOWED_OPERATOR_REFERENCE_PATTERNS = {
+    "email_address": re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.I),
+    "decimal_coordinate_pair": re.compile(
+        r"(?<!\d)-?\d{1,2}\.\d{4,}\s*,\s*-?\d{1,3}\.\d{4,}(?!\d)"
+    ),
+    "gps_coordinate_label": re.compile(
+        r"\b(?:gps|lat(?:itude)?|lng|lon(?:gitude)?)\s*[:=]", re.I
+    ),
+    "phone_number": re.compile(r"(?<!\w)(?:\+?\d[\d\s().-]{7,}\d)(?!\w)"),
+    "ethereum_private_key": re.compile(r"\b0x[a-fA-F0-9]{64}\b"),
+    "openai_or_similar_api_key": re.compile(r"\bsk-[A-Za-z0-9_-]{16,}\b"),
+    "github_token": re.compile(r"\bgh[opsu]_[A-Za-z0-9_]{20,}\b"),
+    "aws_access_key": re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
 }
 
 RECEIPT_GATE_FALSE_FLAGS = {
@@ -254,7 +271,10 @@ def _future_receipt_field_contracts(cockpit: dict[str, Any]) -> list[dict[str, A
         "operator_answer_value": ALLOWED_FUTURE_DECISIONS,
         "operator_answer_recorded": True,
         "operator_approval_recorded": "boolean; true only with explicit approval evidence",
-        "explicit_operator_reference": "non_empty_reference_to_human_or_operator_answer",
+        "explicit_operator_reference": (
+            "opaque_non_secret_non_doxxing_reference_to_human_or_operator_answer; "
+            "no raw emails phones exact coordinates gps labels private keys api tokens or secrets"
+        ),
         "approval_evidence_ref": "required_non_empty_when_operator_approval_recorded_true",
         "approved_sections": "list; must be empty unless separately approved",
         "held_sections": "list; preserve held claims and blocked surfaces",
@@ -340,6 +360,7 @@ def build_aas_operator_answer_receipt_gate(
         },
         "receipt_validation_policy": {
             "requires_explicit_operator_reference": True,
+            "rejects_private_or_secret_operator_reference": True,
             "requires_source_cockpit_digest_match": True,
             "allows_cockpit_display_as_answer": False,
             "allows_public_delivery_authorization": False,
@@ -353,6 +374,10 @@ def build_aas_operator_answer_receipt_gate(
             "runtime_value_next_gate": NEXT_REQUIRED_GATE_BY_VALUE[
                 "create_runtime_memory_operator_answer_record"
             ],
+            "explicit_operator_reference_max_length": OPERATOR_REFERENCE_MAX_LENGTH,
+            "disallowed_operator_reference_material": sorted(
+                DISALLOWED_OPERATOR_REFERENCE_PATTERNS.keys()
+            ),
         },
         "readiness": {
             "internal_admin_answer_receipt_gate_landed": True,
@@ -458,6 +483,7 @@ def _assert_aas_operator_answer_receipt_gate(
     policy = gate.get("receipt_validation_policy", {})
     for key in [
         "requires_explicit_operator_reference",
+        "rejects_private_or_secret_operator_reference",
         "requires_source_cockpit_digest_match",
         "requires_blocked_claims_preserved",
         "approval_true_requires_approval_evidence_ref",
@@ -543,10 +569,7 @@ def validate_aas_operator_answer_receipt(
         raise CityOpsContractError("AAS operator answer receipt invalid answer value")
     if receipt.get("operator_answer_recorded") is not True:
         raise CityOpsContractError("AAS operator answer receipt lacks explicit answer record")
-    if not isinstance(receipt.get("explicit_operator_reference"), str) or not receipt[
-        "explicit_operator_reference"
-    ].strip():
-        raise CityOpsContractError("AAS operator answer receipt lacks explicit reference")
+    _assert_explicit_operator_reference_is_safe(receipt.get("explicit_operator_reference"))
     if not isinstance(receipt.get("operator_approval_recorded"), bool):
         raise CityOpsContractError("AAS operator answer receipt approval flag is not boolean")
     if receipt["operator_approval_recorded"] is True and not str(
@@ -585,6 +608,20 @@ def validate_aas_operator_answer_receipt(
         "runtime_path_authorized": False,
         "blocked_claims_preserved": True,
     }
+
+
+def _assert_explicit_operator_reference_is_safe(reference: Any) -> None:
+    if not isinstance(reference, str) or not reference.strip():
+        raise CityOpsContractError("AAS operator answer receipt lacks explicit reference")
+    normalized = reference.strip()
+    if len(normalized) > OPERATOR_REFERENCE_MAX_LENGTH:
+        raise CityOpsContractError("AAS operator answer receipt explicit reference too long")
+    for label, pattern in DISALLOWED_OPERATOR_REFERENCE_PATTERNS.items():
+        if pattern.search(normalized):
+            raise CityOpsContractError(
+                "AAS operator answer receipt explicit reference includes disallowed "
+                f"private data: {label}"
+            )
 
 
 def write_aas_operator_answer_receipt_gate(

@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-06-11 01:45 America/New_York
+> Last updated: 2026-06-11 02:45 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -8,6 +8,51 @@
 > - `CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md`
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
+
+
+## Latest June 11 02:00 operator reference privacy guard
+
+`CITY_AS_A_SERVICE_2AM_OPERATOR_REFERENCE_PRIVACY_GUARD_2026_06_11.md` is the current internal/admin validator-hardening slice. It obeyed `/Users/clawdbot/clawd/DREAM-PRIORITIES.md` over the stale 2 AM cron payload, so AutoJob pull/analysis/integration, Frontier Academy expansion, KK v2 continuation, and KarmaCadabra v2 work remain stopped.
+
+Execution Market was synced on `feat/operator-route-regret-panel`; `git pull --ff-only` reported already up to date at `bab5d53a` (`docs: add AAS 1am answer receipt runbook`). Pre-existing untracked `scripts/sign_req.mjs` and `mcp_server/city_ops/tests/` were preserved and not staged.
+
+The 1 AM runbook still controls the posture: no explicit operator answer, approval, selected answer, or separate answer receipt exists, so the active state remains:
+
+```text
+pause_aas_proof_layering
+```
+
+This pass therefore did not add another no-answer proof wrapper. It hardened the existing future answer-receipt validator so `explicit_operator_reference` must be an opaque non-secret, non-doxxing reference. The validator now rejects raw emails, phone-like strings, decimal coordinate pairs, GPS/latitude/longitude labels, Ethereum private-key-shaped values, OpenAI-style secret keys, GitHub tokens, and AWS access keys before accepting a future answer receipt.
+
+Changed files:
+
+- `mcp_server/city_ops/aas_operator_answer_receipt_gate.py`
+- `mcp_server/city_ops/fixtures/aas_package_ladder/aas_operator_answer_receipt_gate.json`
+- `mcp_server/tests/city_ops/test_aas_operator_answer_receipt_gate.py`
+- `docs/planning/CITY_AS_A_SERVICE_2AM_OPERATOR_REFERENCE_PRIVACY_GUARD_2026_06_11.md`
+
+Safe 02:00 claim:
+
+```text
+internal_admin_aas_2am_operator_reference_privacy_guard_2026_06_11_landed
+```
+
+Meaning only: the future AAS answer-receipt gate now fails closed on obvious private/secret operator-reference material. It records no operator answer, approval, answer receipt, customer/public/worker copy, catalog, pricing, quote, route, queue, dispatch, runtime mutation, Acontext write/retrieve, IRC/session-manager mutation, reputation/Worker Skill DNA, payment/production reverification, exact-location/raw-metadata/private-context/PII release, authority claim, worker-copyable doctrine, or stopped-project integration.
+
+Verification passed:
+
+```text
+./.venv/bin/pytest mcp_server/tests/city_ops/test_aas_operator_answer_receipt_gate.py -q
+# 24 passed
+
+git diff --check && ./.venv/bin/pytest mcp_server/tests/city_ops -q
+# 2080 passed
+```
+
+Next valid action remains exactly one of these:
+
+1. if Saúl provides exactly one allowed AAS answer value, create one separate digest-backed answer receipt using an opaque non-secret reference and validate it through the hardened gate;
+2. otherwise hold / pause and do not add product, runtime, customer, worker, dispatch, reputation, payment, private-context, exact-location, authority, worker-doctrine, or stopped-project layers.
 
 
 ## Latest June 11 01:00 answer receipt operating runbook

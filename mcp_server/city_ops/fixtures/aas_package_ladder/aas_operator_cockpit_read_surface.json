@@ -1956,7 +1956,7 @@
   "schema": "city_ops.aas_operator_cockpit_read_surface.v1",
   "scope": "internal_admin_read_only_aas_operator_cockpit",
   "source_handoff": {
-    "digest_sha256": "21492395f325b729934624cc5505733af184b93a1cd85325759ab528532d938e",
+    "digest_sha256": "bb9f1951f781a395c9f6b8b0e431db043158161d1a5aadc61d6c93eba6f133ae",
     "effective_decision": "keep_both_lanes_held_internal_admin_only",
     "file": "aas_four_am_pattern_synthesis_handoff.json",
     "handoff_id": "execution_market.aas.four_am_pattern_synthesis_handoff.2026_06_03_0400",

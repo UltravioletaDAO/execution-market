@@ -308,6 +308,46 @@ def test_answer_receipt_validator_rejects_missing_explicit_reference() -> None:
         validate_aas_operator_answer_receipt(receipt, gate=gate)
 
 
+@pytest.mark.parametrize(
+    "bad_reference,match",
+    [
+        ("operator answered from " + "person" + "@" + "example.test", "email_address"),
+        ("operator answered from +" + "1 " + "000 " + "000 " + "0000", "phone_number"),
+        (
+            "operator answer captured at "
+            + ".".join(["25", "761681"])
+            + ","
+            + "-"
+            + ".".join(["80", "191788"]),
+            "decimal_coordinate_pair",
+        ),
+        ("operator answer includes " + "gps" + ": verified", "gps_coordinate_label"),
+        ("0x" + "a" * 64, "ethereum_private_key"),
+        ("sk-" + "A" * 32, "openai_or_similar_api_key"),
+        ("ghp_" + "A" * 24, "github_token"),
+        ("AKIA" + "A" * 16, "aws_access_key"),
+    ],
+)
+def test_answer_receipt_validator_rejects_private_or_secret_operator_reference(
+    bad_reference: str, match: str
+) -> None:
+    gate = build_aas_operator_answer_receipt_gate()
+    receipt = valid_receipt(gate)
+    receipt["explicit_operator_reference"] = bad_reference
+
+    with pytest.raises(CityOpsContractError, match=match):
+        validate_aas_operator_answer_receipt(receipt, gate=gate)
+
+
+def test_answer_receipt_validator_rejects_overlong_operator_reference() -> None:
+    gate = build_aas_operator_answer_receipt_gate()
+    receipt = valid_receipt(gate)
+    receipt["explicit_operator_reference"] = "operator-answer-ref:" + "x" * 241
+
+    with pytest.raises(CityOpsContractError, match="explicit reference too long"):
+        validate_aas_operator_answer_receipt(receipt, gate=gate)
+
+
 def test_answer_receipt_validator_rejects_delivery_or_runtime_authorization() -> None:
     gate = build_aas_operator_answer_receipt_gate()
     delivery_receipt = valid_receipt(gate)

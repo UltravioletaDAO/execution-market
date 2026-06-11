@@ -1871,7 +1871,7 @@
       "satisfied_by_this_gate": false
     },
     {
-      "expected_value_or_constraint": "3d2ad285931d872397272798a825dd69705764cb7b74aa3887ff1ee1f70648d4",
+      "expected_value_or_constraint": "82138e61e7a4646480fcbe87bb6d721e305817a4dfd3f94a780a3f41f8d46e39",
       "field": "source_cockpit_digest_sha256",
       "required_in_future_receipt": true,
       "satisfied_by_this_gate": false
@@ -1900,7 +1900,7 @@
       "satisfied_by_this_gate": false
     },
     {
-      "expected_value_or_constraint": "non_empty_reference_to_human_or_operator_answer",
+      "expected_value_or_constraint": "opaque_non_secret_non_doxxing_reference_to_human_or_operator_answer; no raw emails phones exact coordinates gps labels private keys api tokens or secrets",
       "field": "explicit_operator_reference",
       "required_in_future_receipt": true,
       "satisfied_by_this_gate": false
@@ -2013,11 +2013,23 @@
     "allows_public_delivery_authorization": false,
     "allows_runtime_path_authorization": false,
     "approval_true_requires_approval_evidence_ref": true,
+    "disallowed_operator_reference_material": [
+      "aws_access_key",
+      "decimal_coordinate_pair",
+      "email_address",
+      "ethereum_private_key",
+      "github_token",
+      "gps_coordinate_label",
+      "openai_or_similar_api_key",
+      "phone_number"
+    ],
+    "explicit_operator_reference_max_length": 240,
     "no_movement_values": [
       "keep_both_lanes_held",
       "pause_aas_proof_layering"
     ],
     "product_value_next_gate": "create_retail_reality_answer_or_hold_record_before_any_public_or_dispatch_step",
+    "rejects_private_or_secret_operator_reference": true,
     "requires_blocked_claims_preserved": true,
     "requires_explicit_operator_reference": true,
     "requires_source_cockpit_digest_match": true,
@@ -2028,7 +2040,7 @@
   "source_cockpit": {
     "cockpit_id": "execution_market.aas.operator_cockpit_read_surface.2026_06_04_2300",
     "default_if_no_human_answer": "keep_both_lanes_held_internal_admin_only",
-    "digest_sha256": "3d2ad285931d872397272798a825dd69705764cb7b74aa3887ff1ee1f70648d4",
+    "digest_sha256": "82138e61e7a4646480fcbe87bb6d721e305817a4dfd3f94a780a3f41f8d46e39",
     "file": "aas_operator_cockpit_read_surface.json",
     "ref": "mcp_server/city_ops/fixtures/aas_package_ladder/aas_operator_cockpit_read_surface.json",
     "safe_claim": "internal_admin_aas_operator_cockpit_read_surface_landed",
