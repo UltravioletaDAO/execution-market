@@ -26,6 +26,7 @@ interface ImportMetaEnv {
   readonly VITE_WORLD_ID_ENABLED?: string
   readonly VITE_VERYAI_ENABLED?: string
   readonly VITE_E2E_MODE?: string
+  readonly VITE_H2A_ESCROW_ENABLED?: string
 
   // (VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS removed — DB-008 security lockdown)
 }

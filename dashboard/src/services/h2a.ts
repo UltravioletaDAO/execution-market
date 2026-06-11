@@ -6,6 +6,7 @@ import type {
   H2AApprovalResponse, AgentDirectoryResponse, AgentDirectoryEntry, Task,
   H2AApplicationsResponse,
 } from '../types/database'
+import type { H2AEscrowNetworkConfig } from './h2aSigning'
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'https://api.execution.market').replace(/\/+$/, '')
 const h2a = (p: string) => `${API_BASE.endsWith('/api') ? API_BASE : API_BASE + '/api'}/v1/h2a${p}`
@@ -68,17 +69,57 @@ export async function getH2AApplications(id: string): Promise<H2AApplicationsRes
   return r.json()
 }
 
-export async function assignH2AWorker(id: string, executorId: string): Promise<{ status: string; task_id: string; executor_id: string }> {
+export async function assignH2AWorker(id: string, executorId: string, xPaymentAuth?: string): Promise<{ status: string; task_id: string; executor_id: string }> {
   const t = await token(); if (!t) throw new Error('Auth required')
-  const r = await fetch(h2a(`/tasks/${id}/assign`), { method: 'POST', headers: ah(t), body: JSON.stringify({ executor_id: executorId }) })
+  // Escrow-mode tasks: the publisher's signed lock authorization travels in
+  // X-Payment-Auth (raw JSON). Legacy tasks send no header (status-only assign).
+  const hd: Record<string, string> = { ...ah(t) }
+  if (xPaymentAuth) hd['X-Payment-Auth'] = xPaymentAuth
+  const r = await fetch(h2a(`/tasks/${id}/assign`), { method: 'POST', headers: hd, body: JSON.stringify({ executor_id: executorId }) })
   if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error((e as ApiErrorResponse).detail || r.statusText) }
   return r.json()
 }
 
-export async function getH2APaymentConfig(): Promise<{ treasury: string; fee_pct: number }> {
+export interface H2APaymentConfigResponse {
+  treasury: string
+  fee_pct: number
+  /** Per-network escrow params (sign-on-assignment); present when the backend has EM_H2A_ESCROW_ENABLED. */
+  escrow_networks?: Record<string, H2AEscrowNetworkConfig>
+}
+
+/** Backend wire shape: shared escrow params nested under `escrow`, per-network under `escrow.networks`. */
+interface H2APaymentConfigWire {
+  treasury: string
+  fee_pct: number
+  escrow?: {
+    payment_info_typehash: string
+    min_fee_bps: number
+    max_fee_bps: number
+    deposit_limit_usd: number
+    tier_timings?: Record<string, { pre: number; auth: number; refund: number }>
+    networks?: Record<string, Omit<H2AEscrowNetworkConfig, 'payment_info_typehash' | 'tiers' | 'min_fee_bps' | 'max_fee_bps'>>
+  }
+}
+
+export async function getH2APaymentConfig(): Promise<H2APaymentConfigResponse> {
   const r = await fetch(h2a('/payment-config'))
   if (!r.ok) throw new Error(`Payment config failed: ${r.status}`)
-  return r.json()
+  const wire: H2APaymentConfigWire = await r.json()
+  // Normalize: merge the shared escrow params (typehash, fee bps, tiers) into
+  // each per-network entry so the signer gets one self-contained config.
+  const out: H2APaymentConfigResponse = { treasury: wire.treasury, fee_pct: wire.fee_pct }
+  if (wire.escrow?.networks) {
+    out.escrow_networks = Object.fromEntries(
+      Object.entries(wire.escrow.networks).map(([name, net]) => [name, {
+        ...net,
+        payment_info_typehash: wire.escrow!.payment_info_typehash,
+        tiers: wire.escrow!.tier_timings,
+        min_fee_bps: wire.escrow!.min_fee_bps,
+        max_fee_bps: wire.escrow!.max_fee_bps,
+      }]),
+    )
+  }
+  return out
 }
 
 export async function cancelH2ATask(id: string) {

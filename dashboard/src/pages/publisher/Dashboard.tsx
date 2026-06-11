@@ -5,19 +5,39 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useDynamicContext } from '@dynamic-labs/sdk-react-core'
+import { isEthereumWallet } from '@dynamic-labs/ethereum'
 import type { Task, H2AApplication } from '../../types/database'
 import {
   listH2ATasks,
   cancelH2ATask,
   getH2AApplications,
+  getH2ATask,
+  getH2APaymentConfig,
   assignH2AWorker,
 } from '../../services/h2a'
+import { buildEscrowPreAuth } from '../../services/h2aSigning'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { useAuth } from '../../context/AuthContext'
 import { DepositModal } from '../../components/DepositModal'
 import { readEvmUsdcBalance, resolveEvmRpc } from '../../services/evm-balance'
 
 type Tab = 'active' | 'review' | 'history'
+
+/**
+ * Feature flag: escrow sign-on-assignment for human publishers. When ON and
+ * the task has a publish-time escrow marker (escrow_status='pending_assignment'),
+ * assigning an applicant signs an EIP-3009 escrow lock for THAT worker (the
+ * nonce commits to the receiver) and sends it as X-Payment-Auth. Tasks without
+ * a marker keep the legacy status-only assign.
+ */
+const H2A_ESCROW_ENABLED = import.meta.env.VITE_H2A_ESCROW_ENABLED === 'true'
+
+/** True when the user cancelled the wallet signature prompt. */
+function isSignatureRejection(e: unknown): boolean {
+  const msg = e instanceof Error ? e.message : String(e)
+  return /reject|denied|cancel/i.test(msg)
+}
 
 const STATUS_ICON: Record<string, string> = {
   published: '🔍',
@@ -35,8 +55,10 @@ function shortWallet(w: string | null): string {
 }
 
 /** Applicants list + assign action, shown only for published H2A tasks. */
-function Applicants({ taskId, onAssigned }: { taskId: string; onAssigned: () => void }) {
+function Applicants({ task, onAssigned }: { task: Task; onAssigned: () => void }) {
   const { t } = useTranslation()
+  const { primaryWallet } = useDynamicContext()
+  const taskId = task.id
   const [apps, setApps] = useState<H2AApplication[]>([])
   const [loading, setLoading] = useState(true)
   const [assigning, setAssigning] = useState<string | null>(null)
@@ -50,11 +72,65 @@ function Applicants({ taskId, onAssigned }: { taskId: string; onAssigned: () => 
   }, [taskId])
   useEffect(() => { load() }, [load])
 
-  const assign = async (executorId: string) => {
-    if (!confirm(t('publisher.dashboard.confirmAssign', '¿Asignar a este worker?'))) return
-    setAssigning(executorId); setErr(null)
-    try { await assignH2AWorker(taskId, executorId); onAssigned() }
-    catch (e) { setErr(e instanceof Error ? e.message : 'Error'); setAssigning(null) }
+  /** Sign the escrow lock for this applicant (receiver = worker wallet). */
+  const signEscrowLock = async (detail: Task, app: H2AApplication): Promise<string> => {
+    const workerWallet = app.executor?.wallet_address
+    if (!workerWallet) throw new Error(t('publisher.dashboard.escrow.noWorkerWallet', 'This applicant has no wallet address linked.'))
+    if (!primaryWallet || !isEthereumWallet(primaryWallet)) {
+      throw new Error(t('publisher.dashboard.escrow.connectWallet', 'Connect an EVM wallet to sign the escrow lock.'))
+    }
+    const network = detail.payment_network || 'base'
+    const cfg = await getH2APaymentConfig()
+    const netCfg = cfg.escrow_networks?.[network]
+    if (!netCfg) throw new Error(t('publisher.dashboard.escrow.configUnavailable', 'Escrow configuration is not available for this network.'))
+    const walletClient = await primaryWallet.getWalletClient(String(netCfg.chain_id))
+    if (!walletClient) throw new Error(t('review.errors.walletClientUnavailable', 'Wallet client unavailable for this network.'))
+    const bounty = detail.bounty_usd || 0
+    return buildEscrowPreAuth(walletClient, {
+      networkConfig: netCfg,
+      payerWallet: primaryWallet.address as `0x${string}`,
+      workerWallet: workerWallet as `0x${string}`,
+      bountyAtomic: BigInt(Math.round(bounty * 1_000_000)).toString(),
+      // SDK tier semantics: MICRO $0.50-$5, STANDARD $5-$50 (longer windows).
+      tier: bounty >= 5 ? 'standard' : 'micro',
+    })
+  }
+
+  const assign = async (app: H2AApplication) => {
+    setErr(null)
+    try {
+      let xPaymentAuth: string | undefined
+      // Escrow-mode detection needs the task detail (escrow_status comes from
+      // the H2A detail endpoint, not the list). Only fetched when the flag is on.
+      const detail = H2A_ESCROW_ENABLED ? await getH2ATask(taskId) : task
+      const escrowMode = H2A_ESCROW_ENABLED && detail.escrow_status === 'pending_assignment'
+
+      const confirmMsg = escrowMode
+        ? t('publisher.dashboard.escrow.confirmAssign',
+            'Assign this worker? ${{amount}} USDC will be locked in escrow for them until you approve the work.',
+            { amount: (detail.bounty_usd || 0).toFixed(2) })
+        : t('publisher.dashboard.confirmAssign', '¿Asignar a este worker?')
+      if (!confirm(confirmMsg)) return
+
+      setAssigning(app.executor_id)
+      if (escrowMode) {
+        try {
+          xPaymentAuth = await signEscrowLock(detail, app)
+        } catch (se) {
+          // Friendly abort when the user dismissed the wallet prompt; on a
+          // 402 lock failure (later) the task simply remains published.
+          if (isSignatureRejection(se)) {
+            throw new Error(t('publisher.dashboard.escrow.signRejected', 'Signature cancelled — no funds were locked and the worker was not assigned.'))
+          }
+          throw se
+        }
+      }
+      await assignH2AWorker(taskId, app.executor_id, xPaymentAuth)
+      onAssigned()
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Error')
+      setAssigning(null)
+    }
   }
 
   return (
@@ -79,7 +155,7 @@ function Applicants({ taskId, onAssigned }: { taskId: string; onAssigned: () => 
                 </p>
               </div>
               <button
-                onClick={() => assign(a.executor_id)}
+                onClick={() => assign(a)}
                 disabled={assigning !== null}
                 className="shrink-0 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
               >
@@ -113,7 +189,7 @@ function TaskCard({ task, onReview, onCancel, onAssigned }: { task: Task; onRevi
         {task.status === 'submitted' && onReview && <button onClick={() => onReview(task.id)} className="flex-1 px-3 py-1.5 bg-zinc-900 text-white text-sm rounded-lg hover:bg-zinc-800">⚡ {t('publisher.dashboard.review', 'Review')}</button>}
         {['published', 'accepted'].includes(task.status) && onCancel && <button onClick={() => onCancel(task.id)} className="px-3 py-1.5 border border-red-300 text-red-700 text-sm rounded-lg hover:bg-red-50">{t('common.cancel')}</button>}
       </div>
-      {task.status === 'published' && onAssigned && <Applicants taskId={task.id} onAssigned={onAssigned} />}
+      {task.status === 'published' && onAssigned && <Applicants task={task} onAssigned={onAssigned} />}
     </div>
   )
 }

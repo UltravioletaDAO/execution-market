@@ -42,6 +42,15 @@ const DISPUTE_REASONS: { value: DisputeReason; label: string }[] = [
  */
 const H2A_SIGNING_ENABLED = import.meta.env.VITE_H2A_SIGNING_ENABLED === 'true'
 
+/**
+ * Escrow-mode tasks (universal escrow consistency): the bounty was locked
+ * on-chain at ASSIGNMENT with the publisher's signature, so approval is a
+ * plain POST — the backend releases the escrow gasless via the Facilitator
+ * (atomic 87/13 split). No browser signatures, no VITE_H2A_SIGNING_ENABLED
+ * gate. Legacy tasks (no locked escrow) keep the dual-signature flow.
+ */
+const ESCROW_LOCKED_STATUSES = new Set(['deposited', 'funded', 'locked', 'active'])
+
 const FEE_PCT = 0.13
 
 const GPS_KEYS = new Set(['latitude', 'longitude', 'lat', 'lng', 'lon'])
@@ -97,6 +106,8 @@ export function ReviewSubmission() {
   const bounty = task?.bounty_usd || 0
   const fee = +(bounty * FEE_PCT).toFixed(2)
   const total = +(bounty + fee).toFixed(2)
+  const escrowLocked =
+    ESCROW_LOCKED_STATUSES.has(task?.escrow_status ?? '') || !!task?.escrow_tx
 
   const handleSubmit = async () => {
     if (!task || !latest) return
@@ -105,7 +116,7 @@ export function ReviewSubmission() {
       let authWorker: string | undefined
       let authFee: string | undefined
 
-      if (verdict === 'accepted') {
+      if (verdict === 'accepted' && !escrowLocked) {
         // Imitate the agent flow from the browser: the publisher signs two
         // EIP-3009 authorizations with their Dynamic wallet — worker (bounty)
         // and treasury (fee) — which the backend settles gasless via the
@@ -186,8 +197,10 @@ export function ReviewSubmission() {
   if (loading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-500">{t('common.loading')}</div>
   if (error || !task) return <div className="min-h-screen bg-gray-50 flex items-center justify-center"><div className="text-center"><p className="text-red-500 mb-4">{error || t('review.notFound', 'No encontrado')}</p><button onClick={() => navigate('/publisher/dashboard')} className="px-4 py-2 bg-blue-600 text-white rounded-lg">{t('common.back')}</button></div></div>
 
-  // FE-001/FE-002: H2A approval flow disabled until real EIP-3009 signing is implemented (Phase 3)
-  if (!H2A_SIGNING_ENABLED) {
+  // FE-001/FE-002: legacy H2A approval (dual-signature) stays gated by the
+  // signing flag. Escrow-locked tasks bypass it: their approve needs NO
+  // signatures (funds already locked at assignment, release is server-side).
+  if (!H2A_SIGNING_ENABLED && !escrowLocked) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="max-w-md p-6 text-center">
@@ -277,7 +290,16 @@ export function ReviewSubmission() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t('review.notes', 'Notas')}</label>
                 <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder={verdict === 'accepted' ? t('review.notesPlaceholderApprove', 'Comentarios opcionales...') : t('review.notesPlaceholderRevise', 'Describe qué necesita mejorar...')} className="w-full px-3 py-2 border rounded-lg h-24 resize-y bg-white text-zinc-900" />
               </div>
-              {verdict === 'accepted' && (
+              {verdict === 'accepted' && escrowLocked && (
+                <div className="bg-zinc-50 rounded-lg p-4 mb-4 border border-zinc-200 text-sm">
+                  <h4 className="font-medium text-zinc-900 mb-2">💰 {t('review.payment.summary', 'Resumen de Pago')}</h4>
+                  <div className="flex justify-between"><span>{t('review.payment.escrowLockedAmount', 'Locked in escrow:')}</span><span>${bounty.toFixed(2)} USDC</span></div>
+                  <div className="flex justify-between"><span>{t('review.payment.toWorker', 'Worker receives (87%):')}</span><span>${(bounty * (1 - FEE_PCT)).toFixed(2)} USDC</span></div>
+                  <div className="flex justify-between border-t border-zinc-200 pt-1"><span>{t('review.payment.commissionDeducted', 'Commission (13%, deducted):')}</span><span>${(bounty * FEE_PCT).toFixed(2)} USDC</span></div>
+                  <p className="text-xs text-zinc-600 mt-2">🔓 {t('review.payment.escrowRelease', 'Funds are already locked in escrow for this worker. Approving releases the payment on-chain — no signatures needed.')}</p>
+                </div>
+              )}
+              {verdict === 'accepted' && !escrowLocked && (
                 <div className="bg-blue-50 rounded-lg p-4 mb-4 border border-blue-200 text-sm">
                   <h4 className="font-medium text-blue-900 mb-2">💰 {t('review.payment.summary', 'Resumen de Pago')}</h4>
                   <div className="flex justify-between"><span>{t('review.payment.toAgent', 'Pago al agente:')}</span><span>${bounty.toFixed(2)} USDC</span></div>

@@ -157,7 +157,8 @@ export interface Task {
   bounty_usd: number
   payment_token: string
   payment_network: string
-  escrow_tx: string | null
+  /** Escrow lock tx — present on escrow-mode tasks once locked at assignment. */
+  escrow_tx?: string | null
   escrow_id: string | null
   deadline: string
   created_at: string
@@ -171,7 +172,8 @@ export interface Task {
   chainwitness_proof: string | null
   completed_at: string | null
   refund_tx: string | null
-  escrow_status: string | null
+  /** 'pending_assignment' = escrow-mode marker (sign at assign); 'deposited'/'funded'/'locked'/'active' = locked. */
+  escrow_status?: string | null
   // Publisher identity fields
   erc8004_agent_id: string | null
   agent_name: string | null

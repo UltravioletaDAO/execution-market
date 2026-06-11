@@ -2255,6 +2255,14 @@
       "noHistory": "Sem histórico",
       "createFirstRequest": "Criar Primeira Solicitação",
       "confirmCancel": "Cancelar?",
+      "escrow": {
+        "confirmAssign": "Atribuir este worker? ${{amount}} USDC serão bloqueados em escrow para ele até você aprovar o trabalho.",
+        "connectWallet": "Conecte uma wallet EVM para assinar o bloqueio em escrow.",
+        "noWorkerWallet": "Este candidato não tem wallet vinculada.",
+        "configUnavailable": "A configuração de escrow não está disponível para esta rede.",
+        "signRejected": "Assinatura cancelada — nenhum fundo foi bloqueado e o worker não foi atribuído.",
+        "lockFailed": "O bloqueio em escrow falhou — a tarefa continua publicada e nenhum worker foi atribuído."
+      },
       "status": {
         "published": "Buscando Agente",
         "accepted": "Agente Designado",
@@ -2355,6 +2363,14 @@
         "budget": "Orçamento",
         "preview": "Pré-visualização"
       }
+    }
+  },
+  "review": {
+    "payment": {
+      "commissionDeducted": "Comissão (13%, deduzida):",
+      "escrowLockedAmount": "Bloqueado em escrow:",
+      "escrowRelease": "Os fundos já estão bloqueados em escrow para este worker. Aprovar libera o pagamento on-chain — sem assinaturas.",
+      "toWorker": "O worker recebe (87%):"
     }
   },
   "worldId": {

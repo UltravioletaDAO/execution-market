@@ -2736,6 +2736,14 @@
       "assign": "Asignar",
       "assigning": "Asignando…",
       "confirmAssign": "¿Asignar a este worker?",
+      "escrow": {
+        "confirmAssign": "¿Asignar a este worker? Se bloquearán ${{amount}} USDC en escrow para él hasta que apruebes el trabajo.",
+        "connectWallet": "Conecta una wallet EVM para firmar el bloqueo en escrow.",
+        "noWorkerWallet": "Este aplicante no tiene wallet vinculada.",
+        "configUnavailable": "La configuración de escrow no está disponible para esta red.",
+        "signRejected": "Firma cancelada — no se bloquearon fondos y el worker no fue asignado.",
+        "lockFailed": "El bloqueo de escrow falló — la tarea sigue publicada y no se asignó worker."
+      },
       "tasksDone": "tareas",
       "status": {
         "published": "Buscando Agente",
@@ -3094,9 +3102,13 @@
     "notesPlaceholderRevise": "Describe qué necesita mejorar...",
     "payment": {
       "commission": "Comisión (13%):",
+      "commissionDeducted": "Comisión (13%, deducida):",
+      "escrowLockedAmount": "Bloqueado en escrow:",
+      "escrowRelease": "Los fondos ya están bloqueados en escrow para este worker. Al aprobar se libera el pago on-chain — sin firmas.",
       "signTwo": "Firmarás 2 autorizaciones en tu wallet.",
       "summary": "Resumen de Pago",
       "toAgent": "Pago al agente:",
+      "toWorker": "El worker recibe (87%):",
       "total": "Total:"
     },
     "processing": "Procesando...",

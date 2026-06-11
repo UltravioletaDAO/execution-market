@@ -2737,6 +2737,14 @@
       "assigning": "Assigning…",
       "confirmAssign": "Assign this worker?",
       "tasksDone": "tasks",
+      "escrow": {
+        "confirmAssign": "Assign this worker? ${{amount}} USDC will be locked in escrow for them until you approve the work.",
+        "connectWallet": "Connect an EVM wallet to sign the escrow lock.",
+        "noWorkerWallet": "This applicant has no wallet address linked.",
+        "configUnavailable": "Escrow configuration is not available for this network.",
+        "signRejected": "Signature cancelled — no funds were locked and the worker was not assigned.",
+        "lockFailed": "Escrow lock failed — the task remains published and no worker was assigned."
+      },
       "status": {
         "published": "Searching for Agent",
         "accepted": "Agent Assigned",
@@ -3094,9 +3102,13 @@
     "notesPlaceholderRevise": "Describe what needs improvement...",
     "payment": {
       "commission": "Commission (13%):",
+      "commissionDeducted": "Commission (13%, deducted):",
+      "escrowLockedAmount": "Locked in escrow:",
+      "escrowRelease": "Funds are already locked in escrow for this worker. Approving releases the payment on-chain — no signatures needed.",
       "signTwo": "You will sign 2 authorizations in your wallet.",
       "summary": "Payment Summary",
       "toAgent": "Payment to agent:",
+      "toWorker": "Worker receives (87%):",
       "total": "Total:"
     },
     "processing": "Processing...",
