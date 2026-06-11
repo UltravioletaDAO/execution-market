@@ -4,6 +4,7 @@ Items captured during conversations to avoid context drift. Review at end of ses
 
 | Date | Item | Context | Priority | Status |
 |------|------|---------|----------|--------|
+| 2026-06-11 | AC-02: admin PUT /admin/tasks/{id} puede forzar status='accepted' sin escrow | Censo del Universal Escrow plan (`docs/reports/ASSIGNMENT_CENSUS_2026-06-11.md`). Escape hatch admin auth-gated (X-Admin-Key) pero viola el invariante del chokepoint silenciosamente. Fix sugerido: blocklist 'accepted'/'completed' o force=true + audit warning. AC-01 fixed, AC-03/AC-04 cerrados con evidencia prod. | P1 | pending |
 | 2026-03-20 | OIDC migration for all deploy workflows | Task 3.1 del Post-Audit plan. Credenciales AWS estaticas en GitHub Secrets — seguras pero no ideales. Requiere crear IAM OIDC provider + trust policy. Aplica a deploy.yml, deploy-prod.yml, deploy-staging.yml. No urgente. | P2 | pending |
 | 2026-03-26 | Human Verification Escalation | Phase 1 done: `escalation.py` creates disputes when AI score <50%. Phase 5 pending: arbiter notification + assignment + reputation staking. | P2 | partial |
 | 2026-03-26 | Dogfooding: 2-human verification | `VerificationMode` enum ready (MANUAL/AUTO/ORACLE) but no `dual` mode. Needs dual-human task workflow (one executes, one verifies). | P2 | pending |
