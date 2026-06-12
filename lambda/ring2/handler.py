@@ -471,23 +471,42 @@ def _openrouter_credit_check() -> Dict[str, Any]:
         logger.error("openrouter_credit: OPENROUTER_API_KEY not configured")
         return {"error": "OPENROUTER_API_KEY not configured"}
 
-    resp = httpx.get(
-        "https://openrouter.ai/api/v1/key",
-        headers={"Authorization": f"Bearer {api_key}"},
-        timeout=15.0,
-    )
-    resp.raise_for_status()
-    data = resp.json().get("data", {})
+    headers = {"Authorization": f"Bearer {api_key}"}
 
-    limit = data.get("limit")
-    usage = float(data.get("usage", 0.0) or 0.0)
-    remaining = (float(limit) - usage) if limit is not None else None
+    # Account credits are what actually run out (U-39: "$27.55 of $80
+    # remaining"). The /key endpoint only exposes a per-KEY spend limit,
+    # which is null on this account — so it never produced a metric.
+    remaining = None
+    total_credits = None
+    total_usage = None
+    try:
+        resp = httpx.get(
+            "https://openrouter.ai/api/v1/credits", headers=headers, timeout=15.0
+        )
+        resp.raise_for_status()
+        credits = resp.json().get("data", {})
+        total_credits = float(credits.get("total_credits", 0.0) or 0.0)
+        total_usage = float(credits.get("total_usage", 0.0) or 0.0)
+        remaining = total_credits - total_usage
+    except Exception as e:
+        logger.warning("openrouter_credit: /credits failed (%s), trying /key", e)
+
+    # Fallback: per-key limit when the credits endpoint is unavailable.
+    if remaining is None:
+        resp = httpx.get(
+            "https://openrouter.ai/api/v1/key", headers=headers, timeout=15.0
+        )
+        resp.raise_for_status()
+        data = resp.json().get("data", {})
+        limit = data.get("limit")
+        usage = float(data.get("usage", 0.0) or 0.0)
+        if limit is not None:
+            remaining = float(limit) - usage
 
     result: Dict[str, Any] = {
-        "usage_usd": round(usage, 4),
-        "limit_usd": limit,
+        "total_credits_usd": total_credits,
+        "total_usage_usd": total_usage,
         "remaining_usd": round(remaining, 4) if remaining is not None else None,
-        "is_free_tier": data.get("is_free_tier"),
         "metric_emitted": False,
     }
 
@@ -505,10 +524,10 @@ def _openrouter_credit_check() -> Dict[str, Any]:
         result["metric_emitted"] = True
 
     logger.info(
-        "openrouter_credit: remaining=%s usage=%.2f limit=%s",
+        "openrouter_credit: remaining=%s credits=%s usage=%s",
         result["remaining_usd"],
-        usage,
-        limit,
+        total_credits,
+        total_usage,
     )
     return result
 
