@@ -247,6 +247,10 @@ async def _process_record(body: Dict[str, Any]) -> Dict[str, Any]:
             "Ring 2: feature.arbiter_enabled=false -- skipping submission=%s",
             submission_id,
         )
+        # Emit a terminal Ring 2 event so the dashboard (which keeps polling
+        # after ring1_complete set ring2_queued=true) knows Ring 2 is done
+        # and stops waiting for a verdict that will never come.
+        _emit("ring2_complete", "skipped", {"reason": "arbiter_disabled"})
         return {"skipped": True, "reason": "arbiter_disabled"}
 
     # ---- Step 3: Load task (prefer DB, fallback to denormalized) ----

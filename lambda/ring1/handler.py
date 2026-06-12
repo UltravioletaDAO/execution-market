@@ -315,8 +315,17 @@ async def _run_genai_check(temp_paths: List[str]) -> Any:
 async def _run_photo_source_check(
     temp_paths: List[str],
     category: str,
+    allowed_sources: Optional[set] = None,
 ) -> Any:
-    """Verify photo source (camera vs gallery vs screenshot)."""
+    """Verify photo source (camera vs gallery vs screenshot).
+
+    ``allowed_sources`` is the set of evidence types the task accepts
+    (lowercased). When the task explicitly accepts ``screenshot`` evidence,
+    a screenshot source is legitimate — not fraud — so we pass it instead
+    of penalizing it (the "only live camera photos" rule only makes sense
+    for physical-presence tasks, never for a task that asked for a
+    screenshot).
+    """
     from verification.checks.photo_source import check_photo_source
     from verification.pipeline import CheckResult
 
@@ -325,8 +334,27 @@ async def _run_photo_source_check(
             name="photo_source", passed=True, score=0.5, reason="No images to check"
         )
 
+    allowed_sources = allowed_sources or set()
+
     try:
         result = check_photo_source(temp_paths[0], max_age_minutes=60)
+
+        # Task explicitly accepts screenshots -> a screenshot is valid evidence.
+        if result.source == "screenshot" and "screenshot" in allowed_sources:
+            return CheckResult(
+                name="photo_source",
+                passed=True,
+                score=1.0,
+                reason="Screenshot accepted (task requires screenshot evidence)",
+                details={
+                    "source": "screenshot",
+                    "accepted_by_task": True,
+                    "timestamp": (
+                        result.timestamp.isoformat() if result.timestamp else None
+                    ),
+                },
+            )
+
         source_scores = {
             "camera": 1.0,
             "screenshot": 0.1,
@@ -691,6 +719,16 @@ async def _process_submission(body: Dict[str, Any]) -> Dict[str, Any]:
 
         # ── 6. Run 5 checks concurrently with timeouts ─────────────
         category = task.get("category", "")
+        # Evidence types the task accepts — a screenshot task must not be
+        # penalized for submitting a screenshot.
+        _schema = task.get("evidence_schema") or {}
+        allowed_sources = {
+            str(tp).lower()
+            for tp in (
+                *(_schema.get("required") or []),
+                *(_schema.get("optional") or []),
+            )
+        }
         check_coros = {
             "tampering": asyncio.wait_for(
                 _run_tampering_check(temp_paths), timeout=CHECK_TIMEOUT_DEFAULT
@@ -699,7 +737,7 @@ async def _process_submission(body: Dict[str, Any]) -> Dict[str, Any]:
                 _run_genai_check(temp_paths), timeout=CHECK_TIMEOUT_DEFAULT
             ),
             "photo_source": asyncio.wait_for(
-                _run_photo_source_check(temp_paths, category),
+                _run_photo_source_check(temp_paths, category, allowed_sources),
                 timeout=CHECK_TIMEOUT_DEFAULT,
             ),
             "duplicate": asyncio.wait_for(
@@ -855,6 +893,10 @@ async def _process_submission(body: Dict[str, Any]) -> Dict[str, Any]:
                 "passed": merged["passed"],
                 "score": merged["score"],
                 "checks": checks_summary,
+                # Ring 1 always hands off to Ring 2 next (step 11). Signal it
+                # so the dashboard keeps polling for the arbiter verdict
+                # instead of declaring "done" in the gap before Ring 2 starts.
+                "ring2_queued": bool(RING2_QUEUE_URL),
             },
         )
 

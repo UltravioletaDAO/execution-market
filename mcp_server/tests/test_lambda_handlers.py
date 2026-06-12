@@ -12,7 +12,7 @@ import importlib.util
 import sys
 import types
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -260,3 +260,65 @@ class TestGeminiResponseParsing:
         )
         assert result.task_specific_checks["door_visible"] is True
         assert result.task_specific_checks["_forensic"]["exif_consistent"] is True
+
+
+# ---------------------------------------------------------------------------
+# photo_source policy — a screenshot is valid when the task asked for one
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.ring1_lambda
+class TestPhotoSourceScreenshotPolicy:
+    def _screenshot_result(self):
+        return types.SimpleNamespace(
+            source="screenshot",
+            is_valid=False,
+            reason="Photo source is 'screenshot'. Only live camera photos are accepted.",
+            timestamp=None,
+        )
+
+    @pytest.mark.asyncio
+    async def test_screenshot_accepted_when_task_requires_it(self):
+        handler = _load_ring1()
+        with patch(
+            "verification.checks.photo_source.check_photo_source",
+            return_value=self._screenshot_result(),
+        ):
+            check = await handler._run_photo_source_check(
+                ["/tmp/x.png"],
+                "digital_physical",
+                {"screenshot", "text_response"},
+            )
+        assert check.passed is True
+        assert check.score == 1.0
+        assert "screenshot" in check.reason.lower()
+        assert check.details["accepted_by_task"] is True
+
+    @pytest.mark.asyncio
+    async def test_screenshot_rejected_when_task_wants_camera(self):
+        handler = _load_ring1()
+        with patch(
+            "verification.checks.photo_source.check_photo_source",
+            return_value=self._screenshot_result(),
+        ):
+            check = await handler._run_photo_source_check(
+                ["/tmp/x.png"], "physical_presence", {"photo_geo"}
+            )
+        assert check.passed is False
+        assert check.score == 0.1
+
+    @pytest.mark.asyncio
+    async def test_camera_always_passes(self):
+        handler = _load_ring1()
+        camera = types.SimpleNamespace(
+            source="camera", is_valid=True, reason="Camera capture", timestamp=None
+        )
+        with patch(
+            "verification.checks.photo_source.check_photo_source",
+            return_value=camera,
+        ):
+            check = await handler._run_photo_source_check(
+                ["/tmp/x.jpg"], "physical_presence", {"photo_geo"}
+            )
+        assert check.passed is True
+        assert check.score == 1.0
