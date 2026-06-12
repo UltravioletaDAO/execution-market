@@ -208,7 +208,10 @@ class TestFailClosedWrites:
 
         # Phase A said passed=True — the error write must still fail closed.
         await handler._write_error(
-            "sub-123", {"passed": True, "score": 0.9}, "All Ring 1 checks failed"
+            "sub-123",
+            "task-123",
+            {"passed": True, "score": 0.9},
+            "All Ring 1 checks failed",
         )
 
         assert calls["passed"] is False

@@ -607,6 +607,12 @@ async def _process_submission(body: Dict[str, Any]) -> Dict[str, Any]:
         details = existing.get("auto_check_details") or {}
         if details.get("ring1_status") == "complete":
             logger.info("[Ring1 %s] Already complete, skipping (idempotent)", sid)
+            # C-07/C-14: re-publish to Ring 2 on redelivery so one failed
+            # publish can never permanently silence the arbiter. Ring 2 is
+            # idempotent (skips when arbiter_verdict is already set), so
+            # duplicate publishes are harmless. Raise on failure so SQS
+            # retries this branch.
+            _publish_to_ring2(submission_id, task_id, details)
             return {
                 "submission_id": submission_id,
                 "status": "skipped",
@@ -627,7 +633,7 @@ async def _process_submission(body: Dict[str, Any]) -> Dict[str, Any]:
         # so SQS deletes the message.
         logger.warning("[Ring1 %s] No photo URLs in message", sid)
         await _write_error(
-            submission_id, phase_a_result, "No photo URLs in SQS message"
+            submission_id, task_id, phase_a_result, "No photo URLs in SQS message"
         )
         return {
             "submission_id": submission_id,
@@ -649,7 +655,10 @@ async def _process_submission(body: Dict[str, Any]) -> Dict[str, Any]:
     if not downloaded:
         logger.warning("[Ring1 %s] No images downloaded", sid)
         await _write_error(
-            submission_id, phase_a_result, "Could not download any evidence images"
+            submission_id,
+            task_id,
+            phase_a_result,
+            "Could not download any evidence images",
         )
         return {
             "submission_id": submission_id,
@@ -770,7 +779,7 @@ async def _process_submission(body: Dict[str, Any]) -> Dict[str, Any]:
         if not phase_b_checks:
             logger.warning("[Ring1 %s] ALL checks failed", sid)
             await _write_error(
-                submission_id, phase_a_result, "All Ring 1 checks failed"
+                submission_id, task_id, phase_a_result, "All Ring 1 checks failed"
             )
             return {
                 "submission_id": submission_id,
@@ -848,12 +857,11 @@ async def _process_submission(body: Dict[str, Any]) -> Dict[str, Any]:
         )
 
         # ── 11. Publish to Ring 2 ──────────────────────────────────
-        try:
-            _publish_to_ring2(submission_id, task_id, merged)
-        except Exception as e:
-            # Ring 2 publish is best-effort.  Ring 2 can also be launched
-            # independently by reading completed Ring 1 results from DB.
-            logger.warning("[Ring1 %s] Ring 2 publish failed: %s", sid, e)
+        # C-07/C-14: NOT best-effort. A swallowed failure here silenced the
+        # arbiter forever (the message was deleted and the idempotency
+        # branch skipped on retry). Now a failure raises -> SQS redelivers
+        # -> the idempotency branch re-publishes to Ring 2.
+        _publish_to_ring2(submission_id, task_id, merged)
 
         logger.info(
             "[Ring1 %s] COMPLETE: passed=%s score=%.3f",
@@ -886,6 +894,7 @@ async def _run_named_check(name: str, coro) -> Any:
 
 async def _write_error(
     submission_id: str,
+    task_id: str,
     phase_a_result: Dict[str, Any],
     error_msg: str,
 ) -> None:
@@ -904,6 +913,16 @@ async def _write_error(
         await supabase_helper.update_auto_check(submission_id, False, details)
     except Exception as e:
         logger.error("Failed to write Ring 1 error for %s: %s", submission_id[:8], e)
+
+    # C-07/C-14: even when Ring 1 errors out, hand off to Ring 2 — the
+    # semantic arbiter can still evaluate the submission. Best-effort here
+    # (the error write above already made the state terminal).
+    try:
+        _publish_to_ring2(submission_id, task_id, details)
+    except Exception as e:
+        logger.warning(
+            "Failed to publish Ring 2 after error for %s: %s", submission_id[:8], e
+        )
 
 
 # ── Lambda entry point ───────────────────────────────────────────────────

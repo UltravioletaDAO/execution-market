@@ -197,39 +197,6 @@ def update_submission_verdict(submission_id: str, update_data: Dict[str, Any]) -
         return False
 
 
-def create_dispute(dispute_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    """Insert a dispute row for L2 human arbiter escalation.
-
-    Returns the created row, or None on failure.
-    """
-    try:
-        client = get_client()
-        result = client.table("disputes").insert(dispute_data).execute()
-        if result.data and len(result.data) > 0:
-            return result.data[0]
-        return None
-    except Exception as e:
-        logger.error("Failed to create dispute: %s", e)
-        return None
-
-
-def mark_submission_disputed(submission_id: str, dispute_id: str) -> None:
-    """Mark a submission as disputed after L2 escalation."""
-    try:
-        client = get_client()
-        client.table("submissions").update(
-            {
-                "agent_verdict": "disputed",
-                "agent_notes": (
-                    f"Escalated to L2 human arbiter (dispute={dispute_id}). "
-                    f"Ring 2 verdict: INCONCLUSIVE."
-                ),
-            }
-        ).eq("id", submission_id).execute()
-    except Exception as e:
-        logger.warning("Failed to mark submission %s as disputed: %s", submission_id, e)
-
-
 def write_error_to_submission(submission_id: str, error_msg: str) -> None:
     """Write a permanent error to the submission for ops visibility.
 

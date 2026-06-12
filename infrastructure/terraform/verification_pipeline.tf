@@ -633,5 +633,79 @@ resource "aws_iam_role_policy" "ecs_task_lambda_invoke" {
     ]
   })
 }
+
+# ── OpenRouter credit canary (U-39) ─────────────────────────────────────────
+# Hourly EventBridge direct-invoke of the Ring 2 worker with
+# {"action": "openrouter_credit"}. The handler queries GET /api/v1/key and
+# emits EM/Ring2 OpenRouterCreditsRemaining. Without this, Ring 2 dies
+# silently when the OpenRouter balance hits $0.
+
+resource "aws_iam_role_policy" "verification_lambda_metrics" {
+  name = "${local.name_prefix}-verification-lambda-metrics"
+  role = aws_iam_role.verification_lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "PutRing2Metrics"
+        Effect   = "Allow"
+        Action   = ["cloudwatch:PutMetricData"]
+        Resource = "*"
+        Condition = {
+          StringEquals = {
+            "cloudwatch:namespace" = "EM/Ring2"
+          }
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_cloudwatch_event_rule" "openrouter_credit_canary" {
+  name                = "${local.name_prefix}-openrouter-credit-canary"
+  description         = "Hourly OpenRouter credit check via Ring 2 worker direct invoke"
+  schedule_expression = "rate(1 hour)"
+
+  tags = {
+    Name = "${local.name_prefix}-openrouter-credit-canary"
+    Ring = "2"
+  }
+}
+
+resource "aws_cloudwatch_event_target" "openrouter_credit_canary" {
+  rule  = aws_cloudwatch_event_rule.openrouter_credit_canary.name
+  arn   = aws_lambda_function.ring2_worker.arn
+  input = jsonencode({ action = "openrouter_credit" })
+}
+
+resource "aws_lambda_permission" "openrouter_credit_canary" {
+  statement_id  = "AllowEventBridgeOpenRouterCanary"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.ring2_worker.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.openrouter_credit_canary.arn
+}
+
+resource "aws_cloudwatch_metric_alarm" "openrouter_credit_low" {
+  alarm_name          = "${local.name_prefix}-openrouter-credit-low"
+  alarm_description   = "OpenRouter remaining credit < $10 — Ring 2 dies silently at $0. Top up the account. Missing data also alarms (dead canary)."
+  comparison_operator = "LessThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "OpenRouterCreditsRemaining"
+  namespace           = "EM/Ring2"
+  period              = 3600
+  statistic           = "Minimum"
+  threshold           = 10
+  treat_missing_data  = "breaching"
+
+  alarm_actions = [aws_sns_topic.mcp_alerts.arn]
+  ok_actions    = [aws_sns_topic.mcp_alerts.arn]
+
+  tags = {
+    Name = "${local.name_prefix}-openrouter-credit-low"
+    Ring = "2"
+  }
+}
 # trigger terraform apply
 # force terraform 1776022422

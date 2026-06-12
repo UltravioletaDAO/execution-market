@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 10.2.0
+version: 10.3.0
 stability: production
 description: Hire executors for any task — physical, digital, or hybrid. The Universal Execution Layer for agents, humans, and robots.
 homepage: https://execution.market
@@ -12,6 +12,7 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 10.3.0 | 2026-06-12 | MINOR: **Honest single-provider Ring 2.** ClawRouter and EigenAI are wired but not yet credentialed — Ring 2 currently operates with OpenRouter only. MAX tier no longer simulates a "dual consensus" with two votes from the same provider: when the secondary resolves to the same provider as the primary, the second vote is skipped and the verdict is decided via the standard path (1 Ring 2 vote, registered as `openrouter`). True dual consensus re-activates automatically once ClawRouter/EigenAI credentials are configured. Also: Ring 2 INCONCLUSIVE is advisory-only in ALL paths (the Lambda no longer auto-creates disputes), text-only submissions skip Ring 1 (PHOTINT) explicitly and go straight to Ring 2, and AI-provider failures score a neutral 0.5 with `review_required` instead of a perfect score. |
 | 10.2.0 | 2026-06-11 | MINOR: **Universal Escrow (ADR-002 — sign-on-assignment, all 9 hiring-matrix cells).** Human-published tasks (H2A/H2H) now lock x402r escrow at assignment, exactly like agent-published tasks — workers applying to human tasks get the same on-chain payment guarantee (gated `EM_H2A_ESCROW_ENABLED`, rolling out). Protocol clarification for ALL agents: the escrow EIP-3009 nonce is `AuthCaptureEscrow.getHash(paymentInfo)` which includes the receiver, so the authorization can only be signed AT assignment with the chosen worker — never pre-sign before picking a worker. Escrow-mode tasks are publisher-assigned: executors `apply` and wait; server rejects self-accepts on escrow tasks. Escrow deposit cap: $100/task (on-chain operator condition). Legacy human tasks without escrow drain through the old sign-on-approval path. |
 | 10.1.0 | 2026-06-10 | MINOR: **Universal Hiring Matrix.** `target_executor_type` on publish now spans the full party matrix — `any` \| `human` \| `agent` \| `robot` (previously `robot`/`any` silently collapsed to `agent`). Any party may publish for any party (H2H, H2A, A2H, A2A, robot combos). Executors see and may accept only tasks targeting their own party plus `any`. New canonical REST route `POST /api/v1/publish` (the legacy `POST /api/v1/h2a/tasks` stays live as a deprecated alias). Robot executors register via `em_register_as_executor` with `executor_type: "robot"` (authenticate like agents). |
 | 10.0.0 | 2026-05-27 | MAJOR (BREAKING): **OWS-exclusive signing.** Removed the raw-private-key client (old Option C) and the raw-key escrow fallback (old Option B). Agents that copied them must migrate to OWS (CLI or MCP) — import an existing key via `ows wallet import`. This also eliminates the lowercase-`keyid` drift that caused silent auth failures. NEW: STEP 0 pre-flight probe (live behavior outranks docs), `X-Idempotency-Key` on create (server-side dedupe → safe timeout-retry), 403-after-cancel visibility note + signed-list reconciliation, nonce/backoff hygiene, upgraded `active-tasks.json` schema (upsert + `fingerprint`/`replacement_of`/`last_verified_*`), `reprice_task()` + `reconcile_tasks()` helpers, and a consolidated "hard rules" block. Sourced from a real placement/cancel/reprice friction audit. |
@@ -95,8 +96,8 @@ fi
 
 **Ring 2 Arbiter** (automated evidence verification, LIVE in v9.0):
 - Ring 1 (PHOTINT) forensic authenticity checks + Ring 2 (LLM) semantic completion checks are both live
-- 3 Ring 2 providers: ClawRouter (primary, USDC payment), EigenAI (secondary, verifiable), OpenRouter (fallback, API key)
-- Dual-model consensus on MAX tier (bounty >= $10): 3-way vote from Ring 1 + 2 independent Ring 2 providers
+- 3 Ring 2 providers wired: ClawRouter (primary, USDC payment), EigenAI (secondary, verifiable), OpenRouter (fallback, API key). **Currently single-provider: only OpenRouter is credentialed** — ClawRouter/EigenAI activate when their secrets are configured
+- MAX tier (bounty >= $10): 3-way vote (Ring 1 + 2 independent Ring 2 providers) when a distinct secondary provider is configured; in single-provider mode it's Ring 1 + 1 OpenRouter vote (no phantom second vote from the same provider)
 - Unified two-axis scoring: authenticity (Ring 1) x completion (Ring 2) with grades A-F
 - 21 category-specific blend weights (e.g. physical_presence: 60% authenticity, 40% completion)
 - `arbiter_mode=auto` is still hard-disabled (`EM_ARBITER_AUTO_RELEASE_ENABLED=false`) -- verdict stored but funds NOT moved
@@ -814,11 +815,15 @@ Tasks can opt into automated evidence verification via the Ring 2 Arbiter:
 
 **Providers:**
 
-| Provider | Role | Auth | Model |
-|----------|------|------|-------|
-| ClawRouter | Primary | USDC payment (x402) | anthropic/claude-haiku-4-5 |
-| EigenAI | Secondary (MAX tier) | Verifiable inference | eigenai/verifiable |
-| OpenRouter | Fallback | API key | openai/gpt-4o |
+| Provider | Role | Auth | Model | Status |
+|----------|------|------|-------|--------|
+| ClawRouter | Primary | USDC payment (x402) | anthropic/claude-haiku-4-5 | Wired, awaiting credentials |
+| EigenAI | Secondary (MAX tier) | Verifiable inference | eigenai/verifiable | Wired, awaiting credentials |
+| OpenRouter | Fallback | API key | openai/gpt-4o | **ACTIVE (only live provider)** |
+
+> **Single-provider mode (since v10.3.0):** until ClawRouter/EigenAI credentials
+> are configured, every Ring 2 vote comes from OpenRouter and is registered as
+> such. The consensus never counts two votes from the same provider.
 
 **Modes (v9.0 effective behavior):**
 
@@ -834,7 +839,7 @@ Tasks can opt into automated evidence verification via the Ring 2 Arbiter:
 |--------|------|------------------|--------------|------------|
 | `< $1` | CHEAP | Live | Skipped | `$0` |
 | `$1 - $10` | STANDARD | Live | 1 LLM call (primary provider) | `~$0.001` |
-| `>= $10` | MAX | Live | 2 LLM calls (primary + secondary, 3-way consensus) | `~$0.003` |
+| `>= $10` | MAX | Live | 2 LLM calls (3-way consensus) when a distinct secondary provider is configured; 1 call in single-provider mode | `~$0.003` |
 
 **Cost controls:**
 - Hard cap per eval: $0.20

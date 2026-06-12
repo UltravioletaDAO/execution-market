@@ -434,6 +434,35 @@ class ArbiterService:
 
         # Secondary provider (MAX only -- dual consensus)
         if tier == ArbiterTier.MAX and scores:
+            # C-16/C-47: without ClawRouter/EigenAI credentials the
+            # "secondary" falls back to OpenRouter too — both votes of the
+            # "dual consensus" would come from the SAME provider. Decision
+            # 2026-06-12: operate single-provider honestly — one OpenRouter
+            # vote registered as such, never a phantom second vote. The
+            # wiring stays intact: configuring em/clawrouter or em/eigenai
+            # secrets re-enables true dual consensus with no code change.
+            secondary = get_ring2_secondary_provider()
+            if secondary.name == scores[0].provider:
+                logger.info(
+                    "Ring 2 MAX: secondary resolves to the same provider as "
+                    "primary (%s) -- single-provider mode, skipping second vote",
+                    secondary.name,
+                )
+                try:
+                    await emit_verification_event(
+                        submission_id,
+                        2,
+                        "llm_secondary",
+                        "skipped",
+                        {
+                            "reason": "single_provider_mode",
+                            "provider": secondary.name,
+                        },
+                    )
+                except Exception:
+                    pass
+                return scores
+
             try:
                 await emit_verification_event(
                     submission_id,
@@ -445,7 +474,6 @@ class ArbiterService:
             except Exception:
                 pass
             try:
-                secondary = get_ring2_secondary_provider()
                 _t1 = time.monotonic()
                 result2 = await secondary.evaluate(prompt, tier)
                 _latency2 = int((time.monotonic() - _t1) * 1000)

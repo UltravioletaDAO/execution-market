@@ -9,7 +9,8 @@ Pipeline:
   3. Master switch: skip if feature.arbiter_enabled is false
   4. Run ArbiterService.evaluate() (dual-ring consensus)
   5. Persist verdict to submissions.arbiter_* columns
-  6. Handle INCONCLUSIVE -> create dispute for L2 human review
+  6. INCONCLUSIVE -> advisory only: verdict + recommendation stored, NO
+     dispute creation, agent_verdict untouched (INC-2026-04-22 / C-13)
   7. PASS/FAIL -> write verdict only (payment release stays in ECS Phase 3)
 
 Error handling:
@@ -25,7 +26,6 @@ import asyncio
 import json
 import logging
 import os
-from datetime import datetime, timedelta, timezone
 from typing import Any, Dict
 
 logger = logging.getLogger()
@@ -90,6 +90,10 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             "git_sha_short": _GIT_SHA[:7] if _GIT_SHA != "unknown" else "unknown",
             "build_timestamp": _BUILD_TS,
         }
+
+    # ── OpenRouter credit canary (direct invoke via EventBridge) ────
+    if event.get("action") == "openrouter_credit":
+        return _openrouter_credit_check()
 
     _ensure_cold_start()
 
@@ -331,7 +335,27 @@ async def _process_record(body: Dict[str, Any]) -> Dict[str, Any]:
     from integrations.arbiter.types import ArbiterDecision
 
     if verdict.decision == ArbiterDecision.INCONCLUSIVE:
-        _handle_inconclusive(verdict, task, submission)
+        # INC-2026-04-22 (C-13): the arbiter is ADVISORY, never authoritative.
+        # The verdict + recommendation were already persisted in step 5; the
+        # publisher decides approve vs dispute via explicit API. We must NOT
+        # create a dispute nor touch agent_verdict here (the original fix
+        # only covered the ECS path — this Lambda kept auto-disputing).
+        logger.info(
+            "Ring 2: INCONCLUSIVE verdict for submission=%s -- stored as "
+            "advisory (score=%.3f), publisher decides",
+            submission_id,
+            verdict.aggregate_score,
+        )
+        _emit(
+            "ring2_inconclusive",
+            "complete",
+            {
+                "advisory": True,
+                "score": round(verdict.aggregate_score, 3),
+                "recommendation": verdict.reason or "mid-band score",
+                "disagreement": bool(verdict.disagreement),
+            },
+        )
     elif verdict.decision == ArbiterDecision.PASS:
         logger.info(
             "Ring 2: PASS verdict for submission=%s -- payment release "
@@ -427,105 +451,66 @@ def _persist_verdict(
 
 
 # ---------------------------------------------------------------------------
-# INCONCLUSIVE -> L2 escalation
+# OpenRouter credit canary (U-39)
 # ---------------------------------------------------------------------------
 
 
-def _handle_inconclusive(
-    verdict: Any,
-    task: Dict[str, Any],
-    submission: Dict[str, Any],
-) -> None:
-    """Create a dispute for L2 human arbiter review.
+def _openrouter_credit_check() -> Dict[str, Any]:
+    """Query OpenRouter's key endpoint and emit remaining credit to CloudWatch.
 
-    Equivalent to escalation.escalate_to_human() but using the Lambda's
-    Supabase helper for DB access.
+    Invoked hourly by an EventBridge rule with {"action": "openrouter_credit"}.
+    Ring 2 dies silently when the OpenRouter balance hits $0 — the
+    EM/Ring2 OpenRouterCreditsRemaining metric feeds a < $10 alarm.
     """
-    from supabase_helper import create_dispute, mark_submission_disputed
+    _ensure_cold_start()
+    import boto3
+    import httpx
 
-    submission_id = submission.get("id", "")
-    task_id = task.get("id", "")
-    agent_id = task.get("agent_id", "")
-    executor_id = (submission.get("executor") or {}).get("id")
+    api_key = os.environ.get("OPENROUTER_API_KEY", "")
+    if not api_key:
+        logger.error("openrouter_credit: OPENROUTER_API_KEY not configured")
+        return {"error": "OPENROUTER_API_KEY not configured"}
 
-    if not task_id or not submission_id:
-        logger.error(
-            "Cannot escalate: missing task_id=%s or submission_id=%s",
-            task_id,
-            submission_id,
-        )
-        return
-
-    # Timeout for L2 human review (default 24h)
-    timeout_hours = 24
-
-    # Map verdict to dispute reason
-    if verdict.disagreement and verdict.aggregate_score < 0.5:
-        dispute_reason = "fake_evidence"
-    elif verdict.aggregate_score < 0.5:
-        dispute_reason = "poor_quality"
-    else:
-        dispute_reason = "other"
-
-    description = (
-        f"Auto-escalated by Ring 2 arbiter. Verdict: INCONCLUSIVE "
-        f"(score={verdict.aggregate_score:.3f}, "
-        f"confidence={verdict.confidence:.3f}, "
-        f"tier={verdict.tier.value}). "
-        f"Reason: {verdict.reason or 'mid-band score'}"
+    resp = httpx.get(
+        "https://openrouter.ai/api/v1/key",
+        headers={"Authorization": f"Bearer {api_key}"},
+        timeout=15.0,
     )
-    if verdict.disagreement:
-        description += " [ring disagreement detected]"
+    resp.raise_for_status()
+    data = resp.json().get("data", {})
 
-    # Compute priority (1-10)
-    bounty = float(task.get("bounty_usd", 0) or 0)
-    priority = 5
-    if bounty >= 10:
-        priority += 3
-    elif bounty >= 1:
-        priority += 1
-    if verdict.disagreement:
-        priority += 1
-    priority = min(10, max(1, priority))
+    limit = data.get("limit")
+    usage = float(data.get("usage", 0.0) or 0.0)
+    remaining = (float(limit) - usage) if limit is not None else None
 
-    dispute_data = {
-        "task_id": task_id,
-        "submission_id": submission_id,
-        "agent_id": agent_id,
-        "executor_id": executor_id,
-        "reason": dispute_reason,
-        "description": description,
-        "status": "open",
-        "priority": priority,
-        "disputed_amount_usdc": bounty,
-        "escalation_tier": 2,
-        "arbiter_verdict_data": verdict.to_dict(),
-        "response_deadline": (
-            datetime.now(timezone.utc) + timedelta(hours=timeout_hours)
-        ).isoformat(),
-        "metadata": {
-            "source": "ring2_lambda_escalation",
-            "ring2_disagreement": verdict.disagreement,
-            "evidence_hash": verdict.evidence_hash,
-            "commitment_hash": verdict.commitment_hash,
-            "escalated_at": datetime.now(timezone.utc).isoformat(),
-        },
+    result: Dict[str, Any] = {
+        "usage_usd": round(usage, 4),
+        "limit_usd": limit,
+        "remaining_usd": round(remaining, 4) if remaining is not None else None,
+        "is_free_tier": data.get("is_free_tier"),
+        "metric_emitted": False,
     }
 
-    dispute = create_dispute(dispute_data)
-    if dispute:
-        dispute_id = dispute.get("id", "unknown")
-        logger.info(
-            "Ring 2: created L2 dispute %s for submission=%s (timeout=%dh)",
-            dispute_id,
-            submission_id,
-            timeout_hours,
+    if remaining is not None:
+        boto3.client("cloudwatch").put_metric_data(
+            Namespace="EM/Ring2",
+            MetricData=[
+                {
+                    "MetricName": "OpenRouterCreditsRemaining",
+                    "Value": remaining,
+                    "Unit": "None",
+                }
+            ],
         )
-        mark_submission_disputed(submission_id, dispute_id)
-    else:
-        logger.error(
-            "Ring 2: failed to create dispute for submission=%s", submission_id
-        )
+        result["metric_emitted"] = True
+
+    logger.info(
+        "openrouter_credit: remaining=%s usage=%.2f limit=%s",
+        result["remaining_usd"],
+        usage,
+        limit,
+    )
+    return result
 
 
 # ---------------------------------------------------------------------------

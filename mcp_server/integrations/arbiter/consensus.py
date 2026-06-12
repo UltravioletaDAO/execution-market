@@ -102,9 +102,14 @@ class DualRingConsensus:
             return self._decide_standard(ring1_score, ring2_scores[0], config)
         elif tier == ArbiterTier.MAX:
             if len(ring2_scores) != 2:
-                logger.error(
-                    "MAX tier expects 2 ring2 scores, got %d -- falling back to standard",
+                # 1 score is EXPECTED in single-provider mode (C-16/C-47):
+                # the service skips the phantom second vote when the
+                # secondary resolves to the same provider as the primary.
+                log = logger.info if len(ring2_scores) == 1 else logger.error
+                log(
+                    "MAX tier got %d ring2 score(s) -- deciding with the %s path",
                     len(ring2_scores),
+                    "standard" if len(ring2_scores) == 1 else "cheap",
                 )
                 if len(ring2_scores) == 1:
                     return self._decide_standard(ring1_score, ring2_scores[0], config)
