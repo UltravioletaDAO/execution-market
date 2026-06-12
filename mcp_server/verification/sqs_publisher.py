@@ -50,8 +50,15 @@ def _serialise_task(task: Dict[str, Any]) -> Dict[str, Any]:
         "instructions": task.get("instructions", ""),
         "bounty_usd": float(task.get("bounty_usd", 0)),
         "evidence_schema": task.get("evidence_schema"),
+        # C-20: the full location reference must reach the Lambda so the AI
+        # prompt can render it ("Location: Not specified" bug) and the
+        # GeoMatcher can use the task radius/mode.
+        "location_hint": task.get("location_hint"),
         "location_lat": task.get("location_lat"),
         "location_lng": task.get("location_lng"),
+        "location_radius_km": task.get("location_radius_km"),
+        "location_radius_m": task.get("location_radius_m"),
+        "geo_match_mode": task.get("geo_match_mode"),
         "deadline": task.get("deadline"),
         "arbiter_enabled": task.get("arbiter_enabled", False),
         "arbiter_mode": task.get("arbiter_mode"),

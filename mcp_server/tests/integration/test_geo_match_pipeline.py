@@ -247,9 +247,13 @@ async def test_flag_on_miami_city_match_passes(patched_static_datasets, monkeypa
     )
 
     # The evidence dict must now carry the stash so Phase B prompt picks it up.
+    # C-21/U-09: the stash is a plain DICT (not the dataclass) so it survives
+    # the SQS json.dumps(default=str) round trip to the Ring 1 Lambda.
     stashed = sub["evidence"].get(pipeline.GEO_MATCH_EVIDENCE_KEY)
     assert stashed is not None
-    assert stashed.passed is True
+    assert isinstance(stashed, dict)
+    assert stashed["passed"] is True
+    assert stashed["prompt_summary"]
 
 
 # ---------------------------------------------------------------------------

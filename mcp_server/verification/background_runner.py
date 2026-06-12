@@ -556,7 +556,8 @@ async def _run_ai_semantic_check(
                 exif_metadata = {
                     "camera": f"{exif_data.camera_make or ''} {exif_data.camera_model or ''}".strip(),
                     "gps": f"{exif_data.gps_latitude},{exif_data.gps_longitude}"
-                    if exif_data.gps_latitude
+                    # U-17: 0.0 latitude (equator) is a real coordinate.
+                    if exif_data.gps_latitude is not None
                     else None,
                     "has_exif": exif_data.has_exif,
                     "metadata_stripped": exif_data.metadata_stripped,

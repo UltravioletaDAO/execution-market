@@ -56,6 +56,24 @@ def _is_null_island(lat: Optional[float], lng: Optional[float]) -> bool:
     return abs(lat) < 1e-9 and abs(lng) < 1e-9
 
 
+def is_valid_coordinate(lat: Any, lng: Any) -> bool:
+    """Single source of truth for coordinate sanity (U-16/U-17).
+
+    A coordinate pair is valid when BOTH values coerce to float, are in
+    range (|lat| <= 90, |lng| <= 180), and are not null island (0, 0).
+    Crucially, 0.0 for ONE axis is valid — `if lat:` truthiness checks
+    corrupt equatorial/Greenwich coordinates; always use this helper or
+    an explicit `is not None`.
+    """
+    lat_f = _coerce_coord(lat)
+    lng_f = _coerce_coord(lng)
+    if lat_f is None or lng_f is None:
+        return False
+    if abs(lat_f) > 90.0 or abs(lng_f) > 180.0:
+        return False
+    return not _is_null_island(lat_f, lng_f)
+
+
 def _read_lat_lng(obj: Dict[str, Any]) -> Tuple[Optional[float], Optional[float]]:
     """Pull lat/lng (with latitude/longitude/lon aliases) from a dict."""
     lat = _coerce_coord(obj.get("lat") or obj.get("latitude"))
@@ -72,7 +90,11 @@ def _classify_source(path: str, raw: Dict[str, Any]) -> str:
     writes land (photo_geo_direct, or raw has no accuracy but has
     altitude), we call it "EXIF". Otherwise just echo the path.
     """
-    has_accuracy = "accuracy" in raw
+    # U-18: accuracy <= 0 is not a real W3C Geolocation accuracy reading
+    # (browsers always report positive meters) — EXIF-derived blobs that
+    # carry accuracy: 0 were mislabeled "browser geolocation accuracy: 0m".
+    accuracy_val = _coerce_coord(raw.get("accuracy"))
+    has_accuracy = accuracy_val is not None and accuracy_val > 0
     if path.endswith("metadata_gps") or path == "photo_geo_metadata_gps":
         return "browser geolocation"
     if has_accuracy:
@@ -258,7 +280,7 @@ def format_gps_for_prompt(evidence: Dict[str, Any]) -> str:
 
     extras = [f"source: {details['source']}"]
     accuracy = details.get("accuracy")
-    if accuracy is not None:
+    if accuracy is not None and accuracy > 0:
         extras.append(f"accuracy: {accuracy:g}m")
     altitude = details.get("altitude")
     if altitude is not None:

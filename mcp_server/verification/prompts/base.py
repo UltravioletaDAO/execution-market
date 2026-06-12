@@ -10,7 +10,7 @@ extend it with specialized checks.
 
 import re
 
-from ..gps_utils import format_gps_for_prompt
+from ..gps_utils import format_gps_for_prompt, is_valid_coordinate
 from .schemas import VERIFICATION_OUTPUT_SCHEMA
 
 # Reserved key used by the Phase A pipeline (WS-5) to hand a MatchResult to
@@ -86,9 +86,7 @@ def build_base_prompt(
         task.get("instructions", task.get("description", "No description")),
         max_len=1000,
     )
-    location = _sanitize_for_prompt(
-        task.get("location", task.get("location_text", "Not specified")), max_len=200
-    )
+    location = _format_task_location(task)
     deadline = task.get("deadline", "Not specified")
 
     # Format evidence requirements
@@ -226,6 +224,39 @@ Respond with ONLY this JSON (no other text before or after):
 ```
 
 The task_checks object should include these category-relevant checks as boolean values. Be strict but fair."""
+
+
+def _format_task_location(task: dict) -> str:
+    """Build the prompt's Location line from the task's REAL fields (C-20).
+
+    Tasks carry `location_hint` (free text) + `location_lat`/`location_lng`
+    + radius. The legacy `location`/`location_text` keys never existed in
+    DB rows, so the prompt always rendered "Not specified" — 100% of
+    verifications ran location-blind.
+    """
+    parts = []
+    hint = (
+        task.get("location_hint") or task.get("location") or task.get("location_text")
+    )
+    if hint:
+        parts.append(_sanitize_for_prompt(str(hint), max_len=200))
+
+    lat = task.get("location_lat")
+    lng = task.get("location_lng")
+    if is_valid_coordinate(lat, lng):
+        coords = f"({float(lat):.5f}, {float(lng):.5f})"
+        radius_m = task.get("location_radius_m")
+        radius_km = task.get("location_radius_km")
+        try:
+            if radius_m is not None and float(radius_m) > 0:
+                coords += f", radius {int(float(radius_m))} m"
+            elif radius_km is not None and float(radius_km) > 0:
+                coords += f", radius {float(radius_km):g} km"
+        except (TypeError, ValueError):
+            pass
+        parts.append(coords)
+
+    return " — ".join(parts) if parts else "Not specified"
 
 
 def _format_match_summary(evidence: dict) -> str:

@@ -214,7 +214,9 @@ async def _run_exif_check(
             "camera": f"{exif_data.camera_make or ''} {exif_data.camera_model or ''}".strip(),
             "gps": (
                 f"{exif_data.gps_latitude},{exif_data.gps_longitude}"
-                if exif_data.gps_latitude
+                # U-17: `is not None`, not truthiness — 0.0 latitude
+                # (equator) is a real coordinate.
+                if exif_data.gps_latitude is not None
                 else None
             ),
             "has_exif": exif_data.has_exif,

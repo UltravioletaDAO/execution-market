@@ -282,6 +282,69 @@ async def get_my_submission(
 
 
 @router.get(
+    "/workers/tasks/{task_id}/geo-reference",
+    response_model=SuccessResponse,
+    responses={
+        200: {"description": "Geo reference retrieved"},
+        403: {
+            "model": ErrorResponse,
+            "description": "Caller is not the assigned worker for this task",
+        },
+        404: {"model": ErrorResponse, "description": "Task not found"},
+    },
+    summary="Get Task Geo Reference",
+    description=(
+        "Reference location + effective GPS radius for the ASSIGNED worker. "
+        "The frontend pre-submit warning must use exactly these values — "
+        "they are the same ones the verification pipeline compares against."
+    ),
+    tags=["Workers", "Tasks"],
+)
+async def get_task_geo_reference(
+    raw_request: Request,
+    task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
+    executor_id: str = Query(..., description="UUID of the executor"),
+    worker_auth: Optional[WorkerAuth] = Depends(verify_worker_auth),
+) -> SuccessResponse:
+    """Expose the task's reference location to its assigned worker (C-24/C-25).
+
+    The public `tasks_safe` view NULLs location_lat/lng, so the worker who
+    most needs the reference point couldn't see it — the frontend compared
+    against a different point/radius than the backend verdict.
+    """
+    executor_id = _enforce_worker_identity(
+        worker_auth, executor_id, raw_request.url.path
+    )
+
+    task = await db.get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    if task.get("executor_id") != executor_id:
+        raise HTTPException(
+            status_code=403,
+            detail="Only the assigned worker can read the task geo reference",
+        )
+
+    from verification.pipeline import effective_gps_radius_m
+
+    lat = task.get("location_lat")
+    lng = task.get("location_lng")
+    return SuccessResponse(
+        message="Geo reference retrieved",
+        data={
+            "task_id": task_id,
+            "has_reference": lat is not None and lng is not None,
+            "location_lat": lat,
+            "location_lng": lng,
+            "location_hint": task.get("location_hint"),
+            "geo_match_mode": task.get("geo_match_mode"),
+            "radius_m": effective_gps_radius_m(task),
+        },
+    )
+
+
+@router.get(
     "/submissions/{submission_id}",
     response_model=SuccessResponse,
     responses={

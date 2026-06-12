@@ -86,6 +86,30 @@ ALL_WEIGHTS = {**PHASE_A_WEIGHTS, **PHASE_B_WEIGHTS}
 # Legacy alias for backward compatibility
 CHECK_WEIGHTS = PHASE_A_WEIGHTS
 
+# C-28: single source of truth for the pass threshold. The backend ships it
+# in every payload (to_dict / merge_phase_b) — the frontend must NEVER
+# recalculate pass/fail from the score with its own threshold.
+PASS_THRESHOLD = 0.5
+
+
+def effective_gps_radius_m(task: Dict[str, Any]) -> int:
+    """Single source of truth for the GPS proximity radius in meters.
+
+    C-24/C-25: the frontend pre-submit warning and the backend verdict
+    must compare against EXACTLY the same reference radius. Used by
+    `_run_gps_check` and the worker-facing geo-reference endpoint.
+    """
+    try:
+        radius_km = task.get("location_radius_km")
+        if radius_km is not None and float(radius_km) > 0:
+            return int(float(radius_km) * 1000)
+    except (TypeError, ValueError):
+        pass
+    category = task.get("category", "")
+    if category == "simple_action":
+        return 1000  # more lenient for delivery tasks
+    return 500
+
 
 @dataclass
 class CheckResult:
@@ -122,6 +146,7 @@ class VerificationResult:
             "checks": [asdict(c) for c in self.checks],
             "warnings": self.warnings,
             "phase": self.phase,
+            "pass_threshold": PASS_THRESHOLD,
         }
         if self.match_result is not None:
             try:
@@ -216,9 +241,9 @@ async def run_verification_pipeline(
 
     aggregate_score = weighted_score / total_weight if total_weight > 0 else 0.0
 
-    # Pipeline passes if aggregate score >= 0.5 and schema check passed
+    # Pipeline passes if aggregate score >= PASS_THRESHOLD and schema passed
     schema_passed = any(c.name == "schema" and c.passed for c in checks)
-    pipeline_passed = aggregate_score >= 0.5 and schema_passed
+    pipeline_passed = aggregate_score >= PASS_THRESHOLD and schema_passed
 
     result = VerificationResult(
         passed=pipeline_passed,
@@ -358,9 +383,13 @@ def _run_geo_match(
 
     # Stash on evidence so the Phase B prompt builder can pick it up
     # without needing a new parameter plumbed through multiple layers.
+    # C-21/U-09: stash a plain DICT, not the dataclass — the SQS publisher
+    # serializes evidence with json.dumps(default=str), which turned the
+    # MatchResult into a useless repr string and the "GPS match: PASS/FAIL"
+    # line never reached the AI. _format_match_summary accepts both shapes.
     try:
         if isinstance(evidence, dict):
-            evidence[GEO_MATCH_EVIDENCE_KEY] = result
+            evidence[GEO_MATCH_EVIDENCE_KEY] = asdict(result)
     except Exception:  # pragma: no cover - defensive
         pass
 
@@ -500,16 +529,9 @@ async def _run_gps_check(
 
         return None  # non-physical, no GPS needed
 
-    # Distance threshold: use task-specific radius if set, otherwise category defaults
-    task_radius_km = task.get("location_radius_km")
-    if task_radius_km is not None and task_radius_km > 0:
-        max_distance = task_radius_km * 1000  # Convert km to meters
-    elif category == "physical_presence":
-        max_distance = 500
-    elif category == "simple_action":
-        max_distance = 1000  # more lenient for delivery tasks
-    else:
-        max_distance = 500
+    # Distance threshold — single source of truth shared with the
+    # worker-facing geo-reference endpoint (C-24/C-25).
+    max_distance = effective_gps_radius_m(task)
 
     result: GPSResult = check_gps_location(
         photo_lat=photo_lat,
@@ -1036,7 +1058,7 @@ def recompute_aggregate(
     aggregate_score = weighted_score / total_weight if total_weight > 0 else 0.0
 
     schema_passed = any(c.name == "schema" and c.passed for c in all_checks)
-    pipeline_passed = aggregate_score >= 0.5 and schema_passed
+    pipeline_passed = aggregate_score >= PASS_THRESHOLD and schema_passed
 
     return aggregate_score, pipeline_passed
 
@@ -1081,4 +1103,5 @@ def merge_phase_b(
         "checks": [asdict(c) for c in all_checks],
         "warnings": warnings,
         "phase": "AB",
+        "pass_threshold": PASS_THRESHOLD,
     }

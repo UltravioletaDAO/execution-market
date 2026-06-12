@@ -360,8 +360,11 @@ resource "aws_lambda_function" "ring1_worker" {
       EVIDENCE_BUCKET          = local.evidence_bucket_name
       RING                     = "1"
       RING2_QUEUE_URL          = aws_sqs_queue.ring2.url
-      GIT_SHA                  = var.git_sha
-      BUILD_TIMESTAMP          = var.build_timestamp
+      # Flag parity with ECS (ecs.tf sets true) — Ring 1 actually runs
+      # here, so a missing flag silently disabled geo matching.
+      EM_GEO_MATCH_ENABLED = "true"
+      GIT_SHA              = var.git_sha
+      BUILD_TIMESTAMP      = var.build_timestamp
     }
   }
 
