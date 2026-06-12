@@ -92,12 +92,13 @@ CHECK_WEIGHTS = PHASE_A_WEIGHTS
 PASS_THRESHOLD = 0.5
 
 
-def effective_gps_radius_m(task: Dict[str, Any]) -> int:
+def effective_gps_radius_m(task: Dict[str, Any], category: Optional[str] = None) -> int:
     """Single source of truth for the GPS proximity radius in meters.
 
     C-24/C-25: the frontend pre-submit warning and the backend verdict
     must compare against EXACTLY the same reference radius. Used by
-    `_run_gps_check` and the worker-facing geo-reference endpoint.
+    `_run_gps_check` (which passes its category arg explicitly) and the
+    worker-facing geo-reference endpoint (which reads it off the task row).
     """
     try:
         radius_km = task.get("location_radius_km")
@@ -105,8 +106,7 @@ def effective_gps_radius_m(task: Dict[str, Any]) -> int:
             return int(float(radius_km) * 1000)
     except (TypeError, ValueError):
         pass
-    category = task.get("category", "")
-    if category == "simple_action":
+    if (category or task.get("category", "")) == "simple_action":
         return 1000  # more lenient for delivery tasks
     return 500
 
@@ -531,7 +531,7 @@ async def _run_gps_check(
 
     # Distance threshold — single source of truth shared with the
     # worker-facing geo-reference endpoint (C-24/C-25).
-    max_distance = effective_gps_radius_m(task)
+    max_distance = effective_gps_radius_m(task, category)
 
     result: GPSResult = check_gps_location(
         photo_lat=photo_lat,
