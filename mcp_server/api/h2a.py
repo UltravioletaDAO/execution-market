@@ -79,12 +79,36 @@ def _h2a_is_owner(task: dict, auth: "JWTData") -> bool:
     and that binding was proven with a signed challenge
     (POST /account/link-wallet) — so a wallet match is an equally strong
     ownership proof.
+
+    One session can own SEVERAL proven wallets (external + embedded executors
+    bound to the same sub), so the match runs against ALL of them
+    (``auth.wallet_addresses``), not just the limit-1 pick — otherwise the
+    publisher's own task 403s whenever the lookup favors the other wallet.
     """
     if task.get("human_user_id") == auth.user_id:
         return True
+    wallets = {w.lower() for w in (auth.wallet_addresses or []) if w}
     wallet = (auth.wallet_address or "").lower()
+    if wallet:
+        wallets.add(wallet)
     task_wallet = (task.get("human_wallet") or "").lower()
-    return bool(wallet) and wallet == task_wallet
+    return bool(task_wallet) and task_wallet in wallets
+
+
+def _h2a_owner_filter(auth: "JWTData") -> Optional[str]:
+    """PostgREST ``or_`` expression matching tasks owned by this session OR any
+    of its proven wallets; None when the session has no wallets (caller falls
+    back to the plain ``human_user_id`` filter). Mirrors ``_h2a_is_owner``."""
+    wallets = [w.lower() for w in (auth.wallet_addresses or []) if w]
+    primary = (auth.wallet_address or "").lower()
+    if primary and primary not in wallets:
+        wallets.append(primary)
+    if not wallets:
+        return None
+    parts = [f"human_user_id.eq.{auth.user_id}"] + [
+        f"human_wallet.eq.{w}" for w in wallets
+    ]
+    return ",".join(parts)
 
 
 # Escrow statuses that allow a release/refund — mirror of the releasable set in
@@ -104,6 +128,9 @@ class JWTData(BaseModel):
     wallet_address: Optional[str] = None
     email: Optional[str] = None
     is_human: bool = True
+    # ALL wallets proven for this session (one per linked executor profile,
+    # most recently active first). wallet_address is always the first entry.
+    wallet_addresses: list[str] = Field(default_factory=list)
 
 
 async def verify_jwt_auth(
@@ -138,33 +165,45 @@ async def verify_jwt_auth(
 
         wallet_address = payload.get("wallet_address")
         email = payload.get("email")
+        wallet_addresses: list[str] = []
 
         if not wallet_address:
             try:
                 client = db.get_client()
                 # One session can have linked multiple wallets (external +
-                # embedded executors both bound to the same sub) — order by
-                # last activity so the pick is at least deterministic and
-                # biased to the wallet most recently linked/used. Endpoints
-                # where the exact wallet matters (publish payer) must take it
-                # from the request instead of relying on this lookup.
+                # embedded executors both bound to the same sub) — fetch ALL
+                # of them, ordered by last activity, so ownership checks
+                # (_h2a_is_owner) can match any proven wallet. wallet_address
+                # stays the most recently active one for callers that need a
+                # single value. Endpoints where the exact wallet matters
+                # (publish payer) must take it from the request instead of
+                # relying on this lookup.
                 result = (
                     client.table("executors")
                     .select("wallet_address")
                     .eq("user_id", user_id)
                     .order("updated_at", desc=True)
-                    .limit(1)
                     .execute()
                 )
-                if result.data and len(result.data) > 0:
-                    wallet_address = result.data[0].get("wallet_address")
+                rows = result.data if isinstance(result.data, list) else []
+                wallet_addresses = [
+                    r.get("wallet_address")
+                    for r in rows
+                    if isinstance(r, dict) and r.get("wallet_address")
+                ]
+                if wallet_addresses:
+                    wallet_address = wallet_addresses[0]
             except Exception as e:
                 logger.warning("Could not look up wallet for user %s: %s", user_id, e)
+
+        if wallet_address and not wallet_addresses:
+            wallet_addresses = [wallet_address]
 
         return JWTData(
             user_id=user_id,
             wallet_address=wallet_address,
             email=email,
+            wallet_addresses=wallet_addresses,
         )
 
     except ImportError:
@@ -670,14 +709,12 @@ async def list_h2a_tasks(
 
         if my_tasks:
             auth = await verify_jwt_auth(authorization)
-            # Ownership follows the WALLET, not just the rotating anonymous
+            # Ownership follows the WALLET(s), not just the rotating anonymous
             # session (see _h2a_is_owner): include tasks published under a
-            # previous session of the same proven wallet.
-            _wallet = (auth.wallet_address or "").lower()
-            if _wallet:
-                query = query.or_(
-                    f"human_user_id.eq.{auth.user_id},human_wallet.eq.{_wallet}"
-                )
+            # previous session of any of the same proven wallets.
+            _owner_filter = _h2a_owner_filter(auth)
+            if _owner_filter:
+                query = query.or_(_owner_filter)
             else:
                 query = query.eq("human_user_id", auth.user_id)
 
@@ -700,12 +737,9 @@ async def list_h2a_tasks(
         if my_tasks and authorization:
             try:
                 auth_data = await verify_jwt_auth(authorization)
-                _count_wallet = (auth_data.wallet_address or "").lower()
-                if _count_wallet:
-                    count_query = count_query.or_(
-                        f"human_user_id.eq.{auth_data.user_id},"
-                        f"human_wallet.eq.{_count_wallet}"
-                    )
+                _count_filter = _h2a_owner_filter(auth_data)
+                if _count_filter:
+                    count_query = count_query.or_(_count_filter)
                 else:
                     count_query = count_query.eq("human_user_id", auth_data.user_id)
             except Exception:
@@ -769,7 +803,7 @@ async def get_h2a_task(
         result = (
             client.table("tasks")
             .select(
-                "*, executor:executors(id, display_name, wallet_address, reputation_score, capabilities)"
+                "*, executor:executors(id, display_name, wallet_address, reputation_score, capabilities, executor_type)"
             )
             .eq("id", task_id)
             .single()
@@ -865,7 +899,7 @@ async def get_h2a_submissions(
         submissions_result = (
             client.table("submissions")
             .select(
-                "*, executor:executors(id, display_name, wallet_address, reputation_score, capabilities)"
+                "*, executor:executors(id, display_name, wallet_address, reputation_score, capabilities, executor_type)"
             )
             .eq("task_id", task_id)
             .order("submitted_at", desc=True)
