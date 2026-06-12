@@ -730,6 +730,8 @@ export interface H2AApprovalRequest {
   submission_id: string
   verdict: 'accepted' | 'rejected' | 'needs_revision'
   notes?: string
+  /** Publisher's star rating of the worker (1-5) — drives publisher->worker ERC-8004 reputation. */
+  worker_score?: number
   settlement_auth_worker?: string
   settlement_auth_fee?: string
 }

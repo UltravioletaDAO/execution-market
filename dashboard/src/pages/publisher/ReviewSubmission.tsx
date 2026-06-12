@@ -70,6 +70,7 @@ export function ReviewSubmission() {
   const [error, setError] = useState<string | null>(null)
   const [verdict, setVerdict] = useState<'accepted' | 'rejected' | 'needs_revision'>('accepted')
   const [notes, setNotes] = useState('')
+  const [workerScore, setWorkerScore] = useState<number>(0)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [result, setResult] = useState<H2AApprovalResponse | null>(null)
@@ -162,6 +163,7 @@ export function ReviewSubmission() {
 
       const res = await approveH2ASubmission(taskId!, {
         submission_id: latest.id, verdict, notes: notes || undefined,
+        worker_score: verdict === 'accepted' ? workerScore : undefined,
         settlement_auth_worker: authWorker,
         settlement_auth_fee: authFee,
       })
@@ -338,6 +340,31 @@ export function ReviewSubmission() {
                   </button>
                 ))}
               </div>
+              {verdict === 'accepted' && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('review.rateWorker', 'Califica al trabajador')} <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setWorkerScore(star)}
+                        aria-label={t('review.rateWorkerStar', '{{n}} estrellas', { n: star })}
+                        className="text-2xl leading-none transition-transform hover:scale-110"
+                      >
+                        <span className={star <= workerScore ? 'text-amber-500' : 'text-zinc-300'}>★</span>
+                      </button>
+                    ))}
+                    <span className="ml-2 text-xs text-zinc-500">
+                      {workerScore > 0
+                        ? t('review.rateWorkerChosen', '{{n}}/5 — queda on-chain (ERC-8004)', { n: workerScore })
+                        : t('review.rateWorkerRequired', 'Requerido para aprobar y pagar')}
+                    </span>
+                  </div>
+                </div>
+              )}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t('review.notes', 'Notas')}</label>
                 <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder={verdict === 'accepted' ? t('review.notesPlaceholderApprove', 'Comentarios opcionales...') : t('review.notesPlaceholderRevise', 'Describe qué necesita mejorar...')} className="w-full px-3 py-2 border rounded-lg h-24 resize-y bg-white text-zinc-900" />
@@ -367,7 +394,7 @@ export function ReviewSubmission() {
                   {t('review.disabled.body', 'The on-chain approval flow is being upgraded for security. Approvals are currently processed via the API.')}
                 </div>
               )}
-              <button onClick={handleSubmit} disabled={submitting || approvalSigningBlocked} className={`w-full py-3 px-4 rounded-lg font-medium text-white ${verdict === 'accepted' ? 'bg-green-600 hover:bg-green-700' : verdict === 'needs_revision' ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-red-600 hover:bg-red-700'} disabled:opacity-50`}>
+              <button onClick={handleSubmit} disabled={submitting || approvalSigningBlocked || (verdict === 'accepted' && workerScore === 0)} className={`w-full py-3 px-4 rounded-lg font-medium text-white ${verdict === 'accepted' ? 'bg-green-600 hover:bg-green-700' : verdict === 'needs_revision' ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-red-600 hover:bg-red-700'} disabled:opacity-50`}>
                 {submitting ? t('review.processing', 'Procesando...') : verdict === 'accepted' ? `✅ ${t('review.verdict.approve', 'Aprobar y Pagar')}` : verdict === 'needs_revision' ? `🔄 ${t('review.verdict.revision', 'Solicitar Revisión')}` : `❌ ${t('review.verdict.reject', 'Rechazar')}`}
               </button>
 
