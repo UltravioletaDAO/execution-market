@@ -1715,11 +1715,18 @@
   },
   "current_entrypoints": [
     {
-      "digest_sha256": "18a03f43e0e1c6dd0faf8735528c8d96b9da75f5618ac5beb2f61dd595892940",
+      "digest_sha256": "e4d372a1ead1049149b90eab7488361fd6e3e930dea59a0503f00ff731bfbb33",
       "exists": true,
       "extension_policy": "current_entrypoint_update_only_when_new_safe_claim_lands",
       "path": "docs/planning/CITY_AS_A_SERVICE_DAYTIME_EXECUTION_BOARD.md",
       "role": "latest_append_only_execution_board"
+    },
+    {
+      "digest_sha256": "a68cabd0518ea12dbf690c828a01591cd5302aa6ba4dcc6a1c846591be11bdb1",
+      "exists": true,
+      "extension_policy": "current_template_only_answer_intake_no_answer_no_approval_no_runtime_delivery_or_stopped_project_movement",
+      "path": "docs/planning/CITY_AS_A_SERVICE_00AM_OPERATOR_ANSWER_INTAKE_PACKET_2026_06_12.md",
+      "role": "latest_operator_answer_intake_packet"
     },
     {
       "digest_sha256": "d50b58c1d3ae89822c240b9518bc57f30bc102a2f3ebd51a0c872ea278adb258",
