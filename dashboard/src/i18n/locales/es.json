@@ -2736,8 +2736,10 @@
       "assign": "Asignar",
       "assigning": "Asignando…",
       "confirmAssign": "¿Asignar a este worker?",
+      "confirmAssignTitle": "Asignar worker",
       "escrow": {
         "confirmAssign": "¿Asignar a este worker? Se bloquearán ${{amount}} USDC en escrow para él hasta que apruebes el trabajo.",
+        "switchNetwork": "Cambia tu wallet a {{network}} (chain {{chainId}}) y reintenta.",
         "connectWallet": "Conecta una wallet EVM para firmar el bloqueo en escrow.",
         "noWorkerWallet": "Este aplicante no tiene wallet vinculada.",
         "configUnavailable": "La configuración de escrow no está disponible para esta red.",

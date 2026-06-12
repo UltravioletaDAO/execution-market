@@ -83,6 +83,18 @@ function Applicants({ task, onAssigned }: { task: Task; onAssigned: () => void }
     const cfg = await getH2APaymentConfig()
     const netCfg = cfg.escrow_networks?.[network]
     if (!netCfg) throw new Error(t('publisher.dashboard.escrow.configUnavailable', 'Escrow configuration is not available for this network.'))
+    // External wallets may sit on another chain; viem refuses typed data whose
+    // domain.chainId differs from the client's current chain ("chainId should
+    // be same as current chainId"). Switch to the task's network first.
+    try {
+      if (primaryWallet.connector?.supportsNetworkSwitching?.()) {
+        await primaryWallet.switchNetwork(netCfg.chain_id)
+      }
+    } catch {
+      throw new Error(t('publisher.dashboard.escrow.switchNetwork',
+        'Switch your wallet to {{network}} (chain {{chainId}}) and retry.',
+        { network, chainId: netCfg.chain_id }))
+    }
     const walletClient = await primaryWallet.getWalletClient(String(netCfg.chain_id))
     if (!walletClient) throw new Error(t('review.errors.walletClientUnavailable', 'Wallet client unavailable for this network.'))
     const bounty = detail.bounty_usd || 0
@@ -96,22 +108,33 @@ function Applicants({ task, onAssigned }: { task: Task; onAssigned: () => void }
     })
   }
 
-  const assign = async (app: H2AApplication) => {
+  // App-styled confirm (replaces window.confirm): holds the applicant +
+  // resolved task detail while the user decides.
+  const [confirmState, setConfirmState] = useState<{
+    app: H2AApplication
+    detail: Task
+    escrowMode: boolean
+  } | null>(null)
+
+  const requestAssign = async (app: H2AApplication) => {
     setErr(null)
     try {
-      let xPaymentAuth: string | undefined
       // Escrow-mode detection needs the task detail (escrow_status comes from
       // the H2A detail endpoint, not the list). Only fetched when the flag is on.
       const detail = H2A_ESCROW_ENABLED ? await getH2ATask(taskId) : task
       const escrowMode = H2A_ESCROW_ENABLED && detail.escrow_status === 'pending_assignment'
+      setConfirmState({ app, detail, escrowMode })
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Error')
+    }
+  }
 
-      const confirmMsg = escrowMode
-        ? t('publisher.dashboard.escrow.confirmAssign',
-            'Assign this worker? ${{amount}} USDC will be locked in escrow for them until you approve the work.',
-            { amount: (detail.bounty_usd || 0).toFixed(2) })
-        : t('publisher.dashboard.confirmAssign', '¿Asignar a este worker?')
-      if (!confirm(confirmMsg)) return
-
+  const confirmAssign = async () => {
+    if (!confirmState) return
+    const { app, detail, escrowMode } = confirmState
+    setConfirmState(null)
+    try {
+      let xPaymentAuth: string | undefined
       setAssigning(app.executor_id)
       if (escrowMode) {
         try {
@@ -155,7 +178,7 @@ function Applicants({ task, onAssigned }: { task: Task; onAssigned: () => void }
                 </p>
               </div>
               <button
-                onClick={() => assign(a)}
+                onClick={() => requestAssign(a)}
                 disabled={assigning !== null}
                 className="shrink-0 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
               >
@@ -166,6 +189,36 @@ function Applicants({ task, onAssigned }: { task: Task; onAssigned: () => void }
         </ul>
       )}
       {err && <p className="mt-2 text-xs text-red-600">{err}</p>}
+      {confirmState && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-sm rounded-lg border border-zinc-200 bg-white p-6 shadow-xl">
+            <h3 className="text-base font-semibold text-zinc-900">
+              {t('publisher.dashboard.confirmAssignTitle', 'Asignar worker')}
+            </h3>
+            <p className="mt-2 text-sm text-zinc-600">
+              {confirmState.escrowMode
+                ? t('publisher.dashboard.escrow.confirmAssign',
+                    'Assign this worker? ${{amount}} USDC will be locked in escrow for them until you approve the work.',
+                    { amount: (confirmState.detail.bounty_usd || 0).toFixed(2) })
+                : t('publisher.dashboard.confirmAssign', '¿Asignar a este worker?')}
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                onClick={() => setConfirmState(null)}
+                className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+              >
+                {t('common.cancel', 'Cancelar')}
+              </button>
+              <button
+                onClick={confirmAssign}
+                className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+              >
+                {t('publisher.dashboard.assign', 'Asignar')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
