@@ -248,7 +248,10 @@ export function SubmissionForm({
     if (!submitted || !submissionId) return
 
     let iterations = 0
-    const MAX_ITERATIONS = 12 // 12 * 5s = 60s
+    // Ring 1 can take ~130s when the AI checks hit their timeout, then Ring 2
+    // runs after that — the old 60s window died right before Ring 1 finished,
+    // which is why nothing updated automatically.
+    const MAX_ITERATIONS = 48 // 48 * 5s = 240s
 
     phaseBPollRef.current = setInterval(async () => {
       iterations++
@@ -267,10 +270,16 @@ export function SubmissionForm({
             setAiVerificationResult(data.ai_verification_result as Record<string, unknown>)
           }
 
-          // Stop polling when Phase B is complete or forensic events are done
-          const forensicDone = verificationEventsComplete(details.verification_events)
+          // Stop only when Ring 1 AND Ring 2 are fully done. Don't stop at
+          // phase 'AB' alone — that flips when Ring 1 merges, ~13s before the
+          // Ring 2 verdict lands. Legacy payloads (no event log) still stop at
+          // phase AB so they don't poll the full window for nothing.
+          const events = details.verification_events
+          const hasEvents = Array.isArray(events) && events.length > 0
+          const forensicDone = verificationEventsComplete(events)
+          const legacyDone = !hasEvents && details.phase === 'AB'
 
-          if (details.phase === 'AB' || forensicDone) {
+          if (forensicDone || legacyDone) {
             if (phaseBPollRef.current) {
               clearInterval(phaseBPollRef.current)
               phaseBPollRef.current = null

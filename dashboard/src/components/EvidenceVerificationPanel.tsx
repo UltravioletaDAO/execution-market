@@ -101,8 +101,16 @@ export function EvidenceVerificationPanel({ details, onRefresh }: EvidenceVerifi
 
   // Legacy Phase B payloads (pre-rings) still poll until phase flips to 'AB'.
   const phaseBActive = vm.phaseBStatus === 'pending' && vm.phase !== 'AB'
+  // Keep polling until the event log is fully complete (Ring 1 AND Ring 2),
+  // not just while Ring 1 is in-progress. After ring1_complete the arbiter
+  // verdict (Ring 2) still lands ~13s later; stopping at Ring 1 froze the
+  // panel before Ring 2 appeared.
+  const eventsInFlight = vm.events.length > 0 && !vm.eventsComplete
   const shouldPoll =
-    vm.hasDetails && !vm.stale && (vm.eventsComplete ? false : vm.inProgress || phaseBActive)
+    vm.hasDetails &&
+    !vm.stale &&
+    !vm.eventsComplete &&
+    (vm.inProgress || phaseBActive || eventsInFlight)
 
   // ---------------------------------------------------------------------------
   // Auto-refresh polling (3 s interval while verification is in-progress)

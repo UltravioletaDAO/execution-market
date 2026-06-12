@@ -331,6 +331,48 @@ describe('verificationEventsComplete / isEventTerminal', () => {
       ]),
     ).toBe(true)
   })
+
+  it('waits for Ring 2 when ring1_complete queued it (closes the gap)', () => {
+    // ring2_queued=true but no ring-2 events yet -> NOT complete (the ~5s gap
+    // before Ring 2 starts must not be mistaken for "done").
+    expect(
+      verificationEventsComplete([
+        {
+          ts: 1,
+          ring: 1,
+          step: 'ring1_complete',
+          status: 'complete',
+          detail: { ring2_queued: true },
+        },
+      ]),
+    ).toBe(false)
+    // ring2_queued=true and ring2_complete present -> complete.
+    expect(
+      verificationEventsComplete([
+        {
+          ts: 1,
+          ring: 1,
+          step: 'ring1_complete',
+          status: 'complete',
+          detail: { ring2_queued: true },
+        },
+        { ts: 9, ring: 2, step: 'ring2_complete', status: 'complete' },
+      ]),
+    ).toBe(true)
+    // ring2_queued=true resolved by a skipped Ring 2 (arbiter disabled).
+    expect(
+      verificationEventsComplete([
+        {
+          ts: 1,
+          ring: 1,
+          step: 'ring1_complete',
+          status: 'complete',
+          detail: { ring2_queued: true },
+        },
+        { ts: 9, ring: 2, step: 'ring2_complete', status: 'skipped' },
+      ]),
+    ).toBe(true)
+  })
 })
 
 // ---------------------------------------------------------------------------

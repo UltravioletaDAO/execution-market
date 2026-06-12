@@ -174,18 +174,24 @@ function detailSummary(event: VerificationEvent, t: ReturnType<typeof useTransla
       return null
     }
     case 'tampering': {
-      const suspicious = d.is_suspicious
+      // Default to "Clean" — only label "Suspicious" when explicitly flagged.
+      // The Lambda emits {passed, score} (no is_suspicious), so reading
+      // `is_suspicious === false` used to fall through to "Suspicious" for a
+      // check that passed 100% "No tampering detected".
+      const suspicious = d.is_suspicious === true || d.passed === false
       const confidence = d.confidence != null ? Math.round(Number(d.confidence) * 100) : null
-      if (suspicious === false && confidence != null) return `${t('forensic.detail.clean', 'Clean')} (${confidence}%)`
-      if (suspicious === true && confidence != null) return `${t('forensic.detail.suspicious', 'Suspicious')} (${confidence}%)`
-      return suspicious === false ? t('forensic.detail.clean', 'Clean') : t('forensic.detail.suspicious', 'Suspicious')
+      const label = suspicious
+        ? t('forensic.detail.suspicious', 'Suspicious')
+        : t('forensic.detail.clean', 'Clean')
+      return confidence != null ? `${label} (${confidence}%)` : label
     }
     case 'genai_detection': {
-      const aiGen = d.is_ai_generated
+      // Default to "Real photo" — only "AI generated" when explicitly flagged.
+      const aiGen = d.is_ai_generated === true
       const confidence = d.confidence != null ? Math.round(Number(d.confidence) * 100) : null
-      const label = aiGen === false
-        ? t('forensic.detail.realPhoto', 'Real photo')
-        : t('forensic.detail.aiGenerated', 'AI generated')
+      const label = aiGen
+        ? t('forensic.detail.aiGenerated', 'AI generated')
+        : t('forensic.detail.realPhoto', 'Real photo')
       return confidence != null ? `${label} (${confidence}%)` : label
     }
     case 'ai_semantic': {
@@ -274,6 +280,11 @@ function isEventFlagged(event: VerificationEvent): boolean {
   const d = event.detail
   if (!d) return false
 
+  // Generic: a check that completed but did NOT pass is flagged. The Lambda
+  // emits {passed, score} on every completion, so this catches photo_source
+  // failing (passed:false) which otherwise rendered as a green ✓.
+  if (d.passed === false) return true
+
   switch (event.step) {
     case 'tampering':
       return d.is_suspicious === true
@@ -332,16 +343,26 @@ function groupStepEvents(events: VerificationEvent[]): GroupedStep[] {
     if (stepEvents.length === 1) {
       groups.push({ primary: stepEvents[0], fallbacks: [] })
     } else {
-      // Find the "final" event: last complete, or last running, or last event
+      // Find the "final" event. Priority: complete > terminal (failed/error/
+      // skipped) > running > last. A terminal failure MUST outrank a leftover
+      // 'running' event — otherwise a timed-out check (running + failed, no
+      // complete) renders as an eternal spinner instead of a ✗ (C-29).
       const complete = stepEvents.filter((e) => e.status === 'complete')
+      const terminal = stepEvents.filter(
+        (e) => e.status === 'failed' || e.status === 'error' || e.status === 'skipped',
+      )
       const running = stepEvents.filter((e) => e.status === 'running')
       const primary = complete.length > 0
         ? complete[complete.length - 1]
-        : running.length > 0
-          ? running[running.length - 1]
-          : stepEvents[stepEvents.length - 1]
+        : terminal.length > 0
+          ? terminal[terminal.length - 1]
+          : running.length > 0
+            ? running[running.length - 1]
+            : stepEvents[stepEvents.length - 1]
 
-      const fallbacks = stepEvents.filter((e) => e !== primary && e.status === 'failed')
+      const fallbacks = stepEvents.filter(
+        (e) => e !== primary && (e.status === 'failed' || e.status === 'error'),
+      )
       groups.push({ primary, fallbacks })
     }
   }

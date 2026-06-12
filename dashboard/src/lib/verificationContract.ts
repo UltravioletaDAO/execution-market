@@ -200,18 +200,26 @@ function parseEvents(raw: unknown): VerificationEvent[] {
 /**
  * True when the event log shows every started ring reached its terminal
  * summary event (ring1_complete, and ring2_complete if any ring-2 event exists).
+ *
+ * When ring1_complete announces `ring2_queued: true`, Ring 2 IS expected even
+ * if its events have not arrived yet (the ~5s gap between Ring 1 finishing and
+ * Ring 2 starting). In that window we must NOT declare completion, or the
+ * dashboard stops polling before the arbiter verdict appears.
  */
 export function verificationEventsComplete(rawEvents: unknown): boolean {
   const events = parseEvents(rawEvents)
   if (events.length === 0) return false
-  const ring1Done = events.some(
+  const ring1Complete = events.find(
     (e) => e.step === 'ring1_complete' && isEventTerminal(e.status),
   )
+  if (!ring1Complete) return false
+  const ring2Queued = ring1Complete.detail?.ring2_queued === true
   const hasRing2 = events.some((e) => e.ring === 2)
   const ring2Done = events.some(
     (e) => e.step === 'ring2_complete' && isEventTerminal(e.status),
   )
-  return ring1Done && (!hasRing2 || ring2Done)
+  if (ring2Queued) return ring2Done
+  return !hasRing2 || ring2Done
 }
 
 // ---------------------------------------------------------------------------
