@@ -2255,6 +2255,10 @@
       "noHistory": "Sem histórico",
       "createFirstRequest": "Criar Primeira Solicitação",
       "confirmCancel": "Cancelar?",
+      "confirmCancelTitle": "Cancelar solicitação",
+      "confirmCancelBody": "A tarefa deixará de receber candidatos. Fundos em escrow são reembolsados integralmente à sua wallet.",
+      "confirmCancelAction": "Cancelar tarefa",
+      "keepTask": "Voltar",
       "confirmAssignTitle": "Atribuir worker",
       "escrow": {
         "confirmAssign": "Atribuir este worker? ${{amount}} USDC serão bloqueados em escrow para ele até você aprovar o trabalho.",

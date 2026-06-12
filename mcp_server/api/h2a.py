@@ -142,10 +142,17 @@ async def verify_jwt_auth(
         if not wallet_address:
             try:
                 client = db.get_client()
+                # One session can have linked multiple wallets (external +
+                # embedded executors both bound to the same sub) — order by
+                # last activity so the pick is at least deterministic and
+                # biased to the wallet most recently linked/used. Endpoints
+                # where the exact wallet matters (publish payer) must take it
+                # from the request instead of relying on this lookup.
                 result = (
                     client.table("executors")
                     .select("wallet_address")
                     .eq("user_id", user_id)
+                    .order("updated_at", desc=True)
                     .limit(1)
                     .execute()
                 )
@@ -440,13 +447,16 @@ async def create_h2a_task(
     """
     await _check_h2a_enabled()
 
-    # Resolve human's wallet.
-    # Humans sign in via Dynamic.xyz (the wallet), but the Supabase JWT is
-    # anonymous and carries no wallet claim, and the wallet->user_id link RPC is
-    # revoked (migration 092). So auth.wallet_address is usually None for browser
-    # publishers — fall back to the wallet the client asserts in the request body,
-    # the same way every other mutation passes the wallet to service_role RPCs.
-    wallet = auth.wallet_address or request.publisher_wallet
+    # Resolve human's wallet. PREFER the wallet the client asserts in the
+    # request body: it is the ACTIVE wallet in the user's widget — the one they
+    # see, hold funds in, and will sign the escrow lock with at assignment.
+    # auth.wallet_address comes from an executors.user_id lookup that is
+    # AMBIGUOUS when one session has linked multiple wallets (external +
+    # embedded): it silently registered the wrong payer and the assign-time
+    # signature could never match. Trust model unchanged (self-DoS-only — a
+    # wrong address only breaks the publisher's own escrow), and the signed
+    # lock at assignment is the real ownership proof.
+    wallet = request.publisher_wallet or auth.wallet_address
     if not wallet:
         raise HTTPException(
             status_code=400,
