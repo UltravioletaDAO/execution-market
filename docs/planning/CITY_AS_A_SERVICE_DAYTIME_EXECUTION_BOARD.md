@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-06-12 00:00 America/New_York
+> Last updated: 2026-06-12 01:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -8,6 +8,39 @@
 > - `CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md`
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
+
+
+## Latest June 12 01:00 intake template contract repair
+
+`CITY_AS_A_SERVICE_1AM_INTAKE_TEMPLATE_CONTRACT_REPAIR_2026_06_12.md` is the current internal/admin AAS contract-repair slice. It obeyed `/Users/clawdbot/clawd/DREAM-PRIORITIES.md` over the stale 1 AM cron payload, so AutoJob analysis/integration, Frontier Academy expansion, KK v2 continuation, and KarmaCadabra v2 work remain stopped for dream work.
+
+Execution Market was synced only on `feat/operator-route-regret-panel`; `git pull --ff-only` reported already up to date. Pre-existing untracked `scripts/sign_req.mjs` and `mcp_server/city_ops/tests/` were preserved and not staged.
+
+The active posture remains:
+
+```text
+pause_aas_proof_layering
+```
+
+This pass did not create another no-answer proof wrapper or answer receipt. It repaired the 00:00 intake template so its validator-facing receipt field stays aligned with `validate_aas_operator_answer_receipt`:
+
+```text
+blocked_claims_preserved: true
+blocked_claims_snapshot: [...]
+```
+
+Safe 01:00 claim:
+
+```text
+internal_admin_aas_1am_intake_template_contract_repair_2026_06_12_landed
+```
+
+Meaning only: the future receipt template now keeps `blocked_claims_preserved` as the required boolean and carries the detailed blocked-claim list separately as `blocked_claims_snapshot`. The loader fails closed if either shape drifts. It records no current answer, approval, selected value, receipt, customer/public/worker surface, runtime/Acontext/IRC mutation, dispatch, reputation/Worker Skill DNA, payment/production change, exact-location/raw-metadata/private-context release, authority claim, worker-copyable doctrine, or stopped-project integration.
+
+Next valid move remains exactly one of these:
+
+1. if Saúl provides exactly one allowed AAS answer value, create one separate digest-backed answer receipt using an opaque non-secret reference and validate it through the hardened gate;
+2. otherwise hold at `pause_aas_proof_layering` and do not add more no-answer proof wrappers or downstream product/runtime/reputation/payment layers.
 
 
 ## Latest June 12 00:00 operator answer intake packet

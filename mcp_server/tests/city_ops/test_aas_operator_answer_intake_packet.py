@@ -91,7 +91,8 @@ def test_answer_intake_packet_preserves_reference_redaction_rules() -> None:
     assert template["approved_sections"] == []
     assert template["delivery_path_authorized"] is False
     assert template["runtime_path_authorized"] is False
-    assert template["blocked_claims_preserved"] == packet["still_blocked_claims"]
+    assert template["blocked_claims_preserved"] is True
+    assert template["blocked_claims_snapshot"] == packet["still_blocked_claims"]
 
 
 def test_answer_intake_packet_keeps_stopped_project_firewall_closed() -> None:
@@ -155,4 +156,19 @@ def test_answer_intake_packet_loader_fails_closed_on_stopped_project_promotion(
     path.write_text(json.dumps(packet, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
     with pytest.raises(CityOpsContractError, match="autojob_work_allowed"):
+        load_aas_operator_answer_intake_packet(artifact_dir=tmp_path)
+
+
+def test_answer_intake_packet_loader_fails_closed_on_blocked_claim_template_drift(
+    tmp_path: Path,
+) -> None:
+    seed_sources(tmp_path)
+    path = write_aas_operator_answer_intake_packet(artifact_dir=tmp_path)
+    packet = json.loads(path.read_text(encoding="utf-8"))
+    packet["one_answer_intake_contract"]["future_receipt_template"][
+        "blocked_claims_preserved"
+    ] = packet["still_blocked_claims"]
+    path.write_text(json.dumps(packet, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+    with pytest.raises(CityOpsContractError, match="blocked-claim boolean drift"):
         load_aas_operator_answer_intake_packet(artifact_dir=tmp_path)

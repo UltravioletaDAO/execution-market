@@ -1883,7 +1883,8 @@
       "answer_receipt_id": "execution_market.aas.operator_answer.YYYY_MM_DD.<opaque_short_label>",
       "approval_evidence_ref": "",
       "approved_sections": [],
-      "blocked_claims_preserved": [
+      "blocked_claims_preserved": true,
+      "blocked_claims_snapshot": [
         "runtime_parity_proven",
         "reuse_behavior_proven",
         "closure_proof_ready",
@@ -3773,7 +3774,7 @@
   "schema": "city_ops.aas_operator_answer_intake_packet.v1",
   "scope": "internal_admin_future_answer_intake_only",
   "source_gate": {
-    "digest_sha256": "09009a8d980438ae9ca714244956ecc2944c1ae29dd5b28672daabe1e5a9343e",
+    "digest_sha256": "f0e73b49446ac79be9da823a65490987ad7eb08a36de048aa8a7ca810df45c76",
     "file": "aas_operator_answer_receipt_gate.json",
     "gate_status": "schema_gate_only_no_answer_no_approval_no_runtime_or_external_promotion",
     "safe_claim": "internal_admin_aas_operator_answer_receipt_gate_landed",

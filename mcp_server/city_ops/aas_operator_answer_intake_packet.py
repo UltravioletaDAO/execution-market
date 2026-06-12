@@ -237,7 +237,8 @@ def build_aas_operator_answer_intake_packet(
                 "redactions_passed": False,
                 "delivery_path_authorized": False,
                 "runtime_path_authorized": False,
-                "blocked_claims_preserved": do_not_claim_yet,
+                "blocked_claims_preserved": True,
+                "blocked_claims_snapshot": do_not_claim_yet,
                 "next_required_gate": "<derive_from_operator_answer_value>",
             },
         },
@@ -313,6 +314,11 @@ def _assert_aas_operator_answer_intake_packet(
             raise CityOpsContractError("answer intake packet next-gate drift")
     if contract.get("future_receipt_required_fields") != RECEIPT_REQUIRED_FIELDS:
         raise CityOpsContractError("answer intake packet required fields drift")
+    template = contract.get("future_receipt_template", {})
+    if template.get("blocked_claims_preserved") is not True:
+        raise CityOpsContractError("answer intake packet template blocked-claim boolean drift")
+    if template.get("blocked_claims_snapshot") != packet.get("still_blocked_claims"):
+        raise CityOpsContractError("answer intake packet template blocked-claim snapshot drift")
     if sorted(DISALLOWED_OPERATOR_REFERENCE_PATTERNS.keys()) != contract.get(
         "operator_reference_rules", {}
     ).get("disallowed_material"):
