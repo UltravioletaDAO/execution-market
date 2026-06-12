@@ -15,10 +15,12 @@ Run:
 """
 
 from decimal import Decimal
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from integrations.arbiter.consensus import DualRingConsensus
+from integrations.arbiter.providers import Ring2Response
 from integrations.arbiter.registry import (
     CATEGORY_CONFIGS,
     GENERIC_FALLBACK,
@@ -321,10 +323,14 @@ class TestDualRingConsensus:
         assert result.disagreement is False
 
     def test_standard_both_fail(self):
+        # C-12: ring2 votes via its decision (LLM `completed` verdict), not
+        # via score thresholds. The old default decision="pass" only produced
+        # FAIL because the buggy engine voted on score -- an LLM that scored
+        # completion this low would have returned completed=false.
         consensus = DualRingConsensus()
         result = consensus.decide(
             ring1_score=self._ring("ring1", 0.10),
-            ring2_scores=[self._ring("ring2_a", 0.15)],
+            ring2_scores=[self._ring("ring2_a", 0.15, decision="fail")],
             tier=ArbiterTier.STANDARD,
             config=self._config(),
         )
@@ -357,13 +363,17 @@ class TestDualRingConsensus:
         assert result.disagreement is False
 
     def test_max_2_of_3_pass_escalates(self):
-        """2/3 PASS is not enough -- escalate for review."""
+        """2/3 PASS is not enough -- escalate for review.
+
+        C-12: the ring2 dissenter must carry decision="fail" -- ring2 votes
+        come from the LLM verdict, not from the score field.
+        """
         consensus = DualRingConsensus()
         result = consensus.decide(
             ring1_score=self._ring("ring1", 0.90),
             ring2_scores=[
                 self._ring("ring2_a", 0.85),
-                self._ring("ring2_b", 0.20),  # dissenter
+                self._ring("ring2_b", 0.20, decision="fail"),  # dissenter
             ],
             tier=ArbiterTier.MAX,
             config=self._config(),
@@ -372,12 +382,16 @@ class TestDualRingConsensus:
         assert result.disagreement is True
 
     def test_max_2_of_3_fail_conservative_refund(self):
-        """2/3 FAIL -> conservative refund (don't bother escalating)."""
+        """2/3 FAIL -> conservative refund (don't bother escalating).
+
+        C-12: ring2_a must carry decision="fail" to be a FAIL vote -- with
+        the old buggy engine its 0.15 score alone counted as the fail vote.
+        """
         consensus = DualRingConsensus()
         result = consensus.decide(
             ring1_score=self._ring("ring1", 0.10),
             ring2_scores=[
-                self._ring("ring2_a", 0.15),
+                self._ring("ring2_a", 0.15, decision="fail"),
                 self._ring("ring2_b", 0.90),  # dissenter
             ],
             tier=ArbiterTier.MAX,
@@ -397,6 +411,226 @@ class TestDualRingConsensus:
         )
         # Should still produce a sensible verdict
         assert result.decision == ArbiterDecision.PASS
+
+
+# ============================================================================
+# C-12 regression: Ring 2 votes derive from the LLM verdict, not confidence
+# (Rings Verification audit 2026-06-11)
+# ============================================================================
+
+
+class TestC12RingVoting:
+    """Ring 2 votes must come from `decision` (the LLM's `completed` verdict).
+
+    Before the C-12 fix, the consensus engine voted ring2 via score
+    thresholds while service.py stored raw LLM confidence as the score,
+    so {completed: false, confidence: 0.9} was counted as a 0.9 PASS vote.
+    Confidence is ONLY the weight of the vote (it scales the consensus
+    confidence), never the vote itself.
+    """
+
+    def _config(self):
+        return ArbiterConfig(
+            category="test",
+            pass_threshold=0.80,
+            fail_threshold=0.30,
+        )
+
+    def _ring(self, ring, score, decision="pass", confidence=0.85):
+        return RingScore(
+            ring=ring,
+            score=score,
+            decision=decision,
+            confidence=confidence,
+            provider="test",
+            model="test",
+        )
+
+    def test_standard_confident_fail_is_a_fail_vote_even_with_high_score(self):
+        """The exact C-12 shape: ring2 with score=0.9 but decision="fail".
+
+        The buggy engine voted PASS (0.9 >= pass_threshold) and produced an
+        inverted both-PASS verdict. The decision field must win: ring1 PASS
+        vs ring2 FAIL is a disagreement, never PASS.
+        """
+        consensus = DualRingConsensus()
+        result = consensus.decide(
+            ring1_score=self._ring("ring1", 0.90, decision="pass", confidence=0.9),
+            ring2_scores=[self._ring("ring2_a", 0.90, decision="fail", confidence=0.9)],
+            tier=ArbiterTier.STANDARD,
+            config=self._config(),
+        )
+        assert result.decision != ArbiterDecision.PASS
+        assert result.decision == ArbiterDecision.INCONCLUSIVE
+        assert result.disagreement is True
+
+    def test_standard_confident_fail_with_failing_ring1_is_fail(self):
+        """{completed: false, confidence: 0.9} + failing Ring 1 -> FAIL.
+
+        With the bug, the ring2 confidence (0.9) read as a PASS vote and
+        forced a disagreement escalation instead of the correct FAIL.
+        """
+        consensus = DualRingConsensus()
+        result = consensus.decide(
+            ring1_score=self._ring("ring1", 0.10, decision="fail", confidence=0.9),
+            ring2_scores=[self._ring("ring2_a", 0.10, decision="fail", confidence=0.9)],
+            tier=ArbiterTier.STANDARD,
+            config=self._config(),
+        )
+        assert result.decision == ArbiterDecision.FAIL
+        assert result.disagreement is False
+
+    def test_standard_low_confidence_pass_still_votes_pass(self):
+        """completed=true with low confidence is still a PASS vote.
+
+        Confidence only lowers the consensus confidence (vote weight); it
+        cannot flip or void the vote. The buggy engine would have read the
+        0.60 score as inconclusive and escalated.
+        """
+        consensus = DualRingConsensus()
+        result = consensus.decide(
+            ring1_score=self._ring("ring1", 0.90, decision="pass", confidence=0.9),
+            ring2_scores=[
+                self._ring("ring2_a", 0.60, decision="pass", confidence=0.60)
+            ],
+            tier=ArbiterTier.STANDARD,
+            config=self._config(),
+        )
+        assert result.decision == ArbiterDecision.PASS
+        # Confidence is the weight: avg(0.9, 0.6) boosted by agreement (x1.1)
+        assert result.confidence == pytest.approx(0.75 * 1.1)
+
+    def test_max_mixed_votes_high_confidence_dissent_counts_once(self):
+        """MAX: a 0.99-confidence FAIL dissent is exactly ONE vote.
+
+        2/3 PASS escalates; the dissenter's confidence weighs the consensus
+        confidence (avg * 0.7) but cannot override the vote count.
+        """
+        consensus = DualRingConsensus()
+        result = consensus.decide(
+            ring1_score=self._ring("ring1", 0.90, decision="pass", confidence=0.9),
+            ring2_scores=[
+                self._ring("ring2_a", 0.95, decision="pass", confidence=0.95),
+                self._ring("ring2_b", 0.01, decision="fail", confidence=0.99),
+            ],
+            tier=ArbiterTier.MAX,
+            config=self._config(),
+        )
+        assert result.decision == ArbiterDecision.INCONCLUSIVE
+        assert result.disagreement is True
+        avg_conf = (0.9 + 0.95 + 0.99) / 3
+        assert result.confidence == pytest.approx(avg_conf * 0.7)
+
+    def test_max_mixed_votes_2_fail_1_pass_is_fail(self):
+        """MAX: 2/3 FAIL (both LLM verdicts) -> conservative FAIL, weighted."""
+        consensus = DualRingConsensus()
+        result = consensus.decide(
+            ring1_score=self._ring("ring1", 0.90, decision="pass", confidence=0.9),
+            ring2_scores=[
+                self._ring("ring2_a", 0.20, decision="fail", confidence=0.80),
+                self._ring("ring2_b", 0.10, decision="fail", confidence=0.90),
+            ],
+            tier=ArbiterTier.MAX,
+            config=self._config(),
+        )
+        assert result.decision == ArbiterDecision.FAIL
+        assert result.disagreement is True
+        avg_conf = (0.9 + 0.80 + 0.90) / 3
+        assert result.confidence == pytest.approx(avg_conf * 0.8)
+
+
+class TestC12ServiceVerdictUsage:
+    """End-to-end C-12 regression through ArbiterService.evaluate().
+
+    Verifies service.py maps the LLM response to a directional RingScore:
+    vote from `completed`, score = confidence if completed else 1-confidence,
+    confidence preserved as the vote weight.
+    """
+
+    def _mock_provider(self, completed: bool, confidence: float):
+        resp = Ring2Response(
+            completed=completed,
+            confidence=confidence,
+            reason="Evidence verified" if completed else "Evidence contradicts task",
+            model="test-model",
+            provider="test",
+            cost_usd=0.001,
+        )
+        provider = AsyncMock()
+        provider.evaluate = AsyncMock(return_value=resp)
+        return provider
+
+    @pytest.mark.asyncio
+    async def test_confident_llm_fail_never_produces_pass(self):
+        """{completed: false, confidence: 0.9} must NOT produce PASS.
+
+        This is the inverted verdict from the audit: Ring 1 passes, the LLM
+        confidently says NOT completed. The buggy pipeline scored ring2 at
+        0.9 (raw confidence) and returned PASS; correct behavior is a ring
+        disagreement -> INCONCLUSIVE escalation.
+        """
+        service = ArbiterService.from_defaults()
+        task = {"id": "t-c12-1", "category": "physical_presence", "bounty_usd": 5.0}
+        submission = {
+            "id": "s-c12-1",
+            "evidence": {"photo": "url"},
+            "auto_check_details": {"score": 0.92},
+            "ai_verification_result": {"score": 0.88},
+        }
+        with patch(
+            "integrations.arbiter.providers.get_ring2_provider",
+            return_value=self._mock_provider(completed=False, confidence=0.9),
+        ):
+            verdict = await service.evaluate(task, submission)
+
+        assert verdict.decision != ArbiterDecision.PASS
+        assert verdict.decision == ArbiterDecision.INCONCLUSIVE
+        assert verdict.disagreement is True
+        ring2 = next(rs for rs in verdict.ring_scores if rs.ring == "ring2_primary")
+        assert ring2.decision == "fail"
+        assert ring2.score == pytest.approx(0.1)  # directional: 1 - 0.9, NOT 0.9
+        assert ring2.confidence == pytest.approx(0.9)  # weight preserved
+
+    @pytest.mark.asyncio
+    async def test_confident_llm_fail_with_failing_ring1_is_fail(self):
+        """{completed: false, confidence: 0.9} + failing PHOTINT -> FAIL."""
+        service = ArbiterService.from_defaults()
+        task = {"id": "t-c12-2", "category": "physical_presence", "bounty_usd": 5.0}
+        submission = {
+            "id": "s-c12-2",
+            "evidence": {"photo": "url"},
+            "auto_check_details": {"score": 0.10},
+            "ai_verification_result": {"score": 0.15},
+        }
+        with patch(
+            "integrations.arbiter.providers.get_ring2_provider",
+            return_value=self._mock_provider(completed=False, confidence=0.9),
+        ):
+            verdict = await service.evaluate(task, submission)
+
+        assert verdict.decision == ArbiterDecision.FAIL
+
+    @pytest.mark.asyncio
+    async def test_confident_llm_pass_is_pass(self):
+        """{completed: true, confidence: 0.9} + passing PHOTINT -> PASS."""
+        service = ArbiterService.from_defaults()
+        task = {"id": "t-c12-3", "category": "physical_presence", "bounty_usd": 5.0}
+        submission = {
+            "id": "s-c12-3",
+            "evidence": {"photo": "url"},
+            "auto_check_details": {"score": 0.92},
+            "ai_verification_result": {"score": 0.88},
+        }
+        with patch(
+            "integrations.arbiter.providers.get_ring2_provider",
+            return_value=self._mock_provider(completed=True, confidence=0.9),
+        ):
+            verdict = await service.evaluate(task, submission)
+
+        assert verdict.decision == ArbiterDecision.PASS
+        ring2 = next(rs for rs in verdict.ring_scores if rs.ring == "ring2_primary")
+        assert ring2.decision == "pass"
+        assert ring2.score == pytest.approx(0.9)  # directional: confidence as-is
 
 
 # ============================================================================

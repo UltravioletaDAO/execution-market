@@ -383,10 +383,11 @@ class ArbiterService:
             _t0 = time.monotonic()
             result = await primary.evaluate(prompt, tier)
             _latency = int((time.monotonic() - _t0) * 1000)
+            primary_score = self._verdict_score(result.completed, result.confidence)
             scores.append(
                 RingScore(
                     ring="ring2_primary",
-                    score=result.confidence,
+                    score=primary_score,
                     decision="pass" if result.completed else "fail",
                     confidence=result.confidence,
                     provider=result.provider,
@@ -412,7 +413,7 @@ class ArbiterService:
                     {
                         "provider": result.provider,
                         "decision": "pass" if result.completed else "fail",
-                        "score": round(result.confidence, 4),
+                        "score": round(primary_score, 4),
                         "latency_ms": _latency,
                     },
                 )
@@ -448,10 +449,13 @@ class ArbiterService:
                 _t1 = time.monotonic()
                 result2 = await secondary.evaluate(prompt, tier)
                 _latency2 = int((time.monotonic() - _t1) * 1000)
+                secondary_score = self._verdict_score(
+                    result2.completed, result2.confidence
+                )
                 scores.append(
                     RingScore(
                         ring="ring2_secondary",
-                        score=result2.confidence,
+                        score=secondary_score,
                         decision="pass" if result2.completed else "fail",
                         confidence=result2.confidence,
                         provider=result2.provider,
@@ -477,7 +481,7 @@ class ArbiterService:
                         {
                             "provider": result2.provider,
                             "decision": "pass" if result2.completed else "fail",
-                            "score": round(result2.confidence, 4),
+                            "score": round(secondary_score, 4),
                             "latency_ms": _latency2,
                         },
                     )
@@ -503,6 +507,18 @@ class ArbiterService:
             )
 
         return scores
+
+    @staticmethod
+    def _verdict_score(completed: bool, confidence: float) -> float:
+        """Map an LLM verdict to a directional 0-1 score (C-12 fix).
+
+        The LLM's `completed` boolean IS the verdict; `confidence` is only
+        how strongly the LLM holds it. A confident FAIL must map to a LOW
+        score (1 - confidence). Using raw confidence as the score inverted
+        verdicts: {completed: false, confidence: 0.9} read as a 0.9 PASS.
+        """
+        conf = min(1.0, max(0.0, float(confidence)))
+        return conf if completed else 1.0 - conf
 
     @staticmethod
     def _extract_ring1_for_prompt(submission: Dict[str, Any]) -> Dict[str, Any]:

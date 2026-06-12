@@ -276,6 +276,29 @@ class DualRingConsensus:
     # Tier-specific decision logic (original V1 — kept for backward compat)
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _ring_vote(score: RingScore, config: ArbiterConfig) -> str:
+        """Derive a ring's vote: "pass" | "fail" | "inconclusive".
+
+        C-12 fix: Ring 2 (LLM) votes with its verdict — the `decision`
+        field derived from the LLM's `completed` boolean. Confidence is
+        ONLY the weight of the vote (it feeds the consensus confidence),
+        never a pass score: {completed: false, confidence: 0.9} must be
+        a FAIL vote, not a "0.9 >= pass_threshold" PASS.
+
+        Ring 1 (PHOTINT) has no boolean verdict, so it keeps voting via
+        the per-category score thresholds.
+        """
+        if score.ring.startswith("ring2"):
+            if score.decision in ("pass", "fail"):
+                return score.decision
+            return "inconclusive"
+        if score.score >= config.pass_threshold:
+            return "pass"
+        if score.score <= config.fail_threshold:
+            return "fail"
+        return "inconclusive"
+
     def _decide_cheap(
         self,
         ring1: RingScore,
@@ -318,10 +341,12 @@ class DualRingConsensus:
         config: ArbiterConfig,
     ) -> ConsensusResult:
         """STANDARD tier: Ring 1 + 1 Ring 2 inference. Both must agree."""
-        ring1_pass = ring1.score >= config.pass_threshold
-        ring2_pass = ring2.score >= config.pass_threshold
-        ring1_fail = ring1.score <= config.fail_threshold
-        ring2_fail = ring2.score <= config.fail_threshold
+        ring1_vote = self._ring_vote(ring1, config)
+        ring2_vote = self._ring_vote(ring2, config)
+        ring1_pass = ring1_vote == "pass"
+        ring2_pass = ring2_vote == "pass"
+        ring1_fail = ring1_vote == "fail"
+        ring2_fail = ring2_vote == "fail"
 
         # Weighted aggregate (equal weight for both rings in STANDARD)
         agg = (ring1.score + ring2.score) / 2.0
@@ -381,8 +406,9 @@ class DualRingConsensus:
     ) -> ConsensusResult:
         """MAX tier: 3-way vote (Ring 1 + 2 Ring 2 inferences from different providers)."""
         scores = [ring1, ring2_a, ring2_b]
-        votes_pass = sum(1 for s in scores if s.score >= config.pass_threshold)
-        votes_fail = sum(1 for s in scores if s.score <= config.fail_threshold)
+        votes = [self._ring_vote(s, config) for s in scores]
+        votes_pass = votes.count("pass")
+        votes_fail = votes.count("fail")
 
         agg = sum(s.score for s in scores) / 3.0
         avg_conf = sum(s.confidence for s in scores) / 3.0
