@@ -891,10 +891,17 @@ async def verify_worker_auth(
             from supabase_client import get_client
 
             client = get_client()
+            # One session can own SEVERAL executor rows (external + embedded
+            # wallets, each bound via POST /account/link-wallet). Order by last
+            # activity so the pick is deterministic (mirrors verify_jwt_auth in
+            # api/h2a.py); _enforce_worker_identity/resolve_worker_identity
+            # accept any SIBLING executor of the same user when the body names
+            # one explicitly.
             result = (
                 client.table("executors")
                 .select("id, wallet_address")
                 .eq("user_id", user_id)
+                .order("updated_at", desc=True)
                 .limit(1)
                 .execute()
             )
@@ -950,6 +957,44 @@ async def verify_worker_auth(
         return None
 
 
+def _executor_belongs_to_user(executor_id: str, user_id: Optional[str]) -> bool:
+    """True when the executors row ``executor_id`` is bound to ``user_id``.
+
+    One Supabase session can legitimately own SEVERAL executor profiles
+    (external + embedded wallets, each bound via the signed challenge in
+    POST /account/link-wallet). The JWT lookup in ``verify_worker_auth`` picks
+    only one of them, so a body executor_id naming a SIBLING executor of the
+    same authenticated user is NOT identity spoofing — the link-wallet
+    signature already proved ownership of both rows. Fail-closed: any lookup
+    error returns False and the caller keeps its 403.
+    """
+    if not (executor_id and user_id):
+        return False
+    try:
+        from supabase_client import get_client
+
+        result = (
+            get_client()
+            .table("executors")
+            .select("id")
+            .eq("id", executor_id)
+            .eq("user_id", user_id)
+            .limit(1)
+            .execute()
+        )
+        # isinstance guard is load-bearing: mocked DB clients return truthy
+        # MagicMocks for .data — only a real non-empty list counts.
+        data = getattr(result, "data", None)
+        return isinstance(data, list) and bool(data)
+    except Exception as e:
+        logger.warning(
+            "Same-user executor check failed for executor %s: %s",
+            executor_id[:8],
+            e,
+        )
+        return False
+
+
 def _enforce_worker_identity(
     worker_auth: Optional[WorkerAuth],
     body_executor_id: str,
@@ -1003,6 +1048,18 @@ def _enforce_worker_identity(
             headers={"WWW-Authenticate": "Bearer"},
         )
     if body_executor_id and worker_auth.executor_id != body_executor_id:
+        # Multi-executor session: the body may name a sibling executor of the
+        # SAME authenticated user (verify_worker_auth's limit-1 pick is only
+        # one of the user's profiles). Verified against the DB, fail-closed.
+        if _executor_belongs_to_user(body_executor_id, worker_auth.user_id):
+            logger.info(
+                "SECURITY_AUDIT action=worker_auth.same_user_executor "
+                "jwt=%s body=%s path=%s",
+                worker_auth.executor_id[:8],
+                body_executor_id[:8],
+                request_path,
+            )
+            return body_executor_id
         logger.warning(
             "SECURITY_AUDIT action=worker_auth.mismatch jwt=%s body=%s path=%s",
             worker_auth.executor_id[:8],
@@ -1043,6 +1100,19 @@ async def resolve_worker_identity(
     # Path 1: verified worker JWT.
     if worker_auth is not None:
         if body_executor_id and worker_auth.executor_id != body_executor_id:
+            # Multi-executor session: accept a sibling executor of the SAME
+            # authenticated user (see _executor_belongs_to_user). Without this
+            # a user with two linked wallets gets a hard 403 on apply/submit
+            # whenever the limit-1 JWT lookup picks the other profile.
+            if _executor_belongs_to_user(body_executor_id, worker_auth.user_id):
+                logger.info(
+                    "SECURITY_AUDIT action=worker_auth.same_user_executor "
+                    "jwt=%s body=%s path=%s",
+                    worker_auth.executor_id[:8],
+                    body_executor_id[:8],
+                    request.url.path,
+                )
+                return body_executor_id
             logger.warning(
                 "SECURITY_AUDIT action=worker_auth.mismatch jwt=%s body=%s path=%s",
                 worker_auth.executor_id[:8],
