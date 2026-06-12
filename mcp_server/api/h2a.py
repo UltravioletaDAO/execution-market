@@ -1397,6 +1397,21 @@ async def approve_h2a_submission(
             )
 
         if request.verdict == "accepted":
+            # Reputation enforcement (Phase 5): the publisher MUST rate the
+            # worker (1-5 stars) to approve+pay. On-chain bidirectional
+            # reputation is what makes the market trustless — it is NOT
+            # optional. Escape hatch for incident response only:
+            # EM_H2A_REQUIRE_RATING=false.
+            require_rating = os.environ.get(
+                "EM_H2A_REQUIRE_RATING", "true"
+            ).lower() not in ("false", "0", "no")
+            if require_rating and request.worker_score is None:
+                raise HTTPException(
+                    status_code=422,
+                    detail="A worker rating (worker_score, 1-5) is required "
+                    "to approve and pay.",
+                )
+
             # Anti-self-collusion (F-04): the worker being paid must not be the
             # publisher paying. Same guard style as SC-010 in payment_dispatcher
             # (worker != treasury/operator/payer). Blocks a publisher from
