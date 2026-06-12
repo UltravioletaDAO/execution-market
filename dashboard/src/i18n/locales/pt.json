@@ -2259,6 +2259,7 @@
       "escrow": {
         "confirmAssign": "Atribuir este worker? ${{amount}} USDC serão bloqueados em escrow para ele até você aprovar o trabalho.",
         "switchNetwork": "Mude sua wallet para {{network}} (chain {{chainId}}) e tente novamente.",
+        "wrongWallet": "Esta tarefa foi publicada com a wallet {{wallet}} — mude para ela no widget de wallet e tente novamente.",
         "connectWallet": "Conecte uma wallet EVM para assinar o bloqueio em escrow.",
         "noWorkerWallet": "Este candidato não tem wallet vinculada.",
         "configUnavailable": "A configuração de escrow não está disponível para esta rede.",

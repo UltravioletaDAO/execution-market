@@ -751,8 +751,9 @@ async def list_h2a_tasks(
 )
 async def get_h2a_task(
     task_id: str = Path(..., min_length=36, max_length=36),
+    authorization: Optional[str] = Header(None),
 ):
-    """Get details of an H2A task (public)."""
+    """Get details of an H2A task (public; owners see their payer wallet)."""
     try:
         client = db.get_client()
         result = (
@@ -772,8 +773,21 @@ async def get_h2a_task(
         if task.get("publisher_type") != "human":
             raise HTTPException(status_code=404, detail="Not an H2A task")
 
+        # The OWNER keeps human_wallet: the escrow lock must be signed by the
+        # exact wallet that published (the registered payer) — the dashboard
+        # needs it to pick/verify the signing wallet at assignment. Best-effort
+        # auth: anonymous viewers get the public (stripped) shape.
+        is_owner = False
+        if authorization:
+            try:
+                _viewer = await verify_jwt_auth(authorization)
+                is_owner = _h2a_is_owner(task, _viewer)
+            except Exception:
+                is_owner = False
+
         # Strip PII from public view
-        task.pop("human_wallet", None)
+        if not is_owner:
+            task.pop("human_wallet", None)
         task.pop("human_user_id", None)
 
         # Expose escrow state so the frontend can detect escrow-mode /

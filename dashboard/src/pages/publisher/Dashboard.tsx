@@ -79,6 +79,17 @@ function Applicants({ task, onAssigned }: { task: Task; onAssigned: () => void }
     if (!primaryWallet || !isEthereumWallet(primaryWallet)) {
       throw new Error(t('publisher.dashboard.escrow.connectWallet', 'Connect an EVM wallet to sign the escrow lock.'))
     }
+    // The escrow must be signed by the EXACT wallet that published the task
+    // (the registered payer in the marker; the lock debits the signer). With
+    // multiple wallets in Dynamic, the active one can differ — fail with a
+    // clear pointer instead of the server's authorization.from mismatch.
+    const taskPayer = (detail.human_wallet || '').toLowerCase()
+    if (taskPayer && primaryWallet.address.toLowerCase() !== taskPayer) {
+      const short = `${detail.human_wallet!.slice(0, 6)}…${detail.human_wallet!.slice(-4)}`
+      throw new Error(t('publisher.dashboard.escrow.wrongWallet',
+        'This task was published with wallet {{wallet}} — switch to it in the wallet widget and retry.',
+        { wallet: short }))
+    }
     const network = detail.payment_network || 'base'
     const cfg = await getH2APaymentConfig()
     const netCfg = cfg.escrow_networks?.[network]

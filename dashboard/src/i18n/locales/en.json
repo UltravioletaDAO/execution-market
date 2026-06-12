@@ -2741,6 +2741,7 @@
       "escrow": {
         "confirmAssign": "Assign this worker? ${{amount}} USDC will be locked in escrow for them until you approve the work.",
         "switchNetwork": "Switch your wallet to {{network}} (chain {{chainId}}) and retry.",
+        "wrongWallet": "This task was published with wallet {{wallet}} — switch to it in the wallet widget and retry.",
         "connectWallet": "Connect an EVM wallet to sign the escrow lock.",
         "noWorkerWallet": "This applicant has no wallet address linked.",
         "configUnavailable": "Escrow configuration is not available for this network.",

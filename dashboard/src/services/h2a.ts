@@ -46,7 +46,12 @@ export async function listH2ATasks(p: { status?: string; category?: string; my_t
 }
 
 export async function getH2ATask(id: string): Promise<Task> {
-  const r = await fetch(h2a(`/tasks/${id}`)); if (!r.ok) throw new Error(`Get failed: ${r.status}`); return r.json()
+  // Best-effort auth: owners get human_wallet back (the registered escrow
+  // payer — needed to verify the signing wallet at assignment); anonymous
+  // viewers get the public stripped shape.
+  const t = await token()
+  const r = await fetch(h2a(`/tasks/${id}`), t ? { headers: ah(t) } : undefined)
+  if (!r.ok) throw new Error(`Get failed: ${r.status}`); return r.json()
 }
 
 export async function getH2ASubmissions(id: string) {
