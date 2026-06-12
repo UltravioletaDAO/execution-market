@@ -1202,17 +1202,48 @@ async def submit_work(
                 f"(status: {esc_status}). Wait for the agent to fund this task."
             )
 
-    # Create submission
-    # Bug fix: removed 'notes' field — it doesn't exist in the submissions table schema.
-    # Also removed the retry-with-column-removal workaround that was masking the issue.
-    submission_data = {
-        "task_id": task_id,
-        "executor_id": executor_id,
+    # Create or update the submission.
+    # A unique constraint (submissions_task_id_executor_id_key) gives each
+    # worker exactly ONE submission per task. When the publisher requests a
+    # revision the task goes back to in_progress with the submission still
+    # present (agent_verdict='more_info_requested'); the worker then resubmits
+    # the corrected evidence by UPDATING that row — a blind INSERT here would
+    # violate the constraint and 500 (the revision flow's dead end).
+    # 'notes' is intentionally omitted — it isn't a column on submissions.
+    submission_fields = {
         "evidence": evidence,
         "submitted_at": datetime.now(timezone.utc).isoformat(),
         "agent_verdict": "pending",
     }
-    result = client.table("submissions").insert(submission_data).execute()
+    existing = (
+        client.table("submissions")
+        .select("id")
+        .eq("task_id", task_id)
+        .eq("executor_id", executor_id)
+        .limit(1)
+        .execute()
+    )
+    if existing.data:
+        # Resubmission: refresh the existing row. The auto-check fields are
+        # overwritten right after by the verification pipeline.
+        result = (
+            client.table("submissions")
+            .update(submission_fields)
+            .eq("id", existing.data[0]["id"])
+            .execute()
+        )
+    else:
+        result = (
+            client.table("submissions")
+            .insert(
+                {
+                    "task_id": task_id,
+                    "executor_id": executor_id,
+                    **submission_fields,
+                }
+            )
+            .execute()
+        )
 
     if result.data and len(result.data) > 0:
         # Update task status

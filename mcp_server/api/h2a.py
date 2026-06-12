@@ -1320,7 +1320,9 @@ async def approve_h2a_submission(
         # re-POSTed as 'accepted' and paid (the task may still be in a
         # processable status). Mirrors the A2A guard in routers/submissions.py.
         # 'more_info_requested' is intentionally NOT blocked — it's an
-        # intermediate state and the worker re-submits as a NEW submission.
+        # intermediate state; the worker resubmits by updating this same
+        # submission (its verdict resets to 'pending') and the publisher
+        # reviews the refreshed evidence.
         prior_verdict = submission.get("agent_verdict")
         if prior_verdict in ("accepted", "rejected"):
             raise HTTPException(

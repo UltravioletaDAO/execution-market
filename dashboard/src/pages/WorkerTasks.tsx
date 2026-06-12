@@ -8,6 +8,7 @@ import { usePublicMetrics } from '../hooks/usePublicMetrics'
 import { TaskList, CategoryFilter } from '../components/TaskList'
 import { TaskDetail } from '../components/TaskDetail'
 import { SubmissionForm } from '../components/SubmissionForm'
+import { WorkerTaskProgress } from '../components/WorkerTaskProgress'
 import { PaymentStatus } from '../components/PaymentStatus'
 import type { VerificationResponse } from '../services/submissions'
 import type { Task, TaskCategory } from '../types/database'
@@ -214,6 +215,10 @@ export function WorkerTasks() {
             onBack={handleBack}
             onAccept={handleTaskAccepted}
           />
+
+          {executor && selectedTask.executor_id === executor.id && (
+            <WorkerTaskProgress task={selectedTask} executorId={executor.id} />
+          )}
 
           {['accepted', 'in_progress'].includes(selectedTask.status) &&
             selectedTask.executor_id === executor?.id && (

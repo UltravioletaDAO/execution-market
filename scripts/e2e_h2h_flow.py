@@ -1235,6 +1235,61 @@ async def phase_approve_release(
 
 
 # ---------------------------------------------------------------------------
+# Phase R: Request revision -> task back to in_progress, escrow untouched
+# ---------------------------------------------------------------------------
+async def phase_request_revision(
+    client: httpx.AsyncClient,
+    results: H2HFlowResults,
+    jwt: str,
+    task_id: str,
+    submission_id: str,
+) -> PhaseResult:
+    """Publisher asks for revision -> task in_progress, escrow stays locked."""
+    phase = PhaseResult("request_revision", "Request Revision (escrow untouched)")
+    _print_header("PHASE R: REQUEST REVISION")
+    try:
+        print("  [1/2] Requesting revision (verdict=needs_revision)...")
+        data = await api_call(
+            client,
+            "POST",
+            f"/h2a/tasks/{task_id}/approve",
+            {
+                "submission_id": submission_id,
+                "verdict": "needs_revision",
+                "notes": "H2H Flow E2E -- please add the missing detail and resubmit",
+            },
+            jwt=jwt,
+        )
+        status = data.get("_http_status")
+        print(f"         Revision: HTTP {status}")
+        if status != 200:
+            err = data.get("detail", str(data)[:300])
+            return phase.fail(f"Revision request failed: HTTP {status} - {err}")
+
+        print("  [2/2] Verifying task -> in_progress + escrow intact...")
+        detail = await api_call(client, "GET", f"/h2a/tasks/{task_id}")
+        task_status = detail.get("status")
+        escrow_status = (detail.get("escrow_status") or "").lower()
+        print(f"         task status:   {task_status}")
+        print(f"         escrow_status: {escrow_status}")
+
+        if task_status != "in_progress":
+            return phase.fail(
+                f"Expected task 'in_progress' after revision, got '{task_status}'"
+            )
+        # Revision must NOT release or refund — the worker still has the funds
+        # locked while they fix the submission.
+        if escrow_status in RELEASED_ESCROW_STATUSES or escrow_status == "refunded":
+            return phase.fail(
+                f"Escrow must stay locked on revision, but is '{escrow_status}'"
+            )
+        return phase.pass_(task_status=task_status, escrow_status=escrow_status)
+
+    except Exception as e:
+        return phase.fail(f"Unexpected error: {e}")
+
+
+# ---------------------------------------------------------------------------
 # Phase 8R: Cancel -> escrow refund (--refund mode)
 # ---------------------------------------------------------------------------
 async def phase_cancel_refund(
@@ -1510,6 +1565,15 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
         help="Refund cycle: publish -> apply -> assign+lock -> cancel -> refund",
     )
     parser.add_argument(
+        "--revision",
+        action="store_true",
+        help=(
+            "Revision cycle: publish -> assign+lock -> submit -> needs_revision "
+            "-> resubmit -> cancel+refund (net $0, escrow stays locked through "
+            "the revision)"
+        ),
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Offline: exercise arg parsing + wrapper construction/validation",
@@ -1521,7 +1585,7 @@ async def run_flow(args: argparse.Namespace) -> int:
     global API_BASE
     API_BASE = args.api_url.rstrip("/")
     bounty = args.bounty
-    mode = "refund" if args.refund else "full"
+    mode = "refund" if args.refund else "revision" if args.revision else "full"
 
     print("=" * 72)
     print("  H2H FLOW -- E2E Human-Publisher Escrow Cycle (sign-on-assignment)")
@@ -1611,17 +1675,36 @@ async def run_flow(args: argparse.Namespace) -> int:
 
             await asyncio.sleep(2)
 
-            # Phase 8: Approve -> release (no signatures)
-            p8 = await phase_approve_release(
-                client,
-                results,
-                jwt,
-                task_id,
-                submission_id,
-                worker_wallet,
-                bounty,
-            )
-            results.add(p8)
+            if args.revision:
+                # Phase R: needs_revision -> in_progress, escrow stays locked
+                pr = await phase_request_revision(
+                    client, results, jwt, task_id, submission_id
+                )
+                results.add(pr)
+                if pr.status != "FAIL":
+                    await asyncio.sleep(2)
+                    # Worker resubmits the fixed evidence
+                    p7b = await phase_submit(
+                        client, results, task_id, executor_id, worker_jwt
+                    )
+                    results.add(p7b)
+                    await asyncio.sleep(3)
+                # Recover the still-locked funds (net $0) — the revision path
+                # never releases, so a refund closes the cycle cleanly.
+                pc = await phase_cancel_refund(client, results, jwt, task_id, bounty)
+                results.add(pc)
+            else:
+                # Phase 8: Approve -> release (no signatures)
+                p8 = await phase_approve_release(
+                    client,
+                    results,
+                    jwt,
+                    task_id,
+                    submission_id,
+                    worker_wallet,
+                    bounty,
+                )
+                results.add(p8)
 
     _print_summary(results, bounty, mode)
     _save_report(results, bounty, mode)

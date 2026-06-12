@@ -246,6 +246,10 @@ async def test_submit_work_allows_funded_escrow(monkeypatch):
     insert_chain.execute.return_value = insert_result
     submissions_chain = MagicMock()
     submissions_chain.insert.return_value = insert_chain
+    # Existence check (select ... limit 1) returns nothing -> INSERT path.
+    no_prior = MagicMock()
+    no_prior.data = []
+    submissions_chain.select.return_value.eq.return_value.eq.return_value.limit.return_value.execute.return_value = no_prior
 
     # --- Wire up table router ---
     _mock_table_router(
@@ -271,6 +275,85 @@ async def test_submit_work_allows_funded_escrow(monkeypatch):
         assert result is not None
         assert "submission" in result
         assert result["submission"]["id"] == sub_id
+
+
+# =============================================================================
+# Test 3b: resubmission after a revision UPDATEs the existing row
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_submit_work_resubmits_after_revision(monkeypatch):
+    """
+    After needs_revision (task back to in_progress, the worker's submission
+    still present), resubmitting must UPDATE the existing row — never INSERT a
+    duplicate. A blind INSERT violates submissions_task_id_executor_id_key
+    (23505) and the worker gets a 500: the revision flow's dead end.
+    """
+    monkeypatch.setenv("EM_PAYMENT_MODE", "fase2")
+
+    task = _make_task(status="in_progress")
+    task_id = task["id"]
+    sub_id = str(uuid.uuid4())
+
+    mock_client = MagicMock()
+
+    # --- Escrow funded (deposited) so submission is allowed ---
+    escrow_result = MagicMock()
+    escrow_result.data = [{"status": "deposited", "expires_at": None}]
+    escrow_chain = MagicMock()
+    escrow_chain.select.return_value = escrow_chain
+    escrow_chain.eq.return_value = escrow_chain
+    escrow_chain.limit.return_value = escrow_chain
+    escrow_chain.execute.return_value = escrow_result
+
+    submissions_chain = MagicMock()
+    # Existence check finds the prior submission -> UPDATE path.
+    prior = MagicMock()
+    prior.data = [{"id": sub_id}]
+    submissions_chain.select.return_value.eq.return_value.eq.return_value.limit.return_value.execute.return_value = prior
+    # UPDATE returns the refreshed row.
+    update_result = MagicMock()
+    update_result.data = [
+        {
+            "id": sub_id,
+            "task_id": task_id,
+            "executor_id": task["executor_id"],
+            "evidence": {"text_response": "corrected answer"},
+            "agent_verdict": "pending",
+            "submitted_at": datetime.now(timezone.utc).isoformat(),
+        }
+    ]
+    submissions_chain.update.return_value.eq.return_value.execute.return_value = (
+        update_result
+    )
+    # A duplicate INSERT must never run on a resubmit.
+    submissions_chain.insert.side_effect = AssertionError(
+        "INSERT must not run on resubmit — it would violate the unique constraint"
+    )
+
+    _mock_table_router(
+        mock_client,
+        {"escrows": escrow_chain, "submissions": submissions_chain},
+    )
+
+    with (
+        patch("supabase_client.get_client", return_value=mock_client),
+        patch("supabase_client.get_task", new_callable=AsyncMock, return_value=task),
+        patch("supabase_client.update_task", new_callable=AsyncMock, return_value=task),
+    ):
+        from supabase_client import submit_work
+
+        result = await submit_work(
+            task_id=task_id,
+            executor_id=task["executor_id"],
+            evidence={"text_response": "corrected answer"},
+        )
+
+        assert result is not None
+        assert result["submission"]["id"] == sub_id
+        submissions_chain.update.assert_called_once()
+        submissions_chain.insert.assert_not_called()
 
 
 # =============================================================================
@@ -396,6 +479,10 @@ async def test_submit_work_skips_validation_in_fase1(monkeypatch):
     insert_chain.execute.return_value = insert_result
     submissions_chain = MagicMock()
     submissions_chain.insert.return_value = insert_chain
+    # Existence check (select ... limit 1) returns nothing -> INSERT path.
+    no_prior = MagicMock()
+    no_prior.data = []
+    submissions_chain.select.return_value.eq.return_value.eq.return_value.limit.return_value.execute.return_value = no_prior
 
     # Wire up: only submissions table needed (escrows should NOT be queried)
     _mock_table_router(mock_client, {"submissions": submissions_chain})
