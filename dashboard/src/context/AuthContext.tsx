@@ -104,7 +104,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   })
   const lastWalletRef = useRef<string | null>(null)
   const linkedWalletRef = useRef<string | null>(null)
-  const linkingRef = useRef(false)
   // Tracks the wallet for which a session-link attempt has already run this
   // page load, so a cancelled signature doesn't re-prompt on every effect tick.
   const linkAttemptRef = useRef<string | null>(null)
@@ -155,53 +154,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     return data.user
   }, [])
-
-  // --------------------------------------------------------------------------
-  // Link wallet to Supabase session (security definer RPC, supports anon users)
-  // --------------------------------------------------------------------------
-  const linkWalletToSession = useCallback(async (wallet: string) => {
-    if (linkingRef.current || linkedWalletRef.current === wallet) {
-      return
-    }
-
-    linkingRef.current = true
-    try {
-      const user = await ensureSupabaseSession()
-      if (!user) return
-
-      const { error: linkError } = await supabase.rpc('link_wallet_to_session', {
-        p_user_id: user.id,
-        p_wallet_address: wallet,
-      })
-
-      if (linkError) {
-        // Migration 092 intentionally revoked anon/authenticated EXECUTE on this
-        // RPC (account-takeover mitigation, GR-0.3). Until GR-1.7 ships a backend
-        // endpoint that proxies the call via service_role, a 42501 is expected
-        // and non-fatal: the session still works via the Supabase anon JWT plus
-        // service_role RPCs used by the backend for mutations.
-        const code = (linkError as { code?: string }).code
-        if (code === '42501') {
-          console.debug('[Auth] link_wallet_to_session skipped (RLS, pending GR-1.7 backend endpoint)')
-          linkedWalletRef.current = wallet
-        } else {
-          console.warn('[Auth] link_wallet_to_session error:', linkError)
-          console.warn('[Auth] link_wallet_to_session error details:', {
-            code,
-            message: (linkError as { message?: string }).message,
-            details: (linkError as { details?: string }).details,
-            hint: (linkError as { hint?: string }).hint,
-          })
-        }
-      } else {
-        linkedWalletRef.current = wallet
-      }
-    } catch (err) {
-      console.warn('[Auth] Failed to link wallet to session:', err)
-    } finally {
-      linkingRef.current = false
-    }
-  }, [ensureSupabaseSession])
 
   // --------------------------------------------------------------------------
   // Fetch executor by wallet (read-only lookup).
@@ -309,10 +261,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // --------------------------------------------------------------------------
   const refreshExecutor = useCallback(async () => {
     if (!walletAddress) return
-    await linkWalletToSession(walletAddress)
     const executorData = await fetchExecutor(walletAddress, user?.email)
     setExecutor(executorData)
-  }, [walletAddress, fetchExecutor, linkWalletToSession, user])
+  }, [walletAddress, fetchExecutor, user])
 
   // --------------------------------------------------------------------------
   // Logout
@@ -472,9 +423,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && walletAddress && dynamicInitialized) {
         console.log('[Auth] Tab restored — refreshing executor data')
-        // Re-link wallet and refresh executor to keep Supabase session alive
-        linkWalletToSession(walletAddress)
-          .then(() => fetchExecutor(walletAddress))
+        fetchExecutor(walletAddress)
           .then((data) => {
             if (data) setExecutor(data)
           })
@@ -484,7 +433,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
-  }, [walletAddress, dynamicInitialized, linkWalletToSession, fetchExecutor])
+  }, [walletAddress, dynamicInitialized, fetchExecutor])
 
   // --------------------------------------------------------------------------
   // Effect: Fetch executor when wallet changes
@@ -523,7 +472,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setLoading(false)
       }, 10_000)
 
-      linkWalletToSession(walletAddress)
+      // Bootstrap the anonymous Supabase session first: RLS reads need
+      // auth.uid(), and ensureWalletLinked binds against the session's JWT
+      // sub. Non-fatal on failure — fetchExecutor still runs and worker-auth
+      // flows surface their own errors.
+      ensureSupabaseSession()
+        .catch((err: unknown) => {
+          console.warn('[Auth] Failed to init Supabase session:', err)
+          return null
+        })
         .then(() => fetchExecutor(walletAddress, user?.email))
         .then((data) => {
           if (loadingTimeoutRef.current) {
@@ -631,7 +588,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         loadingTimeoutRef.current = null
       }
     }
-  }, [dynamicInitialized, walletAddress, isLoggedIn, fetchExecutor, linkWalletToSession, setUserType, enrichFromX, user, ensureWalletLinked])
+  }, [dynamicInitialized, walletAddress, isLoggedIn, fetchExecutor, ensureSupabaseSession, setUserType, enrichFromX, user, ensureWalletLinked])
 
   // --------------------------------------------------------------------------
   // Context Value

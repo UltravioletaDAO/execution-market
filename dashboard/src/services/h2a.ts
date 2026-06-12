@@ -14,9 +14,11 @@ const agents = (p: string) => `${API_BASE.endsWith('/api') ? API_BASE : API_BASE
 
 async function token(): Promise<string | null> {
   try {
-    const { createClient } = await import('@supabase/supabase-js')
-    const sb = createClient(import.meta.env.VITE_SUPABASE_URL || '', import.meta.env.VITE_SUPABASE_ANON_KEY || '')
-    const { data: { session } } = await sb.auth.getSession()
+    // Use the shared singleton from lib/supabase — constructing a fresh
+    // client here on every call spawned duplicate GoTrueClients (the
+    // "Multiple GoTrueClient instances detected" console warning).
+    const { supabase } = await import('../lib/supabase')
+    const { data: { session } } = await supabase.auth.getSession()
     if (session?.access_token) return session.access_token
   } catch { /* noop */ }
   return localStorage.getItem('em_auth_token')
