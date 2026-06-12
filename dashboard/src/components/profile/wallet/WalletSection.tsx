@@ -74,7 +74,14 @@ export function WalletSection({ walletAddress }: WalletSectionProps) {
             {t('wallet.section.totalBalance', 'Total USDC across chains')}
           </div>
           <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-3xl font-bold">${totalUsdc.toFixed(2)}</span>
+            {loading && balances.length === 0 ? (
+              // Don't flash a misleading "$0.00" while the per-chain reads are
+              // still in flight (the celo RPC can take several seconds). A
+              // worker who just got paid must never see a false zero.
+              <span className="text-3xl font-bold text-gray-500 animate-pulse">···</span>
+            ) : (
+              <span className="text-3xl font-bold">${totalUsdc.toFixed(2)}</span>
+            )}
             <span className="text-xs text-gray-400">USDC</span>
           </div>
           {lastUpdated && (
