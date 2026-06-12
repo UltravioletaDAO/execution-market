@@ -559,29 +559,103 @@ async def ensure_publisher_identity(
     -------
     WorkerIdentityResult — REGISTERED with ``agent_id`` on success.
     """
-    existing = await check_worker_identity(wallet_address, network=network)
-    if existing.status != WorkerIdentityStatus.NOT_REGISTERED:
-        # Already REGISTERED (return as-is, even if the token id was not
-        # resolvable on this read) OR the on-chain check errored — in both
-        # cases minting again risks a double-registration, so don't.
-        return existing
+    wallet = wallet_address.lower()
 
-    publisher_uri = DEFAULT_PUBLISHER_URI_TEMPLATE.format(
-        wallet=wallet_address.lower(),
-    )
+    # 1. DB first — a previously persisted publisher identity for this wallet.
+    #    The Facilitator owner index 404s for some wallets (old/un-indexed
+    #    mints) and the registry isn't enumerable, so the DB is the durable
+    #    resolver, mirroring the worker path (executors.erc8004_agent_id).
+    try:
+        import supabase_client as _db
+
+        row = (
+            _db.get_client()
+            .table("executors")
+            .select("erc8004_agent_id")
+            .ilike("wallet_address", wallet)
+            .not_.is_("erc8004_agent_id", "null")
+            .limit(1)
+            .execute()
+        )
+        if row.data and row.data[0].get("erc8004_agent_id"):
+            return WorkerIdentityResult(
+                status=WorkerIdentityStatus.REGISTERED,
+                agent_id=int(row.data[0]["erc8004_agent_id"]),
+                wallet_address=wallet,
+                network=network,
+            )
+    except Exception as e:
+        logger.debug("publisher DB identity lookup failed: %s", e)
+
+    # 2. On-chain check. A cleanly resolved id is persisted and returned.
+    existing = await check_worker_identity(wallet_address, network=network)
+    if (
+        existing.status == WorkerIdentityStatus.REGISTERED
+        and existing.agent_id is not None
+    ):
+        await _persist_publisher_agent_id(wallet, existing.agent_id)
+        return existing
+    if existing.status == WorkerIdentityStatus.ERROR:
+        return existing  # don't blind-mint on an uncertain read
+
+    # 3. NOT_REGISTERED, or REGISTERED with an UNRESOLVABLE id (old NFT the
+    #    Facilitator owner index can't resolve). Mint a fresh identity and
+    #    PERSIST it so we never re-mint — register returns the agent_id and the
+    #    DB resolves it on every subsequent call.
+    publisher_uri = DEFAULT_PUBLISHER_URI_TEMPLATE.format(wallet=wallet)
     result = await register_worker_gasless(
         wallet_address,
         agent_uri=publisher_uri,
         network=network,
     )
-    if result.status == WorkerIdentityStatus.REGISTERED:
+    if result.status == WorkerIdentityStatus.REGISTERED and result.agent_id is not None:
+        await _persist_publisher_agent_id(wallet, result.agent_id)
         logger.info(
             "Publisher identity ensured: wallet=%s agent_id=%s network=%s",
-            truncate_wallet(wallet_address),
+            truncate_wallet(wallet),
             result.agent_id,
             network,
         )
     return result
+
+
+async def _persist_publisher_agent_id(wallet: str, agent_id: int) -> None:
+    """Persist a publisher's ERC-8004 agent_id keyed by wallet (in executors)
+    so future lookups resolve from the DB instead of re-minting. Best-effort."""
+    try:
+        import supabase_client as _db
+
+        client = _db.get_client()
+        existing = (
+            client.table("executors")
+            .select("id")
+            .ilike("wallet_address", wallet)
+            .limit(1)
+            .execute()
+        )
+        if existing.data:
+            executor_id = existing.data[0]["id"]
+        else:
+            created = client.rpc(
+                "get_or_create_executor",
+                {
+                    "p_wallet_address": wallet,
+                    "p_display_name": "Publisher",
+                    "p_email": None,
+                },
+            ).execute()
+            rows = created.data
+            executor_id = (
+                rows[0].get("id")
+                if isinstance(rows, list) and rows
+                else (rows.get("id") if isinstance(rows, dict) else None)
+            )
+        if executor_id:
+            client.table("executors").update({"erc8004_agent_id": agent_id}).eq(
+                "id", executor_id
+            ).execute()
+    except Exception as e:
+        logger.debug("persist publisher agent_id failed: %s", e)
 
 
 # ---------------------------------------------------------------------------
