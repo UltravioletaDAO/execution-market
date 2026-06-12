@@ -1124,7 +1124,10 @@ app.add_middleware(
         "https://api.meshrelay.xyz",  # MeshRelay API
     ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    # PATCH: the dashboard changes the payment wallet via
+    # PATCH /api/v1/account/wallet — without it the preflight rejects the
+    # request and the browser surfaces a bare "Failed to fetch".
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=[
         "Authorization",
         "Content-Type",
@@ -1155,7 +1158,19 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 
 class RequestTimeoutMiddleware(BaseHTTPMiddleware):
-    LONG_TIMEOUT_PATHS = ("/api/v1/tasks/", "/api/v1/submissions/", "/api/v1/escrow/")
+    # /api/v1/h2a/ belongs in the long tier: assign locks escrow and approve/
+    # cancel release/refund it through the Facilitator (30s HTTP timeout x3
+    # retries with backoff). At the default 30s the middleware CANCELS the
+    # handler mid-settlement (CancelledError is a BaseException, so the
+    # endpoint's rollback `except Exception` never runs) and the client gets a
+    # 504 while funds may still move on-chain. Same tier as the A2A
+    # /api/v1/tasks/ paths that do identical work.
+    LONG_TIMEOUT_PATHS = (
+        "/api/v1/tasks/",
+        "/api/v1/submissions/",
+        "/api/v1/escrow/",
+        "/api/v1/h2a/",
+    )
     STREAM_PATHS = ("/a2a/v1", "/mcp/")
 
     async def dispatch(self, request, call_next):
