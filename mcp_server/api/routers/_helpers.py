@@ -591,7 +591,17 @@ async def _send_reputation_feedback(
     submission: Optional[Dict[str, Any]] = None,
     executor: Optional[Dict[str, Any]] = None,
     override_score: Optional[int] = None,
+    rater_agent_id: Optional[str] = None,
+    rater_type: str = "agent",
 ) -> None:
+    """Submit hirer->worker ERC-8004 reputation (best-effort, gasless).
+
+    ``rater_agent_id`` is the hirer's ERC-8004 id — an A2A agent (default
+    EM_AGENT_ID inside rate_worker) or a human publisher (registered via
+    ensure_publisher_identity). ``rater_type`` labels the ratings row
+    ('agent' | 'publisher'). When ``override_score`` is given (a party-chosen
+    star rating) it wins over dynamic/legacy scoring.
+    """
     if not (ERC8004_AVAILABLE and rate_worker and worker_address and release_tx):
         logger.info(
             "Skipping reputation feedback for task=%s: ERC8004_AVAILABLE=%s, "
@@ -607,29 +617,27 @@ async def _send_reputation_feedback(
     try:
         from config.platform_config import PlatformConfig
 
-        dynamic_enabled = await PlatformConfig.is_feature_enabled(
-            "erc8004_dynamic_scoring"
-        )
-
-        if dynamic_enabled:
+        if override_score is not None:
+            # A party-chosen star rating wins (decision: everyone picks the
+            # real score). 1-5 stars map to 0-100 upstream.
+            reputation_score = min(100, max(0, int(override_score)))
+        elif await PlatformConfig.is_feature_enabled("erc8004_dynamic_scoring"):
             from reputation.scoring import calculate_dynamic_score
 
             scoring_result = calculate_dynamic_score(
                 task=task,
                 submission=submission or {},
                 executor=executor or {},
-                override_score=override_score,
             )
             reputation_score = min(100, max(0, scoring_result["score"]))
-            scoring_source = scoring_result["source"]
             logger.info(
                 "Dynamic scoring: task=%s, score=%d, source=%s",
                 task.get("id"),
                 reputation_score,
-                scoring_source,
+                scoring_result["source"],
             )
         else:
-            reputation_score = 80  # Legacy hardcoded score.
+            reputation_score = 80  # Legacy fallback when no score is chosen.
 
         task_network = task.get("payment_network", "base")
         reputation_result = await rate_worker(
@@ -638,6 +646,7 @@ async def _send_reputation_feedback(
             worker_address=worker_address,
             comment=f"Task completed and paid: {task.get('title', 'Unknown')[:50]}",
             proof_tx=release_tx,
+            rater_id=rater_agent_id,
             network=task_network,
         )
 
@@ -655,7 +664,7 @@ async def _send_reputation_feedback(
             _audit_rep(
                 "reputation_logged",
                 task_id=task["id"],
-                direction="agent_rates_worker",
+                direction=f"{rater_type}_rates_worker",
                 tx_hash=reputation_result.transaction_hash,
                 score=reputation_score,
             )
@@ -680,14 +689,17 @@ async def _send_reputation_feedback(
                     import supabase_client as _db
 
                     task_agent_id = (
-                        task.get("erc8004_agent_id") or task.get("agent_id") or ""
+                        rater_agent_id
+                        or task.get("erc8004_agent_id")
+                        or task.get("agent_id")
+                        or ""
                     )
                     _db.get_client().table("ratings").upsert(
                         {
                             "executor_id": str(executor_id),
                             "task_id": task["id"],
                             "rater_id": str(task_agent_id),
-                            "rater_type": "agent",
+                            "rater_type": rater_type,
                             "rating": reputation_score,
                             "stars": float(round(reputation_score / 20, 1)),
                             "comment": f"Task completed and paid: {task.get('title', '')[:50]}",

@@ -707,10 +707,16 @@ async def rate_worker(
     task_category: str = "",
     bounty_usd: float = 0.0,
     worker_agent_id: Optional[int] = None,
+    rater_id: Optional[str] = None,
     network: str = ERC8004_NETWORK,
 ) -> FeedbackResult:
     """
-    Rate a worker after task completion (agent rates human).
+    Rate a worker after task completion (agent OR human publisher rates worker).
+
+    ``rater_id`` is the rater's ERC-8004 agent id. Defaults to the platform
+    agent (EM_AGENT_ID) for backward compatibility, but a human publisher
+    (registered via ensure_publisher_identity) passes their own id so the
+    on-chain feedback is attributable to THEM, not the platform.
 
     Submits on-chain feedback to the WORKER's ERC-8004 agent identity.
     Persists feedback document to S3 with keccak256 hash on-chain.
@@ -823,7 +829,7 @@ async def rate_worker(
             feedback_type=feedback_type,
             score=score,
             rater_type="agent",
-            rater_id=str(EM_AGENT_ID),
+            rater_id=rater_id or str(EM_AGENT_ID),
             target_type="worker",
             target_address=worker_address,
             target_agent_id=target_agent_id,

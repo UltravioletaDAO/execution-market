@@ -932,6 +932,10 @@ class ApproveH2ASubmissionRequest(BaseModel):
     notes: Optional[str] = Field(default=None, max_length=2000)
     settlement_auth_worker: Optional[str] = Field(default=None)
     settlement_auth_fee: Optional[str] = Field(default=None)
+    # Publisher's star rating of the worker (1-5). Drives the publisher->worker
+    # ERC-8004 reputation submitted on approval. Optional here; H2H reputation
+    # enforcement (Phase 5) makes it required for verdict='accepted'.
+    worker_score: Optional[int] = Field(default=None, ge=1, le=5)
 
 
 class H2AApprovalResponse(BaseModel):

@@ -1236,6 +1236,71 @@ async def assign_h2a_worker(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+async def _submit_h2a_publisher_reputation(
+    task: dict,
+    worker_tx: Optional[str],
+    worker_score: Optional[int],
+) -> None:
+    """Publisher->worker ERC-8004 reputation after H2A approval (best-effort).
+
+    The rater is the HUMAN publisher: their ERC-8004 identity is registered
+    gaslessly (idempotent) and the on-chain feedback is attributed to THEM,
+    bound to the release TX. This NEVER blocks the payout — every failure is
+    logged and swallowed (the worker already has their funds).
+    """
+    try:
+        publisher_wallet = task.get("human_wallet")
+        executor_id = task.get("executor_id")
+        if not (publisher_wallet and executor_id and worker_tx):
+            return
+
+        from integrations.erc8004.identity import ensure_publisher_identity
+        from .routers._helpers import _send_reputation_feedback
+
+        client = db.get_client()
+        exec_row = (
+            client.table("executors")
+            .select("id, wallet_address")
+            .eq("id", executor_id)
+            .limit(1)
+            .execute()
+        )
+        executor = exec_row.data[0] if exec_row.data else None
+        worker_address = (executor or {}).get("wallet_address")
+        if not worker_address:
+            return
+
+        network = task.get("payment_network") or "base"
+        publisher_identity = await ensure_publisher_identity(
+            publisher_wallet, network=network
+        )
+        rater_agent_id = (
+            str(publisher_identity.agent_id)
+            if publisher_identity.agent_id is not None
+            else None
+        )
+
+        # Star rating (1-5) -> 0-100. None lets the grace-window default (Phase 5)
+        # cover an approval that arrived without a score.
+        score = worker_score * 20 if worker_score else None
+
+        await _send_reputation_feedback(
+            task=task,
+            worker_address=worker_address,
+            release_tx=worker_tx,
+            executor=executor,
+            override_score=score,
+            rater_agent_id=rater_agent_id,
+            rater_type="publisher",
+        )
+    except Exception as e:
+        logger.error(
+            "H2A publisher->worker reputation failed (non-blocking): task=%s, error=%s",
+            task.get("id"),
+            e,
+        )
+
+
 @router.post(
     "/api/v1/h2a/tasks/{task_id}/approve",
     response_model=H2AApprovalResponse,
@@ -1574,6 +1639,14 @@ async def approve_h2a_submission(
                 task_id,
                 request.submission_id,
                 worker_tx,
+            )
+
+            # Phase 2 — publisher->worker ERC-8004 reputation. Best-effort,
+            # AFTER settle: the payout already landed; reputation never blocks it.
+            await _submit_h2a_publisher_reputation(
+                task=task,
+                worker_tx=worker_tx,
+                worker_score=request.worker_score,
             )
 
             return H2AApprovalResponse(

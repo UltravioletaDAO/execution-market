@@ -175,6 +175,10 @@ BASE_RPC_URL = os.environ.get("BASE_RPC_URL", "https://mainnet.base.org")
 # Default worker metadata URI template
 DEFAULT_WORKER_URI_TEMPLATE = "https://execution.market/workers/{wallet}"
 
+# Default human-publisher metadata URI template. Publishers register on the
+# SAME gasless ERC-8004 rail as workers — only the URI namespace differs.
+DEFAULT_PUBLISHER_URI_TEMPLATE = "https://execution.market/publishers/{wallet}"
+
 _USE_TESTNET = os.environ.get("ERC8004_USE_TESTNET", "").lower() in (
     "1",
     "true",
@@ -517,6 +521,67 @@ async def register_worker_gasless(
             network=network,
             error=str(e),
         )
+
+
+# ---------------------------------------------------------------------------
+# Human-publisher identity (gasless, idempotent)
+# ---------------------------------------------------------------------------
+
+
+async def ensure_publisher_identity(
+    wallet_address: str,
+    network: str = "base",
+) -> WorkerIdentityResult:
+    """
+    Ensure a human publisher holds an ERC-8004 on-chain identity, minting one
+    gaslessly via the Facilitator only if it's absent. Idempotent — an already
+    registered wallet is returned as-is with NO second mint.
+
+    Human publishers need an on-chain identity for bidirectional reputation:
+      - as a RATEE: the worker rates the publisher (worker->publisher) and needs
+        a numeric agent_id target;
+      - as a RATER: the publisher's worker rating is attributable to their
+        identity.
+
+    Same gasless rail as ``register_worker_gasless`` — only the metadata URI
+    namespace differs (``/publishers/`` vs ``/workers/``). Best-effort: callers
+    must treat a non-REGISTERED result as "no on-chain rating this time", never
+    as a hard failure that blocks publishing or payment.
+
+    Parameters
+    ----------
+    wallet_address:
+        The publisher's wallet — receives the ERC-8004 NFT.
+    network:
+        ERC-8004 network (default ``"base"``).
+
+    Returns
+    -------
+    WorkerIdentityResult — REGISTERED with ``agent_id`` on success.
+    """
+    existing = await check_worker_identity(wallet_address, network=network)
+    if existing.status != WorkerIdentityStatus.NOT_REGISTERED:
+        # Already REGISTERED (return as-is, even if the token id was not
+        # resolvable on this read) OR the on-chain check errored — in both
+        # cases minting again risks a double-registration, so don't.
+        return existing
+
+    publisher_uri = DEFAULT_PUBLISHER_URI_TEMPLATE.format(
+        wallet=wallet_address.lower(),
+    )
+    result = await register_worker_gasless(
+        wallet_address,
+        agent_uri=publisher_uri,
+        network=network,
+    )
+    if result.status == WorkerIdentityStatus.REGISTERED:
+        logger.info(
+            "Publisher identity ensured: wallet=%s agent_id=%s network=%s",
+            truncate_wallet(wallet_address),
+            result.agent_id,
+            network,
+        )
+    return result
 
 
 # ---------------------------------------------------------------------------
