@@ -266,7 +266,12 @@ class FeedbackResponse(BaseModel):
 class PrepareFeedbackRequest(BaseModel):
     """Request to prepare on-chain feedback parameters for worker signing."""
 
-    agent_id: int = Field(..., ge=1, description="Target agent's ERC-8004 token ID")
+    agent_id: Optional[int] = Field(
+        default=None,
+        ge=1,
+        description="Target agent's ERC-8004 token ID. Omit for H2H tasks — the "
+        "human publisher's identity is resolved from the task.",
+    )
     task_id: str = Field(
         ..., min_length=36, max_length=36, description="Task ID for context"
     )
@@ -1452,11 +1457,36 @@ async def prepare_feedback_endpoint(
             detail="Worker address does not match assigned executor",
         )
 
+    # Resolve the rating target. A2A passes an explicit agent_id; H2H omits it
+    # and we resolve the human publisher's ERC-8004 identity from the task
+    # (registered gaslessly at approval — Phase 2).
+    resolved_agent_id = request.agent_id
+    if resolved_agent_id is None:
+        publisher_wallet = task.get("human_wallet")
+        if publisher_wallet:
+            from integrations.erc8004.identity import ensure_publisher_identity
+
+            pub = await ensure_publisher_identity(
+                publisher_wallet, network=ERC8004_NETWORK
+            )
+            resolved_agent_id = pub.agent_id
+        else:
+            raw = task.get("erc8004_agent_id") or task.get("agent_id")
+            try:
+                resolved_agent_id = int(raw) if raw else None
+            except (ValueError, TypeError):
+                resolved_agent_id = None
+    if resolved_agent_id is None:
+        raise HTTPException(
+            status_code=404,
+            detail="No rating target — the publisher has no ERC-8004 identity yet",
+        )
+
     # Verify the rated agent exists on-chain
-    agent_identity = await get_agent_info(request.agent_id)
+    agent_identity = await get_agent_info(resolved_agent_id)
     if not agent_identity:
         raise HTTPException(
-            status_code=404, detail=f"Agent {request.agent_id} not found on-chain"
+            status_code=404, detail=f"Agent {resolved_agent_id} not found on-chain"
         )
 
     # Persist feedback document to S3 + compute keccak256
@@ -1471,7 +1501,7 @@ async def prepare_feedback_endpoint(
             score=request.score,
             rater_type="worker",
             target_type="agent",
-            target_agent_id=request.agent_id,
+            target_agent_id=resolved_agent_id,
             target_address=request.worker_address,
             comment=request.comment or "",
             network=ERC8004_NETWORK,
@@ -1497,7 +1527,7 @@ async def prepare_feedback_endpoint(
     logger.info(
         "Prepared feedback for worker signing: task=%s, agent=%d, prepare_id=%s",
         request.task_id,
-        request.agent_id,
+        resolved_agent_id,
         prepare_id[:8],
     )
 
@@ -1507,7 +1537,7 @@ async def prepare_feedback_endpoint(
             "reputation_registry", "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63"
         ),
         chain_id=contracts.get("chain_id", 8453),
-        agent_id=request.agent_id,
+        agent_id=resolved_agent_id,
         value=request.score,
         value_decimals=0,
         tag1="agent_rating",
