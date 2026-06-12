@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-06-12 01:00 America/New_York
+> Last updated: 2026-06-12 06:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -8,6 +8,41 @@
 > - `CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md`
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
+
+
+## Latest June 12 06:00 final morning wrap
+
+`CITY_AS_A_SERVICE_6AM_FINAL_WRAP_2026_06_12.md` is the current internal/admin final morning handoff. It obeyed `/Users/clawdbot/clawd/DREAM-PRIORITIES.md` over the stale 6 AM cron payload, so AutoJob pull/analysis/integration, Frontier Academy expansion, KK v2 continuation, and KarmaCadabra v2 work remain stopped for dream work.
+
+Execution Market was synced only on `feat/operator-route-regret-panel`; `git pull --ff-only` reported already up to date. Pre-existing untracked `scripts/sign_req.mjs` and `mcp_server/city_ops/tests/` were preserved and not staged.
+
+The active posture remains:
+
+```text
+pause_aas_proof_layering
+```
+
+The June 12 night chain is now sealed as a read-only coordination handoff: 00:00 operator-answer intake packet → 01:00 intake template contract repair → 02:00 stale-cron firewall note → 03:00 stale-cron firewall work queue → 04:00 exponential value connection board → 05:00 pre-dawn synthesis → 06:00 final wrap.
+
+Safe 06:00 claim:
+
+```text
+internal_admin_aas_6am_final_wrap_2026_06_12_landed
+```
+
+Meaning only: the June 12 AAS dream session has a final morning briefing and day/night continuity packet. It records no operator answer, approval, selected answer, answer receipt, customer/public/worker surface, route, queue, dispatch, runtime mutation, Acontext write/retrieve, IRC/session-manager mutation, reputation/Worker Skill DNA, payment/production change, exact-location/raw-metadata/private-context release, authority claim, worker-copyable doctrine, or stopped-project integration.
+
+Next valid daytime move remains exactly one of these:
+
+1. if Saúl provides exactly one allowed AAS answer value, create exactly one separate digest-backed answer receipt with an opaque non-secret reference and validate it through the hardened gate;
+2. otherwise hold at `pause_aas_proof_layering` and do not add more no-answer wrappers or downstream product/runtime/reputation/payment layers.
+
+Verification after the final-wrap/index refresh:
+
+```text
+Focused dependent source/index/handoff chain: 141 passed
+Full city-ops gate: 2131 passed
+```
 
 
 ## Latest June 12 01:00 intake template contract repair

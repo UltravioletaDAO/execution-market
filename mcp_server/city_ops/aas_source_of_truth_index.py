@@ -43,6 +43,31 @@ CURRENT_ENTRYPOINT_DOCS = [
         "extension_policy": "current_entrypoint_update_only_when_new_safe_claim_lands",
     },
     {
+        "path": "docs/planning/CITY_AS_A_SERVICE_6AM_FINAL_WRAP_2026_06_12.md",
+        "role": "latest_final_morning_wrap",
+        "extension_policy": "current_read_only_morning_handoff_no_answer_runtime_payment_or_stopped_project_movement",
+    },
+    {
+        "path": "docs/planning/CITY_AS_A_SERVICE_5AM_PRE_DAWN_SYNTHESIS_HANDOFF_2026_06_12.md",
+        "role": "latest_pre_dawn_synthesis_handoff",
+        "extension_policy": "current_read_only_daytime_handoff_no_answer_runtime_payment_or_stopped_project_movement",
+    },
+    {
+        "path": "docs/planning/CITY_AS_A_SERVICE_4AM_EXPONENTIAL_VALUE_CONNECTION_BOARD_2026_06_12.md",
+        "role": "latest_exponential_value_connection_board",
+        "extension_policy": "current_read_only_connection_board_no_answer_runtime_payment_or_stopped_project_movement",
+    },
+    {
+        "path": "docs/planning/CITY_AS_A_SERVICE_3AM_STALE_CRON_FIREWALL_WORK_QUEUE_IMPLEMENTATION_2026_06_12.md",
+        "role": "latest_stale_cron_firewall_work_queue",
+        "extension_policy": "current_internal_admin_firewall_queue_no_answer_runtime_payment_or_stopped_project_movement",
+    },
+    {
+        "path": "docs/planning/CITY_AS_A_SERVICE_2AM_STALE_CRON_FIREWALL_AND_AAS_WORK_QUEUE_2026_06_12.md",
+        "role": "latest_stale_cron_firewall_note",
+        "extension_policy": "current_internal_admin_firewall_note_no_answer_runtime_payment_or_stopped_project_movement",
+    },
+    {
         "path": "docs/planning/CITY_AS_A_SERVICE_1AM_INTAKE_TEMPLATE_CONTRACT_REPAIR_2026_06_12.md",
         "role": "latest_intake_template_contract_repair",
         "extension_policy": "current_internal_admin_contract_repair_no_answer_no_approval_no_runtime_delivery_or_stopped_project_movement",
@@ -59,18 +84,18 @@ CURRENT_ENTRYPOINT_DOCS = [
     },
     {
         "path": "docs/planning/CITY_AS_A_SERVICE_6AM_FINAL_WRAP_2026_06_11.md",
-        "role": "latest_final_morning_wrap",
-        "extension_policy": "current_read_only_morning_handoff_no_answer_runtime_payment_or_stopped_project_movement",
+        "role": "previous_final_morning_wrap_context",
+        "extension_policy": "context_only_previous_read_only_morning_handoff_no_answer_runtime_payment_or_stopped_project_movement",
     },
     {
         "path": "docs/planning/CITY_AS_A_SERVICE_5AM_PRE_DAWN_SYNTHESIS_HANDOFF_2026_06_11.md",
-        "role": "latest_pre_dawn_synthesis_handoff",
-        "extension_policy": "current_read_only_daytime_handoff_no_answer_runtime_payment_or_stopped_project_movement",
+        "role": "previous_pre_dawn_synthesis_handoff_context",
+        "extension_policy": "context_only_previous_read_only_daytime_handoff_no_answer_runtime_payment_or_stopped_project_movement",
     },
     {
         "path": "docs/planning/CITY_AS_A_SERVICE_4AM_HANDOFF_PACKET_CONTRACT_GUARD_2026_06_11.md",
-        "role": "latest_handoff_packet_contract_guard",
-        "extension_policy": "current_read_only_packet_contract_guard_no_answer_runtime_payment_or_stopped_project_movement",
+        "role": "previous_handoff_packet_contract_guard_context",
+        "extension_policy": "context_only_previous_read_only_packet_contract_guard_no_answer_runtime_payment_or_stopped_project_movement",
     },
     {
         "path": "docs/planning/CITY_AS_A_SERVICE_6AM_FINAL_WRAP_2026_06_07.md",
