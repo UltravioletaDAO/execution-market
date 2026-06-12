@@ -18,7 +18,7 @@ import { TaskLifecycleTimeline } from './TaskLifecycleTimeline'
 import { TaskRatings } from './TaskRatings'
 import { EvidenceModal } from './EvidenceModal'
 import { safeHref, safeSrc } from '../lib/safeHref'
-import { isVerdictAccepted, isVerdictRejected } from '../lib/verificationContract'
+import { isVerdictAccepted, isVerdictRejected, isVerdictNeedsRevision } from '../lib/verificationContract'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 
@@ -510,6 +510,8 @@ export function TaskDetail({
                           ? { backgroundColor: '#dcfce7', color: '#15803d' }
                           : isVerdictRejected(sub.agent_verdict)
                           ? { backgroundColor: '#fef2f2', color: '#b91c1c' }
+                          : isVerdictNeedsRevision(sub.agent_verdict)
+                          ? { backgroundColor: '#fef3c7', color: '#b45309' }
                           : { backgroundColor: '#fefce8', color: '#a16207' }
                       }
                     >
@@ -517,6 +519,8 @@ export function TaskDetail({
                         ? t('submission.approved', 'Approved')
                         : isVerdictRejected(sub.agent_verdict)
                         ? t('submission.rejected', 'Rejected')
+                        : isVerdictNeedsRevision(sub.agent_verdict)
+                        ? t('submission.needsRevision', 'Revisión solicitada')
                         : t('submission.pending', 'Pending review')}
                     </span>
                   </div>
@@ -890,6 +894,13 @@ export function TaskDetail({
                         <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                       </svg>
                       <span className="text-xs font-medium text-red-700">{t('submission.evidenceRejected', 'Evidence rejected')}</span>
+                    </div>
+                  ) : isVerdictNeedsRevision(sub.agent_verdict) ? (
+                    <div className="mt-2 flex items-center gap-2 p-2 bg-amber-50 border border-amber-300 rounded-lg">
+                      <svg className="w-4 h-4 text-amber-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      <span className="text-xs font-medium text-amber-800">{t('submission.needsRevisionCta', 'Revisión solicitada — re-envía tu evidencia')}</span>
                     </div>
                   ) : (
                     <div className="mt-2 flex items-center gap-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">

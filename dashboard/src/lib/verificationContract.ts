@@ -151,6 +151,12 @@ export function isVerdictRejected(verdict: string | null | undefined): boolean {
   return verdict === AGENT_VERDICT.REJECTED
 }
 
+/** Publisher asked for a revision — the worker should re-submit (not paid, not
+ *  rejected). The backend writes 'more_info_requested'. */
+export function isVerdictNeedsRevision(verdict: string | null | undefined): boolean {
+  return verdict === 'more_info_requested'
+}
+
 export function parseVerdict(verdict: string | null | undefined): VerdictViewModel {
   const raw = typeof verdict === 'string' && verdict.length > 0 ? verdict : null
   return {

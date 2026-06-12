@@ -20,6 +20,7 @@ import { createDispute, type DisputeReason } from '../../services/disputes'
 import { safeHref } from '../../lib/safeHref'
 import { EvidenceVerificationPanel } from '../../components/EvidenceVerificationPanel'
 import { ArbiterVerdictBadge } from '../../components/ArbiterVerdictBadge'
+import { EvidenceView } from '../../components/EvidenceView'
 import { parseRing2 } from '../../lib/verificationContract'
 
 const DISPUTE_REASONS: { value: DisputeReason; label: string }[] = [
@@ -56,22 +57,6 @@ const ESCROW_LOCKED_STATUSES = new Set(['deposited', 'funded', 'locked', 'active
 
 const FEE_PCT = 0.13
 
-const GPS_KEYS = new Set(['latitude', 'longitude', 'lat', 'lng', 'lon'])
-
-function redactGps(obj: unknown): unknown {
-  if (typeof obj !== 'object' || obj === null) return obj
-  if (Array.isArray(obj)) return obj.map(redactGps)
-  const result: Record<string, unknown> = {}
-  for (const [key, value] of Object.entries(obj)) {
-    if (GPS_KEYS.has(key.toLowerCase()) && typeof value === 'number') {
-      result[key] = '[hidden]'
-    } else {
-      result[key] = redactGps(value)
-    }
-  }
-  return result
-}
-
 export function ReviewSubmission() {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -85,7 +70,6 @@ export function ReviewSubmission() {
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
-  const [showRawCoords, setShowRawCoords] = useState(false)
   const [disputeOpen, setDisputeOpen] = useState(false)
   const [disputeReason, setDisputeReason] = useState<DisputeReason>('incomplete_work')
   const [disputeDescription, setDisputeDescription] = useState('')
@@ -210,30 +194,13 @@ export function ReviewSubmission() {
   if (loading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-500">{t('common.loading')}</div>
   if (error || !task) return <div className="min-h-screen bg-gray-50 flex items-center justify-center"><div className="text-center"><p className="text-red-500 mb-4">{error || t('review.notFound', 'No encontrado')}</p><button onClick={() => navigate('/publisher/dashboard')} className="px-4 py-2 bg-blue-600 text-white rounded-lg">{t('common.back')}</button></div></div>
 
-  // FE-001/FE-002: legacy H2A approval (dual-signature) stays gated by the
-  // signing flag. Escrow-locked tasks bypass it: their approve needs NO
-  // signatures (funds already locked at assignment, release is server-side).
-  if (!H2A_SIGNING_ENABLED && !escrowLocked) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="max-w-md p-6 text-center">
-          <h2 className="text-xl font-semibold mb-4">{t('review.disabled.title', 'Approval Temporarily Disabled')}</h2>
-          <p className="text-gray-600 mb-4">
-            {t('review.disabled.body', 'The on-chain approval flow is being upgraded for security. Approvals are currently processed via the API.')}
-          </p>
-          <p className="text-sm text-zinc-600 mb-6">
-            {t('review.disabled.meta', 'Phase 2 security hardening — FE-001')}
-          </p>
-          <button
-            onClick={() => navigate('/publisher/dashboard')}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            {t('review.disabled.back', 'Back to Dashboard')}
-          </button>
-        </div>
-      </div>
-    )
-  }
+  // FE-001/FE-002: only the APPROVE-with-signatures path is gated by the
+  // signing flag (legacy, no locked escrow). Reject and Solicitar Revisión
+  // never sign, and escrow-locked approve releases server-side — so the
+  // verdict UI must stay available; only the approve button is blocked when
+  // it would require the disabled signing flow.
+  const approvalSigningBlocked =
+    verdict === 'accepted' && !escrowLocked && !H2A_SIGNING_ENABLED
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -264,17 +231,7 @@ export function ReviewSubmission() {
                 <h4 className="font-medium mb-3">📦 {t('review.agentDelivery', 'Entrega del Ejecutor')}</h4>
                 {Object.keys(sub.evidence || {}).length > 0 && (
                   <div className="mb-3">
-                    <div className="flex justify-end mb-1">
-                      <button
-                        onClick={() => setShowRawCoords(prev => !prev)}
-                        className="text-xs text-gray-400 hover:text-gray-200 bg-gray-800 px-2 py-1 rounded"
-                      >
-                        {showRawCoords ? t('review.coords.hide', 'Ocultar coordenadas') : t('review.coords.show', 'Mostrar coordenadas')}
-                      </button>
-                    </div>
-                    <pre className="bg-gray-900 text-green-400 p-3 rounded-lg text-xs overflow-auto max-h-96">
-                      {JSON.stringify(showRawCoords ? sub.evidence : redactGps(sub.evidence), null, 2)}
-                    </pre>
+                    <EvidenceView evidence={sub.evidence as Record<string, unknown>} />
                   </div>
                 )}
                 {sub.evidence_files?.length > 0 && (
@@ -350,7 +307,12 @@ export function ReviewSubmission() {
               )}
               {submitError && <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm mb-4">❌ {submitError}</div>}
               {disputeSuccess && <div className="bg-green-50 text-green-800 p-3 rounded-lg text-sm mb-4">✅ {disputeSuccess}</div>}
-              <button onClick={handleSubmit} disabled={submitting} className={`w-full py-3 px-4 rounded-lg font-medium text-white ${verdict === 'accepted' ? 'bg-green-600 hover:bg-green-700' : verdict === 'needs_revision' ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-red-600 hover:bg-red-700'} disabled:opacity-50`}>
+              {approvalSigningBlocked && (
+                <div className="bg-amber-50 text-amber-800 p-3 rounded-lg text-sm mb-4">
+                  {t('review.disabled.body', 'The on-chain approval flow is being upgraded for security. Approvals are currently processed via the API.')}
+                </div>
+              )}
+              <button onClick={handleSubmit} disabled={submitting || approvalSigningBlocked} className={`w-full py-3 px-4 rounded-lg font-medium text-white ${verdict === 'accepted' ? 'bg-green-600 hover:bg-green-700' : verdict === 'needs_revision' ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-red-600 hover:bg-red-700'} disabled:opacity-50`}>
                 {submitting ? t('review.processing', 'Procesando...') : verdict === 'accepted' ? `✅ ${t('review.verdict.approve', 'Aprobar y Pagar')}` : verdict === 'needs_revision' ? `🔄 ${t('review.verdict.revision', 'Solicitar Revisión')}` : `❌ ${t('review.verdict.reject', 'Rechazar')}`}
               </button>
 

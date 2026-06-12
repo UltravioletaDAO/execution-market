@@ -205,11 +205,18 @@ describe('buildEscrowPreAuth', () => {
     expect(message.nonce).toBe(wrapper.payload.authorization.nonce)
   })
 
-  it('applies tier windows relative to now (micro default, standard on request)', async () => {
+  it('keeps the release window open past the deadline for human review', async () => {
     vi.useFakeTimers()
-    vi.setSystemTime(new Date(1760000000 * 1000))
+    const NOW = 1760000000
+    vi.setSystemTime(new Date(NOW * 1000))
+    const REVIEW = 7 * 24 * 3600 // REVIEW_WINDOW_SEC
+    const REFUND = 7 * 24 * 3600 // REFUND_WINDOW_SEC
 
     const { client } = mockWallet()
+
+    // No deadline: preApproval keeps the short tier window (the lock is
+    // immediate), but auth/refund are extended to the review windows — much
+    // longer than the 2h micro auth that expired before the human approved.
     const micro = JSON.parse(
       await buildEscrowPreAuth(client, {
         networkConfig: NETWORK_CONFIG,
@@ -218,34 +225,24 @@ describe('buildEscrowPreAuth', () => {
         bountyAtomic: '100000',
       }),
     ).payload.paymentInfo
-    expect(micro.preApprovalExpiry).toBe(1760000000 + ESCROW_TIER_WINDOWS.micro.pre)
-    expect(micro.authorizationExpiry).toBe(1760000000 + ESCROW_TIER_WINDOWS.micro.auth)
-    expect(micro.refundExpiry).toBe(1760000000 + ESCROW_TIER_WINDOWS.micro.refund)
+    expect(micro.preApprovalExpiry).toBe(NOW + ESCROW_TIER_WINDOWS.micro.pre)
+    expect(micro.authorizationExpiry).toBe(NOW + REVIEW)
+    expect(micro.refundExpiry).toBe(NOW + REVIEW + REFUND)
 
-    const standard = JSON.parse(
+    // With a future deadline, the release window is anchored on the deadline
+    // (the worker delivers near it) plus the review buffer.
+    const deadline = NOW + 5 * 24 * 3600 // 5 days out
+    const withDeadline = JSON.parse(
       await buildEscrowPreAuth(client, {
         networkConfig: NETWORK_CONFIG,
         payerWallet: PAYER,
         workerWallet: WORKER,
         bountyAtomic: '100000',
-        tier: 'standard',
+        reviewDeadlineSec: deadline,
       }),
     ).payload.paymentInfo
-    expect(standard.preApprovalExpiry).toBe(1760000000 + ESCROW_TIER_WINDOWS.standard.pre)
-    expect(standard.authorizationExpiry).toBe(1760000000 + ESCROW_TIER_WINDOWS.standard.auth)
-    expect(standard.refundExpiry).toBe(1760000000 + ESCROW_TIER_WINDOWS.standard.refund)
-
-    // Server-provided windows take precedence over the canonical fallback
-    const custom = JSON.parse(
-      await buildEscrowPreAuth(client, {
-        networkConfig: { ...NETWORK_CONFIG, tiers: { micro: { pre: 60, auth: 120, refund: 240 } } },
-        payerWallet: PAYER,
-        workerWallet: WORKER,
-        bountyAtomic: '100000',
-      }),
-    ).payload.paymentInfo
-    expect(custom.preApprovalExpiry).toBe(1760000060)
-    expect(custom.authorizationExpiry).toBe(1760000120)
-    expect(custom.refundExpiry).toBe(1760000240)
+    expect(withDeadline.preApprovalExpiry).toBe(NOW + ESCROW_TIER_WINDOWS.micro.pre)
+    expect(withDeadline.authorizationExpiry).toBe(deadline + REVIEW)
+    expect(withDeadline.refundExpiry).toBe(deadline + REVIEW + REFUND)
   })
 })

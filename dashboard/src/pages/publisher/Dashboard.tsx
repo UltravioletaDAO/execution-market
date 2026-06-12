@@ -128,6 +128,12 @@ function Applicants({ task, onAssigned }: { task: Task; onAssigned: () => void }
       bountyAtomic: BigInt(Math.round(bounty * 1_000_000)).toString(),
       // SDK tier semantics: MICRO $0.50-$5, STANDARD $5-$50 (longer windows).
       tier: bounty >= 5 ? 'standard' : 'micro',
+      // Keep the release window open past the deadline so the human publisher
+      // can still approve after the worker delivers (a 2h auth window expires
+      // before review → on-chain revert → Facilitator 400).
+      reviewDeadlineSec: detail.deadline
+        ? Math.floor(new Date(detail.deadline).getTime() / 1000)
+        : undefined,
     })
   }
 
@@ -246,18 +252,41 @@ function Applicants({ task, onAssigned }: { task: Task; onAssigned: () => void }
   )
 }
 
+/** Escrow is locked once it leaves the un-funded 'pending_assignment' marker. */
+const ESCROW_LOCKED_STATUSES = new Set(['deposited', 'funded', 'locked', 'active'])
+
+/**
+ * A task is assigned/funded — never offer to (re)assign it. Keys on more than
+ * status: if the escrow-mode assign relay throws AFTER the on-chain lock landed,
+ * the backend rolls status back to 'published' while funds stay locked. Without
+ * checking executor_id / escrow_tx / escrow_status we'd show an enabled Assign
+ * button on already-funded work, inviting a double-lock.
+ */
+function isTaskAssigned(task: Task): boolean {
+  return (
+    task.status !== 'published' ||
+    task.executor_id != null ||
+    !!task.escrow_tx ||
+    (task.escrow_status != null && ESCROW_LOCKED_STATUSES.has(task.escrow_status))
+  )
+}
+
 function TaskCard({ task, onReview, onCancel, onAssigned }: { task: Task; onReview?: (id: string) => void; onCancel?: (id: string) => void; onAssigned?: () => void }) {
   const { t } = useTranslation()
-  const icon = STATUS_ICON[task.status] || '❓'
+  // Show the "assigned" badge the moment EITHER status advances OR escrow is
+  // locked OR an executor is set — closes the rollback-inconsistency hole.
+  const assigned = isTaskAssigned(task)
+  const effectiveStatus = assigned && task.status === 'published' ? 'accepted' : task.status
+  const icon = STATUS_ICON[effectiveStatus] || '❓'
   // Party-aware status: "Searching for Human" / "Agent Assigned" — derived
   // from the assigned executor's type, falling back to the published target.
   const party = t(`party.${taskParty(task)}`, 'Executor')
-  const statusLabel = t(`publisher.dashboard.status.${task.status}`, { defaultValue: task.status, party })
+  const statusLabel = t(`publisher.dashboard.status.${effectiveStatus}`, { defaultValue: effectiveStatus, party })
   return (
     <div className="bg-white rounded-lg border border-zinc-200 p-4 hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between mb-2">
         <h3 className="font-medium text-zinc-900 flex-1 pr-2 truncate">{task.title}</h3>
-        <StatusBadge status={task.status} size="sm" label={`${icon} ${statusLabel}`} />
+        <StatusBadge status={effectiveStatus} size="sm" label={`${icon} ${statusLabel}`} />
       </div>
       <p className="text-sm text-zinc-500 line-clamp-2 mb-3">{task.instructions}</p>
       <div className="flex items-center gap-4 text-sm text-zinc-600 mb-3">
@@ -268,7 +297,7 @@ function TaskCard({ task, onReview, onCancel, onAssigned }: { task: Task; onRevi
         {task.status === 'submitted' && onReview && <button onClick={() => onReview(task.id)} className="flex-1 px-3 py-1.5 bg-zinc-900 text-white text-sm rounded-lg hover:bg-zinc-800">⚡ {t('publisher.dashboard.review', 'Review')}</button>}
         {['published', 'accepted'].includes(task.status) && onCancel && <button onClick={() => onCancel(task.id)} className="px-3 py-1.5 border border-red-300 text-red-700 text-sm rounded-lg hover:bg-red-50">{t('common.cancel')}</button>}
       </div>
-      {task.status === 'published' && onAssigned && <Applicants task={task} onAssigned={onAssigned} />}
+      {!assigned && onAssigned && <Applicants task={task} onAssigned={onAssigned} />}
     </div>
   )
 }

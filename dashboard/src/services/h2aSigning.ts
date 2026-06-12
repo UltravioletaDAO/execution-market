@@ -168,6 +168,18 @@ export const ESCROW_TIER_WINDOWS: Record<string, EscrowTierWindows> = {
 }
 
 /**
+ * Human review windows. Agents approve in seconds, so the short SDK tier
+ * windows (micro auth = 2h) work for them. A HUMAN publisher reviews on their
+ * own schedule — often hours or days after the worker delivers near the
+ * deadline. If the escrow's authorizationExpiry passes before approval, the
+ * on-chain release REVERTS (AfterAuthorizationExpiry) and the Facilitator
+ * returns 400. So the release/refund windows are extended to comfortably
+ * outlast the deadline + a review buffer.
+ */
+const REVIEW_WINDOW_SEC = 7 * 24 * 3600 // ≥7 days to approve after the deadline
+const REFUND_WINDOW_SEC = 7 * 24 * 3600 // +7 days to refund after that
+
+/**
  * One network's escrow parameters, served by GET /api/v1/h2a/payment-config
  * (`escrow_networks[network]`). The server publishes these so the browser
  * builds the paymentInfo EXACTLY like the SDK.
@@ -254,6 +266,12 @@ export interface EscrowPreAuthParams {
   bountyAtomic: string | bigint
   /** Expiry tier; windows come from config when present. Default 'micro'. */
   tier?: string
+  /**
+   * Task deadline (epoch seconds). The release/refund windows are extended to
+   * outlast it + a review buffer so a human publisher can still approve after
+   * the worker delivers. When omitted, falls back to now()-based windows.
+   */
+  reviewDeadlineSec?: number
 }
 
 /**
@@ -272,14 +290,22 @@ export async function buildEscrowPreAuth(
   const now = Math.floor(Date.now() / 1000)
   const maxAmount = BigInt(params.bountyAtomic).toString()
 
+  // The release window must outlast the human review. Base it on the task
+  // deadline (the worker delivers near it) plus a generous buffer, and never
+  // shorter than the SDK tier window. preApprovalExpiry stays short — the
+  // lock executes immediately at assignment.
+  const reviewBase = Math.max(now, params.reviewDeadlineSec ?? now)
+  const authExpiry = Math.max(now + windows.auth, reviewBase + REVIEW_WINDOW_SEC)
+  const refundExpiry = Math.max(now + windows.refund, authExpiry + REFUND_WINDOW_SEC)
+
   const paymentInfo: EscrowPaymentInfo = {
     operator: getAddress(cfg.operator),
     receiver: getAddress(params.workerWallet),
     token: getAddress(cfg.usdc),
     maxAmount,
     preApprovalExpiry: now + windows.pre,
-    authorizationExpiry: now + windows.auth,
-    refundExpiry: now + windows.refund,
+    authorizationExpiry: authExpiry,
+    refundExpiry: refundExpiry,
     minFeeBps: cfg.min_fee_bps ?? 0,
     maxFeeBps: cfg.max_fee_bps ?? 1800,
     feeReceiver: getAddress(cfg.operator),
