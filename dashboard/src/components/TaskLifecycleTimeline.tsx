@@ -158,6 +158,9 @@ function buildSteps(task: Task, submissions: Submission[] | undefined, payment: 
   const isCompleted = status === 'completed'
   const isSubmitted = ['submitted', 'verifying', 'completed'].includes(status)
   const isAssigned = Boolean(task.executor_id) || ['accepted', 'in_progress', 'submitted', 'verifying', 'completed', 'disputed'].includes(status)
+  // A terminal task whose evidence was explicitly rejected reads very
+  // differently from a plain cancel/expiry — say so + show the refund.
+  const wasRejected = (submissions ?? []).some((s) => s.agent_verdict === 'rejected')
 
   // Find the earliest submission date
   const submissionDate = submissions && submissions.length > 0
@@ -234,10 +237,12 @@ function buildSteps(task: Task, submissions: Submission[] | undefined, payment: 
     {
       key: 'completed',
       titleKey: isTerminal
-        ? (status === 'cancelled' ? 'taskLifecycle.cancelled' : 'taskLifecycle.expired')
+        ? (wasRejected ? 'taskLifecycle.rejectedRefunded' : status === 'cancelled' ? 'taskLifecycle.cancelled' : 'taskLifecycle.expired')
         : 'taskLifecycle.completedPaid',
       titleFallback: isTerminal
-        ? (status === 'cancelled' ? 'Cancelled' : 'Expired')
+        ? (wasRejected
+            ? (task.refund_tx ? 'Evidencia rechazada · reembolsado' : 'Evidencia rechazada')
+            : status === 'cancelled' ? 'Cancelled' : 'Expired')
         : 'Completed & Paid',
       status: isCompleted
         ? 'completed'

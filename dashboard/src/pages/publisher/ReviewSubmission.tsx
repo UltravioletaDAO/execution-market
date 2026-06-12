@@ -7,7 +7,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useDynamicContext } from '@dynamic-labs/sdk-react-core'
 import { isEthereumWallet } from '@dynamic-labs/ethereum'
-import type { Task, Submission } from '../../types/database'
+import type { Task, Submission, H2AApprovalResponse } from '../../types/database'
 import {
   getH2ATask,
   getH2ASubmissions,
@@ -21,6 +21,8 @@ import { safeHref } from '../../lib/safeHref'
 import { EvidenceVerificationPanel } from '../../components/EvidenceVerificationPanel'
 import { ArbiterVerdictBadge } from '../../components/ArbiterVerdictBadge'
 import { EvidenceView } from '../../components/EvidenceView'
+import { TaskLifecycleTimeline } from '../../components/TaskLifecycleTimeline'
+import { TxHashLink } from '../../components/TxLink'
 import { parseRing2 } from '../../lib/verificationContract'
 
 const DISPUTE_REASONS: { value: DisputeReason; label: string }[] = [
@@ -70,6 +72,7 @@ export function ReviewSubmission() {
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [result, setResult] = useState<H2AApprovalResponse | null>(null)
   const [disputeOpen, setDisputeOpen] = useState(false)
   const [disputeReason, setDisputeReason] = useState<DisputeReason>('incomplete_work')
   const [disputeDescription, setDisputeDescription] = useState('')
@@ -157,12 +160,16 @@ export function ReviewSubmission() {
         })
       }
 
-      await approveH2ASubmission(taskId!, {
+      const res = await approveH2ASubmission(taskId!, {
         submission_id: latest.id, verdict, notes: notes || undefined,
         settlement_auth_worker: authWorker,
         settlement_auth_fee: authFee,
       })
-      navigate('/publisher/dashboard')
+      // Show a confirmation with the on-chain receipt instead of silently
+      // bouncing to the dashboard — the publisher must SEE what happened
+      // (rejected + refunded, approved + paid, revision requested).
+      setResult(res)
+      await loadData()
     } catch (e) { setSubmitError(e instanceof Error ? e.message : 'Error') }
     finally { setSubmitting(false) }
   }
@@ -222,6 +229,12 @@ export function ReviewSubmission() {
           </div>
         </div>
 
+        {/* Event timeline so the publisher sees the full state of the task
+            (assigned, escrow locked, evidence, verdict, refund/payment). */}
+        <div className="bg-white rounded-lg border p-4">
+          <TaskLifecycleTimeline task={task} submissions={submissions} />
+        </div>
+
         {submissions.length === 0 ? (
           <div className="text-center py-8 text-gray-500">{t('review.noSubmissions', 'No hay entregas aún.')}</div>
         ) : (
@@ -270,6 +283,48 @@ export function ReviewSubmission() {
               </div>
             ))}
 
+            {result ? (
+              <div className="bg-white rounded-lg border p-6 space-y-3">
+                {result.status === 'rejected' ? (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">❌</span>
+                      <h3 className="font-semibold text-zinc-900">{t('review.done.rejectedTitle', 'Evidencia rechazada')}</h3>
+                    </div>
+                    <p className="text-sm text-zinc-600">
+                      {result.refund_tx
+                        ? t('review.done.rejectedRefunded', 'Rechazaste la entrega y se reembolsaron ${{amount}} USDC a tu wallet. La tarea quedó cerrada.', { amount: bounty.toFixed(2) })
+                        : t('review.done.rejectedNoEscrow', 'Rechazaste la entrega. La tarea quedó cerrada.')}
+                    </p>
+                  </>
+                ) : result.status === 'needs_revision' ? (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">🔄</span>
+                      <h3 className="font-semibold text-zinc-900">{t('review.done.revisionTitle', 'Revisión solicitada')}</h3>
+                    </div>
+                    <p className="text-sm text-zinc-600">{t('review.done.revisionBody', 'El trabajador puede ver tus notas y volver a enviar la evidencia. Los fondos siguen en el escrow.')}</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">✅</span>
+                      <h3 className="font-semibold text-zinc-900">{t('review.done.approvedTitle', 'Aprobado y pagado')}</h3>
+                    </div>
+                    <p className="text-sm text-zinc-600">{t('review.done.approvedBody', 'Se liberaron ${{amount}} USDC al trabajador (87%) y la comisión a tesorería (13%).', { amount: bounty.toFixed(2) })}</p>
+                  </>
+                )}
+                {(result.refund_tx || result.worker_tx) && (
+                  <div className="flex items-center gap-1.5 text-xs">
+                    <span className="text-zinc-500">{result.refund_tx ? t('review.done.refundTx', 'TX de reembolso') : t('review.done.paymentTx', 'TX de pago')}:</span>
+                    <TxHashLink txHash={(result.refund_tx || result.worker_tx) as string} network={task.payment_network || 'base'} />
+                  </div>
+                )}
+                <button onClick={() => navigate('/publisher/dashboard')} className="w-full mt-2 py-2.5 px-4 rounded-lg font-medium bg-zinc-900 text-white hover:bg-zinc-800">
+                  {t('review.done.back', 'Volver al panel')}
+                </button>
+              </div>
+            ) : (
             <div className="bg-white rounded-lg border p-6">
               <h3 className="font-semibold mb-4">🔍 {t('review.verdictHeading', 'Tu Veredicto')}</h3>
               <div className="grid grid-cols-3 gap-3 mb-4">
@@ -385,6 +440,7 @@ export function ReviewSubmission() {
                 )}
               </div>
             </div>
+            )}
           </>
         )}
       </div>

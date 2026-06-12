@@ -739,6 +739,7 @@ export interface H2AApprovalResponse {
   status: string
   worker_tx?: string
   fee_tx?: string
+  refund_tx?: string
   notes?: string
 }
 
