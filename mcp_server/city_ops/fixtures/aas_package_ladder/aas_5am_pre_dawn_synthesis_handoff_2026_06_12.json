@@ -1,0 +1,265 @@
+{
+  "claim_boundaries": {
+    "do_not_claim_yet": [
+      "concept_gap_matrix_records_operator_answer",
+      "concept_gap_matrix_records_operator_approval",
+      "concept_gap_matrix_creates_answer_receipt",
+      "concept_gap_matrix_selects_future_answer",
+      "concept_gap_matrix_treats_gap_rank_as_approval",
+      "concept_gap_matrix_approves_product_exposure",
+      "concept_gap_matrix_creates_customer_public_or_worker_surface",
+      "concept_gap_matrix_authorizes_catalog_pricing_quote_queue_or_dispatch",
+      "concept_gap_matrix_emits_erc8004_reputation_or_worker_skill_dna",
+      "concept_gap_matrix_reverifies_payment_or_production",
+      "concept_gap_matrix_mutates_runtime_acontext_or_irc_session_manager",
+      "concept_gap_matrix_releases_exact_gps_raw_metadata_or_private_context",
+      "concept_gap_matrix_grants_legal_regulator_notarial_custody_emergency_safety_repair_insurance_sla_official_report_or_fault_liability_authority",
+      "concept_gap_matrix_publishes_worker_copyable_doctrine",
+      "concept_gap_matrix_integrates_or_expands_stopped_projects",
+      "retail_reality_customer_exposure_approved_by_matrix",
+      "local_data_collection_dataset_or_representativeness_claim_approved_by_matrix",
+      "field_asset_ops_repair_diagnosis_or_sla_claim_approved_by_matrix",
+      "event_readiness_safety_permit_security_vendor_or_outcome_claim_approved_by_matrix",
+      "property_ops_appraisal_code_legal_access_insurance_or_remediation_claim_approved_by_matrix",
+      "document_handoff_legal_notarial_custody_or_acceptance_claim_approved_by_matrix",
+      "compliance_desk_regulator_legal_sufficiency_or_publication_claim_approved_by_matrix",
+      "incident_verification_emergency_official_report_fault_liability_or_repair_claim_approved_by_matrix",
+      "system_integration_runtime_memory_write_retrieve_or_parity_claim_approved_by_matrix",
+      "concept_gap_roadmap_records_operator_answer",
+      "concept_gap_roadmap_records_operator_approval",
+      "concept_gap_roadmap_creates_answer_receipt",
+      "concept_gap_roadmap_selects_future_answer",
+      "concept_gap_roadmap_treats_sequence_rank_as_approval",
+      "concept_gap_roadmap_approves_product_exposure",
+      "concept_gap_roadmap_creates_customer_public_or_worker_surface",
+      "concept_gap_roadmap_authorizes_catalog_pricing_quote_route_queue_or_dispatch",
+      "concept_gap_roadmap_creates_worker_instruction",
+      "concept_gap_roadmap_emits_erc8004_reputation_or_worker_skill_dna",
+      "concept_gap_roadmap_reverifies_payment_or_production",
+      "concept_gap_roadmap_mutates_runtime_acontext_or_irc_session_manager",
+      "concept_gap_roadmap_releases_exact_gps_raw_metadata_or_private_context",
+      "concept_gap_roadmap_grants_legal_regulator_notarial_custody_emergency_safety_repair_insurance_sla_official_report_or_fault_liability_authority",
+      "concept_gap_roadmap_publishes_worker_copyable_doctrine",
+      "concept_gap_roadmap_integrates_or_expands_stopped_projects",
+      "no_answer_prompt_packet_records_operator_answer",
+      "no_answer_prompt_packet_records_operator_approval",
+      "no_answer_prompt_packet_creates_answer_receipt",
+      "no_answer_prompt_packet_selects_future_answer",
+      "no_answer_prompt_packet_treats_prompt_as_permission",
+      "no_answer_prompt_packet_approves_customer_public_or_worker_copy",
+      "no_answer_prompt_packet_approves_catalog_pricing_quote_route_queue_or_dispatch",
+      "no_answer_prompt_packet_approves_worker_instruction_or_worker_copyable_doctrine",
+      "no_answer_prompt_packet_attaches_reputation_worker_skill_dna_or_portable_credential",
+      "no_answer_prompt_packet_reverifies_payment_or_production",
+      "no_answer_prompt_packet_mutates_runtime_acontext_irc_or_session_manager",
+      "no_answer_prompt_packet_releases_exact_gps_raw_metadata_private_context_or_pii",
+      "no_answer_prompt_packet_grants_domain_legal_regulatory_safety_repair_or_sla_authority",
+      "no_answer_prompt_packet_integrates_or_expands_stopped_projects",
+      "strength_bridge_records_operator_answer",
+      "strength_bridge_records_operator_approval",
+      "strength_bridge_creates_answer_receipt",
+      "strength_bridge_selects_future_answer",
+      "strength_bridge_treats_system_integration_as_permission",
+      "strength_bridge_creates_customer_public_or_worker_surface",
+      "strength_bridge_authorizes_catalog_pricing_quote_route_queue_or_dispatch",
+      "strength_bridge_creates_worker_instruction_or_worker_copyable_doctrine",
+      "strength_bridge_mutates_runtime_acontext_irc_or_session_manager",
+      "strength_bridge_reverifies_payment_production_or_chain_integrations",
+      "strength_bridge_attaches_reputation_worker_skill_dna_or_portable_credential",
+      "strength_bridge_releases_exact_gps_raw_metadata_private_context_or_pii",
+      "strength_bridge_grants_domain_legal_regulatory_safety_repair_or_sla_authority",
+      "strength_bridge_integrates_or_expands_stopped_projects",
+      "stale_cron_firewall_performed_autojob_pull_or_analysis",
+      "stale_cron_firewall_expanded_frontier_academy",
+      "stale_cron_firewall_continued_kk_v2",
+      "stale_cron_firewall_created_operator_answer_or_approval",
+      "stale_cron_firewall_created_answer_receipt",
+      "stale_cron_firewall_selected_future_answer",
+      "stale_cron_firewall_authorized_customer_public_or_worker_surface",
+      "stale_cron_firewall_authorized_catalog_pricing_queue_route_or_dispatch",
+      "stale_cron_firewall_mutated_runtime_acontext_irc_or_session_manager",
+      "stale_cron_firewall_reverified_payment_production_or_chain_state",
+      "stale_cron_firewall_emitted_reputation_or_worker_skill_dna",
+      "stale_cron_firewall_released_exact_gps_raw_metadata_private_context_or_pii",
+      "stale_cron_firewall_granted_domain_legal_safety_repair_insurance_or_sla_authority",
+      "stale_cron_firewall_published_worker_copyable_doctrine",
+      "exponential_value_board_records_operator_answer_or_approval",
+      "exponential_value_board_creates_answer_receipt",
+      "exponential_value_board_selects_future_answer",
+      "exponential_value_board_integrates_or_expands_stopped_projects",
+      "exponential_value_board_performs_autojob_pull_or_analysis",
+      "exponential_value_board_expands_frontier_academy",
+      "exponential_value_board_continues_kk_v2",
+      "exponential_value_board_creates_customer_public_or_worker_surface",
+      "exponential_value_board_authorizes_catalog_pricing_quote_route_queue_or_dispatch",
+      "exponential_value_board_mutates_runtime_acontext_irc_or_session_manager",
+      "exponential_value_board_performs_live_acontext_write_or_retrieve",
+      "exponential_value_board_reverifies_payment_production_or_chain_state",
+      "exponential_value_board_emits_erc8004_reputation_or_worker_skill_dna",
+      "exponential_value_board_releases_exact_gps_raw_metadata_private_context_or_pii",
+      "exponential_value_board_grants_domain_legal_safety_repair_insurance_or_sla_authority",
+      "exponential_value_board_publishes_worker_copyable_doctrine",
+      "five_am_2026_06_12_records_operator_answer",
+      "five_am_2026_06_12_records_operator_approval",
+      "five_am_2026_06_12_creates_answer_receipt",
+      "five_am_2026_06_12_selects_future_answer",
+      "five_am_2026_06_12_treats_synthesis_as_authority",
+      "five_am_2026_06_12_performs_live_acontext_write_or_retrieve",
+      "five_am_2026_06_12_mutates_irc_or_session_manager",
+      "five_am_2026_06_12_creates_customer_public_or_worker_surface",
+      "five_am_2026_06_12_authorizes_catalog_pricing_quote_route_queue_or_dispatch",
+      "five_am_2026_06_12_emits_erc8004_reputation_or_worker_skill_dna",
+      "five_am_2026_06_12_reverifies_payment_production_or_chain_state",
+      "five_am_2026_06_12_releases_gps_raw_metadata_private_context_or_pii",
+      "five_am_2026_06_12_grants_legal_safety_repair_insurance_or_sla_authority",
+      "five_am_2026_06_12_publishes_worker_copyable_doctrine",
+      "five_am_2026_06_12_works_on_autojob_frontier_academy_kk_v2_or_karmacadabra"
+    ],
+    "safe_to_claim": [
+      "internal_admin_aas_no_answer_daytime_operator_prompt_packet_landed",
+      "internal_admin_aas_system_integration_strength_bridge_packet_landed",
+      "internal_admin_aas_stale_cron_firewall_work_queue_landed",
+      "internal_admin_aas_exponential_value_connection_board_landed",
+      "internal_admin_aas_5am_pre_dawn_synthesis_handoff_2026_06_12_landed"
+    ]
+  },
+  "daytime_priority_queue": [
+    {
+      "action": "keep_pause_aas_proof_layering",
+      "priority": "P0",
+      "success_check": "Any daytime AAS move names one source artifact, one safe claim, blocked claims, and exactly one next gate.",
+      "why": "No explicit operator answer or runtime truth appeared overnight; more wrapper proofs would add noise, not readiness."
+    },
+    {
+      "action": "if_sa\u00fal_answers_create_one_digest_backed_answer_receipt",
+      "priority": "P1",
+      "success_check": "Receipt validates blocked_claims_preserved true and uses an opaque non-secret reference, not private context.",
+      "why": "The intake packet and repaired template are ready, but only a real allowed answer can move the lane."
+    },
+    {
+      "action": "refresh_the_source_of_truth_index_only_when_selecting_the_daytime_entrypoint",
+      "priority": "P1",
+      "success_check": "Index/digests are refreshed as coordination metadata only, not as launch/customer authority.",
+      "why": "The useful daytime entrypoint is now the June 12 chain: intake repair, stale-cron firewall, value board, and this handoff."
+    },
+    {
+      "action": "turn_firewall_pattern_into_operator_cockpit_copy_later",
+      "priority": "P2",
+      "success_check": "Copy stays internal/admin unless separately approved for public/customer exposure.",
+      "why": "The strongest product pattern is not more planning; it is a visible stop/go control that prevents stale prompts from driving work."
+    }
+  ],
+  "governing_priority": {
+    "allowed_lane": "Execution Market AAS / City-as-a-Service internal/admin planning",
+    "selected_posture_now": "pause_aas_proof_layering",
+    "source": "/Users/clawdbot/clawd/DREAM-PRIORITIES.md",
+    "source_precedence": "dream_priorities_wins_over_stale_cron_payload"
+  },
+  "handoff_cards": [
+    {
+      "card": "morning_entrypoint",
+      "next_gate": "operator_answer_receipt_or_hold",
+      "safe_claim": "internal_admin_aas_5am_pre_dawn_synthesis_handoff_2026_06_12_landed",
+      "source_digest_sha256": "17db2ea23419b1b1ba5ce998847d984eeefd22f3fde88646af05329cd12b7758",
+      "use": "Start from this handoff plus the 4 AM value board, not the stale cron payload."
+    },
+    {
+      "card": "stopped_project_firewall",
+      "next_gate": "reread_dream_priorities_before_any_future_dream_work",
+      "use": "AutoJob, Frontier Academy, KK v2, and KarmaCadabra v2 remain stopped for dreams unless DREAM-PRIORITIES.md changes."
+    },
+    {
+      "card": "daytime_decision",
+      "next_gate": "single_digest_backed_answer_receipt",
+      "use": "If Sa\u00fal wants movement, ask for/select exactly one allowed AAS operator answer value; otherwise keep hold."
+    }
+  ],
+  "handoff_digest_sha256": "2cd0825ab595f55c8b0377d47e3418aac37fe3ca7931e96b7b88d5bf3c3a4f76",
+  "handoff_id": "execution_market.aas.pre_dawn_synthesis_handoff.2026_06_12_0500",
+  "handoff_status": "internal_admin_daytime_handoff_only_no_answer_or_external_promotion",
+  "memory_update_packet": {
+    "memory_lines": [
+      "DREAM-PRIORITIES.md overrode stale AutoJob/Frontier/KK cron priorities again; AAS/City-as-a-Service remained the only active dream lane.",
+      "June 12 AAS chain now has an intake packet repair, stale-cron firewall queue, exponential value connection board, and 5 AM synthesis handoff.",
+      "Daytime next gate remains exactly one explicit allowed operator answer or continued pause_aas_proof_layering."
+    ],
+    "reason": "Daily memory should preserve the June 12 priority override and handoff chain; long-term memory does not need another duplicated no-answer hold unless Sa\u00fal changes direction.",
+    "source_board_digest_sha256": "17db2ea23419b1b1ba5ce998847d984eeefd22f3fde88646af05329cd12b7758",
+    "write_to_daily_memory": true,
+    "write_to_long_term_memory": false
+  },
+  "night_synthesis": [
+    {
+      "daytime_use": "update durable memory with digest-backed safe claims, blocked claims, posture, and one next gate; do not replay raw/private context",
+      "insight": "reviewed_memory_becomes_useful_when_reduced_to_digest_plus_claim_boundaries",
+      "next_gate": "operator_answer_receipt_or_hold",
+      "system": "memory_system"
+    },
+    {
+      "daytime_use": "if runtime-memory lane is selected later, run existing prerequisite gates before any write/retrieve claim",
+      "insight": "Acontext remains a future runtime lane, not a live truth claim, until prerequisite gates pass",
+      "next_gate": "acontext_prerequisite_gate_only_if_selected",
+      "system": "acontext_and_runtime_memory"
+    },
+    {
+      "daytime_use": "carry compact source refs and blocked claims across agents instead of long transcript dependencies",
+      "insight": "irc_and_session_coordination_scale_through_small_invariant_handoff_capsules",
+      "next_gate": "compact_handoff_card_review",
+      "system": "irc_session_coordination"
+    },
+    {
+      "daytime_use": "use stale-context detection as a product-control pattern for AAS operations; do not autoroute into stopped projects",
+      "insight": "cross_project_intelligence_compounds_as_a_firewall_filter_not_an_autorouter",
+      "next_gate": "priority_firewall_before_any_new_lane",
+      "system": "execution_market_aas_strategy"
+    }
+  ],
+  "readiness": {
+    "answer_receipt_created": false,
+    "autojob_work_performed": false,
+    "catalog_pricing_quote_route_queue_or_dispatch_authorized": false,
+    "customer_public_worker_surface_created": false,
+    "daytime_recommendations_prepared": true,
+    "dream_priorities_precedence_preserved": true,
+    "erc8004_reputation_or_worker_skill_dna_emitted": false,
+    "exact_gps_raw_metadata_private_context_or_pii_exposed": false,
+    "frontier_academy_work_performed": false,
+    "future_answer_selected": false,
+    "handoff_landed": true,
+    "karmacadabra_v2_work_performed": false,
+    "kk_v2_work_performed": false,
+    "live_acontext_write_or_retrieve_performed": false,
+    "memory_update_prepared": true,
+    "operator_answer_recorded": false,
+    "operator_approval_recorded": false,
+    "payment_or_production_reverified": false,
+    "runtime_acontext_irc_or_session_manager_mutated": false,
+    "source_connection_board_verified": true,
+    "worker_copyable_doctrine_published": false
+  },
+  "schema": "city_ops.aas_5am_pre_dawn_synthesis_handoff_2026_06_12.v1",
+  "source_connection_board": {
+    "board_id": "execution_market.aas.exponential_value_connection_board.2026_06_12_0400",
+    "digest_sha256": "17db2ea23419b1b1ba5ce998847d984eeefd22f3fde88646af05329cd12b7758",
+    "file": "aas_exponential_value_connection_board.json",
+    "safe_claim": "internal_admin_aas_exponential_value_connection_board_landed",
+    "schema": "city_ops.aas_exponential_value_connection_board.v1"
+  },
+  "strategic_recommendations": [
+    {
+      "boundary": "internal/admin until customer exposure is separately approved",
+      "rationale": "The stale cron conflict is a real operational failure mode for agent-run services; turning it into a stop/go control is product value, not just housekeeping.",
+      "recommendation": "make_the_priority_firewall_a_first_class_AAS_control"
+    },
+    {
+      "boundary": "no live runtime or Acontext write claim from this artifact",
+      "rationale": "Small handoff capsules let many agents coordinate without leaking raw context or resurrecting stopped work.",
+      "recommendation": "treat_digest_backed_handoffs_as_AAS_infrastructure"
+    },
+    {
+      "boundary": "wait for one explicit answer, one runtime prerequisite pass, or a changed DREAM-PRIORITIES.md",
+      "rationale": "The chain is now strong enough for daytime selection; more wrappers increase drift risk without adding authority.",
+      "recommendation": "avoid_more_no_answer_proof_wrappers"
+    }
+  ]
+}

@@ -223,6 +223,11 @@ from .aas_exponential_value_connection_board import (
     load_aas_exponential_value_connection_board,
     write_aas_exponential_value_connection_board,
 )
+from .aas_5am_pre_dawn_synthesis_handoff_2026_06_12 import (
+    build_aas_5am_pre_dawn_synthesis_handoff_2026_06_12,
+    load_aas_5am_pre_dawn_synthesis_handoff_2026_06_12,
+    write_aas_5am_pre_dawn_synthesis_handoff_2026_06_12,
+)
 from .aas_strength_roadmap_connection_board import (
     build_aas_strength_roadmap_connection_board,
     load_aas_strength_roadmap_connection_board,
@@ -1213,6 +1218,12 @@ __all__ = [
     "build_aas_system_integration_runtime_truth_queue",
     "load_aas_system_integration_runtime_truth_queue",
     "write_aas_system_integration_runtime_truth_queue",
+    "build_aas_exponential_value_connection_board",
+    "load_aas_exponential_value_connection_board",
+    "write_aas_exponential_value_connection_board",
+    "build_aas_5am_pre_dawn_synthesis_handoff_2026_06_12",
+    "load_aas_5am_pre_dawn_synthesis_handoff_2026_06_12",
+    "write_aas_5am_pre_dawn_synthesis_handoff_2026_06_12",
     "build_aas_exponential_value_pathfinder",
     "load_aas_exponential_value_pathfinder",
     "write_aas_exponential_value_pathfinder",
