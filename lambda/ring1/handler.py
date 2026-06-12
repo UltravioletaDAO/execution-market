@@ -24,6 +24,11 @@ import httpx
 logger = logging.getLogger()
 logger.setLevel("INFO")
 
+# Suppress httpx INFO logs — they include full request URLs and leaked the
+# Gemini API key to CloudWatch (C-01). ECS loads logging_config.py which
+# already does this; Lambdas never load it, so do it here at cold start.
+logging.getLogger("httpx").setLevel(logging.WARNING)
+
 # ── Build version (injected by CI via Dockerfile ARG) ────────────────────
 _GIT_SHA = os.environ.get("GIT_SHA", "unknown")
 _BUILD_TS = os.environ.get("BUILD_TIMESTAMP", "unknown")
@@ -693,10 +698,16 @@ async def _process_submission(body: Dict[str, Any]) -> Dict[str, Any]:
                 _emit_tasks.append(_emit(name, "failed", {"error": str(outcome)[:200]}))
             elif isinstance(outcome, tuple):
                 cr, _ = outcome
-                _emit_tasks.append(_emit(name, "complete", {"passed": cr.passed, "score": cr.score}))
+                _emit_tasks.append(
+                    _emit(name, "complete", {"passed": cr.passed, "score": cr.score})
+                )
             elif hasattr(outcome, "passed"):
                 _emit_tasks.append(
-                    _emit(name, "complete", {"passed": outcome.passed, "score": outcome.score})
+                    _emit(
+                        name,
+                        "complete",
+                        {"passed": outcome.passed, "score": outcome.score},
+                    )
                 )
         if _emit_tasks:
             await asyncio.gather(*_emit_tasks, return_exceptions=True)

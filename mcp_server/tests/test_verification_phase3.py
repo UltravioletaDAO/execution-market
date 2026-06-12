@@ -143,6 +143,72 @@ class TestGeminiProvider:
         provider = get_provider()
         assert provider.name == "gemini"
 
+    @pytest.mark.asyncio
+    async def test_api_key_never_in_url(self, monkeypatch):
+        """C-01: the API key must travel in the x-goog-api-key header, never
+        in the URL — httpx logs full request URLs at INFO level and leaked
+        the production key to CloudWatch."""
+        secret = "SUPER-SECRET-KEY-do-not-log"
+        monkeypatch.setenv("GOOGLE_API_KEY", secret)
+        from verification.providers import GeminiProvider, VisionRequest
+
+        provider = GeminiProvider()
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            "candidates": [{"content": {"parts": [{"text": "ok"}]}}],
+            "usageMetadata": {},
+        }
+
+        mock_client = AsyncMock()
+        mock_client.post.return_value = mock_resp
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+
+        with patch(
+            "verification.providers.httpx.AsyncClient", return_value=mock_client
+        ):
+            await provider.analyze(
+                VisionRequest(
+                    prompt="Check",
+                    images=[b"img"],
+                    image_types=["image/jpeg"],
+                )
+            )
+
+        call = mock_client.post.call_args
+        url = call.args[0] if call.args else call.kwargs["url"]
+        assert secret not in url
+        assert "key=" not in url
+        assert call.kwargs["headers"]["x-goog-api-key"] == secret
+
+    @pytest.mark.asyncio
+    async def test_validate_key_never_in_url(self, monkeypatch):
+        """C-01: validate_key must also keep the key out of the URL."""
+        secret = "SUPER-SECRET-VALIDATE-KEY"
+        from verification.providers import GeminiProvider
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+
+        mock_client = AsyncMock()
+        mock_client.post.return_value = mock_resp
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+
+        with patch(
+            "verification.providers.httpx.AsyncClient", return_value=mock_client
+        ):
+            ok = await GeminiProvider.validate_key(secret)
+
+        assert ok is True
+        call = mock_client.post.call_args
+        url = call.args[0] if call.args else call.kwargs["url"]
+        assert secret not in url
+        assert "key=" not in url
+        assert call.kwargs["headers"]["x-goog-api-key"] == secret
+
 
 # ---------------------------------------------------------------------------
 # TestImageDownloader

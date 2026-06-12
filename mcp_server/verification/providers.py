@@ -336,10 +336,9 @@ class GeminiProvider(VerificationProvider):
             "generationConfig": {"maxOutputTokens": request.max_tokens},
         }
 
-        url = (
-            f"{self._BASE_URL}/models/{self.model_id}:generateContent"
-            f"?key={self.api_key}"
-        )
+        # API key goes in a header, NEVER in the URL — httpx logs full URLs
+        # at INFO level and leaked the key to CloudWatch (C-01).
+        url = f"{self._BASE_URL}/models/{self.model_id}:generateContent"
 
         logger.info("Gemini HTTP: calling %s...", self.model_id)
         t0 = time.monotonic()
@@ -351,7 +350,10 @@ class GeminiProvider(VerificationProvider):
                 resp = await client.post(
                     url,
                     json=payload,
-                    headers={"Content-Type": "application/json"},
+                    headers={
+                        "Content-Type": "application/json",
+                        "x-goog-api-key": self.api_key,
+                    },
                 )
         except httpx.TimeoutException:
             raise TimeoutError(
@@ -421,14 +423,17 @@ class GeminiProvider(VerificationProvider):
             logger.warning("Gemini validate_key: GOOGLE_API_KEY not set")
             return False
 
-        url = f"{cls._BASE_URL}/models/gemini-2.5-flash:generateContent?key={key}"
+        # Key in header, never in URL (C-01 — httpx logs URLs to CloudWatch).
+        url = f"{cls._BASE_URL}/models/gemini-2.5-flash:generateContent"
         payload = {
             "contents": [{"parts": [{"text": "hello"}]}],
             "generationConfig": {"maxOutputTokens": 8},
         }
         try:
             async with httpx.AsyncClient(timeout=httpx.Timeout(10.0)) as client:
-                resp = await client.post(url, json=payload)
+                resp = await client.post(
+                    url, json=payload, headers={"x-goog-api-key": key}
+                )
             if resp.status_code == 200:
                 logger.info("Gemini validate_key: OK (key is valid)")
                 return True

@@ -31,6 +31,10 @@ from typing import Any, Dict
 logger = logging.getLogger()
 logger.setLevel("INFO")
 
+# Suppress httpx INFO logs — full request URLs leaked the Gemini API key to
+# CloudWatch via Ring 1 (C-01). Lambdas never load logging_config.py.
+logging.getLogger("httpx").setLevel(logging.WARNING)
+
 # ── Build version (injected by CI via Dockerfile ARG) ────────────────────
 _GIT_SHA = os.environ.get("GIT_SHA", "unknown")
 _BUILD_TS = os.environ.get("BUILD_TIMESTAMP", "unknown")
