@@ -1315,6 +1315,20 @@ async def approve_h2a_submission(
         executor = submission.get("executor", {})
         agent_wallet = executor.get("wallet_address")
 
+        # Idempotency: a submission already finalized (accepted/rejected) must
+        # NOT be re-processed. Without this, a rejected submission could be
+        # re-POSTed as 'accepted' and paid (the task may still be in a
+        # processable status). Mirrors the A2A guard in routers/submissions.py.
+        # 'more_info_requested' is intentionally NOT blocked — it's an
+        # intermediate state and the worker re-submits as a NEW submission.
+        prior_verdict = submission.get("agent_verdict")
+        if prior_verdict in ("accepted", "rejected"):
+            raise HTTPException(
+                status_code=409,
+                detail=f"Submission already finalized with verdict "
+                f"'{prior_verdict}'. It cannot be re-processed.",
+            )
+
         if request.verdict == "accepted":
             # Anti-self-collusion (F-04): the worker being paid must not be the
             # publisher paying. Same guard style as SC-010 in payment_dispatcher
@@ -1567,9 +1581,7 @@ async def approve_h2a_submission(
             )
 
         elif request.verdict == "rejected":
-            # Final reject does NOT touch the escrow: a locked escrow stays
-            # locked. The publisher recovers funds via cancel (refund) or
-            # deadline expiry — mirrors the A2A flow.
+            # Mark the submission rejected first.
             client.table("submissions").update(
                 {
                     "agent_verdict": "rejected",
@@ -1577,14 +1589,96 @@ async def approve_h2a_submission(
                 }
             ).eq("id", request.submission_id).execute()
 
+            # Refund the locked escrow to the publisher. The worker was
+            # rejected, so the funds must NOT reach them. Leaving the task in
+            # 'submitted' lets the expiration job auto-settle to the rejected
+            # worker (P0 fund loss) — so we unwind the escrow here, mirroring
+            # the cancel refund path. Refund uses refundExpiry (a long window),
+            # so it works even after the authorization window expired.
+            refund_tx = None
+            esc_status = ""
+            try:
+                esc_res = (
+                    client.table("escrows")
+                    .select("id, status")
+                    .eq("task_id", task_id)
+                    .limit(1)
+                    .execute()
+                )
+                esc_rows = esc_res.data or []
+                if esc_rows and isinstance(esc_rows[0], dict):
+                    esc_status = str(esc_rows[0].get("status") or "").lower()
+            except Exception as esc_err:
+                logger.warning(
+                    "H2A reject: escrow lookup failed for task %s: %s",
+                    task_id,
+                    esc_err,
+                )
+
+            if esc_status in RELEASABLE_ESCROW_STATUSES:
+                dispatcher = get_payment_dispatcher()
+                if not dispatcher:
+                    raise HTTPException(
+                        status_code=502,
+                        detail=(
+                            "Payment dispatcher unavailable — submission marked "
+                            "rejected but the escrow refund could not run. Cancel "
+                            "the task to retry the refund."
+                        ),
+                    )
+                refund = await dispatcher.refund_trustless_escrow(
+                    task_id=task_id, reason="h2a_reject"
+                )
+                if not refund.get("success"):
+                    err = refund.get("error") or "refund failed"
+                    logger.error(
+                        "H2A reject escrow refund failed: task=%s, error=%s",
+                        task_id,
+                        err,
+                    )
+                    raise HTTPException(
+                        status_code=502,
+                        detail=(
+                            f"Escrow refund failed: {err}. Submission marked "
+                            "rejected; cancel the task to retry the refund."
+                        ),
+                    )
+                refund_tx = refund.get("tx_hash")
+                try:
+                    client.table("escrows").update(
+                        {
+                            "status": "refunded",
+                            "refund_tx": refund_tx,
+                            "refunded_at": datetime.now(timezone.utc).isoformat(),
+                        }
+                    ).eq("task_id", task_id).execute()
+                    client.table("tasks").update({"refund_tx": refund_tx}).eq(
+                        "id", task_id
+                    ).execute()
+                except Exception as esc_err:
+                    logger.warning(
+                        "H2A reject: escrow refund finalization failed for task "
+                        "%s (reconciler will sweep): %s",
+                        task_id,
+                        esc_err,
+                    )
+
+            # Close the task so the expiration job never auto-pays the rejected
+            # worker, and the publisher's dashboard stops showing it pending.
+            client.table("tasks").update({"status": "cancelled"}).eq(
+                "id", task_id
+            ).execute()
+
             logger.info(
-                "H2A submission rejected: task=%s, submission=%s",
+                "H2A submission rejected: task=%s, submission=%s, refund_tx=%s",
                 task_id,
                 request.submission_id,
+                refund_tx,
             )
 
             return H2AApprovalResponse(
                 status="rejected",
+                refund_tx=refund_tx,
                 notes=request.notes,
             )
 
@@ -1659,7 +1753,11 @@ async def cancel_h2a_task(
         if not _h2a_is_owner(task, auth):
             raise HTTPException(status_code=403, detail="Not your task")
 
-        cancellable = {"published", "accepted"}
+        # 'submitted'/'in_progress' are cancellable too: the publisher can pull
+        # a pending delivery (refunding the locked escrow to themselves) instead
+        # of being forced to wait for the deadline. This also lets them recover
+        # funds if a reject's inline refund failed and left the task pending.
+        cancellable = {"published", "accepted", "submitted", "in_progress"}
         if task.get("status") not in cancellable:
             raise HTTPException(
                 status_code=400,

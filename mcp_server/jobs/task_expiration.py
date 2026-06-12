@@ -366,6 +366,19 @@ async def _process_submitted_timeout_task(client, task: dict) -> bool:
         )
         return False
 
+    # Defense-in-depth (P0): NEVER auto-settle a submission the publisher
+    # already rejected or sent back for revision — paying the rejected worker
+    # is a fund-loss bug. Fall through to the refund path instead.
+    latest_verdict = rows[0].get("agent_verdict")
+    if latest_verdict in ("rejected", "more_info_requested"):
+        logger.info(
+            "[expiration] Task %s latest submission is '%s' — not auto-paying; "
+            "routing to refund.",
+            task_id,
+            latest_verdict,
+        )
+        return False
+
     submission_id = rows[0].get("id")
     if not submission_id:
         logger.warning(
@@ -663,11 +676,13 @@ async def run_task_expiration_loop() -> None:
             client = get_client()
             now = datetime.now(timezone.utc).isoformat()
 
-            # Query tasks past deadline that are still active.
+            # Query tasks past deadline that are still active. 'in_progress'
+            # is included so a needs_revision task whose deadline passes still
+            # gets expired+refunded instead of leaving the escrow in limbo.
             result = (
                 client.table("tasks")
                 .select("id, status, agent_id, bounty_usd, escrow_id, deadline")
-                .in_("status", ["published", "accepted", "submitted"])
+                .in_("status", ["published", "accepted", "submitted", "in_progress"])
                 .lt("deadline", now)
                 .execute()
             )

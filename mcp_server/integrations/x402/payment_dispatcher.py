@@ -1975,8 +1975,27 @@ class PaymentDispatcher:
             )
             release_data = response.json()
         except Exception as e:
-            logger.error("Facilitator release HTTP failed for task %s: %s", task_id, e)
-            release_data = {"success": False, "errorReason": str(e)}
+            # Capture the Facilitator response BODY, not just httpx's generic
+            # "Client error '400 Bad Request'". The body carries the real
+            # errorReason (e.g. "Escrow scheme error: execution reverted ...")
+            # which is what actually diagnoses a failed release.
+            body = ""
+            resp = getattr(e, "response", None)
+            if resp is not None:
+                try:
+                    body = resp.text[:600]
+                except Exception:
+                    body = ""
+            logger.error(
+                "Facilitator release HTTP failed for task %s: %s | body=%s",
+                task_id,
+                e,
+                body,
+            )
+            release_data = {
+                "success": False,
+                "errorReason": f"{e}{(' | ' + body) if body else ''}",
+            }
 
         # Convert to SDK-compatible result for the rest of the flow
         class _ReleaseResult:

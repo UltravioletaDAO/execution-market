@@ -938,6 +938,7 @@ class H2AApprovalResponse(BaseModel):
     status: str
     worker_tx: Optional[str] = None
     fee_tx: Optional[str] = None
+    refund_tx: Optional[str] = None
     notes: Optional[str] = None
 
 
