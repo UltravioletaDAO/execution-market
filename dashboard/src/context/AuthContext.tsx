@@ -204,131 +204,44 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [ensureSupabaseSession])
 
   // --------------------------------------------------------------------------
-  // Fetch or create executor using RPC function (bypasses RLS)
+  // Fetch executor by wallet (read-only lookup).
+  //
+  // The old get_or_create_executor RPC is service-role only since migration
+  // 111 — every browser call logged a scary 42501 "permission denied" before
+  // falling back, and the direct-insert last resort died on RLS the same way.
+  // Creation now happens server-side via the link-wallet bootstrap
+  // (POST /account/link-wallet) — see ensureWalletLinked.
   // --------------------------------------------------------------------------
-  const fetchExecutor = useCallback(async (wallet: string, email?: string | null): Promise<Executor | null> => {
+  const fetchExecutor = useCallback(async (wallet: string, _email?: string | null): Promise<Executor | null> => {
     const normalizedWallet = wallet.toLowerCase()
 
     try {
-      const rpcCall = async () => supabase.rpc('get_or_create_executor', {
-        p_wallet_address: normalizedWallet,
-        p_display_name: null,
-        p_email: email || null,
-      })
+      const lookup = async () => supabase
+        .from('executors')
+        .select('*')
+        .eq('wallet_address', normalizedWallet)
+        .maybeSingle()
 
-      let { data, error } = await rpcCall()
+      let { data, error } = await lookup()
       if (error && isAbortError(error)) {
         await delay(250)
-        const retry = await rpcCall()
+        const retry = await lookup()
         data = retry.data
         error = retry.error
       }
 
       if (error) {
-        console.error('[Auth] get_or_create_executor error:', error)
-
-        // Fallback: try to load executor directly by wallet
-        const { data: existing, error: existingError } = await supabase
-          .from('executors')
-          .select('*')
-          .eq('wallet_address', normalizedWallet)
-          .maybeSingle()
-
-        if (existingError) {
-          console.error('[Auth] Fallback executor lookup error:', existingError)
-        }
-
-        if (existing) {
-          return existing as Executor
-        }
-
-        // Last resort: attempt to create executor directly (requires authenticated role)
-        const { data: sessionData } = await supabase.auth.getSession()
-        const sessionUser = sessionData.session?.user
-
-        if (sessionUser) {
-          const displayName = `Worker_${normalizedWallet.slice(2, 10)}`
-          const { data: inserted, error: insertError } = await supabase
-            .from('executors')
-            .insert({
-              wallet_address: normalizedWallet,
-              user_id: sessionUser.id,
-              display_name: displayName,
-              email: null,
-            })
-            .select('*')
-            .single()
-
-          if (insertError) {
-            console.error('[Auth] Fallback executor insert error:', insertError)
-          } else if (inserted) {
-            return inserted as Executor
-          }
-        }
-
+        console.error('[Auth] Executor lookup error:', error)
         return null
       }
 
-      // RPC returns an array, get first element
-      const executorData = Array.isArray(data) ? data[0] : data
-      if (!executorData) {
-        console.error('[Auth] No executor data returned')
+      if (!data) {
+        // Brand-new wallet — ensureWalletLinked bootstraps it server-side.
         return null
       }
 
-      // Fetch full executor profile for complete fields
-      const { data: fullExecutor, error: fullError } = await supabase
-        .from('executors')
-        .select('*')
-        .eq('id', executorData.id)
-        .maybeSingle()
-
-      if (fullExecutor && !fullError) {
-        console.log('[Auth] Executor loaded:', fullExecutor.id, 'isNew:', executorData.is_new)
-        return fullExecutor as Executor
-      }
-
-      if (fullError) {
-        console.warn('[Auth] Executor full fetch failed, using RPC data:', fullError)
-      }
-
-      console.log('[Auth] Executor loaded (RPC only):', executorData.id, 'isNew:', executorData.is_new)
-
-      // Map RPC response to Executor type (fallback)
-      return {
-        id: executorData.id,
-        user_id: null,
-        wallet_address: executorData.wallet_address,
-        display_name: executorData.display_name,
-        bio: null,
-        avatar_url: null,
-        skills: [],
-        languages: [],
-        roles: [],
-        email: executorData.email,
-        phone: null,
-        default_location: null,
-        location_city: null,
-        location_country: null,
-        reputation_score: executorData.reputation_score,
-        tasks_completed: executorData.tasks_completed,
-        tasks_disputed: 0,
-        tasks_abandoned: 0,
-        avg_rating: null,
-        reputation_contract: null,
-        reputation_token_id: null,
-        erc8004_agent_id: null,
-        agent_type: 'human' as const,
-        networks_active: [],
-        social_links: null,
-        world_id_verified: false,
-        world_id_level: null,
-        world_human_id: null,
-        world_verified_at: null,
-        created_at: executorData.created_at,
-        updated_at: executorData.created_at,
-        last_active_at: null,
-      } as Executor
+      console.log('[Auth] Executor loaded:', data.id)
+      return data as Executor
     } catch (err) {
       console.error('[Auth] fetchExecutor exception:', err)
       setError(err instanceof Error ? err : new Error('Failed to load profile'))

@@ -698,11 +698,12 @@ class TestH2ATaskCancellation:
 
     @pytest.mark.asyncio
     async def test_cancel_wrong_user_returns_403(self):
-        """Different user → 403."""
+        """Different user AND different wallet → 403. (Same wallet under a
+        rotated session is now an OWNER — see _h2a_is_owner wallet fallback.)"""
         from api.h2a import cancel_h2a_task
         from fastapi import HTTPException
 
-        auth = _make_jwt_auth(user_id="user-other")
+        auth = _make_jwt_auth(user_id="user-other", wallet="0xdef456")
         mock_client = MagicMock()
         task_chain = MagicMock()
         task_chain.single.return_value.execute.return_value = _mock_task_result(

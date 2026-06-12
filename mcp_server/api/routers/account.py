@@ -496,9 +496,32 @@ async def link_wallet_to_session(
             status_code=400, detail="Challenge timestamp is in the future"
         )
 
-    # 4. Bind executor.user_id = sub (service_role bypasses RLS). Create the
-    #    executor row first if this wallet has never been seen.
+    # 4. Reclaim H2A tasks published by this wallet under previous (rotated)
+    #    anonymous sessions: ownership follows the wallet (the signature above
+    #    proves it), so the publisher dashboard and the assign/approve gates
+    #    keep working after Dynamic logout/login cycles. Non-fatal.
     client = db.get_client()
+    try:
+        reclaimed = (
+            client.table("tasks")
+            .update({"human_user_id": user_id})
+            .eq("publisher_type", "human")
+            .eq("human_wallet", wallet)
+            .neq("human_user_id", user_id)
+            .execute()
+        )
+        if reclaimed.data:
+            logger.info(
+                "Wallet link reclaimed %d H2A task(s): user=%s wallet=%s",
+                len(reclaimed.data),
+                str(user_id)[:8],
+                truncate_wallet(wallet),
+            )
+    except Exception as e:
+        logger.warning("link_wallet task reclaim failed (non-fatal): %s", e)
+
+    # 5. Bind executor.user_id = sub (service_role bypasses RLS). Create the
+    #    executor row first if this wallet has never been seen.
     row = (
         client.table("executors")
         .select("id, user_id")

@@ -98,7 +98,12 @@ async def test_already_linked_is_noop():
         out = await link_wallet_to_session(req, authorization="Bearer tok")
 
     assert out["linked"] is False
-    client.table.return_value.update.assert_not_called()
+    # The executor BIND is skipped (already linked), but the H2A task reclaim
+    # still runs: tasks published by this wallet under rotated sessions follow
+    # the wallet. The only update is the reclaim payload — never a user_id bind.
+    update_calls = client.table.return_value.update.call_args_list
+    assert len(update_calls) == 1
+    assert set(update_calls[0].args[0].keys()) == {"human_user_id"}
 
 
 @pytest.mark.asyncio

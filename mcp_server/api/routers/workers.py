@@ -403,6 +403,36 @@ async def apply_to_task(
         raw_request, worker_auth, request.executor_id, task_id=task_id
     )
 
+    # ---- Self-apply guard (H2H) -------------------------------------------
+    # A publisher cannot work their own task. Match on the durable WALLET,
+    # not the rotating anonymous session: a publisher whose session rotated
+    # saw their own task as applicable and the escrow lock would only reject
+    # it later (SC-010 receiver==payer). Best-effort: lookup failures fall
+    # through (SC-010 remains the on-chain backstop).
+    try:
+        _task_row = await db.get_task(task_id)
+        _pub_wallet = ((_task_row or {}).get("human_wallet") or "").lower()
+        if _pub_wallet:
+            _exec_stats = await db.get_executor_stats(executor_id)
+            _exec_wallet = ((_exec_stats or {}).get("wallet_address") or "").lower()
+            if _exec_wallet and _exec_wallet == _pub_wallet:
+                raise HTTPException(
+                    status_code=403,
+                    detail=(
+                        "You published this task — you cannot apply to your "
+                        "own task. Review applicants from the publisher "
+                        "dashboard instead."
+                    ),
+                )
+    except HTTPException:
+        raise
+    except Exception as _self_guard_err:
+        logger.warning(
+            "Self-apply guard lookup failed for task %s (continuing): %s",
+            task_id,
+            _self_guard_err,
+        )
+
     # ---- ERC-8004 Worker Identity (check + auto-register) ----------------
     # Controlled by EM_REQUIRE_ERC8004_WORKER env var (default: false).
     # When true: worker must have on-chain identity to apply. If not registered,

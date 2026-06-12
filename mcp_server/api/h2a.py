@@ -67,6 +67,26 @@ TREASURY_ADDRESS = os.environ.get(
     "EM_TREASURY_ADDRESS", "0xae07B067934975cF3DA0aa1D09cF373b0FED3661"
 )
 
+
+def _h2a_is_owner(task: dict, auth: "JWTData") -> bool:
+    """Publisher ownership: session match OR wallet match.
+
+    Anonymous Supabase sessions rotate (Dynamic logout/login), orphaning
+    tasks whose ``human_user_id`` points at a dead session — the publisher
+    dashboard went empty and assign/approve 403'd on the publisher's own
+    tasks. The durable identity is the WALLET: ``verify_jwt_auth`` resolves
+    ``auth.wallet_address`` from the executor bound to the current session,
+    and that binding was proven with a signed challenge
+    (POST /account/link-wallet) — so a wallet match is an equally strong
+    ownership proof.
+    """
+    if task.get("human_user_id") == auth.user_id:
+        return True
+    wallet = (auth.wallet_address or "").lower()
+    task_wallet = (task.get("human_wallet") or "").lower()
+    return bool(wallet) and wallet == task_wallet
+
+
 # Escrow statuses that allow a release/refund — mirror of the releasable set in
 # api/routers/_helpers.py (ESCROW-004).
 RELEASABLE_ESCROW_STATUSES = {"deposited", "funded", "locked", "active"}
@@ -640,7 +660,16 @@ async def list_h2a_tasks(
 
         if my_tasks:
             auth = await verify_jwt_auth(authorization)
-            query = query.eq("human_user_id", auth.user_id)
+            # Ownership follows the WALLET, not just the rotating anonymous
+            # session (see _h2a_is_owner): include tasks published under a
+            # previous session of the same proven wallet.
+            _wallet = (auth.wallet_address or "").lower()
+            if _wallet:
+                query = query.or_(
+                    f"human_user_id.eq.{auth.user_id},human_wallet.eq.{_wallet}"
+                )
+            else:
+                query = query.eq("human_user_id", auth.user_id)
 
         if status:
             query = query.eq("status", status)
@@ -661,7 +690,14 @@ async def list_h2a_tasks(
         if my_tasks and authorization:
             try:
                 auth_data = await verify_jwt_auth(authorization)
-                count_query = count_query.eq("human_user_id", auth_data.user_id)
+                _count_wallet = (auth_data.wallet_address or "").lower()
+                if _count_wallet:
+                    count_query = count_query.or_(
+                        f"human_user_id.eq.{auth_data.user_id},"
+                        f"human_wallet.eq.{_count_wallet}"
+                    )
+                else:
+                    count_query = count_query.eq("human_user_id", auth_data.user_id)
             except Exception:
                 pass
         if status:
@@ -786,7 +822,7 @@ async def get_h2a_submissions(
         client = db.get_client()
         task_result = (
             client.table("tasks")
-            .select("id, human_user_id, publisher_type")
+            .select("id, human_user_id, human_wallet, publisher_type")
             .eq("id", task_id)
             .single()
             .execute()
@@ -798,7 +834,7 @@ async def get_h2a_submissions(
         task = task_result.data
         if task.get("publisher_type") != "human":
             raise HTTPException(status_code=404, detail="Not an H2A task")
-        if task.get("human_user_id") != auth.user_id:
+        if not _h2a_is_owner(task, auth):
             raise HTTPException(status_code=403, detail="Not your task")
 
         # Get submissions
@@ -846,7 +882,7 @@ async def get_h2a_applications(
         client = db.get_client()
         task_result = (
             client.table("tasks")
-            .select("id, human_user_id, publisher_type")
+            .select("id, human_user_id, human_wallet, publisher_type")
             .eq("id", task_id)
             .single()
             .execute()
@@ -858,7 +894,7 @@ async def get_h2a_applications(
         task = task_result.data
         if task.get("publisher_type") != "human":
             raise HTTPException(status_code=404, detail="Not an H2A task")
-        if task.get("human_user_id") != auth.user_id:
+        if not _h2a_is_owner(task, auth):
             raise HTTPException(status_code=403, detail="Not your task")
 
         apps_result = (
@@ -958,7 +994,7 @@ async def assign_h2a_worker(
         task = task_result.data
         if task.get("publisher_type") != "human":
             raise HTTPException(status_code=404, detail="Not an H2A task")
-        if task.get("human_user_id") != auth.user_id:
+        if not _h2a_is_owner(task, auth):
             raise HTTPException(status_code=403, detail="Not your task")
         if task.get("status") != "published":
             raise HTTPException(
@@ -1191,7 +1227,7 @@ async def approve_h2a_submission(
         task = task_result.data
         if task.get("publisher_type") != "human":
             raise HTTPException(status_code=404, detail="Not an H2A task")
-        if task.get("human_user_id") != auth.user_id:
+        if not _h2a_is_owner(task, auth):
             raise HTTPException(status_code=403, detail="Not your task")
 
         # Validate task is in an approvable status
@@ -1550,7 +1586,7 @@ async def cancel_h2a_task(
         client = db.get_client()
         task_result = (
             client.table("tasks")
-            .select("id, human_user_id, publisher_type, status")
+            .select("id, human_user_id, human_wallet, publisher_type, status")
             .eq("id", task_id)
             .single()
             .execute()
@@ -1562,7 +1598,7 @@ async def cancel_h2a_task(
         task = task_result.data
         if task.get("publisher_type") != "human":
             raise HTTPException(status_code=404, detail="Not an H2A task")
-        if task.get("human_user_id") != auth.user_id:
+        if not _h2a_is_owner(task, auth):
             raise HTTPException(status_code=403, detail="Not your task")
 
         cancellable = {"published", "accepted"}
