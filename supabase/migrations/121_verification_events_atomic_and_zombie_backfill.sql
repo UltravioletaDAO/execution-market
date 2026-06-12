@@ -83,10 +83,11 @@ GRANT EXECUTE ON FUNCTION update_auto_check_merged(UUID, BOOLEAN, JSONB)
 -- ---------------------------------------------------------------------------
 
 -- 3a. Non-terminal submissions from before May -> expired_unreviewed
+-- (submissions has submitted_at, not created_at — 001_initial_schema.sql)
 UPDATE submissions
 SET agent_verdict = 'expired_unreviewed'
 WHERE (agent_verdict IS NULL OR agent_verdict = 'pending')
-  AND created_at < '2026-05-01';
+  AND submitted_at < '2026-05-01';
 
 -- 3b. Frozen event streams (ring1_status stuck on 'running') -> close with
 --     a terminal error state + closing event so dashboards stop spinning.
@@ -112,5 +113,5 @@ SET auto_check_passed = FALSE,
         'ring1_error', 'Backfilled: stale April run closed as expired_unreviewed',
         'review_required', true
     )
-WHERE created_at < '2026-05-01'
+WHERE submitted_at < '2026-05-01'
   AND auto_check_details->>'ring1_status' = 'running';

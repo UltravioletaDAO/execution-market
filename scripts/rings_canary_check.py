@@ -64,11 +64,12 @@ def _arbiter_enabled() -> bool:
 
 
 def _latest_submission() -> dict | None:
+    # submissions has submitted_at, not created_at (001_initial_schema.sql)
     since = (datetime.now(timezone.utc) - timedelta(minutes=LOOKBACK_MIN)).isoformat()
     rows = _get(
-        "submissions?select=id,created_at,auto_check_passed,auto_check_details,"
+        "submissions?select=id,submitted_at,auto_check_passed,auto_check_details,"
         "arbiter_verdict,arbiter_score"
-        f"&created_at=gte.{since}&order=created_at.desc&limit=1"
+        f"&submitted_at=gte.{since}&order=submitted_at.desc&limit=1"
     )
     return rows[0] if rows else None
 
@@ -87,7 +88,7 @@ def main() -> int:
         return 1
 
     sid = sub["id"]
-    print(f"[INFO] canary submission: {sid} (created {sub['created_at']})")
+    print(f"[INFO] canary submission: {sid} (submitted {sub['submitted_at']})")
 
     arbiter_on = _arbiter_enabled()
     if not arbiter_on:
