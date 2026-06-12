@@ -1128,6 +1128,8 @@ async def phase_approve_release(
                 "submission_id": submission_id,
                 "verdict": "accepted",
                 "notes": "H2H Flow E2E test -- approving for escrow release",
+                # Phase 5.1: a worker rating is required to approve+pay.
+                "worker_score": 5,
             },
             jwt=jwt,
         )
@@ -1574,6 +1576,15 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--reputation",
+        action="store_true",
+        help=(
+            "Full cycle + bidirectional ERC-8004 reputation: approve carries a "
+            "worker_score (publisher->worker), then the worker rates the "
+            "publisher (worker->publisher). Asserts both ratings landed."
+        ),
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Offline: exercise arg parsing + wrapper construction/validation",
@@ -1581,11 +1592,69 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+async def phase_bidirectional_reputation(
+    client: httpx.AsyncClient,
+    results: H2HFlowResults,
+    worker_jwt: str,
+    task_id: str,
+) -> PhaseResult:
+    """Phase 9: the worker rates the human publisher on-chain (gasless).
+
+    The publisher->worker rating already fired best-effort during approval
+    (worker_score in the approve body). This asserts the reverse direction
+    end-to-end: the rate-publisher endpoint resolves the publisher's ERC-8004
+    identity (Phase 1), submits gasless feedback bound to the release TX
+    (counterparty proof), and returns the on-chain tx.
+    """
+    phase = PhaseResult("reputation", "Bidirectional Reputation (ERC-8004)")
+    _print_header("PHASE 9: BIDIRECTIONAL REPUTATION")
+    try:
+        print("  [1/1] Worker rates the publisher (gasless, on-chain)...")
+        data = await api_call(
+            client,
+            "POST",
+            f"/h2a/tasks/{task_id}/rate-publisher",
+            {"score": 5, "comment": "H2H E2E -- great publisher"},
+            jwt=worker_jwt,
+        )
+        status = data.get("_http_status")
+        print(f"         Rate-publisher: HTTP {status}")
+        if status != 200:
+            return phase.fail(
+                f"rate-publisher failed: HTTP {status} - "
+                f"{data.get('detail', str(data)[:200])}"
+            )
+        tx = data.get("transaction_hash")
+        pub_agent = data.get("publisher_agent_id")
+        proof = data.get("proof_tx")
+        print(f"         Publisher agent_id: {pub_agent}")
+        print(f"         Feedback TX:        {tx}")
+        print(f"         Counterparty proof: {proof}")
+        if not tx:
+            return phase.partial(
+                "rate-publisher succeeded but returned no on-chain tx",
+                publisher_agent_id=pub_agent,
+            )
+        if tx:
+            results.add_tx(tx)
+        return phase.pass_(publisher_agent_id=pub_agent, feedback_tx=tx, proof_tx=proof)
+    except Exception as e:
+        return phase.fail(f"Unexpected error: {e}")
+
+
 async def run_flow(args: argparse.Namespace) -> int:
     global API_BASE
     API_BASE = args.api_url.rstrip("/")
     bounty = args.bounty
-    mode = "refund" if args.refund else "revision" if args.revision else "full"
+    mode = (
+        "refund"
+        if args.refund
+        else "revision"
+        if args.revision
+        else "reputation"
+        if args.reputation
+        else "full"
+    )
 
     print("=" * 72)
     print("  H2H FLOW -- E2E Human-Publisher Escrow Cycle (sign-on-assignment)")
@@ -1705,6 +1774,14 @@ async def run_flow(args: argparse.Namespace) -> int:
                     bounty,
                 )
                 results.add(p8)
+
+                # Phase 9: worker->publisher reputation (--reputation mode).
+                if args.reputation and p8.status != "FAIL":
+                    await asyncio.sleep(2)
+                    p9 = await phase_bidirectional_reputation(
+                        client, results, worker_jwt, task_id
+                    )
+                    results.add(p9)
 
     _print_summary(results, bounty, mode)
     _save_report(results, bounty, mode)

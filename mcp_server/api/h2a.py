@@ -1236,6 +1236,103 @@ async def assign_h2a_worker(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+class RatePublisherRequest(BaseModel):
+    score: int = Field(..., ge=1, le=5, description="Worker's star rating (1-5)")
+    comment: Optional[str] = Field(default=None, max_length=1000)
+
+
+@router.post(
+    "/api/v1/h2a/tasks/{task_id}/rate-publisher",
+    summary="Worker rates the human publisher (gasless ERC-8004)",
+    description=(
+        "The paid worker rates the human publisher on-chain — attributed to "
+        "the worker and bound to the release TX (counterparty proof). Gasless "
+        "via the Facilitator, symmetric with the publisher->worker direction."
+    ),
+    tags=["H2A Marketplace"],
+)
+async def rate_publisher_h2a(
+    task_id: str,
+    request: RatePublisherRequest,
+    raw_request: Request,
+    authorization: Optional[str] = Header(None),
+):
+    from .auth import verify_worker_auth
+    from integrations.erc8004.identity import ensure_publisher_identity
+    from integrations.erc8004.facilitator_client import rate_agent
+
+    worker_auth = await verify_worker_auth(raw_request, authorization)
+    if not worker_auth or not worker_auth.executor_id:
+        raise HTTPException(status_code=401, detail="Worker authentication required")
+
+    client = db.get_client()
+    task_row = client.table("tasks").select("*").eq("id", task_id).limit(1).execute()
+    task = task_row.data[0] if task_row.data else None
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    if task.get("executor_id") != worker_auth.executor_id:
+        raise HTTPException(
+            status_code=403, detail="You are not the worker on this task"
+        )
+    if str(task.get("status")) != "completed":
+        raise HTTPException(
+            status_code=409,
+            detail="You can rate the publisher only after the task is completed and paid",
+        )
+
+    publisher_wallet = task.get("human_wallet")
+    if not publisher_wallet:
+        raise HTTPException(
+            status_code=409, detail="This task has no human publisher to rate"
+        )
+
+    network = task.get("payment_network") or "base"
+    pub = await ensure_publisher_identity(publisher_wallet, network=network)
+    if pub.agent_id is None:
+        raise HTTPException(
+            status_code=409, detail="Publisher has no ERC-8004 identity yet"
+        )
+
+    # Counterparty proof: the release TX that paid this worker.
+    proof_tx = None
+    try:
+        sub = (
+            client.table("submissions")
+            .select("payment_tx")
+            .eq("task_id", task_id)
+            .not_.is_("payment_tx", "null")
+            .limit(1)
+            .execute()
+        )
+        if sub.data:
+            proof_tx = sub.data[0].get("payment_tx")
+    except Exception as e:
+        logger.debug("Could not resolve proof_tx for rate-publisher: %s", e)
+
+    result = await rate_agent(
+        agent_id=int(pub.agent_id),
+        task_id=task_id,
+        score=request.score * 20,
+        comment=request.comment or "",
+        proof_tx=proof_tx,
+        task_title=task.get("title", ""),
+        bounty_usd=float(task.get("bounty_usd", 0)),
+        network=network,
+    )
+    if not result.success:
+        raise HTTPException(
+            status_code=502, detail=f"On-chain rating failed: {result.error}"
+        )
+
+    return {
+        "success": True,
+        "transaction_hash": result.transaction_hash,
+        "publisher_agent_id": int(pub.agent_id),
+        "score": request.score,
+        "proof_tx": proof_tx,
+    }
+
+
 async def _submit_h2a_publisher_reputation(
     task: dict,
     worker_tx: Optional[str],

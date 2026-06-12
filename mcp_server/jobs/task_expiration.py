@@ -13,7 +13,7 @@ import asyncio
 import logging
 import os
 import time as _time
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -649,6 +649,112 @@ async def _requeue_orphaned_phase_b(row: dict) -> int:
         return 0
 
 
+async def _sweep_unrated_publisher_ratings(client) -> int:
+    """Grace-window default for worker->publisher reputation.
+
+    Enforcement is hybrid: the publisher->worker direction is hard-required at
+    approval, but the worker already has their funds, so we cannot block them.
+    Instead, if a worker never rates the human publisher within the grace
+    window, auto-submit a neutral default so every completed H2H task yields a
+    bidirectional reputation record. Best-effort, gasless, bound to the
+    release TX. Set EM_RATING_GRACE_HOURS=0 to disable.
+    """
+    grace_hours = int(os.environ.get("EM_RATING_GRACE_HOURS", "48"))
+    if grace_hours <= 0:
+        return 0
+
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=grace_hours)).isoformat()
+    result = (
+        client.table("tasks")
+        .select(
+            "id, human_wallet, executor_id, payment_network, title, "
+            "bounty_usd, completed_at"
+        )
+        .eq("status", "completed")
+        .not_.is_("human_wallet", "null")
+        .lt("completed_at", cutoff)
+        .limit(50)
+        .execute()
+    )
+    tasks = result.data or []
+    if not tasks:
+        return 0
+
+    from integrations.erc8004.identity import ensure_publisher_identity
+    from integrations.erc8004.facilitator_client import rate_agent
+
+    default_score = int(os.environ.get("EM_RATING_DEFAULT_SCORE", "80"))
+    swept = 0
+    for task in tasks:
+        try:
+            # Already rated by the worker (real or prior default)? skip.
+            existing = (
+                client.table("ratings")
+                .select("id")
+                .eq("task_id", task["id"])
+                .eq("rater_type", "worker")
+                .limit(1)
+                .execute()
+            )
+            if existing.data:
+                continue
+
+            network = task.get("payment_network") or "base"
+            pub = await ensure_publisher_identity(task["human_wallet"], network=network)
+            if pub.agent_id is None:
+                continue
+
+            proof_tx = None
+            sub = (
+                client.table("submissions")
+                .select("payment_tx")
+                .eq("task_id", task["id"])
+                .not_.is_("payment_tx", "null")
+                .limit(1)
+                .execute()
+            )
+            if sub.data:
+                proof_tx = sub.data[0].get("payment_tx")
+
+            res = await rate_agent(
+                agent_id=int(pub.agent_id),
+                task_id=task["id"],
+                score=default_score,
+                comment="Auto-default (worker did not rate within the grace window)",
+                proof_tx=proof_tx,
+                task_title=task.get("title", ""),
+                bounty_usd=float(task.get("bounty_usd", 0)),
+                network=network,
+            )
+            if res.success:
+                # Mark the ratings row so we never sweep this task again.
+                try:
+                    client.table("ratings").upsert(
+                        {
+                            "executor_id": str(task["executor_id"]),
+                            "task_id": task["id"],
+                            "rater_id": str(task["executor_id"]),
+                            "rater_type": "worker",
+                            "rating": default_score,
+                            "stars": float(round(default_score / 20, 1)),
+                            "comment": "auto-default",
+                            "is_public": True,
+                        },
+                        on_conflict="executor_id,task_id,rater_type",
+                    ).execute()
+                except Exception:
+                    pass
+                swept += 1
+        except Exception as e:
+            logger.warning("[rating-sweep] task %s failed: %s", task.get("id"), e)
+
+    if swept:
+        logger.info(
+            "[rating-sweep] auto-defaulted %d worker->publisher rating(s)", swept
+        )
+    return swept
+
+
 async def run_task_expiration_loop() -> None:
     """
     Background loop that checks for expired tasks every CHECK_INTERVAL seconds.
@@ -738,6 +844,13 @@ async def run_task_expiration_loop() -> None:
             await _cleanup_stale_verification_events(client)
         except Exception as exc:
             logger.warning("[expiration] Stale verification cleanup failed: %s", exc)
+
+        # Grace-window default: auto-rate the publisher when the worker never
+        # did, so every completed H2H task ends with bidirectional reputation.
+        try:
+            await _sweep_unrated_publisher_ratings(client)
+        except Exception as exc:
+            logger.warning("[rating-sweep] Sweep failed: %s", exc)
 
         from audit import audit_log
 

@@ -69,6 +69,14 @@ export async function approveH2ASubmission(id: string, data: H2AApprovalRequest)
   return r.json()
 }
 
+/** Worker rates the human publisher on-chain (gasless, bound to the release TX). */
+export async function ratePublisher(id: string, score: number, comment?: string): Promise<{ success: boolean; transaction_hash: string | null; score: number }> {
+  const t = await token(); if (!t) throw new Error('Auth required')
+  const r = await fetch(h2a(`/tasks/${id}/rate-publisher`), { method: 'POST', headers: ah(t), body: JSON.stringify({ score, comment: comment || undefined }) })
+  if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error((e as ApiErrorResponse).detail || r.statusText) }
+  return r.json()
+}
+
 export async function getH2AApplications(id: string): Promise<H2AApplicationsResponse> {
   const t = await token(); if (!t) throw new Error('Auth required')
   const r = await fetch(h2a(`/tasks/${id}/applications`), { headers: ah(t) })
