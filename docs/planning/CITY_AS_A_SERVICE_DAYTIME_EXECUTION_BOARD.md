@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-06-11 06:00 America/New_York
+> Last updated: 2026-06-11 23:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -8,6 +8,34 @@
 > - `CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md`
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
+
+
+## Latest June 11 23:00 dream priority override and work selector
+
+`CITY_AS_A_SERVICE_11PM_DREAM_PRIORITY_OVERRIDE_AND_WORK_SELECTOR_2026_06_11.md` is the current 11 PM internal/admin kickoff selector. It obeyed `/Users/clawdbot/clawd/DREAM-PRIORITIES.md` over the stale kickoff payload, so AutoJob analysis/integration, Frontier Academy expansion, KK v2 continuation, and KarmaCadabra v2/funding work remain stopped for dream work.
+
+The mandatory all-repo sync ran before this AAS work. Some non-AAS repositories reported pull failures or stashed local changes, but no stopped-project work was performed. Execution Market remained on `feat/operator-route-regret-panel`; pre-existing untracked `scripts/sign_req.mjs` and `mcp_server/city_ops/tests/` were preserved and not staged.
+
+The active posture remains:
+
+```text
+pause_aas_proof_layering
+```
+
+This pass intentionally did not create another no-answer proof wrapper. It added a bounded kickoff selector that says: if a real operator answer exists, create exactly one separate digest-backed answer receipt; otherwise keep the AAS lane held and do not promote product, runtime, customer/public/worker copy, catalog/pricing/queue/dispatch, reputation, payment/production, exact-location/raw-metadata/private-context, authority, worker-doctrine, or stopped-project claims.
+
+Safe 23:00 claim:
+
+```text
+internal_admin_aas_11pm_dream_priority_override_work_selector_2026_06_11_landed
+```
+
+Meaning only: the 11 PM dream kickoff followed the current dream priority override, recorded the all-repo sync observation, refused stale stopped-project work, and selected the bounded internal/admin AAS hold lane because no real operator answer was available.
+
+Next valid move remains exactly one of these:
+
+1. if Saúl provides exactly one allowed AAS answer value, create one separate digest-backed answer receipt using an opaque non-secret reference and validate it through the hardened gate;
+2. otherwise hold at `pause_aas_proof_layering` and do not add more no-answer proof wrappers or downstream product/runtime/reputation/payment layers.
 
 
 ## Latest June 11 06:00 final morning wrap

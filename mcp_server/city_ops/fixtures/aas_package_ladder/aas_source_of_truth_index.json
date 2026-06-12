@@ -1715,14 +1715,21 @@
   },
   "current_entrypoints": [
     {
-      "digest_sha256": "86ac7e3ab44fb5a0312e2de83ddbecaaf72e0a896952905c2b565af2988597ac",
+      "digest_sha256": "18a03f43e0e1c6dd0faf8735528c8d96b9da75f5618ac5beb2f61dd595892940",
       "exists": true,
       "extension_policy": "current_entrypoint_update_only_when_new_safe_claim_lands",
       "path": "docs/planning/CITY_AS_A_SERVICE_DAYTIME_EXECUTION_BOARD.md",
       "role": "latest_append_only_execution_board"
     },
     {
-      "digest_sha256": "4502e593927797b0db6ad9f084b76d767a03979edc778c8ae98a3a3a2ac4ed96",
+      "digest_sha256": "d50b58c1d3ae89822c240b9518bc57f30bc102a2f3ebd51a0c872ea278adb258",
+      "exists": true,
+      "extension_policy": "current_read_only_kickoff_selector_no_answer_runtime_payment_or_stopped_project_movement",
+      "path": "docs/planning/CITY_AS_A_SERVICE_11PM_DREAM_PRIORITY_OVERRIDE_AND_WORK_SELECTOR_2026_06_11.md",
+      "role": "latest_dream_priority_override_work_selector"
+    },
+    {
+      "digest_sha256": "a98cfb1bdb32f932c1cf45a1704832c5e92c04fb14d08679aaafb7309cb180fb",
       "exists": true,
       "extension_policy": "current_read_only_morning_handoff_no_answer_runtime_payment_or_stopped_project_movement",
       "path": "docs/planning/CITY_AS_A_SERVICE_6AM_FINAL_WRAP_2026_06_11.md",

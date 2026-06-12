@@ -43,6 +43,11 @@ CURRENT_ENTRYPOINT_DOCS = [
         "extension_policy": "current_entrypoint_update_only_when_new_safe_claim_lands",
     },
     {
+        "path": "docs/planning/CITY_AS_A_SERVICE_11PM_DREAM_PRIORITY_OVERRIDE_AND_WORK_SELECTOR_2026_06_11.md",
+        "role": "latest_dream_priority_override_work_selector",
+        "extension_policy": "current_read_only_kickoff_selector_no_answer_runtime_payment_or_stopped_project_movement",
+    },
+    {
         "path": "docs/planning/CITY_AS_A_SERVICE_6AM_FINAL_WRAP_2026_06_11.md",
         "role": "latest_final_morning_wrap",
         "extension_policy": "current_read_only_morning_handoff_no_answer_runtime_payment_or_stopped_project_movement",
