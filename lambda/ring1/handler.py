@@ -975,4 +975,24 @@ def lambda_handler(event, context):
             e,
             exc_info=True,
         )
+        # C-08: guarantee a terminal state in the DB — without this the row
+        # stayed ring1_status='running' forever (eternal spinner) and only
+        # the DLQ ever heard about the failure. Best-effort: a successful
+        # SQS retry overwrites 'error' with the real result.
+        if submission_id and submission_id != "unknown":
+            try:
+                asyncio.run(
+                    _write_error(
+                        submission_id,
+                        body.get("task_id", ""),
+                        body.get("phase_a_result") or {},
+                        f"Unhandled Ring 1 exception: {type(e).__name__}: {e}",
+                    )
+                )
+            except Exception as write_err:
+                logger.error(
+                    "Failed to write terminal error state for %s: %s",
+                    submission_id[:8],
+                    write_err,
+                )
         raise

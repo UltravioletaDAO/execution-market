@@ -226,24 +226,37 @@ def emit_verification_event(
 ) -> None:
     """Append a verification event to auto_check_details.verification_events.
 
-    Read-modify-write cycle (sync). Cosmetic only — failures are logged
-    but never block the arbiter pipeline.
+    Atomic via the `append_verification_event` RPC (migration 121) with a
+    legacy read-modify-write fallback (C-06/C-10/C-23). Cosmetic only —
+    failures are logged but never block the arbiter pipeline.
     """
+    event = {
+        "ts": int(_time.time()),
+        "ring": ring,
+        "step": step,
+        "status": status,
+        "detail": detail or {},
+    }
     try:
+        client = get_client()
+        try:
+            client.rpc(
+                "append_verification_event",
+                {"p_submission_id": submission_id, "p_event": event},
+            ).execute()
+            return
+        except Exception as rpc_err:
+            logger.warning(
+                "append_verification_event RPC unavailable (%s) — "
+                "falling back to read-modify-write",
+                rpc_err,
+            )
+
         sub = get_submission(submission_id)
         current = (sub or {}).get("auto_check_details") or {}
         events = current.get("verification_events", [])
-        events.append(
-            {
-                "ts": int(_time.time()),
-                "ring": ring,
-                "step": step,
-                "status": status,
-                "detail": detail or {},
-            }
-        )
+        events.append(event)
         current["verification_events"] = events
-        client = get_client()
         client.table("submissions").update({"auto_check_details": current}).eq(
             "id", submission_id
         ).execute()

@@ -72,19 +72,41 @@ async def _emit_inner(
     status: str,
     detail: Optional[dict],
 ) -> None:
-    """Inner emit — reads current events, appends, writes back."""
+    """Inner emit — atomic RPC append with legacy fallback.
+
+    C-06/C-10/C-23: the GET+PATCH read-modify-write cycle raced with 4+
+    concurrent writers and randomly lost events. The Postgres RPC
+    `append_verification_event` (migration 121) appends atomically. The
+    legacy path remains as fallback for environments where the migration
+    has not been applied yet.
+    """
+    event = {
+        "ts": int(_time.time()),
+        "ring": ring,
+        "step": step,
+        "status": status,
+        "detail": detail or {},
+    }
+
+    try:
+        client = db.get_client()
+        client.rpc(
+            "append_verification_event",
+            {"p_submission_id": submission_id, "p_event": event},
+        ).execute()
+        return
+    except Exception as rpc_err:
+        logger.warning(
+            "append_verification_event RPC unavailable (%s) — "
+            "falling back to read-modify-write",
+            rpc_err,
+        )
+
+    # Legacy fallback: read-modify-write (racy — only used pre-migration-121).
     current_sub = await db.get_submission(submission_id)
     current = (current_sub or {}).get("auto_check_details") or {}
     events = current.get("verification_events", [])
-    events.append(
-        {
-            "ts": int(_time.time()),
-            "ring": ring,
-            "step": step,
-            "status": status,
-            "detail": detail or {},
-        }
-    )
+    events.append(event)
     current["verification_events"] = events
     await db.update_submission_auto_check(
         submission_id=submission_id,

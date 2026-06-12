@@ -1097,7 +1097,7 @@ def merge_phase_b(
     all_checks = phase_a_checks + phase_b_checks
     warnings = list(existing_dict.get("warnings", []))
 
-    return {
+    merged = {
         "passed": pipeline_passed,
         "score": round(aggregate_score, 3),
         "checks": [asdict(c) for c in all_checks],
@@ -1105,3 +1105,9 @@ def merge_phase_b(
         "phase": "AB",
         "pass_threshold": PASS_THRESHOLD,
     }
+    # C-05/C-22: the merge must not destroy the forensic event log when the
+    # caller's snapshot carries one. (DB-side preservation is handled by the
+    # update_auto_check_merged RPC — this covers the in-memory path.)
+    if existing_dict.get("verification_events"):
+        merged["verification_events"] = existing_dict["verification_events"]
+    return merged

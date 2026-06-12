@@ -104,9 +104,36 @@ async def update_auto_check(
 ) -> None:
     """Update auto_check_passed + auto_check_details on a submission.
 
+    Prefers the `update_auto_check_merged` RPC (migration 121) which
+    preserves the DB-side verification_events log atomically — the plain
+    PATCH replaced the whole JSONB and destroyed the forensic event log
+    twice per run (C-05/C-22/C-30). Falls back to the legacy PATCH when
+    the migration is not applied yet.
+
     Also persists auto_check_score from details["score"] (C-42: the column
     existed but was never written, leaving every row at the 0 default).
     """
+    rpc_url = _rest_url("rpc/update_auto_check_merged")
+    rpc_payload = {
+        "p_submission_id": submission_id,
+        "p_passed": passed,
+        "p_details": details,
+    }
+    async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
+        r = await c.post(rpc_url, json=rpc_payload, headers=_headers())
+        if r.status_code < 400:
+            logger.debug(
+                "update_auto_check (merged RPC) %s passed=%s",
+                submission_id[:8],
+                passed,
+            )
+            return
+        logger.warning(
+            "update_auto_check_merged RPC unavailable (HTTP %d) — "
+            "falling back to plain PATCH",
+            r.status_code,
+        )
+
     url = _rest_url(f"submissions?id=eq.{submission_id}")
     payload = {"auto_check_passed": passed, "auto_check_details": details}
     score = details.get("score")
@@ -153,22 +180,38 @@ async def emit_verification_event(
 ) -> None:
     """Append a verification event to auto_check_details.verification_events.
 
-    Read-modify-write cycle. Events are append-only and cosmetic — if this
-    fails the verification pipeline continues unaffected.
+    Atomic via the `append_verification_event` RPC (migration 121) — the
+    old read-modify-write cycle raced with concurrent writers and lost
+    events (C-06/C-10/C-23). Falls back to the legacy cycle when the
+    migration is not applied. Cosmetic — failures never block the pipeline.
     """
+    event = {
+        "ts": int(_time.time()),
+        "ring": ring,
+        "step": step,
+        "status": status,
+        "detail": detail or {},
+    }
     try:
+        rpc_url = _rest_url("rpc/append_verification_event")
+        async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
+            r = await c.post(
+                rpc_url,
+                json={"p_submission_id": submission_id, "p_event": event},
+                headers=_headers(),
+            )
+            if r.status_code < 400:
+                return
+            logger.warning(
+                "append_verification_event RPC unavailable (HTTP %d) — "
+                "falling back to read-modify-write",
+                r.status_code,
+            )
+
         sub = await get_submission(submission_id)
         current = (sub or {}).get("auto_check_details") or {}
         events = current.get("verification_events", [])
-        events.append(
-            {
-                "ts": int(_time.time()),
-                "ring": ring,
-                "step": step,
-                "status": status,
-                "detail": detail or {},
-            }
-        )
+        events.append(event)
         current["verification_events"] = events
         url = _rest_url(f"submissions?id=eq.{submission_id}")
         async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
