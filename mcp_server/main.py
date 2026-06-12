@@ -1135,6 +1135,10 @@ app.add_middleware(
         "X-Device-ID",
         "X-Request-ID",
         "X-Payment",
+        # Browser-signed escrow lock at assignment (sign-on-assignment, ADR-002):
+        # without this the preflight rejects the header and the publisher's
+        # assign dies as a bare "Failed to fetch" before reaching the server.
+        "X-Payment-Auth",
         "Accept",
         "Origin",
         "mcp-protocol-version",
