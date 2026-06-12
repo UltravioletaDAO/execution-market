@@ -4,80 +4,129 @@
     {
       "Sid": "TerraformStateAccess",
       "Effect": "Allow",
-      "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:ListBucket"],
-      "Resource": ["arn:aws:s3:::ultravioleta-terraform-state", "arn:aws:s3:::ultravioleta-terraform-state/*"]
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject",
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::ultravioleta-terraform-state",
+        "arn:aws:s3:::ultravioleta-terraform-state/*"
+      ]
     },
     {
       "Sid": "TerraformECS",
       "Effect": "Allow",
-      "Action": ["ecs:*"],
+      "Action": [
+        "ecs:*"
+      ],
       "Resource": "*"
     },
     {
       "Sid": "TerraformECR",
       "Effect": "Allow",
-      "Action": ["ecr:*"],
+      "Action": [
+        "ecr:*"
+      ],
       "Resource": "*"
     },
     {
       "Sid": "TerraformNetworkALB",
       "Effect": "Allow",
-      "Action": ["elasticloadbalancing:*", "ec2:Describe*", "ec2:*SecurityGroup*", "ec2:CreateTags", "ec2:DeleteTags"],
-      "Resource": "*"
-    },
-    {
-      "Sid": "VpcFlowLogsManagement",
-      "Effect": "Allow",
-      "Action": ["ec2:CreateFlowLogs", "ec2:DeleteFlowLogs"],
+      "Action": [
+        "elasticloadbalancing:*",
+        "ec2:Describe*",
+        "ec2:*SecurityGroup*",
+        "ec2:CreateTags",
+        "ec2:DeleteTags"
+      ],
       "Resource": "*"
     },
     {
       "Sid": "TerraformDNSCerts",
       "Effect": "Allow",
-      "Action": ["route53:*", "acm:*"],
+      "Action": [
+        "route53:*",
+        "acm:*"
+      ],
       "Resource": "*"
     },
     {
       "Sid": "TerraformS3",
       "Effect": "Allow",
-      "Action": ["s3:*"],
-      "Resource": ["arn:aws:s3:::em-production-*", "arn:aws:s3:::em-production-*/*"]
+      "Action": [
+        "s3:*"
+      ],
+      "Resource": [
+        "arn:aws:s3:::em-production-*",
+        "arn:aws:s3:::em-production-*/*"
+      ]
     },
     {
       "Sid": "TerraformCDN",
       "Effect": "Allow",
-      "Action": ["cloudfront:*"],
+      "Action": [
+        "cloudfront:*"
+      ],
       "Resource": "*"
     },
     {
       "Sid": "TerraformSecrets",
       "Effect": "Allow",
-      "Action": ["secretsmanager:*"],
-      "Resource": ["arn:aws:secretsmanager:us-east-2:518898403364:secret:em/*"]
+      "Action": [
+        "secretsmanager:*"
+      ],
+      "Resource": [
+        "arn:aws:secretsmanager:us-east-2:518898403364:secret:em/*"
+      ]
     },
     {
       "Sid": "TerraformIAM",
       "Effect": "Allow",
-      "Action": ["iam:Get*", "iam:List*", "iam:PassRole", "iam:CreateRole", "iam:DeleteRole", "iam:*RolePolicy", "iam:TagRole", "iam:UntagRole"],
-      "Resource": ["arn:aws:iam::518898403364:role/em-*", "arn:aws:iam::518898403364:role/ecsTaskExecutionRole", "arn:aws:iam::518898403364:policy/em-*"]
+      "Action": [
+        "iam:Get*",
+        "iam:List*",
+        "iam:PassRole",
+        "iam:CreateRole",
+        "iam:DeleteRole",
+        "iam:*RolePolicy",
+        "iam:TagRole",
+        "iam:UntagRole"
+      ],
+      "Resource": [
+        "arn:aws:iam::518898403364:role/em-*",
+        "arn:aws:iam::518898403364:role/ecsTaskExecutionRole",
+        "arn:aws:iam::518898403364:policy/em-*"
+      ]
     },
     {
       "Sid": "TerraformLogs",
       "Effect": "Allow",
-      "Action": ["logs:*"],
+      "Action": [
+        "logs:*"
+      ],
       "Resource": "*"
     },
     {
       "Sid": "TerraformAPIGW",
       "Effect": "Allow",
-      "Action": ["apigateway:*"],
-      "Resource": ["arn:aws:apigateway:us-east-2::*"]
+      "Action": [
+        "apigateway:*"
+      ],
+      "Resource": [
+        "arn:aws:apigateway:us-east-2::*"
+      ]
     },
     {
       "Sid": "TerraformLambda",
       "Effect": "Allow",
-      "Action": ["lambda:*"],
-      "Resource": ["arn:aws:lambda:us-east-2:518898403364:function:em-*"]
+      "Action": [
+        "lambda:*"
+      ],
+      "Resource": [
+        "arn:aws:lambda:us-east-2:518898403364:function:em-*"
+      ]
     },
     {
       "Sid": "TerraformLambdaEventSourceMapping",
@@ -97,14 +146,100 @@
     {
       "Sid": "TerraformSQS",
       "Effect": "Allow",
-      "Action": ["sqs:*"],
-      "Resource": ["arn:aws:sqs:us-east-2:518898403364:em-*"]
+      "Action": [
+        "sqs:*"
+      ],
+      "Resource": [
+        "arn:aws:sqs:us-east-2:518898403364:em-*"
+      ]
     },
     {
       "Sid": "TerraformExtra",
       "Effect": "Allow",
-      "Action": ["dynamodb:*", "sns:*", "wafv2:*", "elasticfilesystem:*", "cloudwatch:*", "application-autoscaling:*"],
+      "Action": [
+        "dynamodb:*",
+        "sns:*",
+        "wafv2:*",
+        "elasticfilesystem:*",
+        "cloudwatch:*",
+        "application-autoscaling:*"
+      ],
       "Resource": "*"
+    },
+    {
+      "Sid": "TerraformCloudTrail",
+      "Effect": "Allow",
+      "Action": [
+        "cloudtrail:CreateTrail",
+        "cloudtrail:DeleteTrail",
+        "cloudtrail:UpdateTrail",
+        "cloudtrail:StartLogging",
+        "cloudtrail:StopLogging",
+        "cloudtrail:PutEventSelectors",
+        "cloudtrail:GetEventSelectors",
+        "cloudtrail:PutInsightSelectors",
+        "cloudtrail:GetInsightSelectors",
+        "cloudtrail:GetTrail",
+        "cloudtrail:GetTrailStatus",
+        "cloudtrail:ListTags",
+        "cloudtrail:AddTags",
+        "cloudtrail:RemoveTags"
+      ],
+      "Resource": "arn:aws:cloudtrail:*:518898403364:trail/em-*"
+    },
+    {
+      "Sid": "TerraformGuardDuty",
+      "Effect": "Allow",
+      "Action": [
+        "guardduty:CreateDetector",
+        "guardduty:DeleteDetector",
+        "guardduty:UpdateDetector",
+        "guardduty:GetDetector",
+        "guardduty:ListDetectors",
+        "guardduty:TagResource",
+        "guardduty:UntagResource",
+        "guardduty:ListTagsForResource"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "TerraformCloudTrailList",
+      "Effect": "Allow",
+      "Action": [
+        "cloudtrail:DescribeTrails",
+        "cloudtrail:ListTrails",
+        "cloudtrail:LookupEvents"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "VpcFlowLogsManagement",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateFlowLogs",
+        "ec2:DeleteFlowLogs"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "TerraformEventBridge",
+      "Effect": "Allow",
+      "Action": [
+        "events:PutRule",
+        "events:DeleteRule",
+        "events:DescribeRule",
+        "events:EnableRule",
+        "events:DisableRule",
+        "events:PutTargets",
+        "events:RemoveTargets",
+        "events:ListTargetsByRule",
+        "events:TagResource",
+        "events:UntagResource",
+        "events:ListTagsForResource"
+      ],
+      "Resource": [
+        "arn:aws:events:us-east-2:518898403364:rule/em-*"
+      ]
     }
   ]
 }
