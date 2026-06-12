@@ -218,6 +218,11 @@ from .aas_stale_cron_firewall_work_queue import (
     load_aas_stale_cron_firewall_work_queue,
     write_aas_stale_cron_firewall_work_queue,
 )
+from .aas_exponential_value_connection_board import (
+    build_aas_exponential_value_connection_board,
+    load_aas_exponential_value_connection_board,
+    write_aas_exponential_value_connection_board,
+)
 from .aas_strength_roadmap_connection_board import (
     build_aas_strength_roadmap_connection_board,
     load_aas_strength_roadmap_connection_board,
