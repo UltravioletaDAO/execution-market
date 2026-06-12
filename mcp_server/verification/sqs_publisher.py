@@ -30,6 +30,32 @@ def _get_sqs():
     return _sqs_client
 
 
+def _emit_published_metric(ring: int) -> None:
+    """Best-effort EM/Rings RingJobsPublished metric (C-39).
+
+    Feeds the dormant-ring CloudWatch alarm: jobs published but zero Lambda
+    invocations for days means a ring is asleep — exactly the failure mode
+    that went unnoticed for 7 weeks.
+    """
+    try:
+        boto3.client(
+            "cloudwatch",
+            region_name=os.environ.get("AWS_DEFAULT_REGION", "us-east-2"),
+        ).put_metric_data(
+            Namespace="EM/Rings",
+            MetricData=[
+                {
+                    "MetricName": "RingJobsPublished",
+                    "Dimensions": [{"Name": "Ring", "Value": str(ring)}],
+                    "Value": 1.0,
+                    "Unit": "Count",
+                }
+            ],
+        )
+    except Exception as exc:  # never block the publish path
+        logger.debug("RingJobsPublished metric emit failed: %s", exc)
+
+
 def is_sqs_mode() -> bool:
     """Return True. SQS is the only verification backend since Phase 5.
 
@@ -107,6 +133,7 @@ async def publish_ring1(
             submission_id,
             task_id,
         )
+        _emit_published_metric(1)
         return True
     except (BotoCoreError, ClientError) as exc:
         logger.error("Failed to publish Ring 1 to SQS: %s", exc)
@@ -155,6 +182,7 @@ async def publish_ring2(
             submission_id,
             task_id,
         )
+        _emit_published_metric(2)
         return True
     except (BotoCoreError, ClientError) as exc:
         logger.error("Failed to publish Ring 2 to SQS: %s", exc)

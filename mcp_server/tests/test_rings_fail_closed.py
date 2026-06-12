@@ -111,6 +111,7 @@ class TestAIReviewErrorFlag:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.ring1_lambda
 class TestLambdaAISemanticCheck:
     @pytest.mark.asyncio
     async def test_error_result_scores_neutral(self):

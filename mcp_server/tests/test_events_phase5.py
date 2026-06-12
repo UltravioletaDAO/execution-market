@@ -159,6 +159,7 @@ class TestAtomicEmit:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.ring1_lambda
 class TestTerminalWriteOnCrash:
     def test_unhandled_exception_writes_error_and_reraises(self, monkeypatch):
         handler = _load_ring1()

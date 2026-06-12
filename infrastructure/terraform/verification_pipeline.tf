@@ -651,13 +651,36 @@ resource "aws_iam_role_policy" "verification_lambda_metrics" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid      = "PutRing2Metrics"
+        Sid      = "PutRingMetrics"
         Effect   = "Allow"
         Action   = ["cloudwatch:PutMetricData"]
         Resource = "*"
         Condition = {
           StringEquals = {
-            "cloudwatch:namespace" = "EM/Ring2"
+            "cloudwatch:namespace" = ["EM/Ring2", "EM/Rings"]
+          }
+        }
+      }
+    ]
+  })
+}
+
+# ECS task role: emit EM/Rings metrics (RingJobsPublished from sqs_publisher)
+resource "aws_iam_role_policy" "ecs_task_ring_metrics" {
+  name = "${local.name_prefix}-ecs-task-ring-metrics"
+  role = aws_iam_role.ecs_task.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "PutRingMetrics"
+        Effect   = "Allow"
+        Action   = ["cloudwatch:PutMetricData"]
+        Resource = "*"
+        Condition = {
+          StringEquals = {
+            "cloudwatch:namespace" = "EM/Rings"
           }
         }
       }
@@ -708,6 +731,117 @@ resource "aws_cloudwatch_metric_alarm" "openrouter_credit_low" {
   tags = {
     Name = "${local.name_prefix}-openrouter-credit-low"
     Ring = "2"
+  }
+}
+
+# ── Provider key-health canary (C-39) ───────────────────────────────────────
+# Hourly EventBridge direct-invoke of the Ring 1 worker with
+# {"action": "keys_health"}. Probes Gemini/OpenAI/Anthropic keys and emits
+# EM/Rings ProviderKeyHealthy per provider. The old canary was deploy-time
+# only and advisory — the rings slept 7 weeks without anyone noticing.
+
+resource "aws_cloudwatch_event_rule" "keys_health_canary" {
+  name                = "${local.name_prefix}-keys-health-canary"
+  description         = "Hourly AI provider key health probe via Ring 1 worker direct invoke"
+  schedule_expression = "rate(1 hour)"
+
+  tags = {
+    Name = "${local.name_prefix}-keys-health-canary"
+    Ring = "1"
+  }
+}
+
+resource "aws_cloudwatch_event_target" "keys_health_canary" {
+  rule  = aws_cloudwatch_event_rule.keys_health_canary.name
+  arn   = aws_lambda_function.ring1_worker.arn
+  input = jsonencode({ action = "keys_health" })
+}
+
+resource "aws_lambda_permission" "keys_health_canary" {
+  statement_id  = "AllowEventBridgeKeysHealthCanary"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.ring1_worker.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.keys_health_canary.arn
+}
+
+resource "aws_cloudwatch_metric_alarm" "gemini_key_unhealthy" {
+  alarm_name          = "${local.name_prefix}-gemini-key-unhealthy"
+  alarm_description   = "Gemini key probe failing — Ring 1 AI verification will degrade to neutral scores. Check em/google secret + Google Cloud quota. Missing data also alarms (dead canary)."
+  comparison_operator = "LessThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "ProviderKeyHealthy"
+  namespace           = "EM/Rings"
+  period              = 3600
+  statistic           = "Minimum"
+  threshold           = 1
+  treat_missing_data  = "breaching"
+
+  dimensions = {
+    Provider = "gemini"
+  }
+
+  alarm_actions = [aws_sns_topic.mcp_alerts.arn]
+  ok_actions    = [aws_sns_topic.mcp_alerts.arn]
+
+  tags = {
+    Name = "${local.name_prefix}-gemini-key-unhealthy"
+    Ring = "1"
+  }
+}
+
+# ── Dormant-ring alarm (C-39) ───────────────────────────────────────────────
+# Jobs were published but the Ring 1 Lambda ran ZERO times for 3 straight
+# days — the exact "verification asleep, nobody noticed" failure mode.
+
+resource "aws_cloudwatch_metric_alarm" "ring1_dormant" {
+  alarm_name          = "${local.name_prefix}-ring1-dormant"
+  alarm_description   = "Ring 1 jobs published but zero Lambda invocations for 3 days — the ring is asleep while work queues up."
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = 3
+  datapoints_to_alarm = 3
+  threshold           = 1
+  treat_missing_data  = "notBreaching"
+
+  metric_query {
+    id          = "dormant"
+    expression  = "IF(published > 0 && invoked < 1, 1, 0)"
+    label       = "Ring 1 dormant (published but not invoked)"
+    return_data = true
+  }
+
+  metric_query {
+    id = "published"
+    metric {
+      metric_name = "RingJobsPublished"
+      namespace   = "EM/Rings"
+      period      = 86400
+      stat        = "Sum"
+      dimensions = {
+        Ring = "1"
+      }
+    }
+  }
+
+  metric_query {
+    id = "invoked"
+    metric {
+      metric_name = "Invocations"
+      namespace   = "AWS/Lambda"
+      period      = 86400
+      stat        = "Sum"
+      dimensions = {
+        FunctionName = aws_lambda_function.ring1_worker.function_name
+      }
+    }
+  }
+
+  alarm_actions = [aws_sns_topic.mcp_alerts.arn]
+  ok_actions    = [aws_sns_topic.mcp_alerts.arn]
+
+  tags = {
+    Name = "${local.name_prefix}-ring1-dormant"
+    Ring = "1"
   }
 }
 # trigger terraform apply

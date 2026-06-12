@@ -927,6 +927,82 @@ async def _write_error(
         )
 
 
+# ── Provider key-health canary (C-39) ────────────────────────────────────
+
+
+def _keys_health_check() -> Dict[str, Any]:
+    """Probe AI provider keys hourly and emit CloudWatch metrics.
+
+    Invoked by an EventBridge rule with {"action": "keys_health"}. The old
+    canary only ran at deploy time and was advisory — Ring 1 slept for
+    7 weeks without anyone noticing (C-39). An alarm fires when the active
+    provider (gemini) reports unhealthy.
+    """
+    _load_secrets()
+
+    async def _probe_all() -> Dict[str, bool]:
+        results: Dict[str, bool] = {}
+
+        # Gemini — the active Ring 1 provider (AI_VERIFICATION_PROVIDER).
+        try:
+            from verification.providers import GeminiProvider
+
+            results["gemini"] = bool(await GeminiProvider.validate_key())
+        except Exception as e:
+            logger.warning("keys_health: gemini probe failed: %s", e)
+            results["gemini"] = False
+
+        # OpenAI + Anthropic fallbacks — model listing is free and keyed.
+        async with httpx.AsyncClient(timeout=httpx.Timeout(10.0)) as client:
+            openai_key = os.environ.get("OPENAI_API_KEY", "")
+            if openai_key:
+                try:
+                    r = await client.get(
+                        "https://api.openai.com/v1/models",
+                        headers={"Authorization": f"Bearer {openai_key}"},
+                    )
+                    results["openai"] = r.status_code == 200
+                except Exception:
+                    results["openai"] = False
+
+            anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "")
+            if anthropic_key:
+                try:
+                    r = await client.get(
+                        "https://api.anthropic.com/v1/models",
+                        headers={
+                            "x-api-key": anthropic_key,
+                            "anthropic-version": "2023-06-01",
+                        },
+                    )
+                    results["anthropic"] = r.status_code == 200
+                except Exception:
+                    results["anthropic"] = False
+
+        return results
+
+    results = asyncio.run(_probe_all())
+
+    try:
+        boto3.client("cloudwatch").put_metric_data(
+            Namespace="EM/Rings",
+            MetricData=[
+                {
+                    "MetricName": "ProviderKeyHealthy",
+                    "Dimensions": [{"Name": "Provider", "Value": name}],
+                    "Value": 1.0 if healthy else 0.0,
+                    "Unit": "None",
+                }
+                for name, healthy in results.items()
+            ],
+        )
+    except Exception as e:
+        logger.warning("keys_health: metric emit failed: %s", e)
+
+    logger.info("keys_health: %s", results)
+    return {"providers": results}
+
+
 # ── Lambda entry point ───────────────────────────────────────────────────
 
 
@@ -944,6 +1020,10 @@ def lambda_handler(event, context):
             "git_sha_short": _GIT_SHA[:7] if _GIT_SHA != "unknown" else "unknown",
             "build_timestamp": _BUILD_TS,
         }
+
+    # ── Provider key-health canary (direct invoke via EventBridge) ──
+    if event.get("action") == "keys_health":
+        return _keys_health_check()
 
     _load_secrets()
 

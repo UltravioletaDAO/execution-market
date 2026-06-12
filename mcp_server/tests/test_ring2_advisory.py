@@ -56,6 +56,7 @@ def _inconclusive_verdict() -> ArbiterVerdict:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.ring2_lambda
 class TestRing2AdvisoryOnly:
     @pytest.mark.asyncio
     async def test_inconclusive_creates_no_dispute_and_never_touches_agent_verdict(
@@ -136,6 +137,7 @@ class TestRing2AdvisoryOnly:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.ring1_lambda
 class TestRing1HandsOffToRing2:
     @pytest.mark.asyncio
     async def test_write_error_publishes_to_ring2(self, monkeypatch):
