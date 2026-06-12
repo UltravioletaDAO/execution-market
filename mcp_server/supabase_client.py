@@ -506,17 +506,20 @@ async def update_submission_auto_check(
     """
     Update a submission with automated verification results.
 
-    Populates the auto_check_passed and auto_check_details columns.
+    Populates auto_check_passed, auto_check_details and auto_check_score
+    (C-42: the score column existed but was never written).
     Non-blocking: logs errors but never raises.
     """
     client = get_client()
     try:
-        client.table("submissions").update(
-            {
-                "auto_check_passed": auto_check_passed,
-                "auto_check_details": auto_check_details,
-            }
-        ).eq("id", submission_id).execute()
+        payload: Dict[str, Any] = {
+            "auto_check_passed": auto_check_passed,
+            "auto_check_details": auto_check_details,
+        }
+        score = auto_check_details.get("score")
+        if isinstance(score, (int, float)):
+            payload["auto_check_score"] = round(float(score), 2)
+        client.table("submissions").update(payload).eq("id", submission_id).execute()
     except Exception as e:
         # Non-blocking — some schemas may not have these columns yet
         logger.warning(

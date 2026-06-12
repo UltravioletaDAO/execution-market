@@ -54,6 +54,11 @@ class VerificationResult:
     raw_response: str = ""
     input_tokens: int = 0
     output_tokens: int = 0
+    # C-02/C-09: True when NEEDS_HUMAN comes from a provider/parse FAILURE
+    # rather than genuine AI doubt. Consumers must treat error results as
+    # neutral (score 0.5 + review_required), never derive a score from the
+    # confidence value.
+    error: bool = False
 
 
 class AIVerifier:
@@ -256,14 +261,17 @@ class AIVerifier:
 
         except Exception as e:
             logger.error("AI verification failed (%s): %s", self.provider_name, e)
+            # Provider failure ≠ AI doubt: neutral confidence + error flag so
+            # downstream never turns this into a perfect score (C-02/C-09).
             return VerificationResult(
                 decision=VerificationDecision.NEEDS_HUMAN,
-                confidence=0.0,
+                confidence=0.5,
                 explanation=f"AI verification failed: {str(e)}",
                 issues=["AI verification error"],
                 task_specific_checks={},
                 provider=self.provider_name,
                 raw_prompt=prompt,
+                error=True,
             )
 
     async def _download_image(self, url: str) -> bytes:
@@ -478,12 +486,14 @@ class AIVerifier:
             )
 
         except Exception as e:
+            # Parse failure ≠ AI doubt — same neutral treatment (C-02/C-09).
             return VerificationResult(
                 decision=VerificationDecision.NEEDS_HUMAN,
-                confidence=0.0,
+                confidence=0.5,
                 explanation=f"Failed to parse AI response: {str(e)}",
                 issues=["AI response parsing error"],
                 task_specific_checks={},
+                error=True,
             )
 
 

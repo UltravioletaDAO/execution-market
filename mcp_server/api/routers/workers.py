@@ -43,7 +43,7 @@ _ENFORCE_PAYMENT_EVENTS_AUTH = (
 )
 
 from verification.pipeline import run_verification_pipeline
-from verification.sqs_publisher import publish_ring1
+from verification.sqs_publisher import publish_ring1, publish_ring2
 from verification.image_downloader import extract_photo_urls
 
 from ._models import (
@@ -857,30 +857,16 @@ async def submit_work(
                 except Exception:
                     pass  # Non-blocking
 
-                # Phase B: always launch for physical/location categories
-                # (Ring 1 PHOTINT is valuable regardless of arbiter_mode).
-                # Ring 2 (Arbiter LLM) is still gated inside Phase B by
-                # arbiter_mode != manual, BUT for physical categories we
-                # force it to run — see background_runner.py.
-                physical_categories = {
-                    "physical_presence",
-                    "location_based",
-                    "verification",
-                    "sensory",
-                    "data_collection",
-                }
-                should_launch_phase_b = (
-                    task.get("arbiter_enabled")
-                    or task.get("category") in physical_categories
-                    or True  # Keep unconditional launch as safety net
+                # Phase B routing (C-03/C-40/C-42): Ring 1 is a PHOTINT
+                # pipeline — only submissions WITH media go there. Text-only
+                # evidence gets an explicit terminal `skipped_no_media` state
+                # and goes straight to Ring 2 (the semantic arbiter is the
+                # ideal verifier for text evidence).
+                photo_urls = extract_photo_urls(submission_data.get("evidence") or {})
+                phase_a_dict = (
+                    verification_result.to_dict() if verification_result else None
                 )
-                if should_launch_phase_b:
-                    photo_urls = extract_photo_urls(
-                        submission_data.get("evidence") or {}
-                    )
-                    phase_a_dict = (
-                        verification_result.to_dict() if verification_result else None
-                    )
+                if photo_urls:
                     sqs_ok = await publish_ring1(
                         submission_id=submission_id,
                         task_id=task_id,
@@ -894,6 +880,36 @@ async def submit_work(
                             "SQS publish failed for submission=%s — "
                             "Ring 1 verification will not run. "
                             "Check SQS queue health and DLQ.",
+                            submission_id,
+                        )
+                else:
+                    skipped_details = {
+                        **(phase_a_dict or {}),
+                        "ring1_status": "skipped_no_media",
+                    }
+                    await db.update_submission_auto_check(
+                        submission_id=submission_id,
+                        auto_check_passed=(
+                            verification_result.passed if verification_result else False
+                        ),
+                        auto_check_details=skipped_details,
+                    )
+                    logger.info(
+                        "Ring 1 skipped for submission=%s (no media) — "
+                        "publishing directly to Ring 2",
+                        submission_id,
+                    )
+                    sqs_ok = await publish_ring2(
+                        submission_id=submission_id,
+                        task_id=task_id,
+                        submission=submission_data,
+                        task=task,
+                        photo_urls=[],
+                    )
+                    if not sqs_ok:
+                        logger.error(
+                            "Ring 2 SQS publish failed for text-only "
+                            "submission=%s — arbiter verdict will not run.",
                             submission_id,
                         )
         except Exception as verify_err:

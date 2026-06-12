@@ -102,9 +102,16 @@ async def update_auto_check(
     passed: bool,
     details: Dict[str, Any],
 ) -> None:
-    """Update auto_check_passed + auto_check_details on a submission."""
+    """Update auto_check_passed + auto_check_details on a submission.
+
+    Also persists auto_check_score from details["score"] (C-42: the column
+    existed but was never written, leaving every row at the 0 default).
+    """
     url = _rest_url(f"submissions?id=eq.{submission_id}")
     payload = {"auto_check_passed": passed, "auto_check_details": details}
+    score = details.get("score")
+    if isinstance(score, (int, float)):
+        payload["auto_check_score"] = round(float(score), 2)
     async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
         r = await c.patch(url, json=payload, headers=_headers())
         r.raise_for_status()

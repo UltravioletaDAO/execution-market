@@ -465,6 +465,25 @@ async def _run_ai_semantic_check(
             photo_urls=photo_urls,
             exif_context=exif_context,
         )
+
+        # C-02/C-09: provider/parse failure must NEVER become a perfect
+        # score (NEEDS_HUMAN + confidence 0.0 used to yield 1.0/passed).
+        # Error results get a neutral 0.5 + review_required flag.
+        if getattr(result, "error", False):
+            return CheckResult(
+                name="ai_semantic",
+                passed=False,
+                score=0.5,
+                reason=f"AI provider error: {result.explanation[:400]}",
+                details={
+                    "decision": "error_needs_human",
+                    "review_required": True,
+                    "error": True,
+                    "provider": result.provider,
+                    "model": result.model,
+                },
+            )
+
         score = (
             result.confidence
             if result.decision == VerificationDecision.APPROVED
@@ -494,9 +513,14 @@ async def _run_ai_semantic_check(
         logger.warning("AI semantic check failed: %s", e, exc_info=True)
         return CheckResult(
             name="ai_semantic",
-            passed=True,
+            passed=False,
             score=0.5,
             reason=f"AI semantic check failed: {e}",
+            details={
+                "decision": "error_needs_human",
+                "review_required": True,
+                "error": True,
+            },
         )
 
 
@@ -702,10 +726,17 @@ async def _process_submission(body: Dict[str, Any]) -> Dict[str, Any]:
                     _emit(name, "complete", {"passed": cr.passed, "score": cr.score})
                 )
             elif hasattr(outcome, "passed"):
+                # Provider/parse failures carry an error flag (C-02): surface
+                # them as "error" events, not "complete".
+                _status = (
+                    "error"
+                    if getattr(outcome, "details", {}).get("error")
+                    else "complete"
+                )
                 _emit_tasks.append(
                     _emit(
                         name,
-                        "complete",
+                        _status,
                         {"passed": outcome.passed, "score": outcome.score},
                     )
                 )
@@ -866,12 +897,11 @@ async def _write_error(
             **(phase_a_result or {}),
             "ring1_status": "error",
             "ring1_error": error_msg,
+            "review_required": True,
         }
-        await supabase_helper.update_auto_check(
-            submission_id,
-            phase_a_result.get("passed", False),
-            details,
-        )
+        # C-42: a pipeline error must NEVER leave auto_check_passed=True —
+        # fail closed and flag for manual review.
+        await supabase_helper.update_auto_check(submission_id, False, details)
     except Exception as e:
         logger.error("Failed to write Ring 1 error for %s: %s", submission_id[:8], e)
 
