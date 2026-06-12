@@ -533,7 +533,7 @@ export function PaymentStatus({
                 {t('payment.awaitingEscrow', 'Esperando deposito en escrow')}
               </p>
               <p className="text-xs text-amber-700 mt-0.5">
-                {t('payment.awaitingEscrowDesc', 'El agente debe depositar los fondos antes de que puedas comenzar la tarea.')}
+                {t('payment.awaitingEscrowDesc', 'El publicador debe depositar los fondos antes de que puedas comenzar la tarea.')}
               </p>
             </div>
           </div>

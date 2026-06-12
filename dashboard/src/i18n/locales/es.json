@@ -631,8 +631,8 @@
     "filename": "Archivo",
     "fileSize": "Peso",
     "file": "Archivo",
-    "agentNotes": "Notas del agente",
-    "awaitingReview": "Esperando revision del agente",
+    "agentNotes": "Notas del publicador",
+    "awaitingReview": "Esperando revision del publicador",
     "awaitingReviewDesc": "Tu evidencia ha sido enviada y esta pendiente de aprobacion por el publicador de la tarea.",
     "evidenceApproved": "Evidencia aprobada",
     "evidenceRejected": "Evidencia rechazada",
@@ -649,8 +649,8 @@
       "simple_action": "Documenta la acción con fotos o video. El GPS ayuda a verificar la entrega."
     },
     "copyHash": "Copiar hash",
-    "escrowNotConfirmed": "El escrow no está confirmado on-chain (estado: {{status}}). Espera a que el agente fondee esta tarea.",
-    "escrowWarning": "El escrow no está confirmado on-chain (estado: {{status}}). No puedes enviar evidencia hasta que el agente fondee esta tarea.",
+    "escrowNotConfirmed": "El escrow no está confirmado on-chain (estado: {{status}}). Espera a que el publicador fondee esta tarea.",
+    "escrowWarning": "El escrow no está confirmado on-chain (estado: {{status}}). No puedes enviar evidencia hasta que el publicador fondee esta tarea.",
     "verdicts": {
       "accepted": "aceptada",
       "disputed": "disputada",
@@ -862,7 +862,7 @@
   },
   "payment": {
     "awaitingEscrow": "Esperando deposito en escrow",
-    "awaitingEscrowDesc": "El agente debe depositar los fondos antes de que puedas comenzar la tarea.",
+    "awaitingEscrowDesc": "El publicador debe depositar los fondos antes de que puedas comenzar la tarea.",
     "awaitingRecord": "Esperando confirmacion de pago...",
     "charged": "Pago instantaneo completado",
     "chargedDesc": "Los fondos llegaron directo al worker — sin paso de retención.",
@@ -879,7 +879,7 @@
     "noEvents": "No hay eventos de pago aun",
     "processing": "Procesando pago...",
     "refundConfirmed": "Reembolso Confirmado",
-    "refundConfirmedDesc": "Los fondos han sido devueltos al agente. Esta tarea ha expirado.",
+    "refundConfirmedDesc": "Los fondos han sido devueltos al publicador. Esta tarea ha expirado.",
     "status": "Estado del Pago",
     "syncingData": "Fondos bloqueados. Confirmando on-chain...",
     "timeline": "Historial de Pagos",
@@ -1529,9 +1529,9 @@
   },
   "ratings": {
     "taskRatings": "Calificaciones",
-    "agentToWorker": "Agente califico al Trabajador",
-    "workerToAgent": "Trabajador califico al Agente",
-    "rateAgent": "Calificar Agente",
+    "agentToWorker": "Publicador califico al Trabajador",
+    "workerToAgent": "Trabajador califico al Publicador",
+    "rateAgent": "Calificar Publicador",
     "onChain": "On-chain",
     "onChainReputation": "Reputación ERC-8004: {{hash}}"
   },
@@ -1547,11 +1547,11 @@
     "unavailable": "Datos on-chain no disponibles"
   },
   "rateAgent": {
-    "title": "Calificar Agente",
-    "ratingLabel": "Como fue tu experiencia con este agente?",
+    "title": "Calificar Publicador",
+    "ratingLabel": "Como fue tu experiencia con este publicador?",
     "commentLabel": "Comentario",
-    "commentPlaceholder": "Comparte detalles sobre tu experiencia con este agente...",
-    "submit": "Calificar Agente",
+    "commentPlaceholder": "Comparte detalles sobre tu experiencia con este publicador...",
+    "submit": "Calificar Publicador",
     "skip": "Omitir",
     "success": "Calificacion enviada!",
     "successDescription": "Tu opinion ayuda a mejorar la plataforma.",
@@ -1754,13 +1754,13 @@
   "application": {
     "title": "Aplicar a Tarea",
     "yourProfile": "Tu Perfil",
-    "message": "Mensaje al Agente",
+    "message": "Mensaje al Publicador",
     "messagePlaceholder": "Por que eres buena opcion para esta tarea?",
     "submit": "Enviar Aplicacion",
     "success": "Aplicacion enviada exitosamente!",
     "result": {
       "successTitle": "Aplicacion enviada!",
-      "successMessage": "Tu aplicacion ha sido enviada. El agente la revisara y decidira si asignarte esta tarea.",
+      "successMessage": "Tu aplicacion ha sido enviada. El publicador la revisara y decidira si asignarte esta tarea.",
       "suggestWorldIdTitle": "Desbloquea tareas de mayor valor",
       "suggestWorldIdMessage": "Verificate con World ID para acceder a tareas de ${{threshold}} o mas. Solo toma un minuto.",
       "suggestWorldIdCta": "Verificar ahora",
@@ -1770,7 +1770,7 @@
       "blockedThreshold": "Requerido para tareas >= ${{threshold}}",
       "verifyCta": "Verificar con World ID",
       "alreadyAppliedTitle": "Ya aplicaste",
-      "alreadyAppliedMessage": "Ya aplicaste a esta tarea. El agente esta revisando las aplicaciones y asignara un trabajador pronto.",
+      "alreadyAppliedMessage": "Ya aplicaste a esta tarea. El publicador esta revisando las aplicaciones y asignara un trabajador pronto.",
       "errorTitle": "Algo salio mal",
       "errorMessage": "No se pudo enviar tu aplicacion. Por favor intenta de nuevo.",
       "viewMyTasks": "Ver mis tareas"
@@ -2713,10 +2713,16 @@
       }
     }
   },
+  "party": {
+    "executor": "Ejecutor",
+    "human": "Humano",
+    "agent": "Agente",
+    "robot": "Robot"
+  },
   "publisher": {
     "dashboard": {
       "title": "Panel de Publicador",
-      "subtitle": "Gestiona tus solicitudes para agentes IA",
+      "subtitle": "Gestiona tus solicitudes para ejecutores",
       "newRequest": "Nueva Solicitud",
       "active": "Activas",
       "toReview": "Por Revisar",
@@ -2753,8 +2759,8 @@
       },
       "tasksDone": "tareas",
       "status": {
-        "published": "Buscando Agente",
-        "accepted": "Agente Asignado",
+        "published": "Buscando {{party}}",
+        "accepted": "{{party}} Asignado",
         "in_progress": "En Progreso",
         "submitted": "Entregado — Revisar",
         "completed": "Completado y Pagado",
@@ -2763,10 +2769,10 @@
       }
     },
     "create": {
-      "title": "Nueva Solicitud para Agente IA",
-      "subtitle": "Crea una tarea para que un agente IA la ejecute por ti.",
+      "title": "Nueva Solicitud",
+      "subtitle": "Crea una tarea para que un ejecutor la complete por ti.",
       "published": "¡Solicitud Publicada!",
-      "publishedDesc": "Tu solicitud está activa. Los agentes IA pueden aceptarla.",
+      "publishedDesc": "Tu solicitud está activa. Los ejecutores pueden aceptarla.",
       "budget": "Presupuesto",
       "commission": "Comisión",
       "totalOnApproval": "Total al aprobar",
@@ -2801,7 +2807,7 @@
       "deliverables": "Entregables",
       "costSummary": "Resumen de Costos",
       "total": "Total",
-      "payOnApprove": "Solo pagas cuando apruebas el trabajo del agente.",
+      "payOnApprove": "Solo pagas cuando apruebas el trabajo.",
       "payByWallet": "Pagas firmando con tu wallet cuando apruebas el trabajo.",
       "publishing": "Publicando...",
       "publishRequest": "Publicar Solicitud",
@@ -3059,7 +3065,7 @@
     "title": "¿MoonPay no funciona?"
   },
   "review": {
-    "agentDelivery": "Entrega del Agente",
+    "agentDelivery": "Entrega del Ejecutor",
     "backToPanel": "← Volver al Panel",
     "coords": {
       "hide": "Ocultar coordenadas",
@@ -3114,7 +3120,7 @@
       "escrowRelease": "Los fondos ya están bloqueados en escrow para este worker. Al aprobar se libera el pago on-chain — sin firmas.",
       "signTwo": "Firmarás 2 autorizaciones en tu wallet.",
       "summary": "Resumen de Pago",
-      "toAgent": "Pago al agente:",
+      "toAgent": "Pago al ejecutor:",
       "toWorker": "El worker recibe (87%):",
       "total": "Total:"
     },

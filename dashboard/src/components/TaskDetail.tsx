@@ -896,7 +896,7 @@ export function TaskDetail({
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       <div>
-                        <span className="text-xs font-medium text-amber-800">{t('submission.awaitingReview', 'Awaiting agent review')}</span>
+                        <span className="text-xs font-medium text-amber-800">{t('submission.awaitingReview', 'Awaiting publisher review')}</span>
                         <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse inline-block ml-2" />
                       </div>
                     </div>
@@ -905,7 +905,7 @@ export function TaskDetail({
                   {/* Agent notes — italic quote block */}
                   {sub.agent_notes && (
                     <div className="mt-3 border-l-4 border-blue-300 bg-blue-50 rounded-r-lg px-4 py-3">
-                      <span className="text-xs font-medium text-blue-600 block mb-1">{t('submission.agentNotes', 'Agent notes')}</span>
+                      <span className="text-xs font-medium text-blue-600 block mb-1">{t('submission.agentNotes', 'Publisher notes')}</span>
                       <p className="text-sm text-blue-800 italic">{sub.agent_notes}</p>
                     </div>
                   )}

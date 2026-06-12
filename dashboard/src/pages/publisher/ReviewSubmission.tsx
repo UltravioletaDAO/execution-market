@@ -248,7 +248,7 @@ export function ReviewSubmission() {
           <>
             {submissions.map(sub => (
               <div key={sub.id} className="bg-gray-50 rounded-lg border p-4">
-                <h4 className="font-medium mb-3">📦 {t('review.agentDelivery', 'Entrega del Agente')}</h4>
+                <h4 className="font-medium mb-3">📦 {t('review.agentDelivery', 'Entrega del Ejecutor')}</h4>
                 {Object.keys(sub.evidence || {}).length > 0 && (
                   <div className="mb-3">
                     <div className="flex justify-end mb-1">
@@ -302,7 +302,7 @@ export function ReviewSubmission() {
               {verdict === 'accepted' && !escrowLocked && (
                 <div className="bg-blue-50 rounded-lg p-4 mb-4 border border-blue-200 text-sm">
                   <h4 className="font-medium text-blue-900 mb-2">💰 {t('review.payment.summary', 'Resumen de Pago')}</h4>
-                  <div className="flex justify-between"><span>{t('review.payment.toAgent', 'Pago al agente:')}</span><span>${bounty.toFixed(2)} USDC</span></div>
+                  <div className="flex justify-between"><span>{t('review.payment.toAgent', 'Pago al ejecutor:')}</span><span>${bounty.toFixed(2)} USDC</span></div>
                   <div className="flex justify-between"><span>{t('review.payment.commission', 'Comisión (13%):')}</span><span>${fee.toFixed(2)} USDC</span></div>
                   <div className="flex justify-between font-bold border-t border-blue-200 pt-1"><span>{t('review.payment.total', 'Total:')}</span><span>${total.toFixed(2)} USDC</span></div>
                   <p className="text-xs text-blue-700 mt-2">🔐 {t('review.payment.signTwo', 'Firmarás 2 autorizaciones en tu wallet.')}</p>

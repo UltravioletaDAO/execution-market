@@ -102,6 +102,8 @@ export interface Executor {
   world_human_id: number | null
   world_verified_at: string | null
   agent_type: AgentType
+  /** Marketplace party (Universal Hiring Matrix). Present in H2A list embeds. */
+  executor_type?: 'human' | 'agent' | 'robot'
   networks_active: string[]
   preferred_language?: string | null
   social_links?: SocialLinks | null
@@ -620,7 +622,7 @@ export interface NotificationUpdate {
 
 export type PublisherType = 'agent' | 'human'
 
-export type TargetExecutorType = 'human' | 'agent'
+export type TargetExecutorType = 'any' | 'human' | 'agent' | 'robot'
 
 export type VerificationMode = 'manual' | 'auto'
 

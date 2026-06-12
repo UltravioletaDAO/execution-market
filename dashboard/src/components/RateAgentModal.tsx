@@ -126,7 +126,7 @@ export function RateAgentModal({
     >
       <Modal.Header onClose={submitting ? undefined : onClose}>
         <h2 id="rate-agent-title" className="text-lg font-bold text-zinc-900">
-          {t('rateAgent.title', 'Rate Agent')}
+          {t('rateAgent.title', 'Rate Publisher')}
         </h2>
         {agentName && <p className="text-sm text-zinc-500">{agentName}</p>}
       </Modal.Header>

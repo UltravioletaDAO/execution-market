@@ -208,7 +208,7 @@ export function TaskApplicationModal({ task, hasAlreadyApplied, onClose, onSucce
               {/* Message */}
               <div>
                 <label className="block text-sm font-medium text-zinc-700 mb-1">
-                  {t('application.message', 'Message to Agent')}{' '}
+                  {t('application.message', 'Message to Publisher')}{' '}
                   <span className="text-zinc-500 font-normal">({t('common.optional', 'optional')})</span>
                 </label>
                 <textarea

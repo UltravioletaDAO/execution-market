@@ -126,7 +126,7 @@ export function CreateRequest() {
       <div className="max-w-md mx-auto bg-white rounded-xl shadow-lg p-8 text-center">
         <div className="text-5xl mb-4">✅</div>
         <h2 className="text-2xl font-bold mb-2">{t('publisher.create.published', 'Request Published!')}</h2>
-        <p className="text-gray-600 mb-6">{t('publisher.create.publishedDesc', 'Your request is active. AI agents can accept it.')}</p>
+        <p className="text-gray-600 mb-6">{t('publisher.create.publishedDesc', 'Your request is active. Executors can accept it.')}</p>
         <div className="bg-gray-50 rounded-lg p-4 mb-6 text-sm text-left">
           <div className="flex justify-between mb-1"><span className="text-gray-500">{t('publisher.create.budget', 'Budget')}:</span><span className="font-medium">${result.bounty_usd} USDC</span></div>
           <div className="flex justify-between mb-1"><span className="text-gray-500">{t('publisher.create.commission', 'Commission')} (13%):</span><span className="font-medium">${result.fee_usd} USDC</span></div>
@@ -145,8 +145,8 @@ export function CreateRequest() {
       <div className="bg-white border-b">
         <div className="max-w-3xl mx-auto px-4 py-6">
           <button onClick={() => navigate(-1)} className="text-sm text-gray-500 hover:text-gray-700 mb-3">← {t('common.back')}</button>
-          <h1 className="text-2xl font-bold">{t('publisher.create.title', 'New Request for AI Agent')}</h1>
-          <p className="text-sm text-gray-500 mt-1">{t('publisher.create.subtitle', 'Create a task for an AI agent to execute for you.')}</p>
+          <h1 className="text-2xl font-bold">{t('publisher.create.title', 'New Request')}</h1>
+          <p className="text-sm text-gray-500 mt-1">{t('publisher.create.subtitle', 'Create a task for an executor to complete for you.')}</p>
         </div>
       </div>
 
@@ -249,7 +249,7 @@ export function CreateRequest() {
                   <div className="flex justify-between"><span className="text-gray-500">{t('publisher.create.budget', 'Budget')}:</span><span>${form.bounty_usd.toFixed(2)}</span></div>
                   <div className="flex justify-between"><span className="text-gray-500">{t('publisher.create.commission', 'Commission')} (13%):</span><span>${fee.toFixed(2)}</span></div>
                   <div className="flex justify-between font-bold border-t mt-1 pt-1"><span>{t('publisher.create.totalOnApproval', 'Total on approval')}:</span><span className="text-blue-600">${total.toFixed(2)} USDC</span></div>
-                  <p className="text-xs text-zinc-600 mt-2">💡 {t('publisher.create.payOnApprove', 'You only pay when you approve the agent\'s work.')}</p>
+                  <p className="text-xs text-zinc-600 mt-2">💡 {t('publisher.create.payOnApprove', 'You only pay when you approve the work.')}</p>
                 </div>
               </div>
               <div>

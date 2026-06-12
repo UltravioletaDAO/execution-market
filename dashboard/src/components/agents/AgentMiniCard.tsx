@@ -103,13 +103,18 @@ export const AgentMiniCard = memo(function AgentMiniCard(props: AgentMiniCardPro
   }
 
   if (!data) {
-    // Fallback: show truncated wallet
+    // Fallback: show truncated wallet. H2A human publishers have no executor
+    // record — their task agent_id is 'human:<uuid>', so render a humane
+    // "Human · …d261" label instead of the raw id.
     const wallet = props.executor?.wallet_address ?? props.walletAddress ?? ''
+    const isHumanPublisherId = wallet.startsWith('human:')
     return (
       <div className={cn('flex items-center gap-2 p-2 rounded-lg', className)}>
         <AgentAvatar walletAddress={wallet} size="sm" showIndicator={false} />
         <span className="text-sm text-zinc-600 dark:text-zinc-400 font-mono">
-          {truncateAddress(wallet)}
+          {isHumanPublisherId
+            ? `${AGENT_TYPE_EMOJI.human} ${t('party.human', 'Human')} · …${wallet.slice(-4)}`
+            : truncateAddress(wallet)}
         </span>
       </div>
     )

@@ -470,7 +470,7 @@
     "polling": "Atualizando a cada 5s",
     "statusUpdated": "Status Atualizado",
     "newStatus": "Status da tarefa: {{status}}",
-    "awaitingReview": "Aguardando revisao do agente",
+    "awaitingReview": "Aguardando revisao do publicador",
     "awaitingReviewDesc": "Sua evidencia foi enviada e esta pendente de aprovacao pelo publicador da tarefa.",
     "evidenceApproved": "Evidencia aprovada",
     "evidenceRejected": "Evidencia rejeitada"
@@ -610,9 +610,9 @@
   },
   "ratings": {
     "taskRatings": "Avaliacoes",
-    "agentToWorker": "Agente avaliou Trabalhador",
-    "workerToAgent": "Trabalhador avaliou Agente",
-    "rateAgent": "Avaliar Agente",
+    "agentToWorker": "Publicador avaliou Trabalhador",
+    "workerToAgent": "Trabalhador avaliou Publicador",
+    "rateAgent": "Avaliar Publicador",
     "onChain": "On-chain"
   },
   "taskMap": {
@@ -627,11 +627,11 @@
     "unavailable": "Dados on-chain nao disponiveis"
   },
   "rateAgent": {
-    "title": "Avaliar Agente",
-    "ratingLabel": "Como foi sua experiencia com este agente?",
+    "title": "Avaliar Publicador",
+    "ratingLabel": "Como foi sua experiencia com este publicador?",
     "commentLabel": "Comentario",
-    "commentPlaceholder": "Compartilhe detalhes sobre sua experiencia com este agente...",
-    "submit": "Avaliar Agente",
+    "commentPlaceholder": "Compartilhe detalhes sobre sua experiencia com este publicador...",
+    "submit": "Avaliar Publicador",
     "skip": "Pular",
     "success": "Avaliacao enviada!",
     "successDescription": "Sua opiniao ajuda a melhorar a plataforma.",
@@ -1340,13 +1340,13 @@
   "application": {
     "title": "Aplicar a Tarefa",
     "yourProfile": "Seu Perfil",
-    "message": "Mensagem ao Agente",
+    "message": "Mensagem ao Publicador",
     "messagePlaceholder": "Por que voce e uma boa opcao para esta tarefa?",
     "submit": "Enviar Candidatura",
     "success": "Candidatura enviada com sucesso!",
     "result": {
       "successTitle": "Candidatura enviada!",
-      "successMessage": "Sua candidatura foi enviada. O agente ira revisa-la e decidir se atribui esta tarefa a voce.",
+      "successMessage": "Sua candidatura foi enviada. O publicador ira revisa-la e decidir se atribui esta tarefa a voce.",
       "suggestWorldIdTitle": "Desbloqueie tarefas de maior valor",
       "suggestWorldIdMessage": "Verifique-se com World ID para acessar tarefas de ${{threshold}} ou mais. Leva apenas um minuto.",
       "suggestWorldIdCta": "Verificar agora",
@@ -1356,7 +1356,7 @@
       "blockedThreshold": "Necessario para tarefas >= ${{threshold}}",
       "verifyCta": "Verificar com World ID",
       "alreadyAppliedTitle": "Ja se candidatou",
-      "alreadyAppliedMessage": "Voce ja se candidatou a esta tarefa. O agente esta revisando as candidaturas e atribuira um trabalhador em breve.",
+      "alreadyAppliedMessage": "Voce ja se candidatou a esta tarefa. O publicador esta revisando as candidaturas e atribuira um trabalhador em breve.",
       "errorTitle": "Algo deu errado",
       "errorMessage": "Nao foi possivel enviar sua candidatura. Por favor, tente novamente.",
       "viewMyTasks": "Ver minhas tarefas"
@@ -1507,7 +1507,7 @@
   },
   "payment": {
     "awaitingEscrow": "Aguardando deposito em escrow",
-    "awaitingEscrowDesc": "O agente deve depositar os fundos antes que voce possa iniciar a tarefa.",
+    "awaitingEscrowDesc": "O publicador deve depositar os fundos antes que voce possa iniciar a tarefa.",
     "awaitingRecord": "Aguardando confirmacao de pagamento...",
     "charged": "Pagamento instantaneo concluido",
     "chargedDesc": "Pagamento direto (CHARGE) sem escrow. Fundos enviados diretamente.",
@@ -1524,7 +1524,7 @@
     "noEvents": "Nenhum evento de pagamento ainda",
     "processing": "Processando pagamento...",
     "refundConfirmed": "Reembolso Confirmado",
-    "refundConfirmedDesc": "Os fundos foram devolvidos ao agente. Esta tarefa expirou.",
+    "refundConfirmedDesc": "Os fundos foram devolvidos ao publicador. Esta tarefa expirou.",
     "status": "Status do Pagamento",
     "syncingData": "Escrow detectado. Aguardando sincronizacao da transacao x402.",
     "timeline": "Historico de Pagamento",
@@ -2237,10 +2237,16 @@
       "webScraping": "Web Scraping"
     }
   },
+  "party": {
+    "executor": "Executor",
+    "human": "Humano",
+    "agent": "Agente",
+    "robot": "Robô"
+  },
   "publisher": {
     "dashboard": {
       "title": "Painel do Publicador",
-      "subtitle": "Gerencie suas solicitações para agentes IA",
+      "subtitle": "Gerencie suas solicitações para executores",
       "newRequest": "Nova Solicitação",
       "active": "Ativas",
       "toReview": "Para Revisar",
@@ -2271,8 +2277,8 @@
         "lockFailed": "O bloqueio em escrow falhou — a tarefa continua publicada e nenhum worker foi atribuído."
       },
       "status": {
-        "published": "Buscando Agente",
-        "accepted": "Agente Designado",
+        "published": "Buscando {{party}}",
+        "accepted": "{{party}} Designado",
         "in_progress": "Em Progresso",
         "submitted": "Entregue — Revisar",
         "completed": "Concluído e Pago",
@@ -2281,10 +2287,10 @@
       }
     },
     "create": {
-      "title": "Nova Solicitação para Agente IA",
-      "subtitle": "Crie uma tarefa para um agente IA executar para você.",
+      "title": "Nova Solicitação",
+      "subtitle": "Crie uma tarefa para um executor completar para você.",
       "published": "Solicitação Publicada!",
-      "publishedDesc": "Sua solicitação está ativa. Agentes IA podem aceitá-la.",
+      "publishedDesc": "Sua solicitação está ativa. Executores podem aceitá-la.",
       "budget": "Orçamento",
       "commission": "Comissão",
       "totalOnApproval": "Total na aprovação",
@@ -2319,7 +2325,7 @@
       "deliverables": "Entregáveis",
       "costSummary": "Resumo de Custos",
       "total": "Total",
-      "payOnApprove": "Você só paga quando aprova o trabalho do agente.",
+      "payOnApprove": "Você só paga quando aprova o trabalho.",
       "payByWallet": "Você paga assinando com sua wallet quando aprova o trabalho.",
       "publishing": "Publicando...",
       "publishRequest": "Publicar Solicitação",

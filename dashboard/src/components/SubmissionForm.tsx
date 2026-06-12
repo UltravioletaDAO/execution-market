@@ -401,7 +401,7 @@ export function SubmissionForm({
       // Block submission if escrow is not funded on-chain
       if (task.escrow_status && !FUNDED_STATUSES.includes(task.escrow_status)) {
         throw new Error(
-          t('submission.escrowNotConfirmed', 'Escrow not confirmed on-chain (status: {{status}}). Wait for the agent to fund this task.', { status: task.escrow_status }),
+          t('submission.escrowNotConfirmed', 'Escrow not confirmed on-chain (status: {{status}}). Wait for the publisher to fund this task.', { status: task.escrow_status }),
         )
       }
 
@@ -805,7 +805,7 @@ export function SubmissionForm({
               </div>
               <div>
                 <p className="text-sm font-medium text-amber-800">
-                  {t('submission.awaitingReview', 'Awaiting agent review')}
+                  {t('submission.awaitingReview', 'Awaiting publisher review')}
                 </p>
                 <p className="text-xs text-amber-600 mt-0.5">
                   {t('submission.awaitingReviewDesc', 'Your evidence has been submitted and is pending approval by the task publisher.')}
@@ -849,7 +849,7 @@ export function SubmissionForm({
         {!escrowReady && (
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
             <p className="text-amber-800 text-sm">
-              {t('submission.escrowWarning', 'Escrow not confirmed on-chain (status: {{status}}). You cannot submit evidence until the agent funds this task.', { status: task.escrow_status })}
+              {t('submission.escrowWarning', 'Escrow not confirmed on-chain (status: {{status}}). You cannot submit evidence until the publisher funds this task.', { status: task.escrow_status })}
             </p>
           </div>
         )}

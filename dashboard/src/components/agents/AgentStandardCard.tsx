@@ -95,7 +95,10 @@ export const AgentStandardCard = memo(function AgentStandardCard(props: AgentSta
   }
 
   if (!data) {
+    // H2A human publishers have no executor record — their task agent_id is
+    // 'human:<uuid>', so render a humane "Human · …d261" label instead of the raw id.
     const wallet = props.executor?.wallet_address ?? props.walletAddress ?? ''
+    const isHumanPublisherId = wallet.startsWith('human:')
     return (
       <div className={cn('bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-4', className)}>
         {label && (
@@ -106,7 +109,9 @@ export const AgentStandardCard = memo(function AgentStandardCard(props: AgentSta
         <div className="flex items-center gap-3">
           <AgentAvatar walletAddress={wallet} size="md" showIndicator={false} />
           <span className="text-sm text-zinc-600 dark:text-zinc-400 font-mono">
-            {truncateAddress(wallet)}
+            {isHumanPublisherId
+              ? `${AGENT_TYPE_EMOJI.human} ${t('party.human', 'Human')} · …${wallet.slice(-4)}`
+              : truncateAddress(wallet)}
           </span>
         </div>
       </div>

@@ -539,8 +539,8 @@
     "filename": "File",
     "fileSize": "Size",
     "file": "File",
-    "agentNotes": "Agent notes",
-    "awaitingReview": "Awaiting agent review",
+    "agentNotes": "Publisher notes",
+    "awaitingReview": "Awaiting publisher review",
     "awaitingReviewDesc": "Your evidence has been submitted and is pending approval by the task publisher.",
     "evidenceApproved": "Evidence approved",
     "evidenceRejected": "Evidence rejected",
@@ -557,8 +557,8 @@
       "simple_action": "Document the action with photos or video. GPS helps verify the delivery."
     },
     "copyHash": "Copy hash",
-    "escrowNotConfirmed": "Escrow not confirmed on-chain (status: {{status}}). Wait for the agent to fund this task.",
-    "escrowWarning": "Escrow not confirmed on-chain (status: {{status}}). You cannot submit evidence until the agent funds this task.",
+    "escrowNotConfirmed": "Escrow not confirmed on-chain (status: {{status}}). Wait for the publisher to fund this task.",
+    "escrowWarning": "Escrow not confirmed on-chain (status: {{status}}). You cannot submit evidence until the publisher funds this task.",
     "verdicts": {
       "accepted": "accepted",
       "disputed": "disputed",
@@ -703,9 +703,9 @@
   },
   "ratings": {
     "taskRatings": "Ratings",
-    "agentToWorker": "Agent rated Worker",
-    "workerToAgent": "Worker rated Agent",
-    "rateAgent": "Rate Agent",
+    "agentToWorker": "Publisher rated Worker",
+    "workerToAgent": "Worker rated Publisher",
+    "rateAgent": "Rate Publisher",
     "onChain": "On-chain",
     "onChainReputation": "ERC-8004 Reputation: {{hash}}"
   },
@@ -721,11 +721,11 @@
     "unavailable": "On-chain data not available"
   },
   "rateAgent": {
-    "title": "Rate Agent",
-    "ratingLabel": "How was your experience with this agent?",
+    "title": "Rate Publisher",
+    "ratingLabel": "How was your experience with this publisher?",
     "commentLabel": "Comment",
-    "commentPlaceholder": "Share details about your experience with this agent...",
-    "submit": "Rate Agent",
+    "commentPlaceholder": "Share details about your experience with this publisher...",
+    "submit": "Rate Publisher",
     "skip": "Skip",
     "success": "Rating submitted!",
     "successDescription": "Your feedback helps improve the platform.",
@@ -1597,13 +1597,13 @@
   "application": {
     "title": "Apply to Task",
     "yourProfile": "Your Profile",
-    "message": "Message to Agent",
+    "message": "Message to Publisher",
     "messagePlaceholder": "Why are you a good fit for this task?",
     "submit": "Submit Application",
     "success": "Application submitted successfully!",
     "result": {
       "successTitle": "Application submitted!",
-      "successMessage": "Your application has been sent. The agent will review it and decide whether to assign you this task.",
+      "successMessage": "Your application has been sent. The publisher will review it and decide whether to assign you this task.",
       "suggestWorldIdTitle": "Unlock higher-value tasks",
       "suggestWorldIdMessage": "Verify with World ID to access tasks worth ${{threshold}} or more. It only takes a minute.",
       "suggestWorldIdCta": "Verify now",
@@ -1613,7 +1613,7 @@
       "blockedThreshold": "Required for tasks >= ${{threshold}}",
       "verifyCta": "Verify with World ID",
       "alreadyAppliedTitle": "Already applied",
-      "alreadyAppliedMessage": "You have already applied to this task. The agent is reviewing applications and will assign a worker soon.",
+      "alreadyAppliedMessage": "You have already applied to this task. The publisher is reviewing applications and will assign a worker soon.",
       "errorTitle": "Something went wrong",
       "errorMessage": "Could not submit your application. Please try again.",
       "viewMyTasks": "View my tasks"
@@ -1775,7 +1775,7 @@
   },
   "payment": {
     "awaitingEscrow": "Awaiting escrow deposit",
-    "awaitingEscrowDesc": "The agent must deposit funds before you can start the task.",
+    "awaitingEscrowDesc": "The publisher must deposit funds before you can start the task.",
     "awaitingRecord": "Awaiting payment confirmation...",
     "charged": "Instant payment completed",
     "chargedDesc": "Funds went straight to the worker — no holding step needed.",
@@ -1792,7 +1792,7 @@
     "noEvents": "No payment events yet",
     "processing": "Processing payment...",
     "refundConfirmed": "Refund Confirmed",
-    "refundConfirmedDesc": "Funds have been returned to the agent. This task has expired.",
+    "refundConfirmedDesc": "Funds have been returned to the publisher. This task has expired.",
     "status": "Payment Status",
     "syncingData": "Funds locked. Confirming on-chain...",
     "timeline": "Payment History",
@@ -2713,10 +2713,16 @@
       }
     }
   },
+  "party": {
+    "executor": "Executor",
+    "human": "Human",
+    "agent": "Agent",
+    "robot": "Robot"
+  },
   "publisher": {
     "dashboard": {
       "title": "Publisher Panel",
-      "subtitle": "Manage your requests for AI agents",
+      "subtitle": "Manage your requests for executors",
       "newRequest": "New Request",
       "active": "Active",
       "toReview": "To Review",
@@ -2753,8 +2759,8 @@
         "lockFailed": "Escrow lock failed — the task remains published and no worker was assigned."
       },
       "status": {
-        "published": "Searching for Agent",
-        "accepted": "Agent Assigned",
+        "published": "Searching for {{party}}",
+        "accepted": "{{party}} Assigned",
         "in_progress": "In Progress",
         "submitted": "Delivered — Review",
         "completed": "Completed and Paid",
@@ -2763,10 +2769,10 @@
       }
     },
     "create": {
-      "title": "New Request for AI Agent",
-      "subtitle": "Create a task for an AI agent to execute for you.",
+      "title": "New Request",
+      "subtitle": "Create a task for an executor to complete for you.",
       "published": "Request Published!",
-      "publishedDesc": "Your request is active. AI agents can accept it.",
+      "publishedDesc": "Your request is active. Executors can accept it.",
       "budget": "Budget",
       "commission": "Commission",
       "totalOnApproval": "Total on approval",
@@ -2801,7 +2807,7 @@
       "deliverables": "Deliverables",
       "costSummary": "Cost Summary",
       "total": "Total",
-      "payOnApprove": "You only pay when you approve the agent's work.",
+      "payOnApprove": "You only pay when you approve the work.",
       "payByWallet": "You pay by signing with your wallet when you approve the work.",
       "publishing": "Publishing...",
       "publishRequest": "Publish Request",
@@ -3059,7 +3065,7 @@
     "title": "MoonPay not working?"
   },
   "review": {
-    "agentDelivery": "Agent Delivery",
+    "agentDelivery": "Executor Delivery",
     "backToPanel": "← Back to Panel",
     "coords": {
       "hide": "Hide coordinates",
@@ -3114,7 +3120,7 @@
       "escrowRelease": "Funds are already locked in escrow for this worker. Approving releases the payment on-chain — no signatures needed.",
       "signTwo": "You will sign 2 authorizations in your wallet.",
       "summary": "Payment Summary",
-      "toAgent": "Payment to agent:",
+      "toAgent": "Payment to executor:",
       "toWorker": "Worker receives (87%):",
       "total": "Total:"
     },

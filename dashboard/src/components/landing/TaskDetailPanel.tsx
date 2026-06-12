@@ -254,7 +254,7 @@ export function TaskDetailPanel({ task, isAuthenticated, onClose, onApply }: Tas
                             {t('payment.refundConfirmed', 'Reembolso Confirmado')}
                           </p>
                           <p className="text-xs text-green-700 mt-0.5">
-                            {t('payment.refundConfirmedDesc', 'Los fondos han sido devueltos al agente. Esta tarea ha expirado.')}
+                            {t('payment.refundConfirmedDesc', 'Los fondos han sido devueltos al publicador. Esta tarea ha expirado.')}
                           </p>
                           {payment.escrow_tx && (
                             <div className="mt-1.5">

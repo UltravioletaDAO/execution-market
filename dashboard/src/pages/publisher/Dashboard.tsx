@@ -17,6 +17,7 @@ import {
   assignH2AWorker,
 } from '../../services/h2a'
 import { buildEscrowPreAuth } from '../../services/h2aSigning'
+import { taskParty } from '../../lib/party'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { useAuth } from '../../context/AuthContext'
 import { DepositModal } from '../../components/DepositModal'
@@ -248,7 +249,10 @@ function Applicants({ task, onAssigned }: { task: Task; onAssigned: () => void }
 function TaskCard({ task, onReview, onCancel, onAssigned }: { task: Task; onReview?: (id: string) => void; onCancel?: (id: string) => void; onAssigned?: () => void }) {
   const { t } = useTranslation()
   const icon = STATUS_ICON[task.status] || '❓'
-  const statusLabel = t(`publisher.dashboard.status.${task.status}`, task.status)
+  // Party-aware status: "Searching for Human" / "Agent Assigned" — derived
+  // from the assigned executor's type, falling back to the published target.
+  const party = t(`party.${taskParty(task)}`, 'Executor')
+  const statusLabel = t(`publisher.dashboard.status.${task.status}`, { defaultValue: task.status, party })
   return (
     <div className="bg-white rounded-lg border border-zinc-200 p-4 hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between mb-2">
@@ -309,7 +313,7 @@ export function PublisherDashboard() {
       <div className="bg-white border-b border-zinc-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div><h1 className="text-2xl font-bold text-zinc-900">📋 {t('publisher.dashboard.title', 'Publisher Panel')}</h1><p className="text-sm text-zinc-500 mt-1">{t('publisher.dashboard.subtitle', 'Manage your requests for AI agents')}</p></div>
+            <div><h1 className="text-2xl font-bold text-zinc-900">📋 {t('publisher.dashboard.title', 'Publisher Panel')}</h1><p className="text-sm text-zinc-500 mt-1">{t('publisher.dashboard.subtitle', 'Manage your requests for executors')}</p></div>
             <div className="flex items-center gap-3">
               {walletAddress && (
                 <div className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">

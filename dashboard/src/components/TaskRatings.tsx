@@ -176,18 +176,18 @@ export function TaskRatings({ taskId, executorId, paymentNetwork, taskTitle, age
       {agentToWorker ? (
         <RatingCard
           rating={agentToWorker}
-          label={t('ratings.agentToWorker', 'Agent rated Worker')}
+          label={t('ratings.agentToWorker', 'Publisher rated Worker')}
           network={paymentNetwork}
         />
       ) : currentIsWorker ? (
-        <NoRatingPlaceholder label={t('ratings.agentToWorker', 'Agent rated Worker')} />
+        <NoRatingPlaceholder label={t('ratings.agentToWorker', 'Publisher rated Worker')} />
       ) : null}
 
       {/* Worker rated Agent */}
       {workerRatingConfirmed ? (
         <RatingCard
           rating={workerToAgent!}
-          label={t('ratings.workerToAgent', 'Worker rated Agent')}
+          label={t('ratings.workerToAgent', 'Worker rated Publisher')}
           network={paymentNetwork}
         />
       ) : canRateAgent && resolvedAgentId ? (
@@ -200,7 +200,7 @@ export function TaskRatings({ taskId, executorId, paymentNetwork, taskTitle, age
           }}
           className="w-full py-2.5 px-4 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
         >
-          {t('ratings.rateAgent', 'Rate Agent')}
+          {t('ratings.rateAgent', 'Rate Publisher')}
         </button>
       ) : null}
 

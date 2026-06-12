@@ -53,7 +53,7 @@ export function ApplicationResultView({
         <p className="text-sm text-zinc-600 max-w-xs">
           {t(
             'application.result.successMessage',
-            'Your application has been sent. The agent will review it and decide whether to assign you this task.'
+            'Your application has been sent. The publisher will review it and decide whether to assign you this task.'
           )}
         </p>
 
@@ -288,7 +288,7 @@ export function ApplicationResultView({
         <p className="text-sm text-zinc-600 max-w-xs">
           {t(
             'application.result.alreadyAppliedMessage',
-            'You have already applied to this task. The agent is reviewing applications and will assign a worker soon.'
+            'You have already applied to this task. The publisher is reviewing applications and will assign a worker soon.'
           )}
         </p>
 
