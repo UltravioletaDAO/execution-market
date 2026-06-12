@@ -85,15 +85,26 @@ function Applicants({ task, onAssigned }: { task: Task; onAssigned: () => void }
     if (!netCfg) throw new Error(t('publisher.dashboard.escrow.configUnavailable', 'Escrow configuration is not available for this network.'))
     // External wallets may sit on another chain; viem refuses typed data whose
     // domain.chainId differs from the client's current chain ("chainId should
-    // be same as current chainId"). Switch to the task's network first.
+    // be same as current chainId"). Query the current chain FIRST — calling
+    // switchNetwork unconditionally throws on some connectors (Rabby) even
+    // when the wallet is already on the target chain.
+    const targetChain = Number(netCfg.chain_id)
+    let currentChain: number | undefined
     try {
-      if (primaryWallet.connector?.supportsNetworkSwitching?.()) {
-        await primaryWallet.switchNetwork(netCfg.chain_id)
-      }
+      const n = await primaryWallet.getNetwork()
+      currentChain = typeof n === 'number' ? n : Number(n)
+      if (Number.isNaN(currentChain)) currentChain = undefined
     } catch {
-      throw new Error(t('publisher.dashboard.escrow.switchNetwork',
-        'Switch your wallet to {{network}} (chain {{chainId}}) and retry.',
-        { network, chainId: netCfg.chain_id }))
+      currentChain = undefined // unknown — proceed and let signing validate
+    }
+    if (currentChain !== undefined && currentChain !== targetChain) {
+      try {
+        await primaryWallet.switchNetwork(targetChain)
+      } catch {
+        throw new Error(t('publisher.dashboard.escrow.switchNetwork',
+          'Switch your wallet to {{network}} (chain {{chainId}}) and retry.',
+          { network, chainId: netCfg.chain_id }))
+      }
     }
     const walletClient = await primaryWallet.getWalletClient(String(netCfg.chain_id))
     if (!walletClient) throw new Error(t('review.errors.walletClientUnavailable', 'Wallet client unavailable for this network.'))
