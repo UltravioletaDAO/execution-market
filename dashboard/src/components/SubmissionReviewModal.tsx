@@ -17,7 +17,7 @@ import type { AIAnalysisResult } from './AIAnalysisDetails'
 import type { SubmissionWithDetails } from '../services/types'
 import { ArbiterVerdictBadge } from './ArbiterVerdictBadge'
 import { ForensicEventLog } from './ForensicEventLog'
-import type { VerificationEvent } from './ForensicEventLog'
+import { parseRing1, parseRing2 } from '../lib/verificationContract'
 import { safeHref, safeSrc } from '../lib/safeHref'
 import { Modal } from './ui/Modal'
 
@@ -32,14 +32,6 @@ interface SubmissionReviewModalProps {
 }
 
 type ReviewAction = 'idle' | 'approving' | 'rejecting' | 'requesting_info'
-
-interface AutoCheckDetails {
-  score?: number
-  phase?: string
-  checks?: Record<string, boolean>
-  verification_events?: VerificationEvent[]
-  [key: string]: unknown
-}
 
 // --------------------------------------------------------------------------
 // GPS Badge — hides coordinates behind a toggle (PII protection for streams)
@@ -130,16 +122,14 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
 
   // Poll for Phase B completion (auto_check_details.phase transitions from "A" to "AB")
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const currentPhase = (submission?.auto_check_details as { phase?: string } | null)?.phase
+  // Single parse of the verification contract (C-34) — reused across the modal
+  const ring1 = parseRing1(submission?.auto_check_details)
+  const currentPhase = ring1.phase
   const hasVerdict = submission?.agent_verdict
   const hasAiResult = submission?.ai_verification_result
 
   // Check forensic event log completion
-  const forensicEvents = (submission?.auto_check_details as AutoCheckDetails | null)?.verification_events
-  const forensicComplete = Array.isArray(forensicEvents) && forensicEvents.length > 0 &&
-    forensicEvents.some((e) => e.step === 'ring1_complete' && (e.status === 'complete' || e.status === 'failed')) &&
-    (!forensicEvents.some((e) => e.ring === 2) ||
-      forensicEvents.some((e) => e.step === 'ring2_complete' && (e.status === 'complete' || e.status === 'failed')))
+  const forensicComplete = ring1.eventsComplete
 
   useEffect(() => {
     if (!submission) return
@@ -151,13 +141,8 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
         const updated = await getSubmission(submissionId)
         if (!updated) return
         setSubmission(updated)
-        const updatedPhase = (updated.auto_check_details as { phase?: string } | null)?.phase
-        const updatedEvents = (updated.auto_check_details as AutoCheckDetails | null)?.verification_events
-        const updatedForensicDone = Array.isArray(updatedEvents) && updatedEvents.length > 0 &&
-          updatedEvents.some((e) => e.step === 'ring1_complete' && (e.status === 'complete' || e.status === 'failed')) &&
-          (!updatedEvents.some((e) => e.ring === 2) ||
-            updatedEvents.some((e) => e.step === 'ring2_complete' && (e.status === 'complete' || e.status === 'failed')))
-        if (updatedPhase === 'AB' || updated.ai_verification_result || updatedForensicDone) {
+        const updatedRing1 = parseRing1(updated.auto_check_details)
+        if (updatedRing1.phase === 'AB' || updated.ai_verification_result || updatedRing1.eventsComplete) {
           if (pollingRef.current) clearInterval(pollingRef.current)
         }
       } catch {
@@ -173,7 +158,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
       if (pollingRef.current) clearInterval(pollingRef.current)
       clearTimeout(timeout)
     }
-  }, [submission, currentPhase, hasVerdict, hasAiResult, submissionId])
+  }, [submission, currentPhase, hasVerdict, hasAiResult, forensicComplete, submissionId])
 
   const handleApprove = useCallback(async () => {
     if (!executor?.id || !submission) return
@@ -445,9 +430,8 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
 
               {/* Auto-check verification results */}
               {submission.auto_check_passed !== null && submission.auto_check_passed !== undefined && (() => {
-                const details = submission.auto_check_details as AutoCheckDetails | null
-                const score = details?.score ?? 0
-                const phase = details?.phase
+                const score = ring1.score ?? 0
+                const phase = ring1.phase
                 return (
                 <div className={`rounded-lg border ${
                   submission.auto_check_passed ? 'bg-zinc-50 border-zinc-200' : 'bg-amber-50 border-amber-300'
@@ -482,9 +466,9 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                     </div>
                   </div>
                   {/* Individual check details */}
-                  {Array.isArray(details?.checks) && (
+                  {ring1.checks.length > 0 && (
                     <div className="px-3 pb-3 space-y-1">
-                      {(details.checks as Array<{name: string; passed: boolean; score: number; reason?: string}>).map((check) => (
+                      {ring1.checks.map((check) => (
                         <div key={check.name}>
                           <div className="flex items-center gap-2 text-xs">
                             <span className={check.passed ? 'text-green-600' : 'text-red-600'}>
@@ -493,9 +477,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                             <span className="text-zinc-700 w-28">{getCheckLabel(check.name, t)}</span>
                             <div className="flex-1 bg-zinc-200 rounded-full h-1.5">
                               <div
-                                className={`h-1.5 rounded-full ${
-                                  check.score >= 0.7 ? 'bg-zinc-900' : check.score >= 0.4 ? 'bg-amber-500' : 'bg-red-500'
-                                }`}
+                                className={`h-1.5 rounded-full ${check.passed ? 'bg-zinc-900' : 'bg-red-500'}`}
                                 style={{ width: `${Math.round(check.score * 100)}%` }}
                               />
                             </div>
@@ -511,42 +493,41 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                     </div>
                   )}
                   {/* Warnings */}
-                  {Array.isArray(details?.warnings) &&
-                    (details.warnings as string[]).length > 0 && (
+                  {ring1.warnings.length > 0 && (
                     <div className="px-3 pb-3">
-                      {(details.warnings as string[]).map((w: string, i: number) => (
+                      {ring1.warnings.map((w: string, i: number) => (
                         <p key={i} className="text-xs text-amber-700">{w}</p>
                       ))}
                     </div>
                   )}
                   {/* Phase B error */}
-                  {(details as Record<string, unknown>)?.phase_b_error != null && (
+                  {ring1.phaseBError != null && (
                     <div className="px-3 pb-3">
                       <p className="text-xs text-red-600">
                         {t('autoCheck.phaseBError', 'AI analysis error: {{error}}', {
-                          error: String((details as Record<string, unknown>).phase_b_error),
+                          error: ring1.phaseBError,
                         })}
                       </p>
                     </div>
                   )}
-                  {/* Score guidance */}
+                  {/* Verdict guidance \u2014 renders the backend's `passed` and its
+                      pass_threshold; never recomputed from the score (C-28). */}
                   <div className="px-3 pb-3 text-xs text-zinc-500">
-                    {score >= 0.95 ? t('autoCheck.guidanceHigh', 'All checks passed. Safe to approve.') :
-                     score >= 0.70 ? t('autoCheck.guidanceMedium', 'Most checks passed. Review warnings before approving.') :
-                     score >= 0.40 ? t('autoCheck.guidanceLow', 'Several checks failed. Review evidence carefully.') :
-                     t('autoCheck.guidanceVeryLow', 'Low score. Review each check before deciding.')}
+                    {submission.auto_check_passed
+                      ? t('autoCheck.guidancePassed', 'Passed automatic verification: score {{score}}% (threshold {{threshold}}%).', {
+                          score: Math.round(score * 100),
+                          threshold: Math.round(ring1.threshold * 100),
+                        })
+                      : t('autoCheck.guidanceFailed', 'Below the automatic pass threshold ({{threshold}}%). Review the evidence carefully before deciding.', {
+                          threshold: Math.round(ring1.threshold * 100),
+                        })}
                   </div>
                 </div>
                 )
               })()}
 
               {/* Forensic Event Log — granular verification timeline */}
-              {(() => {
-                const details = submission.auto_check_details as AutoCheckDetails | null
-                const vEvents = details?.verification_events
-                if (!Array.isArray(vEvents) || vEvents.length === 0) return null
-                return <ForensicEventLog events={vEvents} />
-              })()}
+              {ring1.events.length > 0 && <ForensicEventLog events={ring1.events} />}
 
               {/* Ring 1: AI Analysis / PHOTINT (Phase B) */}
               {submission.ai_verification_result ? (
@@ -562,48 +543,35 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                 const category = submission.task?.category
                 const physicalCategories = ['physical_presence', 'location_based', 'verification', 'sensory', 'data_collection']
                 const isPhysical = category && physicalCategories.includes(category)
-                const details = submission.auto_check_details as AutoCheckDetails | null
-                const phase = details?.phase
                 if (!isPhysical) return null
+                // Status-aware message (C-04/C-29): error and skipped_no_media are
+                // terminal — never show "Processing..." for them.
+                const message =
+                  ring1.status === 'error'
+                    ? `${ring1.error || t('autoCheck.ring1.error', 'Forensic verification failed.')} ${t('autoCheck.ring1.manualReview', 'Review this evidence manually before deciding.')}`
+                    : ring1.status === 'skipped_no_media'
+                      ? t('autoCheck.ring1.skippedNoMedia', 'No media attached — forensic verification skipped. Semantic evaluation (Ring 2) covers this submission.')
+                      : ring1.stale
+                        ? t('autoCheck.ring1.stale', 'Verification has not updated in over 10 minutes — results unavailable. Review the evidence manually.')
+                        : ring1.phase === 'AB' || ring1.status === 'complete'
+                          ? t('aiAnalysis.ring1NotAvailable', 'PHOTINT: Analysis completed but no AI result produced. Evidence may lack photos.')
+                          : t('aiAnalysis.ring1Processing', 'PHOTINT: Processing photo forensics (tampering, GenAI detection, GPS consistency)...')
                 return (
                   <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
                     <h3 className="text-sm font-medium text-zinc-700 mb-1">
                       {t('aiAnalysis.ring1Title', 'Ring 1: PHOTINT Analysis')}
                     </h3>
-                    <p className="text-xs text-zinc-700">
-                      {phase === 'AB'
-                        ? t('aiAnalysis.ring1NotAvailable', 'PHOTINT: Analysis completed but no AI result produced. Evidence may lack photos.')
-                        : t('aiAnalysis.ring1Processing', 'PHOTINT: Processing photo forensics (tampering, GenAI detection, GPS consistency)...')}
-                    </p>
+                    <p className="text-xs text-zinc-700">{message}</p>
                   </div>
                 )
               })()}
 
               {/* Ring 2 Arbiter Verdict */}
               {(() => {
-                type ArbiterFields = {
-                  arbiter_verdict?: string | null
-                  arbiter_tier?: string | null
-                  arbiter_score?: number | null
-                  arbiter_confidence?: number | null
-                  arbiter_evidence_hash?: string | null
-                  arbiter_commitment_hash?: string | null
-                  arbiter_verdict_data?: {
-                    reason?: string | null
-                    disagreement?: boolean
-                    ring_scores?: Array<{
-                      ring?: string
-                      provider?: string
-                      model?: string
-                      score?: number
-                      decision?: string
-                    }>
-                  } | null
-                }
-                const a = submission as unknown as ArbiterFields
+                const ring2 = parseRing2(submission)
 
                 // When no arbiter verdict exists, show explicit status
-                if (!a.arbiter_verdict) {
+                if (!ring2.verdict) {
                   const category = submission.task?.category
                   const physicalCategories = ['physical_presence', 'location_based', 'verification', 'sensory', 'data_collection']
                   const isPhysical = category && physicalCategories.includes(category)
@@ -642,27 +610,19 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                         {t('arbiter.title', 'Ring 2 Arbiter Verdict')}
                       </h3>
                       <ArbiterVerdictBadge
-                        verdict={
-                          a.arbiter_verdict as
-                            | 'pass'
-                            | 'fail'
-                            | 'inconclusive'
-                            | 'skipped'
-                        }
-                        tier={
-                          a.arbiter_tier as 'cheap' | 'standard' | 'max' | null
-                        }
-                        score={a.arbiter_score}
-                        confidence={a.arbiter_confidence}
+                        verdict={ring2.verdict}
+                        tier={ring2.tier}
+                        score={ring2.score}
+                        confidence={ring2.confidence}
                         size="lg"
                       />
                     </div>
-                    {a.arbiter_verdict_data?.reason && (
+                    {(ring2.reason || ring2.summary) && (
                       <p className="text-xs text-zinc-700">
-                        {a.arbiter_verdict_data.reason}
+                        {ring2.reason || ring2.summary}
                       </p>
                     )}
-                    {a.arbiter_verdict_data?.disagreement && (
+                    {ring2.disagreement && (
                       <p className="text-xs text-amber-700 font-medium">
                         {t(
                           'arbiter.disagreement',
@@ -670,10 +630,9 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                         )}
                       </p>
                     )}
-                    {Array.isArray(a.arbiter_verdict_data?.ring_scores) &&
-                      a.arbiter_verdict_data.ring_scores.length > 0 && (
+                    {ring2.ringScores.length > 0 && (
                         <div className="pt-1 border-t border-zinc-200 space-y-1">
-                          {a.arbiter_verdict_data.ring_scores.map((rs, i) => (
+                          {ring2.ringScores.map((rs, i) => (
                             <div
                               key={`${rs.ring}-${i}`}
                               className="flex items-center justify-between text-xs"
@@ -692,9 +651,9 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                           ))}
                         </div>
                       )}
-                    {a.arbiter_evidence_hash && (
+                    {ring2.evidenceHash && (
                       <p className="text-[10px] font-mono text-zinc-500 break-all">
-                        hash: {a.arbiter_evidence_hash.slice(0, 10)}…{a.arbiter_evidence_hash.slice(-8)}
+                        hash: {ring2.evidenceHash.slice(0, 10)}…{ring2.evidenceHash.slice(-8)}
                       </p>
                     )}
                   </div>

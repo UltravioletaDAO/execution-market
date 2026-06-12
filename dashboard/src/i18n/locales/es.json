@@ -2158,10 +2158,8 @@
     "phasePartial": "Verificacion parcial — IA pendiente",
     "phaseAComplete": "Fase A completa",
     "verificationComplete": "Verificacion completa",
-    "guidanceHigh": "Todos los checks pasaron. Puedes aprobar con confianza.",
-    "guidanceMedium": "La mayoria de checks pasaron. Revisa las advertencias antes de aprobar.",
-    "guidanceLow": "Varios checks fallaron. Revisa la evidencia cuidadosamente.",
-    "guidanceVeryLow": "Score bajo. Revisa cada check antes de tomar una decision.",
+    "guidancePassed": "Verificacion automatica aprobada: score {{score}}% (umbral {{threshold}}%).",
+    "guidanceFailed": "Por debajo del umbral de aprobacion automatica ({{threshold}}%). Revisa la evidencia cuidadosamente antes de decidir.",
     "checks": {
       "schema": "Campos requeridos",
       "gps": "Ubicacion GPS",
@@ -2175,30 +2173,27 @@
       "duplicate": "Duplicados"
     },
     "ring": {
-      "pending": "Pendiente",
       "running": "Ejecutando...",
       "complete": "Completo",
-      "failed": "Fallido",
-      "approved": "Aprobado",
-      "rejected": "Rechazado",
-      "needsReview": "Requiere revision",
-      "inconclusive": "Inconcluso",
-      "attempts": "{{count}} intentos",
-      "withFallbacks": "con respaldos",
-      "polling": "Actualizando..."
+      "error": "Error",
+      "skippedNoMedia": "Omitido — sin media",
+      "unavailable": "No disponible",
+      "polling": "Actualizando...",
+      "analysisInProgress": "Analisis PHOTINT en progreso"
     },
     "ring1": {
       "title": "Anillo 1: Analisis PHOTINT",
-      "confidence": "confianza",
-      "allFailed": "Todos los proveedores fallaron. La evidencia no pudo ser analizada por IA."
-    },
-    "ring2": {
-      "title": "Anillo 2: Evaluacion Arbitro",
-      "score": "puntaje",
-      "tier": "nivel",
-      "failed": "La evaluacion del arbitro fallo.",
-      "notRequested": "Anillo 2: No solicitado (modo manual)"
+      "error": "La verificacion forense fallo.",
+      "manualReview": "Revisa esta evidencia manualmente antes de decidir.",
+      "skippedNoMedia": "Sin media — verificacion forense omitida. La evaluacion semantica (Anillo 2) cubre esta entrega.",
+      "stale": "La verificacion no se actualiza hace mas de 10 minutos — resultados no disponibles. Revisa la evidencia manualmente."
     }
+  },
+  "arbiter": {
+    "title": "Veredicto Arbitro (Anillo 2)",
+    "disagreement": "Desacuerdo entre anillos detectado — escalado a L2",
+    "manualMode": "Arbitro: No solicitado (modo manual). Configura arbiter_mode en \"auto\" o \"hybrid\" para evaluacion IA.",
+    "processing": "Arbitro: Procesando evaluacion IA..."
   },
   "forensic": {
     "title": "Registro de Verificacion Forense",

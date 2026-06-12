@@ -16,6 +16,7 @@ import { XBadge } from '../components/agents/XBadge'
 import { Skeleton, SkeletonText } from '../components/ui/Skeleton'
 import { Pill } from '../components/ui/Pill'
 import { cn, truncateAddress, formatDate, copyToClipboard } from '../lib/utils'
+import { isVerdictAccepted } from '../lib/verificationContract'
 import type { Task, Submission } from '../types/database'
 
 interface RecentTask {
@@ -413,7 +414,7 @@ export function PublicProfile() {
                   <div className="flex items-center gap-2">
                     <span className={cn(
                       'text-xs px-2 py-0.5 rounded-full font-medium',
-                      fb.verdict === 'approved'
+                      isVerdictAccepted(fb.verdict)
                         ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
                         : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                     )}>

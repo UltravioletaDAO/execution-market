@@ -18,6 +18,9 @@ import { buildEip3009XPayment } from '../../services/h2aSigning'
 import { getPaymentNetwork } from '../../constants/payment-networks'
 import { createDispute, type DisputeReason } from '../../services/disputes'
 import { safeHref } from '../../lib/safeHref'
+import { EvidenceVerificationPanel } from '../../components/EvidenceVerificationPanel'
+import { ArbiterVerdictBadge } from '../../components/ArbiterVerdictBadge'
+import { parseRing2 } from '../../lib/verificationContract'
 
 const DISPUTE_REASONS: { value: DisputeReason; label: string }[] = [
   { value: 'incomplete_work', label: 'Trabajo incompleto' },
@@ -101,6 +104,16 @@ export function ReviewSubmission() {
   }, [taskId])
 
   useEffect(() => { loadData() }, [loadData])
+
+  // Silent refresh for the verification panel's auto-poll — re-fetches
+  // submissions without toggling the full-page loading state.
+  const refreshSubmissions = useCallback(async () => {
+    if (!taskId) return
+    try {
+      const s = await getH2ASubmissions(taskId)
+      setSubmissions(s.submissions || [])
+    } catch { /* noop — next poll retries */ }
+  }, [taskId])
 
   const latest = submissions[0]
   const bounty = task?.bounty_usd || 0
@@ -269,6 +282,33 @@ export function ReviewSubmission() {
                     {sub.evidence_files.map((f, i) => <a key={i} href={safeHref(f)} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline bg-white px-3 py-1 rounded border">📁 {t('review.fileN', 'Archivo {{n}}', { n: i + 1 })}</a>)}
                   </div>
                 )}
+                {/* C-33: verification results (Ring 1 auto-checks + Ring 2 arbiter)
+                    so the publisher sees the verdicts BEFORE approving/paying. */}
+                {sub.auto_check_details != null && (
+                  <div className="mb-3">
+                    <EvidenceVerificationPanel details={sub.auto_check_details} onRefresh={refreshSubmissions} />
+                  </div>
+                )}
+                {(() => {
+                  const ring2 = parseRing2(sub)
+                  if (!ring2.verdict) return null
+                  return (
+                    <div className="bg-white rounded-lg border border-zinc-200 p-3 mb-3 space-y-2">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <h5 className="text-sm font-medium text-zinc-700">{t('arbiter.title', 'Ring 2 Arbiter Verdict')}</h5>
+                        <ArbiterVerdictBadge
+                          verdict={ring2.verdict}
+                          tier={ring2.tier}
+                          score={ring2.score}
+                          confidence={ring2.confidence}
+                        />
+                      </div>
+                      {(ring2.reason || ring2.summary) && (
+                        <p className="text-xs text-zinc-600">{ring2.reason || ring2.summary}</p>
+                      )}
+                    </div>
+                  )
+                })()}
                 <div className="text-xs text-zinc-500">Entregado: {new Date(sub.submitted_at).toLocaleString('es')}</div>
               </div>
             ))}

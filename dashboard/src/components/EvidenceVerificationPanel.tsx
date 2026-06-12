@@ -1,65 +1,25 @@
 // Execution Market: Evidence Verification Panel
-// Reusable component to display auto-check verification results for submissions
+// Reusable component to display auto-check verification results for submissions.
+//
+// Contract notes (C-27/C-28/C-29/C-34):
+//   - All parsing goes through lib/verificationContract — no ad-hoc casts.
+//   - Pass/fail comes from the backend's `passed` verbatim; the UI never
+//     recomputes it from the score (backend threshold = pass_threshold, 0.5).
+//   - ring1_status 'error' and 'skipped_no_media' are terminal states with
+//     their own UI; a 'running' status with no event activity for >10 min is
+//     rendered as "unavailable — review manually" instead of an eternal spinner.
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getCheckLabel } from '../constants/checkLabels'
 import { ForensicEventLog } from './ForensicEventLog'
-import type { VerificationEvent } from './ForensicEventLog'
-
-// ---------------------------------------------------------------------------
-// Ring attempt type — one entry per provider tried
-// ---------------------------------------------------------------------------
-export interface RingAttempt {
-  provider: string
-  status: 'success' | 'timeout' | 'error' | 'skipped'
-  latency_ms?: number
-  error?: string
-}
-
-/** Shape of auto_check_details from the backend verification pipeline */
-export interface AutoCheckDetails {
-  score: number // 0-1
-  passed: boolean
-  summary?: string
-  phase?: string // 'A' | 'AB'
-  checks: Array<{
-    name: string // 'schema', 'gps', 'timestamp', etc.
-    score: number // 0-1
-    passed: boolean
-    reason?: string
-  }>
-  warnings?: string[]
-  phase_b_status?: 'pending' | 'complete' | 'error'
-  phase_b_error?: string
-
-  // Ring 1 — PHOTINT + AI semantic analysis
-  ring1_status?: 'pending' | 'running' | 'complete' | 'failed'
-  ring1_provider?: string
-  ring1_model?: string
-  ring1_latency_ms?: number
-  ring1_decision?: 'approved' | 'rejected' | 'needs_review'
-  ring1_confidence?: number // 0-1
-  ring1_attempts?: RingAttempt[]
-
-  // Ring 2 — Arbiter dual-model evaluation
-  ring2_status?: 'pending' | 'running' | 'complete' | 'failed'
-  ring2_decision?: 'approved' | 'rejected' | 'inconclusive'
-  ring2_score?: number // 0-1
-  ring2_tier?: 'cheap' | 'standard' | 'max'
-
-  // Arbiter mode (from task config, sometimes echoed here)
-  arbiter_mode?: 'manual' | 'auto' | 'hybrid'
-
-  // Forensic event log — granular verification timeline
-  verification_events?: VerificationEvent[]
-}
+import { parseRing1, RING1_STALE_SECONDS } from '../lib/verificationContract'
 
 interface EvidenceVerificationPanelProps {
   details: Record<string, unknown> | null | undefined
   /**
    * Optional callback to re-fetch the latest submission data.
-   * When provided, the panel will auto-poll every 3 s while any ring is
-   * still "pending" or "running", calling this function to trigger a refresh.
+   * When provided, the panel will auto-poll every 3 s while Ring 1 is
+   * still running, calling this function to trigger a refresh.
    */
   onRefresh?: () => void
 }
@@ -77,17 +37,12 @@ function Spinner({ className = 'w-4 h-4' }: { className?: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// Ring status badge
+// Ring status badge — covers every status the backend writes plus the
+// UI-derived 'unavailable' (stale running) state.
 // ---------------------------------------------------------------------------
 function RingStatusBadge({ status }: { status: string }) {
   const { t } = useTranslation()
   switch (status) {
-    case 'pending':
-      return (
-        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-500">
-          {t('autoCheck.ring.pending', 'Pending')}
-        </span>
-      )
     case 'running':
       return (
         <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-900">
@@ -104,13 +59,25 @@ function RingStatusBadge({ status }: { status: string }) {
           {t('autoCheck.ring.complete', 'Complete')}
         </span>
       )
-    case 'failed':
+    case 'error':
       return (
         <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700">
           <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
           </svg>
-          {t('autoCheck.ring.failed', 'Failed')}
+          {t('autoCheck.ring.error', 'Error')}
+        </span>
+      )
+    case 'skipped_no_media':
+      return (
+        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-500">
+          {t('autoCheck.ring.skippedNoMedia', 'Skipped — no media')}
+        </span>
+      )
+    case 'unavailable':
+      return (
+        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+          {t('autoCheck.ring.unavailable', 'Unavailable')}
         </span>
       )
     default:
@@ -119,123 +86,23 @@ function RingStatusBadge({ status }: { status: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// Decision badge (approved / rejected / needs_review / inconclusive)
-// ---------------------------------------------------------------------------
-function DecisionBadge({ decision }: { decision: string }) {
-  const { t } = useTranslation()
-  const map: Record<string, { bg: string; text: string; label: string }> = {
-    approved: { bg: 'bg-zinc-100', text: 'text-zinc-900', label: t('autoCheck.ring.approved', 'Approved') },
-    rejected: { bg: 'bg-red-100', text: 'text-red-700', label: t('autoCheck.ring.rejected', 'Rejected') },
-    needs_review: { bg: 'bg-amber-100', text: 'text-amber-800', label: t('autoCheck.ring.needsReview', 'Needs Review') },
-    inconclusive: { bg: 'bg-amber-100', text: 'text-amber-800', label: t('autoCheck.ring.inconclusive', 'Inconclusive') },
-  }
-  const style = map[decision] ?? { bg: 'bg-zinc-100', text: 'text-zinc-700', label: decision }
-  return (
-    <span className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-full ${style.bg} ${style.text}`}>
-      {style.label}
-    </span>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Ring attempt trail (collapsible)
-// ---------------------------------------------------------------------------
-function AttemptTrail({ attempts }: { attempts: RingAttempt[] }) {
-  const { t } = useTranslation()
-  const [expanded, setExpanded] = useState(false)
-  const hasFailures = attempts.some((a) => a.status !== 'success')
-
-  if (attempts.length <= 1) return null
-
-  // Compact one-line summary
-  const summary = attempts
-    .map((a) => {
-      const latency = a.latency_ms != null ? `${(a.latency_ms / 1000).toFixed(1)}s` : ''
-      const icon = a.status === 'success' ? '\u2713' : '\u2717'
-      return `${a.provider}: ${a.status}${latency ? ` (${latency})` : ''} ${icon}`
-    })
-    .join(' \u2192 ')
-
-  return (
-    <div className="mt-1">
-      <button
-        type="button"
-        onClick={() => setExpanded(!expanded)}
-        className="inline-flex items-center gap-1 text-[11px] text-zinc-500 hover:text-zinc-900"
-      >
-        <svg
-          className={`w-3 h-3 transition-transform ${expanded ? 'rotate-90' : ''}`}
-          fill="currentColor"
-          viewBox="0 0 20 20"
-        >
-          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-        </svg>
-        {t('autoCheck.ring.attempts', '{{count}} attempts', { count: attempts.length })}
-        {hasFailures && (
-          <span className="text-amber-700 text-[10px]">
-            ({t('autoCheck.ring.withFallbacks', 'with fallbacks')})
-          </span>
-        )}
-      </button>
-
-      {expanded && (
-        <div className="mt-1 ml-3 space-y-0.5">
-          {attempts.map((a, i) => (
-            <div key={`${a.provider}-${i}`} className="flex items-center gap-2 text-[11px]">
-              <span className={a.status === 'success' ? 'text-green-600' : 'text-red-600'}>
-                {a.status === 'success' ? '\u2713' : '\u2717'}
-              </span>
-              <span className="text-zinc-700 font-medium">{a.provider}</span>
-              <span className="text-zinc-500">
-                {a.status}{a.latency_ms != null ? ` (${(a.latency_ms / 1000).toFixed(1)}s)` : ''}
-              </span>
-              {a.error && <span className="text-red-600 truncate max-w-[200px]">{a.error}</span>}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {!expanded && hasFailures && (
-        <p className="text-[10px] text-zinc-500 ml-4 truncate">{summary}</p>
-      )}
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
 export function EvidenceVerificationPanel({ details, onRefresh }: EvidenceVerificationPanelProps) {
   const { t } = useTranslation()
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // Forces a re-render when a 'running' Ring 1 crosses the staleness window,
+  // so the stale message appears even if no new data arrives.
+  const [, setStaleTick] = useState(0)
 
-  const hasDetails = !!details && typeof details === 'object'
-  const verification = hasDetails ? (details as unknown as AutoCheckDetails) : ({} as AutoCheckDetails)
-  const score = verification.score ?? 0
-  const passed = verification.passed ?? score >= 0.7
-  const checks = Array.isArray(verification.checks) ? verification.checks : []
-  const warnings = Array.isArray(verification.warnings) ? verification.warnings : []
+  const vm = parseRing1(details)
+  const { checks, warnings } = vm
+  const score = vm.score ?? 0
 
-  // Determine if any ring is still in-progress
-  const ring1Active = verification.ring1_status === 'pending' || verification.ring1_status === 'running'
-  const ring2Active = verification.ring2_status === 'pending' || verification.ring2_status === 'running'
-  const anyRingActive = ring1Active || ring2Active
-  // Also consider phase_b_status pending (existing behavior)
-  const phaseBActive = verification.phase_b_status === 'pending' && verification.phase !== 'AB'
-
-  // Check verification_events for completion (forensic event log)
-  const vEvents = Array.isArray(verification.verification_events) ? verification.verification_events : []
-  const hasEventLog = vEvents.length > 0
-  const ring1EventDone = vEvents.some(
-    (e) => e.step === 'ring1_complete' && (e.status === 'complete' || e.status === 'failed'),
-  )
-  const ring2EventDone = vEvents.some(
-    (e) => e.step === 'ring2_complete' && (e.status === 'complete' || e.status === 'failed'),
-  )
-  const hasRing2Events = vEvents.some((e) => e.ring === 2)
-  // If event log is present, use it for polling decisions
-  const eventLogComplete = hasEventLog && ring1EventDone && (!hasRing2Events || ring2EventDone)
-  const shouldPoll = hasDetails && (eventLogComplete ? false : anyRingActive || phaseBActive)
+  // Legacy Phase B payloads (pre-rings) still poll until phase flips to 'AB'.
+  const phaseBActive = vm.phaseBStatus === 'pending' && vm.phase !== 'AB'
+  const shouldPoll =
+    vm.hasDetails && !vm.stale && (vm.eventsComplete ? false : vm.inProgress || phaseBActive)
 
   // ---------------------------------------------------------------------------
   // Auto-refresh polling (3 s interval while verification is in-progress)
@@ -270,24 +137,35 @@ export function EvidenceVerificationPanel({ details, onRefresh }: EvidenceVerifi
     }
   }, [shouldPoll, onRefresh])
 
-  if (!hasDetails) return null
+  // ---------------------------------------------------------------------------
+  // Staleness ticker: schedule a re-render at the moment a running Ring 1
+  // would become stale (C-29 — no eternal spinners).
+  // ---------------------------------------------------------------------------
+  const { inProgress, lastEventTs } = vm
+  useEffect(() => {
+    if (!inProgress || lastEventTs === null) return
+    const msUntilStale = (lastEventTs + RING1_STALE_SECONDS) * 1000 - Date.now()
+    if (msUntilStale <= 0) return
+    const timer = setTimeout(() => setStaleTick((n) => n + 1), msUntilStale + 1000)
+    return () => clearTimeout(timer)
+  }, [inProgress, lastEventTs])
 
-  // No checks and no score — nothing to display
-  if (checks.length === 0 && score === 0) return null
+  if (!vm.hasDetails) return null
+
+  // Nothing to display: no checks, no score, and no Ring 1 status to report
+  if (checks.length === 0 && score === 0 && !vm.status) return null
 
   const scorePercent = Math.round(score * 100)
+  // C-28: colors derive from the backend's `passed`, never from score thresholds
   const scoreColorClass =
-    scorePercent >= 70
-      ? 'bg-zinc-100 text-zinc-900'
-      : scorePercent >= 40
-        ? 'bg-amber-100 text-amber-800'
-        : 'bg-red-100 text-red-700'
+    vm.passed === false ? 'bg-amber-100 text-amber-800' : 'bg-zinc-100 text-zinc-900'
+  const borderClass = vm.passed === false ? 'border-amber-300' : 'border-zinc-200'
 
-  const borderClass = passed ? 'border-zinc-200' : 'border-amber-300'
-
-  // Ring fields
-  const hasRing1 = !!verification.ring1_status
-  const hasRing2 = !!verification.ring2_status
+  const hasRing1 = vm.status !== null
+  const ring1DisplayStatus = vm.stale ? 'unavailable' : vm.status ?? ''
+  // Show the final score chip once verification reached a terminal state (or
+  // legacy phase 'AB'); show "Processing..." only while genuinely in-flight.
+  const showScoreChip = vm.terminal || vm.phase === 'AB'
 
   return (
     <div className={`bg-white rounded-lg border p-4 ${borderClass}`}>
@@ -303,7 +181,7 @@ export function EvidenceVerificationPanel({ details, onRefresh }: EvidenceVerifi
               {t('autoCheck.ring.polling', 'Updating...')}
             </span>
           )}
-          {verification.phase === 'AB' ? (
+          {showScoreChip ? (
             <span className={`text-xs font-mono px-2 py-0.5 rounded-full ${scoreColorClass}`}>
               {scorePercent}%
             </span>
@@ -315,11 +193,11 @@ export function EvidenceVerificationPanel({ details, onRefresh }: EvidenceVerifi
         </div>
       </div>
 
-      {/* Summary text — hide misleading Phase A summary while Ring 1+2 process */}
-      {verification.phase === 'AB' && verification.summary && (
-        <p className="text-sm text-zinc-700 mb-3">{verification.summary}</p>
+      {/* Summary text — hide misleading Phase A summary while Ring 1 processes */}
+      {vm.phase === 'AB' && vm.summary && (
+        <p className="text-sm text-zinc-700 mb-3">{vm.summary}</p>
       )}
-      {(anyRingActive || (verification.phase !== 'AB' && !hasRing1)) && (
+      {(vm.inProgress || (vm.phase !== 'AB' && !hasRing1 && !vm.eventsComplete)) && (
         <div className="flex items-start gap-3 rounded-lg border border-zinc-300 bg-zinc-50 px-4 py-3 mb-3">
           <svg className="w-5 h-5 animate-spin text-zinc-700 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -343,20 +221,14 @@ export function EvidenceVerificationPanel({ details, onRefresh }: EvidenceVerifi
             <div key={check.name}>
               <div className="flex items-center gap-2 text-xs">
                 <span className={check.passed ? 'text-green-600' : 'text-red-600'}>
-                  {check.passed ? '\u2713' : '\u2717'}
+                  {check.passed ? '✓' : '✗'}
                 </span>
                 <span className="text-zinc-700 w-28">
                   {getCheckLabel(check.name, t)}
                 </span>
                 <div className="flex-1 bg-zinc-200 rounded-full h-1.5">
                   <div
-                    className={`h-1.5 rounded-full ${
-                      check.score >= 0.7
-                        ? 'bg-zinc-900'
-                        : check.score >= 0.4
-                          ? 'bg-amber-500'
-                          : 'bg-red-500'
-                    }`}
+                    className={`h-1.5 rounded-full ${check.passed ? 'bg-zinc-900' : 'bg-red-500'}`}
                     style={{ width: `${Math.round(check.score * 100)}%` }}
                   />
                 </div>
@@ -392,106 +264,44 @@ export function EvidenceVerificationPanel({ details, onRefresh }: EvidenceVerifi
             <span className="text-xs font-medium text-zinc-700">
               {t('autoCheck.ring1.title', 'Ring 1: PHOTINT Analysis')}
             </span>
-            <RingStatusBadge status={verification.ring1_status!} />
+            <RingStatusBadge status={ring1DisplayStatus} />
           </div>
 
-          {/* Complete: show provider + decision + confidence + latency */}
-          {verification.ring1_status === 'complete' && (
-            <div className="space-y-1">
-              <div className="flex items-center flex-wrap gap-2 text-xs">
-                {verification.ring1_provider && (
-                  <span className="text-zinc-500">
-                    {verification.ring1_provider}
-                    {verification.ring1_model ? `/${verification.ring1_model}` : ''}
-                  </span>
-                )}
-                {verification.ring1_decision && (
-                  <DecisionBadge decision={verification.ring1_decision} />
-                )}
-                {verification.ring1_confidence != null && (
-                  <span className="text-zinc-500 font-mono text-[11px]">
-                    {t('autoCheck.ring1.confidence', 'confidence')}: {Math.round(verification.ring1_confidence * 100)}%
-                  </span>
-                )}
-                {verification.ring1_latency_ms != null && (
-                  <span className="text-zinc-500 font-mono text-[11px]">
-                    {(verification.ring1_latency_ms / 1000).toFixed(1)}s
-                  </span>
-                )}
-              </div>
+          {/* Error: surface the backend error + manual-review note (C-04) */}
+          {vm.status === 'error' && (
+            <div className="mt-1 space-y-0.5">
+              <p className="text-xs text-red-600">
+                {vm.error || t('autoCheck.ring1.error', 'Forensic verification failed.')}
+              </p>
+              <p className="text-xs text-zinc-600">
+                {t('autoCheck.ring1.manualReview', 'Review this evidence manually before deciding.')}
+              </p>
             </div>
           )}
 
-          {/* Failed: show warning */}
-          {verification.ring1_status === 'failed' && (
-            <p className="text-xs text-red-600 mt-1">
-              {t('autoCheck.ring1.allFailed', 'All providers failed. Evidence could not be analyzed by AI.')}
+          {/* Skipped: no media attached — terminal, Ring 2 covers semantics */}
+          {vm.status === 'skipped_no_media' && (
+            <p className="text-xs text-zinc-600 mt-1">
+              {t('autoCheck.ring1.skippedNoMedia', 'No media attached — forensic verification skipped. Semantic evaluation (Ring 2) covers this submission.')}
             </p>
           )}
 
-          {/* Attempt trail (collapsible) */}
-          {Array.isArray(verification.ring1_attempts) && verification.ring1_attempts.length > 0 && (
-            <AttemptTrail attempts={verification.ring1_attempts} />
-          )}
-        </div>
-      )}
-
-      {/* ----------------------------------------------------------------- */}
-      {/* Ring 2: Arbiter Dual-Model Evaluation                             */}
-      {/* ----------------------------------------------------------------- */}
-      {hasRing2 && (
-        <div className="mt-2 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-          <div className="flex items-center justify-between flex-wrap gap-1 mb-1">
-            <span className="text-xs font-medium text-zinc-700">
-              {t('autoCheck.ring2.title', 'Ring 2: Arbiter Evaluation')}
-            </span>
-            <RingStatusBadge status={verification.ring2_status!} />
-          </div>
-
-          {/* Complete: show decision + score + tier */}
-          {verification.ring2_status === 'complete' && (
-            <div className="flex items-center flex-wrap gap-2 text-xs">
-              {verification.ring2_decision && (
-                <DecisionBadge decision={verification.ring2_decision} />
-              )}
-              {verification.ring2_score != null && (
-                <span className="text-zinc-500 font-mono text-[11px]">
-                  {t('autoCheck.ring2.score', 'score')}: {Math.round(verification.ring2_score * 100)}%
-                </span>
-              )}
-              {verification.ring2_tier && (
-                <span className="text-xs px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-700">
-                  {t('autoCheck.ring2.tier', 'tier')}: {verification.ring2_tier}
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* Failed */}
-          {verification.ring2_status === 'failed' && (
-            <p className="text-xs text-red-600 mt-1">
-              {t('autoCheck.ring2.failed', 'Arbiter evaluation failed.')}
+          {/* Stale: running with no updates for >10 min (C-29) */}
+          {vm.stale && (
+            <p className="text-xs text-amber-700 mt-1">
+              {t('autoCheck.ring1.stale', 'Verification has not updated in over 10 minutes — results unavailable. Review the evidence manually.')}
             </p>
           )}
-        </div>
-      )}
-
-      {/* Ring 2 not requested (manual mode) */}
-      {!hasRing2 && verification.arbiter_mode === 'manual' && (
-        <div className="mt-2 rounded-lg border border-zinc-100 bg-zinc-50 p-2">
-          <span className="text-[11px] text-zinc-500">
-            {t('autoCheck.ring2.notRequested', 'Ring 2: Not requested (manual mode)')}
-          </span>
         </div>
       )}
 
       {/* Forensic Event Log — rich timeline of every verification step */}
-      {hasEventLog && (
-        <ForensicEventLog events={vEvents} />
+      {vm.events.length > 0 && (
+        <ForensicEventLog events={vm.events} />
       )}
 
-      {/* Phase indicator (existing: phase_b_status pending + not yet AB) */}
-      {verification.phase_b_status === 'pending' && verification.phase !== 'AB' && !hasRing1 && (
+      {/* Phase indicator (legacy payloads: phase_b_status pending + not yet AB) */}
+      {vm.phaseBStatus === 'pending' && vm.phase !== 'AB' && !hasRing1 && (
         <div className="flex items-center gap-2 mt-3 p-2 bg-zinc-50 rounded-lg">
           <Spinner className="w-4 h-4 text-zinc-700" />
           <div>
@@ -504,8 +314,8 @@ export function EvidenceVerificationPanel({ details, onRefresh }: EvidenceVerifi
           </div>
         </div>
       )}
-      {/* Phase B error */}
-      {verification.phase_b_status === 'error' && (
+      {/* Phase B error (legacy payloads) */}
+      {vm.phaseBStatus === 'error' && (
         <div className="flex items-center gap-2 mt-3 p-2 bg-red-50 border border-red-200 rounded-lg">
           <svg className="w-4 h-4 text-red-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
@@ -514,15 +324,13 @@ export function EvidenceVerificationPanel({ details, onRefresh }: EvidenceVerifi
             <span className="text-xs font-medium text-red-700">
               {t('autoCheck.phaseBError', 'AI verification failed')}
             </span>
-            {!!(verification as unknown as Record<string, unknown>).phase_b_error && (
-              <p className="text-xs text-red-600 mt-0.5">
-                {String((verification as unknown as Record<string, unknown>).phase_b_error)}
-              </p>
+            {vm.phaseBError && (
+              <p className="text-xs text-red-600 mt-0.5">{vm.phaseBError}</p>
             )}
           </div>
         </div>
       )}
-      {verification.phase === 'AB' && !hasRing1 && !hasRing2 && (
+      {vm.phase === 'AB' && !hasRing1 && (
         <div className="flex items-center gap-2 mt-3 p-2 bg-zinc-50 rounded-lg">
           <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />

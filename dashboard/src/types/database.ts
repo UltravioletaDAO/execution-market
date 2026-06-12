@@ -192,6 +192,19 @@ export interface Task {
   executor?: Executor
 }
 
+/**
+ * Canonical `submissions.agent_verdict` vocabulary (C-27).
+ * The backend writes 'accepted' / 'rejected' — NEVER 'approved'.
+ * Every UI comparison must use these constants (via the helpers in
+ * lib/verificationContract.ts) instead of inline string literals.
+ */
+export const AGENT_VERDICT = {
+  ACCEPTED: 'accepted',
+  REJECTED: 'rejected',
+} as const
+
+export type AgentVerdict = (typeof AGENT_VERDICT)[keyof typeof AGENT_VERDICT]
+
 export interface Submission {
   id: string
   task_id: string

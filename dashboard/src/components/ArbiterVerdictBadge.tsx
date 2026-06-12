@@ -5,6 +5,7 @@
  *   PASS         -> green  -> "Arbiter Approved"
  *   FAIL         -> red    -> "Arbiter Rejected"
  *   INCONCLUSIVE -> yellow -> "Escalated to L2"
+ *   ERROR        -> amber  -> "Arbiter Error"
  *   SKIPPED      -> gray   -> "Manual Only"
  *   PENDING      -> gray   -> "Awaiting Arbiter"
  *
@@ -14,7 +15,7 @@
  */
 
 interface ArbiterVerdictBadgeProps {
-  verdict: 'pass' | 'fail' | 'inconclusive' | 'skipped' | null | undefined
+  verdict: 'pass' | 'fail' | 'inconclusive' | 'error' | 'skipped' | null | undefined
   tier?: 'cheap' | 'standard' | 'max' | null
   score?: number | null
   confidence?: number | null
@@ -55,6 +56,14 @@ function getVariant(verdict: string | null | undefined): VariantStyles {
         textClass: 'text-yellow-700',
         borderClass: 'border-yellow-300',
         dotClass: 'bg-yellow-500',
+      }
+    case 'error':
+      return {
+        label: 'Arbiter Error',
+        bgClass: 'bg-amber-50',
+        textClass: 'text-amber-800',
+        borderClass: 'border-amber-300',
+        dotClass: 'bg-amber-500',
       }
     case 'skipped':
       return {

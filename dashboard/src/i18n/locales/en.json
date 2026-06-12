@@ -2158,10 +2158,8 @@
     "phasePartial": "Partial verification — AI pending",
     "phaseAComplete": "Phase A complete",
     "verificationComplete": "Verification complete",
-    "guidanceHigh": "All checks passed. Safe to approve.",
-    "guidanceMedium": "Most checks passed. Review warnings before approving.",
-    "guidanceLow": "Several checks failed. Review evidence carefully.",
-    "guidanceVeryLow": "Low score. Review each check before deciding.",
+    "guidancePassed": "Passed automatic verification: score {{score}}% (threshold {{threshold}}%).",
+    "guidanceFailed": "Below the automatic pass threshold ({{threshold}}%). Review the evidence carefully before deciding.",
     "checks": {
       "schema": "Required fields",
       "gps": "GPS location",
@@ -2175,30 +2173,27 @@
       "duplicate": "Duplicates"
     },
     "ring": {
-      "pending": "Pending",
       "running": "Running...",
       "complete": "Complete",
-      "failed": "Failed",
-      "approved": "Approved",
-      "rejected": "Rejected",
-      "needsReview": "Needs Review",
-      "inconclusive": "Inconclusive",
-      "attempts": "{{count}} attempts",
-      "withFallbacks": "with fallbacks",
-      "polling": "Updating..."
+      "error": "Error",
+      "skippedNoMedia": "Skipped — no media",
+      "unavailable": "Unavailable",
+      "polling": "Updating...",
+      "analysisInProgress": "PHOTINT analysis in progress"
     },
     "ring1": {
       "title": "Ring 1: PHOTINT Analysis",
-      "confidence": "confidence",
-      "allFailed": "All providers failed. Evidence could not be analyzed by AI."
-    },
-    "ring2": {
-      "title": "Ring 2: Arbiter Evaluation",
-      "score": "score",
-      "tier": "tier",
-      "failed": "Arbiter evaluation failed.",
-      "notRequested": "Ring 2: Not requested (manual mode)"
+      "error": "Forensic verification failed.",
+      "manualReview": "Review this evidence manually before deciding.",
+      "skippedNoMedia": "No media attached — forensic verification skipped. Semantic evaluation (Ring 2) covers this submission.",
+      "stale": "Verification has not updated in over 10 minutes — results unavailable. Review the evidence manually."
     }
+  },
+  "arbiter": {
+    "title": "Ring 2 Arbiter Verdict",
+    "disagreement": "Ring disagreement detected — escalated to L2",
+    "manualMode": "Arbiter: Not requested (manual mode). Set arbiter_mode to \"auto\" or \"hybrid\" for AI evaluation.",
+    "processing": "Arbiter: Processing AI evaluation..."
   },
   "forensic": {
     "title": "Forensic Verification Log",

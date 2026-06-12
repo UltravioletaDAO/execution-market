@@ -3,18 +3,15 @@
 // with collapsible details. Replaces minimal Ring 1/Ring 2 badges with rich event log.
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { isEventTerminal } from '../lib/verificationContract'
+import type { VerificationEvent } from '../lib/verificationContract'
 
 // ---------------------------------------------------------------------------
-// Types
+// Types — the event shape lives in lib/verificationContract (C-34); re-export
+// for existing importers.
 // ---------------------------------------------------------------------------
 
-export interface VerificationEvent {
-  ts: number
-  ring: number
-  step: string
-  status: 'running' | 'complete' | 'failed' | 'pending'
-  detail?: Record<string, unknown>
-}
+export type { VerificationEvent } from '../lib/verificationContract'
 
 interface ForensicEventLogProps {
   events: VerificationEvent[]
@@ -96,6 +93,7 @@ function StepIcon({ status, passed }: { status: string; passed?: boolean }) {
         </svg>
       )
     case 'failed':
+    case 'error':
       return (
         <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
           <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -151,7 +149,7 @@ function detailSummary(event: VerificationEvent, t: ReturnType<typeof useTransla
   const { step, status } = event
 
   // Failed events: show error
-  if (status === 'failed') {
+  if (status === 'failed' || status === 'error') {
     const provider = d.provider ? String(d.provider) : ''
     const error = d.error ? String(d.error) : t('forensic.unknownError', 'unknown error')
     return provider ? `${provider}: ${error}` : error
@@ -506,8 +504,8 @@ export function ForensicEventLog({ events }: ForensicEventLogProps) {
   const ring2Events = events.filter((e) => e.ring === 2).sort((a, b) => a.ts - b.ts)
 
   // Determine overall completion
-  const ring1Done = ring1Events.some((e) => e.step === 'ring1_complete' && (e.status === 'complete' || e.status === 'failed'))
-  const ring2Done = ring2Events.some((e) => e.step === 'ring2_complete' && (e.status === 'complete' || e.status === 'failed'))
+  const ring1Done = ring1Events.some((e) => e.step === 'ring1_complete' && isEventTerminal(e.status))
+  const ring2Done = ring2Events.some((e) => e.step === 'ring2_complete' && isEventTerminal(e.status))
   const allDone = (ring1Events.length === 0 || ring1Done) && (ring2Events.length === 0 || ring2Done)
 
   return (

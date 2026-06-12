@@ -21,6 +21,7 @@ import { GeofenceAlert } from './GeofenceAlert'
 import { EvidenceVerificationPanel } from './EvidenceVerificationPanel'
 import { AIAnalysisDetails } from './AIAnalysisDetails'
 import type { AIAnalysisResult } from './AIAnalysisDetails'
+import { verificationEventsComplete } from '../lib/verificationContract'
 import { supabase } from '../lib/supabase'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
@@ -134,6 +135,15 @@ export function SubmissionForm({
   const allRequired = task.evidence_schema.required
   const allOptional = task.evidence_schema.optional || []
   const [forensicMetadata, setForensicMetadata] = useState<EvidenceMetadata | null>(null)
+  // C-24/C-25: authoritative reference location + radius for the assigned
+  // worker — the SAME values the backend verification compares against.
+  // tasks_safe NULLs location_lat/lng, so this comes from a dedicated
+  // authenticated endpoint instead of the task row.
+  const [geoReference, setGeoReference] = useState<{
+    lat: number
+    lng: number
+    radiusM: number
+  } | null>(null)
 
   // Categorize evidence types based on task category
   const category = task.category as TaskCategory
@@ -150,6 +160,41 @@ export function SubmissionForm({
   useEffect(() => {
     collectForensicMetadata().then(setForensicMetadata).catch(() => {})
   }, [])
+
+  // Fetch the backend's geo reference once on mount (assigned worker only).
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const { buildAuthHeaders } = await import('../lib/auth')
+        const headers = await buildAuthHeaders()
+        const res = await fetch(
+          `${API_URL}/api/v1/workers/tasks/${task.id}/geo-reference?executor_id=${executor.id}`,
+          { headers }
+        )
+        if (!res.ok) return
+        const body = await res.json()
+        const data = body?.data
+        if (
+          !cancelled &&
+          data?.has_reference &&
+          typeof data.location_lat === 'number' &&
+          typeof data.location_lng === 'number'
+        ) {
+          setGeoReference({
+            lat: data.location_lat,
+            lng: data.location_lng,
+            radiusM: typeof data.radius_m === 'number' ? data.radius_m : 500,
+          })
+        }
+      } catch {
+        // Fall back to the local heuristics below — never block submission.
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [task.id, executor.id])
 
   // Post-submission polling: check task status every 5s until it changes from "submitted"
   useEffect(() => {
@@ -223,11 +268,7 @@ export function SubmissionForm({
           }
 
           // Stop polling when Phase B is complete or forensic events are done
-          const vEvents = details.verification_events as Array<{ step: string; status: string; ring: number }> | undefined
-          const forensicDone = Array.isArray(vEvents) && vEvents.length > 0 &&
-            vEvents.some((e) => e.step === 'ring1_complete' && (e.status === 'complete' || e.status === 'failed')) &&
-            (!vEvents.some((e) => e.ring === 2) ||
-              vEvents.some((e) => e.step === 'ring2_complete' && (e.status === 'complete' || e.status === 'failed')))
+          const forensicDone = verificationEventsComplete(details.verification_events)
 
           if (details.phase === 'AB' || forensicDone) {
             if (phaseBPollRef.current) {
@@ -255,8 +296,16 @@ export function SubmissionForm({
     }
   }, [submitted, submissionId])
 
-  // Parse task location hint into coordinates if available
+  // Reference location for evidence capture. Prefer the backend's
+  // authoritative geo reference (C-24); fall back to parsing the hint.
   const taskLocation = (() => {
+    if (geoReference) {
+      return {
+        lat: geoReference.lat,
+        lng: geoReference.lng,
+        radiusKm: geoReference.radiusM / 1000,
+      }
+    }
     const hint = task.location_hint
     if (!hint) return undefined
     // Try to parse "lat,lng" or "lat, lng" format
@@ -724,8 +773,11 @@ export function SubmissionForm({
   const anyCameraPending = cameraRequired.some((t) => !uploadedCameraTypes.has(t))
   const anyPending = anyFilePending || anyCameraPending
 
-  // Parse task location for geofence check
+  // Reference point for the pre-submit geofence warning. Prefer the
+  // backend's authoritative values so the warning matches the verdict
+  // the verification pipeline will produce (C-24/C-25).
   const geofenceLocation = (() => {
+    if (geoReference) return { lat: geoReference.lat, lng: geoReference.lng }
     if (task.location) return { lat: task.location.lat, lng: task.location.lng }
     // Fallback: try location_hint "lat,lng" format
     if (task.location_hint) {
@@ -735,7 +787,9 @@ export function SubmissionForm({
     return null
   })()
 
-  const geofenceRadius = task.location_radius_km ?? 0.5
+  const geofenceRadius = geoReference
+    ? geoReference.radiusM / 1000
+    : (task.location_radius_km ?? 0.5)
 
   // Post-submission polling view
   if (submitted) {

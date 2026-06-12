@@ -1888,10 +1888,8 @@
     "phasePartial": "Verificacao parcial — IA pendente",
     "phaseAComplete": "Fase A completa",
     "verificationComplete": "Verificacao completa",
-    "guidanceHigh": "Todas as verificacoes passaram. Seguro para aprovar.",
-    "guidanceMedium": "A maioria das verificacoes passou. Revise os avisos antes de aprovar.",
-    "guidanceLow": "Varias verificacoes falharam. Revise as evidencias cuidadosamente.",
-    "guidanceVeryLow": "Pontuacao baixa. Revise cada verificacao antes de decidir.",
+    "guidancePassed": "Verificacao automatica aprovada: pontuacao {{score}}% (limite {{threshold}}%).",
+    "guidanceFailed": "Abaixo do limite de aprovacao automatica ({{threshold}}%). Revise as evidencias cuidadosamente antes de decidir.",
     "checks": {
       "schema": "Campos obrigatorios",
       "gps": "Localizacao GPS",
@@ -1905,30 +1903,27 @@
       "duplicate": "Duplicatas"
     },
     "ring": {
-      "pending": "Pendente",
       "running": "Executando...",
       "complete": "Completo",
-      "failed": "Falhou",
-      "approved": "Aprovado",
-      "rejected": "Rejeitado",
-      "needsReview": "Requer revisao",
-      "inconclusive": "Inconclusivo",
-      "attempts": "{{count}} tentativas",
-      "withFallbacks": "com alternativas",
-      "polling": "Atualizando..."
+      "error": "Erro",
+      "skippedNoMedia": "Ignorado — sem midia",
+      "unavailable": "Indisponivel",
+      "polling": "Atualizando...",
+      "analysisInProgress": "Analise PHOTINT em andamento"
     },
     "ring1": {
       "title": "Anel 1: Analise PHOTINT",
-      "confidence": "confianca",
-      "allFailed": "Todos os provedores falharam. A evidencia nao pude ser analisada por IA."
-    },
-    "ring2": {
-      "title": "Anel 2: Avaliacao Arbitro",
-      "score": "pontuacao",
-      "tier": "nivel",
-      "failed": "A avaliacao do arbitro falhou.",
-      "notRequested": "Anel 2: Nao solicitado (modo manual)"
+      "error": "A verificacao forense falhou.",
+      "manualReview": "Revise esta evidencia manualmente antes de decidir.",
+      "skippedNoMedia": "Sem midia — verificacao forense ignorada. A avaliacao semantica (Anel 2) cobre esta entrega.",
+      "stale": "A verificacao nao atualiza ha mais de 10 minutos — resultados indisponiveis. Revise a evidencia manualmente."
     }
+  },
+  "arbiter": {
+    "title": "Veredito Arbitro (Anel 2)",
+    "disagreement": "Desacordo entre aneis detectado — escalado para L2",
+    "manualMode": "Arbitro: Nao solicitado (modo manual). Configure arbiter_mode como \"auto\" ou \"hybrid\" para avaliacao IA.",
+    "processing": "Arbitro: Processando avaliacao IA..."
   },
   "forensic": {
     "title": "Registro de Verificacao Forense",

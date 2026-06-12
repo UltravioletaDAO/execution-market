@@ -1,6 +1,7 @@
 // Execution Market: Profile Data Hooks
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { isVerdictAccepted, isVerdictRejected } from '../lib/verificationContract'
 import type { ReputationLog } from '../types/database'
 
 // Extended types for profile
@@ -182,11 +183,11 @@ export function useReputation(executorId: string | undefined) {
         if (subError) throw subError
 
         const approved = submissions?.filter((s: { agent_verdict?: string; auto_check_passed?: boolean | null }) =>
-          s.agent_verdict === 'approved' || s.auto_check_passed === true
+          isVerdictAccepted(s.agent_verdict) || s.auto_check_passed === true
         ).length || 0
 
         const rejected = submissions?.filter((s: { agent_verdict?: string; auto_check_passed?: boolean | null }) =>
-          s.agent_verdict === 'rejected' || s.auto_check_passed === false
+          isVerdictRejected(s.agent_verdict) || s.auto_check_passed === false
         ).length || 0
 
         const total = submissions?.length || 0
@@ -280,9 +281,9 @@ export function useTaskHistory(executorId: string | undefined, limit: number = 1
       const items: TaskHistoryItem[] = (submissions || []).map((s: SubmissionWithTask) => {
         const task = s.task as { title: string; category: string; bounty_usd: number; status: string } | null
         let status = 'pending'
-        if (s.agent_verdict === 'approved' || s.auto_check_passed === true) {
+        if (isVerdictAccepted(s.agent_verdict) || s.auto_check_passed === true) {
           status = 'approved'
-        } else if (s.agent_verdict === 'rejected') {
+        } else if (isVerdictRejected(s.agent_verdict)) {
           status = 'rejected'
         }
 
