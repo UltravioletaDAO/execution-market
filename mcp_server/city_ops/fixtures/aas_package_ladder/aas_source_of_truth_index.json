@@ -1715,11 +1715,25 @@
   },
   "current_entrypoints": [
     {
-      "digest_sha256": "74572fd3770b3fda3afe5097bfad7fce4be461673a5a663eaf1283080a1ef98a",
+      "digest_sha256": "fb86cd3e6e00be9b1a0803d41af394e6e86da4a60acd5eab2c8c3b1b6f163427",
       "exists": true,
       "extension_policy": "current_entrypoint_update_only_when_new_safe_claim_lands",
       "path": "docs/planning/CITY_AS_A_SERVICE_DAYTIME_EXECUTION_BOARD.md",
       "role": "latest_append_only_execution_board"
+    },
+    {
+      "digest_sha256": "e7d27ed5c3e34452f76143531ab837e4544009d806bfd5c5ad1cab524095a7cd",
+      "exists": true,
+      "extension_policy": "current_internal_admin_system_integration_map_no_answer_no_customer_surface_no_runtime_payment_or_stopped_project_movement",
+      "path": "docs/planning/CITY_AS_A_SERVICE_3AM_BOUNDED_LOCAL_COUNT_SYSTEM_INTEGRATION_MAP_2026_06_13.md",
+      "role": "latest_internal_admin_bounded_local_count_system_integration_map"
+    },
+    {
+      "digest_sha256": "4dfc6811eb65790908af681f82a569b19ffbade1b36d8bbb3227de5df89fffc2",
+      "exists": true,
+      "extension_policy": "current_internal_admin_bounded_count_selection_brief_no_answer_no_customer_surface_no_runtime_payment_or_stopped_project_movement",
+      "path": "docs/planning/CITY_AS_A_SERVICE_2AM_BOUNDED_LOCAL_COUNT_OPERATOR_SELECTION_BRIEF_2026_06_13.md",
+      "role": "latest_internal_admin_bounded_local_count_operator_selection_brief"
     },
     {
       "digest_sha256": "28ba46b7ad4e58495f364927e5600a84103ac3cf619efaa74828fbdc4ed2f026",

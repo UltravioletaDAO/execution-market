@@ -43,6 +43,16 @@ CURRENT_ENTRYPOINT_DOCS = [
         "extension_policy": "current_entrypoint_update_only_when_new_safe_claim_lands",
     },
     {
+        "path": "docs/planning/CITY_AS_A_SERVICE_3AM_BOUNDED_LOCAL_COUNT_SYSTEM_INTEGRATION_MAP_2026_06_13.md",
+        "role": "latest_internal_admin_bounded_local_count_system_integration_map",
+        "extension_policy": "current_internal_admin_system_integration_map_no_answer_no_customer_surface_no_runtime_payment_or_stopped_project_movement",
+    },
+    {
+        "path": "docs/planning/CITY_AS_A_SERVICE_2AM_BOUNDED_LOCAL_COUNT_OPERATOR_SELECTION_BRIEF_2026_06_13.md",
+        "role": "latest_internal_admin_bounded_local_count_operator_selection_brief",
+        "extension_policy": "current_internal_admin_bounded_count_selection_brief_no_answer_no_customer_surface_no_runtime_payment_or_stopped_project_movement",
+    },
+    {
         "path": "docs/planning/CITY_AS_A_SERVICE_1AM_SOURCE_INDEX_ALIGNMENT_2026_06_13.md",
         "role": "latest_internal_admin_aas_source_index_alignment",
         "extension_policy": "current_internal_admin_index_alignment_no_answer_no_customer_surface_no_runtime_payment_or_stopped_project_movement",

@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-06-13 01:00 America/New_York
+> Last updated: 2026-06-13 03:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -9,6 +9,43 @@
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
 
+
+## Latest June 13 03:00 Bounded Local Count system integration map
+
+`CITY_AS_A_SERVICE_3AM_BOUNDED_LOCAL_COUNT_SYSTEM_INTEGRATION_MAP_2026_06_13.md` is the current internal/admin system-integration connection map. It follows `/Users/clawdbot/clawd/DREAM-PRIORITIES.md` over the stale 3 AM cron payload, so AutoJob pull/analysis/integration, Frontier Academy expansion, KK v2 continuation, and KarmaCadabra v2 work remain stopped for dream work.
+
+Execution Market was synced on `feat/operator-route-regret-panel`; `git pull --ff-only` reported already up to date. Pre-existing untracked `scripts/sign_req.mjs` and `mcp_server/city_ops/tests/` were preserved and not staged.
+
+This pass intentionally did not create another no-answer proof wrapper. It connects the 2 AM Bounded Local Count answer menu to the future safe seams for memory ↔ Acontext planning, IRC handoff fields, cross-project decision filtering, and internal/admin observability metrics.
+
+Safe 03:00 claim:
+
+```text
+internal_admin_aas_3am_bounded_local_count_system_integration_map_2026_06_13_landed
+```
+
+Meaning only: internal/admin AAS planning now has a connection map for how exactly one future Bounded Local Count answer could later travel through reviewed-summary memory/Acontext planning, IRC handoff capsules, decision filters, and success metrics. It records no operator answer, approval, answer receipt, collection authorization, customer/worker/public surface, catalog route, quote, queue, dispatch, runtime/Acontext/IRC mutation, reputation/Worker Skill DNA, payment/production change, exact-location/raw-metadata/private-context release, authority claim, worker-copyable doctrine, or stopped-project integration.
+
+The active posture remains:
+
+```text
+pause_aas_proof_layering
+```
+
+Next valid move remains exactly one separate human/operator answer value from the 2 AM menu, preferably `bounded_local_count.visible_posted_state_count.v1`, before any receipt or downstream implementation.
+
+
+## Latest June 13 02:00 Bounded Local Count operator selection brief
+
+`CITY_AS_A_SERVICE_2AM_BOUNDED_LOCAL_COUNT_OPERATOR_SELECTION_BRIEF_2026_06_13.md` is the current concise operator selection brief for the already-selected **Bounded Local Count** AAS pilot candidate. It follows `/Users/clawdbot/clawd/DREAM-PRIORITIES.md` over the stale 2 AM cron payload, so stopped dream tracks remain blocked.
+
+Safe 02:00 claim:
+
+```text
+internal_admin_aas_2am_bounded_local_count_operator_selection_brief_2026_06_13_landed
+```
+
+Meaning only: internal/admin AAS planning now has a small answer menu for the first Bounded Local Count operator decision. Recommended first value: `bounded_local_count.visible_posted_state_count.v1`; alternatives: `bounded_local_count.queue_or_presence_count.v1` and `bounded_local_count.visible_asset_count.v1`. It records no answer, approval, receipt, collection, exposure, dispatch, runtime mutation, reputation, payment, authority, raw metadata/private-context release, worker doctrine, or stopped-project work.
 
 ## Latest June 13 01:00 Source index alignment
 
