@@ -1715,14 +1715,21 @@
   },
   "current_entrypoints": [
     {
-      "digest_sha256": "586df3d58779ff15f2c69e1c44b0068ad7ba354de7207f46bc803a5230876642",
+      "digest_sha256": "3280284b8a117af7cd3293a32b8466c4a85a7a7fa94accc7e1521224810790b9",
       "exists": true,
       "extension_policy": "current_entrypoint_update_only_when_new_safe_claim_lands",
       "path": "docs/planning/CITY_AS_A_SERVICE_DAYTIME_EXECUTION_BOARD.md",
       "role": "latest_append_only_execution_board"
     },
     {
-      "digest_sha256": "eef9c2ba3bad3c8c00ebf65bb78462778f6cd837cb71d24b53d7bdd8cb5333b3",
+      "digest_sha256": "555a7ac51745e16b4d340b678cb3871cab14649fd38b169945c022ec926825a3",
+      "exists": true,
+      "extension_policy": "current_read_only_morning_handoff_no_answer_runtime_payment_or_stopped_project_movement",
+      "path": "docs/planning/CITY_AS_A_SERVICE_6AM_FINAL_WRAP_2026_06_13.md",
+      "role": "latest_final_morning_wrap"
+    },
+    {
+      "digest_sha256": "ada59bacc7c62a532319311b82a96f832840b69fb2df8387dec25cd92da5cded",
       "exists": true,
       "extension_policy": "current_internal_admin_pre_dawn_synthesis_no_answer_no_customer_surface_no_runtime_payment_or_stopped_project_movement",
       "path": "docs/planning/CITY_AS_A_SERVICE_5AM_BOUNDED_LOCAL_COUNT_PRE_DAWN_SYNTHESIS_2026_06_13.md",
@@ -1780,9 +1787,9 @@
     {
       "digest_sha256": "0bb06e647f5ca374dd6e574caf6f91bf9a85c80b63d3281e37661f9f5b329ca3",
       "exists": true,
-      "extension_policy": "current_read_only_morning_handoff_no_answer_runtime_payment_or_stopped_project_movement",
+      "extension_policy": "context_only_previous_read_only_morning_handoff_no_answer_runtime_payment_or_stopped_project_movement",
       "path": "docs/planning/CITY_AS_A_SERVICE_6AM_FINAL_WRAP_2026_06_12.md",
-      "role": "latest_final_morning_wrap"
+      "role": "previous_final_morning_wrap_context"
     },
     {
       "digest_sha256": "77a59a7c0d63260a0e2ed1eaa3589655b08dbdcd8b3f4081c4642f367f204838",

@@ -43,6 +43,11 @@ CURRENT_ENTRYPOINT_DOCS = [
         "extension_policy": "current_entrypoint_update_only_when_new_safe_claim_lands",
     },
     {
+        "path": "docs/planning/CITY_AS_A_SERVICE_6AM_FINAL_WRAP_2026_06_13.md",
+        "role": "latest_final_morning_wrap",
+        "extension_policy": "current_read_only_morning_handoff_no_answer_runtime_payment_or_stopped_project_movement",
+    },
+    {
         "path": "docs/planning/CITY_AS_A_SERVICE_5AM_BOUNDED_LOCAL_COUNT_PRE_DAWN_SYNTHESIS_2026_06_13.md",
         "role": "latest_internal_admin_bounded_local_count_pre_dawn_synthesis",
         "extension_policy": "current_internal_admin_pre_dawn_synthesis_no_answer_no_customer_surface_no_runtime_payment_or_stopped_project_movement",
@@ -84,8 +89,8 @@ CURRENT_ENTRYPOINT_DOCS = [
     },
     {
         "path": "docs/planning/CITY_AS_A_SERVICE_6AM_FINAL_WRAP_2026_06_12.md",
-        "role": "latest_final_morning_wrap",
-        "extension_policy": "current_read_only_morning_handoff_no_answer_runtime_payment_or_stopped_project_movement",
+        "role": "previous_final_morning_wrap_context",
+        "extension_policy": "context_only_previous_read_only_morning_handoff_no_answer_runtime_payment_or_stopped_project_movement",
     },
     {
         "path": "docs/planning/CITY_AS_A_SERVICE_5AM_PRE_DAWN_SYNTHESIS_HANDOFF_2026_06_12.md",
