@@ -3774,7 +3774,7 @@
   "schema": "city_ops.aas_operator_answer_intake_packet.v1",
   "scope": "internal_admin_future_answer_intake_only",
   "source_gate": {
-    "digest_sha256": "e12134796f593d3d78e760343e3fff6f7bed52945f7393db92c00c49a6311d92",
+    "digest_sha256": "13e503570573ccff4bc7831642a373df4f417d8c5b5992f554d902b6466c4f33",
     "file": "aas_operator_answer_receipt_gate.json",
     "gate_status": "schema_gate_only_no_answer_no_approval_no_runtime_or_external_promotion",
     "safe_claim": "internal_admin_aas_operator_answer_receipt_gate_landed",

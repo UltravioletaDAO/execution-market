@@ -1715,11 +1715,18 @@
   },
   "current_entrypoints": [
     {
-      "digest_sha256": "fb86cd3e6e00be9b1a0803d41af394e6e86da4a60acd5eab2c8c3b1b6f163427",
+      "digest_sha256": "586df3d58779ff15f2c69e1c44b0068ad7ba354de7207f46bc803a5230876642",
       "exists": true,
       "extension_policy": "current_entrypoint_update_only_when_new_safe_claim_lands",
       "path": "docs/planning/CITY_AS_A_SERVICE_DAYTIME_EXECUTION_BOARD.md",
       "role": "latest_append_only_execution_board"
+    },
+    {
+      "digest_sha256": "eef9c2ba3bad3c8c00ebf65bb78462778f6cd837cb71d24b53d7bdd8cb5333b3",
+      "exists": true,
+      "extension_policy": "current_internal_admin_pre_dawn_synthesis_no_answer_no_customer_surface_no_runtime_payment_or_stopped_project_movement",
+      "path": "docs/planning/CITY_AS_A_SERVICE_5AM_BOUNDED_LOCAL_COUNT_PRE_DAWN_SYNTHESIS_2026_06_13.md",
+      "role": "latest_internal_admin_bounded_local_count_pre_dawn_synthesis"
     },
     {
       "digest_sha256": "e7d27ed5c3e34452f76143531ab837e4544009d806bfd5c5ad1cab524095a7cd",
