@@ -715,6 +715,11 @@ from .aas_source_of_truth_index import (
     load_aas_source_of_truth_index,
     write_aas_source_of_truth_index,
 )
+from .aas_bounded_local_count_pattern_compounder import (
+    build_aas_bounded_local_count_pattern_compounder,
+    load_aas_bounded_local_count_pattern_compounder,
+    write_aas_bounded_local_count_pattern_compounder,
+)
 from .aas_four_am_pattern_synthesis_handoff import (
     build_aas_four_am_pattern_synthesis_handoff,
     load_aas_four_am_pattern_synthesis_handoff,
@@ -1148,6 +1153,9 @@ __all__ = [
     "build_aas_source_of_truth_index",
     "load_aas_source_of_truth_index",
     "write_aas_source_of_truth_index",
+    "build_aas_bounded_local_count_pattern_compounder",
+    "load_aas_bounded_local_count_pattern_compounder",
+    "write_aas_bounded_local_count_pattern_compounder",
     "build_aas_incident_verification_observation_uncertainty_maintenance",
     "load_aas_incident_verification_observation_uncertainty_maintenance",
     "write_aas_incident_verification_observation_uncertainty_maintenance",
