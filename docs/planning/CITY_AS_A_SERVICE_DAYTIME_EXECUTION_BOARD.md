@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-06-12 06:00 America/New_York
+> Last updated: 2026-06-12 23:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -8,6 +8,55 @@
 > - `CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md`
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
+
+
+## Latest June 12 23:00 Bounded Local Count evidence contract
+
+`CITY_AS_A_SERVICE_11PM_BOUNDED_LOCAL_COUNT_EVIDENCE_CONTRACT_2026_06_12.md` is the current internal/admin AAS planning entrypoint. It follows `/Users/clawdbot/clawd/DREAM-PRIORITIES.md` over the stale 11 PM cron payload, so AutoJob analysis/integration, Frontier Academy expansion, KK v2 continuation, and KarmaCadabra v2 work remain stopped for dream work.
+
+The active posture remains:
+
+```text
+pause_aas_proof_layering
+```
+
+This pass advances the safest pilot candidate from the 10 PM offer map: **Bounded Local Count**. It defines a conservative evidence contract for one count question, one bounded observation window, one method, explicit coverage limits, uncertainty language, digest/reference-only evidence, redaction state, and adjacent blocked claims.
+
+Safe 23:00 claim:
+
+```text
+internal_admin_aas_11pm_bounded_local_count_evidence_contract_2026_06_12_landed
+```
+
+Meaning only: internal/admin AAS planning now has a bounded evidence contract for the lowest-authority pilot candidate. It records no operator answer, approval, answer receipt, customer/public/worker copy, catalog route, price, quote, queue, dispatch, runtime/Acontext mutation, reputation/Worker Skill DNA, payment/production change, exact-location/raw-metadata/private-context release, statistical certification, authority claim, worker-copyable doctrine, or stopped-project integration.
+
+Next valid move remains a separate human/operator gate for exactly one use case before any exposure; otherwise hold at `pause_aas_proof_layering`.
+
+
+## Latest June 12 22:00 AAS pilot offer map
+
+`CITY_AS_A_SERVICE_10PM_AAS_PILOT_OFFER_MAP_2026_06_12.md` is the current internal/admin pilot-offer map feeding the 23:00 evidence contract. It connects six AAS buyer problems to package families, evidence spines, human gates, held claims, and smallest safe next artifacts.
+
+Safe 22:00 claim:
+
+```text
+internal_admin_aas_10pm_pilot_offer_map_2026_06_12_landed
+```
+
+Meaning only: internal/admin planning can choose among pilot candidates. It does not authorize buyer copy, public catalog, pricing, routing, dispatch, runtime movement, reputation, payment, authority claims, raw metadata/private context release, worker doctrine, or stopped-project work.
+
+
+## Latest June 12 07:00 AAS implementation concept expansion
+
+`CITY_AS_A_SERVICE_7AM_AAS_IMPLEMENTATION_CONCEPT_EXPANSION_2026_06_12.md` remains the supporting internal/admin concept-expansion map. It expands Retail Reality, Local Data Collection, Field Asset Ops, Event Readiness, Document / Handoff Logistics, and Compliance Desk Hold Review into decision-gated planning rows with operator problems, package modules, evidence inputs, internal surfaces, required gates, blocked claims, and smallest safe next artifacts.
+
+Safe 07:00 claim:
+
+```text
+internal_admin_aas_7am_implementation_concept_expansion_2026_06_12_landed
+```
+
+Meaning only: internal/admin concept planning exists. It records no operator answer, approval, answer receipt, customer/public/worker surface, route, queue, dispatch, runtime mutation, reputation/Worker Skill DNA, payment/production change, exact-location/raw-metadata/private-context release, authority claim, worker-copyable doctrine, or stopped-project integration.
 
 
 ## Latest June 12 06:00 final morning wrap

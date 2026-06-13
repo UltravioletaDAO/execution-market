@@ -1715,11 +1715,18 @@
   },
   "current_entrypoints": [
     {
-      "digest_sha256": "30713dfa8f0f5d3767a8349cb73c1e31030dd172e7e4ef0945d8ccd583fd48d8",
+      "digest_sha256": "e332080665362eb5793073d664a56e8ecd4504a684ced3c56433e0c1e236a7bb",
       "exists": true,
       "extension_policy": "current_entrypoint_update_only_when_new_safe_claim_lands",
       "path": "docs/planning/CITY_AS_A_SERVICE_DAYTIME_EXECUTION_BOARD.md",
       "role": "latest_append_only_execution_board"
+    },
+    {
+      "digest_sha256": "db55fb05da74a9d6b765a560d553a15ab5327b2aafac1bd0bc10bd71757db2db",
+      "exists": true,
+      "extension_policy": "current_internal_admin_bounded_count_contract_no_answer_no_customer_surface_no_runtime_payment_or_stopped_project_movement",
+      "path": "docs/planning/CITY_AS_A_SERVICE_11PM_BOUNDED_LOCAL_COUNT_EVIDENCE_CONTRACT_2026_06_12.md",
+      "role": "latest_internal_admin_bounded_local_count_evidence_contract"
     },
     {
       "digest_sha256": "6438744ebf0e72cac07d4424fb5f5326cedf7ba9e810c47df6ecfaa666781646",
@@ -1727,6 +1734,13 @@
       "extension_policy": "current_internal_admin_pilot_offer_map_no_answer_no_customer_surface_no_runtime_payment_or_stopped_project_movement",
       "path": "docs/planning/CITY_AS_A_SERVICE_10PM_AAS_PILOT_OFFER_MAP_2026_06_12.md",
       "role": "latest_internal_admin_aas_pilot_offer_map"
+    },
+    {
+      "digest_sha256": "a17622513859f19d87e648fc63046a710da15231fcb7e12d3a7fdc3f96cd9682",
+      "exists": true,
+      "extension_policy": "current_internal_admin_concept_expansion_no_answer_no_customer_surface_no_runtime_payment_or_stopped_project_movement",
+      "path": "docs/planning/CITY_AS_A_SERVICE_7AM_AAS_IMPLEMENTATION_CONCEPT_EXPANSION_2026_06_12.md",
+      "role": "latest_internal_admin_aas_implementation_concept_expansion"
     },
     {
       "digest_sha256": "0bb06e647f5ca374dd6e574caf6f91bf9a85c80b63d3281e37661f9f5b329ca3",
