@@ -1,0 +1,197 @@
+{
+  "claim_boundaries": {
+    "do_not_claim_yet": [
+      "bounded_local_count_fixture_gate_records_operator_answer",
+      "bounded_local_count_fixture_gate_records_operator_approval",
+      "bounded_local_count_fixture_gate_creates_answer_receipt",
+      "bounded_local_count_fixture_gate_authorizes_collection_site_access_or_worker_tasking",
+      "bounded_local_count_fixture_gate_creates_customer_public_or_worker_copy",
+      "bounded_local_count_fixture_gate_creates_catalog_pricing_quote_route_queue_or_dispatch",
+      "bounded_local_count_fixture_gate_publishes_dataset_report_dashboard_or_benchmark",
+      "bounded_local_count_fixture_gate_claims_representativeness_statistical_validity_or_certification",
+      "bounded_local_count_fixture_gate_emits_erc8004_reputation_or_worker_skill_dna",
+      "bounded_local_count_fixture_gate_reverifies_payment_or_production",
+      "bounded_local_count_fixture_gate_mutates_runtime_acontext_or_irc_session_manager",
+      "bounded_local_count_fixture_gate_releases_exact_location_raw_metadata_private_context_or_pii",
+      "bounded_local_count_fixture_gate_grants_legal_regulatory_safety_repair_insurance_or_statistical_authority",
+      "bounded_local_count_fixture_gate_publishes_worker_copyable_doctrine",
+      "bounded_local_count_fixture_gate_integrates_or_expands_stopped_projects"
+    ],
+    "safe_to_claim": [
+      "internal_admin_aas_11pm_bounded_local_count_evidence_contract_2026_06_12_landed",
+      "internal_admin_aas_bounded_local_count_fixture_gate_landed"
+    ]
+  },
+  "current_operator_state": {
+    "answer_receipt_created": false,
+    "collection_authorized": false,
+    "explicit_operator_answer_available": false,
+    "operator_approval_recorded": false,
+    "recommended_posture": "pause_aas_proof_layering",
+    "selected_decision": null
+  },
+  "fixture_schema": {
+    "allowed_count_methods": [
+      "direct_visual_count",
+      "posted_count",
+      "receipt_or_log_count",
+      "visible_subset",
+      "unable_to_count"
+    ],
+    "allowed_packet_schema": "execution_market.aas.bounded_local_count.evidence_contract.v0",
+    "allowed_packet_status": "internal_admin_contract_only_no_answer_no_approval",
+    "allowed_redaction_review_states": [
+      "not_reviewed",
+      "reviewed_internal_only"
+    ],
+    "bounding_rules": [
+      "count_question_must_be_one_bounded_observable_count_or_range_question",
+      "observation_window_must_be_bounded_and_non_sensitive",
+      "place_boundary_must_be_generalized_or_opaque_without_exact_location",
+      "count_method_must_be_one_allowed_method",
+      "observed_value_must_be_integer_range_or_unable_to_count",
+      "coverage_limits_must_be_non_empty",
+      "uncertainty_statement_must_be_present_and_plain_language",
+      "evidence_reference_must_be_digest_or_opaque_reference_only",
+      "redaction_state_must_not_exceed_internal_review",
+      "blocked_claims_snapshot_must_preserve_all_contract_blockers"
+    ],
+    "forbidden_packet_fragments": [
+      "customer-ready",
+      "customer ready",
+      "public catalog",
+      "priced offer",
+      "queue ready",
+      "dispatch ready",
+      "worker instruction",
+      "worker-copyable",
+      "worker copyable",
+      "erc-8004 reputation",
+      "erc8004 reputation",
+      "worker skill dna",
+      "payment ready",
+      "production ready",
+      "acontext ready",
+      "runtime mutation",
+      "gps coordinates",
+      "latitude",
+      "longitude",
+      "raw metadata",
+      "private context",
+      "pii",
+      "official measurement",
+      "certified count",
+      "representative sample",
+      "statistically valid",
+      "regulatory ready",
+      "legal authority",
+      "insurance-ready",
+      "repair-authorized",
+      "autojob",
+      "frontier academy",
+      "kk v2",
+      "karmacadabra v2"
+    ],
+    "forbidden_question_fragments": [
+      "citywide",
+      "representative",
+      "statistically valid",
+      "complete dataset",
+      "continuous",
+      "always",
+      "everywhere",
+      "all locations",
+      "all sites",
+      "forecast",
+      "predict",
+      "diagnose",
+      "certify"
+    ],
+    "required_blocked_claims": [
+      "customer_public_worker_surface",
+      "dataset_publication_or_representativeness",
+      "catalog_pricing_queue_dispatch",
+      "reputation_worker_skill_dna",
+      "payment_production_change",
+      "exact_location_raw_metadata_private_context_release",
+      "authority_or_certification_claim",
+      "worker_copyable_doctrine"
+    ],
+    "required_fields": [
+      "schema",
+      "status",
+      "count_question",
+      "observation_window",
+      "place_boundary",
+      "count_method",
+      "observed_value",
+      "coverage_limits",
+      "uncertainty_statement",
+      "evidence_digest_reference",
+      "redaction_review_state",
+      "blocked_claims_snapshot"
+    ]
+  },
+  "gate_id": "execution_market.aas.bounded_local_count.fixture_gate.2026_06_13_0000",
+  "gate_status": "internal_admin_fixture_schema_review_gate_only_no_answer_no_approval_no_collection_or_exposure",
+  "next_gate_before_any_exposure": "separate_human_operator_approval_for_exact_count_question_method_redaction_delivery_and_blocked_claims",
+  "readiness": {
+    "gate_authorizes_collection_site_access_or_worker_tasking": false,
+    "gate_claims_representativeness_statistical_validity_or_certification": false,
+    "gate_creates_answer_receipt": false,
+    "gate_creates_catalog_pricing_quote_route_or_queue": false,
+    "gate_creates_customer_public_or_worker_copy": false,
+    "gate_emits_reputation_or_worker_skill_dna": false,
+    "gate_exposes_exact_location_raw_metadata_private_context_or_pii": false,
+    "gate_grants_legal_regulatory_safety_repair_or_insurance_authority": false,
+    "gate_integrates_or_expands_stopped_projects": false,
+    "gate_launches_dispatch_or_worker_instruction": false,
+    "gate_mutates_runtime_acontext_or_irc": false,
+    "gate_publishes_dataset_report_dashboard_or_benchmark": false,
+    "gate_publishes_worker_copyable_doctrine": false,
+    "gate_records_operator_answer": false,
+    "gate_records_operator_approval": false,
+    "gate_reverifies_payment_or_production": false,
+    "internal_admin_bounded_local_count_fixture_gate_landed": true
+  },
+  "sample_internal_fixture_packet": {
+    "blocked_claims_snapshot": [
+      "customer_public_worker_surface",
+      "dataset_publication_or_representativeness",
+      "catalog_pricing_queue_dispatch",
+      "reputation_worker_skill_dna",
+      "payment_production_change",
+      "exact_location_raw_metadata_private_context_release",
+      "authority_or_certification_claim",
+      "worker_copyable_doctrine"
+    ],
+    "count_method": "direct_visual_count",
+    "count_question": "Count visible queue markers inside one operator-approved zone.",
+    "coverage_limits": [
+      "rear area not visible",
+      "temporary obstruction prevented exact count"
+    ],
+    "evidence_digest_reference": "sha256:example_non_secret_digest_reference_only",
+    "observation_window": "single bounded daytime observation window",
+    "observed_value": "3-5",
+    "place_boundary": "opaque_site_ref_alpha_general_area_only",
+    "redaction_review_state": "not_reviewed",
+    "schema": "execution_market.aas.bounded_local_count.evidence_contract.v0",
+    "status": "internal_admin_contract_only_no_answer_no_approval",
+    "uncertainty_statement": "This is a bounded internal observation with visibility limits; it is not representative."
+  },
+  "sample_internal_fixture_packet_digest_sha256": "55e90b3a77c311f3dc000106182190c246068a65af5feffe4aa3b74ecaa2e739",
+  "schema": "city_ops.aas_bounded_local_count_fixture_gate.v1",
+  "source_contract": {
+    "digest_sha256": "db55fb05da74a9d6b765a560d553a15ab5327b2aafac1bd0bc10bd71757db2db",
+    "file": "docs/planning/CITY_AS_A_SERVICE_11PM_BOUNDED_LOCAL_COUNT_EVIDENCE_CONTRACT_2026_06_12.md",
+    "safe_claim": "internal_admin_aas_11pm_bounded_local_count_evidence_contract_2026_06_12_landed"
+  },
+  "stopped_project_firewall": {
+    "autojob_work_allowed": false,
+    "frontier_academy_work_allowed": false,
+    "karmacadabra_v2_work_allowed": false,
+    "kk_v2_work_allowed": false,
+    "source": "DREAM-PRIORITIES.md explicit stop list"
+  }
+}
