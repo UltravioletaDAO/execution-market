@@ -211,6 +211,11 @@ export function ReviewSubmission() {
   const approvalSigningBlocked =
     verdict === 'accepted' && !escrowLocked && !H2A_SIGNING_ENABLED
 
+  // A task that's already finished (opened from History to read the result):
+  // show its final state + evidence, NOT an editable verdict form.
+  const isTerminal = ['completed', 'cancelled', 'expired', 'disputed'].includes(task.status)
+  const paymentTxFromSubs = submissions.find((s) => s.payment_tx)?.payment_tx ?? null
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white border-b">
@@ -320,6 +325,35 @@ export function ReviewSubmission() {
                   <div className="flex items-center gap-1.5 text-xs">
                     <span className="text-zinc-500">{result.refund_tx ? t('review.done.refundTx', 'TX de reembolso') : t('review.done.paymentTx', 'TX de pago')}:</span>
                     <TxHashLink txHash={(result.refund_tx || result.worker_tx) as string} network={task.payment_network || 'base'} />
+                  </div>
+                )}
+                <button onClick={() => navigate('/publisher/dashboard')} className="w-full mt-2 py-2.5 px-4 rounded-lg font-medium bg-zinc-900 text-white hover:bg-zinc-800">
+                  {t('review.done.back', 'Volver al panel')}
+                </button>
+              </div>
+            ) : isTerminal ? (
+              <div className="bg-white rounded-lg border p-6 space-y-3">
+                {task.status === 'completed' ? (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">✅</span>
+                      <h3 className="font-semibold text-zinc-900">{t('review.terminal.completedTitle', 'Tarea completada y pagada')}</h3>
+                    </div>
+                    <p className="text-sm text-zinc-600">{t('review.terminal.completedBody', 'Esta entrega fue aprobada y el pago se liberó. Arriba está toda la evidencia que envió el ejecutor.')}</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">📁</span>
+                      <h3 className="font-semibold text-zinc-900">{t('review.terminal.closedTitle', 'Tarea cerrada')}</h3>
+                    </div>
+                    <p className="text-sm text-zinc-600">{t('review.terminal.closedBody', 'Esta tarea ya no está activa ({{status}}).', { status: task.status })}</p>
+                  </>
+                )}
+                {paymentTxFromSubs && (
+                  <div className="flex items-center gap-1.5 text-xs">
+                    <span className="text-zinc-500">{t('review.done.paymentTx', 'TX de pago')}:</span>
+                    <TxHashLink txHash={paymentTxFromSubs} network={task.payment_network || 'base'} />
                   </div>
                 )}
                 <button onClick={() => navigate('/publisher/dashboard')} className="w-full mt-2 py-2.5 px-4 rounded-lg font-medium bg-zinc-900 text-white hover:bg-zinc-800">

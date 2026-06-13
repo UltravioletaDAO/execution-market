@@ -295,6 +295,7 @@ function TaskCard({ task, onReview, onCancel, onAssigned }: { task: Task; onRevi
       </div>
       <div className="flex gap-2">
         {task.status === 'submitted' && onReview && <button onClick={() => onReview(task.id)} className="flex-1 px-3 py-1.5 bg-zinc-900 text-white text-sm rounded-lg hover:bg-zinc-800">⚡ {t('publisher.dashboard.review', 'Review')}</button>}
+        {['completed', 'disputed'].includes(task.status) && onReview && <button onClick={() => onReview(task.id)} className="flex-1 px-3 py-1.5 bg-zinc-900 text-white text-sm rounded-lg hover:bg-zinc-800">👁️ {t('publisher.dashboard.viewResult', 'Ver resultado')}</button>}
         {['published', 'accepted'].includes(task.status) && onCancel && <button onClick={() => onCancel(task.id)} className="px-3 py-1.5 border border-red-300 text-red-700 text-sm rounded-lg hover:bg-red-50">{t('common.cancel')}</button>}
       </div>
       {!assigned && onAssigned && <Applicants task={task} onAssigned={onAssigned} />}
