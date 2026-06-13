@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-06-12 23:00 America/New_York
+> Last updated: 2026-06-13 01:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -8,6 +8,42 @@
 > - `CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md`
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
+
+
+## Latest June 13 01:00 Source index alignment
+
+`CITY_AS_A_SERVICE_1AM_SOURCE_INDEX_ALIGNMENT_2026_06_13.md` is the current internal/admin coordination entrypoint. It follows `/Users/clawdbot/clawd/DREAM-PRIORITIES.md` over the stale 1 AM cron payload, so AutoJob pull/analysis/integration, Frontier Academy expansion, KK v2 continuation, and KarmaCadabra v2 work remain stopped for dream work.
+
+Execution Market was synced on `feat/operator-route-regret-panel`; `git pull --ff-only` reported already up to date. Pre-existing untracked `scripts/sign_req.mjs` and `mcp_server/city_ops/tests/` were preserved and not staged.
+
+This pass aligned the AAS source-of-truth index with the latest Bounded Local Count gate so future sessions read the stricter 00:00 fixture gate before the older 23:00 evidence contract.
+
+Safe 01:00 claim:
+
+```text
+internal_admin_aas_1am_source_index_alignment_2026_06_13_landed
+```
+
+Meaning only: internal/admin coordination now points at the current bounded-count fixture gate first. It records no operator answer, approval, answer receipt, collection authorization, customer/worker surface, catalog route, price, quote, queue, dispatch, runtime/Acontext/IRC mutation, reputation/Worker Skill DNA, payment/production change, exact-location/raw-metadata/private-context release, authority claim, worker-copyable doctrine, or stopped-project integration.
+
+The active posture remains:
+
+```text
+pause_aas_proof_layering
+```
+
+
+## Latest June 13 00:00 Bounded Local Count fixture gate
+
+`CITY_AS_A_SERVICE_00AM_BOUNDED_LOCAL_COUNT_FIXTURE_GATE_2026_06_13.md` is the latest internal/admin Bounded Local Count implementation artifact. It consumes the 23:00 evidence contract and adds a deterministic fixture schema/review gate for exactly one future bounded count packet.
+
+Safe 00:00 claim:
+
+```text
+internal_admin_aas_bounded_local_count_fixture_gate_landed
+```
+
+Meaning only: internal/admin AAS planning now has a fail-closed gate for future Bounded Local Count packets. It rejects unbounded questions, missing uncertainty, missing coverage limits, raw location/private metadata, customer/worker/dispatch/reputation/payment/runtime/authority promotion, and stopped-project integration. It still authorizes no collection, exposure, worker instructions, dispatch, runtime movement, reputation, payment, or production use.
 
 
 ## Latest June 12 23:00 Bounded Local Count evidence contract

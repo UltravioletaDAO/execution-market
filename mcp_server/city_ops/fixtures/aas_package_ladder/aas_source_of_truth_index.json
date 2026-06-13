@@ -1715,11 +1715,25 @@
   },
   "current_entrypoints": [
     {
-      "digest_sha256": "e332080665362eb5793073d664a56e8ecd4504a684ced3c56433e0c1e236a7bb",
+      "digest_sha256": "74572fd3770b3fda3afe5097bfad7fce4be461673a5a663eaf1283080a1ef98a",
       "exists": true,
       "extension_policy": "current_entrypoint_update_only_when_new_safe_claim_lands",
       "path": "docs/planning/CITY_AS_A_SERVICE_DAYTIME_EXECUTION_BOARD.md",
       "role": "latest_append_only_execution_board"
+    },
+    {
+      "digest_sha256": "28ba46b7ad4e58495f364927e5600a84103ac3cf619efaa74828fbdc4ed2f026",
+      "exists": true,
+      "extension_policy": "current_internal_admin_index_alignment_no_answer_no_customer_surface_no_runtime_payment_or_stopped_project_movement",
+      "path": "docs/planning/CITY_AS_A_SERVICE_1AM_SOURCE_INDEX_ALIGNMENT_2026_06_13.md",
+      "role": "latest_internal_admin_aas_source_index_alignment"
+    },
+    {
+      "digest_sha256": "5309b358f00edfcb49fdf30b02b7c8ef6aafebd1648f1014ee0d299ac4a2c77a",
+      "exists": true,
+      "extension_policy": "current_internal_admin_bounded_count_fixture_gate_no_answer_no_customer_surface_no_runtime_payment_or_stopped_project_movement",
+      "path": "docs/planning/CITY_AS_A_SERVICE_00AM_BOUNDED_LOCAL_COUNT_FIXTURE_GATE_2026_06_13.md",
+      "role": "latest_internal_admin_bounded_local_count_fixture_gate"
     },
     {
       "digest_sha256": "db55fb05da74a9d6b765a560d553a15ab5327b2aafac1bd0bc10bd71757db2db",
