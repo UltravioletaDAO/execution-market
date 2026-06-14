@@ -1,0 +1,252 @@
+{
+  "claim_boundaries": {
+    "do_not_claim_yet": [
+      "concept_gap_matrix_records_operator_answer",
+      "concept_gap_matrix_records_operator_approval",
+      "concept_gap_matrix_creates_answer_receipt",
+      "concept_gap_matrix_selects_future_answer",
+      "concept_gap_matrix_treats_gap_rank_as_approval",
+      "concept_gap_matrix_approves_product_exposure",
+      "concept_gap_matrix_creates_customer_public_or_worker_surface",
+      "concept_gap_matrix_authorizes_catalog_pricing_quote_queue_or_dispatch",
+      "concept_gap_matrix_emits_erc8004_reputation_or_worker_skill_dna",
+      "concept_gap_matrix_reverifies_payment_or_production",
+      "concept_gap_matrix_mutates_runtime_acontext_or_irc_session_manager",
+      "concept_gap_matrix_releases_exact_gps_raw_metadata_or_private_context",
+      "concept_gap_matrix_grants_legal_regulator_notarial_custody_emergency_safety_repair_insurance_sla_official_report_or_fault_liability_authority",
+      "concept_gap_matrix_publishes_worker_copyable_doctrine",
+      "concept_gap_matrix_integrates_or_expands_stopped_projects",
+      "retail_reality_customer_exposure_approved_by_matrix",
+      "local_data_collection_dataset_or_representativeness_claim_approved_by_matrix",
+      "field_asset_ops_repair_diagnosis_or_sla_claim_approved_by_matrix",
+      "event_readiness_safety_permit_security_vendor_or_outcome_claim_approved_by_matrix",
+      "property_ops_appraisal_code_legal_access_insurance_or_remediation_claim_approved_by_matrix",
+      "document_handoff_legal_notarial_custody_or_acceptance_claim_approved_by_matrix",
+      "compliance_desk_regulator_legal_sufficiency_or_publication_claim_approved_by_matrix",
+      "incident_verification_emergency_official_report_fault_liability_or_repair_claim_approved_by_matrix",
+      "system_integration_runtime_memory_write_retrieve_or_parity_claim_approved_by_matrix",
+      "concept_gap_roadmap_records_operator_answer",
+      "concept_gap_roadmap_records_operator_approval",
+      "concept_gap_roadmap_creates_answer_receipt",
+      "concept_gap_roadmap_selects_future_answer",
+      "concept_gap_roadmap_treats_sequence_rank_as_approval",
+      "concept_gap_roadmap_approves_product_exposure",
+      "concept_gap_roadmap_creates_customer_public_or_worker_surface",
+      "concept_gap_roadmap_authorizes_catalog_pricing_quote_route_queue_or_dispatch",
+      "concept_gap_roadmap_creates_worker_instruction",
+      "concept_gap_roadmap_emits_erc8004_reputation_or_worker_skill_dna",
+      "concept_gap_roadmap_reverifies_payment_or_production",
+      "concept_gap_roadmap_mutates_runtime_acontext_or_irc_session_manager",
+      "concept_gap_roadmap_releases_exact_gps_raw_metadata_or_private_context",
+      "concept_gap_roadmap_grants_legal_regulator_notarial_custody_emergency_safety_repair_insurance_sla_official_report_or_fault_liability_authority",
+      "concept_gap_roadmap_publishes_worker_copyable_doctrine",
+      "concept_gap_roadmap_integrates_or_expands_stopped_projects",
+      "field_asset_visible_state_outline_records_operator_answer",
+      "field_asset_visible_state_outline_records_operator_approval",
+      "field_asset_visible_state_outline_creates_answer_receipt",
+      "field_asset_visible_state_outline_selects_future_answer",
+      "field_asset_visible_state_outline_treats_concept_as_approval",
+      "field_asset_visible_state_outline_approves_product_exposure",
+      "field_asset_visible_state_outline_creates_customer_public_or_worker_copy",
+      "field_asset_visible_state_outline_authorizes_field_visit_access_recipient_or_customer_use",
+      "field_asset_visible_state_outline_authorizes_inspection_repair_remediation_or_maintenance",
+      "field_asset_visible_state_outline_certifies_functionality_safety_warranty_or_sla",
+      "field_asset_visible_state_outline_creates_catalog_pricing_quote_route_queue_or_dispatch",
+      "field_asset_visible_state_outline_creates_worker_instruction",
+      "field_asset_visible_state_outline_emits_erc8004_reputation_or_worker_skill_dna",
+      "field_asset_visible_state_outline_reverifies_payment_or_production",
+      "field_asset_visible_state_outline_mutates_runtime_acontext_or_irc_session_manager",
+      "field_asset_visible_state_outline_releases_exact_gps_raw_metadata_private_context_or_pii",
+      "field_asset_visible_state_outline_grants_property_access_appraisal_or_maintenance_authority",
+      "field_asset_visible_state_outline_publishes_worker_copyable_doctrine",
+      "field_asset_visible_state_outline_integrates_or_expands_stopped_projects",
+      "visible_asset_state_menu_records_operator_answer",
+      "visible_asset_state_menu_records_operator_approval",
+      "visible_asset_state_menu_creates_answer_receipt",
+      "visible_asset_state_menu_selects_asset_class_future_answer_or_collection_method",
+      "visible_asset_state_menu_treats_state_option_as_approval",
+      "visible_asset_state_menu_approves_product_exposure",
+      "visible_asset_state_menu_creates_customer_public_or_worker_copy",
+      "visible_asset_state_menu_authorizes_field_visit_access_recipient_or_customer_use",
+      "visible_asset_state_menu_authorizes_inspection_repair_remediation_or_maintenance",
+      "visible_asset_state_menu_certifies_functionality_safety_warranty_or_sla",
+      "visible_asset_state_menu_creates_catalog_pricing_quote_route_queue_or_dispatch",
+      "visible_asset_state_menu_creates_worker_instruction",
+      "visible_asset_state_menu_emits_erc8004_reputation_or_worker_skill_dna",
+      "visible_asset_state_menu_reverifies_payment_or_production",
+      "visible_asset_state_menu_mutates_runtime_acontext_or_irc_session_manager",
+      "visible_asset_state_menu_releases_exact_gps_raw_metadata_private_context_or_pii",
+      "visible_asset_state_menu_grants_property_access_appraisal_or_maintenance_authority",
+      "visible_asset_state_menu_publishes_worker_copyable_doctrine",
+      "visible_asset_state_menu_integrates_or_expands_stopped_projects"
+    ],
+    "safe_to_claim": [
+      "internal_admin_aas_field_asset_visible_state_fixture_outline_landed",
+      "internal_admin_aas_visible_asset_state_internal_state_menu_landed"
+    ]
+  },
+  "current_operator_state": {
+    "answer_receipt_created": false,
+    "asset_class_selected": false,
+    "collection_method_authorized": false,
+    "explicit_operator_answer_available": false,
+    "operator_approval_recorded": false,
+    "recommended_no_human_posture": "state_menu_only",
+    "selected_decision": null
+  },
+  "governing_priority": {
+    "allowed_lane": "Execution Market AAS / City-as-a-Service Visible Asset State Snapshot planning",
+    "source": "/Users/clawdbot/clawd/DREAM-PRIORITIES.md",
+    "stopped_project_firewall": {
+      "autojob_work_allowed": false,
+      "frontier_academy_work_allowed": false,
+      "karmacadabra_v2_work_allowed": false,
+      "kk_v2_work_allowed": false
+    }
+  },
+  "readiness": {
+    "menu_approves_product_exposure": false,
+    "menu_authorizes_field_visit_access_or_recipient": false,
+    "menu_authorizes_inspection_repair_remediation_or_maintenance": false,
+    "menu_certifies_asset_functionality_safety_warranty_or_sla": false,
+    "menu_creates_answer_receipt": false,
+    "menu_creates_catalog_pricing_quote_route_queue_or_dispatch": false,
+    "menu_creates_customer_public_or_worker_copy": false,
+    "menu_creates_worker_instruction": false,
+    "menu_emits_reputation_or_worker_skill_dna": false,
+    "menu_grants_property_access_appraisal_or_maintenance_authority": false,
+    "menu_integrates_or_expands_stopped_projects": false,
+    "menu_mutates_runtime_acontext_or_irc_session_manager": false,
+    "menu_publishes_worker_copyable_doctrine": false,
+    "menu_records_operator_answer": false,
+    "menu_records_operator_approval": false,
+    "menu_releases_exact_gps_raw_metadata_private_context_or_pii": false,
+    "menu_reverifies_payment_or_production": false,
+    "menu_selects_asset_class_or_future_answer": false
+  },
+  "schema": "city_ops.aas_visible_asset_state_internal_state_menu.v1",
+  "sequence_rules": [
+    "Treat the state menu as internal/admin grammar only; never as approval, customer copy, or worker instruction.",
+    "Do not select an asset class, collection method, route, queue, dispatch path, or recipient from this menu.",
+    "Do not convert visible-state rows into functionality, safety, warranty, SLA, repair, remediation, or access authority claims.",
+    "Do not expose exact location, raw metadata, private context, PII, or unredacted media references from this menu.",
+    "Create a separate explicit operator answer receipt before any Visible Asset State Snapshot customer, worker, field, catalog, or runtime gate.",
+    "Keep AutoJob, Frontier Academy, KK v2, and KarmaCadabra v2 out of the active dream workstream."
+  ],
+  "source_outline": {
+    "canonical_family": "Visible Asset State Snapshot",
+    "consumed_family": "field_asset_ops",
+    "digest_sha256": "f796f4a82a8ffac5166d807459f47ce745fb1955f1cc2f9bd23f3fbbf412800d",
+    "file": "aas_field_asset_visible_state_fixture_outline.json",
+    "fixture_outline_id": "execution_market.aas.field_asset_visible_state_fixture_outline.2026_06_06_0400",
+    "safe_claim": "internal_admin_aas_field_asset_visible_state_fixture_outline_landed",
+    "schema": "city_ops.aas_field_asset_visible_state_fixture_outline.v1"
+  },
+  "state_menu_digest_sha256": "132b201f4d1f46c356e61298279de6ed067ee46a7d388d8f5ea74eb4a2135734",
+  "state_menu_id": "execution_market.aas.visible_asset_state_internal_state_menu.2026_06_14_0100",
+  "state_menu_status": "internal_admin_state_menu_no_answer_no_approval_no_field_visit_no_repair_sla_or_customer_copy",
+  "visible_asset_state_internal_state_menu": {
+    "allowed_truth_families": [
+      "operator_truth",
+      "collection_truth",
+      "location_privacy_truth",
+      "authority_truth"
+    ],
+    "allowed_use": "internal_admin_state_menu_only_no_asset_class_no_field_visit_no_customer_copy",
+    "canonical_family": "Visible Asset State Snapshot",
+    "legacy_source_family": "field_asset_ops",
+    "menu_mode": "state_menu_only",
+    "next_gate_before_any_delivery_or_runtime_movement": "separate_asset_class_method_boundary_and_operator_answer_receipt",
+    "required_state_codes": [
+      "visible_presence_state",
+      "apparent_access_or_obstruction_state",
+      "apparent_surface_condition_state",
+      "visible_indicator_state",
+      "redacted_media_reference_state",
+      "uncertainty_state"
+    ],
+    "row_contract": {
+      "must_include_allowed_observation_values": true,
+      "must_include_forbidden_promotion": true,
+      "must_include_missing_truth_family": true,
+      "must_include_safe_internal_read": true,
+      "must_include_state_code": true
+    },
+    "state_menu_rows": [
+      {
+        "allowed_observation_values": [
+          "present_observed",
+          "absent_not_seen_from_allowed_view",
+          "partially_visible",
+          "not_observable_or_unknown"
+        ],
+        "forbidden_promotion": "does_not_confirm_ownership_access_installation_functionality_or_availability",
+        "missing_truth_family": "collection_truth",
+        "safe_internal_read": "records whether the asset is visibly present from an allowed review context",
+        "state_code": "visible_presence_state"
+      },
+      {
+        "allowed_observation_values": [
+          "no_obstruction_visible",
+          "apparent_obstruction_visible",
+          "access_path_not_visible",
+          "not_observable_or_unknown"
+        ],
+        "forbidden_promotion": "does_not_authorize_entry_removal_repair_dispatch_or_safety_clearance",
+        "missing_truth_family": "authority_truth",
+        "safe_internal_read": "records only visible obstruction or non-obstruction without access authority",
+        "state_code": "apparent_access_or_obstruction_state"
+      },
+      {
+        "allowed_observation_values": [
+          "no_visible_surface_issue_from_allowed_view",
+          "visible_wear_or_damage_marker",
+          "surface_obscured_or_partially_visible",
+          "not_observable_or_unknown"
+        ],
+        "forbidden_promotion": "does_not_diagnose_root_cause_severity_repair_need_or_fault_liability",
+        "missing_truth_family": "authority_truth",
+        "safe_internal_read": "records visible surface markers only",
+        "state_code": "apparent_surface_condition_state"
+      },
+      {
+        "allowed_observation_values": [
+          "indicator_visible_on_or_lit",
+          "indicator_visible_off_or_unlit",
+          "indicator_visible_but_unreadable",
+          "no_indicator_visible",
+          "not_observable_or_unknown"
+        ],
+        "forbidden_promotion": "does_not_certify_functionality_safety_warranty_sla_or_operational_status",
+        "missing_truth_family": "authority_truth",
+        "safe_internal_read": "records visible indicator appearance without interpreting system function",
+        "state_code": "visible_indicator_state"
+      },
+      {
+        "allowed_observation_values": [
+          "redacted_reference_available",
+          "redaction_required_before_reference",
+          "withheld_private_context_or_raw_metadata",
+          "not_applicable_or_unknown"
+        ],
+        "forbidden_promotion": "does_not_release_exact_location_raw_metadata_private_context_or_pii",
+        "missing_truth_family": "location_privacy_truth",
+        "safe_internal_read": "tracks whether a redacted internal reference can support the visible-state row",
+        "state_code": "redacted_media_reference_state"
+      },
+      {
+        "allowed_observation_values": [
+          "clear_within_allowed_view",
+          "ambiguous_needs_review",
+          "contradictory_sources_needs_review",
+          "out_of_scope_not_checked"
+        ],
+        "forbidden_promotion": "does_not_convert_uncertain_or_out_of_scope_data_into_customer_ready_fact",
+        "missing_truth_family": "operator_truth",
+        "safe_internal_read": "keeps uncertainty attached to the internal/admin row",
+        "state_code": "uncertainty_state"
+      }
+    ],
+    "still_blocked": true
+  }
+}

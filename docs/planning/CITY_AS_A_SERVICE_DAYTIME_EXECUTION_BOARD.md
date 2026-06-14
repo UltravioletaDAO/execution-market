@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-06-14 00:00 America/New_York
+> Last updated: 2026-06-14 01:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -10,9 +10,38 @@
 > Status: execution handoff board
 
 
+## Latest June 14 01:00 Visible Asset State internal state menu
+
+`CITY_AS_A_SERVICE_1AM_VISIBLE_ASSET_STATE_MENU_2026_06_14.md` is the current internal/admin schema-backed state-menu slice for the held **Visible Asset State Snapshot** package family. It obeys `/Users/clawdbot/clawd/DREAM-PRIORITIES.md`, keeps work inside Execution Market AAS / City-as-a-Service, and preserves the active posture:
+
+```text
+pause_aas_proof_layering
+```
+
+This slice consumes the older `field_asset_ops` visible-state fixture outline by digest and maps it into the canonical June 13 package-family vocabulary as `Visible Asset State Snapshot`. It adds a typed internal/admin state menu fixture and tests:
+
+- `mcp_server/city_ops/aas_visible_asset_state_internal_state_menu.py`
+- `mcp_server/city_ops/fixtures/aas_package_ladder/aas_visible_asset_state_internal_state_menu.json`
+- `mcp_server/tests/city_ops/test_aas_visible_asset_state_internal_state_menu.py`
+
+Required held state rows now cover visible presence, apparent access/obstruction, apparent surface condition, visible indicator appearance, redacted media reference state, and uncertainty state. Each row preserves a missing truth family and forbids promotion into asset ownership/access/functionality, field visit authority, repair/remediation, safety, warranty, SLA, customer copy, exact-location/raw-metadata/private-context release, route/queue/dispatch, reputation, payment, runtime, or stopped-project claims.
+
+Safe 01:00 claim:
+
+```text
+internal_admin_aas_visible_asset_state_internal_state_menu_landed
+```
+
+Meaning only: internal/admin AAS planning now has a schema-backed Visible Asset State Snapshot state menu that consumes the previous Field Asset Ops outline and preserves all held boundaries. It records no operator answer, approval, selected value, answer receipt, asset class, collection method, field visit authorization, access permission, inspection, repair, remediation, customer/public/worker surface, catalog route, price, quote, queue, dispatch path, runtime/Acontext/IRC mutation, reputation / Worker Skill DNA movement, payment/production change, exact-location/raw-metadata/private-context release, authority claim, worker-copyable doctrine, or stopped-project integration.
+
+Verification passed: targeted menu/source-outline tests `21 passed`; full city-ops suite `2165 passed` after regenerating dependent source-index/digest fixtures.
+
+If no operator answer appears, the next safe concept-only family to map is **Pre-Event Blocker Check**. Do not move Visible Asset State Snapshot toward customer copy, field collection, routing, dispatch, pricing, reputation, payment, runtime, or publication without a separate explicit answer receipt.
+
+
 ## Latest June 14 00:00 package fixture/schema inventory
 
-`CITY_AS_A_SERVICE_12AM_AAS_PACKAGE_FIXTURE_SCHEMA_INVENTORY_2026_06_14.md` is the current internal/admin inventory refresh for the held AAS package set. It obeys `/Users/clawdbot/clawd/DREAM-PRIORITIES.md`, keeps work inside Execution Market AAS / City-as-a-Service, and preserves the active posture:
+`CITY_AS_A_SERVICE_12AM_AAS_PACKAGE_FIXTURE_SCHEMA_INVENTORY_2026_06_14.md` is the internal/admin inventory refresh for the held AAS package set. It obeys `/Users/clawdbot/clawd/DREAM-PRIORITIES.md`, keeps work inside Execution Market AAS / City-as-a-Service, and preserves the active posture:
 
 ```text
 pause_aas_proof_layering
