@@ -1715,14 +1715,21 @@
   },
   "current_entrypoints": [
     {
-      "digest_sha256": "3a69e0e3ccb9bfbad1e9782df684e2a77bdbe2ae51043d1d61805815e4bed213",
+      "digest_sha256": "2fd041292c64b0523a4b8cb5709ce355fc6cdee14c51c9158efadbbd8bb99854",
       "exists": true,
       "extension_policy": "current_entrypoint_update_only_when_new_safe_claim_lands",
       "path": "docs/planning/CITY_AS_A_SERVICE_DAYTIME_EXECUTION_BOARD.md",
       "role": "latest_append_only_execution_board"
     },
     {
-      "digest_sha256": "129824299b0e17e366a8c3990794b0ac602e2b7597782e6939af55faf12abd62",
+      "digest_sha256": "c2006ad427a33925411e0f2f0272b7dcd8d978249d49c5998275de262ada9024",
+      "exists": true,
+      "extension_policy": "current_read_only_morning_handoff_no_answer_runtime_payment_or_stopped_project_movement",
+      "path": "docs/planning/CITY_AS_A_SERVICE_6AM_FINAL_WRAP_2026_06_14.md",
+      "role": "latest_final_morning_wrap"
+    },
+    {
+      "digest_sha256": "6959f92476396d60f27aa901df1fc2b1ac0cf2f87214233b84aaad6ae59504f6",
       "exists": true,
       "extension_policy": "current_internal_admin_daytime_handoff_no_answer_no_selection_no_collection_runtime_dispatch_payment_or_stopped_project_movement",
       "path": "docs/planning/CITY_AS_A_SERVICE_5AM_PRE_DAWN_SYNTHESIS_2026_06_14.md",
@@ -1750,11 +1757,25 @@
       "role": "latest_internal_admin_pre_event_blocker_checklist"
     },
     {
+      "digest_sha256": "727ffe8916e6aba3c4f0548fb9e45dee9b963be9605a4fe7ff2c55e83314f265",
+      "exists": true,
+      "extension_policy": "current_internal_admin_state_menu_no_answer_no_asset_access_no_dispatch_runtime_payment_or_stopped_project_movement",
+      "path": "docs/planning/CITY_AS_A_SERVICE_1AM_VISIBLE_ASSET_STATE_MENU_2026_06_14.md",
+      "role": "latest_internal_admin_visible_asset_state_menu"
+    },
+    {
+      "digest_sha256": "8fdf8481cb9b6564bf82699d1c8c0453a8b7768809107996e6faf9b3167b9f12",
+      "exists": true,
+      "extension_policy": "current_internal_admin_inventory_no_answer_no_collection_runtime_dispatch_payment_or_stopped_project_movement",
+      "path": "docs/planning/CITY_AS_A_SERVICE_12AM_AAS_PACKAGE_FIXTURE_SCHEMA_INVENTORY_2026_06_14.md",
+      "role": "latest_internal_admin_package_fixture_schema_inventory"
+    },
+    {
       "digest_sha256": "555a7ac51745e16b4d340b678cb3871cab14649fd38b169945c022ec926825a3",
       "exists": true,
-      "extension_policy": "current_read_only_morning_handoff_no_answer_runtime_payment_or_stopped_project_movement",
+      "extension_policy": "context_only_previous_read_only_morning_handoff_no_answer_runtime_payment_or_stopped_project_movement",
       "path": "docs/planning/CITY_AS_A_SERVICE_6AM_FINAL_WRAP_2026_06_13.md",
-      "role": "latest_final_morning_wrap"
+      "role": "previous_final_morning_wrap_context"
     },
     {
       "digest_sha256": "ada59bacc7c62a532319311b82a96f832840b69fb2df8387dec25cd92da5cded",

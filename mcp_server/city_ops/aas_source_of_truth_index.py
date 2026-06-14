@@ -43,6 +43,11 @@ CURRENT_ENTRYPOINT_DOCS = [
         "extension_policy": "current_entrypoint_update_only_when_new_safe_claim_lands",
     },
     {
+        "path": "docs/planning/CITY_AS_A_SERVICE_6AM_FINAL_WRAP_2026_06_14.md",
+        "role": "latest_final_morning_wrap",
+        "extension_policy": "current_read_only_morning_handoff_no_answer_runtime_payment_or_stopped_project_movement",
+    },
+    {
         "path": "docs/planning/CITY_AS_A_SERVICE_5AM_PRE_DAWN_SYNTHESIS_2026_06_14.md",
         "role": "latest_internal_admin_pre_dawn_synthesis",
         "extension_policy": "current_internal_admin_daytime_handoff_no_answer_no_selection_no_collection_runtime_dispatch_payment_or_stopped_project_movement",
@@ -63,9 +68,19 @@ CURRENT_ENTRYPOINT_DOCS = [
         "extension_policy": "current_internal_admin_checklist_no_answer_no_event_access_no_permit_security_dispatch_runtime_payment_or_stopped_project_movement",
     },
     {
+        "path": "docs/planning/CITY_AS_A_SERVICE_1AM_VISIBLE_ASSET_STATE_MENU_2026_06_14.md",
+        "role": "latest_internal_admin_visible_asset_state_menu",
+        "extension_policy": "current_internal_admin_state_menu_no_answer_no_asset_access_no_dispatch_runtime_payment_or_stopped_project_movement",
+    },
+    {
+        "path": "docs/planning/CITY_AS_A_SERVICE_12AM_AAS_PACKAGE_FIXTURE_SCHEMA_INVENTORY_2026_06_14.md",
+        "role": "latest_internal_admin_package_fixture_schema_inventory",
+        "extension_policy": "current_internal_admin_inventory_no_answer_no_collection_runtime_dispatch_payment_or_stopped_project_movement",
+    },
+    {
         "path": "docs/planning/CITY_AS_A_SERVICE_6AM_FINAL_WRAP_2026_06_13.md",
-        "role": "latest_final_morning_wrap",
-        "extension_policy": "current_read_only_morning_handoff_no_answer_runtime_payment_or_stopped_project_movement",
+        "role": "previous_final_morning_wrap_context",
+        "extension_policy": "context_only_previous_read_only_morning_handoff_no_answer_runtime_payment_or_stopped_project_movement",
     },
     {
         "path": "docs/planning/CITY_AS_A_SERVICE_5AM_BOUNDED_LOCAL_COUNT_PRE_DAWN_SYNTHESIS_2026_06_13.md",

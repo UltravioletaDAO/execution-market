@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-06-14 05:00 America/New_York
+> Last updated: 2026-06-14 06:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -8,6 +8,52 @@
 > - `CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md`
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
+
+
+## Latest June 14 06:00 final morning wrap
+
+`CITY_AS_A_SERVICE_6AM_FINAL_WRAP_2026_06_14.md` is the current internal/admin final morning handoff for Execution Market AAS / City-as-a-Service. It obeys `/Users/clawdbot/clawd/DREAM-PRIORITIES.md` over the stale cron payload, so AutoJob pull/analysis/integration, Frontier Academy expansion, KK v2 continuation, and KarmaCadabra v2 work remain stopped for dream work.
+
+The June 14 night chain is now sealed:
+
+```text
+00:00 package fixture/schema inventory
+→ 01:00 Visible Asset State internal state menu
+→ 02:00 Pre-Event Blocker internal checklist
+→ 03:00 package-family hold selector
+→ 04:00 pattern-recognition multiplier ladder
+→ 05:00 pre-dawn synthesis
+→ 06:00 final wrap
+```
+
+Core handoff pattern:
+
+```text
+digest-backed read-only handoffs
+→ canonical package-family grammar
+→ explicit blocked adjacent claims
+→ one tiny operator answer value
+→ one separate answer receipt
+→ only then downstream implementation
+```
+
+Recommended single value if Saúl chooses to move remains:
+
+```text
+bounded_local_count.visible_posted_state_count.v1
+```
+
+That value is **not selected** by this final wrap. It remains only the recommended future answer value.
+
+Safe 06:00 claim:
+
+```text
+internal_admin_aas_6am_final_wrap_2026_06_14_landed
+```
+
+Meaning only: the June 14 AAS dream cycle has a final internal/admin morning handoff and daytime continuity packet. It preserves `pause_aas_proof_layering` and authorizes no operator answer, approval, selected value, answer receipt, collection, customer/public/worker surface, catalog route, price, quote, queue, dispatch path, runtime/Acontext/IRC/session-manager mutation, reputation / Worker Skill DNA movement, payment/production/chain movement, exact-location/raw-metadata/private-context release, authority claim, worker-copyable doctrine, or stopped-project integration.
+
+Immediate daytime attention: hold unless Saúl gives a crisp operator answer. If he chooses exactly one Bounded Local Count value, create one separate digest-backed answer receipt with an opaque non-secret reference before any downstream gate.
 
 
 ## Latest June 14 05:00 pre-dawn synthesis

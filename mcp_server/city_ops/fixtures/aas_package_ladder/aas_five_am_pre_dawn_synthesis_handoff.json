@@ -2113,7 +2113,7 @@
     ]
   },
   "source_pattern_ladder": {
-    "digest_sha256": "ec9b00702f7016ed9a1a8d59130d71b6dd9b7dcb1ca0351b51fff5c73ece064d",
+    "digest_sha256": "e862e261b0fb40039e1323a7c96e1fb7414452444fac16a9978eaf746898e617",
     "file": "aas_four_am_pattern_recognition_multiplier_ladder.json",
     "safe_claim": "internal_admin_aas_4am_pattern_recognition_multiplier_ladder_landed",
     "source_role": "current_4am_pattern_recognition_multiplier_ladder"
