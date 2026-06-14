@@ -1722,7 +1722,7 @@
       "role": "latest_append_only_execution_board"
     },
     {
-      "digest_sha256": "2aaa9235b0abc2e44bb18bc87979d674bf78614900561935c30f096fd5197fb1",
+      "digest_sha256": "c89cbec80f0c2d1ba66322a106d426f14a4bd583d03580cb2444fd12487d2e45",
       "exists": true,
       "extension_policy": "current_internal_admin_hold_selector_no_answer_no_selection_no_collection_runtime_dispatch_payment_or_stopped_project_movement",
       "path": "docs/planning/CITY_AS_A_SERVICE_3AM_PACKAGE_FAMILY_HOLD_SELECTOR_2026_06_14.md",
