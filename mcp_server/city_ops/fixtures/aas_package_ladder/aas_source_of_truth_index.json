@@ -1715,14 +1715,21 @@
   },
   "current_entrypoints": [
     {
-      "digest_sha256": "e22e56cfd0ea63ec2bddd0718dd68a3547f79e8d1eafc7b0bb23d0f647a29760",
+      "digest_sha256": "cda0869318845855383ddb566ecd7433c1dfe80b79c884be02fc3e977c921e0e",
       "exists": true,
       "extension_policy": "current_entrypoint_update_only_when_new_safe_claim_lands",
       "path": "docs/planning/CITY_AS_A_SERVICE_DAYTIME_EXECUTION_BOARD.md",
       "role": "latest_append_only_execution_board"
     },
     {
-      "digest_sha256": "88e140462a08571603bf8c7e04401746202002a75e7035c00ebffadec7885769",
+      "digest_sha256": "2aaa9235b0abc2e44bb18bc87979d674bf78614900561935c30f096fd5197fb1",
+      "exists": true,
+      "extension_policy": "current_internal_admin_hold_selector_no_answer_no_selection_no_collection_runtime_dispatch_payment_or_stopped_project_movement",
+      "path": "docs/planning/CITY_AS_A_SERVICE_3AM_PACKAGE_FAMILY_HOLD_SELECTOR_2026_06_14.md",
+      "role": "latest_internal_admin_package_family_hold_selector"
+    },
+    {
+      "digest_sha256": "eb4645654069be672c7b549753fcb31bd0c39407f71419ffae200bed362db73d",
       "exists": true,
       "extension_policy": "current_internal_admin_checklist_no_answer_no_event_access_no_permit_security_dispatch_runtime_payment_or_stopped_project_movement",
       "path": "docs/planning/CITY_AS_A_SERVICE_2AM_PRE_EVENT_BLOCKER_CHECKLIST_2026_06_14.md",

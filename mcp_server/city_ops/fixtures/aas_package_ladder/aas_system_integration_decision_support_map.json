@@ -1857,7 +1857,7 @@
   "schema": "city_ops.aas_system_integration_decision_support_map.v1",
   "scope": "internal_admin_aas_system_integration_decision_support_only",
   "source_index": {
-    "digest_sha256": "be44efcc1d0a935511164f15599e8e693841238beae30b189a594a0c433bac0c",
+    "digest_sha256": "c4fdc7ca3e5ce967d21562af7147ba4d0d4c69833bf7e31abb8e3b27bf933306",
     "effective_decision": "keep_both_lanes_held_internal_admin_only",
     "file": "aas_source_of_truth_index.json",
     "index_id": "execution_market.aas.source_of_truth_index.2026_06_03_0200",

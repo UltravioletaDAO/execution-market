@@ -1746,7 +1746,7 @@
       "internal_admin_aas_4am_bounded_local_count_pattern_compounder_2026_06_13_landed"
     ]
   },
-  "compounder_digest_sha256": "4ca69c8f32736e0590502a64ada1f6060893b68602a55185f907b6a0ed2ab290",
+  "compounder_digest_sha256": "da717b17c0ffdc621e3c7b158086742140553bda877405f368cf8dad8c32685a",
   "compounder_id": "execution_market.aas.bounded_local_count.pattern_compounder.2026_06_13_0400",
   "compounder_status": "internal_admin_pattern_compounder_only_no_answer_no_approval_no_runtime_or_external_promotion",
   "compounding_sequence": [
@@ -1872,7 +1872,7 @@
     "schema": "city_ops.aas_bounded_local_count_fixture_gate.v1"
   },
   "source_index": {
-    "digest_sha256": "be44efcc1d0a935511164f15599e8e693841238beae30b189a594a0c433bac0c",
+    "digest_sha256": "c4fdc7ca3e5ce967d21562af7147ba4d0d4c69833bf7e31abb8e3b27bf933306",
     "file": "aas_source_of_truth_index.json",
     "safe_claim": "internal_admin_aas_source_of_truth_index_landed",
     "schema": "city_ops.aas_source_of_truth_index.v1"

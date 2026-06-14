@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-06-14 01:00 America/New_York
+> Last updated: 2026-06-14 03:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -8,6 +8,41 @@
 > - `CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md`
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
+
+
+## Latest June 14 03:00 package-family hold selector
+
+`CITY_AS_A_SERVICE_3AM_PACKAGE_FAMILY_HOLD_SELECTOR_2026_06_14.md` is the current internal/admin selector over the held AAS package-family set. It obeys `/Users/clawdbot/clawd/DREAM-PRIORITIES.md`, keeps work inside Execution Market AAS / City-as-a-Service, and preserves the active posture:
+
+```text
+pause_aas_proof_layering
+```
+
+This slice consumes the latest held package-family artifacts by digest:
+
+- `aas_bounded_local_count_fixture_gate.json`
+- `aas_visible_asset_state_internal_state_menu.json`
+- `aas_pre_event_blocker_internal_checklist.json`
+
+It records that fixture/menu/checklist depth is not authorization. Bounded Local Count remains the only family with a named next value gate, and even that value is **not selected** until a separate explicit human/operator answer exists. Visible Asset State Snapshot and Pre-Event Blocker Check remain internal/admin grammars only.
+
+Recommended single next value if Saúl chooses to move the Bounded Local Count lane:
+
+```text
+bounded_local_count.visible_posted_state_count.v1
+```
+
+The selector also maps system-integration connections in read-only form: Memory ↔ Acontext digest carry-forward, IRC handoff fields, cross-project stopped-project filtering, no-answer observability metrics, and payment/production maturity as future prerequisite context only. It performs no runtime, IRC/session-manager, payment, chain, production, reputation, dispatch, or stopped-project movement.
+
+Safe 03:00 claim:
+
+```text
+internal_admin_aas_package_family_hold_selector_landed
+```
+
+Meaning only: internal/admin AAS planning now has a deterministic selector that consumes the three latest held package-family artifacts, preserves `pause_aas_proof_layering`, and names the single safest future Bounded Local Count answer value without selecting it. It records no operator answer, approval, selected value, answer receipt, asset class, event type, collection method, customer/public/worker surface, catalog route, price, quote, queue, dispatch path, runtime/Acontext/IRC mutation, reputation / Worker Skill DNA movement, payment/production/chain reverification, exact-location/raw-metadata/private-context release, authority claim, worker-copyable doctrine, or stopped-project integration.
+
+Verification passed: package-family hold selector plus Bounded Local Count, Visible Asset State, and Pre-Event Blocker tests `44 passed`. Next safe action without a human/operator answer: hold. If a real operator answer appears, create one separate digest-backed answer receipt before any downstream gate.
 
 
 ## Latest June 14 02:00 Pre-Event Blocker internal checklist
