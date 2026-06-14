@@ -1,6 +1,6 @@
 # City as a Service — Daytime Execution Board
 
-> Last updated: 2026-06-13 22:00 America/New_York
+> Last updated: 2026-06-13 23:00 America/New_York
 > Parent docs:
 > - `MASTER_PLAN_CITY_AS_A_SERVICE.md`
 > - `CITY_AS_A_SERVICE_DAYTIME_BUILD_SPEC.md`
@@ -8,6 +8,39 @@
 > - `CITY_AS_A_SERVICE_TYPED_VALIDATORS_AND_FIXTURE_SCHEMA.md`
 > - `CITY_AS_A_SERVICE_FIXTURE_REPLAY_AND_ACCEPTANCE_TEST_PLAN.md`
 > Status: execution handoff board
+
+
+## Latest June 13 23:00 package-family normalization and blocked-claim vocabulary
+
+`CITY_AS_A_SERVICE_11PM_PACKAGE_FAMILY_NORMALIZATION_AND_BLOCKED_CLAIM_VOCABULARY_2026_06_13.md` is the current internal/admin terminology-normalization slice for the held AAS package set. It obeys `/Users/clawdbot/clawd/DREAM-PRIORITIES.md`, keeps the branch on `feat/operator-route-regret-panel`, and preserves the active posture:
+
+```text
+pause_aas_proof_layering
+```
+
+This slice separates canonical internal package-family names from older offer/catalog labels so future planning can reuse commercial packaging drafts without implying customer/public/worker exposure, pricing approval, queueing, dispatch, runtime movement, reputation, payment, exact-location/raw-metadata/private-context release, authority, or stopped-project integration.
+
+Canonical family names now preferred while held:
+
+- Bounded Local Count
+- Visible Asset State Snapshot
+- Pre-Event Blocker Check
+- Handoff Attempt Proof
+- Compliance Hold Review
+- Counter Reality Check
+- Local Data Collection
+
+Shared blocked-claim vocabulary now travels as `operator_truth`, `collection_truth`, `surface_truth`, `runtime_truth`, `economic_truth`, `reputation_truth`, `location_privacy_truth`, `authority_truth`, and `cross_project_truth`.
+
+Safe 23:00 claim:
+
+```text
+internal_admin_aas_11pm_package_family_normalization_and_blocked_claim_vocabulary_2026_06_13_landed
+```
+
+Meaning only: internal/admin AAS planning now has canonical package-family names, offer-label mappings, and shared blocked-claim vocabulary for future City-as-a-Service planning. It records no operator answer, approval, selected value, answer receipt, collection authorization, customer/public/worker surface, public catalog, pricing approval, quote, queue, dispatch path, runtime/Acontext/IRC mutation, reputation/Worker Skill DNA movement, payment/production change, exact-location/raw-metadata/private-context release, authority claim, worker-copyable doctrine, or stopped-project integration.
+
+The next stronger move remains exactly one separate operator-approved Bounded Local Count value, preferably `bounded_local_count.visible_posted_state_count.v1`; otherwise keep the hold.
 
 
 ## Latest June 13 22:00 no-answer AAS package concept map
