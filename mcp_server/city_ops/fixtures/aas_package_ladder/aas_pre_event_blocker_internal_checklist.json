@@ -1,0 +1,265 @@
+{
+  "checklist_digest_sha256": "3497cfdd1abd2f9da908e9e07eea1f13f15d83b392723867ed9bcb58fb99390c",
+  "checklist_id": "execution_market.aas.pre_event_blocker_internal_checklist.2026_06_14_0200",
+  "checklist_status": "internal_admin_checklist_no_answer_no_approval_no_event_access_no_permit_security_or_dispatch",
+  "claim_boundaries": {
+    "do_not_claim_yet": [
+      "concept_gap_matrix_records_operator_answer",
+      "concept_gap_matrix_records_operator_approval",
+      "concept_gap_matrix_creates_answer_receipt",
+      "concept_gap_matrix_selects_future_answer",
+      "concept_gap_matrix_treats_gap_rank_as_approval",
+      "concept_gap_matrix_approves_product_exposure",
+      "concept_gap_matrix_creates_customer_public_or_worker_surface",
+      "concept_gap_matrix_authorizes_catalog_pricing_quote_queue_or_dispatch",
+      "concept_gap_matrix_emits_erc8004_reputation_or_worker_skill_dna",
+      "concept_gap_matrix_reverifies_payment_or_production",
+      "concept_gap_matrix_mutates_runtime_acontext_or_irc_session_manager",
+      "concept_gap_matrix_releases_exact_gps_raw_metadata_or_private_context",
+      "concept_gap_matrix_grants_legal_regulator_notarial_custody_emergency_safety_repair_insurance_sla_official_report_or_fault_liability_authority",
+      "concept_gap_matrix_publishes_worker_copyable_doctrine",
+      "concept_gap_matrix_integrates_or_expands_stopped_projects",
+      "retail_reality_customer_exposure_approved_by_matrix",
+      "local_data_collection_dataset_or_representativeness_claim_approved_by_matrix",
+      "field_asset_ops_repair_diagnosis_or_sla_claim_approved_by_matrix",
+      "event_readiness_safety_permit_security_vendor_or_outcome_claim_approved_by_matrix",
+      "property_ops_appraisal_code_legal_access_insurance_or_remediation_claim_approved_by_matrix",
+      "document_handoff_legal_notarial_custody_or_acceptance_claim_approved_by_matrix",
+      "compliance_desk_regulator_legal_sufficiency_or_publication_claim_approved_by_matrix",
+      "incident_verification_emergency_official_report_fault_liability_or_repair_claim_approved_by_matrix",
+      "system_integration_runtime_memory_write_retrieve_or_parity_claim_approved_by_matrix",
+      "concept_gap_roadmap_records_operator_answer",
+      "concept_gap_roadmap_records_operator_approval",
+      "concept_gap_roadmap_creates_answer_receipt",
+      "concept_gap_roadmap_selects_future_answer",
+      "concept_gap_roadmap_treats_sequence_rank_as_approval",
+      "concept_gap_roadmap_approves_product_exposure",
+      "concept_gap_roadmap_creates_customer_public_or_worker_surface",
+      "concept_gap_roadmap_authorizes_catalog_pricing_quote_route_queue_or_dispatch",
+      "concept_gap_roadmap_creates_worker_instruction",
+      "concept_gap_roadmap_emits_erc8004_reputation_or_worker_skill_dna",
+      "concept_gap_roadmap_reverifies_payment_or_production",
+      "concept_gap_roadmap_mutates_runtime_acontext_or_irc_session_manager",
+      "concept_gap_roadmap_releases_exact_gps_raw_metadata_or_private_context",
+      "concept_gap_roadmap_grants_legal_regulator_notarial_custody_emergency_safety_repair_insurance_sla_official_report_or_fault_liability_authority",
+      "concept_gap_roadmap_publishes_worker_copyable_doctrine",
+      "concept_gap_roadmap_integrates_or_expands_stopped_projects",
+      "event_readiness_observation_outline_records_operator_answer",
+      "event_readiness_observation_outline_records_operator_approval",
+      "event_readiness_observation_outline_creates_answer_receipt",
+      "event_readiness_observation_outline_selects_future_answer",
+      "event_readiness_observation_outline_treats_concept_as_approval",
+      "event_readiness_observation_outline_approves_product_exposure",
+      "event_readiness_observation_outline_creates_customer_public_or_worker_copy",
+      "event_readiness_observation_outline_authorizes_event_site_access_recipient_or_customer_use",
+      "event_readiness_observation_outline_authorizes_permit_security_vendor_venue_or_crowd_control_decision",
+      "event_readiness_observation_outline_certifies_capacity_safety_attendance_outcome_or_sla",
+      "event_readiness_observation_outline_creates_catalog_pricing_quote_route_queue_or_dispatch",
+      "event_readiness_observation_outline_creates_worker_instruction",
+      "event_readiness_observation_outline_emits_erc8004_reputation_or_worker_skill_dna",
+      "event_readiness_observation_outline_reverifies_payment_or_production",
+      "event_readiness_observation_outline_mutates_runtime_acontext_or_irc_session_manager",
+      "event_readiness_observation_outline_releases_exact_gps_raw_metadata_private_context_or_pii",
+      "event_readiness_observation_outline_grants_municipal_permit_legal_or_crowd_control_authority",
+      "event_readiness_observation_outline_publishes_worker_copyable_doctrine",
+      "event_readiness_observation_outline_integrates_or_expands_stopped_projects",
+      "pre_event_blocker_checklist_records_operator_answer",
+      "pre_event_blocker_checklist_records_operator_approval",
+      "pre_event_blocker_checklist_creates_answer_receipt",
+      "pre_event_blocker_checklist_selects_event_type_future_answer_or_collection_method",
+      "pre_event_blocker_checklist_treats_check_option_as_approval",
+      "pre_event_blocker_checklist_approves_product_exposure",
+      "pre_event_blocker_checklist_creates_customer_public_or_worker_copy",
+      "pre_event_blocker_checklist_authorizes_event_site_access_recipient_or_customer_use",
+      "pre_event_blocker_checklist_authorizes_permit_security_vendor_venue_or_crowd_control_decision",
+      "pre_event_blocker_checklist_certifies_capacity_safety_attendance_outcome_or_sla",
+      "pre_event_blocker_checklist_creates_catalog_pricing_quote_route_queue_or_dispatch",
+      "pre_event_blocker_checklist_creates_worker_instruction",
+      "pre_event_blocker_checklist_emits_erc8004_reputation_or_worker_skill_dna",
+      "pre_event_blocker_checklist_reverifies_payment_or_production",
+      "pre_event_blocker_checklist_mutates_runtime_acontext_or_irc_session_manager",
+      "pre_event_blocker_checklist_releases_exact_gps_raw_metadata_private_context_or_pii",
+      "pre_event_blocker_checklist_grants_municipal_permit_legal_or_crowd_control_authority",
+      "pre_event_blocker_checklist_publishes_worker_copyable_doctrine",
+      "pre_event_blocker_checklist_integrates_or_expands_stopped_projects"
+    ],
+    "safe_to_claim": [
+      "internal_admin_aas_event_readiness_observation_outline_landed",
+      "internal_admin_aas_pre_event_blocker_internal_checklist_landed"
+    ]
+  },
+  "current_operator_state": {
+    "answer_receipt_created": false,
+    "collection_method_authorized": false,
+    "event_type_selected": false,
+    "explicit_operator_answer_available": false,
+    "operator_approval_recorded": false,
+    "recommended_no_human_posture": "checklist_only",
+    "selected_decision": null
+  },
+  "governing_priority": {
+    "allowed_lane": "Execution Market AAS / City-as-a-Service Pre-Event Blocker Check planning",
+    "source": "/Users/clawdbot/clawd/DREAM-PRIORITIES.md",
+    "stopped_project_firewall": {
+      "autojob_work_allowed": false,
+      "frontier_academy_work_allowed": false,
+      "karmacadabra_v2_work_allowed": false,
+      "kk_v2_work_allowed": false
+    }
+  },
+  "pre_event_blocker_internal_checklist": {
+    "allowed_truth_families": [
+      "operator_truth",
+      "surface_truth",
+      "runtime_truth",
+      "location_privacy_truth",
+      "authority_truth"
+    ],
+    "allowed_use": "internal_admin_checklist_only_no_event_type_no_site_access_no_customer_copy",
+    "canonical_family": "Pre-Event Blocker Check",
+    "checklist_mode": "checklist_only",
+    "checklist_rows": [
+      {
+        "allowed_check_values": [
+          "setup_presence_visible",
+          "setup_absent_from_allowed_view",
+          "setup_partial_or_ambiguous",
+          "not_observable_or_unknown"
+        ],
+        "check_code": "visible_setup_presence_state",
+        "forbidden_promotion": "does_not_certify_operational_readiness_capacity_safety_attendance_or_event_outcome",
+        "missing_truth_family": "authority_truth",
+        "safe_internal_read": "records only whether visible pre-event setup appears present from an allowed review context"
+      },
+      {
+        "allowed_check_values": [
+          "wayfinding_or_staging_visible",
+          "wayfinding_or_staging_absent_from_allowed_view",
+          "wayfinding_or_staging_inconsistent_or_unclear",
+          "not_observable_or_unknown"
+        ],
+        "check_code": "wayfinding_and_staging_state",
+        "forbidden_promotion": "does_not_confirm_permit_compliance_crowd_flow_accessibility_or_event_readiness",
+        "missing_truth_family": "authority_truth",
+        "safe_internal_read": "records visible wayfinding or staging markers without deciding whether they are sufficient"
+      },
+      {
+        "allowed_check_values": [
+          "no_visible_obstruction_from_allowed_view",
+          "apparent_obstruction_visible",
+          "access_path_not_visible_or_not_checked",
+          "not_observable_or_unknown"
+        ],
+        "check_code": "apparent_access_or_obstruction_state",
+        "forbidden_promotion": "does_not_authorize_entry_removal_route_change_security_action_or_safety_clearance",
+        "missing_truth_family": "authority_truth",
+        "safe_internal_read": "records only visible obstruction signals without access or crowd-control authority"
+      },
+      {
+        "allowed_check_values": [
+          "vendor_or_equipment_presence_visible",
+          "vendor_or_equipment_absent_from_allowed_view",
+          "vendor_or_equipment_presence_unclear",
+          "not_observable_or_unknown"
+        ],
+        "check_code": "visible_vendor_or_equipment_state",
+        "forbidden_promotion": "does_not_confirm_vendor_commitment_equipment_functionality_service_level_or_delivery_outcome",
+        "missing_truth_family": "surface_truth",
+        "safe_internal_read": "records visible vendor or equipment presence without performance or commitment claims"
+      },
+      {
+        "allowed_check_values": [
+          "inside_named_observation_window",
+          "outside_or_after_named_observation_window",
+          "window_unverified_or_ambiguous",
+          "not_applicable_or_unknown"
+        ],
+        "check_code": "time_window_warning_state",
+        "forbidden_promotion": "does_not_create_monitoring_sla_real_time_status_or_event_day_guarantee",
+        "missing_truth_family": "runtime_truth",
+        "safe_internal_read": "keeps any pre-event blocker observation tied to a bounded time window"
+      },
+      {
+        "allowed_check_values": [
+          "redacted_reference_available",
+          "redaction_required_before_reference",
+          "withheld_private_context_or_raw_metadata",
+          "not_applicable_or_unknown"
+        ],
+        "check_code": "redacted_reference_state",
+        "forbidden_promotion": "does_not_release_exact_location_raw_metadata_private_context_contact_data_or_pii",
+        "missing_truth_family": "location_privacy_truth",
+        "safe_internal_read": "tracks whether a redacted internal reference can support the blocker row"
+      },
+      {
+        "allowed_check_values": [
+          "explicitly_not_checked",
+          "blocked_by_visibility_or_scope_limit",
+          "contradictory_or_inconclusive_needs_review",
+          "clear_within_allowed_view"
+        ],
+        "check_code": "unresolved_not_checked_state",
+        "forbidden_promotion": "does_not_convert_omitted_ambiguous_or_out_of_scope_facts_into_customer_ready_claims",
+        "missing_truth_family": "operator_truth",
+        "safe_internal_read": "keeps not-checked and inconclusive facts attached to any blocker summary"
+      }
+    ],
+    "legacy_source_family": "event_readiness",
+    "next_gate_before_any_delivery_or_runtime_movement": "separate_event_type_observation_window_and_operator_answer_receipt",
+    "required_check_codes": [
+      "visible_setup_presence_state",
+      "wayfinding_and_staging_state",
+      "apparent_access_or_obstruction_state",
+      "visible_vendor_or_equipment_state",
+      "time_window_warning_state",
+      "redacted_reference_state",
+      "unresolved_not_checked_state"
+    ],
+    "row_contract": {
+      "must_include_allowed_check_values": true,
+      "must_include_check_code": true,
+      "must_include_forbidden_promotion": true,
+      "must_include_missing_truth_family": true,
+      "must_include_safe_internal_read": true
+    },
+    "still_blocked": true
+  },
+  "readiness": {
+    "checklist_approves_product_exposure": false,
+    "checklist_authorizes_event_site_access_or_recipient": false,
+    "checklist_authorizes_permit_security_vendor_venue_or_crowd_control_decision": false,
+    "checklist_certifies_capacity_safety_attendance_outcome_or_sla": false,
+    "checklist_creates_answer_receipt": false,
+    "checklist_creates_catalog_pricing_quote_route_queue_or_dispatch": false,
+    "checklist_creates_customer_public_or_worker_copy": false,
+    "checklist_creates_worker_instruction": false,
+    "checklist_emits_reputation_or_worker_skill_dna": false,
+    "checklist_grants_municipal_permit_legal_or_crowd_control_authority": false,
+    "checklist_integrates_or_expands_stopped_projects": false,
+    "checklist_mutates_runtime_acontext_or_irc_session_manager": false,
+    "checklist_publishes_worker_copyable_doctrine": false,
+    "checklist_records_operator_answer": false,
+    "checklist_records_operator_approval": false,
+    "checklist_releases_exact_gps_raw_metadata_private_context_or_pii": false,
+    "checklist_reverifies_payment_or_production": false,
+    "checklist_selects_event_type_or_future_answer": false
+  },
+  "schema": "city_ops.aas_pre_event_blocker_internal_checklist.v1",
+  "sequence_rules": [
+    "Treat the checklist as internal/admin grammar only; never as approval, customer copy, or worker instruction.",
+    "Do not select an event type, site, collection method, route, queue, dispatch path, or recipient from this checklist.",
+    "Do not convert visible blocker rows into permit, security, crowd-control, vendor, capacity, safety, SLA, or outcome claims.",
+    "Do not expose exact location, raw metadata, private context, PII, contact data, or unredacted references from this checklist.",
+    "Create a separate explicit operator answer receipt before any Pre-Event Blocker Check customer, worker, field, catalog, or runtime gate.",
+    "Keep AutoJob, Frontier Academy, KK v2, and KarmaCadabra v2 out of the active dream workstream."
+  ],
+  "source_outline": {
+    "canonical_family": "Pre-Event Blocker Check",
+    "consumed_family": "event_readiness",
+    "digest_sha256": "ba5b28395db412d9752049f9743c441285eed0e8dc671fa647f81a86859ea990",
+    "file": "aas_event_readiness_observation_outline.json",
+    "observation_outline_id": "execution_market.aas.event_readiness_observation_outline.2026_06_06_0700",
+    "safe_claim": "internal_admin_aas_event_readiness_observation_outline_landed",
+    "schema": "city_ops.aas_event_readiness_observation_outline.v1"
+  }
+}

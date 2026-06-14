@@ -10,6 +10,33 @@
 > Status: execution handoff board
 
 
+## Latest June 14 02:00 Pre-Event Blocker internal checklist
+
+`CITY_AS_A_SERVICE_2AM_PRE_EVENT_BLOCKER_CHECKLIST_2026_06_14.md` is the current internal/admin schema-backed checklist slice for the held **Pre-Event Blocker Check** package family. It obeys `/Users/clawdbot/clawd/DREAM-PRIORITIES.md`, keeps work inside Execution Market AAS / City-as-a-Service, and preserves the active posture:
+
+```text
+pause_aas_proof_layering
+```
+
+This slice consumes the older `event_readiness` observation outline by digest and maps it into the canonical June 13 package-family vocabulary as `Pre-Event Blocker Check`. It adds a typed internal/admin checklist fixture and tests:
+
+- `mcp_server/city_ops/aas_pre_event_blocker_internal_checklist.py`
+- `mcp_server/city_ops/fixtures/aas_package_ladder/aas_pre_event_blocker_internal_checklist.json`
+- `mcp_server/tests/city_ops/test_aas_pre_event_blocker_internal_checklist.py`
+
+Required held checklist rows now cover visible setup presence, wayfinding/staging state, apparent access or obstruction, visible vendor/equipment state, time-window warning, redacted reference state, and unresolved/not-checked state. Each row preserves a missing truth family and forbids promotion into event-site access, permit/security/vendor/venue/crowd-control authority, capacity/safety/attendance/outcome/SLA claims, customer copy, exact-location/raw-metadata/private-context release, route/queue/dispatch, reputation, payment, runtime, or stopped-project claims.
+
+Safe 02:00 claim:
+
+```text
+internal_admin_aas_pre_event_blocker_internal_checklist_landed
+```
+
+Meaning only: internal/admin AAS planning now has a schema-backed Pre-Event Blocker Check checklist that consumes the previous Event Readiness observation outline and preserves all held boundaries. It records no operator answer, approval, selected value, answer receipt, event type, collection method, event-site access authorization, permit/security/vendor/venue decision, crowd-control authority, customer/public/worker surface, catalog route, price, quote, queue, dispatch path, runtime/Acontext/IRC mutation, reputation / Worker Skill DNA movement, payment/production change, exact-location/raw-metadata/private-context release, authority claim, worker-copyable doctrine, or stopped-project integration.
+
+Verification passed: targeted checklist/source-outline tests `21 passed`. After this concept-only checklist, the safe default is to stop adding package menus and return to the central gate: wait for one explicit Bounded Local Count value, preferably `bounded_local_count.visible_posted_state_count.v1`, before any answer receipt. Do not move Pre-Event Blocker Check toward customer copy, event-site access, collection, routing, dispatch, pricing, reputation, payment, runtime, publication, or authority claims without a separate explicit answer receipt.
+
+
 ## Latest June 14 01:00 Visible Asset State internal state menu
 
 `CITY_AS_A_SERVICE_1AM_VISIBLE_ASSET_STATE_MENU_2026_06_14.md` is the current internal/admin schema-backed state-menu slice for the held **Visible Asset State Snapshot** package family. It obeys `/Users/clawdbot/clawd/DREAM-PRIORITIES.md`, keeps work inside Execution Market AAS / City-as-a-Service, and preserves the active posture:
