@@ -1715,11 +1715,25 @@
   },
   "current_entrypoints": [
     {
-      "digest_sha256": "cda0869318845855383ddb566ecd7433c1dfe80b79c884be02fc3e977c921e0e",
+      "digest_sha256": "3a69e0e3ccb9bfbad1e9782df684e2a77bdbe2ae51043d1d61805815e4bed213",
       "exists": true,
       "extension_policy": "current_entrypoint_update_only_when_new_safe_claim_lands",
       "path": "docs/planning/CITY_AS_A_SERVICE_DAYTIME_EXECUTION_BOARD.md",
       "role": "latest_append_only_execution_board"
+    },
+    {
+      "digest_sha256": "129824299b0e17e366a8c3990794b0ac602e2b7597782e6939af55faf12abd62",
+      "exists": true,
+      "extension_policy": "current_internal_admin_daytime_handoff_no_answer_no_selection_no_collection_runtime_dispatch_payment_or_stopped_project_movement",
+      "path": "docs/planning/CITY_AS_A_SERVICE_5AM_PRE_DAWN_SYNTHESIS_2026_06_14.md",
+      "role": "latest_internal_admin_pre_dawn_synthesis"
+    },
+    {
+      "digest_sha256": "109dfeea3ad70a143d99b4d7f1b63e61f64a23b22545f5ee553869439a6777f5",
+      "exists": true,
+      "extension_policy": "current_internal_admin_pattern_ladder_no_answer_no_runtime_irc_reputation_payment_or_stopped_project_movement",
+      "path": "docs/planning/CITY_AS_A_SERVICE_4AM_AAS_PATTERN_RECOGNITION_MULTIPLIER_LADDER_2026_06_14.md",
+      "role": "latest_internal_admin_pattern_recognition_multiplier_ladder"
     },
     {
       "digest_sha256": "c89cbec80f0c2d1ba66322a106d426f14a4bd583d03580cb2444fd12487d2e45",
